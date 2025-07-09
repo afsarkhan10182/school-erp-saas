@@ -20,6 +20,15 @@ class UserService {
         if (!school || school.status !== 'active') {
           throw new ApiError(400, 'Invalid or inactive school');
         }
+        // ENFORCE max_students for student role
+        if (userData.role === 'student') {
+          const activeStudentCount = await User.count({
+            where: { school_id: school.id, role: 'student', status: 'active' }
+          });
+          if (activeStudentCount >= school.max_students) {
+            throw new ApiError(400, `Student limit reached for this school (max: ${school.max_students})`);
+          }
+        }
       }
 
       // Verify branch exists if branch_id is provided

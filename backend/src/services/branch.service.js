@@ -13,6 +13,14 @@ class BranchService {
         throw new ApiError(400, 'Invalid or inactive school');
       }
 
+      // ENFORCE max_branches
+      const activeBranchCount = await Branch.count({
+        where: { school_id: school.id, status: 'active' }
+      });
+      if (activeBranchCount >= school.max_branches) {
+        throw new ApiError(400, `Branch limit reached for this school (max: ${school.max_branches})`);
+      }
+
       const branch = await Branch.create(branchData);
       
       logger.info(`Branch created: ${branch.name} (${branch.id}) for school: ${school.name}`);

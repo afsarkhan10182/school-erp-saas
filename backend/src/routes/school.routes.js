@@ -13,50 +13,61 @@ router.use(verifyToken);
 // Super Admin only routes
 router.post(
   '/',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   ...createSchoolValidator,
   SchoolController.createSchool
 );
 
 router.get(
   '/',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   SchoolController.getAllSchools
 );
 
 // School Admin routes (for their own school) - must come before /:id
 router.get(
   '/my-school',
-  requireRole(['school_admin']),
+  requireRole('school_admin',),
   SchoolController.getMySchool
 );
 
 router.put(
   '/my-school',
-  requireRole(['school_admin']),
+  requireRole('school_admin'),
   ...updateSchoolValidator,
   SchoolController.updateMySchool
 );
 
 router.get(
   '/:id',
-  requireRole(['super_admin', 'school_admin']),
+  requireRole('super_admin', 'school_admin'),
   SchoolController.getSchoolById
 );
 
 router.put(
   '/:id',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   ...updateSchoolValidator,
   SchoolController.updateSchool
 );
 
 router.delete(
   '/:id',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   SchoolController.deleteSchool
 );
 
+// Suspend/reactivate school (Super Admin only)
+router.post(
+  '/:id/suspend',
+  requireRole('super_admin'),
+  SchoolController.suspendSchool
+);
+router.post(
+  '/:id/reactivate',
+  requireRole('super_admin'),
+  SchoolController.reactivateSchool
+);
 
 
 module.exports = router; 

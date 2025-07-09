@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
+const User = require('./User');
 
 const School = sequelize.define('School', {
   id: {
@@ -193,6 +194,46 @@ const School = sequelize.define('School', {
       logger.info(`School updated: ${school.name} (${school.id})`);
     },
   },
+}, {
+  tableName: 'schools',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['code'], unique: true },
+    { fields: ['email'], unique: true },
+    { fields: ['status'] },
+    { fields: ['subscription_plan'] },
+    { fields: ['is_active'] },
+  ],
+  hooks: {
+    afterCreate: async (school, options) => {
+      logger.info(`New school created: ${school.name} (${school.id})`);
+    },
+    afterUpdate: async (school, options) => {
+      logger.info(`School updated: ${school.name} (${school.id})`);
+    }
+  },
 });
+
+// Define associations
+School.associate = (models) => {
+  // School has many Users
+  School.hasMany(models.User, {
+    foreignKey: 'school_id',
+    as: 'users',
+  });
+
+  // School belongs to User (created_by)
+  School.belongsTo(models.User, {
+    foreignKey: 'created_by',
+    as: 'createdBy',
+  });
+
+  // School belongs to User (updated_by)
+  School.belongsTo(models.User, {
+    foreignKey: 'updated_by',
+    as: 'updatedBy',
+  });
+};
 
 module.exports = School;

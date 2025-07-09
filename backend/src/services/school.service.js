@@ -1,19 +1,142 @@
 const { School, User, Branch } = require('../models');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
+const sequelize = require('../config/database'); // Update the path to the database config
 
 class SchoolService {
+  // Utility: Check if a module is enabled for a school
+  static isModuleEnabled(school, moduleName) {
+    if (!school || !Array.isArray(school.modules)) return false;
+    return school.modules.includes(moduleName);
+  }
+
   // Create a new school
   static async createSchool(schoolData) {
+    logger.info('Creating school with data:', JSON.stringify(schoolData, null, 2));
     try {
-      const school = await School.create(schoolData);
+      // Check if school with same code or email already exists
+      const existingSchool = await School.findOne({
+        where: {
+          [Op.or]: [
+            { code: schoolData.code },
+            { email: schoolData.email }
+          ]
+        }
+      });
+
+      if (existingSchool) {
+        if (existingSchool.code === schoolData.code) {
+          throw new ApiError(400, 'School with this code already exists');
+        }
+        if (existingSchool.email === schoolData.email) {
+          throw new ApiError(400, 'School with this email already exists');
+        }
+      }
+
+      // Create the school within a transaction
+      const transaction = await sequelize.transaction();
       
-      logger.info(`School created: ${school.name} (${school.id})`);
-      return school;
+      try {
+        logger.debug('Starting transaction for school creation');
+        const school = await School.create(schoolData, { 
+          transaction,
+          logging: (sql) => logger.debug('Executing SQL:', sql)
+        });
+        
+        await transaction.commit();
+        logger.info(`School created successfully: ${school.name} (${school.id})`);
+        return school;
+      } catch (error) {
+        logger.error('Error during school creation transaction:', {
+          error: error.message,
+          name: error.name,
+          stack: error.stack,
+          ...(error.errors && { errors: error.errors }),
+          ...(error.original && { original: error.original })
+        });
+        
+        if (transaction.finished !== 'commit') {
+          await transaction.rollback();
+          logger.info('Transaction rolled back');
+        }
+        
+        // Re-throw the error with more context
+        const enhancedError = new Error(`Failed to create school: ${error.message}`);
+        enhancedError.original = error;
+        throw enhancedError;
+      }
     } catch (error) {
-      logger.error('Error in SchoolService.createSchool:', error);
-      throw error;
+      // Enhanced error logging with complete error object
+      const errorContext = {
+        message: error.message,
+        name: error.name,
+        code: error.code,
+        sql: error.sql,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        ...(error.errors && { 
+          errors: error.errors.map(e => ({
+            message: e.message,
+            type: e.type,
+            path: e.path,
+            value: e.value,
+            instance: e.instance,
+            validatorKey: e.validatorKey,
+            validatorName: e.validatorName,
+            validatorArgs: e.validatorArgs
+          }))
+        }),
+        ...(error.original && { 
+          original: {
+            message: error.original.message,
+            code: error.original.code,
+            sql: error.original.sql,
+            sqlState: error.original.sqlState,
+            sqlMessage: error.original.sqlMessage
+          } 
+        }),
+        stack: error.stack
+      };
+      
+      // Log the complete error object
+      logger.error('Error in SchoolService.createSchool:', {
+        ...errorContext,
+        // Stringify the entire error object to catch any non-enumerable properties
+        completeError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      });
+      
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // Handle database validation errors
+      if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+        const messages = error.errors?.map(err => ({
+          field: err.path,
+          message: err.message,
+          type: err.type,
+          value: err.value
+        })) || [{ message: 'Database validation error' }];
+        
+        const errorMessage = messages.map(m => `${m.field}: ${m.message}`).join(', ');
+        const apiError = new ApiError(400, errorMessage);
+        apiError.errors = messages;
+        throw apiError;
+      }
+      
+      // Handle database connection errors
+      if (error.name === 'SequelizeConnectionError') {
+        throw new ApiError(503, 'Database connection error. Please try again later.');
+      }
+      
+      // Handle other database errors
+      if (error.name && error.name.startsWith('Sequelize')) {
+        throw new ApiError(500, 'Database operation failed');
+      }
+      
+      // Default error
+      throw new ApiError(500, 'Failed to create school', { originalError: error });
     }
   }
 
@@ -42,11 +165,13 @@ class SchoolService {
             model: User,
             as: 'createdBy',
             attributes: ['id', 'first_name', 'last_name', 'email'],
+            required: false, // Make this a left join instead of inner join
           },
         ],
         order: [['created_at', 'DESC']],
         limit,
         offset,
+        distinct: true, // Ensure correct count when using includes
       });
 
       return {

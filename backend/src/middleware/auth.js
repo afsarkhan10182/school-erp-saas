@@ -5,38 +5,64 @@ const ApiError = require('../utils/ApiError');
 
 const verifyToken = async (req, res, next) => {
   try {
-    // Get token from header
+    logger.debug('Auth middleware - Request headers:', req.headers);
+    logger.debug('Auth middleware - Request cookies:', req.cookies);
+    
+    // Get token from header or cookies
     let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
+    
+    // 1. Check Authorization header
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies?.token) {
+      logger.debug('Found token in Authorization header');
+    } 
+    // 2. Check auth-token cookie (frontend default)
+    else if (req.cookies?.['auth-token']) {
+      token = req.cookies['auth-token'];
+      logger.debug('Found token in auth-token cookie');
+    }
+    // 3. Check token cookie (backend default)
+    else if (req.cookies?.token) {
       token = req.cookies.token;
+      logger.debug('Found token in token cookie');
     }
 
     if (!token) {
-      return next(new ApiError(401, 'Not authorized to access this route'));
+      logger.warn('No authentication token found');
+      return next(new ApiError(401, 'Not authorized to access this route - No token provided'));
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      logger.debug('Token verified successfully', { userId: decoded?.id, role: decoded?.role });
+    } catch (verifyError) {
+      logger.error('Token verification failed:', verifyError);
+      return next(new ApiError(401, 'Invalid or expired token'));
+    }
     
     // Check if token is blacklisted
-    const redisClient = await getRedisClient();
-    const isBlacklisted = await redisClient.get(`bl_${token}`);
-    
-    if (isBlacklisted) {
-      return next(new ApiError(401, 'Token has been invalidated'));
+    try {
+      const redisClient = await getRedisClient();
+      const isBlacklisted = await redisClient.get(`bl_${token}`);
+      
+      if (isBlacklisted) {
+        logger.warn('Token is blacklisted');
+        return next(new ApiError(401, 'Session has been terminated'));
+      }
+    } catch (redisError) {
+      logger.error('Redis error during token verification:', redisError);
+      // Continue without blacklist check if Redis is unavailable
+      logger.warn('Proceeding without Redis blacklist check');
     }
 
     // Add user to request object
     req.user = decoded;
     next();
   } catch (error) {
-    logger.error('Token verification error:', error);
-    return next(new ApiError(401, 'Not authorized to access this route'));
+    logger.error('Unexpected error in auth middleware:', error);
+    return next(new ApiError(401, 'Authentication failed'));
   }
 };
 
@@ -58,6 +84,8 @@ const authorize = (...roles) => {
 // Role-based authorization middleware (alias for authorize)
 const requireRole = (...roles) => {
   return (req, res, next) => {
+    console.log('requireRole roles:', roles);
+    console.log('req.user:', req.user);
     if (!roles.includes(req.user.role)) {
       return next(
         new ApiError(
