@@ -6,6 +6,7 @@ const {
   createSchoolValidator,
   updateSchoolValidator,
 } = require('../validations/school.validation');
+const { uploadFields } = require('../middleware/upload');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -14,6 +15,12 @@ router.use(verifyToken);
 router.post(
   '/',
   requireRole('super_admin'),
+  uploadFields([
+    { name: 'system_logo', maxCount: 1 },
+    { name: 'text_logo', maxCount: 1 },
+    { name: 'printing_logo', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 },
+  ]),
   ...createSchoolValidator,
   SchoolController.createSchool
 );

@@ -6,6 +6,7 @@ const {
   createBranchValidator,
   updateBranchValidator,
 } = require('../validations/branch.validation');
+const { uploadFields } = require('../middleware/upload');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -13,47 +14,53 @@ router.use(verifyToken);
 // Super Admin routes (can manage all branches)
 router.get(
   '/',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   BranchController.getAllBranches
 );
 
 router.get(
   '/:id',
-  requireRole(['super_admin', 'school_admin', 'branch_admin']),
+  requireRole('super_admin', 'school_admin', 'branch_admin'),
   BranchController.getBranchById
 );
 
 router.put(
   '/:id',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   ...updateBranchValidator,
   BranchController.updateBranch
 );
 
 router.delete(
   '/:id',
-  requireRole(['super_admin']),
+  requireRole('super_admin'),
   BranchController.deleteBranch
 );
 
 // School Admin routes (can manage branches in their school)
 router.post(
   '/',
-  requireRole(['super_admin', 'school_admin']),
+  requireRole('super_admin', 'school_admin'),
+  uploadFields([
+    { name: 'system_logo', maxCount: 1 },
+    { name: 'text_logo', maxCount: 1 },
+    { name: 'printing_logo', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 },
+  ]),
   ...createBranchValidator,
   BranchController.createBranch
 );
 
 router.get(
   '/school/:schoolId',
-  requireRole(['super_admin', 'school_admin']),
+  requireRole('super_admin', 'school_admin'),
   BranchController.getBranchesBySchool
 );
 
 // Branch Admin routes (can view their own branch)
 router.get(
   '/my-branch',
-  requireRole(['branch_admin']),
+  requireRole('branch_admin'),
   BranchController.getMyBranch
 );
 

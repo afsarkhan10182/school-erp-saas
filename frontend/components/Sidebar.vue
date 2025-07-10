@@ -32,8 +32,9 @@ defineProps({
 });
 const navigationItems = [
   { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
-  { name: 'Schools', href: '/schools', icon: '🏫' },
+  { name: 'School Subscriptions', href: '/subscriptions', icon: '🏫' },
   { name: 'Users', href: '/users', icon: '👥' },
-  { name: 'Branches', href: '/branches', icon: '��' },
+  { name: 'Branches', href: '/branches', icon: '🏢' },
+  { name: 'Transactions', href: '/subscriptions', icon: '��' },
 ];
 </script> 

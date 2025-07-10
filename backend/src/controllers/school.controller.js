@@ -14,38 +14,34 @@ class SchoolController {
       const user = await User.findByPk(req.user.id, { transaction });
       if (!user) {
         await transaction.rollback();
-        return res.status(404).json({
-          success: false,
-          message: 'User not found',
-        });
+        return res.status(404).json({ success: false, message: 'User not found' });
       }
       
       if (user.role !== 'super_admin') {
         await transaction.rollback();
-        return res.status(403).json({
-          success: false,
-          message: 'Only super admins can create schools',
-        });
+        return res.status(403).json({ success: false, message: 'Only super admins can create schools' });
       }
 
       // Validate required fields
-      const requiredFields = ['name', 'code', 'email'];
+      const requiredFields = [
+        'name', 'code', 'email', 'branch_name', 'admin_name', 'admin_email', 'admin_mobile',
+        'plan', 'status', 'currency', 'currency_symbol', 'city', 'state'
+      ];
       const missingFields = requiredFields.filter(field => !req.body[field]);
       
       if (missingFields.length > 0) {
         await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: `Missing required fields: ${missingFields.join(', ')}`,
-        });
+        return res.status(400).json({ success: false, message: `Missing required fields: ${missingFields.join(', ')}` });
       }
 
-      // Get current date for academic year defaults
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const nextYear = currentYear + 1;
-      
-      // Format school data with defaults
+      // Handle file uploads
+      const files = req.files || {};
+      const systemLogoPath = files.system_logo?.[0]?.filename ? `/uploads/${files.system_logo[0].filename}` : null;
+      const textLogoPath = files.text_logo?.[0]?.filename ? `/uploads/${files.text_logo[0].filename}` : null;
+      const printingLogoPath = files.printing_logo?.[0]?.filename ? `/uploads/${files.printing_logo[0].filename}` : null;
+      const reportCardDesignPath = files.report_card_design?.[0]?.filename ? `/uploads/${files.report_card_design[0].filename}` : null;
+
+      // Format school data
       const schoolData = {
         name: req.body.name.trim(),
         code: req.body.code.trim().toUpperCase(),
@@ -57,29 +53,50 @@ class SchoolController {
         country: req.body.country?.trim() || 'India',
         postal_code: req.body.postal_code?.trim(),
         website: req.body.website?.trim(),
-        logo: req.body.logo?.trim(),
+        logo: systemLogoPath,
+        text_logo: textLogoPath,
+        printing_logo: printingLogoPath,
+        report_card_design: reportCardDesignPath,
         timezone: req.body.timezone || 'Asia/Kolkata',
         locale: req.body.locale || 'en-IN',
-        currency: req.body.currency || 'INR',
+        currency: req.body.currency,
+        currency_symbol: req.body.currency_symbol,
         date_format: req.body.date_format || 'DD/MM/YYYY',
-        status: req.body.status || 'active',
-        // Set default academic year (current year to next year)
-        academic_year_start: req.body.academic_year_start || new Date(currentYear, 3, 1), // April 1st of current year
-        academic_year_end: req.body.academic_year_end || new Date(nextYear, 2, 31), // March 31st of next year
+        status: req.body.status,
+        academic_year_start: req.body.academic_year_start || new Date(new Date().getFullYear(), 3, 1),
+        academic_year_end: req.body.academic_year_end || new Date(new Date().getFullYear() + 1, 2, 31),
+        subscription_plan: req.body.plan,
         created_by: req.user.id,
       };
 
-      // Create the school within the transaction
+      // Create the school
       const school = await School.create(schoolData, { transaction });
 
-      // --- Auto-create School Admin ---
-      // Accept admin fields or default to school fields
-      const adminEmail = req.body.admin_email?.trim().toLowerCase() || school.email;
-      const adminFirstName = req.body.admin_first_name?.trim() || school.name;
-      const adminLastName = req.body.admin_last_name?.trim() || 'Admin';
-      // Generate a random strong password (or use a default for now)
+      // Create the first branch
+      const Branch = require('../models/Branch');
+      const branchData = {
+        name: req.body.branch_name.trim(),
+        code: `${school.code}-MAIN`,
+        email: req.body.email.trim().toLowerCase(),
+        phone: req.body.phone?.trim(),
+        address: req.body.address?.trim(),
+        city: req.body.city?.trim(),
+        state: req.body.state?.trim(),
+        country: req.body.country?.trim() || 'India',
+        postal_code: req.body.postal_code?.trim(),
+        system_logo: systemLogoPath,
+        text_logo: textLogoPath,
+        printing_logo: printingLogoPath,
+        report_card_design: reportCardDesignPath,
+        is_main_branch: true,
+        status: 'active',
+        school_id: school.id,
+        created_by: req.user.id,
+      };
+      const branch = await Branch.create(branchData, { transaction });
+
+      // Generate a random strong password for admin
       const generatePassword = () => {
-        // 10-char random password: upper, lower, digit, special
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
         let pwd = '';
         for (let i = 0; i < 10; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -88,23 +105,23 @@ class SchoolController {
       const adminPassword = generatePassword();
 
       // Check if admin email already exists
-      const existingAdmin = await User.findOne({ where: { email: adminEmail }, transaction });
+      const existingAdmin = await User.findOne({ where: { email: req.body.admin_email.trim().toLowerCase() }, transaction });
       if (existingAdmin) {
         await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Admin email already exists. Please use a different admin_email.'
-        });
+        return res.status(400).json({ success: false, message: 'Admin email already exists. Please use a different admin_email.' });
       }
 
+      // Create the admin user
       const adminUser = await User.create({
-        email: adminEmail,
+        email: req.body.admin_email.trim().toLowerCase(),
         password: adminPassword,
-        first_name: adminFirstName,
-        last_name: adminLastName,
+        first_name: req.body.admin_name.trim(),
+        last_name: req.body.admin_last_name?.trim() || 'Admin',
+        phone: req.body.admin_mobile?.trim(),
         role: 'school_admin',
         status: 'active',
         school_id: school.id,
+        branch_id: branch.id,
         created_by: req.user.id,
         email_verified: true,
       }, { transaction });
@@ -113,8 +130,9 @@ class SchoolController {
       await transaction.commit();
       
       // Log successful creation
-      logger.info(`School and School Admin created successfully: ${school.id}, ${adminUser.id}`, {
+      logger.info(`School, Branch, and School Admin created successfully: ${school.id}, ${branch.id}, ${adminUser.id}`, {
         schoolId: school.id,
+        branchId: branch.id,
         adminId: adminUser.id,
         userId: req.user.id
       });
@@ -122,9 +140,10 @@ class SchoolController {
       // Return success response with admin credentials
       res.status(201).json({
         success: true,
-        message: 'School and School Admin created successfully',
+        message: 'School, Branch, and School Admin created successfully',
         data: {
           school,
+          branch,
           admin: {
             id: adminUser.id,
             email: adminUser.email,

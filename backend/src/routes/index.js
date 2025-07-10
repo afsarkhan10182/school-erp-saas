@@ -7,6 +7,7 @@ const authRoutes = require('./auth.routes');
 const schoolRoutes = require('./school.routes');
 const branchRoutes = require('./branch.routes');
 const userRoutes = require('./user.routes');
+const subscriptionRoutes = require('./subscription.routes');
 const DashboardController = require('../controllers/dashboard.controller');
 const LibraryController = require('../controllers/library.controller');
 
@@ -25,6 +26,7 @@ router.use('/auth', authRoutes);
 router.use('/schools', schoolRoutes);
 router.use('/branches', branchRoutes);
 router.use('/users', userRoutes);
+router.use('/subscriptions', subscriptionRoutes);
 
 // Dashboard stats endpoint
 router.get('/dashboard/stats', DashboardController.getStats);
