@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { useCookie } from 'nuxt/app';
 
 export function useSchools() {
   const schools = ref([]);
@@ -12,7 +13,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -36,7 +37,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools`, {
         method: 'POST',
         headers: {
@@ -63,7 +64,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools/${id}`, {
         method: 'PUT',
         headers: {
@@ -90,7 +91,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools/${id}`, {
         method: 'DELETE',
         headers: {
@@ -116,7 +117,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { useCookie } from 'nuxt/app';
 
 export function useBranches() {
   const branches = ref([]);
@@ -13,7 +14,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const res = await fetch(`${apiBase}/schools/${schoolId}/branches`, {
         headers: {
           'Authorization': `Bearer ${token}`,

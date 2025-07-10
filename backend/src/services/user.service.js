@@ -29,6 +29,22 @@ class UserService {
             throw new ApiError(400, `Student limit reached for this school (max: ${school.max_students})`);
           }
         }
+        // ENFORCE max_staff for staff roles
+        const staffRoles = [
+          'accountant', 'hr', 'receptionist', 'librarian', 'transport_manager', 'branch_admin', 'school_admin'
+        ];
+        if (staffRoles.includes(userData.role)) {
+          const activeStaffCount = await User.count({
+            where: {
+              school_id: school.id,
+              role: staffRoles,
+              status: 'active'
+            }
+          });
+          if (activeStaffCount >= school.max_staff) {
+            throw new ApiError(400, `Staff limit reached for this school (max: ${school.max_staff})`);
+          }
+        }
       }
 
       // Verify branch exists if branch_id is provided

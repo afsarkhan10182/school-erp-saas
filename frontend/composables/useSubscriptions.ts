@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { useCookie } from 'nuxt/app';
 
 export function useSubscriptions() {
   const schools = ref([]);
@@ -15,7 +16,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = useCookie('auth-token').value;
       const queryString = new URLSearchParams(params).toString();
       const res = await fetch(`${apiBase}/subscriptions/schools?${queryString}`, {
         headers: {

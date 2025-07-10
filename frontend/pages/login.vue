@@ -91,6 +91,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { useCookie } from 'nuxt/app';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -137,12 +138,21 @@ const handleLogin = async () => {
     });
 
     const data = await response.json();
+    console.log('LOGIN RESPONSE:', data); // Debug: log the response
     
     if (data.success) {
-      // Store token in localStorage for now
-      localStorage.setItem('auth-token', data.data.tokens.access.token);
+      // Try to extract token from different possible structures
+      let accessToken = data.data?.tokens?.access?.token || data.data?.token || data.data?.accessToken;
+      let refreshToken = data.data?.tokens?.refresh?.token || data.data?.refreshToken;
+      // Fallback: if user object contains token
+      if (!accessToken && data.data?.user?.token) accessToken = data.data.user.token;
+      if (!refreshToken && data.data?.user?.refreshToken) refreshToken = data.data.user.refreshToken;
+      // Set cookies (secure: false for localhost)
+      useCookie('auth-token', { secure: false }).value = accessToken;
+      useCookie('refresh-token', { secure: false }).value = refreshToken;
+      // Optionally, also keep in localStorage for legacy code
+      localStorage.setItem('auth-token', accessToken);
       localStorage.setItem('user', JSON.stringify(data.data.user));
-      
       // Redirect to dashboard
       await router.push('/dashboard');
     } else {

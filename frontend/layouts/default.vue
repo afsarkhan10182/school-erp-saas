@@ -1,7 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex">
-    <!-- Sidebar (only if logged in) -->
-    <Sidebar v-if="isLoggedIn" :open="sidebarOpen" @toggle="sidebarOpen = !sidebarOpen" />
+    <!-- Sidebar (only if logged in and user loaded, client-only) -->
+    <client-only>
+      <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
+    </client-only>
 
     <!-- Main content -->
     <div :class="isLoggedIn ? (sidebarOpen ? 'ml-64' : 'ml-16') : ''" class="flex-1 flex flex-col min-h-screen transition-all duration-200">

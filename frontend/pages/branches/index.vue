@@ -119,6 +119,7 @@ const confirmDelete = (id) => {
 const deleteBranchAction = async () => {
   if (branchToDelete.value) {
     await deleteBranch(branchToDelete.value);
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
     showDeleteModal.value = false;
     branchToDelete.value = null;
     fetchList();

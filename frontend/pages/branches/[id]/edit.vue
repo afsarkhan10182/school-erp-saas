@@ -163,6 +163,7 @@ const handleSubmit = async () => {
     if (data.success) {
       success.value = true;
       setTimeout(() => {
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
         router.push(`/branches/${branchId}`);
       }, 1200);
     }

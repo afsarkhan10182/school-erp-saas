@@ -147,6 +147,7 @@ const handleSubmit = async () => {
   if (result) {
     success.value = true;
     setTimeout(() => {
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
       success.value = false;
       window.location.href = '/branches';
     }, 1500);
