@@ -3,41 +3,135 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light theme variables */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: rgba(148, 163, 184, 0.2);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .dark {
+    /* Dark theme variables */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: rgba(30, 41, 59, 0.8);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(148, 163, 184, 0.1);
+    --glass-bg: rgba(15, 23, 42, 0.8);
+    --glass-border: rgba(148, 163, 184, 0.1);
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --gradient-secondary: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  }
+
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply transition-colors duration-300;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+    @apply bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
   }
   
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-200;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200;
   }
-  
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-soft);
+    border-radius: 16px;
+  }
+
+  .modal {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 transition-all duration-200;
+  }
+
+  .table {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+  }
+
+  .table th {
+    @apply px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider;
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .table td {
+    @apply px-6 py-4 whitespace-nowrap align-middle;
+    background-color: transparent;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+  }
+
+  .table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .table-row-hover:hover {
+    background: linear-gradient(90deg, var(--gradient-primary), var(--gradient-secondary));
+    color: #fff;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .table-dark {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+  }
+
   .sidebar-item {
-    @apply flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200;
+    @apply flex items-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200;
   }
   
   .sidebar-item.active {
-    @apply bg-blue-50 text-blue-700 hover:bg-blue-100;
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700;
+  }
+
+  .stat-card {
+    @apply glass-card p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+  }
+
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 } 

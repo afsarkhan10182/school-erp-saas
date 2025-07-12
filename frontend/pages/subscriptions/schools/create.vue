@@ -2,18 +2,18 @@
   <div class="container mx-auto py-8 max-w-4xl">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Add New School</h1>
-      <p class="text-gray-600 mt-1">Create a new school with subscription plan and admin user</p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Add New School</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">Create a new school with subscription plan and admin user</p>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Creating school...</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Creating school...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -21,8 +21,8 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p>
         </div>
       </div>
     </div>
@@ -30,47 +30,47 @@
     <!-- Form -->
     <form @submit.prevent="handleSubmit" class="space-y-8">
       <!-- School Information -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">School Information</h2>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">School Name *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School Name *</label>
             <input v-model="form.schoolData.name" type="text" required class="input-field" placeholder="Enter school name" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">School Code *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School Code *</label>
             <input v-model="form.schoolData.code" type="text" required class="input-field" placeholder="Enter school code" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Branch Name (First Branch) *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch Name (First Branch) *</label>
             <input v-model="form.schoolData.branch_name" type="text" required class="input-field" placeholder="Enter first branch name" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Currency *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency *</label>
             <input v-model="form.schoolData.currency" type="text" required class="input-field" placeholder="e.g. INR, USD" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Currency Symbol *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol *</label>
             <input v-model="form.schoolData.currency_symbol" type="text" required class="input-field" placeholder="e.g. ₹, $" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">System Logo</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Logo</label>
             <input ref="systemLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('system_logo', $event)" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Text Logo</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Text Logo</label>
             <input ref="textLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('text_logo', $event)" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Printing Logo</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Printing Logo</label>
             <input ref="printingLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('printing_logo', $event)" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Report Card Design (optional)</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Report Card Design (optional)</label>
             <input ref="reportCardInput" type="file" accept="image/*,application/pdf" class="input-field" @change="onFileChange('report_card_design', $event)" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
             <input
               v-model="form.schoolData.email"
               type="email"
@@ -80,7 +80,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
             <input
               v-model="form.schoolData.phone"
               type="tel"
@@ -89,7 +89,7 @@
             />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
             <textarea
               v-model="form.schoolData.address"
               rows="3"
@@ -98,7 +98,7 @@
             ></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
             <input
               v-model="form.schoolData.city"
               type="text"
@@ -107,7 +107,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
             <input
               v-model="form.schoolData.state"
               type="text"
@@ -116,7 +116,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
             <input
               v-model="form.schoolData.country"
               type="text"
@@ -125,7 +125,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
             <input
               v-model="form.schoolData.postal_code"
               type="text"
@@ -134,7 +134,7 @@
             />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website</label>
             <input
               v-model="form.schoolData.website"
               type="url"
@@ -146,11 +146,11 @@
       </div>
 
       <!-- Subscription Information -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">Subscription Information</h2>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Subscription Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Subscription Plan *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subscription Plan *</label>
             <select
               v-model="form.subscriptionData.plan_code"
               required
@@ -164,7 +164,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status *</label>
             <select
               v-model="form.subscriptionData.status"
               required
@@ -176,7 +176,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date *</label>
             <input
               v-model="form.subscriptionData.start_date"
               type="date"
@@ -185,7 +185,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date *</label>
             <input
               v-model="form.subscriptionData.end_date"
               type="date"
@@ -196,33 +196,33 @@
         </div>
 
         <!-- Plan Details Preview -->
-        <div v-if="selectedPlan" class="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h3 class="text-sm font-medium text-gray-900 mb-2">Plan Details</h3>
+        <div v-if="selectedPlan" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Plan Details</h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span class="text-gray-500">Price:</span>
-              <span class="font-medium">₹{{ selectedPlan.price }}/{{ selectedPlan.billing_cycle }}</span>
+              <span class="text-gray-500 dark:text-gray-400">Price:</span>
+              <span class="font-medium text-gray-900 dark:text-white">₹{{ selectedPlan.price }}/{{ selectedPlan.billing_cycle }}</span>
             </div>
             <div>
-              <span class="text-gray-500">Max Students:</span>
-              <span class="font-medium">{{ selectedPlan.max_students }}</span>
+              <span class="text-gray-500 dark:text-gray-400">Max Students:</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_students }}</span>
             </div>
             <div>
-              <span class="text-gray-500">Max Staff:</span>
-              <span class="font-medium">{{ selectedPlan.max_staff }}</span>
+              <span class="text-gray-500 dark:text-gray-400">Max Staff:</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_staff }}</span>
             </div>
             <div>
-              <span class="text-gray-500">Max Branches:</span>
-              <span class="font-medium">{{ selectedPlan.max_branches }}</span>
+              <span class="text-gray-500 dark:text-gray-400">Max Branches:</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_branches }}</span>
             </div>
           </div>
           <div class="mt-2">
-            <span class="text-gray-500 text-sm">Modules:</span>
+            <span class="text-gray-500 dark:text-gray-400 text-sm">Modules:</span>
             <div class="flex flex-wrap gap-1 mt-1">
               <span
                 v-for="module in selectedPlan.modules"
                 :key="module"
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
               >
                 {{ module }}
               </span>
@@ -232,11 +232,11 @@
       </div>
 
       <!-- Admin User Information -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">School Admin User</h2>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Admin User</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
             <input
               v-model="form.subscriptionData.admin_first_name"
               type="text"
@@ -246,7 +246,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
             <input
               v-model="form.subscriptionData.admin_last_name"
               type="text"
@@ -256,7 +256,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
             <input
               v-model="form.subscriptionData.admin_email"
               type="email"
@@ -266,7 +266,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
             <input
               v-model="form.subscriptionData.admin_phone"
               type="tel"
@@ -275,7 +275,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
             <div class="flex gap-2">
               <input
                 v-model="form.subscriptionData.admin_password"
@@ -296,11 +296,11 @@
       </div>
 
       <!-- Payment Information (Optional) -->
-      <div class="bg-white p-6 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">Payment Information (Optional)</h2>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Payment Information (Optional)</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Amount</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Amount</label>
             <input
               v-model="form.subscriptionData.payment_amount"
               type="number"
@@ -310,7 +310,7 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
             <select
               v-model="form.subscriptionData.payment_method"
               class="input-field"
@@ -323,7 +323,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
             <select
               v-model="form.subscriptionData.payment_currency"
               class="input-field"
@@ -352,7 +352,7 @@
       <div class="flex items-center">
         <div class="flex-shrink-0">
           <svg v-if="toastType === 'success'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
           </svg>
           <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -578,10 +578,10 @@ useHead({
 }
 
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
 
 .input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style> 

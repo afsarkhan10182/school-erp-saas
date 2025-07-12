@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">School Subscriptions</h1>
-        <p class="text-gray-600 mt-1">Manage all school subscriptions and billing</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">School Subscriptions</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">Manage all school subscriptions and billing</p>
       </div>
       <div class="flex gap-3">
         <NuxtLink to="/subscriptions/plans" class="btn-secondary">
@@ -17,10 +17,10 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow mb-6">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
           <input
             v-model="filters.search"
             type="text"
@@ -30,7 +30,7 @@
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
           <select v-model="filters.status" class="input-field" @change="fetchSchools">
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -40,7 +40,7 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
           <select v-model="filters.subscription_plan" class="input-field" @change="fetchSchools">
             <option value="">All Plans</option>
             <option v-for="plan in plans" :key="plan.code" :value="plan.code">
@@ -59,11 +59,11 @@
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Loading schools...</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Loading schools...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -71,82 +71,82 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p>
         </div>
       </div>
     </div>
 
     <!-- Schools Table -->
-    <div v-else class="bg-white rounded-lg shadow overflow-hidden">
+    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 School
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Plan
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Admin
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Subscription Period
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Status
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="school in schools" :key="school.id" class="hover:bg-gray-50">
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr v-for="school in schools" :key="school.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
               <!-- School Info -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div>
-                  <div class="text-sm font-medium text-gray-900">{{ school.name }}</div>
-                  <div class="text-sm text-gray-500">{{ school.code }}</div>
-                  <div class="text-sm text-gray-500">{{ school.email }}</div>
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ school.name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.code }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.email }}</div>
                 </div>
               </td>
 
               <!-- Plan Info -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div v-if="school.plan_details">
-                  <div class="text-sm font-medium text-gray-900">{{ school.plan_details.name }}</div>
-                  <div class="text-sm text-gray-500">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ school.plan_details.name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
                     ₹{{ school.plan_details.price }}/{{ school.plan_details.billing_cycle }}
                   </div>
-                  <div class="text-xs text-gray-400">
+                  <div class="text-xs text-gray-400 dark:text-gray-500">
                     {{ school.plan_details.max_students }} students, {{ school.plan_details.max_branches }} branches
                   </div>
                 </div>
-                <div v-else class="text-sm text-gray-500">{{ school.subscription_plan }}</div>
+                <div v-else class="text-sm text-gray-500 dark:text-gray-400">{{ school.subscription_plan }}</div>
               </td>
 
               <!-- Admin Info -->
               <td class="px-6 py-4 whitespace-nowrap">
                 <div v-if="school.admin_user">
-                  <div class="text-sm font-medium text-gray-900">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ school.admin_user.first_name }} {{ school.admin_user.last_name }}
                   </div>
-                  <div class="text-sm text-gray-500">{{ school.admin_user.email }}</div>
-                  <div class="text-sm text-gray-500">{{ school.admin_user.phone }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.admin_user.email }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.admin_user.phone }}</div>
                 </div>
-                <div v-else class="text-sm text-gray-500">No admin assigned</div>
+                <div v-else class="text-sm text-gray-500 dark:text-gray-400">No admin assigned</div>
               </td>
 
               <!-- Subscription Period -->
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">
+                <div class="text-sm text-gray-900 dark:text-white">
                   <div>Start: {{ formatDate(school.subscription_start_date) }}</div>
                   <div>End: {{ formatDate(school.subscription_end_date) }}</div>
                 </div>
-                <div v-if="getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 font-medium">
+                <div v-if="getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 dark:text-orange-400 font-medium">
                   {{ getDaysRemaining(school.subscription_end_date) }} days remaining
                 </div>
               </td>
@@ -161,26 +161,26 @@
               <!-- Actions -->
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
-                  <NuxtLink :to="`/subscriptions/schools/${school.id}`" class="text-blue-600 hover:text-blue-900">
+                  <NuxtLink :to="`/subscriptions/schools/${school.id}`" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
                     View
                   </NuxtLink>
-                  <NuxtLink :to="`/subscriptions/schools/${school.id}/edit`" class="text-indigo-600 hover:text-indigo-900">
+                  <NuxtLink :to="`/subscriptions/schools/${school.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">
                     Edit
                   </NuxtLink>
-                  <NuxtLink :to="`/subscriptions/schools/${school.id}/transactions`" class="text-green-600 hover:text-green-900">
+                  <NuxtLink :to="`/subscriptions/schools/${school.id}/transactions`" class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
                     Transactions
                   </NuxtLink>
                   <button
                     v-if="school.status === 'active'"
                     @click="suspendSchoolAction(school.id)"
-                    class="text-red-600 hover:text-red-900"
+                    class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                   >
                     Suspend
                   </button>
                   <button
                     v-else-if="school.status === 'suspended'"
                     @click="reactivateSchoolAction(school.id)"
-                    class="text-green-600 hover:text-green-900"
+                    class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                   >
                     Reactivate
                   </button>
@@ -193,11 +193,11 @@
 
       <!-- Empty State -->
       <div v-if="schools.length === 0 && !loading" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No schools found</h3>
-        <p class="mt-1 text-sm text-gray-500">Get started by creating a new school.</p>
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No schools found</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new school.</p>
         <div class="mt-6">
           <NuxtLink to="/subscriptions/schools/create" class="btn-primary">
             Add School
@@ -206,41 +206,41 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="pagination && pagination.pages > 1" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            @click="changePage(pagination.page - 1)"
-            :disabled="pagination.page <= 1"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <button
-            @click="changePage(pagination.page + 1)"
-            :disabled="pagination.page >= pagination.pages"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              Showing
-              <span class="font-medium">{{ (pagination.page - 1) * pagination.limit + 1 }}</span>
-              to
-              <span class="font-medium">{{ Math.min(pagination.page * pagination.limit, pagination.total) }}</span>
-              of
-              <span class="font-medium">{{ pagination.total }}</span>
-              results
-            </p>
+      <div v-if="pagination && pagination.pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                  <div class="flex-1 flex justify-between sm:hidden">
+            <button
+              @click="changePage(pagination.page - 1)"
+              :disabled="pagination.page <= 1"
+              class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              @click="changePage(pagination.page + 1)"
+              :disabled="pagination.page >= pagination.pages"
+              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
           </div>
+          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                Showing
+                <span class="font-medium">{{ (pagination.page - 1) * pagination.limit + 1 }}</span>
+                to
+                <span class="font-medium">{{ Math.min(pagination.page * pagination.limit, pagination.total) }}</span>
+                of
+                <span class="font-medium">{{ pagination.total }}</span>
+                results
+              </p>
+            </div>
           <div>
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
               <button
                 @click="changePage(pagination.page - 1)"
                 :disabled="pagination.page <= 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -250,8 +250,8 @@
                 @click="changePage(page)"
                 :class="[
                   page === pagination.page
-                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                    ? 'z-10 bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
                   'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
                 ]"
               >
@@ -260,7 +260,7 @@
               <button
                 @click="changePage(pagination.page + 1)"
                 :disabled="pagination.page >= pagination.pages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -431,10 +431,10 @@ useHead({
 }
 
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
 
 .input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style> 

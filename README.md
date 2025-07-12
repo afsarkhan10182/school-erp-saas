@@ -54,3 +54,15 @@ npm run dev
 - Frontend: http://localhost:3000
 - API: http://localhost:8000
 - API Docs: http://localhost:8000/api-docs
+
+### 7. Postgres Command:
+```bash
+psql -U <USERNAME> -d <DATABASE-NAME> -h localhost
+Password for user <USERNAME>: Enter the Password 
+
+<DATABASE-NAME>=> \dt (it will list the tables)
+<DATABASE-NAME>=> SELECT * FROM <TABLENAME>
+```
+
+
+

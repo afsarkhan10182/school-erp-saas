@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
     <!-- Sidebar (only if logged in and user loaded, client-only) -->
     <client-only>
       <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
@@ -10,7 +10,7 @@
       <!-- Header (only if logged in) -->
       <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" />
       <!-- Page content -->
-      <main class="p-6 flex-1">
+      <main class="p-6 flex-1 bg-gray-50 dark:bg-gray-900">
         <slot />
       </main>
     </div>
@@ -47,6 +47,29 @@ const pageTitle = computed(() => {
   if (path.startsWith('/users')) return 'Users';
   if (path.startsWith('/branches')) return 'Branches';
   return 'School ERP';
+});
+
+// Theme management
+const isDark = ref(false);
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }
+};
+
+onMounted(() => {
+  // Check for saved theme preference or default to light
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  isDark.value = savedTheme === 'dark';
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+  }
 });
 </script>
 

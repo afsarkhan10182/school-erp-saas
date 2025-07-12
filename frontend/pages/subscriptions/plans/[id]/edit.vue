@@ -1,22 +1,22 @@
 <template>
   <div class="container mx-auto py-8 max-w-2xl">
-    <h1 class="text-2xl font-bold mb-6">Edit Subscription Plan</h1>
-    <form v-if="loaded" @submit.prevent="handleSubmit" class="space-y-6 bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Edit Subscription Plan</h1>
+    <form v-if="loaded" @submit.prevent="handleSubmit" class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block font-medium mb-1">Plan Name *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Plan Name *</label>
           <input v-model="form.name" type="text" class="input-field" required />
         </div>
         <div>
-          <label class="block font-medium mb-1">Plan Code *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Plan Code *</label>
           <input v-model="form.code" type="text" class="input-field" required />
         </div>
         <div>
-          <label class="block font-medium mb-1">Price *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Price *</label>
           <input v-model.number="form.price" type="number" step="0.01" class="input-field" required />
         </div>
         <div>
-          <label class="block font-medium mb-1">Currency *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency *</label>
           <select v-model="form.currency" class="input-field" required>
             <option value="INR">INR (₹)</option>
             <option value="USD">USD ($)</option>
@@ -24,7 +24,7 @@
           </select>
         </div>
         <div>
-          <label class="block font-medium mb-1">Billing Cycle *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Billing Cycle *</label>
           <select v-model="form.billing_cycle" class="input-field" required>
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
@@ -32,49 +32,49 @@
           </select>
         </div>
         <div>
-          <label class="block font-medium mb-1">Sort Order</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Sort Order</label>
           <input v-model.number="form.sort_order" type="number" class="input-field" />
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block font-medium mb-1">Max Students *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Max Students *</label>
           <input v-model.number="form.max_students" type="number" class="input-field" required />
         </div>
         <div>
-          <label class="block font-medium mb-1">Max Staff *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Max Staff *</label>
           <input v-model.number="form.max_staff" type="number" class="input-field" required />
         </div>
         <div>
-          <label class="block font-medium mb-1">Max Branches *</label>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Max Branches *</label>
           <input v-model.number="form.max_branches" type="number" class="input-field" required />
         </div>
       </div>
       <div>
-        <label class="block font-medium mb-1">Modules Enabled *</label>
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Modules Enabled *</label>
         <div class="flex flex-wrap gap-2">
-          <label v-for="module in allModules" :key="module" class="inline-flex items-center">
+          <label v-for="module in allModules" :key="module" class="inline-flex items-center text-gray-700 dark:text-gray-300">
             <input type="checkbox" v-model="form.modules" :value="module" class="mr-1" />
             {{ module }}
           </label>
         </div>
       </div>
       <div>
-        <label class="block font-medium mb-1">Description</label>
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
         <textarea v-model="form.description" class="input-field" rows="2"></textarea>
       </div>
       <div>
-        <label class="block font-medium mb-1">Active</label>
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Active</label>
         <input type="checkbox" v-model="form.is_active" class="mr-2" />
-        <span>{{ form.is_active ? 'Yes' : 'No' }}</span>
+        <span class="text-gray-700 dark:text-gray-300">{{ form.is_active ? 'Yes' : 'No' }}</span>
       </div>
       <div class="flex justify-end gap-3">
         <NuxtLink to="/subscriptions/plans" class="btn-secondary">Cancel</NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? 'Saving...' : 'Save Changes' }}</button>
       </div>
     </form>
-    <div v-if="error" class="text-red-600 mt-4">{{ error }}</div>
-    <div v-else-if="!loaded" class="text-gray-500">Loading...</div>
+    <div v-if="error" class="text-red-600 dark:text-red-400 mt-4">{{ error }}</div>
+    <div v-else-if="!loaded" class="text-gray-500 dark:text-gray-400">Loading...</div>
   </div>
 </template>
 <script setup>
@@ -153,12 +153,12 @@ onMounted(loadPlan);
 </script>
 <style scoped>
 .input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 .btn-primary {
   @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
 }
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
 </style> 

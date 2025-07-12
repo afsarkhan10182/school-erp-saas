@@ -2,16 +2,16 @@
   <div class="container mx-auto py-8 max-w-5xl">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Transaction History</h1>
-        <p class="text-gray-600 mt-1">All payments and transactions for this school</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Transaction History</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">All payments and transactions for this school</p>
       </div>
       <button class="btn-primary" @click="showAddModal = true">Add Manual Payment</button>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-4 items-end">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6 flex flex-wrap gap-4 items-end">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Status</label>
         <select v-model="filters.payment_status" class="input-field">
           <option value="">All</option>
           <option value="completed">Completed</option>
@@ -20,7 +20,7 @@
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
         <select v-model="filters.payment_method" class="input-field">
           <option value="">All</option>
           <option value="offline_cash">Cash</option>
@@ -39,9 +39,9 @@
     <!-- Transactions Table -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Loading transactions...</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Loading transactions...</p>
     </div>
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -49,54 +49,54 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p>
         </div>
       </div>
     </div>
     <div v-else>
-      <div class="bg-white rounded-lg shadow overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">By</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Currency</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plan</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">By</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="txn in transactions" :key="txn.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(txn.created_at) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">₹{{ txn.amount }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ txn.currency }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ formatMethod(txn.payment_method) }}</td>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr v-for="txn in transactions" :key="txn.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ formatDate(txn.created_at) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">₹{{ txn.amount }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ txn.currency }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ formatMethod(txn.payment_method) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="statusClass(txn.payment_status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
                   {{ txn.payment_status }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">{{ txn.subscriptionPlan?.name || '-' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-xs">{{ txn.description }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-xs">{{ txn.createdBy?.email || '-' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ txn.subscriptionPlan?.name || '-' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">{{ txn.description }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">{{ txn.createdBy?.email || '-' }}</td>
             </tr>
           </tbody>
         </table>
       </div>
       <!-- Pagination -->
-      <div v-if="pagination && pagination.pages > 1" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-4">
+      <div v-if="pagination && pagination.pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 mt-4">
         <div class="flex-1 flex justify-between sm:hidden">
-          <button @click="changePage(pagination.page - 1)" :disabled="pagination.page <= 1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-          <button @click="changePage(pagination.page + 1)" :disabled="pagination.page >= pagination.pages" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          <button @click="changePage(pagination.page - 1)" :disabled="pagination.page <= 1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+          <button @click="changePage(pagination.page + 1)" :disabled="pagination.page >= pagination.pages" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
         </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button v-for="page in getPageNumbers()" :key="page" @click="changePage(page)" :disabled="page === '...' || page === pagination.page" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium" :class="page === pagination.page ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'">
+              <button v-for="page in getPageNumbers()" :key="page" @click="changePage(page)" :disabled="page === '...' || page === pagination.page" class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium" :class="page === pagination.page ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'">
                 {{ page }}
               </button>
             </nav>
@@ -106,17 +106,17 @@
     </div>
 
     <!-- Add Manual Payment Modal -->
-    <div v-if="showAddModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Add Manual Payment</h3>
+    <div v-if="showAddModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-lg">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Add Manual Payment</h3>
         <form @submit.prevent="handleAddPayment">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block font-medium mb-1">Amount *</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Amount *</label>
               <input v-model.number="form.amount" type="number" step="0.01" class="input-field" required />
             </div>
             <div>
-              <label class="block font-medium mb-1">Currency *</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency *</label>
               <select v-model="form.currency" class="input-field" required>
                 <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
@@ -124,7 +124,7 @@
               </select>
             </div>
             <div>
-              <label class="block font-medium mb-1">Payment Method *</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Payment Method *</label>
               <select v-model="form.payment_method" class="input-field" required>
                 <option value="offline_cash">Cash</option>
                 <option value="offline_cheque">Cheque</option>
@@ -134,7 +134,7 @@
               </select>
             </div>
             <div>
-              <label class="block font-medium mb-1">Billing Cycle</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Billing Cycle</label>
               <select v-model="form.billing_cycle" class="input-field">
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
@@ -142,7 +142,7 @@
               </select>
             </div>
             <div class="md:col-span-2">
-              <label class="block font-medium mb-1">Description</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
               <textarea v-model="form.description" class="input-field" rows="2"></textarea>
             </div>
           </div>
@@ -351,9 +351,9 @@ onMounted(fetchTransactions);
   @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
 }
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
 .input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style> 

@@ -1,14 +1,14 @@
 <template>
   <div class="container mx-auto py-8 max-w-2xl">
     <div class="mb-6 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-900">Branch Details</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Branch Details</h1>
       <NuxtLink :to="`/branches/${branchId}/edit`" class="btn-primary">Edit</NuxtLink>
     </div>
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600">Loading branch details...</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Loading branch details...</p>
     </div>
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -16,44 +16,44 @@
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ error }}</p>
         </div>
       </div>
     </div>
-    <div v-else-if="branch" class="bg-white rounded-lg shadow p-6">
+    <div v-else-if="branch" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div class="mb-4">
-        <h2 class="text-lg font-medium text-gray-900 mb-2">General Info</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-2">General Info</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><span class="font-medium">Branch Name:</span> {{ branch.name }}</div>
-          <div><span class="font-medium">School:</span> {{ branch.school?.name || branch.school_name || '-' }}</div>
-          <div><span class="font-medium">Email:</span> {{ branch.email }}</div>
-          <div><span class="font-medium">Phone:</span> {{ branch.phone }}</div>
-          <div><span class="font-medium">Currency:</span> {{ branch.currency }}</div>
-          <div><span class="font-medium">Currency Symbol:</span> {{ branch.currency_symbol }}</div>
-          <div><span class="font-medium">City:</span> {{ branch.city }}</div>
-          <div><span class="font-medium">State:</span> {{ branch.state }}</div>
-          <div class="md:col-span-2"><span class="font-medium">Address:</span> {{ branch.address }}</div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">Branch Name:</span> <span class="text-gray-900 dark:text-white">{{ branch.name }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">School:</span> <span class="text-gray-900 dark:text-white">{{ branch.school?.name || branch.school_name || '-' }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">Email:</span> <span class="text-gray-900 dark:text-white">{{ branch.email }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">Phone:</span> <span class="text-gray-900 dark:text-white">{{ branch.phone }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">Currency:</span> <span class="text-gray-900 dark:text-white">{{ branch.currency }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">Currency Symbol:</span> <span class="text-gray-900 dark:text-white">{{ branch.currency_symbol }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">City:</span> <span class="text-gray-900 dark:text-white">{{ branch.city }}</span></div>
+          <div><span class="font-medium text-gray-700 dark:text-gray-300">State:</span> <span class="text-gray-900 dark:text-white">{{ branch.state }}</span></div>
+          <div class="md:col-span-2"><span class="font-medium text-gray-700 dark:text-gray-300">Address:</span> <span class="text-gray-900 dark:text-white">{{ branch.address }}</span></div>
         </div>
       </div>
       <div class="mb-4">
-        <h2 class="text-lg font-medium text-gray-900 mb-2">Logos & Files</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Logos & Files</h2>
         <div class="flex gap-4 flex-wrap">
           <div v-if="branch.system_logo">
-            <div class="font-medium text-xs">System Logo</div>
+            <div class="font-medium text-xs text-gray-700 dark:text-gray-300">System Logo</div>
             <img :src="branch.system_logo" alt="System Logo" class="w-16 h-16 rounded border" />
           </div>
           <div v-if="branch.text_logo">
-            <div class="font-medium text-xs">Text Logo</div>
+            <div class="font-medium text-xs text-gray-700 dark:text-gray-300">Text Logo</div>
             <img :src="branch.text_logo" alt="Text Logo" class="w-16 h-16 rounded border" />
           </div>
           <div v-if="branch.printing_logo">
-            <div class="font-medium text-xs">Printing Logo</div>
+            <div class="font-medium text-xs text-gray-700 dark:text-gray-300">Printing Logo</div>
             <img :src="branch.printing_logo" alt="Printing Logo" class="w-16 h-16 rounded border" />
           </div>
           <div v-if="branch.report_card_design">
-            <div class="font-medium text-xs">Report Card Design</div>
-            <a :href="branch.report_card_design" target="_blank" class="text-blue-600 underline">Download/View</a>
+            <div class="font-medium text-xs text-gray-700 dark:text-gray-300">Report Card Design</div>
+            <a :href="branch.report_card_design" target="_blank" class="text-blue-600 dark:text-blue-400 underline">Download/View</a>
           </div>
         </div>
       </div>

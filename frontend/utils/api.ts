@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, PaginatedResponse } from '~/types';
 
-function createApiInstance(): AxiosInstance {
+export function createApiInstance(): AxiosInstance {
   const config = useRuntimeConfig();
   const apiBase = config.public.apiBase;
 

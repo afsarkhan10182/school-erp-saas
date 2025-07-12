@@ -1,80 +1,124 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <div class="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-          <span class="text-white font-bold text-xl">S</span>
-        </div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          School ERP SaaS Platform
-        </p>
+  <div class="min-h-screen w-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 relative overflow-hidden">
+    <!-- Animated background elements -->
+    <div class="absolute inset-0">
+      <div class="absolute top-0 left-0 w-full h-full">
+        <div class="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
-      
-      <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label for="email" class="sr-only">Email address</label>
-            <input
-              id="email"
-              v-model="form.email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              required
-              class="input-field rounded-t-md"
-              placeholder="Email address"
-            />
-          </div>
-          <div>
-            <label for="password" class="sr-only">Password</label>
-            <input
-              id="password"
-              v-model="form.password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              required
-              class="input-field rounded-b-md"
-              placeholder="Password"
-            />
-          </div>
-        </div>
+    </div>
 
-        <!-- Autofill Demo Credentials -->
-        <div class="flex justify-between gap-2 mb-2">
-          <button type="button" @click="autofillSuperAdmin" class="btn-secondary w-1/2">Super Admin Demo</button>
-          <button type="button" @click="autofillSchoolAdmin" class="btn-secondary w-1/2">School Admin Demo</button>
-        </div>
+    <!-- Floating particles -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-1/4 left-1/4 w-2 h-2 bg-white/30 rounded-full animate-bounce"></div>
+      <div class="absolute top-1/3 right-1/3 w-1 h-1 bg-white/40 rounded-full animate-bounce delay-500"></div>
+      <div class="absolute bottom-1/4 left-1/2 w-3 h-3 bg-white/20 rounded-full animate-bounce delay-1000"></div>
+      <div class="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-white/35 rounded-full animate-bounce delay-1500"></div>
+    </div>
 
-        <div v-if="error" class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-red-800">
-                {{ error }}
-              </h3>
+    <!-- Theme toggle -->
+    <button
+      @click="toggleTheme"
+      class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300"
+      :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+    >
+      <Sun v-if="isDark" class="w-5 h-5 text-yellow-300" />
+      <Moon v-else class="w-5 h-5 text-white" />
+    </button>
+
+    <!-- Login Container -->
+    <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div class="w-full max-w-md">
+        <!-- Glassmorphic card -->
+        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8">
+          <!-- Logo/Brand -->
+          <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <span class="text-white font-bold text-2xl">S</span>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+            <p class="text-white/70 text-sm">Sign in to your School ERP account</p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="error" class="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded-xl">
+            <p class="text-red-200 text-sm text-center">{{ error }}</p>
+          </div>
+
+          <!-- Login Form -->
+          <form @submit.prevent="handleLogin" class="space-y-6">
+            <div>
+              <label class="block text-white/80 text-sm font-medium mb-2">Email Address</label>
+              <div class="relative">
+                <Mail class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10" />
+                <input
+                  v-model="form.email"
+                  type="email"
+                  required
+                  class="w-full pl-10 pr-4 py-3 bg-white/15 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent focus:bg-white/20 transition-all duration-300"
+                  placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-white/80 text-sm font-medium mb-2">Password</label>
+              <div class="relative">
+                <Lock class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10" />
+                <input
+                  v-model="form.password"
+                  type="password"
+                  required
+                  class="w-full pl-10 pr-4 py-3 bg-white/15 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent focus:bg-white/20 transition-all duration-300"
+                  placeholder="Enter your password"
+                />
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <label class="flex items-center">
+                <input type="checkbox" class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-400">
+                <span class="ml-2 text-sm text-white/70">Remember me</span>
+              </label>
+              <a href="#" class="text-sm text-blue-300 hover:text-blue-200 transition-colors">Forgot password?</a>
+            </div>
+
+            <button
+              type="submit"
+              :disabled="loading"
+              class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="!loading">Sign In</span>
+              <span v-else class="flex items-center justify-center">
+                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                Signing in...
+              </span>
+            </button>
+          </form>
+
+          <!-- Super Admin Login -->
+          <div class="mt-6 pt-6 border-t border-white/20">
+            <p class="text-white/60 text-sm text-center mb-4">Quick Demo Access</p>
+            <div class="flex gap-3">
+              <button 
+                type="button" 
+                @click="autofillSuperAdmin" 
+                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
+              >
+                Super Admin Demo
+              </button>
+              <button 
+                type="button" 
+                @click="autofillSchoolAdmin" 
+                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
+              >
+                School Admin Demo
+              </button>
             </div>
           </div>
         </div>
-
-        <div>
-          <button
-            type="submit"
-            :disabled="loading"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span v-if="loading" class="absolute left-0 inset-y-0 flex items-center pl-3">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </span>
-            {{ loading ? 'Signing in...' : 'Sign in' }}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
@@ -82,20 +126,18 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useCookie } from 'nuxt/app';
+import { Mail, Lock, Sun, Moon } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
 
-// Set layout to 'login'
 definePageMeta({ layout: 'login' });
 
-// Form data
 const form = reactive({
   email: '',
   password: ''
 });
 
-// State
 const error = ref('');
 const loading = ref(false);
 const router = useRouter();
@@ -110,7 +152,26 @@ function autofillSchoolAdmin() {
   form.password = 'School@123';
 }
 
-// Handle login
+const isDark = ref(false);
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }
+};
+
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  isDark.value = savedTheme === 'dark';
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+  }
+});
+
 const handleLogin = async () => {
   error.value = '';
   loading.value = true;
@@ -126,89 +187,63 @@ const handleLogin = async () => {
         password: form.password
       })
     });
-
     const data = await response.json();
-    console.log('LOGIN RESPONSE:', data); // Debug: log the response
-    
     if (data.success) {
-      // Try to extract token from different possible structures
       let accessToken = data.data?.tokens?.access?.token || data.data?.token || data.data?.accessToken;
       let refreshToken = data.data?.tokens?.refresh?.token || data.data?.refreshToken;
-      // Fallback: if user object contains token
       if (!accessToken && data.data?.user?.token) accessToken = data.data.user.token;
       if (!refreshToken && data.data?.user?.refreshToken) refreshToken = data.data.user.refreshToken;
-      // Set cookies (secure: false for localhost)
       useCookie('auth-token', { secure: false }).value = accessToken;
       useCookie('refresh-token', { secure: false }).value = refreshToken;
-      // Optionally, also keep in localStorage for legacy code
       localStorage.setItem('auth-token', accessToken);
       localStorage.setItem('user', JSON.stringify(data.data.user));
-      // Redirect to dashboard
       await router.push('/dashboard');
     } else {
       error.value = data.message || 'Login failed';
     }
   } catch (err) {
-    console.error('Login error:', err);
     error.value = 'Network error. Please check if the backend is running.';
   } finally {
     loading.value = false;
   }
 };
 
-// Set page title
 useHead({
   title: 'Login - School ERP'
 });
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f7f7f7;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
-.login-form {
-  background: #fff;
-  padding: 2rem 2.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-  width: 320px;
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
-.form-group {
-  margin-bottom: 1.2rem;
+
+/* Browser autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.15) inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
-label {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-weight: 500;
+
+/* Firefox autofill */
+input:-moz-autofill {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
 }
-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-button {
-  width: 100%;
-  padding: 0.7rem;
-  background: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-button:disabled {
-  background: #b3d1ff;
-  cursor: not-allowed;
-}
-.error {
-  color: #d32f2f;
-  margin-bottom: 1rem;
-  text-align: center;
+
+/* Ensure autofilled text is visible */
+input[type="email"]:-webkit-autofill,
+input[type="password"]:-webkit-autofill {
+  -webkit-text-fill-color: white !important;
+  color: white !important;
 }
 </style> 
