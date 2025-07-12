@@ -6,6 +6,10 @@ const branchRoutes = require('./school/branch.routes');
 const subscriptionRoutes = require('./subscription/subscription.routes');
 const dashboardRoutes = require('./dashboard/dashboard.routes');
 const healthRoutes = require('./health/health');
+const studentRoutes = require('./student.routes');
+const feeTypeRoutes = require('./fee-type.routes');
+const feeStructureRoutes = require('./fee-structure.routes');
+const feeInvoiceRoutes = require('./fee-invoice.routes');
 
 const router = express.Router();
 
@@ -19,5 +23,11 @@ router.use('/schools', schoolRoutes);
 router.use('/branches', branchRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/dashboard', dashboardRoutes);
+
+// Student and Fee Management routes
+router.use('/students', studentRoutes);
+router.use('/fee-types', feeTypeRoutes);
+router.use('/fee-structures', feeStructureRoutes);
+router.use('/fee-invoices', feeInvoiceRoutes);
 
 module.exports = router;

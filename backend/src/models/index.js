@@ -4,6 +4,12 @@ const School = require('./school.model');
 const Branch = require('./branch.model');
 const SubscriptionPlan = require('./subscription-plan.model');
 const Transaction = require('./transaction.model');
+const Student = require('./student.model');
+const Parent = require('./parent.model');
+const StudentParent = require('./student-parent.model');
+const FeeType = require('./fee-type.model');
+const FeeStructure = require('./fee-structure.model');
+const FeeInvoice = require('./fee-invoice.model');
 
 // Initialize associations
 const models = {
@@ -12,6 +18,12 @@ const models = {
   Branch,
   SubscriptionPlan,
   Transaction,
+  Student,
+  Parent,
+  StudentParent,
+  FeeType,
+  FeeStructure,
+  FeeInvoice,
 };
 
 // Call associate function for each model if it exists
@@ -28,4 +40,10 @@ module.exports = {
   Branch,
   SubscriptionPlan,
   Transaction,
-}; 
+  Student,
+  Parent,
+  StudentParent,
+  FeeType,
+  FeeStructure,
+  FeeInvoice,
+};
