@@ -1,0 +1,65 @@
+const express = require('express');
+const DashboardController = require('../../controllers/dashboard/dashboard.controller');
+const { verifyToken, authorize } = require('../../middleware/auth');
+
+const router = express.Router();
+
+// All dashboard routes require authentication
+router.use(verifyToken);
+
+/**
+ * @swagger
+ * /dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics
+ *     description: Get overview statistics for the dashboard
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/stats', DashboardController.getStats);
+
+/**
+ * @swagger
+ * /dashboard/reports/overview:
+ *   get:
+ *     summary: Get overview report
+ *     description: Get comprehensive overview report (Super Admin only)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Overview report retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Super Admin access required
+ */
+router.get('/reports/overview', authorize('super_admin'), DashboardController.getOverviewReport);
+
+/**
+ * @swagger
+ * /dashboard/reports/school:
+ *   get:
+ *     summary: Get school report
+ *     description: Get school-specific report (School Admin only)
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: School report retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - School Admin access required
+ */
+router.get('/reports/school', authorize('school_admin'), DashboardController.getSchoolReport);
+
+module.exports = router; 

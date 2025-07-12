@@ -1,57 +1,35 @@
 const rateLimit = require('express-rate-limit');
-const { ApiError } = require('../utils/ApiError');
-const httpStatus = require('http-status');
+const RedisStore = require('rate-limit-redis');
 const config = require('../config/config');
+const { getRedisClient } = require('../config/redis');
+const { logger } = require('../utils/logger');
 
-/**
- * Rate limiter middleware
- * Limits the number of requests from a single IP address
- */
+// Try to use Redis for rate limiting, fallback to memory
+let store = null;
+
+try {
+  const redisClient = getRedisClient();
+  store = new RedisStore({
+    sendCommand: (...args) => redisClient.call(...args),
+    prefix: 'rate_limit:',
+  });
+  logger.info('Rate limiter using Redis store');
+} catch (error) {
+  logger.warn('Redis not available for rate limiting, using memory store:', error.message);
+  store = null; // Will use default memory store
+}
+
 const apiLimiter = rateLimit({
-  windowMs: config.rateLimit.windowMs, // 15 minutes
-  max: config.rateLimit.max, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req, res, next, options) => {
-    throw new ApiError(
-      httpStatus.TOO_MANY_REQUESTS,
-      options.message,
-      true,
-      { retryAfter: `${options.windowMs / 1000} seconds` }
-    );
+  store,
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  message: {
+    error: 'Too many requests from this IP, please try again later',
+    retryAfter: Math.ceil(config.rateLimit.windowMs / 1000)
   },
-  skip: (req) => {
-    // Skip rate limiting for certain paths (e.g., health checks)
-    const skipPaths = ['/health', '/api/health'];
-    return skipPaths.some(path => req.path.startsWith(path));
-  },
-  keyGenerator: (req) => {
-    // Use the IP address and user ID (if authenticated) as the key
-    return req.user ? `${req.user.id}_${req.ip}` : req.ip;
-  },
-});
-
-/**
- * Strict rate limiter for sensitive routes (e.g., login, password reset)
- */
-const strictLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  message: 'Too many attempts, please try again later',
+  skip: (req) => config.rateLimit.skipPaths.some(path => req.path.startsWith(path)),
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res, next, options) => {
-    throw new ApiError(
-      httpStatus.TOO_MANY_REQUESTS,
-      options.message,
-      true,
-      { retryAfter: '15 minutes' }
-    );
-  },
 });
 
-module.exports = {
-  apiLimiter,
-  strictLimiter,
-};
+module.exports = apiLimiter;

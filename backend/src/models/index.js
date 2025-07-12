@@ -1,9 +1,9 @@
 const { sequelize } = require('../config/database');
-const User = require('./User');
-const School = require('./School');
-const Branch = require('./Branch');
-const SubscriptionPlan = require('./SubscriptionPlan');
-const Transaction = require('./Transaction');
+const User = require('./user.model');
+const School = require('./school.model');
+const Branch = require('./branch.model');
+const SubscriptionPlan = require('./subscription-plan.model');
+const Transaction = require('./transaction.model');
 
 // Initialize associations
 const models = {

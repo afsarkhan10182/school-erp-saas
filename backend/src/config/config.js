@@ -3,10 +3,12 @@ require('dotenv').config();
 
 const env = process.env.NODE_ENV || 'development';
 
+const redisEnabled = process.env.REDIS_ENABLED !== 'false' && process.env.REDIS_ENABLED !== '0';
+
 const config = {
   app: {
     env,
-    port: process.env.PORT || 8000,
+    port: process.env.PORT && process.env.PORT !== '' ? process.env.PORT : 8000,
     apiPrefix: process.env.API_PREFIX || '/api'
   },
   db: {
@@ -23,9 +25,31 @@ const config = {
     refreshExpirationDays: process.env.JWT_REFRESH_EXPIRATION_DAYS || 7 // 7 days
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: [process.env.CORS_ORIGIN || 'http://localhost:3000'],
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Type', 'Authorization']
+  },
+  rateLimit: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: env === 'development' ? 1000 : 100, // 1000 in dev, 100 in prod
+    message: 'Too many requests from this IP, please try again later',
+    skipPaths: ['/health', '/api/health', '/api-docs']
+  },
+  redis: {
+    enabled: redisEnabled,
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || '',
+  },
+  logging: {
+    level: process.env.LOG_LEVEL || 'info',
+    toFile: process.env.LOG_TO_FILE === 'true',
+    file: {
+      maxsize: process.env.LOG_FILE_MAXSIZE || 5 * 1024 * 1024, // 5MB
+      maxFiles: process.env.LOG_FILE_MAXFILES || 5,
+    }
   }
 };
 

@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', {
     refreshToken: null,
     isAuthenticated: false,
     isLoading: false,
+    lastAuthCheck: 0, // Add timestamp for caching
   }),
 
   getters: {
@@ -49,17 +50,15 @@ export const useAuthStore = defineStore('auth', {
           this.token = token;
           this.refreshToken = refreshToken;
           this.isAuthenticated = true;
+          this.lastAuthCheck = Date.now();
           
           return { success: true, user };
         } else {
           throw new Error(response.message || 'Login failed');
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Login error:', error);
-        return { 
-          success: false, 
-          error: error.response?.data?.message || error.message || 'Login failed' 
-        };
+        throw error;
       } finally {
         this.isLoading = false;
       }
@@ -79,6 +78,7 @@ export const useAuthStore = defineStore('auth', {
         this.token = null;
         this.refreshToken = null;
         this.isAuthenticated = false;
+        this.lastAuthCheck = 0;
         
         // Clear cookies
         const authToken = useCookie('auth-token');
@@ -98,6 +98,15 @@ export const useAuthStore = defineStore('auth', {
       if (!authToken) {
         return false;
       }
+
+      // Check if we have cached user data and it's recent (within 5 minutes)
+      const now = Date.now();
+      const cacheValid = this.user && this.isAuthenticated && 
+                        (now - this.lastAuthCheck) < 5 * 60 * 1000; // 5 minutes
+      
+      if (cacheValid) {
+        return true;
+      }
       
       try {
         this.isLoading = true;
@@ -106,8 +115,9 @@ export const useAuthStore = defineStore('auth', {
         if (response.success) {
           this.user = response.data;
           this.token = authToken;
-          this.refreshToken = refreshToken;
+          this.refreshToken = refreshToken || null;
           this.isAuthenticated = true;
+          this.lastAuthCheck = now;
           return true;
         } else {
           await this.logout();
@@ -142,6 +152,7 @@ export const useAuthStore = defineStore('auth', {
           
           // Update store state
           this.token = token || null;
+          this.lastAuthCheck = Date.now();
           return true;
         } else {
           await this.logout();
@@ -159,5 +170,10 @@ export const useAuthStore = defineStore('auth', {
         this.user = { ...this.user, ...userData };
       }
     },
+
+    // Method to invalidate cache and force a fresh auth check
+    invalidateAuthCache() {
+      this.lastAuthCheck = 0;
+    }
   },
 }); 

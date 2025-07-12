@@ -1,16 +1,22 @@
-export default defineNuxtRouteMiddleware((to, from) => {
+import { useAuthStore } from '~/stores/auth';
+
+export default defineNuxtRouteMiddleware(async (to, from) => {
   // Only run on client
   if (process.server) return;
 
-  const token = localStorage.getItem('auth-token');
+  const authStore = useAuthStore();
   const isLogin = to.path === '/login';
 
-  if (!token && !isLogin) {
-    // Not logged in, trying to access a protected route
-    return navigateTo('/login');
-  }
-  if (token && isLogin) {
-    // Already logged in, trying to access login page
+  // If already authenticated and trying to access login, redirect to dashboard
+  if (authStore.isLoggedIn && isLogin) {
     return navigateTo('/dashboard');
+  }
+
+  // If not authenticated and not on login page, check auth
+  if (!authStore.isLoggedIn && !isLogin) {
+    const isAuthenticated = await authStore.checkAuth();
+    if (!isAuthenticated) {
+      return navigateTo('/login');
+    }
   }
 }); 

@@ -106,6 +106,17 @@ const form = ref({
 const handleSubmit = async () => {
   const result = await createPlan(form.value);
   if (result) {
+    // Show success toast and redirect
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: 'Subscription plan created successfully!',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+    }
+    // Redirect to list page
     router.push('/subscriptions/plans');
   }
 };

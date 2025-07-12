@@ -1,51 +1,23 @@
 const express = require('express');
+const authRoutes = require('./auth/auth.routes');
+const userRoutes = require('./user/user.routes');
+const schoolRoutes = require('./school/school.routes');
+const branchRoutes = require('./school/branch.routes');
+const subscriptionRoutes = require('./subscription/subscription.routes');
+const dashboardRoutes = require('./dashboard/dashboard.routes');
+const healthRoutes = require('./health/health');
+
 const router = express.Router();
-const { version } = require('../../package.json');
 
-// Import route files
-const authRoutes = require('./auth.routes');
-const schoolRoutes = require('./school.routes');
-const branchRoutes = require('./branch.routes');
-const userRoutes = require('./user.routes');
-const subscriptionRoutes = require('./subscription.routes');
-const DashboardController = require('../controllers/dashboard.controller');
-const LibraryController = require('../controllers/library.controller');
+// Health check routes (no auth required)
+router.use('/health', healthRoutes);
 
-// API version
-router.get('/version', (req, res) => {
-  res.json({ version });
-});
-
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// API routes
+// API routes with authentication
 router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/schools', schoolRoutes);
 router.use('/branches', branchRoutes);
-router.use('/users', userRoutes);
 router.use('/subscriptions', subscriptionRoutes);
-
-// Dashboard stats endpoint
-router.get('/dashboard/stats', DashboardController.getStats);
-
-// Super Admin overview report
-router.get('/reports/overview', DashboardController.getOverviewReport);
-
-// School Admin school report
-router.get('/reports/school', DashboardController.getSchoolReport);
-
-// Sample library module route (module access enforcement demo)
-router.post('/library/books', LibraryController.addBook);
-
-// 404 handler for API routes
-router.use((req, res, next) => {
-  res.status(404).json({
-    success: false,
-    message: 'API endpoint not found',
-  });
-});
+router.use('/dashboard', dashboardRoutes);
 
 module.exports = router;

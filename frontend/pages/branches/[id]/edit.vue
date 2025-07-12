@@ -47,22 +47,22 @@
         <div>
           <label class="block font-medium mb-1">System Logo</label>
           <input ref="systemLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('system_logo', $event)" />
-          <div v-if="branch.system_logo" class="mt-1"><img :src="branch.system_logo" alt="System Logo" class="w-12 h-12 rounded border" /></div>
+          <div v-if="branch.settings?.system_logo" class="mt-1"><img :src="branch.settings.system_logo" alt="System Logo" class="w-12 h-12 rounded border" /></div>
         </div>
         <div>
           <label class="block font-medium mb-1">Text Logo</label>
           <input ref="textLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('text_logo', $event)" />
-          <div v-if="branch.text_logo" class="mt-1"><img :src="branch.text_logo" alt="Text Logo" class="w-12 h-12 rounded border" /></div>
+          <div v-if="branch.settings?.text_logo" class="mt-1"><img :src="branch.settings.text_logo" alt="Text Logo" class="w-12 h-12 rounded border" /></div>
         </div>
         <div>
           <label class="block font-medium mb-1">Printing Logo</label>
           <input ref="printingLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('printing_logo', $event)" />
-          <div v-if="branch.printing_logo" class="mt-1"><img :src="branch.printing_logo" alt="Printing Logo" class="w-12 h-12 rounded border" /></div>
+          <div v-if="branch.settings?.printing_logo" class="mt-1"><img :src="branch.settings.printing_logo" alt="Printing Logo" class="w-12 h-12 rounded border" /></div>
         </div>
         <div>
           <label class="block font-medium mb-1">Report Card Design (optional)</label>
           <input ref="reportCardInput" type="file" accept="image/*,application/pdf" class="input-field" @change="onFileChange('report_card_design', $event)" />
-          <div v-if="branch.report_card_design" class="mt-1"><a :href="branch.report_card_design" target="_blank" class="text-blue-600 underline">Download/View</a></div>
+          <div v-if="branch.settings?.report_card_design" class="mt-1"><a :href="branch.settings.report_card_design" target="_blank" class="text-blue-600 underline">Download/View</a></div>
         </div>
       </div>
       <!-- Submit -->
@@ -124,7 +124,23 @@ const fetchBranch = async () => {
     const data = await res.json();
     if (data.success) {
       branch.value = data.data.branch || data.data;
-      Object.assign(form.value, branch.value);
+      
+      // Map basic fields
+      Object.assign(form.value, {
+        name: branch.value.name,
+        email: branch.value.email,
+        phone: branch.value.phone,
+        city: branch.value.city,
+        state: branch.value.state,
+        address: branch.value.address
+      });
+      
+      // Map settings fields
+      if (branch.value.settings) {
+        form.value.currency = branch.value.settings.currency || '';
+        form.value.currency_symbol = branch.value.settings.currency_symbol || '';
+      }
+      
       loaded.value = true;
     }
   } catch (e) {
@@ -161,11 +177,20 @@ const handleSubmit = async () => {
     });
     const data = await res.json();
     if (data.success) {
-      success.value = true;
+      // Show success toast and redirect
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('show-toast', {
+          detail: {
+            message: 'Branch updated successfully!',
+            type: 'success'
+          }
+        });
+        window.dispatchEvent(event);
+      }
+      // Redirect to list page
       setTimeout(() => {
-        if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
-        router.push(`/branches/${branchId}`);
-      }, 1200);
+        router.push('/branches');
+      }, 1000);
     }
   } catch (e) {
     // error handled by composable

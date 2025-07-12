@@ -61,9 +61,9 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <div class="flex space-x-2">
-                <NuxtLink :to="`/branches/${branch._id}`" class="text-blue-600 hover:text-blue-900">View</NuxtLink>
-                <NuxtLink :to="`/branches/${branch._id}/edit`" class="text-indigo-600 hover:text-indigo-900">Edit</NuxtLink>
-                <button @click="confirmDelete(branch._id)" class="text-red-600 hover:text-red-900">Delete</button>
+                <NuxtLink :to="`/branches/${branch.id}`" class="text-blue-600 hover:text-blue-900">View</NuxtLink>
+                <NuxtLink :to="`/branches/${branch.id}/edit`" class="text-indigo-600 hover:text-indigo-900">Edit</NuxtLink>
+                <button @click="confirmDelete(branch.id)" class="text-red-600 hover:text-red-900">Delete</button>
               </div>
             </td>
           </tr>

@@ -172,7 +172,7 @@
       <div class="card shadow-lg rounded-xl p-6 bg-white">
         <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NuxtLink v-if="isSuperAdmin" to="/schools" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
+          <NuxtLink v-if="isSuperAdmin" to="/subscriptions" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
             <span class="text-blue-600 text-xl mr-3">🏫</span>
             <span class="font-medium text-gray-900">Manage Schools</span>
           </NuxtLink>
@@ -197,18 +197,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import apiClient from '~/utils/api';
+import { useAuthStore } from '~/stores/auth';
 
-const user = ref(null);
-const stats = ref({
-  totalSchools: 0,
-  totalBranches: 0,
-  totalUsers: 0
-});
+const authStore = useAuthStore();
+const user = computed(() => authStore.currentUser);
+const stats = ref({});
 const branches = ref([]);
-
-const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
-const isSchoolAdmin = computed(() => user.value?.role === 'school_admin');
-
 const recentActivity = ref([
   {
     id: 1,
@@ -231,25 +225,16 @@ const recentActivity = ref([
 ]);
 
 onMounted(async () => {
-  // Get user from localStorage
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    user.value = JSON.parse(userData);
-  }
-
   // Fetch dashboard stats from API using apiClient
   try {
-    const token = localStorage.getItem('auth-token');
-    if (token) {
-      const response = await apiClient.api.get('/dashboard/stats');
-      if (response.data.success) {
-        stats.value = response.data.data;
-      }
-      // For super admin, fetch all branches
-      if (user.value?.role === 'super_admin') {
-        const branchRes = await apiClient.branches.getAll();
-        branches.value = branchRes.data?.items || branchRes.data || [];
-      }
+    const response = await apiClient.api.get('/dashboard/stats');
+    if (response.data.success) {
+      stats.value = response.data.data;
+    }
+    // For super admin, fetch all branches
+    if (user.value?.role === 'super_admin') {
+      const branchRes = await apiClient.branches.getAll();
+      branches.value = branchRes.data?.items || branchRes.data || [];
     }
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

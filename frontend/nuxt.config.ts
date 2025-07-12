@@ -35,5 +35,17 @@ export default defineNuxtConfig({
   // Build
   build: {
     transpile: ['vue-toastification']
+  },
+
+  // Vite configuration
+  vite: {
+    define: {
+      global: 'globalThis',
+    },
+    resolve: {
+      alias: {
+        'form-data': 'formdata-polyfill'
+      }
+    }
   }
 })

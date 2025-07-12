@@ -74,16 +74,6 @@
             {{ loading ? 'Signing in...' : 'Sign in' }}
           </button>
         </div>
-
-        <div class="text-center">
-          <p class="text-sm text-gray-600">
-            Demo Credentials:
-          </p>
-          <div class="mt-2 space-y-1 text-xs text-gray-500">
-            <p><strong>Super Admin:</strong> superadmin@example.com / Admin@123</p>
-            <p><strong>School Admin:</strong> admin@demoschool.edu / School@123</p>
-          </div>
-        </div>
       </form>
     </div>
   </div>
@@ -116,7 +106,7 @@ function autofillSuperAdmin() {
   form.password = 'Admin@123';
 }
 function autofillSchoolAdmin() {
-  form.email = 'admin@demoschool.edu';
+  form.email = 'admin@huda.edu';
   form.password = 'School@123';
 }
 

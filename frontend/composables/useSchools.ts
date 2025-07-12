@@ -1,32 +1,23 @@
 import { ref } from 'vue';
-import { useCookie } from 'nuxt/app';
+import { apiClient } from '~/utils/api';
 
 export function useSchools() {
-  const schools = ref([]);
+  const schools = ref<any[]>([]);
   const loading = ref(false);
   const error = ref('');
-
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
 
   const fetchSchools = async () => {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        schools.value = data.data.schools || [];
+      const response = await apiClient.schools.getAll();
+      if (response.success) {
+        schools.value = response.data.items || [];
       } else {
-        error.value = data.message || 'Failed to fetch schools.';
+        error.value = response.message || 'Failed to fetch schools.';
       }
     } catch (e) {
+      console.error('Error fetching schools:', e);
       error.value = 'Network error.';
     } finally {
       loading.value = false;
@@ -37,22 +28,14 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(schoolData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to create school.';
+      const response = await apiClient.schools.create(schoolData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to create school.';
         return null;
       }
-      return data.data;
+      return response.data;
     } catch (e) {
+      console.error('Error creating school:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -64,22 +47,14 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(schoolData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to update school.';
+      const response = await apiClient.schools.update(id, schoolData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to update school.';
         return null;
       }
-      return data.data;
+      return response.data;
     } catch (e) {
+      console.error('Error updating school:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -91,21 +66,14 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to delete school.';
+      const response = await apiClient.schools.delete(id);
+      if (!response.success) {
+        error.value = response.message || 'Failed to delete school.';
         return false;
       }
       return true;
     } catch (e) {
+      console.error('Error deleting school:', e);
       error.value = 'Network error.';
       return false;
     } finally {
@@ -117,20 +85,14 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to fetch school.';
+      const response = await apiClient.schools.getById(id);
+      if (!response.success) {
+        error.value = response.message || 'Failed to fetch school.';
         return null;
       }
-      return data.data;
+      return response.data;
     } catch (e) {
+      console.error('Error fetching school:', e);
       error.value = 'Network error.';
       return null;
     } finally {

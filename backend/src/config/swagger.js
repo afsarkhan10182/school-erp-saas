@@ -194,6 +194,6 @@ const options = {
   apis: ['./src/routes/*.js', './src/controllers/*.js'],
 };
 
-const specs = swaggerJsdoc(options);
+const swaggerSpec = swaggerJsdoc(options);
 
-module.exports = { specs, swaggerUi };
+module.exports = { swaggerSpec, swaggerUi };

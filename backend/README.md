@@ -32,17 +32,12 @@ This is the backend service for the School ERP SaaS application, built with Node
 
 5. **Run database migrations**
    ```bash
-   npx sequelize-cli db:migrate
+   npm run db:migrate
    ```
 
-6. **Seed the database (optional)**
+6. **Seed the database**
    ```bash
-   npx sequelize-cli db:seed:all
-   ```
-   
-   Or run the setup script to create a super admin and sample school:
-   ```bash
-   npm run db:setup
+   npm run db:seed
    ```
 
 7. **Start the development server**

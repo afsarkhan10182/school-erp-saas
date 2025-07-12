@@ -14,6 +14,9 @@
         <slot />
       </main>
     </div>
+    
+    <!-- Global Toast Notification -->
+    <Toast />
   </div>
 </template>
 
@@ -22,25 +25,19 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Sidebar from '~/components/Sidebar.vue';
 import Header from '~/components/Header.vue';
+import Toast from '~/components/Toast.vue';
+import { useAuthStore } from '~/stores/auth';
 
 const sidebarOpen = ref(true);
 const router = useRouter();
 const route = useRoute();
 
-const user = ref(null);
-const isLoggedIn = computed(() => !!user.value && !!localStorage.getItem('auth-token'));
+const authStore = useAuthStore();
+const user = computed(() => authStore.currentUser);
+const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-onMounted(() => {
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    user.value = JSON.parse(userData);
-  }
-});
-
-const handleLogout = () => {
-  localStorage.removeItem('auth-token');
-  localStorage.removeItem('user');
-  router.push('/login');
+const handleLogout = async () => {
+  await authStore.logout();
 };
 
 const pageTitle = computed(() => {

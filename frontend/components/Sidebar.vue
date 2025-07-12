@@ -59,11 +59,6 @@
           <span v-else class="text-lg">🏢</span>
           <span v-if="open">Branches</span>
         </NuxtLink>
-        <NuxtLink v-if="isSuperAdmin" :to="'/subscriptions'" :class="navClass('/subscriptions')">
-          <span class="mr-3 text-lg" v-if="open">💳</span>
-          <span v-else class="text-lg">💳</span>
-          <span v-if="open">Transactions</span>
-        </NuxtLink>
       </nav>
 
       <slot />
@@ -72,77 +67,67 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from '~/stores/auth';
 import apiClient from '~/utils/api';
 
-// Props
 const props = defineProps({
-  open: Boolean,
-  user: Object
+  user: Object,
+  open: Boolean
 });
-
-// Route
 const route = useRoute();
-
-// Safe Computed User Role Checks
-const safeUser = computed(() => props.user || {});
+const authStore = useAuthStore();
+const safeUser = computed(() => props.user || authStore.currentUser || {});
 const isSuperAdmin = computed(() => safeUser.value?.role === 'super_admin');
 const isSchoolAdmin = computed(() => safeUser.value?.role === 'school_admin');
 
-// State
 const branches = ref([]);
-
-// Safe School ID Getter
 const getSchoolId = () => safeUser.value?.schoolId || safeUser.value?.school_id || null;
 
-// Fetch Branches (Only on Client, with Auth Token)
 const fetchBranches = async () => {
-  if (typeof window === 'undefined') return;
-  const token = localStorage.getItem('token');
-  if (!token) {
+  if (!safeUser.value || !safeUser.value.role) {
     branches.value = [];
     return;
   }
-  if (!props.user || !props.user.role) {
-    branches.value = [];
-    return;
+  
+  // Add a small delay to prevent rapid successive calls
+  if (fetchBranches.debounceTimer) {
+    clearTimeout(fetchBranches.debounceTimer);
   }
-  if (isSuperAdmin.value) {
-    try {
-      const res = await apiClient.branches.getAll(token);
-      branches.value = res.data?.items || res.data || [];
-    } catch (e) {
+  
+  fetchBranches.debounceTimer = setTimeout(async () => {
+    if (isSuperAdmin.value) {
+      try {
+        const res = await apiClient.branches.getAll();
+        branches.value = res.data?.items || res.data || [];
+      } catch (e) {
+        branches.value = [];
+      }
+    } else if (isSchoolAdmin.value && getSchoolId()) {
+      try {
+        const res = await apiClient.branches.getAll(getSchoolId());
+        branches.value = res.data?.items || res.data || [];
+      } catch (e) {
+        branches.value = [];
+      }
+    } else {
       branches.value = [];
     }
-  } else if (isSchoolAdmin.value && getSchoolId()) {
-    try {
-      const res = await apiClient.branches.getAll(getSchoolId(), token);
-      branches.value = res.data?.items || res.data || [];
-    } catch (e) {
-      branches.value = [];
-    }
-  } else {
-    branches.value = [];
-  }
+  }, 100); // 100ms debounce
 };
 
 onMounted(() => {
-  if (typeof window !== 'undefined') {
-    fetchBranches();
-    window.addEventListener('branch-updated', fetchBranches);
-  }
+  fetchBranches();
+  window.addEventListener('branch-updated', fetchBranches);
 });
 onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('branch-updated', fetchBranches);
-  }
+  window.removeEventListener('branch-updated', fetchBranches);
 });
 watch(() => props.user, () => {
-  if (typeof window !== 'undefined') fetchBranches();
+  fetchBranches();
 });
 
-// Navigation Class Helper
 const navClass = (href) => {
   const isActive = route.path.startsWith(href);
   return [

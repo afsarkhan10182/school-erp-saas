@@ -150,15 +150,38 @@
             <button type="button" class="btn-secondary" @click="showAddModal = false">Cancel</button>
             <button type="submit" class="btn-primary" :disabled="addLoading">{{ addLoading ? 'Saving...' : 'Add Payment' }}</button>
           </div>
-          <div v-if="addError" class="text-red-600 mt-2">{{ addError }}</div>
         </form>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div v-if="showToast" :class="toastClasses" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg v-if="toastType === 'success'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium">{{ toastMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="hideToast" class="inline-flex text-gray-400 hover:text-gray-600">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 
@@ -171,11 +194,36 @@ const loading = ref(false);
 const error = ref('');
 const pagination = ref(null);
 
+// Toast notification state
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastType = ref('success');
+
 const filters = ref({
   payment_status: '',
   payment_method: '',
   page: 1,
   limit: 10
+});
+
+// Toast notification methods
+const showToastNotification = (message, type = 'success') => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  setTimeout(() => {
+    hideToast();
+  }, 5000);
+};
+
+const hideToast = () => {
+  showToast.value = false;
+};
+
+const toastClasses = computed(() => {
+  return toastType.value === 'success' 
+    ? 'bg-green-50 border border-green-200 text-green-800' 
+    : 'bg-red-50 border border-red-200 text-red-800';
 });
 
 const fetchTransactions = async () => {
@@ -189,6 +237,7 @@ const fetchTransactions = async () => {
     }
   } catch (e) {
     error.value = e?.message || 'Failed to load transactions';
+    showToastNotification(error.value, 'error');
   } finally {
     loading.value = false;
   }
@@ -284,9 +333,11 @@ const handleAddPayment = async () => {
     });
     showAddModal.value = false;
     form.value = { amount: '', currency: 'INR', payment_method: 'offline_cash', billing_cycle: 'monthly', description: '' };
+    showToastNotification('Payment added successfully!', 'success');
     fetchTransactions();
   } catch (e) {
     addError.value = e?.message || 'Failed to add payment';
+    showToastNotification(addError.value, 'error');
   } finally {
     addLoading.value = false;
   }

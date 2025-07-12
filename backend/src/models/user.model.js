@@ -1,0 +1,254 @@
+const { DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { sequelize } = require('../config/database');
+const { logger } = require('../utils/logger');
+
+const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  SCHOOL_ADMIN: 'school_admin',
+  BRANCH_ADMIN: 'branch_admin',
+  TEACHER: 'teacher',
+  ACCOUNTANT: 'accountant',
+  LIBRARIAN: 'librarian',
+  RECEPTIONIST: 'receptionist',
+  STUDENT: 'student',
+  PARENT: 'parent',
+  TRANSPORT_MANAGER: 'transport_manager',
+  HR: 'hr',
+  ALUMNI: 'alumni',
+};
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: { msg: 'Please provide a valid email' },
+      notEmpty: { msg: 'Email is required' },
+    },
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Password is required' },
+      len: {
+        args: [8, 100],
+        msg: 'Password must be between 8 and 100 characters',
+      },
+    },
+  },
+  first_name: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'First name is required' },
+    },
+  },
+  last_name: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Last name is required' },
+    },
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  profile_image: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  role: {
+    type: DataTypes.ENUM(Object.values(ROLES)),
+    allowNull: false,
+    defaultValue: ROLES.STUDENT,
+  },
+  permissions: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: false,
+    defaultValue: [],
+  },
+  last_login: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  last_ip: {
+    type: DataTypes.STRING(45),
+    allowNull: true,
+  },
+  email_verified: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  phone_verified: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  two_factor_enabled: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  two_factor_secret: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  reset_password_token: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  reset_password_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'inactive', 'suspended', 'pending'),
+    allowNull: false,
+    defaultValue: 'pending',
+  },
+  settings: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+  },
+  school_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'schools',
+      key: 'id',
+    },
+  },
+  branch_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'branches',
+      key: 'id',
+    },
+  },
+  created_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+  updated_by: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+}, {
+  tableName: 'users',
+  timestamps: true,
+  underscored: true,
+  indexes: [
+    { fields: ['email'], unique: true },
+    { fields: ['school_id'] },
+    { fields: ['branch_id'] },
+    { fields: ['role'] },
+    { fields: ['status'] },
+  ],
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password) {
+        user.password = await bcrypt.hash(user.password, 12);
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        user.password = await bcrypt.hash(user.password, 12);
+      }
+    },
+    afterCreate: (user) => {
+      logger.info(`New user created: ${user.email} (${user.role})`);
+    },
+  },
+});
+
+// Instance method to check password
+User.prototype.isPasswordMatch = async function (candidatePassword) {
+  logger.info('Password comparison - Candidate:', candidatePassword);
+  logger.info('Password comparison - Stored hash:', this.password);
+  const result = await bcrypt.compare(candidatePassword, this.password);
+  logger.info('Password comparison - Result:', result);
+  return result;
+};
+
+// Instance method to generate JWT token
+User.prototype.generateAuthToken = function () {
+  const payload = {
+    id: this.id,
+    email: this.email,
+    role: this.role,
+    school_id: this.school_id,
+    branch_id: this.branch_id,
+  };
+
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+};
+
+// Static method to find user by credentials
+User.findByCredentials = async (email, password) => {
+  const user = await User.findOne({ where: { email } });
+  
+  if (!user) {
+    throw new Error('Invalid email or password');
+  }
+  
+  const isMatch = await user.isPasswordMatch(password);
+  
+  if (!isMatch) {
+    throw new Error('Invalid email or password');
+  }
+  
+  return user;
+};
+
+// Define associations
+User.associate = (models) => {
+  // User belongs to School
+  User.belongsTo(models.School, {
+    foreignKey: 'school_id',
+    as: 'school',
+  });
+
+  // User belongs to Branch
+  User.belongsTo(models.Branch, {
+    foreignKey: 'branch_id',
+    as: 'branch',
+  });
+
+  // User can be created by another user
+  User.belongsTo(User, {
+    foreignKey: 'created_by',
+    as: 'createdBy',
+  });
+
+  // User can be updated by another user
+  User.belongsTo(User, {
+    foreignKey: 'updated_by',
+    as: 'updatedBy',
+  });
+};
+
+module.exports = User;
+module.exports.ROLES = ROLES;

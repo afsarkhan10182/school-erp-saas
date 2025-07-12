@@ -14,7 +14,7 @@ const sequelize = new Sequelize(
     host: dbConfig.host,
     port: dbConfig.port,
     dialect: 'postgres',
-    logging: env === 'development' ? (msg) => logger.debug(msg) : false,
+    logging: env === 'development' ? console.log : false,
     pool: {
       max: 5,
       min: 0,
@@ -47,8 +47,19 @@ sequelize
     process.exit(1);
   });
 
+// Connect to database function
+const connectDB = async () => {
+  try {
+    await sequelize.authenticate();
+    return true;
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   sequelize,
   Sequelize,
-  testConnection
+  testConnection,
+  connectDB
 };

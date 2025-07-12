@@ -160,15 +160,36 @@
         <NuxtLink to="/subscriptions" class="btn-secondary">Cancel</NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? 'Saving...' : 'Save Changes' }}</button>
       </div>
-      <div v-if="success" class="text-green-600 mt-4">School updated successfully!</div>
-      <div v-if="formError" class="text-red-600 mt-4">{{ formError }}</div>
     </form>
+
+    <!-- Toast Notifications -->
+    <div v-if="showToast" :class="toastClasses" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg v-if="toastType === 'success'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium">{{ toastMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="hideToast" class="inline-flex text-gray-400 hover:text-gray-600">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 
 const route = useRoute();
@@ -178,8 +199,12 @@ const { fetchPlans, updateSchoolSubscription, fetchSchoolsWithSubscriptions } = 
 const plans = ref([]);
 const loading = ref(false);
 const error = ref('');
-const success = ref(false);
 const formError = ref('');
+
+// Toast notification state
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastType = ref('success');
 
 const form = ref({
   schoolData: {
@@ -202,12 +227,35 @@ const form = ref({
     admin_first_name: '',
     admin_last_name: '',
     admin_email: '',
-    admin_phone: ''
+    admin_phone: '',
+    payment_amount: null,
+    payment_currency: 'INR',
+    payment_method: 'offline_cash'
   }
 });
 
 const selectedPlan = computed(() => {
   return plans.value.find(plan => plan.code === form.value.subscriptionData.plan_code);
+});
+
+// Toast notification methods
+const showToastNotification = (message, type = 'success') => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  setTimeout(() => {
+    hideToast();
+  }, 5000);
+};
+
+const hideToast = () => {
+  showToast.value = false;
+};
+
+const toastClasses = computed(() => {
+  return toastType.value === 'success' 
+    ? 'bg-green-50 border border-green-200 text-green-800' 
+    : 'bg-red-50 border border-red-200 text-red-800';
 });
 
 const loadSchool = async () => {
@@ -242,10 +290,14 @@ const loadSchool = async () => {
       admin_first_name: school.admin_user?.first_name || '',
       admin_last_name: school.admin_user?.last_name || '',
       admin_email: school.admin_user?.email || '',
-      admin_phone: school.admin_user?.phone || ''
+      admin_phone: school.admin_user?.phone || '',
+      payment_amount: school.payment_amount || null,
+      payment_currency: school.payment_currency || 'INR',
+      payment_method: school.payment_method || 'offline_cash'
     };
   } catch (e) {
     error.value = e?.message || 'Failed to load school details';
+    showToastNotification(error.value, 'error');
   } finally {
     loading.value = false;
   }
@@ -253,16 +305,76 @@ const loadSchool = async () => {
 
 const handleSubmit = async () => {
   formError.value = '';
-  success.value = false;
+  loading.value = true;
   try {
-    // Only update subscription details (not school info for now)
-    const result = await updateSchoolSubscription(route.params.id, form.value.subscriptionData);
+    // Send all form data - school, admin, and subscription
+    const payload = {
+      // Subscription data
+      plan_code: form.value.subscriptionData.plan_code,
+      status: form.value.subscriptionData.status,
+      start_date: form.value.subscriptionData.start_date,
+      end_date: form.value.subscriptionData.end_date,
+      payment_amount: form.value.subscriptionData.payment_amount || null,
+      payment_currency: form.value.subscriptionData.payment_currency || 'INR',
+      payment_method: form.value.subscriptionData.payment_method || 'offline_cash',
+      
+      // School data (for updating school details)
+      school: {
+        name: form.value.schoolData.name,
+        code: form.value.schoolData.code,
+        email: form.value.schoolData.email,
+        phone: form.value.schoolData.phone,
+        address: form.value.schoolData.address,
+        city: form.value.schoolData.city,
+        state: form.value.schoolData.state,
+        country: form.value.schoolData.country,
+        postal_code: form.value.schoolData.postal_code,
+        website: form.value.schoolData.website
+      },
+      
+      // Admin data (for updating admin user)
+      admin: {
+        first_name: form.value.subscriptionData.admin_first_name,
+        last_name: form.value.subscriptionData.admin_last_name,
+        email: form.value.subscriptionData.admin_email,
+        phone: form.value.subscriptionData.admin_phone
+      }
+    };
+
+    console.log('Sending complete payload:', payload); // Debug log
+
+    const result = await updateSchoolSubscription(route.params.id, payload);
     if (result) {
-      success.value = true;
-      setTimeout(() => success.value = false, 2000);
+      // Show success toast and redirect
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('show-toast', {
+          detail: {
+            message: 'School and subscription updated successfully!',
+            type: 'success'
+          }
+        });
+        window.dispatchEvent(event);
+      }
+      // Redirect to list page
+      setTimeout(() => {
+        router.push('/subscriptions');
+      }, 1000);
     }
   } catch (e) {
-    formError.value = e?.message || 'Failed to update school';
+    const errorMsg = e?.message || 'Failed to update school subscription';
+    formError.value = errorMsg;
+    // Show error toast
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: errorMsg,
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+    }
+  } finally {
+    loading.value = false;
   }
 };
 

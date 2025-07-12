@@ -38,7 +38,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user._id">
+            <tr v-for="user in filteredUsers" :key="user.id">
               <td class="px-4 py-2">
                 <img
                   :src="user.profile_image || '/default-avatar.png'"
@@ -47,13 +47,13 @@
                 />
               </td>
               <td class="px-4 py-2">{{ user.branch?.name || '-' }}</td>
-              <td class="px-4 py-2">{{ user._id.slice(-6) }}</td>
+              <td class="px-4 py-2">{{ user.id.slice(-6) }}</td>
               <td class="px-4 py-2">{{ user.first_name }} {{ user.last_name }}</td>
               <td class="px-4 py-2">{{ user.email }}</td>
               <td class="px-4 py-2">{{ user.phone || '-' }}</td>
               <td class="px-4 py-2">{{ user.role }}</td>
               <td class="px-4 py-2">
-                <NuxtLink :to="`/users/${user._id}/edit`" class="text-blue-600 hover:underline mr-2">Edit</NuxtLink>
+                <NuxtLink :to="`/users/${user.id}/edit`" class="text-blue-600 hover:underline mr-2">Edit</NuxtLink>
                 <button @click="confirmDelete(user)" class="text-red-600 hover:underline">Delete</button>
               </td>
             </tr>
@@ -87,6 +87,7 @@ const selectedRole = ref('all');
 const showDeleteModal = ref(false);
 const userToDelete = ref(null);
 const router = useRouter();
+const authStore = useAuthStore();
 
 const roleTabs = ref([
   { key: 'all', label: 'All', count: 0 },
@@ -99,20 +100,16 @@ const roleTabs = ref([
 
 const fetchUsers = async () => {
   try {
-    // Only run on client
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const res = await apiClient.users.getAll(token);
-      users.value = res.data?.items || res.data || [];
-      // Update role counts
-      roleTabs.value.forEach(tab => {
-        if (tab.key === 'all') {
-          tab.count = users.value.length;
-        } else {
-          tab.count = users.value.filter(u => u.role === tab.key).length;
-        }
-      });
-    }
+    const res = await apiClient.users.getAll();
+    users.value = res.data?.users || [];
+    // Update role counts
+    roleTabs.value.forEach(tab => {
+      if (tab.key === 'all') {
+        tab.count = users.value.length;
+      } else {
+        tab.count = users.value.filter(u => u.role === tab.key).length;
+      }
+    });
   } catch (e) {
     users.value = [];
   }
@@ -147,8 +144,7 @@ function confirmDelete(user) {
 async function deleteUser() {
   if (!userToDelete.value) return;
   try {
-    const token = localStorage.getItem('token');
-    await apiClient.users.delete(userToDelete.value._id, token);
+    await apiClient.users.delete(userToDelete.value.id);
     showDeleteModal.value = false;
     userToDelete.value = null;
     fetchUsers();

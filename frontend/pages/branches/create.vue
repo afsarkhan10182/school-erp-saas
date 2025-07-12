@@ -118,8 +118,8 @@ const onFileChange = (field, event) => {
 watch(() => form.value.schoolId, (schoolId) => {
   const school = schools.value.find(s => s.id === schoolId);
   if (school) {
-    form.value.currency = school.currency || '';
-    form.value.currency_symbol = school.currency_symbol || '';
+    form.value.currency = school.settings?.currency || 'INR';
+    form.value.currency_symbol = school.settings?.currency_symbol || '₹';
   }
 });
 

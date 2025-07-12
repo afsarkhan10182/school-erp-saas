@@ -84,6 +84,7 @@ export interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  lastAuthCheck: number;
 }
 
 // API Response types

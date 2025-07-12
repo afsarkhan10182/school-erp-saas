@@ -82,7 +82,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 
-const { fetchPlans, updatePlan, loading, error } = useSubscriptions();
+const { updatePlan, loading, error } = useSubscriptions();
 const route = useRoute();
 const router = useRouter();
 
@@ -106,20 +106,45 @@ const form = ref({
 });
 const loaded = ref(false);
 
+// Load single plan by ID instead of fetching all plans
 const loadPlan = async () => {
-  const result = await fetchPlans();
-  if (result && result.plans) {
-    const plan = result.plans.find(p => p.id === route.params.id);
-    if (plan) {
-      Object.assign(form.value, plan);
+  try {
+    const token = localStorage.getItem('auth-token');
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase;
+    const res = await fetch(`${apiBase}/subscriptions/plans/${route.params.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    if (data.success) {
+      Object.assign(form.value, data.data.plan || data.data);
       loaded.value = true;
+    } else {
+      error.value = data.message || 'Failed to load plan';
     }
+  } catch (e) {
+    error.value = 'Network error';
   }
 };
 
 const handleSubmit = async () => {
   const result = await updatePlan(route.params.id, form.value);
   if (result) {
+    // Show success toast and redirect
+    if (typeof window !== 'undefined') {
+      // Create and dispatch a custom event for toast notification
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: 'Subscription plan updated successfully!',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+    }
+    // Redirect to list page
     router.push('/subscriptions/plans');
   }
 };

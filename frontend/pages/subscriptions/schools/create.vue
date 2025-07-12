@@ -347,31 +347,26 @@
       </div>
     </form>
 
-    <!-- Success Modal -->
-    <div v-if="showSuccessModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    <!-- Toast Notifications -->
+    <div v-if="showToast" :class="toastClasses" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg v-if="toastType === 'success'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium">{{ toastMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="hideToast" class="inline-flex text-gray-400 hover:text-gray-600">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mt-4">School Created Successfully!</h3>
-          <div class="mt-4 text-sm text-gray-600">
-            <p><strong>School:</strong> {{ createdSchool?.name }}</p>
-            <p><strong>Admin Email:</strong> {{ createdSchool?.admin_user?.email }}</p>
-            <p v-if="createdSchool?.admin_user?.password" class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-              <strong>Admin Password:</strong> {{ createdSchool.admin_user.password }}
-            </p>
-          </div>
-          <div class="mt-6 flex justify-center gap-3">
-            <button @click="closeSuccessModal" class="btn-secondary">
-              Close
-            </button>
-            <NuxtLink to="/subscriptions" class="btn-primary">
-              View All Schools
-            </NuxtLink>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -423,6 +418,11 @@ const textLogoInput = ref(null);
 const printingLogoInput = ref(null);
 const reportCardInput = ref(null);
 
+// Toast notification state
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastType = ref('success');
+
 const fileInputs = ref({});
 const onFileChange = (field, event) => {
   fileInputs.value[field] = event.target.files[0];
@@ -431,6 +431,26 @@ const onFileChange = (field, event) => {
 // Computed property for selected plan
 const selectedPlan = computed(() => {
   return plans.value.find(plan => plan.code === form.value.subscriptionData.plan_code);
+});
+
+// Toast notification methods
+const showToastNotification = (message, type = 'success') => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  setTimeout(() => {
+    hideToast();
+  }, 5000);
+};
+
+const hideToast = () => {
+  showToast.value = false;
+};
+
+const toastClasses = computed(() => {
+  return toastType.value === 'success' 
+    ? 'bg-green-50 border border-green-200 text-green-800' 
+    : 'bg-red-50 border border-red-200 text-red-800';
 });
 
 // On plan change, set end date based on billing cycle
@@ -486,10 +506,52 @@ const handleSubmit = async () => {
     const result = await createSchoolWithSubscription(formData);
     if (result) {
       createdSchool.value = result;
-      showSuccessModal.value = true;
+      showToastNotification('School created successfully!', 'success');
+      // Reset form after successful creation
+      setTimeout(() => {
+        // Reset form
+        form.value = {
+          schoolData: {
+            name: '',
+            code: '',
+            email: '',
+            phone: '',
+            address: '',
+            city: '',
+            state: '',
+            country: 'India',
+            postal_code: '',
+            website: '',
+            branch_name: '',
+            currency: '',
+            currency_symbol: ''
+          },
+          subscriptionData: {
+            plan_code: '',
+            status: 'trial',
+            start_date: new Date().toISOString().split('T')[0],
+            end_date: '',
+            admin_first_name: '',
+            admin_last_name: '',
+            admin_email: '',
+            admin_phone: '',
+            admin_password: '',
+            payment_amount: '',
+            payment_method: 'offline_cash',
+            payment_currency: 'INR'
+          }
+        };
+        // Clear file inputs
+        fileInputs.value = {};
+        if (systemLogoInput.value) systemLogoInput.value.value = '';
+        if (textLogoInput.value) textLogoInput.value.value = '';
+        if (printingLogoInput.value) printingLogoInput.value.value = '';
+        if (reportCardInput.value) reportCardInput.value.value = '';
+      }, 2000);
     }
   } catch (err) {
     console.error('Error creating school:', err);
+    showToastNotification(err?.message || 'Failed to create school', 'error');
   }
 };
 
