@@ -1,4 +1,5 @@
-const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType } = require('../models');
+const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section } = require('../models');
+const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
 
@@ -273,6 +274,229 @@ const getStudentStats = async (req, res, next) => {
   }
 };
 
+// Get student report with advanced filtering
+const getStudentReport = async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      academic_year,
+      class_name,
+      section_name,
+      status,
+      search,
+      sort_by = 'created_at',
+      sort_order = 'DESC',
+    } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build where clause based on user role
+    let whereClause = {
+      school_id: req.schoolId,
+    };
+
+    // Add filters
+    if (academic_year) whereClause.academic_year = academic_year;
+    if (class_name) whereClause.current_class = class_name;
+    if (section_name) whereClause.section = section_name;
+    if (status) whereClause.status = status;
+
+    // Add search functionality
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const { count, rows } = await Student.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: Parent,
+          as: 'parents',
+          through: { attributes: ['relationship', 'is_primary'] },
+        },
+        {
+          model: AcademicYear,
+          as: 'academicYear',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Section,
+          as: 'section',
+          attributes: ['id', 'name'],
+        },
+      ],
+      order: [[sort_by, sort_order.toUpperCase()]],
+      limit: parseInt(limit),
+      offset,
+    });
+
+    const totalPages = Math.ceil(count / parseInt(limit));
+
+    return res.status(200).json({
+      success: true,
+      data: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student report:', error);
+    return next(error);
+  }
+};
+
+// Export student report
+const exportStudentReport = async (req, res, next) => {
+  try {
+    const {
+      academic_year,
+      class_name,
+      section_name,
+      status,
+      search,
+      format = 'xlsx',
+    } = req.query;
+
+    // Build where clause
+    let whereClause = {
+      school_id: req.schoolId,
+    };
+
+    // Add filters
+    if (academic_year) whereClause.academic_year = academic_year;
+    if (class_name) whereClause.current_class = class_name;
+    if (section_name) whereClause.section = section_name;
+    if (status) whereClause.status = status;
+
+    // Add search functionality
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const students = await Student.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Parent,
+          as: 'parents',
+          through: { attributes: ['relationship', 'is_primary'] },
+        },
+        {
+          model: AcademicYear,
+          as: 'academicYear',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Section,
+          as: 'section',
+          attributes: ['id', 'name'],
+        },
+      ],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+    });
+
+    if (format === 'xlsx') {
+      const XLSX = require('xlsx');
+      
+      // Prepare data for Excel
+      const excelData = students.map(student => ({
+        'Admission Number': student.admission_number,
+        'First Name': student.first_name,
+        'Last Name': student.last_name,
+        'Email': student.email,
+        'Phone': student.phone,
+        'Date of Birth': student.date_of_birth,
+        'Gender': student.gender,
+        'Current Class': student.current_class,
+        'Section': student.section,
+        'Academic Year': student.academic_year,
+        'Status': student.status,
+        'Admission Date': student.admission_date,
+        'Address': student.address,
+        'Father Name': student.parents?.find(p => p.StudentParent?.relationship === 'father')?.first_name + ' ' + student.parents?.find(p => p.StudentParent?.relationship === 'father')?.last_name || '',
+        'Mother Name': student.parents?.find(p => p.StudentParent?.relationship === 'mother')?.first_name + ' ' + student.parents?.find(p => p.StudentParent?.relationship === 'mother')?.last_name || '',
+        'Guardian Phone': student.parents?.find(p => p.StudentParent?.is_primary)?.phone || '',
+        'Created At': student.createdAt,
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=students-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      return res.send(buffer);
+    } else if (format === 'csv') {
+      // CSV export
+      const csvData = students.map(student => ({
+        admission_number: student.admission_number,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: student.email,
+        phone: student.phone,
+        date_of_birth: student.date_of_birth,
+        gender: student.gender,
+        current_class: student.current_class,
+        section: student.section,
+        academic_year: student.academic_year,
+        status: student.status,
+        admission_date: student.admission_date,
+        address: student.address,
+        created_at: student.createdAt,
+      }));
+
+      const csv = require('csv-stringify');
+      csv(csvData, { header: true }, (err, output) => {
+        if (err) {
+          return next(err);
+        }
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=students-report-${new Date().toISOString().split('T')[0]}.csv`);
+        
+        return res.send(output);
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported export format. Use xlsx or csv.',
+      });
+    }
+  } catch (error) {
+    logger.error('Error exporting student report:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   createStudent,
   getStudents,
@@ -280,5 +504,7 @@ module.exports = {
   updateStudent,
   getStudentsByClass,
   getStudentStats,
+  getStudentReport,
+  exportStudentReport,
 };
 

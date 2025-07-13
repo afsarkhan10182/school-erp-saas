@@ -54,9 +54,8 @@ class AuthController {
         message: 'Login successful',
         data: {
           user,
-          tokens: {
-            access: tokens.access,
-          },
+          token: tokens.access.token,
+          refreshToken: tokens.refresh.token,
         },
       });
     } catch (error) {
@@ -86,10 +85,7 @@ class AuthController {
       res.json({
         success: true,
         data: {
-          user,
-          tokens: {
-            access: tokens.access,
-          },
+          token: tokens.access.token,
         },
       });
     } catch (error) {

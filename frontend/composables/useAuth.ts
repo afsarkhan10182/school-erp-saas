@@ -5,25 +5,36 @@ export const useAuth = () => {
   const router = useRouter();
 
   const login = async (credentials: { email: string; password: string }) => {
-    const result = await authStore.login(credentials);
-    
-    if (result.success) {
-      // Redirect based on user role
-      const role = result.user?.role;
-      if (role === 'super_admin') {
+    try {
+      
+      const result = await authStore.login(credentials);
+      
+      if (result.success) {
+        // Wait a moment for the store to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Redirect to dashboard
         await router.push('/dashboard');
-      } else if (role === 'school_admin') {
-        await router.push('/school/dashboard');
+        return result;
       } else {
-        await router.push('/dashboard');
+        return result;
       }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: 'An unexpected error occurred during login.' 
+      };
     }
-    
-    return result;
   };
 
   const logout = async () => {
-    await authStore.logout();
+    try {
+      await authStore.logout();
+      await router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect even if logout fails
+      await router.push('/login');
+    }
   };
 
   const checkAuth = async () => {

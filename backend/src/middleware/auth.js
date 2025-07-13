@@ -98,13 +98,18 @@ const requireRole = (...roles) => {
   return (req, res, next) => {
     try {
       if (!req.user) {
+        logger.warn('requireRole: No user found in request');
         return next(new ApiError(401, 'Authentication required'));
       }
       
       logger.debug('requireRole roles:', roles);
       logger.debug('req.user:', req.user);
+      logger.debug('User role:', req.user.role);
+      logger.debug('User school_id:', req.user.school_id);
+      logger.debug('User branch_id:', req.user.branch_id);
       
       if (!roles.includes(req.user.role)) {
+        logger.warn(`requireRole: User role ${req.user.role} not in allowed roles: ${roles.join(', ')}`);
         return next(
           new ApiError(
             403,
@@ -123,19 +128,30 @@ const requireRole = (...roles) => {
 // School context middleware
 const setSchoolContext = (req, res, next) => {
   try {
+    logger.debug('setSchoolContext: Setting school context for user:', {
+      role: req.user?.role,
+      school_id: req.user?.school_id,
+      query_school_id: req.query.school_id,
+      params_school_id: req.params.school_id,
+      body_school_id: req.body.school_id
+    });
+    
     // If user is a super admin, they can access any school
     if (req.user.role === 'super_admin') {
       // If school_id is provided in query/params, use it
       req.schoolId = req.query.school_id || req.params.school_id || req.body.school_id;
+      logger.debug('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       return next();
     }
     
     // For other roles, they can only access their own school
     if (req.user.school_id) {
       req.schoolId = req.user.school_id;
+      logger.debug('setSchoolContext: Regular user - schoolId set to:', req.schoolId);
       return next();
     }
     
+    logger.warn('setSchoolContext: No school_id found for user:', req.user);
     return next(new ApiError(403, 'Not authorized to access this school context'));
   } catch (error) {
     logger.error('setSchoolContext middleware error:', error);

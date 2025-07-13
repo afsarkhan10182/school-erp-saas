@@ -297,6 +297,122 @@ const getInvoiceById = async (req, res, next) => {
   }
 };
 
+// Calculate late fees based on due date
+const calculateLateFees = async (invoice) => {
+  const currentDate = new Date();
+  const dueDate = new Date(invoice.due_date);
+  
+  if (currentDate <= dueDate) {
+    return 0; // No late fee if not overdue
+  }
+  
+  const daysOverdue = Math.ceil((currentDate - dueDate) / (1000 * 60 * 60 * 24));
+  const lateFeePct = parseFloat(invoice.late_fee_percentage) || 2.0; // Default 2% late fee
+  
+  // Calculate late fee (2% per month or part thereof)
+  const monthsOverdue = Math.ceil(daysOverdue / 30);
+  const lateFee = (parseFloat(invoice.total_amount) * lateFeePct * monthsOverdue) / 100;
+  
+  return parseFloat(lateFee.toFixed(2));
+};
+
+// Apply late fees to overdue invoices
+const applyLateFees = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const invoice = await FeeInvoice.findOne({
+      where: {
+        id,
+        school_id: req.schoolId,
+        status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
+      }
+    });
+    
+    if (!invoice) {
+      throw new ApiError(404, 'Invoice not found or not eligible for late fees');
+    }
+    
+    if (invoice.is_late_fee_applied) {
+      throw new ApiError(400, 'Late fees already applied to this invoice');
+    }
+    
+    const lateFeeAmount = await calculateLateFees(invoice);
+    
+    if (lateFeeAmount > 0) {
+      const newTotalAmount = parseFloat(invoice.total_amount) + lateFeeAmount;
+      const newBalanceAmount = newTotalAmount - parseFloat(invoice.paid_amount);
+      
+      await invoice.update({
+        late_fee_amount: lateFeeAmount,
+        total_amount: newTotalAmount,
+        balance_amount: newBalanceAmount,
+        is_late_fee_applied: true,
+        late_fee_applied_date: new Date(),
+        status: 'overdue',
+        updated_by: req.user.id
+      });
+      
+      logger.info(`Late fee applied: $${lateFeeAmount} to invoice ${invoice.invoice_number}`);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Late fees applied successfully',
+        data: {
+          invoice_id: invoice.id,
+          late_fee_amount: lateFeeAmount,
+          new_total_amount: newTotalAmount,
+          new_balance_amount: newBalanceAmount
+        }
+      });
+    } else {
+      throw new ApiError(400, 'No late fees applicable for this invoice');
+    }
+  } catch (error) {
+    logger.error('Error applying late fees:', error);
+    return next(error);
+  }
+};
+
+// Generate receipt after payment
+const generateReceipt = async (invoice, paymentAmount, paymentMethod, transactionId) => {
+  const receiptData = {
+    receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    invoice_number: invoice.invoice_number,
+    student_name: invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
+    payment_amount: paymentAmount,
+    payment_method: paymentMethod,
+    transaction_id: transactionId,
+    payment_date: new Date(),
+    remaining_balance: parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount) - parseFloat(paymentAmount),
+    school_name: invoice.school ? invoice.school.name : 'School Name'
+  };
+  
+  // In a real implementation, you would generate a PDF receipt
+  const receiptHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
+      <h2 style="text-align: center; color: #333;">Payment Receipt</h2>
+      <hr>
+      <p><strong>Receipt No:</strong> ${receiptData.receipt_number}</p>
+      <p><strong>Invoice No:</strong> ${receiptData.invoice_number}</p>
+      <p><strong>Student:</strong> ${receiptData.student_name}</p>
+      <p><strong>Amount Paid:</strong> $${receiptData.payment_amount}</p>
+      <p><strong>Payment Method:</strong> ${receiptData.payment_method}</p>
+      <p><strong>Transaction ID:</strong> ${receiptData.transaction_id || 'N/A'}</p>
+      <p><strong>Payment Date:</strong> ${receiptData.payment_date.toLocaleDateString()}</p>
+      <p><strong>Remaining Balance:</strong> $${receiptData.remaining_balance}</p>
+      <hr>
+      <p style="text-align: center; font-size: 12px; color: #666;">Thank you for your payment!</p>
+    </div>
+  `;
+  
+  return {
+    receipt_number: receiptData.receipt_number,
+    receipt_html: receiptHtml,
+    receipt_data: receiptData
+  };
+};
+
 // Record payment for an invoice
 const recordPayment = async (req, res, next) => {
   try {
@@ -544,6 +660,338 @@ const getFeeCollectionSummary = async (req, res, next) => {
   }
 };
 
+// Generate report with filtering, pagination, and sorting options
+// Export fee invoice report in Excel or CSV format (legacy - replaced by new implementation)
+const exportFeeInvoicesReportLegacy = async (req, res, next) => {
+  try {
+    const format = req.query.format || 'csv';
+    const invoices = await FeeInvoice.findAll({
+      where: {
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+        },
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+      ],
+    });
+
+    // Process and convert invoices data to desired format
+    let data;
+    if (format === 'excel') {
+      // Convert to Excel format
+      data = convertToExcel(invoices); // Assume convertToExcel is a utility function
+    } else {
+      // Convert to CSV format
+      data = convertToCSV(invoices); // Assume convertToCSV is a utility function
+    }
+
+    res.setHeader('Content-disposition', `attachment; filename=fee_invoices.${format}`);
+    res.set('Content-Type', `text/${format}`);
+    res.send(data);
+  } catch (error) {
+    logger.error('Error exporting fee invoices:', error);
+    return next(error);
+  }
+};
+
+// GET endpoint to retrieve fee invoice report with pagination and filtering
+const getFeeInvoiceReport = async (req, res, next) => {
+  try {
+    logger.debug('getFeeInvoiceReport: Request received', {
+      userRole: req.user?.role,
+      userSchoolId: req.user?.school_id,
+      schoolId: req.schoolId,
+      query: req.query
+    });
+
+    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const whereClause = {
+      school_id: req.schoolId,
+    };
+
+    if (status) whereClause.status = status;
+    if (from_date && to_date) {
+      whereClause.created_at = {
+        [Op.between]: [new Date(from_date), new Date(to_date)],
+      };
+    }
+
+    logger.debug('getFeeInvoiceReport: Query parameters', {
+      whereClause,
+      page,
+      limit,
+      offset
+    });
+
+    const includeClause = [
+      {
+        model: Student,
+        as: 'student',
+        where: {},
+      },
+      {
+        model: FeeStructure,
+        as: 'feeStructure',
+        include: [
+          {
+            model: FeeType,
+            as: 'feeType',
+          },
+        ],
+      },
+    ];
+
+    // Add student filters
+    if (search) {
+      includeClause[0].where[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+    if (class_name) includeClause[0].where.current_class = class_name;
+    if (section) includeClause[0].where.section = section;
+
+    const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
+      where: whereClause,
+      include: includeClause,
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / parseInt(limit));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        invoices,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_records: count,
+          per_page: parseInt(limit),
+          has_next: parseInt(page) < totalPages,
+          has_prev: parseInt(page) > 1,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching fee invoice report:', error);
+    return next(error);
+  }
+};
+
+// GET endpoint to export fee invoices report
+const exportFeeInvoicesReport = async (req, res, next) => {
+  try {
+    const { format = 'csv', search, status, class_name, section, from_date, to_date } = req.query;
+
+    const whereClause = {
+      school_id: req.schoolId,
+    };
+
+    if (status) whereClause.status = status;
+    if (from_date && to_date) {
+      whereClause.created_at = {
+        [Op.between]: [new Date(from_date), new Date(to_date)],
+      };
+    }
+
+    const includeClause = [
+      {
+        model: Student,
+        as: 'student',
+        where: {},
+      },
+      {
+        model: FeeStructure,
+        as: 'feeStructure',
+        include: [
+          {
+            model: FeeType,
+            as: 'feeType',
+          },
+        ],
+      },
+    ];
+
+    // Add student filters
+    if (search) {
+      includeClause[0].where[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+    if (class_name) includeClause[0].where.current_class = class_name;
+    if (section) includeClause[0].where.section = section;
+
+    const invoices = await FeeInvoice.findAll({
+      where: whereClause,
+      include: includeClause,
+      order: [['created_at', 'DESC']],
+    });
+
+    // Convert to export format
+    const exportData = invoices.map(invoice => ({
+      'Invoice Number': invoice.invoice_number,
+      'Student Name': invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
+      'Admission Number': invoice.student?.admission_number || 'N/A',
+      'Class': invoice.student?.current_class || 'N/A',
+      'Section': invoice.student?.section || 'N/A',
+      'Amount': invoice.amount,
+      'Paid Amount': invoice.paid_amount,
+      'Balance': invoice.balance_amount,
+      'Due Date': invoice.due_date,
+      'Status': invoice.status,
+      'Created At': invoice.created_at,
+      'Updated At': invoice.updated_at,
+    }));
+
+    if (format === 'csv') {
+      // Generate CSV
+      const csvHeaders = Object.keys(exportData[0] || {});
+      const csvRows = exportData.map(row => 
+        csvHeaders.map(header => {
+          const value = row[header];
+          // Handle null/undefined values and escape quotes
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value);
+          return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+            ? `"${stringValue.replace(/"/g, '""')}"`
+            : stringValue;
+        }).join(',')
+      );
+      
+      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="fee-invoices-report-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+    } else if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="fee-invoices-report-${new Date().toISOString().split('T')[0]}.json"`);
+      res.json({
+        success: true,
+        data: exportData,
+        exported_at: new Date().toISOString(),
+        total_records: exportData.length,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid export format. Supported formats: csv, json',
+      });
+    }
+  } catch (error) {
+    logger.error('Error exporting fee invoices report:', error);
+    return next(error);
+  }
+};
+
+// Get fee collection statistics
+const getFeeStats = async (req, res, next) => {
+  try {
+    logger.debug('getFeeStats: Request received', {
+      userRole: req.user?.role,
+      userSchoolId: req.user?.school_id,
+      schoolId: req.schoolId,
+      query: req.query
+    });
+
+    const { academic_year, class_name } = req.query;
+    
+    const whereClause = {
+      school_id: req.schoolId,
+    };
+
+    if (academic_year) whereClause.academic_year = academic_year;
+
+    const includeClause = [];
+    if (class_name) {
+      includeClause.push({
+        model: Student,
+        as: 'student',
+        where: { current_class: class_name },
+        attributes: [],
+      });
+    }
+
+    logger.debug('getFeeStats: Query parameters', {
+      whereClause,
+      includeClause: includeClause.length
+    });
+
+    // Get summary statistics
+    const [totalInvoices, paidInvoices, overdueInvoices, partialPaidInvoices] = await Promise.all([
+      FeeInvoice.count({
+        where: whereClause,
+        include: includeClause,
+      }),
+      FeeInvoice.count({
+        where: { ...whereClause, status: 'paid' },
+        include: includeClause,
+      }),
+      FeeInvoice.count({
+        where: { ...whereClause, status: 'overdue' },
+        include: includeClause,
+      }),
+      FeeInvoice.count({
+        where: { ...whereClause, status: 'partial_paid' },
+        include: includeClause,
+      }),
+    ]);
+
+    // Get amount statistics
+    const amountStats = await FeeInvoice.findAll({
+      where: whereClause,
+      include: includeClause,
+      attributes: [
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('late_fee_amount')), 'total_late_fees'],
+      ],
+      raw: true,
+    });
+
+    const stats = amountStats[0] || {};
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalInvoices,
+        paidInvoices,
+        overdueInvoices,
+        partialPaidInvoices,
+        totalAmount: parseFloat(stats.total_amount || 0),
+        totalPaid: parseFloat(stats.total_paid || 0),
+        totalBalance: parseFloat(stats.total_balance || 0),
+        totalLateFees: parseFloat(stats.total_late_fees || 0),
+        collectionRate: stats.total_amount ? ((stats.total_paid / stats.total_amount) * 100).toFixed(2) : 0,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching fee stats:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   generateInvoices,
   getInvoices,
@@ -552,4 +1000,9 @@ module.exports = {
   updateInvoice,
   cancelInvoice,
   getFeeCollectionSummary,
+  getFeeInvoiceReport,
+  exportFeeInvoicesReport,
+  exportFeeInvoicesReportLegacy,
+  getFeeStats,
+  applyLateFees
 };

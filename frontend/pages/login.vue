@@ -141,6 +141,7 @@ const form = reactive({
 const error = ref('');
 const loading = ref(false);
 const router = useRouter();
+const { login } = useAuth();
 
 // Autofill functions
 function autofillSuperAdmin() {
@@ -175,33 +176,15 @@ onMounted(() => {
 const handleLogin = async () => {
   error.value = '';
   loading.value = true;
-  
+
   try {
-    const response = await fetch(`${apiBase}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: form.email,
-        password: form.password
-      })
-    });
-    const data = await response.json();
-    if (data.success) {
-      let accessToken = data.data?.tokens?.access?.token || data.data?.token || data.data?.accessToken;
-      let refreshToken = data.data?.tokens?.refresh?.token || data.data?.refreshToken;
-      if (!accessToken && data.data?.user?.token) accessToken = data.data.user.token;
-      if (!refreshToken && data.data?.user?.refreshToken) refreshToken = data.data.user.refreshToken;
-      useCookie('auth-token', { secure: false }).value = accessToken;
-      useCookie('refresh-token', { secure: false }).value = refreshToken;
-      localStorage.setItem('auth-token', accessToken);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
-      await router.push('/dashboard');
-    } else {
-      error.value = data.message || 'Login failed';
+    const result = await login({ email: form.email, password: form.password });
+    if (!result.success) {
+      error.value = result.error || 'Login failed';
     }
+    // If successful, the useAuth composable will handle the redirect
   } catch (err) {
+    console.error('Login error:', err);
     error.value = 'Network error. Please check if the backend is running.';
   } finally {
     loading.value = false;

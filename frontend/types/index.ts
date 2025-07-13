@@ -1,17 +1,20 @@
 // User types
 export interface User {
-  _id: string;
-  firstName: string;
-  lastName: string;
+  id: string; // Changed from _id to id
+  first_name: string; // Changed from firstName to first_name
+  last_name: string; // Changed from lastName to last_name
   email: string;
   phone?: string;
   role: UserRole;
-  schoolId?: string;
-  branchId?: string;
+  school_id?: string; // Changed from schoolId to school_id
+  branch_id?: string; // Changed from branchId to branch_id
+  school_name?: string; // Added for convenience
+  branch_name?: string; // Added for convenience
   isActive: boolean;
-  profilePicture?: string;
-  createdAt: string;
-  updatedAt: string;
+  profile_image?: string; // Changed from profilePicture to profile_image
+  status?: string;
+  created_at?: string; // Changed from createdAt to created_at
+  updated_at?: string; // Changed from updatedAt to updated_at
 }
 
 export type UserRole = 

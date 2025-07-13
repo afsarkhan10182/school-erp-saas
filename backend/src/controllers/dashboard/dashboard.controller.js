@@ -1,8 +1,9 @@
-const { User, School, Branch } = require('../../models');
+const { User, School, Branch, FeeInvoice, Admission, Student } = require('../../models');
 const SchoolService = require('../../services/school/school.service');
 const BranchService = require('../../services/school/branch.service');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
+const { Op } = require('sequelize');
 
 class DashboardController {
   static async getStats(req, res, next) {
@@ -12,24 +13,79 @@ class DashboardController {
 
       if (user.role === 'super_admin') {
         // Global stats
-        const [schoolCount, branchCount, userCount] = await Promise.all([
+        const [schoolCount, branchCount, userCount, totalRevenue] = await Promise.all([
           School.count(),
           Branch.count(),
           User.count(),
+          // Calculate total revenue from all fee invoices
+          FeeInvoice.sum('paid_amount', { where: { status: 'paid' } })
         ]);
         stats = {
           totalSchools: schoolCount,
           totalBranches: branchCount,
           totalUsers: userCount,
+          totalRevenue: totalRevenue || 0,
         };
       } else if (user.role === 'school_admin') {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
-        stats = await SchoolService.getSchoolStats(user.school_id);
+        
+        const [totalStudents, totalBranches, newAdmissions, feeCollection] = await Promise.all([
+          Student.count({ where: { school_id: user.school_id } }),
+          Branch.count({ where: { school_id: user.school_id } }),
+          // Count admissions in last 30 days
+          Admission.count({ 
+            where: { 
+              school_id: user.school_id,
+              created_at: {
+                [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+              }
+            } 
+          }),
+          // Calculate fee collection for the school
+          FeeInvoice.sum('paid_amount', { 
+            where: { 
+              school_id: user.school_id,
+              status: 'paid'
+            } 
+          })
+        ]);
+        
+        stats = {
+          totalStudents,
+          totalBranches,
+          newAdmissions,
+          feeCollection: feeCollection || 0,
+        };
       } else if (user.role === 'branch_admin') {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
-        stats = await BranchService.getBranchStats(user.branch_id);
+        
+        const [branchStudents, pendingAdmissions, branchCollection, overdueFees] = await Promise.all([
+          Student.count({ where: { branch_id: user.branch_id } }),
+          Admission.count({ where: { branch_id: user.branch_id, status: 'pending' } }),
+          // Calculate fee collection for the branch
+          FeeInvoice.sum('paid_amount', { 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'paid'
+            } 
+          }),
+          // Count overdue invoices
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'overdue'
+            } 
+          })
+        ]);
+        
+        stats = {
+          branchStudents,
+          pendingAdmissions,
+          branchCollection: branchCollection || 0,
+          overdueFees,
+        };
       } else {
         // For other roles, return basic info
         stats = { message: 'No dashboard stats for this role.' };
@@ -120,6 +176,163 @@ class DashboardController {
     } catch (error) {
       logger.error('Error in DashboardController.getSchoolReport:', error);
       next(error);
+    }
+  }
+
+  static async getRecentActivities(req, res, next) {
+    try {
+      const user = req.user;
+      const limit = parseInt(req.query.limit) || 10;
+      const activities = [];
+
+      if (user.role === 'super_admin') {
+        // Get recent activities across all schools - simplified without complex associations
+        const [recentAdmissions, recentPayments, recentUsers] = await Promise.all([
+          Admission.findAll({
+            limit: Math.ceil(limit / 3),
+            order: [['created_at', 'DESC']],
+            attributes: ['id', 'application_number', 'status', 'created_at', 'school_id']
+          }).catch(() => []),
+          FeeInvoice.findAll({
+            where: { status: 'paid' },
+            limit: Math.ceil(limit / 3),
+            order: [['last_payment_date', 'DESC']],
+            attributes: ['id', 'paid_amount', 'last_payment_date', 'school_id']
+          }).catch(() => []),
+          User.findAll({
+            limit: Math.ceil(limit / 3),
+            order: [['created_at', 'DESC']],
+            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at', 'school_id']
+          }).catch(() => [])
+        ]);
+
+        // Convert to activity format
+        recentAdmissions.forEach(admission => {
+          activities.push({
+            id: `admission_${admission.id}`,
+            type: 'student_admission',
+            title: 'New Student Admission',
+            description: `Application ${admission.application_number} (${admission.status})`,
+            created_at: admission.created_at
+          });
+        });
+
+        recentPayments.forEach(payment => {
+          activities.push({
+            id: `payment_${payment.id}`,
+            type: 'fee_payment',
+            title: 'Fee Payment Received',
+            description: `₹${payment.paid_amount || 0} payment received`,
+            created_at: payment.last_payment_date
+          });
+        });
+
+        recentUsers.forEach(user => {
+          activities.push({
+            id: `user_${user.id}`,
+            type: 'user_registration',
+            title: 'New User Registration',
+            description: `${user.first_name || 'User'} ${user.last_name || ''} (${user.role || 'user'}) registered`,
+            created_at: user.created_at
+          });
+        });
+
+      } else if (user.role === 'school_admin') {
+        // Get recent activities for the school
+        const [recentAdmissions, recentPayments] = await Promise.all([
+          Admission.findAll({
+            where: { school_id: user.school_id },
+            limit: Math.ceil(limit / 2),
+            order: [['created_at', 'DESC']],
+            attributes: ['id', 'application_number', 'status', 'created_at']
+          }).catch(() => []),
+          FeeInvoice.findAll({
+            where: { 
+              school_id: user.school_id,
+              status: 'paid'
+            },
+            limit: Math.ceil(limit / 2),
+            order: [['last_payment_date', 'DESC']],
+            attributes: ['id', 'paid_amount', 'last_payment_date']
+          }).catch(() => [])
+        ]);
+
+        recentAdmissions.forEach(admission => {
+          activities.push({
+            id: `admission_${admission.id}`,
+            type: 'student_admission',
+            title: 'New Student Admission',
+            description: `Application ${admission.application_number} (${admission.status})`,
+            created_at: admission.created_at
+          });
+        });
+
+        recentPayments.forEach(payment => {
+          activities.push({
+            id: `payment_${payment.id}`,
+            type: 'fee_payment',
+            title: 'Fee Payment Received',
+            description: `₹${payment.paid_amount || 0} payment received`,
+            created_at: payment.last_payment_date
+          });
+        });
+
+      } else if (user.role === 'branch_admin') {
+        // Get recent activities for the branch
+        const [recentAdmissions, recentPayments] = await Promise.all([
+          Admission.findAll({
+            where: { branch_id: user.branch_id },
+            limit: Math.ceil(limit / 2),
+            order: [['created_at', 'DESC']],
+            attributes: ['id', 'application_number', 'status', 'created_at']
+          }).catch(() => []),
+          FeeInvoice.findAll({
+            where: { 
+              branch_id: user.branch_id,
+              status: 'paid'
+            },
+            limit: Math.ceil(limit / 2),
+            order: [['last_payment_date', 'DESC']],
+            attributes: ['id', 'paid_amount', 'last_payment_date']
+          }).catch(() => [])
+        ]);
+
+        recentAdmissions.forEach(admission => {
+          activities.push({
+            id: `admission_${admission.id}`,
+            type: 'student_admission',
+            title: 'New Student Admission',
+            description: `Application ${admission.application_number} (${admission.status})`,
+            created_at: admission.created_at
+          });
+        });
+
+        recentPayments.forEach(payment => {
+          activities.push({
+            id: `payment_${payment.id}`,
+            type: 'fee_payment',
+            title: 'Fee Payment Received',
+            description: `₹${payment.paid_amount || 0} payment received`,
+            created_at: payment.last_payment_date
+          });
+        });
+      }
+
+      // Sort by created_at and limit
+      activities.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      activities.splice(limit);
+
+      return res.status(200).json({
+        success: true,
+        data: activities
+      });
+    } catch (error) {
+      logger.error('Error in DashboardController.getRecentActivities:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch recent activities',
+        error: error.message
+      });
     }
   }
 }

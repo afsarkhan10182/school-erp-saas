@@ -6,6 +6,8 @@ const {
   updateStudent,
   getStudentsByClass,
   getStudentStats,
+  getStudentReport,
+  exportStudentReport,
 } = require('../controllers/student.controller');
 const { verifyToken, setSchoolContext } = require('../middleware/auth');
 const router = express.Router();
@@ -27,6 +29,12 @@ router.get('/by-class', getStudentsByClass);
 
 // GET endpoint to retrieve student statistics
 router.get('/stats', getStudentStats);
+
+// GET endpoint to retrieve student report
+router.get('/report', getStudentReport);
+
+// GET endpoint to export student report
+router.get('/export', exportStudentReport);
 
 // GET endpoint to retrieve a specific student by ID
 router.get('/:id', getStudentById);

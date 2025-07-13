@@ -6,15 +6,27 @@ export function useSchools() {
   const loading = ref(false);
   const error = ref('');
 
-  const fetchSchools = async () => {
+  // Enhanced fetchSchools that can optionally get subscription details
+  const fetchSchools = async (includeSubscriptions = false) => {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.schools.getAll();
-      if (response.success) {
-        schools.value = response.data.items || [];
+      if (includeSubscriptions) {
+        // Use subscription endpoint for enhanced data
+        const response = await apiClient.subscriptions.getSchoolsWithSubscriptions();
+        if (response.success) {
+          schools.value = response.data.schools || [];
+        } else {
+          error.value = response.message || 'Failed to fetch schools with subscriptions.';
+        }
       } else {
-        error.value = response.message || 'Failed to fetch schools.';
+        // Use regular school endpoint for basic data
+        const response = await apiClient.schools.getAll();
+        if (response.success) {
+          schools.value = response.data.items || [];
+        } else {
+          error.value = response.message || 'Failed to fetch schools.';
+        }
       }
     } catch (e) {
       console.error('Error fetching schools:', e);

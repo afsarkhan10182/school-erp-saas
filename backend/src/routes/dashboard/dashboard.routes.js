@@ -26,7 +26,7 @@ router.get('/stats', DashboardController.getStats);
 
 /**
  * @swagger
- * /dashboard/reports/overview:
+ * /dashboard/overview-report:
  *   get:
  *     summary: Get overview report
  *     description: Get comprehensive overview report (Super Admin only)
@@ -41,11 +41,11 @@ router.get('/stats', DashboardController.getStats);
  *       403:
  *         description: Forbidden - Super Admin access required
  */
-router.get('/reports/overview', authorize('super_admin'), DashboardController.getOverviewReport);
+router.get('/overview-report', authorize('super_admin'), DashboardController.getOverviewReport);
 
 /**
  * @swagger
- * /dashboard/reports/school:
+ * /dashboard/school-report:
  *   get:
  *     summary: Get school report
  *     description: Get school-specific report (School Admin only)
@@ -60,6 +60,30 @@ router.get('/reports/overview', authorize('super_admin'), DashboardController.ge
  *       403:
  *         description: Forbidden - School Admin access required
  */
-router.get('/reports/school', authorize('school_admin'), DashboardController.getSchoolReport);
+router.get('/school-report', authorize('school_admin'), DashboardController.getSchoolReport);
+
+/**
+ * @swagger
+ * /dashboard/recent-activities:
+ *   get:
+ *     summary: Get recent activities
+ *     description: Get recent activities based on user role
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of activities to return
+ *     responses:
+ *       200:
+ *         description: Recent activities retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/recent-activities', DashboardController.getRecentActivities);
 
 module.exports = router; 

@@ -86,10 +86,15 @@ const FeeInvoice = sequelize.define('FeeInvoice', {
     allowNull: false,
     defaultValue: 0.00,
   },
-  status: {
+status: {
     type: DataTypes.ENUM('draft', 'sent', 'paid', 'partial_paid', 'overdue', 'cancelled'),
     allowNull: false,
     defaultValue: 'draft',
+  },
+  late_fee_percentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    defaultValue: 0.00,
   },
   payment_terms: {
     type: DataTypes.TEXT,

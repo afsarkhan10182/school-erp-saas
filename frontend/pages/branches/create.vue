@@ -84,10 +84,10 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useBranches } from '~/composables/useBranches';
-import { useSchools } from '~/composables/useSchools';
+import { useSubscriptions } from '~/composables/useSubscriptions';
 
 const { createBranch, loading, error } = useBranches();
-const { schools, fetchSchools } = useSchools();
+const { schools, fetchSchoolsWithSubscriptions } = useSubscriptions();
 
 const form = ref({
   schoolId: '',
@@ -118,8 +118,9 @@ const onFileChange = (field, event) => {
 watch(() => form.value.schoolId, (schoolId) => {
   const school = schools.value.find(s => s.id === schoolId);
   if (school) {
-    form.value.currency = school.settings?.currency || 'INR';
-    form.value.currency_symbol = school.settings?.currency_symbol || '₹';
+    // Use subscription school data structure
+    form.value.currency = school.currency || school.settings?.currency || 'INR';
+    form.value.currency_symbol = school.currency_symbol || school.settings?.currency_symbol || '₹';
   }
 });
 
@@ -156,7 +157,7 @@ const handleSubmit = async () => {
 
 onMounted(async () => {
   schoolsLoading.value = true;
-  await fetchSchools();
+  await fetchSchoolsWithSubscriptions();
   schoolsLoading.value = false;
 });
 </script>

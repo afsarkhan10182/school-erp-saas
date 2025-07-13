@@ -6,6 +6,22 @@
       </h2>
     </div>
     <div class="flex items-center space-x-4">
+      <!-- Branch Switcher (only for users who can switch branches) -->
+      <div v-if="canSwitchBranches && availableBranches.length > 1" class="flex items-center space-x-2">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Branch:</label>
+        <select
+          :value="currentBranch?.id"
+          @change="handleBranchChange"
+          class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          :disabled="branchLoading"
+        >
+          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+            {{ branch.name }}
+          </option>
+        </select>
+        <div v-if="branchLoading" class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
       <!-- Theme Toggle -->
       <button 
         @click="toggleTheme" 
@@ -29,6 +45,7 @@
 
 <script setup>
 import { Sun, Moon, User, Shield, Building2, GraduationCap, BookOpen, Calculator, Users, Crown } from 'lucide-vue-next';
+import { useBranchContext } from '~/composables/useBranchContext';
 
 const props = defineProps({
   user: {
@@ -40,6 +57,15 @@ const props = defineProps({
     required: true
   }
 });
+
+// Branch context
+const { 
+  currentBranch, 
+  availableBranches, 
+  canSwitchBranches, 
+  switchBranch, 
+  loading: branchLoading 
+} = useBranchContext();
 
 const userInitials = computed(() => {
   if (!props.user) return '';
@@ -89,6 +115,14 @@ const getUserIcon = () => {
       return Users; // 👥 Users for HR
     default:
       return User; // 👤 Default user icon
+  }
+};
+
+// Branch switching
+const handleBranchChange = async (event) => {
+  const branchId = event.target.value;
+  if (branchId && branchId !== currentBranch.value?.id) {
+    await switchBranch(branchId);
   }
 };
 

@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const bcrypt = require('bcryptjs');
 const { User, School, Branch } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
@@ -334,6 +335,36 @@ class UserService {
       throw error;
     }
   }
+
+  // Change user password
+  static async changePassword(userId, currentPassword, newPassword) {
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new ApiError(404, 'User not found');
+      }
+
+      // Verify current password
+      const isMatch = await user.isPasswordMatch(currentPassword);
+      if (!isMatch) {
+        throw new ApiError(400, 'Current password is incorrect');
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      await user.update({ password: hashedPassword });
+
+      // Clear user cache
+      await RedisUtils.del(`user:${userId}`);
+
+      return true;
+    } catch (error) {
+      logger.error('Error in UserService.changePassword:', error);
+      throw error;
+    }
+  }
 }
 
-module.exports = UserService; 
+module.exports = UserService;

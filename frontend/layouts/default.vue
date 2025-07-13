@@ -27,12 +27,15 @@ import Sidebar from '~/components/Sidebar.vue';
 import Header from '~/components/Header.vue';
 import Toast from '~/components/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useBranchContext } from '~/composables/useBranchContext';
 
 const sidebarOpen = ref(true);
 const router = useRouter();
 const route = useRoute();
 
 const authStore = useAuthStore();
+const { initializeBranchContext } = useBranchContext();
+
 const user = computed(() => authStore.currentUser);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
@@ -46,6 +49,13 @@ const pageTitle = computed(() => {
   if (path.startsWith('/schools')) return 'Schools';
   if (path.startsWith('/users')) return 'Users';
   if (path.startsWith('/branches')) return 'Branches';
+  if (path.startsWith('/students')) return 'Students';
+  if (path.startsWith('/admissions')) return 'Admissions';
+  if (path.startsWith('/fees')) return 'Fee Management';
+  if (path.startsWith('/academic')) return 'Academic Management';
+  if (path.startsWith('/reports')) return 'Reports';
+  if (path.startsWith('/settings')) return 'Settings';
+  if (path.startsWith('/subscriptions')) return 'Subscriptions';
   return 'School ERP';
 });
 
@@ -63,12 +73,17 @@ const toggleTheme = () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   // Check for saved theme preference or default to light
   const savedTheme = localStorage.getItem('theme') || 'light';
   isDark.value = savedTheme === 'dark';
   if (isDark.value) {
     document.documentElement.classList.add('dark');
+  }
+
+  // Initialize branch context if user is logged in
+  if (authStore.isLoggedIn) {
+    await initializeBranchContext();
   }
 });
 </script>

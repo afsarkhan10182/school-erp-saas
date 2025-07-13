@@ -5,20 +5,20 @@
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/server.js",                      
-    "dev": "nodemon src/server.js",                     
-    "db:migrate": "npx sequelize-cli db:migrate --config src/config/cli-config.js",            
-    "db:migrate:undo": "npx sequelize-cli db:migrate:undo --config src/config/cli-config.js",  
-    "db:seed": "npx sequelize-cli db:seed:all --config src/config/cli-config.js",              
-    "db:seed:undo": "npx sequelize-cli db:seed:undo:all --config src/config/cli-config.js",    
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:migrate": "npx sequelize-cli db:migrate --config src/config/cli-config.js",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo --config src/config/cli-config.js",
+    "db:seed": "npx sequelize-cli db:seed:all --config src/config/cli-config.js",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all --config src/config/cli-config.js",
     "db:reset": "npx sequelize-cli db:migrate:undo:all --config src/config/cli-config.js && npm run db:migrate && npm run db:seed",
-    "lint": "eslint . --ext .js",                        
-    "lint:fix": "eslint . --ext .js --fix",              
-    "test": "jest --detectOpenHandles --forceExit",      
-    "test:watch": "jest --watch",                        
-    "test:coverage": "jest --coverage",                  
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test:middleware": "node test-middleware-robustness.js",
-    "prepare": "echo 'Ready to use project'"             
+    "prepare": "echo 'Ready to use project'"
   },
   "keywords": [
     "school",
@@ -34,6 +34,7 @@
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csv-stringify": "^6.6.0",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
@@ -54,7 +55,8 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

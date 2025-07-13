@@ -92,6 +92,14 @@ const FeeType = sequelize.define('FeeType', {
       key: 'id',
     },
   },
+  branch_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'branches',
+      key: 'id',
+    },
+  },
   created_by: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -133,6 +141,12 @@ FeeType.associate = (models) => {
   FeeType.belongsTo(models.School, {
     foreignKey: 'school_id',
     as: 'school',
+  });
+
+  // FeeType belongs to Branch
+  FeeType.belongsTo(models.Branch, {
+    foreignKey: 'branch_id',
+    as: 'branch',
   });
 
   // FeeType belongs to User (created_by)

@@ -24,6 +24,12 @@ router.put(
   UserController.updateMyProfile
 );
 
+router.post(
+  '/change-password',
+  authorize('super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent'),
+  UserController.changePassword
+);
+
 // School-specific routes
 router.get(
   '/school/:schoolId',

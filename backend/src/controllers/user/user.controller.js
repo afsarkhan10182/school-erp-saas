@@ -194,6 +194,47 @@ class UserController {
       next(error);
     }
   }
+
+  // Change password
+  static async changePassword(req, res, next) {
+    try {
+      const { current_password, new_password, confirm_password } = req.body;
+      
+      // Validate required fields
+      if (!current_password || !new_password || !confirm_password) {
+        return res.status(400).json({
+          success: false,
+          message: 'All password fields are required',
+        });
+      }
+
+      // Validate password match
+      if (new_password !== confirm_password) {
+        return res.status(400).json({
+          success: false,
+          message: 'New password and confirm password do not match',
+        });
+      }
+
+      // Validate password strength
+      if (new_password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long',
+        });
+      }
+
+      const result = await UserService.changePassword(req.user.id, current_password, new_password);
+      
+      res.json({
+        success: true,
+        message: 'Password changed successfully',
+      });
+    } catch (error) {
+      logger.error('Error in UserController.changePassword:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = UserController; 
