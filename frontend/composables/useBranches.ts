@@ -1,33 +1,28 @@
 import { ref } from 'vue';
-import { useCookie } from 'nuxt/app';
+import { apiClient } from '~/utils/api';
 
 export function useBranches() {
-  const branches = ref([]);
+  const branches = ref<any[]>([]);
   const loading = ref(false);
   const error = ref('');
-
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
 
   // Fetch all branches for a school
   const fetchBranches = async (schoolId: string) => {
     loading.value = true;
     error.value = '';
+    console.log('[useBranches] Fetching branches for school:', schoolId);
     try {
-      const token = useCookie('auth-token').value;
-      const res = await fetch(`${apiBase}/schools/${schoolId}/branches`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        branches.value = data.data.branches || [];
+      const response = await apiClient.branches.getAll(schoolId);
+      console.log('[useBranches] API response:', response);
+      if (response.success) {
+        // Handle different response structures - PaginatedResponse has 'items'
+        branches.value = response.data?.items || response.data || response.data.branches || [];
+        console.log('[useBranches] Set branches array:', branches.value);
       } else {
-        error.value = data.message || 'Failed to fetch branches.';
+        error.value = response.message || 'Failed to fetch branches.';
       }
     } catch (e) {
+      console.error('Error fetching branches:', e);
       error.value = 'Network error.';
     } finally {
       loading.value = false;
@@ -39,21 +34,15 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const queryString = new URLSearchParams(params).toString();
-      const res = await fetch(`${apiBase}/branches${queryString ? '?' + queryString : ''}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        branches.value = data.data.branches || data.data.items || [];
+      const response = await apiClient.branches.getAll(undefined, params);
+      if (response.success) {
+        // Handle different response structures - PaginatedResponse has 'items'
+        branches.value = response.data?.branches || response.data || [];
       } else {
-        error.value = data.message || 'Failed to fetch branches.';
+        error.value = response.message || 'Failed to fetch branches.';
       }
     } catch (e) {
+      console.error('Error fetching all branches:', e);
       error.value = 'Network error.';
     } finally {
       loading.value = false;
@@ -65,7 +54,11 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
+      // For FormData, we need to use direct fetch since axios doesn't handle it well
+      const config = useRuntimeConfig();
+      const apiBase = config.public.apiBase;
+      const token = useCookie('auth-token').value;
+      
       const res = await fetch(`${apiBase}/branches`, {
         method: 'POST',
         headers: {
@@ -81,6 +74,7 @@ export function useBranches() {
       }
       return data.data;
     } catch (e) {
+      console.error('Error creating branch:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -93,21 +87,14 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/branches/${branchId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to delete branch.';
+      const response = await apiClient.branches.delete(branchId);
+      if (!response.success) {
+        error.value = response.message || 'Failed to delete branch.';
         return false;
       }
       return true;
     } catch (e) {
+      console.error('Error deleting branch:', e);
       error.value = 'Network error.';
       return false;
     } finally {

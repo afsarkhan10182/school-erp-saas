@@ -136,7 +136,18 @@ class SubscriptionController {
         });
       }
 
-      const { schoolData, subscriptionData } = req.body;
+      // Parse JSON data from FormData
+      let schoolData, subscriptionData;
+      
+      try {
+        schoolData = req.body.schoolData ? JSON.parse(req.body.schoolData) : null;
+        subscriptionData = req.body.subscriptionData ? JSON.parse(req.body.subscriptionData) : null;
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid JSON data in school or subscription data',
+        });
+      }
       
       if (!schoolData || !subscriptionData) {
         return res.status(400).json({
@@ -145,10 +156,28 @@ class SubscriptionController {
         });
       }
 
+      // Extract uploaded files
+      const uploadedFiles = {};
+      if (req.files) {
+        if (req.files.system_logo) {
+          uploadedFiles.system_logo = req.files.system_logo[0];
+        }
+        if (req.files.text_logo) {
+          uploadedFiles.text_logo = req.files.text_logo[0];
+        }
+        if (req.files.printing_logo) {
+          uploadedFiles.printing_logo = req.files.printing_logo[0];
+        }
+        if (req.files.report_card_design) {
+          uploadedFiles.report_card_design = req.files.report_card_design[0];
+        }
+      }
+
       const result = await SubscriptionService.createSchoolWithSubscription(
         schoolData,
         subscriptionData,
-        req.user.id
+        req.user.id,
+        uploadedFiles
       );
       
       res.status(201).json({
@@ -173,10 +202,49 @@ class SubscriptionController {
       }
 
       const { id } = req.params;
+
+      // Parse JSON data from FormData (same as create method)
+      let schoolData, subscriptionData;
+      
+      try {
+        schoolData = req.body.schoolData ? JSON.parse(req.body.schoolData) : null;
+        subscriptionData = req.body.subscriptionData ? JSON.parse(req.body.subscriptionData) : null;
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid JSON data in school or subscription data',
+        });
+      }
+      
+      if (!schoolData || !subscriptionData) {
+        return res.status(400).json({
+          success: false,
+          message: 'School data and subscription data are required',
+        });
+      }
+
+      // Extract uploaded files
+      const uploadedFiles = {};
+      if (req.files) {
+        if (req.files.system_logo) {
+          uploadedFiles.system_logo = req.files.system_logo[0];
+        }
+        if (req.files.text_logo) {
+          uploadedFiles.text_logo = req.files.text_logo[0];
+        }
+        if (req.files.printing_logo) {
+          uploadedFiles.printing_logo = req.files.printing_logo[0];
+        }
+        if (req.files.report_card_design) {
+          uploadedFiles.report_card_design = req.files.report_card_design[0];
+        }
+      }
+
       const result = await SubscriptionService.updateSchoolSubscription(
         id,
-        req.body,
-        req.user.id
+        { schoolData, subscriptionData },
+        req.user.id,
+        uploadedFiles
       );
       
       res.json({
@@ -262,6 +330,114 @@ class SubscriptionController {
     }
   }
 
+  // Create subscription renewal request (for school admins)
+  static async createRenewalRequest(req, res, next) {
+    try {
+      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only school admins can create renewal requests',
+        });
+      }
+
+      const requestData = {
+        ...req.body,
+        school_id: req.user.school_id, // Use the school_id from the authenticated user
+      };
+
+      const renewalRequest = await SubscriptionService.createRenewalRequest(
+        requestData,
+        req.user.id
+      );
+      
+      res.status(201).json({
+        success: true,
+        message: 'Renewal request created successfully',
+        data: renewalRequest,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.createRenewalRequest:', error);
+      next(error);
+    }
+  }
+
+  // Get renewal requests (for super admin)
+  static async getRenewalRequests(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can access renewal requests',
+        });
+      }
+
+      const requests = await SubscriptionService.getRenewalRequests(req.query);
+      
+      res.json({
+        success: true,
+        data: requests,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getRenewalRequests:', error);
+      next(error);
+    }
+  }
+
+  // Get school renewal requests (for school admins)
+  static async getSchoolRenewalRequests(req, res, next) {
+    try {
+      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only school admins can access renewal requests',
+        });
+      }
+
+      const requests = await SubscriptionService.getSchoolRenewalRequests(
+        req.user.school_id,
+        req.query
+      );
+      
+      res.json({
+        success: true,
+        data: requests,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getSchoolRenewalRequests:', error);
+      next(error);
+    }
+  }
+
+  // Review renewal request (super admin only)
+  static async reviewRenewalRequest(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can review renewal requests',
+        });
+      }
+
+      const { id } = req.params;
+      const reviewData = req.body;
+
+      const request = await SubscriptionService.reviewRenewalRequest(
+        id,
+        reviewData,
+        req.user.id
+      );
+      
+      res.json({
+        success: true,
+        message: `Renewal request ${reviewData.status} successfully`,
+        data: request,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.reviewRenewalRequest:', error);
+      next(error);
+    }
+  }
+
   // Get subscription statistics
   static async getSubscriptionStats(req, res, next) {
     try {
@@ -272,17 +448,7 @@ class SubscriptionController {
         });
       }
 
-      // This would be implemented in the service
-      const stats = {
-        totalSchools: 0,
-        activeSubscriptions: 0,
-        trialSubscriptions: 0,
-        expiredSubscriptions: 0,
-        suspendedSubscriptions: 0,
-        totalRevenue: 0,
-        monthlyRevenue: 0,
-        yearlyRevenue: 0,
-      };
+      const stats = await SubscriptionService.getSubscriptionStats();
       
       res.json({
         success: true,

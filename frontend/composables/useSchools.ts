@@ -23,7 +23,9 @@ export function useSchools() {
         // Use regular school endpoint for basic data
         const response = await apiClient.schools.getAll();
         if (response.success) {
-          schools.value = response.data.items || [];
+          // Type assertion to handle actual API response structure
+          const responseData = response.data as any;
+          schools.value = responseData?.schools || responseData?.items || [];
         } else {
           error.value = response.message || 'Failed to fetch schools.';
         }

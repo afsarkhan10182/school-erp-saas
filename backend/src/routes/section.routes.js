@@ -8,6 +8,8 @@ const {
   getSectionsForDropdown,
 } = require('../controllers/section.controller');
 const { verifyToken, authorize } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { createSectionValidator, updateSectionValidator } = require('../validations/section.validation');
 
 const router = express.Router();
 
@@ -24,10 +26,18 @@ router.get('/dropdown', authorize('super_admin', 'school_admin', 'branch_admin')
 router.get('/:id', authorize('super_admin', 'school_admin', 'branch_admin'), getSectionById);
 
 // POST /api/sections - Create new section
-router.post('/', authorize('super_admin', 'school_admin', 'branch_admin'), createSection);
+router.post('/', 
+  authorize('super_admin', 'school_admin', 'branch_admin'), 
+  validate(createSectionValidator), 
+  createSection
+);
 
 // PUT /api/sections/:id - Update section
-router.put('/:id', authorize('super_admin', 'school_admin', 'branch_admin'), updateSection);
+router.put('/:id', 
+  authorize('super_admin', 'school_admin', 'branch_admin'), 
+  validate(updateSectionValidator), 
+  updateSection
+);
 
 // DELETE /api/sections/:id - Delete section (soft delete)
 router.delete('/:id', authorize('super_admin', 'school_admin', 'branch_admin'), deleteSection);

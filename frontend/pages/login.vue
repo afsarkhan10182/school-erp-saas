@@ -166,7 +166,7 @@ const toggleTheme = () => {
 };
 
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme') || 'light';
+  const savedTheme = localStorage.getItem('theme') || 'dark';
   isDark.value = savedTheme === 'dark';
   if (isDark.value) {
     document.documentElement.classList.add('dark');

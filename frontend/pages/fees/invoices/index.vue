@@ -9,6 +9,13 @@
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
+            @click="showQuickCollectModal = true"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            <CreditCard class="-ml-1 mr-2 h-5 w-5" />
+            Quick Collect
+          </button>
+          <button
             @click="showGenerateModal = true"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
@@ -256,6 +263,13 @@
       </div>
     </div>
 
+    <!-- Quick Collect Modal -->
+    <QuickCollectFeeModal
+      :show="showQuickCollectModal"
+      @close="showQuickCollectModal = false"
+      @payment-recorded="fetchInvoices"
+    />
+
     <!-- Generate Invoices Modal -->
     <div v-if="showGenerateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
@@ -386,6 +400,7 @@ import {
   Search
 } from 'lucide-vue-next';
 import apiClient from '~/utils/api';
+import QuickCollectFeeModal from '~/components/QuickCollectFeeModal.vue';
 
 // State
 const invoices = ref([]);
@@ -395,6 +410,7 @@ const showGenerateModal = ref(false);
 const showPaymentModal = ref(false);
 const isGenerating = ref(false);
 const isSubmittingPayment = ref(false);
+const showQuickCollectModal = ref(false);
 
 // Pagination
 const currentPage = ref(1);

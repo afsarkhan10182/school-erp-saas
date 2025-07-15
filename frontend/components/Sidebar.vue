@@ -1,446 +1,134 @@
 <template>
-  <div class="fixed inset-y-0 left-0 z-50 w-16 lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300">
-    <!-- Logo/Brand -->
-    <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+  <!-- Mobile overlay -->
+  <div v-if="isMobile && open" class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden" @click="$emit('toggle')"></div>
+  
+  <!-- Sidebar -->
+  <div 
+    :class="[
+      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 flex flex-col',
+      isMobile ? (open ? 'w-64 translate-x-0' : 'w-64 -translate-x-full') : (open ? 'w-64' : 'w-16'),
+      isMobile ? 'md:w-16 md:translate-x-0' : ''
+    ]"
+  >
+    <!-- Logo/Brand Header -->
+    <div class="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
       <div class="flex items-center">
-        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center cursor-pointer" @click="$emit('toggle')">
           <School class="w-5 h-5 text-white" />
         </div>
-        <span v-if="open" class="ml-3 text-lg font-semibold text-gray-900 dark:text-white">School ERP</span>
+        <span v-if="open || isMobile" class="ml-3 text-lg font-semibold text-gray-900 dark:text-white">School ERP</span>
       </div>
       <button
+        v-if="open || isMobile"
         @click="$emit('toggle')"
         class="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
       >
-        <ChevronLeft v-if="open" class="w-5 h-5" />
-        <ChevronRight v-else class="w-5 h-5" />
+        <ChevronLeft v-if="!isMobile" class="w-5 h-5" />
+        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
     </div>
 
-    <!-- Navigation -->
-    <div class="flex-1 overflow-y-auto">
-      <nav class="mt-6 px-2 space-y-1">
+    <!-- Scrollable Navigation -->
+    <div class="flex-1 overflow-y-auto overflow-x-hidden">
+      <nav class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
-        <NuxtLink :to="'/dashboard'" :class="navClass('/dashboard')">
-          <Home class="w-5 h-5 mr-3" />
-          <span v-if="open">Dashboard</span>
-        </NuxtLink>
+        <div class="relative group">
+          <NuxtLink :to="'/dashboard'" :class="navClass('/dashboard')">
+            <Home class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+            <span v-if="open || isMobile">Dashboard</span>
+          </NuxtLink>
+          <!-- Hover Menu for Collapsed State -->
+          <div v-if="!open && !isMobile" 
+               class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">Dashboard</span>
+          </div>
+        </div>
         
-        <!-- Super Admin Only -->
-        <template v-if="isSuperAdmin">
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Platform Management
-            </div>
-            
-            <NuxtLink :to="'/subscriptions/schools'" :class="navClass('/subscriptions/schools')">
-              <School class="w-5 h-5 mr-3" />
-              <span v-if="open">Schools</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/branches'" :class="navClass('/branches')">
-              <Building2 class="w-5 h-5 mr-3" />
-              <span v-if="open">Branches</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/users'" :class="navClass('/users')">
-              <Users class="w-5 h-5 mr-3" />
-              <span v-if="open">Users</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/subscriptions'" :class="navClass('/subscriptions')">
-              <CreditCard class="w-5 h-5 mr-3" />
-              <span v-if="open">Subscriptions</span>
-            </NuxtLink>
+        <!-- Navigation Menu Items -->
+        <template v-for="menuGroup in visibleMenuGroups" :key="menuGroup.id">
+          <!-- Menu Group Header -->
+          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {{ menuGroup.title }}
           </div>
-
-          <!-- Student Management Section for Super Admin -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Student Management
+          
+          <!-- Menu Items -->
+          <template v-for="menuItem in menuGroup.items" :key="menuItem.id">
+            <!-- Collapsible Menu -->
+            <div v-if="menuItem.children" class="space-y-1 relative group">
+              <div 
+                :class="[navClass(''), menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
+                @click="open ? toggleMenu(menuItem.id) : null"
+              >
+                <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
+                <ChevronDown 
+                  v-if="open || isMobile"
+                  class="w-4 h-4 transition-transform duration-200" 
+                  :class="{ 'rotate-180': menuOpen === menuItem.id }"
+                />
+              </div>
+            <!-- Hover Menu for Collapsed State -->
+              <div v-if="!open && !isMobile" 
+                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+                <div class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">
+                  {{ menuItem.title }}
+                </div>
+                <div class="py-1">
+                  <NuxtLink 
+                    v-for="subItem in menuItem.children" 
+                    :key="subItem.id"
+                    :to="subItem.path" 
+                    class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                  >
+                    <component :is="subItem.icon" class="w-4 h-4 mr-2" />
+                    <span>{{ subItem.title }}</span>
+                  </NuxtLink>
+                </div>
+              </div>
+              
+              <!-- Submenu Items -->
+              <div 
+                v-show="menuOpen === menuItem.id && open" 
+                class="overflow-hidden transition-all duration-300"
+                :class="[open ? 'max-h-96' : 'max-h-0']"
+              >
+                <div class="ml-8 space-y-1 py-1">
+                  <NuxtLink 
+                    v-for="subItem in menuItem.children" 
+                    :key="subItem.id"
+                    :to="subItem.path" 
+                    :class="navClass(subItem.path)"
+                  >
+                    <component :is="subItem.icon" class="w-5 h-5 mr-3" />
+                    <span>{{ subItem.title }}</span>
+                  </NuxtLink>
+                </div>
+              </div>
             </div>
             
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('admission')"
-            >
-              <GraduationCap class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Admission</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'admission' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'admission' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/students/create'" :class="subNavClass('/students/create')">
-                <UserPlus class="w-4 h-4 mr-2" />
-                <span>New Admission</span>
+            <!-- Direct Link Menu -->
+            <div v-else class="relative group">
+              <NuxtLink :to="menuItem.path" :class="navClass(menuItem.path)">
+                <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                <span v-if="open || isMobile">{{ menuItem.title }}</span>
               </NuxtLink>
-              <NuxtLink :to="'/students'" :class="subNavClass('/students')">
-                <Users class="w-4 h-4 mr-2" />
-                <span>All Students</span>
-              </NuxtLink>
-              <NuxtLink :to="'/admissions'" :class="subNavClass('/admissions')">
-                <ClipboardList class="w-4 h-4 mr-2" />
-                <span>Applications</span>
-              </NuxtLink>
+              <!-- Hover Menu for Collapsed State -->
+              <div v-if="!open && !isMobile" 
+                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ menuItem.title }}</span>
+              </div>
             </div>
-          </div>
-
-          <!-- Fee Management Section for Super Admin -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Fee Management
-            </div>
-            
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('fees')"
-            >
-              <DollarSign class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Fees</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'fees' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'fees' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/fees/types'" :class="subNavClass('/fees/types')">
-                <Tag class="w-4 h-4 mr-2" />
-                <span>Fee Types</span>
-              </NuxtLink>
-              <NuxtLink :to="'/fees/structures'" :class="subNavClass('/fees/structures')">
-                <List class="w-4 h-4 mr-2" />
-                <span>Fee Structures</span>
-              </NuxtLink>
-              <NuxtLink :to="'/fees/invoices'" :class="subNavClass('/fees/invoices')">
-                <Receipt class="w-4 h-4 mr-2" />
-                <span>Invoices</span>
-              </NuxtLink>
-              <NuxtLink :to="'/reports/fees'" :class="subNavClass('/reports/fees')">
-                <BarChart3 class="w-4 h-4 mr-2" />
-                <span>Reports</span>
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Academic Section for Super Admin -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Academic
-            </div>
-            
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('academic')"
-            >
-              <BookOpen class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Academic</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'academic' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'academic' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/academic/years'" :class="subNavClass('/academic/years')">
-                <Calendar class="w-4 h-4 mr-2" />
-                <span>Academic Years</span>
-              </NuxtLink>
-              <NuxtLink :to="'/academic/classes'" :class="subNavClass('/academic/classes')">
-                <GraduationCap class="w-4 h-4 mr-2" />
-                <span>Classes</span>
-              </NuxtLink>
-              <NuxtLink :to="'/academic/sections'" :class="subNavClass('/academic/sections')">
-                <Users class="w-4 h-4 mr-2" />
-                <span>Sections</span>
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Reports Section for Super Admin -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Reports & Analytics
-            </div>
-            
-            <NuxtLink :to="'/reports/students'" :class="navClass('/reports/students')">
-              <BarChart3 class="w-5 h-5 mr-3" />
-              <span v-if="open">Student Reports</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/reports/fees'" :class="navClass('/reports/fees')">
-              <PieChart class="w-5 h-5 mr-3" />
-              <span v-if="open">Fee Reports</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/reports/admissions'" :class="navClass('/reports/admissions')">
-              <TrendingUp class="w-5 h-5 mr-3" />
-              <span v-if="open">Admission Reports</span>
-            </NuxtLink>
-          </div>
-
-          <!-- Settings Section for Super Admin -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Settings
-            </div>
-            
-            <NuxtLink :to="'/settings/profile'" :class="navClass('/settings/profile')">
-              <User class="w-5 h-5 mr-3" />
-              <span v-if="open">Profile</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/settings/branch'" :class="navClass('/settings/branch')">
-              <Building2 class="w-5 h-5 mr-3" />
-              <span v-if="open">Branch Settings</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/settings/modules'" :class="navClass('/settings/modules')">
-              <Settings class="w-5 h-5 mr-3" />
-              <span v-if="open">Module Settings</span>
-            </NuxtLink>
-          </div>
-        </template>
-
-        <!-- School Admin & Branch Admin -->
-        <template v-if="isSchoolAdmin || isBranchAdmin">
-          <!-- Admission Section -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Student Management
-            </div>
-            
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('admission')"
-            >
-              <GraduationCap class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Admission</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'admission' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'admission' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/students/create'" :class="subNavClass('/students/create')">
-                <UserPlus class="w-4 h-4 mr-2" />
-                <span>New Admission</span>
-              </NuxtLink>
-              <NuxtLink :to="'/students'" :class="subNavClass('/students')">
-                <Users class="w-4 h-4 mr-2" />
-                <span>All Students</span>
-              </NuxtLink>
-              <NuxtLink :to="'/admissions'" :class="subNavClass('/admissions')">
-                <ClipboardList class="w-4 h-4 mr-2" />
-                <span>Applications</span>
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Fee Management Section -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Fee Management
-            </div>
-            
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('fees')"
-            >
-              <DollarSign class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Fees</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'fees' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'fees' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/fees/types'" :class="subNavClass('/fees/types')">
-                <Tag class="w-4 h-4 mr-2" />
-                <span>Fee Types</span>
-              </NuxtLink>
-              <NuxtLink :to="'/fees/structures'" :class="subNavClass('/fees/structures')">
-                <List class="w-4 h-4 mr-2" />
-                <span>Fee Structures</span>
-              </NuxtLink>
-              <NuxtLink :to="'/fees/invoices'" :class="subNavClass('/fees/invoices')">
-                <Receipt class="w-4 h-4 mr-2" />
-                <span>Invoices</span>
-              </NuxtLink>
-              <NuxtLink :to="'/reports/fees'" :class="subNavClass('/reports/fees')">
-                <BarChart3 class="w-4 h-4 mr-2" />
-                <span>Reports</span>
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Academic Section -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Academic
-            </div>
-            
-            <div 
-              class="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-              @click="toggleMenu('academic')"
-            >
-              <BookOpen class="w-5 h-5 mr-3" />
-              <span v-if="open" class="flex-1">Academic</span>
-              <ChevronDown 
-                v-if="open" 
-                class="w-4 h-4 transition-transform duration-200" 
-                :class="{ 'rotate-180': menuOpen === 'academic' }"
-              />
-            </div>
-            <div v-if="menuOpen === 'academic' && open" class="ml-8 mt-1 space-y-1">
-              <NuxtLink :to="'/academic/years'" :class="subNavClass('/academic/years')">
-                <Calendar class="w-4 h-4 mr-2" />
-                <span>Academic Years</span>
-              </NuxtLink>
-              <NuxtLink :to="'/academic/classes'" :class="subNavClass('/academic/classes')">
-                <GraduationCap class="w-4 h-4 mr-2" />
-                <span>Classes</span>
-              </NuxtLink>
-              <NuxtLink :to="'/academic/sections'" :class="subNavClass('/academic/sections')">
-                <Users class="w-4 h-4 mr-2" />
-                <span>Sections</span>
-              </NuxtLink>
-            </div>
-          </div>
-
-          <!-- Reports Section -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Reports & Analytics
-            </div>
-            
-            <NuxtLink :to="'/reports/students'" :class="navClass('/reports/students')">
-              <BarChart3 class="w-5 h-5 mr-3" />
-              <span v-if="open">Student Reports</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/reports/fees'" :class="navClass('/reports/fees')">
-              <PieChart class="w-5 h-5 mr-3" />
-              <span v-if="open">Fee Reports</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/reports/admissions'" :class="navClass('/reports/admissions')">
-              <TrendingUp class="w-5 h-5 mr-3" />
-              <span v-if="open">Admission Reports</span>
-            </NuxtLink>
-          </div>
-
-          <!-- Settings Section -->
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Settings
-            </div>
-            
-            <NuxtLink :to="'/settings/profile'" :class="navClass('/settings/profile')">
-              <User class="w-5 h-5 mr-3" />
-              <span v-if="open">Profile</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/settings/branch'" :class="navClass('/settings/branch')">
-              <Building2 class="w-5 h-5 mr-3" />
-              <span v-if="open">Branch Settings</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/settings/modules'" :class="navClass('/settings/modules')">
-              <Settings class="w-5 h-5 mr-3" />
-              <span v-if="open">Module Settings</span>
-            </NuxtLink>
-          </div>
-        </template>
-
-        <!-- Accountant Role -->
-        <template v-if="isAccountant">
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Financial Management
-            </div>
-            
-            <NuxtLink :to="'/fees/invoices'" :class="navClass('/fees/invoices')">
-              <Receipt class="w-5 h-5 mr-3" />
-              <span v-if="open">Fee Invoices</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/fees/collections'" :class="navClass('/fees/collections')">
-              <CreditCard class="w-5 h-5 mr-3" />
-              <span v-if="open">Collections</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/reports/fees'" :class="navClass('/reports/fees')">
-              <BarChart3 class="w-5 h-5 mr-3" />
-              <span v-if="open">Financial Reports</span>
-            </NuxtLink>
-          </div>
-        </template>
-
-        <!-- Receptionist Role -->
-        <template v-if="isReceptionist">
-          <div class="mt-6">
-            <div v-if="open" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Front Office
-            </div>
-            
-            <NuxtLink :to="'/students/create'" :class="navClass('/students/create')">
-              <UserPlus class="w-5 h-5 mr-3" />
-              <span v-if="open">New Admission</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/admissions'" :class="navClass('/admissions')">
-              <ClipboardList class="w-5 h-5 mr-3" />
-              <span v-if="open">Applications</span>
-            </NuxtLink>
-            
-            <NuxtLink :to="'/visitors'" :class="navClass('/visitors')">
-              <UserCheck class="w-5 h-5 mr-3" />
-              <span v-if="open">Visitors</span>
-            </NuxtLink>
-          </div>
+          </template>
         </template>
       </nav>
-    </div>
-
-    <!-- User Profile -->
-    <div class="border-t border-gray-200 dark:border-gray-700 p-4">
-      <div class="flex items-center">
-        <div class="flex-shrink-0">
-          <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ user?.first_name?.charAt(0) }}{{ user?.last_name?.charAt(0) }}
-            </span>
-          </div>
-        </div>
-        <div v-if="open" class="ml-3 flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {{ user?.first_name }} {{ user?.last_name }}
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">
-            {{ user?.role?.replace('_', ' ') }}
-          </p>
-        </div>
-        <div v-if="open" class="ml-2">
-          <button
-            @click="logout"
-            class="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <LogOut class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { 
@@ -464,10 +152,9 @@ import {
   User,
   Settings,
   UserCheck,
-  LogOut,
   ChevronLeft,
-  ChevronRight,
-  ChevronDown
+  ChevronDown,
+  FileText
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -486,6 +173,13 @@ const emit = defineEmits(['toggle']);
 const authStore = useAuthStore();
 const menuOpen = ref('');
 
+// Watch for sidebar state changes
+watch(() => props.open, (newValue) => {
+  if (!newValue) {
+    menuOpen.value = '';
+  }
+});
+
 // Role checks
 const isSuperAdmin = computed(() => props.user?.role === 'super_admin');
 const isSchoolAdmin = computed(() => props.user?.role === 'school_admin');
@@ -493,15 +187,161 @@ const isBranchAdmin = computed(() => props.user?.role === 'branch_admin');
 const isAccountant = computed(() => props.user?.role === 'accountant');
 const isReceptionist = computed(() => props.user?.role === 'receptionist');
 
+// Menu configuration
+const menuGroups = computed(() => {
+  const groups = [];
+
+  // Platform & Subscription Management (Super Admin Only)
+  if (isSuperAdmin.value) {
+    groups.push({
+      id: 'subscription',
+      title: 'Saas Subscription',
+      items: [
+        {
+          id: 'subscription-management',
+          title: 'School Subscription',
+          icon: CreditCard,
+          children: [
+             { id: 'customer-overview', title: 'Overview', path: '/subscriptions', icon: BarChart3 },
+            { id: 'subscription-plans', title: 'Subscription Plans', path: '/subscriptions/plans', icon: List },
+            { id: 'renewal-requests', title: 'Renewal Requests', path: '/subscriptions/renewal-requests', icon: FileText },
+          ]
+        },
+      ]
+    });
+
+    // School Administration (Super Admin)
+    groups.push({
+      id: 'school-admin',
+      title: 'School Administration',
+      items: [
+        { id: 'manage-branches', title: 'Branches', path: '/branches', icon: Building2 },
+        { id: 'manage-users', title: 'Users', path: '/users', icon: Users },
+      ]
+    });
+  }
+
+  // Student Management
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isReceptionist.value) {
+    groups.push({
+      id: 'students',
+      title: 'Student Management',
+      items: [
+        {
+          id: 'admission',
+          title: 'Admission',
+          icon: GraduationCap,
+          children: [
+            { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
+            { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
+            { id: 'applications', title: 'Applications', path: '/admissions', icon: ClipboardList },
+          ]
+        }
+      ]
+    });
+  }
+
+  // Fee Management
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isAccountant.value) {
+    groups.push({
+      id: 'fees',
+      title: 'Fee Management',
+      items: [
+        {
+          id: 'fee-management',
+          title: 'Fees',
+          icon: DollarSign,
+          children: [
+            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
+            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
+            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt },
+            { id: 'collections', title: 'Collections', path: '/fees/collections', icon: CreditCard },
+            { id: 'fee-ledger', title: 'Fee Ledger', path: '/students', icon: BookOpen },
+          ]
+        }
+      ]
+    });
+  }
+
+  // Academic Management
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'academic',
+      title: 'Academic Management',
+      items: [
+        {
+          id: 'academic',
+          title: 'Academic',
+          icon: BookOpen,
+          children: [
+            // Academic Years - only for super admin and school admin
+            ...(isSuperAdmin.value || isSchoolAdmin.value ? [
+              { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
+            ] : []),
+            { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
+            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
+          ]
+        }
+      ]
+    });
+  }
+
+  // Reports & Analytics
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isAccountant.value) {
+    groups.push({
+      id: 'reports',
+      title: 'Reports & Analytics',
+      items: [
+        { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
+        { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
+        { id: 'admission-reports', title: 'Admission Reports', path: '/reports/admissions', icon: TrendingUp },
+      ]
+    });
+  }
+
+  // Front Office (Receptionist)
+  if (isReceptionist.value) {
+    groups.push({
+      id: 'front-office',
+      title: 'Front Office',
+      items: [
+        { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
+        { id: 'applications', title: 'Applications', path: '/admissions', icon: ClipboardList },
+        { id: 'visitors', title: 'Visitors', path: '/visitors', icon: UserCheck },
+      ]
+    });
+  }
+
+  // Settings
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'settings',
+      title: 'Settings',
+      items: [
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
+        { id: 'branch-settings', title: 'Branch Settings', path: '/settings/branch', icon: Building2 },
+        { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
+      ]
+    });
+  }
+
+  return groups;
+});
+
+// Get visible menu groups based on user role
+const visibleMenuGroups = computed(() => {
+  return menuGroups.value;
+});
+
 const toggleMenu = (menu) => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;
 };
 
 const navClass = (path) => {
   const route = useRoute();
-  const isActive = route.path === path;
+  const isActive = path ? route.path === path : false;
   return [
-    'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+    'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer',
     isActive
       ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
       : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -509,18 +349,88 @@ const navClass = (path) => {
 };
 
 const subNavClass = (path) => {
-  const route = useRoute();
-  const isActive = route.path === path;
-  return [
-    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200',
-    isActive
-      ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-800 dark:text-indigo-300'
-      : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
-  ];
+  return navClass(path);
 };
 
 const logout = async () => {
   await authStore.logout();
   await navigateTo('/login');
 };
+
+// Mobile detection
+const isMobile = ref(false);
+let mql;
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768;
+};
+
+onMounted(() => {
+  checkMobile();
+  mql = window.matchMedia('(max-width: 767px)');
+  mql.addEventListener('change', checkMobile);
+});
+
+onUnmounted(() => {
+  if (mql) mql.removeEventListener('change', checkMobile);
+});
 </script>
+
+<style scoped>
+/* Custom scrollbar for sidebar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Dark mode scrollbar */
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+/* Smooth transitions */
+.slide-sidebar-enter-active,
+.slide-sidebar-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-sidebar-enter-from,
+.slide-sidebar-leave-to {
+  transform: translateX(-100%);
+}
+
+.slide-sidebar-enter-to,
+.slide-sidebar-leave-from {
+  transform: translateX(0);
+}
+
+/* Ensure proper spacing and prevent content overflow */
+nav {
+  min-height: 0;
+}
+
+/* Smooth menu transitions */
+.space-y-1 > * + * {
+  margin-top: 0.25rem;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+</style>

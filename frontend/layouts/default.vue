@@ -6,9 +6,9 @@
     </client-only>
 
     <!-- Main content -->
-    <div :class="isLoggedIn ? (sidebarOpen ? 'ml-64' : 'ml-16') : ''" class="flex-1 flex flex-col min-h-screen transition-all duration-200">
+    <div :class="isLoggedIn && !isMobile ? (sidebarOpen ? 'ml-64' : 'ml-16') : ''" class="flex-1 flex flex-col min-h-screen transition-all duration-300">
       <!-- Header (only if logged in) -->
-      <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" />
+      <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
       <!-- Page content -->
       <main class="p-6 flex-1 bg-gray-50 dark:bg-gray-900">
         <slot />
@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Sidebar from '~/components/Sidebar.vue';
 import Header from '~/components/Header.vue';
@@ -33,6 +33,18 @@ const sidebarOpen = ref(true);
 const router = useRouter();
 const route = useRoute();
 
+// Mobile detection
+const isMobile = ref(false);
+let mql;
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768;
+  // Auto-close sidebar on mobile
+  if (isMobile.value) {
+    sidebarOpen.value = false;
+  }
+};
+
 const authStore = useAuthStore();
 const { initializeBranchContext } = useBranchContext();
 
@@ -41,6 +53,11 @@ const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const handleLogout = async () => {
   await authStore.logout();
+  await router.push('/login');
+};
+
+const toggleMobileSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
 };
 
 const pageTitle = computed(() => {
@@ -74,17 +91,26 @@ const toggleTheme = () => {
 };
 
 onMounted(async () => {
-  // Check for saved theme preference or default to light
-  const savedTheme = localStorage.getItem('theme') || 'light';
+  // Check for saved theme preference or default to dark
+  const savedTheme = localStorage.getItem('theme') || 'dark';
   isDark.value = savedTheme === 'dark';
   if (isDark.value) {
     document.documentElement.classList.add('dark');
   }
 
+  // Initialize mobile detection
+  checkMobile();
+  mql = window.matchMedia('(max-width: 767px)');
+  mql.addEventListener('change', checkMobile);
+
   // Initialize branch context if user is logged in
   if (authStore.isLoggedIn) {
     await initializeBranchContext();
   }
+});
+
+onUnmounted(() => {
+  if (mql) mql.removeEventListener('change', checkMobile);
 });
 </script>
 

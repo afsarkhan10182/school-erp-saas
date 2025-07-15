@@ -576,6 +576,85 @@ const cancelInvoice = async (req, res, next) => {
   }
 };
 
+// Manual fee adjustment (waive or add fees)
+const adjustInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      adjustment_type, // 'waive' or 'add'
+      adjustment_amount,
+      adjustment_reason,
+      notes,
+    } = req.body;
+
+    if (!adjustment_type || !adjustment_amount || adjustment_amount <= 0) {
+      throw new ApiError(400, 'Valid adjustment type and amount are required');
+    }
+
+    if (!['waive', 'add'].includes(adjustment_type)) {
+      throw new ApiError(400, 'Adjustment type must be either "waive" or "add"');
+    }
+
+    const invoice = await FeeInvoice.findOne({
+      where: {
+        id,
+        school_id: req.schoolId,
+      },
+    });
+
+    if (!invoice) {
+      throw new ApiError(404, 'Invoice not found');
+    }
+
+    if (invoice.status === 'cancelled') {
+      throw new ApiError(400, 'Cannot adjust cancelled invoice');
+    }
+
+    let newTotalAmount = parseFloat(invoice.total_amount);
+    let newBalanceAmount = parseFloat(invoice.balance_amount);
+
+    if (adjustment_type === 'waive') {
+      // Waive fees (reduce total amount)
+      if (adjustment_amount > newBalanceAmount) {
+        throw new ApiError(400, 'Waiver amount cannot exceed remaining balance');
+      }
+      newTotalAmount -= parseFloat(adjustment_amount);
+      newBalanceAmount -= parseFloat(adjustment_amount);
+    } else {
+      // Add fees (increase total amount)
+      newTotalAmount += parseFloat(adjustment_amount);
+      newBalanceAmount += parseFloat(adjustment_amount);
+    }
+
+    // Update invoice
+    await invoice.update({
+      total_amount: newTotalAmount,
+      balance_amount: newBalanceAmount,
+      notes: notes || invoice.notes,
+      updated_by: req.user.id,
+    });
+
+    // Create adjustment record (you might want to create a separate table for this)
+    logger.info(`Fee adjustment applied: ${adjustment_type} ${adjustment_amount} for invoice ${invoice.invoice_number}. Reason: ${adjustment_reason}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Fee adjustment applied successfully`,
+      data: {
+        invoice_id: invoice.id,
+        adjustment_type,
+        adjustment_amount: parseFloat(adjustment_amount),
+        new_total_amount: newTotalAmount,
+        new_balance_amount: newBalanceAmount,
+        adjustment_reason,
+      },
+    });
+  } catch (error) {
+    logger.error('Error adjusting invoice:', error);
+    return next(error);
+  }
+};
+
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
@@ -992,6 +1071,187 @@ const getFeeStats = async (req, res, next) => {
   }
 };
 
+// Get student dues for quick collection
+const getStudentDues = async (req, res, next) => {
+  try {
+    const { student_id, academic_year } = req.query;
+
+    if (!student_id) {
+      throw new ApiError(400, 'Student ID is required');
+    }
+
+    // Get student with basic info
+    const student = await Student.findOne({
+      where: {
+        id: student_id,
+        school_id: req.schoolId,
+      },
+      attributes: ['id', 'first_name', 'last_name', 'admission_number', 'current_class', 'section'],
+    });
+
+    if (!student) {
+      throw new ApiError(404, 'Student not found');
+    }
+
+    // Build invoice filter
+    const invoiceFilter = {
+      student_id,
+      school_id: req.schoolId,
+      status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }, // Only unpaid invoices
+    };
+
+    if (academic_year) {
+      invoiceFilter.academic_year = academic_year;
+    }
+
+    // Get unpaid invoices
+    const invoices = await FeeInvoice.findAll({
+      where: invoiceFilter,
+      include: [
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+      ],
+      order: [['due_date', 'ASC']],
+    });
+
+    // Calculate summary
+    const totalDues = invoices.reduce((sum, invoice) => sum + parseFloat(invoice.balance_amount), 0);
+    const overdueAmount = invoices
+      .filter(invoice => invoice.status === 'overdue')
+      .reduce((sum, invoice) => sum + parseFloat(invoice.balance_amount), 0);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        student,
+        invoices,
+        summary: {
+          total_dues: totalDues,
+          overdue_amount: overdueAmount,
+          invoice_count: invoices.length,
+          overdue_count: invoices.filter(inv => inv.status === 'overdue').length,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student dues:', error);
+    return next(error);
+  }
+};
+
+// Get student fee ledger (complete payment history)
+const getStudentFeeLedger = async (req, res, next) => {
+  try {
+    const { student_id, academic_year, page = 1, limit = 50 } = req.query;
+
+    if (!student_id) {
+      throw new ApiError(400, 'Student ID is required');
+    }
+
+    // Get student with basic info
+    const student = await Student.findOne({
+      where: {
+        id: student_id,
+        school_id: req.schoolId,
+      },
+      attributes: ['id', 'first_name', 'last_name', 'admission_number', 'current_class', 'section'],
+    });
+
+    if (!student) {
+      throw new ApiError(404, 'Student not found');
+    }
+
+    // Build invoice filter
+    const invoiceFilter = {
+      student_id,
+      school_id: req.schoolId,
+    };
+
+    if (academic_year) {
+      invoiceFilter.academic_year = academic_year;
+    }
+
+    const offset = (page - 1) * limit;
+
+    // Get all invoices for student
+    const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
+      where: invoiceFilter,
+      include: [
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+      ],
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    // Calculate summary statistics
+    const totalInvoices = await FeeInvoice.count({ where: invoiceFilter });
+    const paidInvoices = await FeeInvoice.count({ 
+      where: { ...invoiceFilter, status: 'paid' } 
+    });
+    const overdueInvoices = await FeeInvoice.count({ 
+      where: { ...invoiceFilter, status: 'overdue' } 
+    });
+
+    // Get amount statistics
+    const amountStats = await FeeInvoice.findAll({
+      where: invoiceFilter,
+      attributes: [
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('late_fee_amount')), 'total_late_fees'],
+      ],
+      raw: true,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        student,
+        invoices,
+        summary: {
+          total_invoices: totalInvoices,
+          paid_invoices: paidInvoices,
+          overdue_invoices: overdueInvoices,
+          total_amount: parseFloat(amountStats[0]?.total_amount || 0),
+          total_paid: parseFloat(amountStats[0]?.total_paid || 0),
+          total_balance: parseFloat(amountStats[0]?.total_balance || 0),
+          total_late_fees: parseFloat(amountStats[0]?.total_late_fees || 0),
+        },
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: count,
+          limit: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student fee ledger:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   generateInvoices,
   getInvoices,
@@ -1004,5 +1264,8 @@ module.exports = {
   exportFeeInvoicesReport,
   exportFeeInvoicesReportLegacy,
   getFeeStats,
-  applyLateFees
+  applyLateFees,
+  getStudentDues,
+  getStudentFeeLedger,
+  adjustInvoice
 };

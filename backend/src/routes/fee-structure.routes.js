@@ -5,6 +5,7 @@ const {
   getFeeStructureById,
   updateFeeStructure,
   deleteFeeStructure,
+  cloneFeeStructure,
 } = require('../controllers/fee-structure.controller');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
 const router = express.Router();
@@ -29,5 +30,8 @@ router.put('/:id', requireRole('super_admin', 'school_admin'), updateFeeStructur
 
 // DELETE endpoint to delete a fee structure (admin only)
 router.delete('/:id', requireRole('super_admin', 'school_admin'), deleteFeeStructure);
+
+// POST endpoint to clone a fee structure (admin only)
+router.post('/:id/clone', requireRole('super_admin', 'school_admin'), cloneFeeStructure);
 
 module.exports = router;

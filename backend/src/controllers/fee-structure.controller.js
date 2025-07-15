@@ -232,10 +232,105 @@ const deleteFeeStructure = async (req, res, next) => {
   }
 };
 
+// Clone fee structure
+const cloneFeeStructure = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { 
+      new_name, 
+      new_academic_year, 
+      new_class_name, 
+      new_section,
+      clone_to_multiple_classes = false,
+      target_classes = []
+    } = req.body;
+
+    // Get original fee structure
+    const originalStructure = await FeeStructure.findOne({
+      where: {
+        id,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: FeeType,
+          as: 'feeType',
+        },
+      ],
+    });
+
+    if (!originalStructure) {
+      throw new ApiError(404, 'Fee structure not found');
+    }
+
+    const clonedStructures = [];
+
+    if (clone_to_multiple_classes && target_classes.length > 0) {
+      // Clone to multiple classes
+      for (const targetClass of target_classes) {
+        const newStructure = await FeeStructure.create({
+          name: `${originalStructure.name} - ${targetClass}`,
+          academic_year: new_academic_year || originalStructure.academic_year,
+          class_name: targetClass,
+          section: new_section || originalStructure.section,
+          fee_type_id: originalStructure.fee_type_id,
+          amount: originalStructure.amount,
+          installment_type: originalStructure.installment_type,
+          installment_count: originalStructure.installment_count,
+          due_month: originalStructure.due_month,
+          due_day: originalStructure.due_day,
+          discount_applicable: originalStructure.discount_applicable,
+          discount_amount: originalStructure.discount_amount,
+          discount_type: originalStructure.discount_type,
+          notes: `Cloned from ${originalStructure.name}`,
+          school_id: req.schoolId,
+          branch_id: req.branchId,
+          created_by: req.user.id,
+        });
+
+        clonedStructures.push(newStructure);
+      }
+    } else {
+      // Clone to single class
+      const newStructure = await FeeStructure.create({
+        name: new_name || `${originalStructure.name} (Copy)`,
+        academic_year: new_academic_year || originalStructure.academic_year,
+        class_name: new_class_name || originalStructure.class_name,
+        section: new_section || originalStructure.section,
+        fee_type_id: originalStructure.fee_type_id,
+        amount: originalStructure.amount,
+        installment_type: originalStructure.installment_type,
+        installment_count: originalStructure.installment_count,
+        due_month: originalStructure.due_month,
+        due_day: originalStructure.due_day,
+        discount_applicable: originalStructure.discount_applicable,
+        discount_amount: originalStructure.discount_amount,
+        discount_type: originalStructure.discount_type,
+        notes: `Cloned from ${originalStructure.name}`,
+        school_id: req.schoolId,
+        branch_id: req.branchId,
+        created_by: req.user.id,
+      });
+
+      clonedStructures.push(newStructure);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Fee structure cloned successfully. ${clonedStructures.length} structure(s) created.`,
+      data: clonedStructures,
+    });
+  } catch (error) {
+    logger.error('Error cloning fee structure:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   createFeeStructure,
   getFeeStructures,
   getFeeStructureById,
   updateFeeStructure,
   deleteFeeStructure,
+  cloneFeeStructure,
 };

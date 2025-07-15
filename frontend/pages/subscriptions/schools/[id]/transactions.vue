@@ -231,9 +231,9 @@ const fetchTransactions = async () => {
   error.value = '';
   try {
     const result = await fetchSchoolTransactions(schoolId, filters.value);
-    if (result && result.transactions) {
-      transactions.value = result.transactions;
-      pagination.value = result.pagination;
+    if (result && result.data.transactions) {
+      transactions.value = result.data.transactions;
+      pagination.value = result.data.pagination;
     }
   } catch (e) {
     error.value = e?.message || 'Failed to load transactions';

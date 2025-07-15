@@ -10,34 +10,44 @@ const {
   getAcademicYearsForDropdown,
 } = require('../controllers/academic-year.controller');
 const { verifyToken, authorize } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { createAcademicYear: createAcademicYearValidation, updateAcademicYear: updateAcademicYearValidation } = require('../validations/academic-year.validation');
 
 const router = express.Router();
 
 // Middleware to ensure authentication
 router.use(verifyToken);
 
-// GET /api/academic-years - Get all academic years with filtering and pagination
+// GET /api/academic-years - Get all academic years (super admin and school admin can view)
 router.get('/', authorize('super_admin', 'school_admin'), getAllAcademicYears);
 
-// GET /api/academic-years/dropdown - Get all academic years for dropdown
-router.get('/dropdown', authorize('super_admin', 'school_admin'), getAcademicYearsForDropdown);
+// GET /api/academic-years/dropdown - Get all academic years for dropdown (all authenticated users)
+router.get('/dropdown', getAcademicYearsForDropdown);
 
-// GET /api/academic-years/current - Get current academic year for a school
-router.get('/current', authorize('super_admin', 'school_admin'), getCurrentAcademicYear);
+// GET /api/academic-years/current - Get current academic year (all authenticated users)
+router.get('/current', getCurrentAcademicYear);
 
-// GET /api/academic-years/:id - Get academic year by ID
+// GET /api/academic-years/:id - Get academic year by ID (super admin and school admin can view)
 router.get('/:id', authorize('super_admin', 'school_admin'), getAcademicYearById);
 
-// POST /api/academic-years/ - Create new academic year
-router.post('/', authorize('super_admin', 'school_admin'), createAcademicYear);
+// POST /api/academic-years/ - Create new academic year (super admin only)
+router.post('/', 
+  authorize('super_admin'), 
+  validate(createAcademicYearValidation), 
+  createAcademicYear
+);
 
-// PUT /api/academic-years/:id - Update academic year
-router.put('/:id', authorize('super_admin', 'school_admin'), updateAcademicYear);
+// PUT /api/academic-years/:id - Update academic year (super admin only)
+router.put('/:id', 
+  authorize('super_admin'), 
+  validate(updateAcademicYearValidation), 
+  updateAcademicYear
+);
 
-// DELETE /api/academic-years/:id - Delete academic year (soft delete)
-router.delete('/:id', authorize('super_admin', 'school_admin'), deleteAcademicYear);
+// DELETE /api/academic-years/:id - Delete academic year (super admin only)
+router.delete('/:id', authorize('super_admin'), deleteAcademicYear);
 
-// POST /api/academic-years/:id/set-current - Set current academic year
-router.post('/:id/set-current', authorize('super_admin', 'school_admin'), setCurrentAcademicYear);
+// POST /api/academic-years/:id/set-current - Set current academic year (super admin only)
+router.post('/:id/set-current', authorize('super_admin'), setCurrentAcademicYear);
 
 module.exports = router;

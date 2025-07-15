@@ -2,12 +2,14 @@ export default defineNuxtPlugin(async () => {
   const authStore = useAuthStore();
   
   // Initialize auth state on app startup
-  // This will check auth once when the app loads, reducing subsequent calls
   if (process.client) {
-    // Only check if we have a token but no user data
+    // First, try to restore auth state from storage
+    await authStore.initializeAuth();
+    
+    // Then, if we have a token but still no user, validate with server
     const authToken = useCookie('auth-token').value;
-    if (authToken && !authStore.user) {
+    if (authToken && !authStore.currentUser) {
       await authStore.checkAuth();
     }
   }
-}); 
+});

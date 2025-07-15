@@ -2,7 +2,18 @@ const { logger } = require('../utils/logger');
 const { ValidationError } = require('sequelize');
 const { JsonWebTokenError, TokenExpiredError } = require('jsonwebtoken');
 const { error: errorResponse } = require('../utils/apiResponse');
-const httpStatus = require('http-status');
+// HTTP Status codes as constants
+const HTTP_STATUS = {
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  REQUEST_TIMEOUT: 408,
+  UNPROCESSABLE_ENTITY: 422,
+  INTERNAL_SERVER_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503
+};
 
 /**
  * Global error handler middleware
@@ -38,6 +49,19 @@ const errorHandler = (err, req, res, next) => {
     ...(err.statusCode && { statusCode: err.statusCode }),
   });
 
+  // Debug logging for status code issues
+  logger.debug('Error object details:', {
+    errorType: typeof err,
+    errorConstructor: err.constructor.name,
+    errorName: err.name,
+    hasStatusCode: 'statusCode' in err,
+    statusCodeValue: err.statusCode,
+    statusCodeType: typeof err.statusCode,
+    errorKeys: Object.keys(err),
+    errorProperties: Object.getOwnPropertyNames(err),
+    fullError: JSON.stringify(err, null, 2)
+  });
+
   // Handle specific error types with proper status codes
   if (err instanceof ValidationError) {
     const errors = {};
@@ -45,7 +69,7 @@ const errorHandler = (err, req, res, next) => {
       errors[error.path] = error.message;
     });
     return errorResponse(res, err, {
-      statusCode: httpStatus.BAD_REQUEST,
+      statusCode: HTTP_STATUS.BAD_REQUEST,
       message: 'Validation Error',
       errors,
     });
@@ -55,64 +79,64 @@ const errorHandler = (err, req, res, next) => {
   switch (err.name) {
     case 'SequelizeUniqueConstraintError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.CONFLICT,
+        statusCode: HTTP_STATUS.CONFLICT,
         message: 'Duplicate entry',
         errors: { [err.errors[0].path]: 'This value already exists' },
       });
     
     case 'SequelizeDatabaseError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: 400,
         message: 'Database error',
       });
     
     case 'SequelizeConnectionError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.SERVICE_UNAVAILABLE,
+        statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
         message: 'Database connection error',
       });
     
     case 'JsonWebTokenError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.UNAUTHORIZED,
+        statusCode: HTTP_STATUS.UNAUTHORIZED,
         message: 'Invalid token',
       });
     
     case 'TokenExpiredError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.UNAUTHORIZED,
+        statusCode: HTTP_STATUS.UNAUTHORIZED,
         message: 'Token expired',
       });
     
     case 'UnauthorizedError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.UNAUTHORIZED,
+        statusCode: HTTP_STATUS.UNAUTHORIZED,
         message: 'Not authorized to access this route',
       });
     
     case 'MulterError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: HTTP_STATUS.BAD_REQUEST,
         message: 'File upload error',
         errors: { file: err.message },
       });
     
     case 'SyntaxError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: HTTP_STATUS.BAD_REQUEST,
         message: 'Invalid JSON',
       });
     
     case 'CastError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: HTTP_STATUS.BAD_REQUEST,
         message: 'Invalid data format',
       });
     
     // Handle custom API errors
     case 'ApiError':
       return errorResponse(res, err, {
-        statusCode: err.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
+        statusCode: err.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR,
         message: err.message || 'API Error',
         errors: err.details?.errors || {},
       });
@@ -120,48 +144,51 @@ const errorHandler = (err, req, res, next) => {
     // Handle timeout errors
     case 'TimeoutError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.REQUEST_TIMEOUT,
+        statusCode: HTTP_STATUS.REQUEST_TIMEOUT,
         message: 'Request timeout',
       });
     
     // Handle network errors
     case 'NetworkError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.SERVICE_UNAVAILABLE,
+        statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
         message: 'Network error',
       });
     
     case 'NotFoundError':
       return errorResponse(res, err, {
-        statusCode: httpStatus.NOT_FOUND,
+        statusCode: HTTP_STATUS.NOT_FOUND,
         message: err.message || 'Resource not found',
       });
     
     // Default error handler
     default:
       // Determine status code based on error properties
-      let statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+      let statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
       let message = 'Internal Server Error';
       
       if (err.statusCode) {
         statusCode = err.statusCode;
       } else if (err.code === 'ENOTFOUND') {
-        statusCode = httpStatus.NOT_FOUND;
+        statusCode = HTTP_STATUS.NOT_FOUND;
         message = 'Resource not found';
       } else if (err.code === 'ECONNREFUSED') {
-        statusCode = httpStatus.SERVICE_UNAVAILABLE;
+        statusCode = HTTP_STATUS.SERVICE_UNAVAILABLE;
         message = 'Service unavailable';
       } else if (err.code === 'ETIMEDOUT') {
-        statusCode = httpStatus.REQUEST_TIMEOUT;
+        statusCode = HTTP_STATUS.REQUEST_TIMEOUT;
         message = 'Request timeout';
       } else if (err.message) {
         message = err.message;
       }
       
       // Final fallback: ensure statusCode is always valid
-      if (!err.statusCode || isNaN(parseInt(err.statusCode)) || err.statusCode < 100 || err.statusCode > 599) {
-        err.statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+      if (!statusCode || isNaN(parseInt(statusCode)) || statusCode < 100 || statusCode > 599) {
+        statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
       }
+      
+      // Also ensure err.statusCode is set for consistency
+      err.statusCode = statusCode;
 
       return errorResponse(res, err, {
         statusCode,
@@ -177,7 +204,7 @@ const errorHandler = (err, req, res, next) => {
  */
 const notFoundHandler = (req, res, next) => {
   const error = new Error(`Not Found - ${req.method} ${req.originalUrl}`);
-  error.statusCode = httpStatus.NOT_FOUND;
+  error.statusCode = HTTP_STATUS.NOT_FOUND;
   error.name = 'NotFoundError';
   next(error);
 };

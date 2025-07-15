@@ -70,9 +70,6 @@ const School = sequelize.define('School', {
   website: {
     type: DataTypes.STRING,
     allowNull: true,
-    validate: {
-      isUrl: { msg: 'Please provide a valid website URL' },
-    },
   },
   logo: {
     type: DataTypes.STRING,
@@ -102,14 +99,6 @@ const School = sequelize.define('School', {
     type: DataTypes.ENUM('12h', '24h'),
     allowNull: false,
     defaultValue: '12h',
-  },
-  academic_year_start: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-  },
-  academic_year_end: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'suspended', 'trial'),
@@ -211,10 +200,17 @@ const School = sequelize.define('School', {
 // Define associations
 School.associate = (models) => {
   School.hasMany(models.Branch, { foreignKey: 'school_id', as: 'branches' });
+  
   // School has many Users
   School.hasMany(models.User, {
     foreignKey: 'school_id',
     as: 'users',
+  });
+
+  // School has many Transactions
+  School.hasMany(models.Transaction, {
+    foreignKey: 'school_id',
+    as: 'transactions',
   });
 
   // School belongs to User (created_by)

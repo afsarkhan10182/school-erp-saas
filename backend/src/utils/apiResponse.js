@@ -1,4 +1,16 @@
-const httpStatus = require('http-status');
+// HTTP Status codes as constants
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  INTERNAL_SERVER_ERROR: 500
+};
 const ApiError = require('./ApiError');
 
 /**
@@ -14,7 +26,7 @@ const successResponse = (
   res,
   data = null,
   message = 'Success',
-  statusCode = httpStatus.OK,
+  statusCode = HTTP_STATUS.OK,
   metadata = {}
 ) => {
   const response = {
@@ -35,7 +47,7 @@ const successResponse = (
  * @returns {Object} - Formatted error response
  */
 const errorResponse = (res, error, defaultError = {}) => {
-  let statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+  let statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
   let message = 'Internal Server Error';
   let errors = {};
   let stack = undefined;
@@ -47,38 +59,38 @@ const errorResponse = (res, error, defaultError = {}) => {
 
   // Handle different types of errors
   if (error instanceof ApiError) {
-    statusCode = error.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+    statusCode = error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
     message = error.message || 'Internal Server Error';
     errors = error.details?.errors || {};
   } else if (error.name === 'ValidationError') {
     // Handle Mongoose validation errors
-    statusCode = httpStatus.BAD_REQUEST;
+    statusCode = HTTP_STATUS.BAD_REQUEST;
     message = 'Validation Error';
     Object.values(error.errors).forEach((err) => {
       errors[err.path] = err.message;
     });
   } else if (error.name === 'MongoError' && error.code === 11000) {
     // Handle MongoDB duplicate key errors
-    statusCode = httpStatus.CONFLICT;
+    statusCode = HTTP_STATUS.CONFLICT;
     message = 'Duplicate key error';
     const field = Object.keys(error.keyValue)[0];
     errors[field] = `${field} already exists`;
   } else if (error.name === 'JsonWebTokenError') {
-    statusCode = httpStatus.UNAUTHORIZED;
+    statusCode = HTTP_STATUS.UNAUTHORIZED;
     message = 'Invalid token';
   } else if (error.name === 'TokenExpiredError') {
-    statusCode = httpStatus.UNAUTHORIZED;
+    statusCode = HTTP_STATUS.UNAUTHORIZED;
     message = 'Token expired';
   } else if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
     // Handle Sequelize validation errors
-    statusCode = httpStatus.BAD_REQUEST;
+    statusCode = HTTP_STATUS.BAD_REQUEST;
     message = 'Validation Error';
     error.errors.forEach((err) => {
       errors[err.path] = err.message;
     });
   } else if (error.response) {
     // Handle axios errors
-    statusCode = error.response.status || httpStatus.INTERNAL_SERVER_ERROR;
+    statusCode = error.response.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
     message = error.response.data?.message || error.message;
     errors = error.response.data?.errors || {};
   } else {
@@ -96,7 +108,7 @@ const errorResponse = (res, error, defaultError = {}) => {
   // Ensure statusCode is a valid integer
   statusCode = parseInt(statusCode);
   if (isNaN(statusCode) || statusCode < 100 || statusCode > 599) {
-    statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+    statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
   }
   
   // Log the error
@@ -130,7 +142,7 @@ const asyncHandler = (fn) => (req, res, next) => {
     
     // If the error doesn't have a statusCode, set a default
     if (!err.statusCode) {
-      err.statusCode = httpStatus.INTERNAL_SERVER_ERROR;
+      err.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
     }
     
     // Pass the error to the next middleware instead of calling errorResponse directly
@@ -183,32 +195,32 @@ module.exports = {
   withTimeout,
   // Common responses
   created: (res, data, message = 'Resource created successfully') => 
-    successResponse(res, data, message, httpStatus.CREATED),
+    successResponse(res, data, message, HTTP_STATUS.CREATED),
   
   noContent: (res, message = 'No content') => 
-    res.status(httpStatus.NO_CONTENT).json({ success: true, message }),
+    res.status(HTTP_STATUS.NO_CONTENT).json({ success: true, message }),
   
   badRequest: (res, message = 'Bad Request', errors = {}) => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.BAD_REQUEST, errors }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.BAD_REQUEST, errors }),
   
   unauthorized: (res, message = 'Unauthorized') => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.UNAUTHORIZED }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.UNAUTHORIZED }),
   
   forbidden: (res, message = 'Forbidden') => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.FORBIDDEN }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.FORBIDDEN }),
   
   notFound: (res, message = 'Resource not found') => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.NOT_FOUND }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.NOT_FOUND }),
   
   conflict: (res, message = 'Conflict') => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.CONFLICT }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.CONFLICT }),
   
   internal: (res, message = 'Internal Server Error') => 
-    errorResponse(res, new Error(message), { statusCode: httpStatus.INTERNAL_SERVER_ERROR }),
+    errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR }),
   
   validationError: (res, errors = {}, message = 'Validation Error') => 
     errorResponse(res, new Error(message), { 
-      statusCode: httpStatus.UNPROCESSABLE_ENTITY, 
+      statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, 
       errors 
     }),
 };

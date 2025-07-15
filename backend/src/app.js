@@ -104,6 +104,7 @@ class App {
   initializeRoutes() {
     // Health check
     this.app.get(`${this.apiPrefix}/health`, (req, res) => {
+      console.log('Health route hit');
       res.json({ status: 'ok', timestamp: new Date().toISOString() });
     });
 
@@ -124,7 +125,9 @@ class App {
 
   async start() {
     try {
-      await this.initializeDatabase();
+      console.log('Before initializeDatabase');
+      await this.initializeDatabase();    console.log('After initializeDatabase, before app.listen');
+
       
       this.server = this.app.listen(this.port, () => {
         logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${this.port}`);

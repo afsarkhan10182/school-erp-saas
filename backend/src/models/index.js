@@ -4,6 +4,7 @@ const School = require('./school.model');
 const Branch = require('./branch.model');
 const SubscriptionPlan = require('./subscription-plan.model');
 const Transaction = require('./transaction.model');
+const SubscriptionRenewalRequest = require('./subscription-renewal-request.model');
 const Student = require('./student.model');
 const Parent = require('./parent.model');
 const StudentParent = require('./student-parent.model');
@@ -22,6 +23,7 @@ const models = {
   Branch,
   SubscriptionPlan,
   Transaction,
+  SubscriptionRenewalRequest,
   Student,
   Parent,
   StudentParent,
@@ -41,21 +43,4 @@ Object.keys(models).forEach(modelName => {
   }
 });
 
-module.exports = {
-  sequelize,
-  User,
-  School,
-  Branch,
-  SubscriptionPlan,
-  Transaction,
-  Student,
-  Parent,
-  StudentParent,
-  FeeType,
-  FeeStructure,
-  FeeInvoice,
-  AcademicYear,
-  Class,
-  Section,
-  Admission,
-};
+module.exports = models;

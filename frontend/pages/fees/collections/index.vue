@@ -30,9 +30,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { fetchCollectionsAPI } from '@/api/collections';
-import CollectionTable from '@/components/CollectionTable.vue';
-import Pagination from '@/components/Pagination.vue';
+import { fetchCollectionsAPI } from '~/api/collections';
+import CollectionTable from '~/components/CollectionTable.vue';
+import Pagination from '~/components/Pagination.vue';
 
 const collections = ref([]);
 const pagination = reactive({ page: 1, limit: 10, total: 0 });

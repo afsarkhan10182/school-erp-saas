@@ -12,7 +12,8 @@
         <div class="text-sm text-gray-500 dark:text-gray-400">Status: <span :class="school.status === 'active' ? 'text-green-600' : 'text-red-600'">{{ school.status }}</span></div>
       </div>
       <div class="flex gap-3 mt-4">
-        <NuxtLink :to="`/subscriptions/schools/${school.id}/edit`" class="btn-primary">Edit</NuxtLink>
+        <NuxtLink :to="`/subscriptions/schools/${school.id}/subscription-details`" class="btn-primary">Subscription Details</NuxtLink>
+        <NuxtLink :to="`/subscriptions/schools/${school.id}/edit`" class="btn-secondary">Edit</NuxtLink>
         <NuxtLink :to="`/subscriptions/schools/${school.id}/transactions`" class="btn-secondary">Transactions</NuxtLink>
       </div>
     </div>
@@ -35,7 +36,8 @@ onMounted(async () => {
   error.value = '';
   try {
     const result = await fetchSchoolsWithSubscriptions({ id: route.params.id });
-    school.value = result?.schools?.[0] || null;
+    console.log('afsarresult', result);
+    school.value = result.data.schools?.[0] || null;
     if (!school.value) error.value = 'School not found.';
   } catch (e) {
     error.value = 'Failed to load school details.';

@@ -78,42 +78,34 @@ class ClassController {
       // Build include array with safe associations
       const includeArray = [];
       
-      try {
-        // Only include associations if they exist
-        if (Class.associations && Class.associations.school) {
-          includeArray.push({
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          });
-        }
-        
-        if (Class.associations && Class.associations.branch) {
-          includeArray.push({
-            model: Branch,
-            as: 'branch',
-            attributes: ['id', 'name', 'code'],
-          });
-        }
-        
-        if (Class.associations && Class.associations.createdBy) {
-          includeArray.push({
-            model: User,
-            as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          });
-        }
-        
-        if (Class.associations && Class.associations.sections) {
-          includeArray.push({
-            model: Section,
-            as: 'sections',
-            attributes: ['id', 'name', 'capacity', 'current_strength'],
-          });
-        }
-      } catch (associationError) {
-        logger.warn('Some associations not available, proceeding without them:', associationError.message);
-      }
+      // Include associations safely
+      includeArray.push({
+        model: School,
+        as: 'school',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: Branch,
+        as: 'branch',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: User,
+        as: 'createdBy',
+        attributes: ['id', 'first_name', 'last_name'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: Section,
+        as: 'sections',
+        attributes: ['id', 'name', 'capacity', 'current_strength'],
+        required: false,
+      });
 
       const { count, rows } = await Class.findAndCountAll({
         where: whereClause,
@@ -274,15 +266,17 @@ class ClassController {
       }
 
       // Check if class code already exists for this school
-      const existingClass = await Class.findOne({
-        where: { school_id, code },
-      });
-
-      if (existingClass) {
-        return res.status(400).json({
-          success: false,
-          message: 'Class code already exists for this school',
+      if (code) {
+        const existingClass = await Class.findOne({
+          where: { school_id, code },
         });
+
+        if (existingClass) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class code already exists for this school',
+          });
+        }
       }
 
       // Create class

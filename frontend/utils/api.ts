@@ -9,6 +9,7 @@ export function createApiInstance(): AxiosInstance {
   const api: AxiosInstance = axios.create({
     baseURL: apiBase,
     timeout: 10000,
+    withCredentials: true, // Include cookies with requests
     headers: {
       'Content-Type': 'application/json',
     },
@@ -17,15 +18,24 @@ export function createApiInstance(): AxiosInstance {
   // Request interceptor to add auth token
   api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      // Try to get token from cookie first, then localStorage
+      // Directly use token from cookie
       let token = null;
       if (process.client) {
         const authCookie = useCookie('auth-token');
-        token = authCookie.value || localStorage.getItem('auth-token');
+        token = authCookie.value;
+        
+        console.log('🔍 API Request Debug:', {
+          url: config.url,
+          method: config.method,
+          tokenFromCookie: token ? 'present' : 'missing',
+          tokenLength: token ? token.length : 0
+        });
       }
-      
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn('⚠️ No token found for request:', config.url);
       }
       return config;
     },
@@ -40,38 +50,34 @@ export function createApiInstance(): AxiosInstance {
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         try {
-          // Try to get refresh token from cookie first, then localStorage
+          // Try to get refresh token from cookie
           let refreshToken = null;
           if (process.client) {
             const refreshCookie = useCookie('refresh-token');
-            refreshToken = refreshCookie.value || localStorage.getItem('refresh-token');
+            refreshToken = refreshCookie.value;
           }
           
           if (refreshToken) {
-            const response = await axios.post(`${apiBase}/auth/refresh`, { refreshToken });
-            const { token } = response.data.data;
+            const authStore = useAuthStore();
+            const refreshed = await authStore.refreshAuth();
             
-            // Update both cookie and localStorage
-            if (process.client) {
-              const authCookie = useCookie('auth-token');
-              authCookie.value = token;
-              localStorage.setItem('auth-token', token);
+            if (refreshed) {
+              // Get the new token from the auth store
+              const newToken = authStore.token;
+              if (newToken) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return api(originalRequest);
+              }
             }
-            
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
+            throw new Error('Token refresh failed');
           }
         } catch (refreshError) {
-          // Clear tokens and redirect to login
+          // Clear auth state and redirect to login
           if (process.client) {
-            localStorage.removeItem('auth-token');
-            localStorage.removeItem('refresh-token');
-            const authCookie = useCookie('auth-token');
-            const refreshCookie = useCookie('refresh-token');
-            authCookie.value = null;
-            refreshCookie.value = null;
+            const authStore = useAuthStore();
+            await authStore.logout();
+            await navigateTo('/login');
           }
-          await navigateTo('/login');
           return Promise.reject(refreshError);
         }
       }
@@ -154,7 +160,7 @@ export const apiClient = {
   branches: {
     getAll: async (schoolId?: string, params?: { page?: number; limit?: number }) => {
       const api = createApiInstance();
-      const url = schoolId ? `/schools/${schoolId}/branches` : '/branches';
+      const url = schoolId ? `/branches/school/${schoolId}` : '/branches';
       const response = await api.get<PaginatedResponse<any>>(url, { params });
       return response.data;
     },
@@ -217,11 +223,93 @@ export const apiClient = {
     }
   },
 
-  // Fee Structure endpoints
-  feeStructures: {
-    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; class?: string }) => {
+  // Enhanced Fee Invoice endpoints with reports
+  feeInvoices: {
+    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/fee-structures', { params });
+      const response = await api.get<PaginatedResponse<any>>('/fee-invoices', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/${id}`);
+      return response.data;
+    },
+    
+    generateInvoices: async (invoiceData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/fee-invoices/generate', invoiceData);
+      return response.data;
+    },
+    
+    recordPayment: async (id: string, paymentData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/payment`, paymentData);
+      return response.data;
+    },
+    
+    updateInvoice: async (id: string, invoiceData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/fee-invoices/${id}`, invoiceData);
+      return response.data;
+    },
+    
+    cancelInvoice: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/fee-invoices/${id}/cancel`);
+      return response.data;
+    },
+    
+    getSummary: async (params?: { academic_year?: string; class?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params });
+      return response.data;
+    },
+
+    getStats: async (params?: { academic_year?: string; class?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/stats', { params });
+      return response.data;
+    },
+
+    // New endpoints for enhanced features
+    getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/student-dues', { params });
+      return response.data;
+    },
+
+    getStudentLedger: async (params: { student_id: string; academic_year?: string; page?: number; limit?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/student-ledger', { params });
+      return response.data;
+    },
+
+    adjustInvoice: async (id: string, adjustmentData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/adjust`, adjustmentData);
+      return response.data;
+    },
+
+    applyLateFees: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/late-fees`);
+      return response.data;
+    },
+    
+    exportReport: async (queryString: string) => {
+      const api = createApiInstance();
+      const response = await api.get(`/fee-invoices/export?${queryString}`, { responseType: 'blob' });
+      return response;
+    }
+  },
+
+  // Enhanced Fee Structure endpoints
+  feeStructures: {
+    getAll: async (params?: any) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-structures', { params });
       return response.data;
     },
     
@@ -231,23 +319,30 @@ export const apiClient = {
       return response.data;
     },
     
-    create: async (feeStructureData: any) => {
+    create: async (data: any) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/fee-structures', feeStructureData);
+      const response = await api.post<ApiResponse<any>>('/fee-structures', data);
       return response.data;
     },
     
-    update: async (id: string, feeStructureData: any) => {
+    update: async (id: string, data: any) => {
       const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/fee-structures/${id}`, feeStructureData);
+      const response = await api.put<ApiResponse<any>>(`/fee-structures/${id}`, data);
       return response.data;
     },
     
     delete: async (id: string) => {
       const api = createApiInstance();
-      const response = await api.delete<ApiResponse<null>>(`/fee-structures/${id}`);
+      const response = await api.delete<ApiResponse<any>>(`/fee-structures/${id}`);
       return response.data;
-    }
+    },
+
+    // New clone functionality
+    clone: async (id: string, cloneData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/fee-structures/${id}/clone`, cloneData);
+      return response.data;
+    },
   },
 
 
@@ -311,6 +406,20 @@ export const apiClient = {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/academic-years/${id}`);
       return response.data;
+    },
+    
+    getDropdown: async (queryString?: string) => {
+      const api = createApiInstance();
+      const url = queryString ? `/academic-years/dropdown?${queryString}` : '/academic-years/dropdown';
+      const response = await api.get<ApiResponse<any>>(url);
+      return response.data;
+    },
+    
+    getCurrent: async (queryString?: string) => {
+      const api = createApiInstance();
+      const url = queryString ? `/academic-years/current?${queryString}` : '/academic-years/current';
+      const response = await api.get<ApiResponse<any>>(url);
+      return response.data;
     }
   },
 
@@ -344,6 +453,13 @@ export const apiClient = {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/classes/${id}`);
       return response.data;
+    },
+    
+    getDropdown: async (queryString?: string) => {
+      const api = createApiInstance();
+      const url = queryString ? `/classes/dropdown?${queryString}` : '/classes/dropdown';
+      const response = await api.get<ApiResponse<any>>(url);
+      return response.data;
     }
   },
 
@@ -376,6 +492,13 @@ export const apiClient = {
     delete: async (id: string) => {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/sections/${id}`);
+      return response.data;
+    },
+    
+    getDropdown: async (queryString?: string) => {
+      const api = createApiInstance();
+      const url = queryString ? `/sections/dropdown?${queryString}` : '/sections/dropdown';
+      const response = await api.get<ApiResponse<any>>(url);
       return response.data;
     }
   },
@@ -433,69 +556,6 @@ export const apiClient = {
     exportReport: async (queryString: string) => {
       const api = createApiInstance();
       const response = await api.get(`/students/export?${queryString}`, { responseType: 'blob' });
-      return response;
-    }
-  },
-
-  // Enhanced Fee Invoice endpoints with reports
-  feeInvoices: {
-    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/fee-invoices', { params });
-      return response.data;
-    },
-    
-    getById: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/fee-invoices/${id}`);
-      return response.data;
-    },
-    
-    generateInvoices: async (invoiceData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/fee-invoices/generate', invoiceData);
-      return response.data;
-    },
-    
-    recordPayment: async (id: string, paymentData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/payment`, paymentData);
-      return response.data;
-    },
-    
-    updateInvoice: async (id: string, invoiceData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/fee-invoices/${id}`, invoiceData);
-      return response.data;
-    },
-    
-    cancelInvoice: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/fee-invoices/${id}/cancel`);
-      return response.data;
-    },
-    
-    getSummary: async (params?: { academic_year?: string; class?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params });
-      return response.data;
-    },
-    
-    getStats: async (params?: { academic_year?: string; class?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/stats', { params });
-      return response.data;
-    },
-    
-    getReport: async (params?: { page?: number; limit?: number; dateRange?: string; fromDate?: string; toDate?: string; class_name?: string; status?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/report', { params });
-      return response.data;
-    },
-    
-    exportReport: async (queryString: string) => {
-      const api = createApiInstance();
-      const response = await api.get(`/fee-invoices/export?${queryString}`, { responseType: 'blob' });
       return response;
     }
   },
@@ -596,15 +656,15 @@ export const apiClient = {
 
   // Subscription endpoints
   subscriptions: {
-    getSchoolsWithSubscriptions: async (params?: { page?: number; limit?: number; search?: string; status?: string; subscription_plan?: string }) => {
+    getSchoolsWithSubscriptions: async (params?: { page?: number; limit?: number; search?: string; status?: string; subscription_plan?: string; id?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/subscriptions/schools', { params });
+      const response = await api.get<ApiResponse<any>>('/subscriptions/schools', { params });
       return response.data;
     },
     
     getPlans: async (params?: { page?: number; limit?: number; is_active?: boolean }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/subscriptions/plans', { params });
+      const response = await api.get<ApiResponse<any>>('/subscriptions/plans', { params });
       return response.data;
     },
     
@@ -642,21 +702,25 @@ export const apiClient = {
       return response.data;
     },
     
-    updateSchoolSubscription: async (schoolId: string, subscriptionData: any) => {
+    updateSchoolSubscription: async (schoolId: string, schoolData: FormData) => {
       const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/subscriptions/schools/${schoolId}/subscription`, subscriptionData);
+      const response = await api.put<ApiResponse<any>>(`/subscriptions/schools/${schoolId}`, schoolData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     },
     
     getSchoolTransactions: async (schoolId: string, params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>(`/subscriptions/schools/${schoolId}/transactions`, { params });
+      const response = await api.get<ApiResponse<any>>(`/subscriptions/schools/${schoolId}/transactions`, { params });
       return response.data;
     },
     
     createManualTransaction: async (transactionData: any) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/subscriptions/transactions', transactionData);
+      const response = await api.post<ApiResponse<any>>(`/subscriptions/schools/${transactionData.school_id}/transactions`, transactionData);
       return response.data;
     },
     
@@ -668,13 +732,13 @@ export const apiClient = {
     
     suspendSchool: async (schoolId: string) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/schools/${schoolId}/suspend`);
+      const response = await api.patch<ApiResponse<any>>(`/schools/${schoolId}/suspend`);
       return response.data;
     },
     
     reactivateSchool: async (schoolId: string) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/schools/${schoolId}/reactivate`);
+      const response = await api.patch<ApiResponse<any>>(`/schools/${schoolId}/reactivate`);
       return response.data;
     }
   }

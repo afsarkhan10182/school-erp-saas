@@ -1,6 +1,15 @@
 <template>
   <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 h-16 transition-colors duration-300">
     <div class="flex items-center">
+      <!-- Mobile Sidebar Toggle -->
+      <button 
+        @click="$emit('toggle-mobile-sidebar')"
+        class="lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 mr-3"
+        title="Toggle sidebar"
+      >
+        <Menu class="w-5 h-5 text-gray-600 dark:text-gray-300" />
+      </button>
+      
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
         {{ pageTitle }}
       </h2>
@@ -44,7 +53,7 @@
 </template>
 
 <script setup>
-import { Sun, Moon, User, Shield, Building2, GraduationCap, BookOpen, Calculator, Users, Crown } from 'lucide-vue-next';
+import { Sun, Moon, User, Shield, Building2, GraduationCap, BookOpen, Calculator, Users, Crown, Menu } from 'lucide-vue-next';
 import { useBranchContext } from '~/composables/useBranchContext';
 
 const props = defineProps({
@@ -141,8 +150,14 @@ const toggleTheme = () => {
 };
 
 onMounted(() => {
-  // Check for saved theme preference
-  const savedTheme = localStorage.getItem('theme') || 'light';
+  // Check for saved theme preference, default to dark
+  const savedTheme = localStorage.getItem('theme') || 'dark';
   isDark.value = savedTheme === 'dark';
+  // Apply theme on mount
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
 });
 </script> 

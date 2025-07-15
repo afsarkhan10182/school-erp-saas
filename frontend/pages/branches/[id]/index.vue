@@ -72,7 +72,7 @@ const branch = ref(null);
 
 const fetchBranch = async () => {
   try {
-    const token = localStorage.getItem('auth-token');
+    const token = useCookie('auth-token').value;
     const config = useRuntimeConfig();
     const apiBase = config.public.apiBase;
     const res = await fetch(`${apiBase}/branches/${branchId}`, {

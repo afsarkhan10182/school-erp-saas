@@ -62,8 +62,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { apiClient } from '@/utils/api';
-import BranchSelector from '@/components/BranchSelector.vue';
+import { apiClient } from '~/utils/api';
+import BranchSelector from '~/components/BranchSelector.vue';
 
 const branches = ref([]);
 const selectedBranch = ref(null);

@@ -1,4 +1,4 @@
-const { AcademicYear, School, User } = require('../models');
+const { AcademicYear, User } = require('../models');
 const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -20,7 +20,6 @@ class AcademicYearController {
         page = 1,
         limit = 10,
         search = '',
-        status = '',
         is_current = '',
         sort_by = 'created_at',
         sort_order = 'DESC',
@@ -28,34 +27,14 @@ class AcademicYearController {
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
-      // Build where clause based on user role
+      // Build where clause
       let whereClause = {};
-      
-      // Super admin can see all academic years
-      if (req.user.role === 'super_admin') {
-        // No additional constraints
-      } else if (req.user.role === 'school_admin') {
-        whereClause.school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        whereClause.school_id = req.user.school_id;
-      } else {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
 
       // Add search filter
       if (search) {
         whereClause[Op.or] = [
           { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
         ];
-      }
-
-      // Add status filter
-      if (status) {
-        whereClause.status = status;
       }
 
       // Add is_current filter
@@ -66,11 +45,6 @@ class AcademicYearController {
       const { count, rows } = await AcademicYear.findAndCountAll({
         where: whereClause,
         include: [
-          {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
           {
             model: User,
             as: 'createdBy',
@@ -110,11 +84,6 @@ class AcademicYearController {
       const academicYear = await AcademicYear.findByPk(id, {
         include: [
           {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
-          {
             model: User,
             as: 'createdBy',
             attributes: ['id', 'first_name', 'last_name'],
@@ -134,14 +103,6 @@ class AcademicYearController {
         });
       }
 
-      // Check permissions
-      if (req.user.role !== 'super_admin' && academicYear.school_id !== req.user.school_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
       res.json({
         success: true,
         data: academicYear,
@@ -152,7 +113,7 @@ class AcademicYearController {
     }
   }
 
-  // Create new academic year
+  // Create new academic year (super admin only)
   static async createAcademicYear(req, res, next) {
     try {
       const errors = validationResult(req);
@@ -164,55 +125,33 @@ class AcademicYearController {
         });
       }
 
-      const { name, code, start_date, end_date, description, is_current = false } = req.body;
+      const { name, is_current = false } = req.body;
 
-      // Determine school_id based on user role
-      let school_id;
-      if (req.user.role === 'super_admin') {
-        school_id = req.body.school_id;
-        if (!school_id) {
-          return res.status(400).json({
-            success: false,
-            message: 'School ID is required for super admin',
-          });
-        }
-      } else if (req.user.role === 'school_admin') {
-        school_id = req.user.school_id;
-      } else {
+      // Only super admin can create global academic years
+      if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Insufficient permissions to create academic year',
+          message: 'Only super admin can create global academic years',
         });
       }
 
-      // Check if school exists
-      const school = await School.findByPk(school_id);
-      if (!school) {
-        return res.status(404).json({
-          success: false,
-          message: 'School not found',
-        });
-      }
-
-      // Check if academic year code already exists for this school
+      // Check if academic year name already exists
       const existingYear = await AcademicYear.findOne({
-        where: { school_id, code },
+        where: { name },
       });
 
       if (existingYear) {
         return res.status(400).json({
           success: false,
-          message: 'Academic year code already exists for this school',
+          message: 'Academic year already exists',
         });
       }
 
-      // Validate date range
-      if (new Date(start_date) >= new Date(end_date)) {
-        return res.status(400).json({
-          success: false,
-          message: 'End date must be after start date',
-        });
-      }
+      // Generate code, start_date, and end_date from name (format: "2024-2025")
+      const [startYear, endYear] = name.split('-').map(Number);
+      const code = name; // Use the same format as name
+      const start_date = `${startYear}-04-01`; // Academic year starts in April
+      const end_date = `${endYear}-03-31`; // Academic year ends in March of next year
 
       // Create academic year
       const academicYear = await AcademicYear.create({
@@ -220,21 +159,14 @@ class AcademicYearController {
         code,
         start_date,
         end_date,
-        description,
         is_current,
-        school_id,
-        created_by: req.user.id,
         status: 'active',
+        created_by: req.user.id,
       });
 
       // Fetch the created academic year with associations
       const createdYear = await AcademicYear.findByPk(academicYear.id, {
         include: [
-          {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
           {
             model: User,
             as: 'createdBy',
@@ -254,7 +186,7 @@ class AcademicYearController {
     }
   }
 
-  // Update academic year
+  // Update academic year (super admin only)
   static async updateAcademicYear(req, res, next) {
     try {
       const errors = validationResult(req);
@@ -267,7 +199,15 @@ class AcademicYearController {
       }
 
       const { id } = req.params;
-      const { name, code, start_date, end_date, description, is_current, status } = req.body;
+      const { name, is_current } = req.body;
+
+      // Only super admin can update global academic years
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admin can update global academic years',
+        });
+      }
 
       const academicYear = await AcademicYear.findByPk(id);
       if (!academicYear) {
@@ -277,20 +217,11 @@ class AcademicYearController {
         });
       }
 
-      // Check permissions
-      if (req.user.role !== 'super_admin' && academicYear.school_id !== req.user.school_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      // Check if updated code conflicts with existing year
-      if (code && code !== academicYear.code) {
+      // Check if updated name conflicts with existing year
+      if (name && name !== academicYear.name) {
         const existingYear = await AcademicYear.findOne({
           where: { 
-            school_id: academicYear.school_id, 
-            code,
+            name,
             id: { [Op.ne]: id }
           },
         });
@@ -298,41 +229,36 @@ class AcademicYearController {
         if (existingYear) {
           return res.status(400).json({
             success: false,
-            message: 'Academic year code already exists for this school',
+            message: 'Academic year name already exists',
           });
         }
       }
 
-      // Validate date range if dates are being updated
-      if (start_date && end_date) {
-        if (new Date(start_date) >= new Date(end_date)) {
-          return res.status(400).json({
-            success: false,
-            message: 'End date must be after start date',
-          });
-        }
+      // Prepare update data
+      const updateData = {
+        updated_by: req.user.id,
+      };
+
+      // If name is being updated, also update related fields
+      if (name && name !== academicYear.name) {
+        const [startYear, endYear] = name.split('-').map(Number);
+        updateData.name = name;
+        updateData.code = name; // Use the same format as name
+        updateData.start_date = `${startYear}-04-01`; // Academic year starts in April
+        updateData.end_date = `${endYear}-03-31`; // Academic year ends in March of next year
+      }
+
+      // Update is_current if provided
+      if (is_current !== undefined) {
+        updateData.is_current = is_current;
       }
 
       // Update academic year
-      await academicYear.update({
-        name: name || academicYear.name,
-        code: code || academicYear.code,
-        start_date: start_date || academicYear.start_date,
-        end_date: end_date || academicYear.end_date,
-        description: description !== undefined ? description : academicYear.description,
-        is_current: is_current !== undefined ? is_current : academicYear.is_current,
-        status: status || academicYear.status,
-        updated_by: req.user.id,
-      });
+      await academicYear.update(updateData);
 
       // Fetch updated academic year with associations
       const updatedYear = await AcademicYear.findByPk(id, {
         include: [
-          {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
           {
             model: User,
             as: 'createdBy',
@@ -357,24 +283,24 @@ class AcademicYearController {
     }
   }
 
-  // Delete academic year (soft delete)
+  // Delete academic year (super admin only)
   static async deleteAcademicYear(req, res, next) {
     try {
       const { id } = req.params;
+
+      // Only super admin can delete global academic years
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admin can delete global academic years',
+        });
+      }
 
       const academicYear = await AcademicYear.findByPk(id);
       if (!academicYear) {
         return res.status(404).json({
           success: false,
           message: 'Academic year not found',
-        });
-      }
-
-      // Check permissions
-      if (req.user.role !== 'super_admin' && academicYear.school_id !== req.user.school_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
         });
       }
 
@@ -386,7 +312,7 @@ class AcademicYearController {
         });
       }
 
-      // TODO: Add validation to check if academic year has associated students, classes, etc.
+      // TODO: Add validation to check if academic year is referenced by any schools or admissions
       
       await academicYear.destroy();
 
@@ -400,10 +326,18 @@ class AcademicYearController {
     }
   }
 
-  // Set current academic year
+  // Set current academic year (super admin only)
   static async setCurrentAcademicYear(req, res, next) {
     try {
       const { id } = req.params;
+
+      // Only super admin can set current global academic year
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admin can set current global academic year',
+        });
+      }
 
       const academicYear = await AcademicYear.findByPk(id);
       if (!academicYear) {
@@ -413,29 +347,13 @@ class AcademicYearController {
         });
       }
 
-      // Check permissions
-      if (req.user.role !== 'super_admin' && academicYear.school_id !== req.user.school_id) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
       // Set as current (the model hook will handle unsetting other current years)
       await academicYear.update({
         is_current: true,
         updated_by: req.user.id,
       });
 
-      const updatedYear = await AcademicYear.findByPk(id, {
-        include: [
-          {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
-      });
+      const updatedYear = await AcademicYear.findByPk(id);
 
       res.json({
         success: true,
@@ -448,32 +366,11 @@ class AcademicYearController {
     }
   }
 
-  // Get current academic year for a school
+  // Get current academic year (accessible to all authenticated users)
   static async getCurrentAcademicYear(req, res, next) {
     try {
-      let school_id;
-      
-      if (req.user.role === 'super_admin') {
-        school_id = req.query.school_id;
-        if (!school_id) {
-          return res.status(400).json({
-            success: false,
-            message: 'School ID is required for super admin',
-          });
-        }
-      } else {
-        school_id = req.user.school_id;
-      }
-
       const currentYear = await AcademicYear.findOne({
-        where: { school_id, is_current: true },
-        include: [
-          {
-            model: School,
-            as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
+        where: { is_current: true },
       });
 
       if (!currentYear) {
@@ -493,23 +390,12 @@ class AcademicYearController {
     }
   }
 
-  // Get academic years for dropdown/select
+  // Get academic years for dropdown/select (accessible to all authenticated users)
   static async getAcademicYearsForDropdown(req, res, next) {
     try {
-      let whereClause = { status: 'active' };
-      
-      if (req.user.role === 'super_admin') {
-        if (req.query.school_id) {
-          whereClause.school_id = req.query.school_id;
-        }
-      } else {
-        whereClause.school_id = req.user.school_id;
-      }
-
       const academicYears = await AcademicYear.findAll({
-        where: whereClause,
-        attributes: ['id', 'name', 'code', 'is_current'],
-        order: [['is_current', 'DESC'], ['start_date', 'DESC']],
+        attributes: ['id', 'name', 'is_current'],
+        order: [['is_current', 'DESC'], ['name', 'DESC']],
       });
 
       res.json({

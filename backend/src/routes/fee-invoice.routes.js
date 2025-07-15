@@ -11,6 +11,9 @@ const {
   exportFeeInvoicesReport,
   applyLateFees,
   getFeeStats,
+  getStudentDues,
+  getStudentFeeLedger,
+  adjustInvoice,
 } = require('../controllers/fee-invoice.controller');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
 const router = express.Router();
@@ -26,6 +29,12 @@ router.post('/generate', requireRole('super_admin', 'school_admin', 'accountant'
 
 // GET endpoint to retrieve all invoices
 router.get('/', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoices);
+
+// GET endpoint to retrieve student dues for quick collection
+router.get('/student-dues', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentDues);
+
+// GET endpoint to retrieve student fee ledger
+router.get('/student-ledger', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentFeeLedger);
 
 // GET endpoint to retrieve fee collection summary
 router.get('/summary', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeCollectionSummary);
@@ -53,5 +62,8 @@ router.put('/:id/cancel', requireRole('super_admin', 'school_admin'), cancelInvo
 
 // POST endpoint to apply late fees to an invoice (admin only)
 router.post('/:id/late-fees', requireRole('super_admin', 'school_admin', 'accountant'), applyLateFees);
+
+// POST endpoint to manually adjust invoice (admin only)
+router.post('/:id/adjust', requireRole('super_admin', 'school_admin'), adjustInvoice);
 
 module.exports = router;

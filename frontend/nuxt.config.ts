@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   
+  // Development mode configuration
+  devServer: {
+    port: 3000,
+    host: 'localhost'
+  },
+  
   // Modules
   modules: [
     '@nuxtjs/tailwindcss',
@@ -46,7 +52,22 @@ export default defineNuxtConfig({
       alias: {
         'form-data': 'formdata-polyfill'
       }
+    },
+    // HMR configuration for better hot reload
+    server: {
+      hmr: {
+        overlay: true
+      }
+    },
+    // Optimize for development
+    optimizeDeps: {
+      include: ['vue', 'vue-router']
     }
+  },
+
+  // Alias configuration
+  alias: {
+    '@': './'
   },
 
   // Tailwind CSS configuration

@@ -112,7 +112,7 @@ const onFileChange = (field, event) => {
 
 const fetchBranch = async () => {
   try {
-    const token = localStorage.getItem('auth-token');
+    const token = useCookie('auth-token').value;
     const config = useRuntimeConfig();
     const apiBase = config.public.apiBase;
     const res = await fetch(`${apiBase}/branches/${branchId}`, {
@@ -164,7 +164,7 @@ const handleSubmit = async () => {
   if (fileInputs.value.printing_logo) formData.append('printing_logo', fileInputs.value.printing_logo);
   if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
   try {
-    const token = localStorage.getItem('auth-token');
+    const token = useCookie('auth-token').value;
     const config = useRuntimeConfig();
     const apiBase = config.public.apiBase;
     const res = await fetch(`${apiBase}/branches/${branchId}`, {

@@ -1,39 +1,30 @@
 import { ref } from 'vue';
 import { useCookie } from 'nuxt/app';
+import apiClient from '~/utils/api';
 
 export function useSubscriptions() {
   const schools = ref([]);
-  const plans = ref([]);
+  const plans = ref<any[]>([]);
   const transactions = ref([]);
   const loading = ref(false);
   const error = ref('');
-
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
 
   // Get schools with subscription details
   const fetchSchoolsWithSubscriptions = async (params = {}) => {
     loading.value = true;
     error.value = '';
     try {
-      const token = useCookie('auth-token').value;
-      const queryString = new URLSearchParams(params).toString();
-      const res = await fetch(`${apiBase}/subscriptions/schools?${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        schools.value = data.data.schools || [];
-        return data.data;
+      const response = await apiClient.subscriptions.getSchoolsWithSubscriptions(params);
+      console.log('afsarresponse', response);
+      if (response.success) {
+        schools.value = response.data.schools || [];
+        return response;
       } else {
-        error.value = data.message || 'Failed to fetch schools.';
+        error.value = response.message || 'Failed to fetch schools.';
         return null;
       }
-    } catch (e) {
-      error.value = 'Network error.';
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -45,24 +36,16 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const queryString = new URLSearchParams(params).toString();
-      const res = await fetch(`${apiBase}/subscriptions/plans?${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        plans.value = data.data.plans || [];
-        return data.data;
+      const response = await apiClient.subscriptions.getPlans(params);
+      if (response.success) {
+        plans.value = response.data.plans || [];
+        return response;
       } else {
-        error.value = data.message || 'Failed to fetch plans.';
+        error.value = response.message || 'Failed to fetch plans.';
         return null;
       }
-    } catch (e) {
-      error.value = 'Network error.';
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -74,23 +57,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/plans`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(planData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to create plan.';
+      const response = await apiClient.subscriptions.createPlan(planData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to create plan.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -102,23 +76,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/plans/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(planData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to update plan.';
+      const response = await apiClient.subscriptions.updatePlan(id, planData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to update plan.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -130,22 +95,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/plans/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to delete plan.';
+      const response = await apiClient.subscriptions.deletePlan(id);
+      if (!response.success) {
+        error.value = response.message || 'Failed to delete plan.';
         return false;
       }
       return true;
-    } catch (e) {
-      error.value = 'Network error.';
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return false;
     } finally {
       loading.value = false;
@@ -157,23 +114,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/schools`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Do not set Content-Type, browser will set it for FormData
-        },
-        body: formData
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to create school with subscription.';
+      const response = await apiClient.subscriptions.createSchoolWithSubscription(formData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to create school with subscription.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -181,27 +129,18 @@ export function useSubscriptions() {
   };
 
   // Update school subscription
-  const updateSchoolSubscription = async (schoolId: string, subscriptionData: any) => {
+  const updateSchoolSubscription = async (schoolId: string, formData: FormData) => {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/schools/${schoolId}/subscription`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(subscriptionData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to update school subscription.';
+      const response = await apiClient.subscriptions.updateSchoolSubscription(schoolId, formData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to update school subscription.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -213,24 +152,16 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const queryString = new URLSearchParams(params).toString();
-      const res = await fetch(`${apiBase}/subscriptions/schools/${schoolId}/transactions?${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        transactions.value = data.data.transactions || [];
-        return data.data;
+      const response = await apiClient.subscriptions.getSchoolTransactions(schoolId, params);
+      if (response.success) {
+        transactions.value = response.data.transactions || [];
+        return response;
       } else {
-        error.value = data.message || 'Failed to fetch transactions.';
+        error.value = response.message || 'Failed to fetch transactions.';
         return null;
       }
-    } catch (e) {
-      error.value = 'Network error.';
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -242,23 +173,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/transactions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(transactionData)
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to create transaction.';
+      const response = await apiClient.subscriptions.createManualTransaction(transactionData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to create transaction.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -270,22 +192,15 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/subscriptions/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        return data.data;
+      const response = await apiClient.subscriptions.getSubscriptionStats();
+      if (response.success) {
+        return response.data;
       } else {
-        error.value = data.message || 'Failed to fetch statistics.';
+        error.value = response.message || 'Failed to fetch statistics.';
         return null;
       }
-    } catch (e) {
-      error.value = 'Network error.';
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -297,22 +212,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/schools/${schoolId}/suspend`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to suspend school.';
+      const response = await apiClient.subscriptions.suspendSchool(schoolId);
+      if (!response.success) {
+        error.value = response.message || 'Failed to suspend school.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -324,22 +231,14 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await fetch(`${apiBase}/schools/${schoolId}/reactivate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to reactivate school.';
+      const response = await apiClient.subscriptions.reactivateSchool(schoolId);
+      if (!response.success) {
+        error.value = response.message || 'Failed to reactivate school.';
         return null;
       }
-      return data.data;
-    } catch (e) {
-      error.value = 'Network error.';
+      return response.data;
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;

@@ -51,15 +51,6 @@
         </div>
       </div>
       <div>
-        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Modules Enabled *</label>
-        <div class="flex flex-wrap gap-2">
-          <label v-for="module in allModules" :key="module" class="inline-flex items-center text-gray-700 dark:text-gray-300">
-            <input type="checkbox" v-model="form.modules" :value="module" class="mr-1" />
-            {{ module }}
-          </label>
-        </div>
-      </div>
-      <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
         <textarea v-model="form.description" class="input-field" rows="2"></textarea>
       </div>
@@ -81,12 +72,13 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 
-const { createPlan, loading, error } = useSubscriptions();
-const router = useRouter();
+const { createPlan, loading, error, plans, fetchPlans } = useSubscriptions();
 
-const allModules = [
-  'academics', 'attendance', 'fees', 'exams', 'library', 'hostel', 'transport', 'hr', 'accounting', 'alumni'
-];
+// Fetch plans on mount
+onMounted(async () => {
+  await fetchPlans();
+});
+const router = useRouter();
 
 const form = ref({
   name: '',

@@ -1,175 +1,241 @@
 <template>
-  <div class="page-content">
-    <div class="page-header">
-      <h1 class="page-title">Academic Years</h1>
-      <button @click="showCreateForm = true" class="btn btn-primary">
-        <i class="fas fa-plus"></i>
-        Add Academic Year
-      </button>
-    </div>
-
-    <!-- Academic Years List -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">Academic Years</h5>
-      </div>
-      <div class="card-body">
-        <div v-if="loading" class="text-center py-4">
-          <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="sm:flex sm:items-center sm:justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Global Academic Years</h1>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Common academic year sessions for all schools (e.g., 2024-2025)</p>
         </div>
-        
-        <div v-else-if="academicYears.length === 0" class="text-center py-4">
-          <p class="text-muted">No academic years found. Create your first academic year to get started.</p>
-        </div>
-
-        <div v-else class="table-responsive">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>Year</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="year in academicYears" :key="year.id">
-                <td>{{ year.year }}</td>
-                <td>{{ formatDate(year.start_date) }}</td>
-                <td>{{ formatDate(year.end_date) }}</td>
-                <td>
-                  <span :class="statusClass(year.is_active)" class="badge">
-                    {{ year.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td>
-                  <button @click="editYear(year)" class="btn btn-sm btn-outline-primary me-2">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button @click="toggleStatus(year)" class="btn btn-sm btn-outline-secondary me-2">
-                    <i class="fas fa-toggle-on"></i>
-                  </button>
-                  <button @click="deleteYear(year)" class="btn btn-sm btn-outline-danger">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
+          <button
+            v-if="authStore.user?.role === 'super_admin'"
+            @click="showCreateForm = true"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Academic Year
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Create/Edit Modal -->
-    <div v-if="showCreateForm || editingYear" class="modal show d-block" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ editingYear ? 'Edit' : 'Create' }} Academic Year</h5>
-            <button type="button" class="btn-close" @click="closeForm"></button>
+      <!-- Authorization Error Banner -->
+      <div v-if="authError" class="mb-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-red-600 dark:text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Access Denied</h3>
+            <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+              {{ authError }}
+            </p>
           </div>
-          <div class="modal-body">
+        </div>
+      </div>
+
+      <!-- Info Banner -->
+      <div v-if="!authError" class="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">Global Academic Years</h3>
+            <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
+              These academic years are shared across all schools. Schools can select their current academic year from these common sessions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Academic Years List -->
+      <div v-if="!authError" class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Academic Years</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <div v-if="loading" class="text-center py-8">
+            <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150 cursor-not-allowed">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            </div>
+          </div>
+          
+          <div v-else-if="academicYears.length === 0" class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No academic years</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new academic year (e.g., 2024-2025).</p>
+          </div>
+
+          <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div v-for="year in academicYears" :key="year.id" class="px-4 py-4 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                      <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="ml-4">
+                    <div class="flex items-center">
+                      <h4 class="text-lg font-medium text-gray-900 dark:text-white">{{ year.name }}</h4>
+                      <span v-if="year.is_current" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Current
+                      </span>
+                    </div>
+                    <div class="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <span>Created: {{ formatDate(year.created_at) }}</span>
+                      <span v-if="year.updated_at && year.updated_at !== year.created_at" class="ml-4">Updated: {{ formatDate(year.updated_at) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <!-- Set as Current Button (Super Admin Only) -->
+                  <button
+                    v-if="authStore.user?.role === 'super_admin'"
+                    @click="toggleCurrent(year)"
+                    :class="[
+                      'inline-flex items-center px-3 py-1 border text-sm font-medium rounded-md',
+                      year.is_current
+                        ? 'border-yellow-300 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:border-yellow-600 dark:text-yellow-300 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/40'
+                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
+                    ]"
+                  >
+                    {{ year.is_current ? 'Unset Current' : 'Set as Current' }}
+                  </button>
+                  
+                  <!-- Edit Button (Super Admin Only) -->
+                  <button
+                    v-if="authStore.user?.role === 'super_admin'"
+                    @click="editYear(year)"
+                    class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  >
+                    Edit
+                  </button>
+                  
+                  <!-- Delete Button (Super Admin Only) -->
+                  <button
+                    v-if="authStore.user?.role === 'super_admin'"
+                    @click="deleteYear(year)"
+                    class="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 dark:border-red-600 dark:text-red-300 dark:bg-gray-700 dark:hover:bg-red-900/20"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create/Edit Modal -->
+      <div v-if="showCreateForm && authStore.user?.role === 'super_admin'" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+          <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              {{ editingYear ? 'Edit Academic Year' : 'Create New Academic Year' }}
+            </h3>
             <form @submit.prevent="saveYear">
-              <div class="mb-3">
-                <label for="year" class="form-label">Academic Year</label>
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  id="year" 
-                  v-model="form.year"
-                  placeholder="e.g., 2024-2025"
-                  required
-                >
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year Name</label>
+                  <input
+                    v-model="form.name"
+                    type="text"
+                    placeholder="e.g., 2024-2025"
+                    class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    required
+                  />
+                </div>
+                <div class="flex items-center">
+                  <input
+                    v-model="form.is_current"
+                    type="checkbox"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Set as current academic year</label>
+                </div>
               </div>
-              
-              <div class="mb-3">
-                <label for="start_date" class="form-label">Start Date</label>
-                <input 
-                  type="date" 
-                  class="form-control" 
-                  id="start_date" 
-                  v-model="form.start_date"
-                  required
+              <div class="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  @click="closeForm"
+                  class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                 >
-              </div>
-              
-              <div class="mb-3">
-                <label for="end_date" class="form-label">End Date</label>
-                <input 
-                  type="date" 
-                  class="form-control" 
-                  id="end_date" 
-                  v-model="form.end_date"
-                  required
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  :disabled="saving"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
-              </div>
-              
-              <div class="mb-3 form-check">
-                <input 
-                  type="checkbox" 
-                  class="form-check-input" 
-                  id="is_active" 
-                  v-model="form.is_active"
-                >
-                <label class="form-check-label" for="is_active">
-                  Active
-                </label>
+                  <svg v-if="saving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {{ saving ? 'Saving...' : (editingYear ? 'Update' : 'Create') }}
+                </button>
               </div>
             </form>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeForm">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="saveYear" :disabled="saving">
-              <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-              {{ editingYear ? 'Update' : 'Create' }}
-            </button>
-          </div>
         </div>
       </div>
     </div>
-    <div v-if="showCreateForm || editingYear" class="modal-backdrop show"></div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
+import { apiClient } from '~/utils/api'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: ['auth']
 })
 
 const { showToast } = useToast()
+const authStore = useAuthStore()
 
 const academicYears = ref([])
 const loading = ref(true)
+const authError = ref('')
 const showCreateForm = ref(false)
 const editingYear = ref(null)
 const saving = ref(false)
 
 const form = ref({
-  year: '',
-  start_date: '',
-  end_date: '',
-  is_active: false
+  name: '',
+  is_current: false
 })
 
 const fetchAcademicYears = async () => {
   try {
     loading.value = true
-    const { data } = await $fetch('/api/academic-years', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    academicYears.value = data
+    authError.value = ''
+    const response = await apiClient.academicYears.getAll()
+    academicYears.value = response.data || []
   } catch (error) {
-    showToast('Error fetching academic years', 'error')
     console.error('Error fetching academic years:', error)
+    
+    // Handle authorization errors
+    if (error.response?.status === 403) {
+      authError.value = 'You do not have permission to access academic years management. Only super admins and school admins can view academic years.'
+    } else if (error.response?.status === 401) {
+      authError.value = 'Please log in to access this page.'
+    } else {
+      showToast('Error fetching academic years', 'error')
+    }
   } finally {
     loading.value = false
   }
@@ -179,32 +245,20 @@ const saveYear = async () => {
   try {
     saving.value = true
     
+    const payload = { ...form.value }
+    
     if (editingYear.value) {
-      await $fetch(`/api/academic-years/${editingYear.value.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: form.value
-      })
+      await apiClient.academicYears.update(editingYear.value.id, payload)
       showToast('Academic year updated successfully', 'success')
     } else {
-      await $fetch('/api/academic-years', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: form.value
-      })
+      await apiClient.academicYears.create(payload)
       showToast('Academic year created successfully', 'success')
     }
     
     closeForm()
     fetchAcademicYears()
   } catch (error) {
-    showToast('Error saving academic year', 'error')
+    showToast(error.message || 'Error saving academic year', 'error')
     console.error('Error saving academic year:', error)
   } finally {
     saving.value = false
@@ -214,51 +268,38 @@ const saveYear = async () => {
 const editYear = (year) => {
   editingYear.value = year
   form.value = {
-    year: year.year,
-    start_date: year.start_date,
-    end_date: year.end_date,
-    is_active: year.is_active
+    name: year.name,
+    is_current: year.is_current
   }
+  showCreateForm.value = false
 }
 
-const toggleStatus = async (year) => {
+const toggleCurrent = async (year) => {
   try {
-    await $fetch(`/api/academic-years/${year.id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      },
-      body: {
-        ...year,
-        is_active: !year.is_active
-      }
-    })
-    showToast('Academic year status updated', 'success')
+    await apiClient.academicYears.update(year.id, { is_current: !year.is_current })
+    showToast(`Academic year ${year.is_current ? 'unset' : 'set'} as current`, 'success')
     fetchAcademicYears()
   } catch (error) {
-    showToast('Error updating status', 'error')
-    console.error('Error updating status:', error)
+    showToast('Error updating academic year', 'error')
+    console.error('Error updating academic year:', error)
   }
 }
 
 const deleteYear = async (year) => {
-  if (!confirm('Are you sure you want to delete this academic year?')) {
+  if (year.is_current) {
+    showToast('Cannot delete current academic year', 'error')
     return
   }
   
-  try {
-    await $fetch(`/api/academic-years/${year.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    showToast('Academic year deleted successfully', 'success')
-    fetchAcademicYears()
-  } catch (error) {
-    showToast('Error deleting academic year', 'error')
-    console.error('Error deleting academic year:', error)
+  if (confirm(`Are you sure you want to delete academic year ${year.name}?`)) {
+    try {
+      await apiClient.academicYears.delete(year.id)
+      showToast('Academic year deleted successfully', 'success')
+      fetchAcademicYears()
+    } catch (error) {
+      showToast('Error deleting academic year', 'error')
+      console.error('Error deleting academic year:', error)
+    }
   }
 }
 
@@ -266,19 +307,14 @@ const closeForm = () => {
   showCreateForm.value = false
   editingYear.value = null
   form.value = {
-    year: '',
-    start_date: '',
-    end_date: '',
-    is_active: false
+    name: '',
+    is_current: false
   }
 }
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString()
-}
-
-const statusClass = (isActive) => {
-  return isActive ? 'badge-success' : 'badge-secondary'
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString()
 }
 
 onMounted(() => {
@@ -287,17 +323,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.badge-success {
-  background-color: #28a745;
-  color: white;
-}
-
-.badge-secondary {
-  background-color: #6c757d;
-  color: white;
-}
+/* Custom styles for academic years page */
 </style>

@@ -70,6 +70,12 @@
                     Edit
                   </button>
                   <button
+                    @click="cloneFeeStructure(structure)"
+                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                  >
+                    Clone
+                  </button>
+                  <button
                     @click="deleteFeeStructure(structure.id)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                   >
@@ -85,117 +91,143 @@
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {{ isEditing ? 'Edit Fee Structure' : 'Create Fee Structure' }}
           </h3>
           
           <form @submit.prevent="saveFeeStructure">
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-              <input
-                v-model="form.name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter fee structure name"
-              />
+            <!-- School Selector for Super Admin -->
+            <div v-if="user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School Context</h4>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                  <select
+                    v-model="selectedSchoolId"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    @change="onSchoolChange"
+                  >
+                    <option value="">Select a school first</option>
+                    <option v-for="school in availableSchools" :key="school.id" :value="school.id">
+                      {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
+                    </option>
+                  </select>
+                </div>
+                <div v-if="!selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
+                  ⚠️ Please select a school before creating the fee structure
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                <input
+                  v-model="form.name"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter fee structure name"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
+                <input
+                  v-model="form.academic_year"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="e.g., 2024-2025"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
+                <input
+                  v-model="form.class_name"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter class name"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section (Optional)</label>
+                <input
+                  v-model="form.section"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter section"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fee Type</label>
+                <select
+                  v-model="form.fee_type_id"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select Fee Type</option>
+                  <option v-for="feeType in feeTypes" :key="feeType.id" :value="feeType.id">
+                    {{ feeType.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
+                <input
+                  v-model="form.amount"
+                  type="number"
+                  step="0.01"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Installments</label>
+                <input
+                  v-model="form.installments"
+                  type="number"
+                  min="1"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Number of installments"
+                />
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount Percentage</label>
+                <input
+                  v-model="form.discount_percentage"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter discount percentage"
+                />
+              </div>
+
+              <div class="mb-4 md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
+                <textarea
+                  v-model="form.notes"
+                  rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter any notes"
+                ></textarea>
+              </div>
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
-              <input
-                v-model="form.academic_year"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g., 2024-2025"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
-              <input
-                v-model="form.class_name"
-                type="text"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter class name"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section (Optional)</label>
-              <input
-                v-model="form.section"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter section"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fee Type</label>
-              <select
-                v-model="form.fee_type_id"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Select Fee Type</option>
-                <option v-for="feeType in feeTypes" :key="feeType.id" :value="feeType.id">
-                  {{ feeType.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
-              <input
-                v-model="form.amount"
-                type="number"
-                step="0.01"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter amount"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Installments</label>
-              <input
-                v-model="form.installments"
-                type="number"
-                min="1"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Number of installments"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount Percentage</label>
-              <input
-                v-model="form.discount_percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter discount percentage"
-              />
-            </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
-              <textarea
-                v-model="form.notes"
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter any notes"
-              ></textarea>
-            </div>
-
-            <div class="mb-6">
               <label class="flex items-center">
                 <input
                   v-model="form.is_active"
@@ -216,7 +248,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting"
+                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && !selectedSchoolId)"
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
@@ -232,7 +264,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { apiClient } from '~/utils/api';
+import { useAuth } from '~/composables/useAuth';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
+
+// Get auth context
+const { user } = useAuth();
 
 const feeStructures = ref([]);
 const feeTypes = ref([]);
@@ -241,6 +277,10 @@ const showModal = ref(false);
 const isEditing = ref(false);
 const isSubmitting = ref(false);
 const editingId = ref(null);
+
+// School selector for super admin
+const selectedSchoolId = ref('');
+const availableSchools = ref([]);
 
 const form = ref({
   name: '',
@@ -268,6 +308,46 @@ const resetForm = () => {
     notes: '',
     is_active: true
   };
+  selectedSchoolId.value = '';
+};
+
+// Fetch schools for super admin
+const fetchSchools = async () => {
+  if (user.value?.role !== 'super_admin') return;
+  
+  try {
+    console.log('🔍 Fetching schools for super admin...');
+    const response = await apiClient.schools.getAll();
+    console.log('🔍 Schools API response:', response);
+    
+    // Handle both paginated and non-paginated responses
+    if (response.data?.schools) {
+      // API returns schools array directly
+      availableSchools.value = response.data.schools;
+    } else if (response.data?.items) {
+      // Fallback for paginated response
+      availableSchools.value = response.data.items;
+    } else if (response.data) {
+      // Direct array response
+      availableSchools.value = response.data;
+    } else {
+      availableSchools.value = [];
+    }
+    
+    console.log('✅ Schools loaded:', availableSchools.value.length);
+  } catch (error) {
+    console.error('❌ Error fetching schools:', error);
+    availableSchools.value = [];
+  }
+};
+
+// Handle school selection change
+const onSchoolChange = () => {
+  console.log('🔍 School changed to:', selectedSchoolId.value);
+  // Reset form when school changes
+  if (!isEditing.value) {
+    resetForm();
+  }
 };
 
 const fetchFeeStructures = async () => {
@@ -295,6 +375,11 @@ const openCreateModal = () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
+  
+  // Load schools for super admin if not already loaded
+  if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
+    fetchSchools();
+  }
 };
 
 const editFeeStructure = (structure) => {
@@ -313,6 +398,42 @@ const editFeeStructure = (structure) => {
   editingId.value = structure.id;
   isEditing.value = true;
   showModal.value = true;
+};
+
+const cloneFeeStructure = async (structure) => {
+  if (confirm('Are you sure you want to clone this fee structure?')) {
+    try {
+      const payload = {
+        name: `${structure.name} (Clone)`,
+        academic_year: structure.academic_year,
+        class_name: structure.class_name,
+        section: structure.section || null,
+        fee_type_id: parseInt(structure.fee_type_id),
+        amount: parseFloat(structure.amount),
+        installments: parseInt(structure.installments),
+        discount_percentage: parseFloat(structure.discount_percentage),
+        notes: structure.notes || null,
+        is_active: true // Cloned structures are typically active
+      };
+
+      // Add school_id for super admin users
+      if (user.value?.role === 'super_admin') {
+        if (selectedSchoolId.value) {
+          payload.school_id = selectedSchoolId.value;
+        } else {
+          console.error('School ID is required for super admin');
+          return;
+        }
+      }
+
+      await apiClient.feeStructures.create(payload);
+      await fetchFeeStructures();
+      alert('Fee structure cloned successfully!');
+    } catch (error) {
+      console.error('Error cloning fee structure:', error);
+      alert('Failed to clone fee structure.');
+    }
+  }
 };
 
 const closeModal = () => {
@@ -336,6 +457,24 @@ const saveFeeStructure = async () => {
       notes: form.value.notes || null,
       is_active: form.value.is_active
     };
+
+    // Add school_id for super admin users
+    if (user.value?.role === 'super_admin') {
+      if (isEditing.value) {
+        // For editing, use the school_id from the existing fee structure
+        // This should be handled by the backend based on the fee structure's existing school_id
+      } else {
+        // For creating, use the selected school
+        if (selectedSchoolId.value) {
+          payload.school_id = selectedSchoolId.value;
+        } else {
+          console.error('School ID is required for super admin');
+          return;
+        }
+      }
+    }
+
+    console.log('🔍 Saving fee structure with payload:', payload);
 
     if (isEditing.value) {
       await apiClient.feeStructures.update(editingId.value, payload);
@@ -364,8 +503,13 @@ const deleteFeeStructure = async (id) => {
 };
 
 onMounted(async () => {
-  await fetchFeeStructures();
-  await fetchFeeTypes();
+  // Load schools for super admin on component mount
+  if (user.value?.role === 'super_admin') {
+    await fetchSchools();
+  }
+  
+  // Load fee structures and fee types
+  await Promise.all([fetchFeeStructures(), fetchFeeTypes()]);
 });
 </script>
 

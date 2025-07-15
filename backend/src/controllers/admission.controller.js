@@ -15,6 +15,18 @@ const { logger } = require('../utils/logger');
 const xlsx = require('xlsx');
 
 /**
+ * Generate random password for guardian accounts
+ */
+const generateRandomPassword = (length = 8) => {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+};
+
+/**
  * Get all admissions with filtering and pagination
  */
 const getAllAdmissions = async (req, res) => {
@@ -107,16 +119,173 @@ const getAllAdmissions = async (req, res) => {
  */
 const createAdmission = async (req, res) => {
   try {
-    const admissionData = {
-      ...req.body,
-      school_id: req.user.school_id,
-      branch_id: req.user.branch_id,
+    // Parse JSON data from FormData if present
+    let admissionData;
+    try {
+      admissionData = req.body.admissionData ? JSON.parse(req.body.admissionData) : req.body;
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid JSON data in admission data',
+      });
+    }
+
+    // Determine school_id and branch_id based on user role
+    let school_id, branch_id;
+    if (req.user.role === 'super_admin') {
+      school_id = admissionData.school_id;
+      branch_id = admissionData.branch_id;
+      if (!school_id || !branch_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'School ID and Branch ID are required for super admin',
+        });
+      }
+    } else if (req.user.role === 'school_admin') {
+      school_id = req.user.school_id;
+      branch_id = admissionData.branch_id || req.user.branch_id;
+    } else {
+      school_id = req.user.school_id;
+      branch_id = req.user.branch_id;
+    }
+
+    // Create student first
+    const studentData = {
+      ...admissionData.student,
+      school_id,
+      branch_id,
+      admission_date: admissionData.application_date,
+      admission_class: '', // Will be set from class lookup
+      current_class: '', // Will be set from class lookup
+      section: '', // Will be set from section lookup
+      academic_year: '', // Will be set from academic year lookup
+      status: 'pending', // Student status will be pending until admission is approved
       created_by: req.user.id,
-      updated_by: req.user.id
     };
-    
+
+    // Get class, section, and academic year details for student record
+    const classRecord = await Class.findByPk(admissionData.class_id);
+    const sectionRecord = await Section.findByPk(admissionData.section_id);
+    const academicYear = await AcademicYear.findByPk(admissionData.academic_year_id);
+
+    if (classRecord) {
+      studentData.admission_class = classRecord.name;
+      studentData.current_class = classRecord.name;
+    }
+    if (sectionRecord) {
+      studentData.section = sectionRecord.name;
+    }
+    if (academicYear) {
+      studentData.academic_year = academicYear.code || academicYear.name;
+    }
+
+    // Generate admission number
+    const timestamp = Date.now();
+    const randomNum = Math.random().toString(36).substring(2, 8).toUpperCase();
+    studentData.admission_number = `ADM${timestamp}${randomNum}`;
+
+    const student = await Student.create(studentData);
+
+    // Create parent/guardian records
+    if (admissionData.guardian) {
+      const guardianData = admissionData.guardian;
+      
+      // Create father record if provided
+      if (guardianData.father_name) {
+        const fatherData = {
+          first_name: guardianData.father_name.split(' ')[0],
+          last_name: guardianData.father_name.split(' ').slice(1).join(' ') || '',
+          phone: guardianData.father_phone,
+          email: guardianData.father_email,
+          occupation: guardianData.father_occupation,
+          relation: 'father',
+          is_primary_contact: guardianData.primary_contact === 'father' || guardianData.primary_contact === 'both',
+          school_id,
+          branch_id,
+          created_by: req.user.id,
+        };
+
+        const father = await Parent.create(fatherData);
+        
+        // Create student-parent relationship
+        await student.addParent(father);
+
+        // Create guardian login if requested
+        if (guardianData.create_login && guardianData.login_email) {
+          const guardianPassword = guardianData.password || generateRandomPassword();
+          await User.create({
+            first_name: fatherData.first_name,
+            last_name: fatherData.last_name,
+            email: guardianData.login_email,
+            phone: guardianData.father_phone,
+            password: guardianPassword,
+            role: 'parent',
+            school_id,
+            branch_id,
+            status: 'active',
+            email_verified: true,
+            created_by: req.user.id,
+          });
+        }
+      }
+
+      // Create mother record if provided
+      if (guardianData.mother_name) {
+        const motherData = {
+          first_name: guardianData.mother_name.split(' ')[0],
+          last_name: guardianData.mother_name.split(' ').slice(1).join(' ') || '',
+          phone: guardianData.mother_phone,
+          email: guardianData.mother_email,
+          occupation: guardianData.mother_occupation,
+          relation: 'mother',
+          is_primary_contact: guardianData.primary_contact === 'mother' || guardianData.primary_contact === 'both',
+          school_id,
+          branch_id,
+          created_by: req.user.id,
+        };
+
+        const mother = await Parent.create(motherData);
+        
+        // Create student-parent relationship
+        await student.addParent(mother);
+      }
+    }
+
+    // Handle file uploads
+    const uploadedFiles = {};
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        if (req.files[key] && req.files[key][0]) {
+          uploadedFiles[key] = req.files[key][0].filename;
+        }
+      });
+    }
+
+    // Create admission record
+    const admissionRecord = {
+      application_number: `APP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      student_id: student.id,
+      academic_year_id: admissionData.academic_year_id,
+      class_id: admissionData.class_id,
+      section_id: admissionData.section_id,
+      application_date: admissionData.application_date,
+      status: 'pending',
+      priority: admissionData.priority || 'medium',
+      admission_type: admissionData.admission_type || 'new',
+      previous_school: admissionData.previous_school,
+      previous_class: admissionData.previous_class,
+      documents_submitted: uploadedFiles,
+      remarks: `Hostel: ${admissionData.hostel?.required ? 'Yes' : 'No'}, Transport: ${admissionData.transport?.required ? 'Yes' : 'No'}`,
+      hostel_required: admissionData.hostel?.required || false,
+      transport_required: admissionData.transport?.required || false,
+      school_id,
+      branch_id,
+      created_by: req.user.id,
+      updated_by: req.user.id,
+    };
+
     // Create new admission
-    const admission = await Admission.create(admissionData);
+    const admission = await Admission.create(admissionRecord);
     
     // Generate fee invoice if admission is approved
     if (admission.status === 'approved') {

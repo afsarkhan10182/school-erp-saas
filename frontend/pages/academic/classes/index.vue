@@ -28,7 +28,7 @@
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Display Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sections</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
@@ -41,7 +41,7 @@
                   {{ classItem.name }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ classItem.display_name }}
+                  {{ classItem.code }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ classItem.sections?.length || 0 }} sections
@@ -95,6 +95,42 @@
             </h3>
             
             <form @submit.prevent="saveClass">
+              <!-- School Selector for Super Admin -->
+              <div v-if="authStore.user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School Context</h4>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                    <select
+                      v-model="selectedSchoolId"
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      @change="onSchoolChange"
+                    >
+                      <option value="">Select a school first</option>
+                      <option v-for="school in availableSchools" :key="school.id" :value="school.id">
+                        {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
+                      </option>
+                    </select>
+                  </div>
+                  <div v-if="selectedSchoolId && availableBranches.length > 1">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch (Optional)</label>
+                    <select
+                      v-model="selectedBranchId"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">All branches</option>
+                      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                        {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                      </option>
+                    </select>
+                  </div>
+                  <div v-if="!selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
+                    ⚠️ Please select a school before creating the class
+                  </div>
+                </div>
+              </div>
+
               <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class Name *</label>
                 <input
@@ -107,13 +143,13 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display Name *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code *</label>
                 <input
-                  v-model="form.display_name"
+                  v-model="form.code"
                   type="text"
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., First Standard, Second Standard"
+                  placeholder="e.g., 1ST, 2ND, 3RD"
                 />
               </div>
 
@@ -166,6 +202,8 @@
 import { ref, reactive, onMounted } from 'vue';
 import { apiClient } from '~/utils/api';
 import { Plus } from 'lucide-vue-next';
+import { useAuthStore } from '~/stores/auth';
+import { useBranchContext } from '~/composables/useBranchContext';
 
 const classes = ref([]);
 const isLoading = ref(false);
@@ -174,18 +212,70 @@ const isEditing = ref(false);
 const isSubmitting = ref(false);
 const editingId = ref(null);
 
+const authStore = useAuthStore();
+const { getBranchContext } = useBranchContext();
+
+// School/Branch selection for super admin
+const selectedSchoolId = ref('');
+const selectedBranchId = ref('');
+const availableSchools = ref([]);
+const availableBranches = ref([]);
+
 const form = reactive({
   name: '',
-  display_name: '',
+  code: '',
   description: '',
   is_active: true
 });
 
 const resetForm = () => {
   form.name = '';
-  form.display_name = '';
+  form.code = '';
   form.description = '';
   form.is_active = true;
+  selectedSchoolId.value = '';
+  selectedBranchId.value = '';
+};
+
+// Fetch schools for super admin
+const fetchSchools = async () => {
+  if (authStore.user?.role !== 'super_admin') return;
+  
+  try {
+    const response = await apiClient.schools.getAll();
+    console.log('Schools API response:', response);
+    availableSchools.value = response.data?.schools || [];
+  } catch (error) {
+    console.error('Error fetching schools:', error);
+    availableSchools.value = [];
+  }
+};
+
+// Fetch branches when school is selected
+const fetchBranchesForSchool = async (schoolId) => {
+  if (!schoolId) {
+    availableBranches.value = [];
+    return;
+  }
+  
+  try {
+    const response = await apiClient.branches.getAll(schoolId);
+    console.log('Branches API response:', response);
+    availableBranches.value = response.data?.branches || [];
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    availableBranches.value = [];
+  }
+};
+
+// Handle school selection change
+const onSchoolChange = async () => {
+  selectedBranchId.value = '';
+  if (selectedSchoolId.value) {
+    await fetchBranchesForSchool(selectedSchoolId.value);
+  } else {
+    availableBranches.value = [];
+  }
 };
 
 const fetchClasses = async () => {
@@ -208,7 +298,7 @@ const openCreateModal = () => {
 
 const editClass = (classItem) => {
   form.name = classItem.name;
-  form.display_name = classItem.display_name;
+  form.code = classItem.code;
   form.description = classItem.description || '';
   form.is_active = classItem.is_active;
   editingId.value = classItem.id;
@@ -227,10 +317,25 @@ const saveClass = async () => {
   try {
     const payload = {
       name: form.name,
-      display_name: form.display_name,
+      code: form.code,
       description: form.description,
       is_active: form.is_active
     };
+
+    // Add school_id for super admin when creating a new class
+    if (!isEditing.value && authStore.user?.role === 'super_admin') {
+      if (!selectedSchoolId.value) {
+        alert('Please select a school first to create the class');
+        return;
+      }
+      
+      payload.school_id = selectedSchoolId.value;
+      
+      // Add branch_id if selected
+      if (selectedBranchId.value) {
+        payload.branch_id = selectedBranchId.value;
+      }
+    }
 
     if (isEditing.value) {
       await apiClient.classes.update(editingId.value, payload);
@@ -327,5 +432,10 @@ const deleteClass = async (id) => {
 
 onMounted(() => {
   fetchClasses();
+  
+  // Fetch schools for super admin
+  if (authStore.user?.role === 'super_admin') {
+    fetchSchools();
+  }
 });
 </script> 

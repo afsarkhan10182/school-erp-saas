@@ -9,6 +9,7 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
   lastAuthCheck: number;
   currentBranch: any | null;
   availableBranches: any[];
@@ -21,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null);
   const refreshToken = ref<string | null>(null);
   const isLoading = ref(false);
+  const isInitializing = ref(true);
   const lastAuthCheck = ref(0);
   const currentBranch = ref<any | null>(null);
   const availableBranches = ref<any[]>([]);
@@ -35,39 +37,48 @@ export const useAuthStore = defineStore('auth', () => {
   const isBranchAdmin = computed(() => user.value?.role === 'branch_admin');
   const currentUser = computed(() => user.value);
 
-  // Helper function to set tokens in both localStorage and cookies
-  const setTokens = (authToken: string, refreshTokenData: string) => {
-    if (process.client) {
-      // Set in localStorage
-      localStorage.setItem('auth-token', authToken);
-      localStorage.setItem('refresh-token', refreshTokenData);
-      
-      // Set in cookies
-      const authCookie = useCookie('auth-token', {
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-        secure: true,
-        sameSite: 'strict'
-      });
-      const refreshCookie = useCookie('refresh-token', {
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        secure: true,
-        sameSite: 'strict'
-      });
-      
-      authCookie.value = authToken;
-      refreshCookie.value = refreshTokenData;
-    }
-  };
+// Helper function to manage tokens via secure cookies (accessible by JS)
+const setTokens = (authToken: string, refreshTokenData: string) => {
+  if (typeof window !== 'undefined') {
+    const authCookie = useCookie('auth-token', {
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false, // Allow JS access for token management
+      sameSite: 'lax', // Changed to lax for cross-origin requests
+      path: '/', // Ensure cookie is available for all paths
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+    });
+    const refreshCookie = useCookie('refresh-token', {
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false, // Allow JS access for token management
+      sameSite: 'lax', // Changed to lax for cross-origin requests
+      path: '/', // Ensure cookie is available for all paths
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+    });
+    
+    authCookie.value = authToken;
+    refreshCookie.value = refreshTokenData;
+    
+    console.log('🍪 Cookies set:', {
+      authToken: authToken ? 'present' : 'missing',
+      refreshToken: refreshTokenData ? 'present' : 'missing'
+    });
+  }
+};
 
-  // Helper function to clear tokens from both localStorage and cookies
+  // Helper function to clear all auth data from localStorage and cookies
   const clearTokens = () => {
-    if (process.client) {
-      // Clear localStorage
+    if (typeof window !== 'undefined') {
+      // Clear localStorage - remove tokens (legacy cleanup) and all user data
       localStorage.removeItem('auth-token');
       localStorage.removeItem('refresh-token');
       localStorage.removeItem('auth-user');
       localStorage.removeItem('current-branch');
       localStorage.removeItem('current-school');
+      
+      // Clear any theme or other auth-related data
+      localStorage.removeItem('last-auth-check');
       
       // Clear cookies
       const authCookie = useCookie('auth-token');
@@ -77,35 +88,56 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  // Initialize from localStorage and cookies
-  const initializeAuth = () => {
-    if (process.client) {
-      // Try to get from cookies first (for SSR compatibility)
+// Initialize from cookies
+const initializeAuth = async () => {
+  if (typeof window !== 'undefined') {
+    isInitializing.value = true;
+    const authCookie = useCookie('auth-token');
+    const refreshCookie = useCookie('refresh-token');
+    // Directly use tokens from cookies
+    const savedToken = authCookie.value;
+    const savedRefreshToken = refreshCookie.value;
+    const savedUser = localStorage.getItem('auth-user');
+    const savedBranch = localStorage.getItem('current-branch');
+    const savedSchool = localStorage.getItem('current-school');
+
+    console.log('🔍 Auth Store Initialization:', {
+      tokenFromCookie: savedToken ? 'present' : 'missing',
+      tokenLength: savedToken ? savedToken.length : 0,
+      refreshTokenFromCookie: savedRefreshToken ? 'present' : 'missing',
+      userFromLocalStorage: savedUser ? 'present' : 'missing',
+      branchFromLocalStorage: savedBranch ? 'present' : 'missing',
+      schoolFromLocalStorage: savedSchool ? 'present' : 'missing'
+    });
+
+    if (savedToken && savedUser) {
+      token.value = savedToken;
+      refreshToken.value = savedRefreshToken;
+      user.value = JSON.parse(savedUser);
+      currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
+      currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
+      console.log('✅ Auth state restored from storage');
+    } else {
+      console.log('❌ No valid auth state found in storage');
+    }
+    
+    isInitializing.value = false;
+  }
+};
+
+  // Debug function to check token status
+  const debugTokenStatus = () => {
+    if (typeof window !== 'undefined') {
       const authCookie = useCookie('auth-token');
       const refreshCookie = useCookie('refresh-token');
-      
-      // Fallback to localStorage
-      const savedToken = authCookie.value || localStorage.getItem('auth-token');
-      const savedRefreshToken = refreshCookie.value || localStorage.getItem('refresh-token');
-      const savedUser = localStorage.getItem('auth-user');
-      const savedBranch = localStorage.getItem('current-branch');
-      const savedSchool = localStorage.getItem('current-school');
-
-      if (savedToken && savedUser) {
-        token.value = savedToken;
-        refreshToken.value = savedRefreshToken;
-        user.value = JSON.parse(savedUser);
-        currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
-        currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
-        
-        // Ensure cookies are set if they weren't
-        if (!authCookie.value) {
-          authCookie.value = savedToken;
-        }
-        if (!refreshCookie.value && savedRefreshToken) {
-          refreshCookie.value = savedRefreshToken;
-        }
-      }
+      console.log('🔍 Current Token Status:', {
+        tokenInStore: token.value ? 'present' : 'missing',
+        tokenInCookie: authCookie.value ? 'present' : 'missing',
+        refreshTokenInStore: refreshToken.value ? 'present' : 'missing',
+        refreshTokenInCookie: refreshCookie.value ? 'present' : 'missing',
+        userInStore: user.value ? 'present' : 'missing',
+        isLoggedIn: isLoggedIn.value
+      });
     }
   };
 
@@ -137,10 +169,10 @@ export const useAuthStore = defineStore('auth', () => {
           currentBranch.value = { id: userData.branch_id, name: userData.branch_name };
         }
         
-        // Save to both localStorage and cookies
+        // Save to cookies
         setTokens(authToken, refreshTokenData);
-        
-        if (process.client) {
+
+        if (typeof window !== 'undefined') {
           localStorage.setItem('auth-user', JSON.stringify(userData));
           if (currentSchool.value) {
             localStorage.setItem('current-school', JSON.stringify(currentSchool.value));
@@ -152,6 +184,12 @@ export const useAuthStore = defineStore('auth', () => {
         
         lastAuthCheck.value = Date.now();
         console.log('🔐 Login successful, user authenticated:', isLoggedIn.value);
+        
+        // Debug token status after login
+        setTimeout(() => {
+          debugTokenStatus();
+        }, 100);
+        
         return { success: true, user: userData };
       } else {
         console.log('🔐 Login failed:', response.message);
@@ -202,7 +240,7 @@ export const useAuthStore = defineStore('auth', () => {
         lastAuthCheck.value = Date.now();
         
         // Update localStorage
-        if (process.client) {
+        if (typeof window !== 'undefined') {
           localStorage.setItem('auth-user', JSON.stringify(response.data));
         }
         return true;
@@ -219,28 +257,37 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Refresh token
   const refreshAuth = async (): Promise<boolean> => {
-    if (!refreshToken.value) return false;
+    console.log('🔄 Attempting token refresh...');
+    if (!refreshToken.value) {
+      console.log('❌ No refresh token available');
+      return false;
+    }
     
     try {
       const response = await apiClient.auth.refresh(refreshToken.value);
+      console.log('🔄 Refresh response:', response);
+      
       if (response.success) {
-        const { token: newToken } = response.data;
-        token.value = newToken;
+        const { token: newToken, refreshToken: newRefreshToken } = response.data;
         
-        // Update both localStorage and cookies
-        if (process.client) {
-          localStorage.setItem('auth-token', newToken);
-          const authCookie = useCookie('auth-token');
-          authCookie.value = newToken;
+        // Update both tokens
+        token.value = newToken;
+        if (newRefreshToken) {
+          refreshToken.value = newRefreshToken;
         }
+        
+        // Update cookies
+        setTokens(newToken, refreshToken.value);
+        console.log('✅ Token refresh successful');
         
         return true;
       } else {
+        console.log('❌ Token refresh failed:', response.message);
         await logout();
         return false;
       }
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('❌ Token refresh error:', error);
       await logout();
       return false;
     }
@@ -250,7 +297,7 @@ export const useAuthStore = defineStore('auth', () => {
   const updateUser = (userData: Partial<User>) => {
     if (user.value) {
       user.value = { ...user.value, ...userData };
-      if (process.client) {
+      if (typeof window !== 'undefined') {
         localStorage.setItem('auth-user', JSON.stringify(user.value));
       }
     }
@@ -259,7 +306,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Branch management
   const setCurrentBranch = (branch: any) => {
     currentBranch.value = branch;
-    if (process.client) {
+    if (typeof window !== 'undefined') {
       localStorage.setItem('current-branch', JSON.stringify(branch));
     }
   };
@@ -281,7 +328,7 @@ export const useAuthStore = defineStore('auth', () => {
   // School management
   const setCurrentSchool = (school: any) => {
     currentSchool.value = school;
-    if (process.client) {
+    if (typeof window !== 'undefined') {
       localStorage.setItem('current-school', JSON.stringify(school));
     }
   };
@@ -292,8 +339,10 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   // Initialize on store creation
-  if (process.client) {
+  if (typeof window !== 'undefined') {
     initializeAuth();
+    // Make debug function available globally for console testing
+    (window as any).debugAuth = debugTokenStatus;
   }
 
   return {
@@ -302,6 +351,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     refreshToken,
     isLoading,
+    isInitializing,
     lastAuthCheck,
     currentBranch,
     availableBranches,
@@ -327,5 +377,7 @@ export const useAuthStore = defineStore('auth', () => {
     switchBranch,
     setCurrentSchool,
     invalidateAuthCache,
+    debugTokenStatus,
+    initializeAuth,
   };
 }); 

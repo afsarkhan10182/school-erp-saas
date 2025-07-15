@@ -70,8 +70,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { useModulesStore } from '@/stores/modules';
-import ToggleSwitch from '@/components/ToggleSwitch.vue';
+import { useModulesStore } from '~/stores/modules';
+import ToggleSwitch from '~/components/ToggleSwitch.vue';
 
 const modulesStore = useModulesStore();
 

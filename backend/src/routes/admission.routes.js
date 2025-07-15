@@ -11,6 +11,7 @@ const {
   exportAdmissionsToCSV
 } = require('../controllers/admission.controller');
 const { verifyToken, authorize } = require('../middleware/auth');
+const { uploadFields } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -21,7 +22,17 @@ router.use(verifyToken);
 router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin', 'admission_clerk']), getAllAdmissions);
 
 // POST /api/admissions - Create new admission
-router.post('/', authorize(['super_admin', 'school_admin', 'branch_admin', 'admission_clerk']), createAdmission);
+router.post('/', 
+  authorize(['super_admin', 'school_admin', 'branch_admin', 'admission_clerk']),
+  uploadFields([
+    { name: 'student_photo', maxCount: 1 },
+    { name: 'birth_certificate', maxCount: 1 },
+    { name: 'transfer_certificate', maxCount: 1 },
+    { name: 'previous_records', maxCount: 1 },
+    { name: 'address_proof', maxCount: 1 },
+  ]),
+  createAdmission
+);
 
 // GET /api/admissions/stats - Get admission statistics
 router.get('/stats', authorize(['super_admin', 'school_admin', 'branch_admin', 'admission_clerk']), getAdmissionStats);
