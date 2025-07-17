@@ -28,7 +28,7 @@ router.post(
 
 router.get(
   '/',
-  authorize('super_admin', 'school_admin', 'branch_admin'),
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
   BranchController.getAllBranches
 );
 

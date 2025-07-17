@@ -204,18 +204,23 @@ const generateInvoices = async (req, res, next) => {
           const invoiceNumber = `INV-${year}${month}-${String(count + 1).padStart(4, '0')}`;
 
           // Create invoice
-          const invoice = await FeeInvoice.create({
+          const invoiceData = {
             invoice_number: invoiceNumber,
             student_id: student.id,
             fee_structure_id: feeStructure.id,
             academic_year,
+            class_name: student.current_class || class_name,
+            section: student.section || section,
+            fee_type_name: feeStructure.feeType.name,
             due_date: calculatedDueDate,
             amount: baseAmount,
+            base_amount: baseAmount,
             discount_amount: discountAmount,
             tax_amount: taxAmount,
             total_amount: totalAmount,
             balance_amount: totalAmount,
             status: 'sent',
+            payment_status: 'pending',
             notes,
             installment_number: 1,
             total_installments: feeStructure.installment_count,
@@ -232,7 +237,20 @@ const generateInvoices = async (req, res, next) => {
             school_id: req.schoolId,
             branch_id: req.branchId,
             created_by: req.user.id,
+          };
+
+          logger.debug('Creating invoice with data:', {
+            invoice_number: invoiceNumber,
+            school_id: req.schoolId,
+            student_id: student.id,
+            fee_structure_id: feeStructure.id,
+            academic_year,
+            class_name: student.current_class || class_name,
+            section: student.section || section,
+            fee_type_name: feeStructure.feeType.name
           });
+
+          const invoice = await FeeInvoice.create(invoiceData);
 
           invoices.push(invoice);
         } catch (error) {
@@ -284,6 +302,18 @@ const getInvoices = async (req, res, next) => {
     if (status) whereClause.status = status;
     if (student_id) whereClause.student_id = student_id;
 
+    // Debug logging
+    logger.debug('getInvoices - Debug info:', {
+      schoolId: req.schoolId,
+      whereClause,
+      query: req.query,
+      user: {
+        id: req.user?.id,
+        role: req.user?.role,
+        school_id: req.user?.school_id
+      }
+    });
+
     const includeClause = [
       {
         model: Student,
@@ -308,12 +338,23 @@ const getInvoices = async (req, res, next) => {
 
     const offset = (page - 1) * limit;
 
+    // First, let's check if there are any invoices at all for this school
+    const totalInvoices = await FeeInvoice.count({ where: { school_id: req.schoolId } });
+    logger.debug('getInvoices - Total invoices for school:', totalInvoices);
+
     const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
       where: whereClause,
       include: includeClause,
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
       offset: offset,
+    });
+
+    logger.debug('getInvoices - Query result:', {
+      count,
+      invoicesFound: invoices.length,
+      whereClause,
+      includeClause
     });
 
     const totalPages = Math.ceil(count / limit);

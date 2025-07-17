@@ -232,7 +232,6 @@ const menuGroups = computed(() => {
       title: 'School Administration',
       items: [
         { id: 'manage-branches', title: 'Branches', path: '/branches', icon: Building2 },
-        { id: 'manage-users', title: 'Users', path: '/users', icon: Users },
       ]
     });
   }
@@ -270,9 +269,7 @@ const menuGroups = computed(() => {
           children: [
             { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
             { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
-            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt },
-            { id: 'collections', title: 'Collections', path: '/fees/collections', icon: CreditCard },
-            { id: 'fee-ledger', title: 'Fee Ledger', path: '/students', icon: BookOpen },
+            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt }
           ]
         }
       ]
@@ -292,7 +289,7 @@ const menuGroups = computed(() => {
           children: [
             // Academic Years - only for super admin and school admin
             ...(isSuperAdmin.value || isSchoolAdmin.value ? [
-              { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
+              // { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
@@ -334,7 +331,7 @@ const menuGroups = computed(() => {
       id: 'settings',
       title: 'Settings',
       items: [
-      { id: 'manage-users', title: 'Users', path: '/users', icon: Users },
+        { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
         { id: 'branch-settings', title: 'Branch Settings', path: '/settings/branch', icon: Building2 },
         { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },

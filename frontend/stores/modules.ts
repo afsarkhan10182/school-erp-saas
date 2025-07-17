@@ -66,6 +66,24 @@ export const useModulesStore = defineStore('modules', {
         description: 'Manage hostel facilities and accommodations',
         enabled: false,
       },
+      {
+        id: 'timetable',
+        name: 'Timetable Management',
+        description: 'Create and manage class schedules and timetables',
+        enabled: false,
+      },
+      {
+        id: 'communication',
+        name: 'Communication Hub',
+        description: 'Internal messaging and notification system',
+        enabled: false,
+      },
+      {
+        id: 'inventory',
+        name: 'Inventory Management',
+        description: 'Track school supplies and equipment',
+        enabled: false,
+      },
     ],
     roles: [
       {
@@ -76,6 +94,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_students', name: 'Manage Students', enabled: true },
           { id: 'manage_staff', name: 'Manage Staff', enabled: true },
           { id: 'view_reports', name: 'View Reports', enabled: true },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: true },
+          { id: 'system_settings', name: 'System Settings', enabled: true },
         ],
       },
       {
@@ -86,6 +106,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_students', name: 'Manage Students', enabled: true },
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: true },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
+          { id: 'system_settings', name: 'System Settings', enabled: false },
         ],
       },
       {
@@ -96,6 +118,44 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_students', name: 'Manage Students', enabled: false },
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: true },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
+          { id: 'system_settings', name: 'System Settings', enabled: false },
+        ],
+      },
+      {
+        id: 'teacher',
+        name: 'Teacher',
+        permissions: [
+          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
+          { id: 'manage_students', name: 'Manage Students', enabled: true },
+          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
+          { id: 'view_reports', name: 'View Reports', enabled: true },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
+          { id: 'system_settings', name: 'System Settings', enabled: false },
+        ],
+      },
+      {
+        id: 'librarian',
+        name: 'Librarian',
+        permissions: [
+          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
+          { id: 'manage_students', name: 'Manage Students', enabled: false },
+          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
+          { id: 'view_reports', name: 'View Reports', enabled: true },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
+          { id: 'system_settings', name: 'System Settings', enabled: false },
+        ],
+      },
+      {
+        id: 'receptionist',
+        name: 'Receptionist',
+        permissions: [
+          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
+          { id: 'manage_students', name: 'Manage Students', enabled: true },
+          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
+          { id: 'view_reports', name: 'View Reports', enabled: false },
+          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
+          { id: 'system_settings', name: 'System Settings', enabled: false },
         ],
       },
     ],

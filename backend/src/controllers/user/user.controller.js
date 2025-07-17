@@ -1,5 +1,6 @@
 const UserService = require('../../services/user/user.service');
 const { logger } = require('../../utils/logger');
+const ApiError = require('../../utils/ApiError');
 
 class UserController {
   // Create a new user with role-based access control
@@ -7,22 +8,60 @@ class UserController {
     try {
       const { role } = req.user;
       const { role: newUserRole } = req.body;
+
+      // Clean up the data to prevent timestamp issues
+      const cleanData = { ...req.body };
+      
+      // Remove any empty string values for UUID fields
+      if (cleanData.branch_id === '') {
+        cleanData.branch_id = null;
+      }
+      if (cleanData.school_id === '') {
+        cleanData.school_id = null;
+      }
+      
+      // Remove any invalid date fields and fields that don't exist in User model
+      delete cleanData.last_login;
+      delete cleanData.reset_password_expires;
+      delete cleanData.deleted_at;
+      delete cleanData.joining_date; // This field doesn't exist in User model
+      delete cleanData.subjects; // This field doesn't exist in User model
+      delete cleanData.grades; // This field doesn't exist in User model
+      delete cleanData.address; // This field doesn't exist in User model
+      delete cleanData.password_confirmation; // This is just for validation
+      
+      // Remove any timestamp fields that might be passed from frontend
+      delete cleanData.created_at;
+      delete cleanData.updated_at;
+      
+      // Remove any empty or invalid UUID fields
+      if (!cleanData.created_by || cleanData.created_by === '') {
+        delete cleanData.created_by;
+      }
+      if (!cleanData.updated_by || cleanData.updated_by === '') {
+        delete cleanData.updated_by;
+      }
+      
+      // Validate required fields
+      if (!cleanData.email || !cleanData.password || !cleanData.first_name || !cleanData.last_name || !cleanData.role) {
+        throw new ApiError(400, 'Missing required fields: email, password, first_name, last_name, role');
+      }
       
       // School admins can only create certain roles
       if (role === 'school_admin') {
-        const allowedRoles = ['teacher', 'accountant', 'librarian', 'receptionist', 'admin'];
+        const allowedRoles = ['teacher', 'accountant', 'librarian', 'receptionist', 'school_admin'];
         if (!allowedRoles.includes(newUserRole)) {
           throw new ApiError(403, 'You are not authorized to create this role');
         }
       }
-
+      
       const userData = {
-        ...req.body,
+        ...cleanData,
         created_by: req.user.id,
         // If School Admin, use their school_id
-        school_id: role === 'school_admin' ? req.user.school_id : req.body.school_id,
+        school_id: role === 'school_admin' ? req.user.school_id : cleanData.school_id,
         // Set default status to active if not provided
-        status: req.body.status || 'active',
+        status: cleanData.status || 'active',
       };
 
       const user = await UserService.createUser(userData);

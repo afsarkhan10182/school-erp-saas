@@ -153,6 +153,25 @@
                 </div>
               </div>
 
+              <!-- Branch Information Display for Edit Mode -->
+              <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Branch Information</h4>
+                <div class="space-y-2">
+                  <div v-if="authStore.user?.role === 'super_admin'">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">School</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedSchoolName() }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Branch</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedBranchName() || 'School-wide class (no specific branch)' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class Name *</label>
                 <input
@@ -259,6 +278,19 @@ const resetForm = () => {
   selectedBranchId.value = '';
 };
 
+// Helper functions to get school and branch names
+const getSelectedSchoolName = () => {
+  if (!selectedSchoolId.value) return 'Not selected';
+  const school = availableSchools.value.find(s => s.id === selectedSchoolId.value);
+  return school ? `${school.name} ${school.code ? `(${school.code})` : ''}` : 'Unknown school';
+};
+
+const getSelectedBranchName = () => {
+  if (!selectedBranchId.value) return null;
+  const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
+  return branch ? `${branch.name} ${branch.code ? `(${branch.code})` : ''}` : 'Unknown branch';
+};
+
 // Fetch schools for super admin
 const fetchSchools = async () => {
   if (authStore.user?.role !== 'super_admin') return;
@@ -331,16 +363,39 @@ const fetchClasses = async () => {
 const openCreateModal = () => {
   resetForm();
   isEditing.value = false;
+  editingId.value = null;
   showModal.value = true;
 };
 
-const editClass = (classItem) => {
+const editClass = async (classItem) => {
+  console.log('🔍 Editing class:', classItem);
+  
+  // Set editing mode first
+  isEditing.value = true;
+  editingId.value = classItem.id;
+  
+  // Set school and branch context for super admin
+  if (authStore.user?.role === 'super_admin') {
+    selectedSchoolId.value = classItem.school_id;
+    // Load branches for the school
+    if (classItem.school_id) {
+      try {
+        await fetchBranchesForSchool(classItem.school_id);
+      } catch (error) {
+        console.error('Error fetching branches for edit:', error);
+      }
+    }
+  }
+  
+  // Set branch context for all roles
+  selectedBranchId.value = classItem.branch_id || '';
+  
+  // Set form values
   form.name = classItem.name;
   form.code = classItem.code;
   form.description = classItem.description || '';
   form.is_active = classItem.is_active;
-  editingId.value = classItem.id;
-  isEditing.value = true;
+  
   showModal.value = true;
 };
 
@@ -348,6 +403,7 @@ const closeModal = () => {
   showModal.value = false;
   resetForm();
   editingId.value = null;
+  isEditing.value = false;
 };
 
 const saveClass = async () => {

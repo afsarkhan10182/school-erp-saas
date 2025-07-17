@@ -38,6 +38,18 @@ const FeeInvoice = sequelize.define('FeeInvoice', {
       notEmpty: { msg: 'Academic year is required' },
     },
   },
+  class_name: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+  },
+  section: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+  },
+  fee_type_name: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+  },
   invoice_date: {
     type: DataTypes.DATEONLY,
     allowNull: false,
@@ -53,6 +65,11 @@ const FeeInvoice = sequelize.define('FeeInvoice', {
     validate: {
       min: { args: [0], msg: 'Amount cannot be negative' },
     },
+  },
+  base_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0.00,
   },
   discount_amount: {
     type: DataTypes.DECIMAL(10, 2),
@@ -85,6 +102,11 @@ status: {
     type: DataTypes.ENUM('draft', 'sent', 'paid', 'partial_paid', 'overdue', 'cancelled'),
     allowNull: false,
     defaultValue: 'draft',
+  },
+  payment_status: {
+    type: DataTypes.ENUM('pending', 'partial', 'paid', 'overdue'),
+    allowNull: false,
+    defaultValue: 'pending',
   },
   late_fee_percentage: {
     type: DataTypes.DECIMAL(5, 2),

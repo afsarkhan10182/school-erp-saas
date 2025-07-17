@@ -168,6 +168,18 @@ export const apiClient = {
       return response.data;
     },
     
+    getStaff: async (schoolId: string, params?: { page?: number; limit?: number; search?: string; role?: string; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/schools/${schoolId}/staff`, { params });
+      return response.data;
+    },
+    
+    createStaff: async (schoolId: string, staffData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/schools/${schoolId}/staff`, staffData);
+      return response.data;
+    },
+
     create: async (schoolData: any) => {
       const api = createApiInstance();
       const response = await api.post<ApiResponse<any>>('/schools', schoolData);

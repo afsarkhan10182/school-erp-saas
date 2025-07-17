@@ -136,6 +136,22 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING(10),
     allowNull: true,
   },
+  class_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'classes',
+      key: 'id',
+    },
+  },
+  section_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'sections',
+      key: 'id',
+    },
+  },
   academic_year: {
     type: DataTypes.STRING(10),
     allowNull: false,
@@ -219,6 +235,9 @@ const Student = sequelize.define('Student', {
     { fields: ['academic_year'] },
     { fields: ['current_class'] },
     { fields: ['admission_date'] },
+    { fields: ['class_id'] },
+    { fields: ['section_id'] },
+    { fields: ['class_id', 'section_id'] },
   ],
   hooks: {
     beforeCreate: async (student) => {
@@ -265,6 +284,18 @@ Student.associate = (models) => {
   Student.belongsTo(models.User, {
     foreignKey: 'updated_by',
     as: 'updatedBy',
+  });
+
+  // Student belongs to Class
+  Student.belongsTo(models.Class, {
+    foreignKey: 'class_id',
+    as: 'class',
+  });
+
+  // Student belongs to Section
+  Student.belongsTo(models.Section, {
+    foreignKey: 'section_id',
+    as: 'sectionInfo',
   });
 
   // Student has many Parents through StudentParent

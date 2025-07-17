@@ -39,7 +39,11 @@ class SectionController {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
-        whereClause.branch_id = req.user.branch_id;
+        // For branch_admin, allow sections from their branch OR sections without branch_id (school-wide sections)
+        whereClause[Op.or] = [
+          { branch_id: req.user.branch_id },
+          { branch_id: null }
+        ];
       } else {
         return res.status(403).json({
           success: false,
@@ -458,14 +462,26 @@ class SectionController {
       } else if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
-          whereClause.branch_id = req.query.branch_id;
+          // For school_admin, allow sections from the specified branch OR sections without branch_id (school-wide sections)
+          whereClause[Op.or] = [
+            { branch_id: req.query.branch_id },
+            { branch_id: null }
+          ];
         }
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
-        whereClause.branch_id = req.user.branch_id;
+        // For branch_admin, allow sections from their branch OR sections without branch_id (school-wide sections)
+        if (req.query.branch_id) {
+          whereClause.branch_id = req.query.branch_id;
+        } else {
+          whereClause[Op.or] = [
+            { branch_id: req.user.branch_id },
+            { branch_id: null }
+          ];
+        }
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }

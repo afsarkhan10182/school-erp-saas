@@ -41,7 +41,7 @@ router.get('/stats', DashboardController.getStats);
  *       403:
  *         description: Forbidden - Super Admin access required
  */
-router.get('/overview-report', authorize('super_admin'), DashboardController.getOverviewReport);
+router.get('/overview-report', authorize(['super_admin']), DashboardController.getOverviewReport);
 
 /**
  * @swagger
@@ -60,7 +60,7 @@ router.get('/overview-report', authorize('super_admin'), DashboardController.get
  *       403:
  *         description: Forbidden - School Admin access required
  */
-router.get('/school-report', authorize('school_admin'), DashboardController.getSchoolReport);
+router.get('/school-report', authorize(['school_admin']), DashboardController.getSchoolReport);
 
 /**
  * @swagger

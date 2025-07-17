@@ -98,7 +98,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
-            <select v-model="form.class_id" @change="onClassChange" required class="input-field" :disabled="academicsLoading">
+            <select v-model="form.class_id" @change="onClassChange" required class="input-field">
               <option value="">Select Class</option>
               <option v-for="cls in activeClasses" :key="cls.id" :value="cls.id">
                 {{ cls.name }}
@@ -108,7 +108,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section *</label>
             <select v-model="form.section_id" required class="input-field" :disabled="!form.class_id || sectionsLoading" @change="onSectionChange">
-              <option value="">Select Section</option>
+              <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSections.length === 0 ? 'No sections found' : 'Select Section') }}</option>
               <option v-for="section in activeSections" :key="section.id" :value="section.id">
                 {{ section.name }}
               </option>
@@ -455,6 +455,11 @@ const form = reactive({
   section_id: '',
   category: '',
   admission_type: '',
+  
+  // Temporary fields for mapping names to IDs in edit mode
+  _temp_class_name: '',
+  _temp_section_name: '',
+  _temp_academic_year_name: '',
 
   // Student details
   student: {
@@ -510,78 +515,31 @@ const userChangedClass = ref(false);
 const userChangedSection = ref(false);
 
 // If editing, populate form with initialData
-watch(() => props.initialData, (newData) => {
+watch(() => props.initialData, async (newData) => {
   if (props.isEditing && newData && Object.keys(newData).length > 0) {
-    console.log('🔍 Populating form with initial data:', newData);
     
     // Academic details
     if (newData.school_id) form.school_id = newData.school_id;
     if (newData.branch_id) form.branch_id = newData.branch_id;
-    if (newData.academic_year) form.academic_year_id = newData.academic_year;
     if (newData.admission_number) form.register_no = newData.admission_number;
     if (newData.roll_number) form.roll_number = newData.roll_number;
     if (newData.admission_date) {
       const date = new Date(newData.admission_date);
       form.admission_date = date.toISOString().split('T')[0];
     }
-    
-    // Only set class/section if user hasn't manually changed them
-    if (newData.current_class && !userChangedClass.value) {
-      // Find class by code (e.g., "I", "II", "III") or name
-      const classRecord = activeClasses.value.find(cls => 
-        cls.code === newData.current_class || cls.name === newData.current_class
-      );
-      if (classRecord) {
-        form.class_id = classRecord.id;
-      }
-    }
-    if (newData.section && !userChangedSection.value) {
-      // Find section by name
-      const sectionRecord = activeSections.value.find(sec => 
-        sec.name === newData.section
-      );
-      if (sectionRecord) {
-        form.section_id = sectionRecord.id;
-      }
-    }
-    
-    // Load sections for the selected class if we're editing
-    if (props.isEditing && newData.current_class && newData.section) {
-      // Use nextTick to ensure the class_id is set before loading sections
-      nextTick(async () => {
-        try {
-          // First load academic data if not already loaded
-          if (activeClasses.value.length === 0) {
-            await loadAcademicData();
-          }
-          
-          // Then load sections for the specific class
-          await loadSectionsByClass(newData.current_class, newData.school_id, newData.branch_id);
-          
-          // Only set class and section IDs if user hasn't manually changed them
-          if (!userChangedClass.value) {
-            const classRecord = activeClasses.value.find(cls => 
-              cls.code === newData.current_class || cls.name === newData.current_class
-            );
-            if (classRecord) {
-              form.class_id = classRecord.id;
-            }
-          }
-          
-          if (!userChangedSection.value) {
-            const sectionRecord = activeSections.value.find(sec => 
-              sec.name === newData.section
-            );
-            if (sectionRecord) {
-              form.section_id = sectionRecord.id;
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load sections for edit:', error);
-        }
-      });
-    }
     if (newData.category) form.category = newData.category;
+    
+    // Store the class and section names for later mapping
+    // We'll map these to IDs after academic data is loaded
+    if (newData.current_class) {
+      form._temp_class_name = newData.current_class;
+    }
+    if (newData.section) {
+      form._temp_section_name = newData.section;
+    }
+    if (newData.academic_year) {
+      form._temp_academic_year_name = newData.academic_year;
+    }
     
     // Student details
     if (newData.first_name) form.student.first_name = newData.first_name;
@@ -604,7 +562,6 @@ watch(() => props.initialData, (newData) => {
     // Guardian details
     if (newData.parents && newData.parents.length > 0) {
       const parent = newData.parents[0];
-      console.log('🔍 Parent data received:', parent);
       
       if (parent) {
         // Set guardian name based on relation
@@ -629,13 +586,6 @@ watch(() => props.initialData, (newData) => {
         form.guardian.mobile_no = parent.father_phone || parent.mother_phone || parent.guardian_phone || '';
         form.guardian.email = parent.father_email || parent.mother_email || parent.guardian_email || '';
         form.guardian.address = parent.address || '';
-        
-        console.log('🔍 Guardian form populated:', {
-          name: form.guardian.name,
-          father_name: form.guardian.father_name,
-          mother_name: form.guardian.mother_name,
-          relation: form.guardian.relation
-        });
       }
     }
     
@@ -660,24 +610,18 @@ watch(() => props.initialData, (newData) => {
       form.admission_type = documents.transfer_certificate ? 'transfer' : 'new';
     }
     
-    console.log('🔍 Form populated successfully with:', {
-      student: {
-        first_name: form.student.first_name,
-        last_name: form.student.last_name,
-        email: form.student.email,
-        mobile_no: form.student.mobile_no
-      },
-      guardian: {
-        name: form.guardian.name,
-        occupation: form.guardian.occupation,
-        income: form.guardian.income
-      },
-      academic: {
-        class_id: form.class_id,
-        section_id: form.section_id,
-        academic_year_id: form.academic_year_id
+    // If we have school and branch info, load academic data for mapping
+    if (props.isEditing && form.school_id && form.branch_id) {
+      try {
+        await loadAcademicData();
+        if (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name) {
+          console.log('🔍 Initial data loaded, mapping names to IDs');
+          await mapClassAndSectionNames();
+        }
+      } catch (error) {
+        console.error('Failed to load academic data for mapping:', error);
       }
-    });
+    }
   }
 }, { immediate: true });
 
@@ -695,6 +639,7 @@ const handleFileUpload = (type, event) => {
 
 // School change handler
 const onSchoolChange = async () => {
+  console.log('🔍 onSchoolChange called with school_id:', form.school_id);
   form.branch_id = '';
   form.class_id = '';
   form.section_id = '';
@@ -702,8 +647,11 @@ const onSchoolChange = async () => {
     loadingBranches.value = true;
     try {
       await fetchBranches(form.school_id);
-      if (branches.value.length === 1) {
+      console.log('🔍 Branches loaded:', branches.value.length);
+      // Only auto-select branch if in edit mode
+      if (branches.value.length === 1 && props.isEditing) {
         form.branch_id = branches.value[0].id;
+        console.log('🔍 Auto-selecting single branch (edit mode):', form.branch_id);
         await onBranchChange();
       }
     } catch (error) {
@@ -716,20 +664,25 @@ const onSchoolChange = async () => {
 
 // Branch change handler
 const onBranchChange = async () => {
+  console.log('🔍 onBranchChange called with branch_id:', form.branch_id);
   form.class_id = '';
   form.section_id = '';
   if (form.branch_id) {
     try {
       await loadAcademicData();
+      console.log('🔍 Academic data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length);
       if (academicYears.value && academicYears.value.length > 0) {
         const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
         if (currentYear) {
           form.academic_year_id = currentYear.id;
+          console.log('🔍 Set academic year:', form.academic_year_id);
         }
       }
-      if (classes.value && classes.value.length === 1) {
+      // Only auto-select class if in edit mode
+      if (classes.value && classes.value.length === 1 && props.isEditing) {
         form.class_id = classes.value[0].id;
-        await onClassChange();
+        console.log('🔍 Auto-selecting single class (edit mode):', form.class_id);
+        await onClassChange(true); // Mark as auto-selection
       }
     } catch (error) {
       showError('Failed to load academic data');
@@ -738,10 +691,12 @@ const onBranchChange = async () => {
 };
 
 // Class change handler
-const onClassChange = async () => {
-  // Mark that user has manually changed the class
-  userChangedClass.value = true;
-  console.log('🔍 User changed class to:', form.class_id, 'Flag set to:', userChangedClass.value);
+const onClassChange = async (isAutoSelection = false) => {
+  console.log('🔍 onClassChange called with class_id:', form.class_id, 'isAutoSelection:', isAutoSelection, 'isSettingFormValues:', isSettingFormValues.value);
+  // Only mark as user-changed if it's not an auto-selection and not setting form values
+  if (!isAutoSelection && !isSettingFormValues.value) {
+    userChangedClass.value = true;
+  }
   
   form.section_id = '';
   userChangedSection.value = false; // Reset section flag since class changed
@@ -749,23 +704,38 @@ const onClassChange = async () => {
   if (form.class_id) {
     sectionsLoading.value = true;
     try {
+      // Try loading sections with current context first
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Sections loaded:', sections.value?.length);
+      
+      // If no sections found, try without branch_id (for super admin or cross-branch sections)
+      if (!sections.value || sections.value.length === 0) {
+        await loadSectionsByClass(form.class_id, form.school_id, null);
+        console.log('🔍 Sections loaded (without branch):', sections.value?.length);
+      }
+      
       if (sections.value && sections.value.length === 1) {
         form.section_id = sections.value[0].id;
+        console.log('🔍 Auto-selecting single section:', form.section_id);
       }
     } catch (error) {
+      console.error('❌ Error loading sections:', error);
       showError('Failed to load sections');
     } finally {
       sectionsLoading.value = false;
     }
+  } else {
+    sections.value = [];
   }
 };
 
 // Section change handler
 const onSectionChange = () => {
-  // Mark that user has manually changed the section
-  userChangedSection.value = true;
-  console.log('🔍 User changed section to:', form.section_id, 'Flag set to:', userChangedSection.value);
+  console.log('🔍 onSectionChange called, isSettingFormValues:', isSettingFormValues.value);
+  // Only mark as user-changed if not setting form values
+  if (!isSettingFormValues.value) {
+    userChangedSection.value = true;
+  }
 };
 
 // Load academic data
@@ -783,10 +753,8 @@ const loadAcademicData = async () => {
         form.academic_year_id = currentYear.id;
       }
     }
-    if (classes.value?.length === 1) {
-      form.class_id = classes.value[0].id;
-      await onClassChange();
-    }
+    // Don't auto-select class in create mode - let user choose
+    // Auto-selection only happens in edit mode through onBranchChange
   } catch (error) {
     showError('Failed to load academic data');
   } finally {
@@ -928,6 +896,9 @@ const resetForm = () => {
   // Reset user change flags
   userChangedClass.value = false;
   userChangedSection.value = false;
+  hasMappedNames.value = false; // Reset mapping flag
+  isMappingNames.value = false; // Reset mapping flag
+  isSettingFormValues.value = false; // Reset form values flag
   
   Object.assign(form, {
     school_id: user.value?.school_id || '',
@@ -940,6 +911,9 @@ const resetForm = () => {
     section_id: '',
     category: '',
     admission_type: '',
+    _temp_class_name: '',
+    _temp_section_name: '',
+    _temp_academic_year_name: '',
     student: {
       first_name: '',
       last_name: '',
@@ -998,15 +972,23 @@ watch(showToast, (newValue) => {
 watch([() => form.school_id, () => form.branch_id], async ([newSchoolId, newBranchId], [oldSchoolId, oldBranchId]) => {
   if (props.isEditing && newSchoolId && newBranchId && (!oldSchoolId || !oldBranchId)) {
     console.log('🔍 Loading academic data for edit mode');
+    hasMappedNames.value = false; // Reset the flag when school/branch changes
+    isMappingNames.value = false; // Reset the mapping flag
+    isSettingFormValues.value = false; // Reset the form values flag
     await loadAcademicData();
     // Map class and section names to IDs after loading academic data
     await mapClassAndSectionNames();
   }
 }, { immediate: false });
 
+// Track if we've already mapped the names to prevent infinite loops
+const hasMappedNames = ref(false);
+const isMappingNames = ref(false);
+const isSettingFormValues = ref(false);
+
 // Watch for academic data changes to map names to IDs in edit mode
 watch([() => classes.value, () => sections.value, () => academicYears.value], async () => {
-  if (props.isEditing && props.initialData && classes.value.length > 0) {
+  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
     console.log('🔍 Academic data loaded, mapping names to IDs');
     await mapClassAndSectionNames();
   }
@@ -1014,7 +996,6 @@ watch([() => classes.value, () => sections.value, () => academicYears.value], as
 
 // Update form with response data after successful update
 const updateFormWithResponseData = async (data) => {
-  console.log('🔍 Updating form with response data:', data);
   
   // Update basic fields
   form.register_no = data.admission_number || form.register_no;
@@ -1045,7 +1026,6 @@ const updateFormWithResponseData = async (data) => {
     );
     if (classRecord) {
       form.class_id = classRecord.id;
-      console.log('🔍 Updated class ID to:', classRecord.id, 'for class:', data.current_class);
     }
   }
   
@@ -1055,7 +1035,6 @@ const updateFormWithResponseData = async (data) => {
     );
     if (sectionRecord) {
       form.section_id = sectionRecord.id;
-      console.log('🔍 Updated section ID to:', sectionRecord.id, 'for section:', data.section);
     }
   }
   
@@ -1065,7 +1044,6 @@ const updateFormWithResponseData = async (data) => {
     );
     if (yearRecord) {
       form.academic_year_id = yearRecord.id;
-      console.log('🔍 Updated academic year ID to:', yearRecord.id, 'for year:', data.academic_year);
     }
   }
   
@@ -1076,43 +1054,65 @@ const updateFormWithResponseData = async (data) => {
 
 // Map class and section names to IDs for edit mode
 const mapClassAndSectionNames = async () => {
-  if (!props.isEditing || !props.initialData) return;
+  if (!props.isEditing || hasMappedNames.value || isMappingNames.value) return;
   
-  const data = props.initialData;
+  // Mark as mapping to prevent infinite loops
+  isMappingNames.value = true;
+  isSettingFormValues.value = true;
   
   // Map class code/name to class_id (only if user hasn't changed it)
-  if (data.current_class && classes.value.length > 0 && !userChangedClass.value) {
+  if (form._temp_class_name && classes.value.length > 0 && !userChangedClass.value) {
     const classRecord = classes.value.find(cls => 
-      cls.name === data.current_class || 
-      cls.code === data.current_class
+      cls.name === form._temp_class_name || 
+      cls.code === form._temp_class_name
     );
     if (classRecord) {
+      console.log('🔍 Setting class_id to:', classRecord.id);
       form.class_id = classRecord.id;
-      console.log('🔍 Mapped class', data.current_class, 'to ID:', classRecord.id);
+      console.log('🔍 Set class_id to:', form.class_id);
+      
+      // Only load sections if we don't already have sections for this class
+      const hasSectionsForClass = sections.value.some(sec => sec.class_id === classRecord.id);
+      console.log('🔍 Has sections for class:', hasSectionsForClass);
+      if (!hasSectionsForClass) {
+        try {
+          await loadSectionsByClass(classRecord.id, form.school_id, form.branch_id);
+          console.log('🔍 Loaded sections for class');
+        } catch (error) {
+          console.warn('Failed to load sections for class:', error);
+        }
+      }
     }
   }
   
   // Map section name to section_id (only if user hasn't changed it)
-  if (data.section && sections.value.length > 0 && !userChangedSection.value) {
+  if (form._temp_section_name && sections.value.length > 0 && !userChangedSection.value) {
+    console.log('🔍 Attempting to map section name:', form._temp_section_name);
     const sectionRecord = sections.value.find(sec => 
-      sec.name === data.section
+      sec.name === form._temp_section_name
     );
+    console.log('🔍 Found section record:', sectionRecord);
     if (sectionRecord) {
+      console.log('🔍 Setting section_id to:', sectionRecord.id);
       form.section_id = sectionRecord.id;
-      console.log('🔍 Mapped section', data.section, 'to ID:', sectionRecord.id);
+      console.log('🔍 Set section_id to:', form.section_id);
     }
   }
   
   // Map academic year name to academic_year_id
-  if (data.academic_year && academicYears.value.length > 0) {
+  if (form._temp_academic_year_name && academicYears.value.length > 0) {
     const yearRecord = academicYears.value.find(year => 
-      year.name === data.academic_year
+      year.name === form._temp_academic_year_name
     );
     if (yearRecord) {
       form.academic_year_id = yearRecord.id;
-      console.log('🔍 Mapped academic year', data.academic_year, 'to ID:', yearRecord.id);
     }
   }
+  
+  // Mark as mapped to prevent future calls
+  hasMappedNames.value = true;
+  isMappingNames.value = false;
+  isSettingFormValues.value = false;
 };
 
 // Load schools for super admin
@@ -1124,8 +1124,10 @@ const loadSchools = async () => {
       showError('No schools found. Please create a school first.');
       return;
     }
-    if (schools.value.length === 1) {
+    // Only auto-select school if in edit mode
+    if (schools.value.length === 1 && props.isEditing) {
       form.school_id = schools.value[0].id;
+      // Use onSchoolChange to ensure proper flow
       await onSchoolChange();
     }
   } catch (error) {
@@ -1148,6 +1150,8 @@ onMounted(async () => {
     if (props.isEditing) {
       // Wait a bit for the initial data to be populated
       await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+      form.branch_id = '';
     }
     
     if (userRole.value === 'super_admin') {
@@ -1159,10 +1163,15 @@ onMounted(async () => {
         try {
           await fetchBranches(user.value.school_id);
           if (branches.value?.length > 0) {
-            if (branches.value.length === 1) {
+            // Only auto-select branch if in edit mode
+            if (branches.value.length === 1 && props.isEditing) {
               const branch = branches.value[0];
               form.branch_id = branch.id;
-              await loadAcademicData();
+              // Use onBranchChange to ensure proper flow
+              await onBranchChange();
+            } else {
+                // ✅ CREATE MODE → keep empty → forces placeholder
+             
             }
           } else {
             showError('No branches found for your school');
@@ -1178,24 +1187,30 @@ onMounted(async () => {
     } else if (userRole.value === 'branch_admin') {
       if (user.value?.branch_id && user.value?.school_id) {
         form.school_id = user.value.school_id;
-        form.branch_id = user.value.branch_id;
-        userBranch.value = {
-          id: user.value.branch_id,
-          name: user.value.branch_name || 'Your Branch'
-        };
-        await loadAcademicData();
+        // Only auto-select branch if in edit mode
+        if (props.isEditing) {
+          form.branch_id = user.value.branch_id;
+          userBranch.value = {
+            id: user.value.branch_id,
+            name: user.value.branch_name || 'Your Branch'
+          };
+          // Use onBranchChange to ensure proper flow
+          await onBranchChange();
+        } else {
+          // In create mode, just set the user branch info but don't auto-select
+          userBranch.value = {
+            id: user.value.branch_id,
+            name: user.value.branch_name || 'Your Branch'
+          };
+        }
       } else {
         showError('Branch information not found');
       }
     }
     
-    // Load academic data if we have school and branch info
-    if (form.school_id && form.branch_id) {
-      await loadAcademicData();
-      // If editing, map class and section names to IDs
-      if (props.isEditing) {
-        await mapClassAndSectionNames();
-      }
+    // If editing, map class and section names to IDs
+    if (props.isEditing && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
+      await mapClassAndSectionNames();
     }
     
     // Set current academic year if not already set

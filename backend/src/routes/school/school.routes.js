@@ -15,7 +15,7 @@ router.use(verifyToken);
 // Super Admin routes (can manage all schools)
 router.post(
   '/',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   uploadFields([
     { name: 'logo', maxCount: 1 },
     { name: 'system_logo', maxCount: 1 },
@@ -29,19 +29,19 @@ router.post(
 
 router.get(
   '/',
-  authorize('super_admin', 'school_admin'),
+  authorize(['super_admin', 'school_admin']),
   SchoolController.getAllSchools
 );
 
 router.get(
   '/my-school',
-  authorize('school_admin'),
+  authorize(['school_admin']),
   SchoolController.getMySchool
 );
 
 router.put(
   '/my-school',
-  authorize('school_admin'),
+  authorize(['school_admin']),
   uploadFields([
     { name: 'logo', maxCount: 1 },
     { name: 'system_logo', maxCount: 1 },
@@ -56,19 +56,19 @@ router.put(
 // School staff management
 router.get(
   '/:id/staff',
-  authorize('super_admin', 'school_admin'),
+  authorize(['super_admin', 'school_admin']),
   SchoolController.getSchoolStaff
 );
 
 router.get(
   '/:id',
-  authorize('super_admin', 'school_admin'),
+  authorize(['super_admin', 'school_admin']),
   SchoolController.getSchoolById
 );
 
 router.put(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   uploadFields([
     { name: 'logo', maxCount: 1 },
     { name: 'system_logo', maxCount: 1 },
@@ -82,25 +82,25 @@ router.put(
 
 router.delete(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   SchoolController.deleteSchool
 );
 
 router.patch(
   '/:id/suspend',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   SchoolController.suspendSchool
 );
 
 router.patch(
   '/:id/reactivate',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   SchoolController.reactivateSchool
 );
 
 router.post(
   '/:id/reactivate',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   SchoolController.reactivateSchool
 );
 

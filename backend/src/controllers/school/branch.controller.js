@@ -65,7 +65,7 @@ class BranchController {
     }
   }
 
-  // Update branch (Super Admin only)
+  // Update branch (Super Admin or School Admin)
   static async updateBranch(req, res, next) {
     try {
       const { id } = req.params;
@@ -75,7 +75,7 @@ class BranchController {
         updated_by: req.user.id,
       };
 
-      const branch = await BranchService.updateBranch(id, updateData);
+      const branch = await BranchService.updateBranch(id, updateData, req.user);
       
       res.json({
         success: true,

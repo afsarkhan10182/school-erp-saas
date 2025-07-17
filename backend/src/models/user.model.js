@@ -88,11 +88,11 @@ const User = sequelize.define('User', {
   two_factor_enabled: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
+    defaultValue: false,
   },
   deleted_at: {
     type: DataTypes.DATE,
     allowNull: true,
-    defaultValue: false,
   },
   two_factor_secret: {
     type: DataTypes.STRING,
@@ -109,7 +109,7 @@ const User = sequelize.define('User', {
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'suspended', 'pending'),
     allowNull: false,
-    defaultValue: 'pending',
+    defaultValue: 'active',
   },
   settings: {
     type: DataTypes.JSONB,

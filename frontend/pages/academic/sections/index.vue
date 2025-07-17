@@ -2,21 +2,77 @@
   <div class="min-h-screen">
     <div class="container mx-auto py-8 px-4">
       <h1 class="text-2xl font-bold mb-4">Sections Management</h1>
-      <div class="flex justify-between mb-6">
-        <input
-          v-model="filters.search"
-          @input="fetchSections"
-          class="border p-2 rounded w-full max-w-sm"
-          type="text"
-          placeholder="Search sections..."
-        />
-        <button
-          @click="openCreateModal"
-          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Add New Section
-        </button>
+      
+      <!-- Filters Section -->
+      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
+        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filters</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Class Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by Class</label>
+            <select
+              v-model="filters.class_id"
+              @change="fetchSections"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All Classes</option>
+              <option v-for="classItem in activeClasses" :key="classItem.id" :value="classItem.id">
+                {{ classItem.name }} {{ classItem.code ? `(${classItem.code})` : '' }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Search Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Sections</label>
+            <input
+              v-model="filters.search"
+              @input="debouncedSearch"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              type="text"
+              placeholder="Search sections..."
+            />
+          </div>
+          
+          <!-- Status Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+            <select
+              v-model="filters.is_active"
+              @change="fetchSections"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All Status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
       </div>
+      
+      <div class="flex justify-between mb-6">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          Showing {{ sections.length }} sections
+          <span v-if="filters.class_id">
+            for {{ getSelectedClassName() }}
+          </span>
+        </div>
+        <div class="flex gap-2">
+          <button
+            @click="clearFilters"
+            class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Clear Filters
+          </button>
+          <button
+            @click="openCreateModal"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Add New Section
+          </button>
+        </div>
+      </div>
+      
       <section-table 
         :sections="sections" 
         @edit="editSection"
@@ -89,7 +145,7 @@
               <select
                 id="class"
                 v-model="form.class_id"
-                class="border p-2 rounded w-full"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 :class="{'border-red-500': validationErrors?.class_id}"
                 required
                 :disabled="authStore.user?.role === 'super_admin' && !selectedSchoolId"
@@ -107,7 +163,7 @@
               <input
                 id="name"
                 v-model="form.name"
-                class="border p-2 rounded w-full"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 :class="{'border-red-500': validationErrors?.name}"
                 type="text"
                 required
@@ -124,7 +180,7 @@
               <input
                 id="capacity"
                 v-model.number="form.capacity"
-                class="border p-2 rounded w-full"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 :class="{'border-red-500': validationErrors?.capacity}"
                 type="number"
                 min="1"
@@ -181,8 +237,8 @@ import { useToast } from '~/composables/useToast';
 import { apiClient } from '~/utils/api';
 
 const sections = ref([]);
-const pagination = reactive({ page: 1, limit: 10, total: 0 });
-const filters = reactive({ search: '' });
+const pagination = reactive({ page: 1, limit: 10, total: 0, currentClassId: '' });
+const filters = reactive({ search: '', class_id: '', is_active: '' });
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
@@ -345,6 +401,12 @@ const fetchClassesForSchool = async () => {
 
 const fetchSections = async () => {
   try {
+    // Reset pagination to first page when filters change
+    if (filters.class_id !== pagination.currentClassId) {
+      pagination.page = 1;
+      pagination.currentClassId = filters.class_id;
+    }
+    
     const response = await fetchSectionsAPI(filters, pagination);
     sections.value = response.data;
     pagination.total = response.pagination.total;
@@ -386,6 +448,12 @@ const createSection = async () => {
     
     await createSectionAPI(payload);
     closeModal();
+    
+    // Auto-filter to show the newly created section's class
+    if (form.class_id) {
+      filters.class_id = form.class_id;
+    }
+    
     fetchSections();
     showSuccess('Section created successfully');
   } catch (error) {
@@ -459,6 +527,29 @@ const deleteSection = async (section) => {
     console.error('Error deleting section:', error);
     showError(error.response?.data?.message || 'Error deleting section');
   }
+};
+
+const getSelectedClassName = () => {
+  const selectedClass = activeClasses.value.find(c => c.id === filters.class_id);
+  return selectedClass ? `${selectedClass.name} ${selectedClass.code ? `(${selectedClass.code})` : ''}` : 'N/A';
+};
+
+const clearFilters = () => {
+  filters.search = '';
+  filters.class_id = '';
+  filters.is_active = '';
+  pagination.page = 1;
+  fetchSections();
+};
+
+// Debounced search to avoid too many API calls
+let searchTimeout;
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    pagination.page = 1;
+    fetchSections();
+  }, 300);
 };
 
 onMounted(() => {

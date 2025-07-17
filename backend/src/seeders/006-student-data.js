@@ -99,6 +99,8 @@ module.exports = {
         admission_class: 'Class VI',
         current_class: 'Class VI',
         section: 'A',
+        class_id: '550e8400-e29b-41d4-a716-446655440009', // Class VI
+        section_id: '550e8400-e29b-41d4-a716-446655440011', // Section A
         academic_year: '2024-25',
         status: 'active',
         photo: null,
@@ -147,6 +149,8 @@ module.exports = {
         admission_class: 'Class VI',
         current_class: 'Class VI',
         section: 'B',
+        class_id: '550e8400-e29b-41d4-a716-446655440009', // Class VI
+        section_id: '550e8400-e29b-41d4-a716-446655440012', // Section B
         academic_year: '2024-25',
         status: 'active',
         photo: null,

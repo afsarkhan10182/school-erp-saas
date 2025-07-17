@@ -8,6 +8,9 @@ const RedisUtils = require('../../utils/redis-utils');
 class UserService {
   static async createUser(userData) {
     try {
+      // Debug: Log the data being passed to User.create
+      logger.info('UserService.createUser - Data being passed to User.create:', JSON.stringify(userData, null, 2));
+      
       // Check if user already exists
       const existingUser = await User.findOne({
         where: { email: userData.email }

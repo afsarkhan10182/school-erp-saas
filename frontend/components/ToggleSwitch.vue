@@ -8,7 +8,7 @@
         :disabled="disabled"
         class="switch-input"
       />
-      <span class="slider" :class="{ 'disabled': disabled }"></span>
+      <span class="slider" :class="{ 'disabled': disabled, 'checked': modelValue }"></span>
     </label>
     <span v-if="label" class="toggle-label" :class="{ 'disabled': disabled }">
       {{ label }}
@@ -32,11 +32,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'toggle'])
 
 const handleToggle = (event) => {
   if (!props.disabled) {
-    emit('update:modelValue', event.target.checked)
+    const newValue = event.target.checked
+    emit('update:modelValue', newValue)
+    emit('toggle', newValue)
   }
 }
 </script>
@@ -51,8 +53,8 @@ const handleToggle = (event) => {
 .switch {
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 24px;
+  width: 52px;
+  height: 28px;
 }
 
 .switch-input {
@@ -68,44 +70,59 @@ const handleToggle = (event) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
-  transition: 0.3s;
-  border-radius: 24px;
+  background-color: #d1d5db;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 28px;
+  border: 2px solid transparent;
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
   background-color: white;
-  transition: 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.switch-input:checked + .slider {
-  background-color: #4f46e5;
+.slider.checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.slider.checked:before {
+  transform: translateX(24px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .switch-input:focus + .slider {
-  box-shadow: 0 0 1px #4f46e5;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.switch-input:checked + .slider:before {
-  transform: translateX(26px);
+.switch-input:focus + .slider.checked {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .slider.disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
+  background-color: #e5e7eb;
+}
+
+.slider.disabled.checked {
+  background-color: #9ca3af;
+  border-color: #9ca3af;
 }
 
 .toggle-label {
   font-size: 14px;
   color: #374151;
   user-select: none;
+  font-weight: 500;
 }
 
 .toggle-label.disabled {
@@ -115,10 +132,64 @@ const handleToggle = (event) => {
 
 /* Hover effects */
 .slider:hover:not(.disabled) {
-  background-color: #d1d5db;
+  background-color: #9ca3af;
 }
 
-.switch-input:checked + .slider:hover:not(.disabled) {
-  background-color: #3730a3;
+.slider.checked:hover:not(.disabled) {
+  background-color: #2563eb;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .slider {
+    background-color: #4b5563;
+  }
+  
+  .slider.checked {
+    background-color: #3b82f6;
+  }
+  
+  .slider.disabled {
+    background-color: #374151;
+  }
+  
+  .slider.disabled.checked {
+    background-color: #6b7280;
+  }
+  
+  .toggle-label {
+    color: #d1d5db;
+  }
+  
+  .toggle-label.disabled {
+    color: #6b7280;
+  }
+}
+
+/* Animation for smooth transitions */
+@keyframes toggleOn {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(24px);
+  }
+}
+
+@keyframes toggleOff {
+  0% {
+    transform: translateX(24px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.slider.checked:before {
+  animation: toggleOn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slider:not(.checked):before {
+  animation: toggleOff 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

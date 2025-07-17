@@ -298,10 +298,12 @@ const createComprehensiveAdmission = async (req, res, admissionData) => {
       profile_picture: uploadedFiles.student_profile_picture || null,
       category: admissionData.category,
       admission_date: admissionData.admission_date || '2024-01-01',
-      // Required fields for Student model - use class codes, not names
+      // Use foreign keys for class and section
       admission_class: classRecord ? classRecord.code : className,
       current_class: classRecord ? classRecord.code : className,
       section: sectionName,
+      class_id: admissionData.class_id || null,
+      section_id: admissionData.section_id || null,
       academic_year: academicYearName,
       school_id,
       branch_id,
@@ -510,7 +512,7 @@ const getAdmissionById = async (req, res) => {
         },
         {
           model: Section,
-          as: 'section',
+          as: 'sectionInfo',
           attributes: ['id', 'name']
         },
         {

@@ -128,12 +128,22 @@ class BranchService {
   }
 
   // Update branch
-  static async updateBranch(id, updateData) {
+  static async updateBranch(id, updateData, user) {
     try {
       const branch = await Branch.findByPk(id);
       
       if (!branch) {
         throw new ApiError(404, 'Branch not found');
+      }
+
+      // Access control: School Admin can only update branches in their school
+      if (user.role === 'school_admin' && user.school_id !== branch.school_id) {
+        throw new ApiError(403, 'Access denied - You can only update branches in your school');
+      }
+
+      // Access control: Branch Admin can only update their own branch
+      if (user.role === 'branch_admin' && user.branch_id !== id) {
+        throw new ApiError(403, 'Access denied - You can only update your own branch');
       }
 
       // Handle file uploads and settings

@@ -1,5 +1,6 @@
 const { sequelize } = require('../../config/database');
-const { User, School } = require('../../models');
+const { Op } = require('sequelize');
+const { User, School, Branch } = require('../../models');
 const SchoolService = require('../../services/school/school.service');
 const AuthService = require('../../services/auth/auth.service');
 const { logger } = require('../../utils/logger');
@@ -67,7 +68,7 @@ class SchoolController {
     const user = req.user;
 
     // Access control
-    if (user.role === 'school_admin' && user.school_id !== parseInt(id)) {
+    if (user.role === 'school_admin' && user.school_id !== id) {
       throw new ApiError(403, 'Access denied');
     }
 
@@ -103,7 +104,7 @@ class SchoolController {
     const user = req.user;
 
     // Access control - only super admin or school admin of this school can access
-    if (user.role === 'school_admin' && user.school_id !== parseInt(schoolId)) {
+    if (user.role === 'school_admin' && user.school_id !== schoolId) {
       throw new ApiError(403, 'Access denied');
     }
 

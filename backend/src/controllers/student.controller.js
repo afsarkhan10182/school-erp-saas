@@ -16,6 +16,8 @@ const createStudent = async (req, res, next) => {
       admission_class,
       current_class,
       section,
+      class_id,
+      section_id,
       parents,
     } = req.body;
 
@@ -42,6 +44,8 @@ const createStudent = async (req, res, next) => {
       admission_class,
       current_class,
       section,
+      class_id,
+      section_id,
       school_id: req.schoolId,
       created_by: req.user.id,
     });
@@ -117,20 +121,13 @@ const getStudents = async (req, res, next) => {
     if (status) whereClause.status = status;
     if (branch_id) whereClause.branch_id = branch_id;
 
-    // Handle class_id and section_id by getting their codes/names
+    // Handle class_id and section_id using foreign keys
     if (class_id) {
-      const classRecord = await Class.findByPk(class_id);
-      if (classRecord) {
-        // Students are stored with class codes (I, II, III), not full names
-        whereClause.current_class = classRecord.code;
-      }
+      whereClause.class_id = class_id;
     }
 
     if (section_id) {
-      const sectionRecord = await Section.findByPk(section_id);
-      if (sectionRecord) {
-        whereClause.section = sectionRecord.name;
-      }
+      whereClause.section_id = section_id;
     }
 
     // Calculate pagination
@@ -147,6 +144,16 @@ const getStudents = async (req, res, next) => {
           model: Parent,
           as: 'parents',
           through: { attributes: [] },
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Section,
+          as: 'sectionInfo',
+          attributes: ['id', 'name'],
         },
       ],
       order: [['first_name', 'ASC'], ['last_name', 'ASC']],
@@ -220,6 +227,16 @@ const getStudentById = async (req, res, next) => {
             'father_income', 'mother_income',
             'guardian_relation', 'city', 'state', 'address'
           ],
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Section,
+          as: 'sectionInfo',
+          attributes: ['id', 'name'],
         },
       ],
     });
@@ -586,20 +603,13 @@ const getStudentStats = async (req, res, next) => {
     if (academic_year) whereClause.academic_year = academic_year;
     if (branch_id) whereClause.branch_id = branch_id;
 
-    // Handle class_id and section_id by getting their codes/names
+    // Handle class_id and section_id using foreign keys
     if (class_id) {
-      const classRecord = await Class.findByPk(class_id);
-      if (classRecord) {
-        // Students are stored with class codes (I, II, III), not full names
-        whereClause.current_class = classRecord.code;
-      }
+      whereClause.class_id = class_id;
     }
 
     if (section_id) {
-      const sectionRecord = await Section.findByPk(section_id);
-      if (sectionRecord) {
-        whereClause.section = sectionRecord.name;
-      }
+      whereClause.section_id = section_id;
     }
 
     const totalStudents = await Student.count({
@@ -712,7 +722,7 @@ const getStudentReport = async (req, res, next) => {
         },
         {
           model: Section,
-          as: 'section',
+          as: 'sectionInfo',
           attributes: ['id', 'name'],
         },
       ],
@@ -798,7 +808,7 @@ const exportStudentReport = async (req, res, next) => {
         },
         {
           model: Section,
-          as: 'section',
+          as: 'sectionInfo',
           attributes: ['id', 'name'],
         },
       ],

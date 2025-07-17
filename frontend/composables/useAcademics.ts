@@ -36,16 +36,13 @@ export function useAcademics() {
     loading.value = true;
     error.value = '';
     try {
-      console.log('🔍 Fetching academic years for school:', schoolId);
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
       
       const response = await apiClient.academicYears.getDropdown(params.toString());
-      console.log('🔍 Academic years API response:', response);
       
       if (response.success) {
         academicYears.value = response.data || [];
-        console.log('✅ Academic years loaded:', academicYears.value);
         return response.data;
       } else {
         error.value = response.message || 'Failed to fetch academic years.';
@@ -70,13 +67,10 @@ export function useAcademics() {
       if (schoolId) params.append('school_id', schoolId);
       if (branchId) params.append('branch_id', branchId);
       
-      console.log('🔍 Fetching classes with params:', params.toString());
       const response = await apiClient.classes.getDropdown(params.toString());
-      console.log('🔍 Classes API response:', response);
       
       if (response.success) {
         classes.value = response.data || [];
-        console.log('✅ Classes loaded:', classes.value.length, 'classes');
         return response.data;
       } else {
         error.value = response.message || 'Failed to fetch classes.';
@@ -103,16 +97,20 @@ export function useAcademics() {
       if (classId) params.append('class_id', classId);
       
       const response = await apiClient.sections.getDropdown(params.toString());
+      
       if (response.success) {
         sections.value = response.data || [];
         return response.data;
       } else {
         error.value = response.message || 'Failed to fetch sections.';
+        console.error('❌ Sections API error:', response.message);
+        sections.value = [];
         return [];
       }
     } catch (e) {
-      console.error('Error fetching sections:', e);
+      console.error('❌ Error fetching sections:', e);
       error.value = 'Network error while fetching sections.';
+      sections.value = [];
       return [];
     } finally {
       loading.value = false;
@@ -138,12 +136,13 @@ export function useAcademics() {
 
   // Auto-load sections when class changes
   const loadSectionsByClass = async (classId: string, schoolId?: string, branchId?: string) => {
-    
     if (!classId) {
       sections.value = [];
       return [];
     }
-    return await fetchSections(schoolId, branchId, classId);
+    
+    const result = await fetchSections(schoolId, branchId, classId);
+    return result;
   };
 
   // Computed values

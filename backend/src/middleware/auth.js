@@ -214,6 +214,12 @@ const setSchoolContext = (req, res, next) => {
     console.log('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
     logger.debug('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
     
+    // Additional debug logging for fee invoice routes
+    if (req.url.includes('/fee-invoices') || req.url.includes('/fees')) {
+      console.log('setSchoolContext: Fee invoice route detected - schoolId:', req.schoolId);
+      logger.debug('setSchoolContext: Fee invoice route detected - schoolId:', req.schoolId);
+    }
+    
     // Optional: If a school_id is provided in query/params for non-super-admin, validate it matches user's school_id
     const requestSchoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
     if (requestSchoolId && requestSchoolId !== req.schoolId) {

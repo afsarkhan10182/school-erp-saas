@@ -35,6 +35,24 @@ const fetchStudentData = async () => {
     if (response.success) {
       studentData.value = response.data;
       console.log('🔍 Set studentData to:', studentData.value);
+      
+      // Ensure the data is properly structured for the form
+      if (studentData.value) {
+        // Map academic year properly
+        if (studentData.value.academic_year && typeof studentData.value.academic_year === 'string') {
+          // If academic_year is a string, we need to find the corresponding academic year ID
+          // This will be handled by the StudentForm component
+        }
+        
+        // Map class and section properly
+        if (studentData.value.current_class && typeof studentData.value.current_class === 'string') {
+          // The class name/code will be mapped to class_id in the form
+        }
+        
+        if (studentData.value.section && typeof studentData.value.section === 'string') {
+          // The section name will be mapped to section_id in the form
+        }
+      }
     } else {
       console.error('🔍 API returned error:', response);
       showError('Failed to load student data');
