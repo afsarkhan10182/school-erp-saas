@@ -35,6 +35,9 @@ const fetchStudentData = async () => {
     if (response.success) {
       studentData.value = response.data;
       console.log('🔍 Set studentData to:', studentData.value);
+      console.log('🔍 Student class:', studentData.value.current_class);
+      console.log('🔍 Student section:', studentData.value.section);
+      console.log('🔍 Student academic year:', studentData.value.academic_year);
       
       // Ensure the data is properly structured for the form
       if (studentData.value) {

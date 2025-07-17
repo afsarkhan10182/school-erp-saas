@@ -214,7 +214,7 @@ class DashboardController {
             type: 'student_admission',
             title: 'New Student Admission',
             description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at
+            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
           });
         });
 
@@ -224,7 +224,7 @@ class DashboardController {
             type: 'fee_payment',
             title: 'Fee Payment Received',
             description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date
+            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
           });
         });
 
@@ -234,7 +234,7 @@ class DashboardController {
             type: 'user_registration',
             title: 'New User Registration',
             description: `${user.first_name || 'User'} ${user.last_name || ''} (${user.role || 'user'}) registered`,
-            created_at: user.created_at
+            created_at: user.created_at ? new Date(user.created_at).toISOString() : null
           });
         });
 
@@ -264,7 +264,7 @@ class DashboardController {
             type: 'student_admission',
             title: 'New Student Admission',
             description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at
+            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
           });
         });
 
@@ -274,7 +274,7 @@ class DashboardController {
             type: 'fee_payment',
             title: 'Fee Payment Received',
             description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date
+            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
           });
         });
 
@@ -304,7 +304,7 @@ class DashboardController {
             type: 'student_admission',
             title: 'New Student Admission',
             description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at
+            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
           });
         });
 
@@ -314,7 +314,7 @@ class DashboardController {
             type: 'fee_payment',
             title: 'Fee Payment Received',
             description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date
+            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
           });
         });
       }

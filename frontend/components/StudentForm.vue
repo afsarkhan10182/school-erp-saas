@@ -522,7 +522,10 @@ watch(() => props.initialData, async (newData) => {
     if (newData.school_id) form.school_id = newData.school_id;
     if (newData.branch_id) form.branch_id = newData.branch_id;
     if (newData.admission_number) form.register_no = newData.admission_number;
-    if (newData.roll_number) form.roll_number = newData.roll_number;
+    if (newData.roll_number) {
+      form.roll_number = newData.roll_number;
+      console.log('🔍 Set roll_number from initial data:', newData.roll_number);
+    }
     if (newData.admission_date) {
       const date = new Date(newData.admission_date);
       form.admission_date = date.toISOString().split('T')[0];
@@ -533,12 +536,15 @@ watch(() => props.initialData, async (newData) => {
     // We'll map these to IDs after academic data is loaded
     if (newData.current_class) {
       form._temp_class_name = newData.current_class;
+      console.log('🔍 Set temp class name:', newData.current_class);
     }
     if (newData.section) {
       form._temp_section_name = newData.section;
+      console.log('🔍 Set temp section name:', newData.section);
     }
     if (newData.academic_year) {
       form._temp_academic_year_name = newData.academic_year;
+      console.log('🔍 Set temp academic year name:', newData.academic_year);
     }
     
     // Student details
@@ -696,6 +702,7 @@ const onClassChange = async (isAutoSelection = false) => {
   // Only mark as user-changed if it's not an auto-selection and not setting form values
   if (!isAutoSelection && !isSettingFormValues.value) {
     userChangedClass.value = true;
+    console.log('🔍 Marked class as user-changed');
   }
   
   form.section_id = '';
@@ -735,6 +742,7 @@ const onSectionChange = () => {
   // Only mark as user-changed if not setting form values
   if (!isSettingFormValues.value) {
     userChangedSection.value = true;
+    console.log('🔍 Marked section as user-changed');
   }
 };
 
@@ -833,13 +841,15 @@ const handleSubmit = async () => {
       admission_type: form.admission_type,
       student: { 
         ...form.student,
-        roll_number: form.roll_number, // Add roll_number to student object
         category: form.category, // Add category to student object
         admission_date: form.admission_date, // Add admission_date to student object
       },
       login: form.login,
       guardian: { ...form.guardian },
     };
+    
+    console.log('🔍 Form submission - roll_number:', form.roll_number);
+    console.log('🔍 Form submission - dataStructure:', dataStructure);
     
     // Use different field names for different APIs
     if (props.isAdmission) {
@@ -899,6 +909,7 @@ const resetForm = () => {
   hasMappedNames.value = false; // Reset mapping flag
   isMappingNames.value = false; // Reset mapping flag
   isSettingFormValues.value = false; // Reset form values flag
+  mappingRetryCount.value = 0; // Reset retry count
   
   Object.assign(form, {
     school_id: user.value?.school_id || '',
@@ -981,16 +992,61 @@ watch([() => form.school_id, () => form.branch_id], async ([newSchoolId, newBran
   }
 }, { immediate: false });
 
+// Watch for initial data changes to reset mapping flags
+watch(() => props.initialData, async (newData) => {
+  if (props.isEditing && newData && Object.keys(newData).length > 0) {
+    console.log('🔍 Initial data changed, resetting mapping flags');
+    hasMappedNames.value = false;
+    isMappingNames.value = false;
+    isSettingFormValues.value = false;
+    userChangedClass.value = false;
+    userChangedSection.value = false;
+    mappingRetryCount.value = 0; // Reset retry count
+    
+    // Wait a bit for the form to be updated with new data
+    await nextTick();
+
+    // If we have a temp class name, force-load academic data for mapping
+    if (form._temp_class_name && form.school_id && form.branch_id) {
+      await loadAcademicData();
+    }
+    
+    // If we have academic data loaded, try mapping again
+    if (classes.value.length > 0 || sections.value.length > 0 || academicYears.value.length > 0) {
+      console.log('🔍 Academic data available, attempting to map names');
+      await mapClassAndSectionNames();
+    }
+  }
+}, { deep: true });
+
 // Track if we've already mapped the names to prevent infinite loops
 const hasMappedNames = ref(false);
 const isMappingNames = ref(false);
 const isSettingFormValues = ref(false);
+const mappingRetryCount = ref(0);
+const maxMappingRetries = 3;
 
 // Watch for academic data changes to map names to IDs in edit mode
 watch([() => classes.value, () => sections.value, () => academicYears.value], async () => {
   if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
     console.log('🔍 Academic data loaded, mapping names to IDs');
+    console.log('🔍 Classes available:', classes.value.length);
+    console.log('🔍 Sections available:', sections.value.length);
+    console.log('🔍 Academic years available:', academicYears.value.length);
     await mapClassAndSectionNames();
+  }
+}, { immediate: false });
+
+// HACK: Additional watcher for form data changes to trigger mapping
+watch([() => form.school_id, () => form.branch_id, () => form._temp_class_name, () => form._temp_section_name], async () => {
+  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && form.school_id && form.branch_id && (form._temp_class_name || form._temp_section_name)) {
+    console.log('🔍 HACK: Form data changed, attempting to map names');
+    // Add a small delay to ensure data is loaded
+    setTimeout(async () => {
+      if (!hasMappedNames.value) {
+        await mapClassAndSectionNames();
+      }
+    }, 500);
   }
 }, { immediate: false });
 
@@ -1002,6 +1058,8 @@ const updateFormWithResponseData = async (data) => {
   form.roll_number = data.roll_number || form.roll_number;
   form.admission_date = data.admission_date || form.admission_date;
   form.category = data.category || form.category;
+  
+  console.log('🔍 Updating form with response data - roll_number:', data.roll_number);
   
   // Update student fields
   if (data.first_name) form.student.first_name = data.first_name;
@@ -1056,12 +1114,48 @@ const updateFormWithResponseData = async (data) => {
 const mapClassAndSectionNames = async () => {
   if (!props.isEditing || hasMappedNames.value || isMappingNames.value) return;
   
+  console.log('🔍 Starting name mapping...');
+  console.log('🔍 Temp class name:', form._temp_class_name);
+  console.log('🔍 Temp section name:', form._temp_section_name);
+  console.log('🔍 Temp academic year name:', form._temp_academic_year_name);
+  console.log('🔍 Available classes:', classes.value.length);
+  console.log('🔍 Available sections:', sections.value.length);
+  console.log('🔍 Available academic years:', academicYears.value.length);
+  
+  // Check if we have the necessary data
+  if (classes.value.length === 0 && academicYears.value.length === 0) {
+    console.log('🔍 No academic data available yet, skipping mapping');
+    return;
+  }
+  
   // Mark as mapping to prevent infinite loops
   isMappingNames.value = true;
   isSettingFormValues.value = true;
   
-  // Map class code/name to class_id (only if user hasn't changed it)
-  if (form._temp_class_name && classes.value.length > 0 && !userChangedClass.value) {
+  // HACK: Force load classes and sections if they're empty
+  if (classes.value.length === 0 && form.school_id && form.branch_id) {
+    console.log('🔍 HACK: Force loading classes...');
+    try {
+      await fetchClasses(form.school_id, form.branch_id);
+      console.log('🔍 HACK: Classes loaded:', classes.value.length);
+    } catch (error) {
+      console.error('❌ HACK: Failed to load classes:', error);
+    }
+  }
+  
+  // Map academic year name to academic_year_id first
+  if (form._temp_academic_year_name && academicYears.value.length > 0) {
+    const yearRecord = academicYears.value.find(year => 
+      year.name === form._temp_academic_year_name
+    );
+    if (yearRecord) {
+      form.academic_year_id = yearRecord.id;
+      console.log('🔍 Set academic_year_id to:', yearRecord.id);
+    }
+  }
+  
+  // Map class code/name to class_id
+  if (form._temp_class_name && classes.value.length > 0) {
     const classRecord = classes.value.find(cls => 
       cls.name === form._temp_class_name || 
       cls.code === form._temp_class_name
@@ -1071,41 +1165,95 @@ const mapClassAndSectionNames = async () => {
       form.class_id = classRecord.id;
       console.log('🔍 Set class_id to:', form.class_id);
       
-      // Only load sections if we don't already have sections for this class
-      const hasSectionsForClass = sections.value.some(sec => sec.class_id === classRecord.id);
-      console.log('🔍 Has sections for class:', hasSectionsForClass);
-      if (!hasSectionsForClass) {
-        try {
-          await loadSectionsByClass(classRecord.id, form.school_id, form.branch_id);
-          console.log('🔍 Loaded sections for class');
-        } catch (error) {
-          console.warn('Failed to load sections for class:', error);
+      // Load sections for this class
+      try {
+        await loadSectionsByClass(classRecord.id, form.school_id, form.branch_id);
+        console.log('🔍 Loaded sections for class:', sections.value.length);
+        
+        // Wait a bit for sections to be fully loaded
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Now map section name to section_id after sections are loaded
+        if (form._temp_section_name && sections.value.length > 0) {
+          console.log('🔍 Attempting to map section name:', form._temp_section_name);
+          const sectionRecord = sections.value.find(sec => 
+            sec.name === form._temp_section_name
+          );
+          console.log('🔍 Found section record:', sectionRecord);
+          if (sectionRecord) {
+            console.log('🔍 Setting section_id to:', sectionRecord.id);
+            form.section_id = sectionRecord.id;
+            console.log('🔍 Set section_id to:', form.section_id);
+          } else {
+            console.log('🔍 No matching section found for:', form._temp_section_name);
+            console.log('🔍 Available sections:', sections.value.map(s => s.name));
+          }
         }
+      } catch (error) {
+        console.warn('Failed to load sections for class:', error);
+      }
+    } else {
+      console.log('🔍 No matching class found for:', form._temp_class_name);
+      console.log('🔍 Available classes:', classes.value.map(c => ({ name: c.name, code: c.code })));
+    }
+  } else if (form._temp_class_name && classes.value.length === 0) {
+    // HACK: If we have temp class name but no classes loaded, try again after a delay
+    console.log('🔍 HACK: Retrying class mapping after delay...');
+    setTimeout(async () => {
+      if (!hasMappedNames.value) {
+        isMappingNames.value = false;
+        isSettingFormValues.value = false;
+        await mapClassAndSectionNames();
+      }
+    }, 1000);
+    return;
+  }
+  
+  // Check if mapping was successful
+  const mappingSuccessful = form.class_id || form.section_id || form.academic_year_id;
+  
+  if (!mappingSuccessful && mappingRetryCount.value < maxMappingRetries) {
+    console.log('🔍 Mapping incomplete, will retry...');
+    mappingRetryCount.value++;
+    isMappingNames.value = false;
+    isSettingFormValues.value = false;
+    
+    // Retry after a delay
+    setTimeout(async () => {
+      console.log('🔍 Retrying mapping (attempt', mappingRetryCount.value, 'of', maxMappingRetries, ')');
+      await mapClassAndSectionNames();
+    }, 1000);
+    return;
+  }
+  
+  // HACK: If mapping still failed after retries, try direct assignment
+  if (!mappingSuccessful && mappingRetryCount.value >= maxMappingRetries) {
+    console.log('🔍 HACK: Mapping failed after retries, trying direct assignment...');
+    
+    // Try to find class by name in all available classes
+    if (form._temp_class_name && classes.value.length > 0) {
+      const classRecord = classes.value.find(cls => 
+        cls.name === form._temp_class_name || 
+        cls.code === form._temp_class_name ||
+        cls.name.toLowerCase().includes(form._temp_class_name.toLowerCase()) ||
+        cls.code.toLowerCase().includes(form._temp_class_name.toLowerCase())
+      );
+      if (classRecord) {
+        console.log('🔍 HACK: Direct class assignment successful:', classRecord.id);
+        form.class_id = classRecord.id;
       }
     }
-  }
-  
-  // Map section name to section_id (only if user hasn't changed it)
-  if (form._temp_section_name && sections.value.length > 0 && !userChangedSection.value) {
-    console.log('🔍 Attempting to map section name:', form._temp_section_name);
-    const sectionRecord = sections.value.find(sec => 
-      sec.name === form._temp_section_name
-    );
-    console.log('🔍 Found section record:', sectionRecord);
-    if (sectionRecord) {
-      console.log('🔍 Setting section_id to:', sectionRecord.id);
-      form.section_id = sectionRecord.id;
-      console.log('🔍 Set section_id to:', form.section_id);
-    }
-  }
-  
-  // Map academic year name to academic_year_id
-  if (form._temp_academic_year_name && academicYears.value.length > 0) {
-    const yearRecord = academicYears.value.find(year => 
-      year.name === form._temp_academic_year_name
-    );
-    if (yearRecord) {
-      form.academic_year_id = yearRecord.id;
+    
+    // Try to find section by name in all available sections
+    if (form._temp_section_name && sections.value.length > 0) {
+      const sectionRecord = sections.value.find(sec => 
+        sec.name === form._temp_section_name ||
+        sec.name.toLowerCase().includes(form._temp_section_name.toLowerCase())
+      );
+      if (sectionRecord) {
+        console.log('🔍 HACK: Direct section assignment successful:', sectionRecord.id);
+        form.section_id = sectionRecord.id;
+      }
     }
   }
   
@@ -1113,6 +1261,10 @@ const mapClassAndSectionNames = async () => {
   hasMappedNames.value = true;
   isMappingNames.value = false;
   isSettingFormValues.value = false;
+  mappingRetryCount.value = 0; // Reset retry count
+  
+  console.log('🔍 Name mapping completed');
+  console.log('🔍 Final form values - class_id:', form.class_id, 'section_id:', form.section_id, 'academic_year_id:', form.academic_year_id);
 };
 
 // Load schools for super admin
@@ -1149,7 +1301,8 @@ onMounted(async () => {
     // If editing, wait for initial data to be loaded first
     if (props.isEditing) {
       // Wait a bit for the initial data to be populated
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log('🔍 onMounted: After delay, initial data:', props.initialData);
     } else {
       form.branch_id = '';
     }
@@ -1210,7 +1363,29 @@ onMounted(async () => {
     
     // If editing, map class and section names to IDs
     if (props.isEditing && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
-      await mapClassAndSectionNames();
+      console.log('🔍 onMounted: Attempting to map names to IDs');
+      console.log('🔍 onMounted: Temp values - class:', form._temp_class_name, 'section:', form._temp_section_name, 'year:', form._temp_academic_year_name);
+      
+      // Wait a bit more to ensure all data is loaded
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check if we have the necessary data loaded
+      if (classes.value.length > 0 || sections.value.length > 0 || academicYears.value.length > 0) {
+        await mapClassAndSectionNames();
+      } else {
+        console.log('🔍 onMounted: Academic data not yet loaded, will be handled by watcher');
+      }
+      
+      // HACK: Final attempt after a longer delay
+      setTimeout(async () => {
+        if (props.isEditing && !hasMappedNames.value && (form._temp_class_name || form._temp_section_name)) {
+          console.log('🔍 HACK: Final attempt to map names after delay');
+          hasMappedNames.value = false; // Reset flag
+          isMappingNames.value = false; // Reset flag
+          isSettingFormValues.value = false; // Reset flag
+          await mapClassAndSectionNames();
+        }
+      }, 2000);
     }
     
     // Set current academic year if not already set

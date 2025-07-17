@@ -6,26 +6,103 @@ const { logger } = require('../utils/logger');
 // Create a new student
 const createStudent = async (req, res, next) => {
   try {
-    const {
-      admission_number,
-      first_name,
-      last_name,
-      email,
-      phone,
-      academic_year,
-      admission_class,
-      current_class,
-      section,
-      class_id,
-      section_id,
-      parents,
-    } = req.body;
+    console.log('🔍 Create Student Request Body:', JSON.stringify(req.body, null, 2));
+    console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
+
+    // Handle both FormData and JSON formats
+    let studentData = {};
+    let guardianData = {};
+    
+    try {
+      // Check if data is sent as FormData with JSON string
+      if (req.body.studentData) {
+        const parsedData = JSON.parse(req.body.studentData);
+        console.log('🔍 Parsed student data from FormData:', JSON.stringify(parsedData, null, 2));
+        
+        // Extract student data from nested structure
+        if (parsedData.student && typeof parsedData.student === 'object') {
+          studentData = { ...parsedData.student };
+          console.log('🔍 Extracted student data from FormData:', studentData);
+        } else {
+          studentData = { ...parsedData };
+          console.log('🔍 Using parsed data directly:', studentData);
+        }
+        
+        // Extract guardian data
+        if (parsedData.guardian && typeof parsedData.guardian === 'object') {
+          guardianData = { ...parsedData.guardian };
+        }
+        
+        // Extract academic fields from main structure
+        if (parsedData.roll_number) studentData.roll_number = parsedData.roll_number;
+        if (parsedData.admission_date) studentData.admission_date = parsedData.admission_date;
+        if (parsedData.category) studentData.category = parsedData.category;
+        if (parsedData.register_no) studentData.admission_number = parsedData.register_no;
+        
+        // Store class_id and section_id for later processing
+        if (parsedData.class_id) studentData._class_id = parsedData.class_id;
+        if (parsedData.section_id) studentData._section_id = parsedData.section_id;
+        if (parsedData.academic_year_id) studentData._academic_year_id = parsedData.academic_year_id;
+        
+      } else {
+        // Direct nested object (already parsed)
+        if (req.body.student && typeof req.body.student === 'object') {
+          studentData = { ...req.body.student };
+          console.log('🔍 Extracted student data from direct object:', studentData);
+        } else {
+          studentData = { ...req.body };
+          console.log('🔍 Using request body directly:', studentData);
+        }
+        
+        // Extract guardian data
+        if (req.body.guardian && typeof req.body.guardian === 'object') {
+          guardianData = { ...req.body.guardian };
+        }
+        
+        // Extract academic fields from main structure
+        if (req.body.roll_number) studentData.roll_number = req.body.roll_number;
+        if (req.body.admission_date) studentData.admission_date = req.body.admission_date;
+        if (req.body.category) studentData.category = req.body.category;
+        if (req.body.register_no) studentData.admission_number = req.body.register_no;
+        
+        // Store class_id and section_id for later processing
+        if (req.body.class_id) studentData._class_id = req.body.class_id;
+        if (req.body.section_id) studentData._section_id = req.body.section_id;
+        if (req.body.academic_year_id) studentData._academic_year_id = req.body.academic_year_id;
+      }
+    } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      // Fallback to flat structure
+      studentData = { ...req.body };
+      console.log('🔍 Fallback to flat structure:', studentData);
+    }
+
+    // Handle file uploads
+    if (req.files && req.files.student_profile_picture) {
+      studentData.profile_picture = req.files.student_profile_picture[0].filename;
+    }
+
+    // Determine school_id and branch_id based on user role
+    let school_id, branch_id;
+    if (req.user.role === 'super_admin') {
+      school_id = studentData.school_id;
+      branch_id = studentData.branch_id;
+      if (!school_id || !branch_id) {
+        throw new ApiError(400, 'School ID and Branch ID are required for super admin');
+      }
+    } else if (req.user.role === 'school_admin') {
+      school_id = req.user.school_id;
+      branch_id = studentData.branch_id || req.user.branch_id;
+    } else {
+      school_id = req.user.school_id;
+      branch_id = req.user.branch_id;
+    }
 
     // Check if student already exists
     const existingStudent = await Student.findOne({
       where: {
-        admission_number,
-        school_id: req.schoolId,
+        admission_number: studentData.admission_number,
+        school_id: school_id,
       },
     });
 
@@ -33,43 +110,116 @@ const createStudent = async (req, res, next) => {
       throw new ApiError(400, 'Student with this admission number already exists.');
     }
 
-    // Create student record
-    const student = await Student.create({
-      admission_number,
-      first_name,
-      last_name,
-      email,
-      phone,
-      academic_year,
-      admission_class,
-      current_class,
-      section,
-      class_id,
-      section_id,
-      school_id: req.schoolId,
-      created_by: req.user.id,
-    });
-
-    // Create parent records and associations
-    if (parents && parents.length > 0) {
-      for (const parentData of parents) {
-        const parent = await Parent.create({
-          ...parentData,
-          school_id: req.schoolId,
-          created_by: req.user.id,
-        });
-
-        // Link student and parent
-        await StudentParent.create({
-          student_id: student.id,
-          parent_id: parent.id,
-          school_id: req.schoolId,
-          relationship: parentData.relationship || 'father',
-          is_primary: parentData.is_primary || false,
-          is_fee_payer: parentData.is_fee_payer || false,
-          is_emergency_contact: parentData.is_emergency_contact || false,
-        });
+    // Get class and section names from IDs if provided
+    if (studentData._class_id) {
+      try {
+        const classRecord = await Class.findByPk(studentData._class_id);
+        if (classRecord) {
+          studentData.admission_class = classRecord.name;
+          studentData.current_class = classRecord.name;
+          console.log('🔍 Class name resolved:', classRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching class:', error);
       }
+      delete studentData._class_id;
+    }
+    
+    if (studentData._section_id) {
+      try {
+        const sectionRecord = await Section.findByPk(studentData._section_id);
+        if (sectionRecord) {
+          studentData.section = sectionRecord.name;
+          console.log('🔍 Section name resolved:', sectionRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching section:', error);
+      }
+      delete studentData._section_id;
+    }
+    
+    if (studentData._academic_year_id) {
+      try {
+        const yearRecord = await AcademicYear.findByPk(studentData._academic_year_id);
+        if (yearRecord) {
+          studentData.academic_year = yearRecord.name;
+          console.log('🔍 Academic year resolved:', yearRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching academic year:', error);
+      }
+      delete studentData._academic_year_id;
+    }
+
+    // Prepare student data for creation
+    const finalStudentData = {
+      ...studentData,
+      school_id,
+      branch_id,
+      created_by: req.user.id,
+    };
+
+    console.log('🔍 Final student data for creation:', finalStudentData);
+
+    // Create student record
+    const student = await Student.create(finalStudentData);
+
+    // Create guardian/parent record if provided
+    if (guardianData && Object.keys(guardianData).length > 0) {
+      const parentData = {
+        // Set guardian information based on relation
+        guardian_name: guardianData.name,
+        guardian_phone: guardianData.mobile_no,
+        guardian_email: guardianData.email,
+        guardian_relation: guardianData.relation,
+        address: guardianData.address,
+        city: guardianData.city,
+        state: guardianData.state,
+        country: 'India',
+        emergency_contact: guardianData.mobile_no,
+        emergency_relation: guardianData.relation,
+        school_id,
+        branch_id,
+        created_by: req.user.id,
+      };
+
+      // Set father or mother information based on relation
+      if (guardianData.relation === 'father') {
+        parentData.father_name = guardianData.name;
+        parentData.father_phone = guardianData.mobile_no;
+        parentData.father_email = guardianData.email;
+        parentData.father_occupation = guardianData.occupation;
+        parentData.father_qualification = guardianData.education;
+        parentData.father_income = guardianData.income;
+      } else if (guardianData.relation === 'mother') {
+        parentData.mother_name = guardianData.name;
+        parentData.mother_phone = guardianData.mobile_no;
+        parentData.mother_email = guardianData.email;
+        parentData.mother_occupation = guardianData.occupation;
+        parentData.mother_qualification = guardianData.education;
+        parentData.mother_income = guardianData.income;
+      }
+
+      // Always set both father and mother names if provided
+      if (guardianData.father_name) {
+        parentData.father_name = guardianData.father_name;
+      }
+      if (guardianData.mother_name) {
+        parentData.mother_name = guardianData.mother_name;
+      }
+
+      const parent = await Parent.create(parentData);
+
+      // Link student and parent
+      await StudentParent.create({
+        student_id: student.id,
+        parent_id: parent.id,
+        school_id,
+        relationship: guardianData.relation || 'guardian',
+        is_primary: true,
+        is_fee_payer: true,
+        is_emergency_contact: true,
+      });
     }
 
     logger.info(`Student created: ${student.first_name} ${student.last_name} (${student.admission_number})`);
@@ -302,7 +452,7 @@ const updateStudent = async (req, res, next) => {
         }
         
         // Extract academic fields from main structure
-        if (parsedData.roll_number) academicUpdates.roll_number = parsedData.roll_number;
+        if (parsedData.roll_number) studentUpdates.roll_number = parsedData.roll_number;
         if (parsedData.admission_date) academicUpdates.admission_date = parsedData.admission_date;
         if (parsedData.category) academicUpdates.category = parsedData.category;
         if (parsedData.register_no) academicUpdates.admission_number = parsedData.register_no;
@@ -319,7 +469,7 @@ const updateStudent = async (req, res, next) => {
         console.log('🔍 First name from student object:', studentUpdates.first_name);
         
         // Extract academic fields from main structure
-        if (updates.roll_number) academicUpdates.roll_number = updates.roll_number;
+        if (updates.roll_number) studentUpdates.roll_number = updates.roll_number;
         if (updates.admission_date) academicUpdates.admission_date = updates.admission_date;
         if (updates.category) academicUpdates.category = updates.category;
         if (updates.register_no) academicUpdates.admission_number = updates.register_no;
