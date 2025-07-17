@@ -145,12 +145,12 @@ const { login } = useAuth();
 
 // Autofill functions
 function autofillSuperAdmin() {
-  form.email = 'superadmin@example.com';
-  form.password = 'Admin@123';
+  form.email = 'admin@schoolexample.com';
+  form.password = 'admin123';
 }
 function autofillSchoolAdmin() {
-  form.email = 'admin@huda.edu';
-  form.password = 'admin123';
+  form.email = 'admin@demoschool.com';
+  form.password = 'school123';
 }
 
 const isDark = ref(false);

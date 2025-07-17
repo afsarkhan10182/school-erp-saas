@@ -64,11 +64,6 @@ const FeeInvoice = sequelize.define('FeeInvoice', {
     allowNull: false,
     defaultValue: 0.00,
   },
-  late_fee_amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-  },
   total_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
@@ -181,14 +176,6 @@ status: {
   ],
   hooks: {
     beforeCreate: async (invoice) => {
-      // Generate invoice number if not provided
-      if (!invoice.invoice_number) {
-        const year = new Date().getFullYear();
-        const month = String(new Date().getMonth() + 1).padStart(2, '0');
-        const count = await FeeInvoice.count({ where: { school_id: invoice.school_id } });
-        invoice.invoice_number = `INV-${year}${month}-${String(count + 1).padStart(4, '0')}`;
-      }
-      
       // Calculate balance amount
       invoice.balance_amount = invoice.total_amount - invoice.paid_amount;
     },

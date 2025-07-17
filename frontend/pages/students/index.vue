@@ -495,10 +495,22 @@ const onBranchChange = async () => {
   classes.value = [];
   sections.value = [];
   classLoadError.value = '';
-  if (selectedBranch.value) {
-    const result = await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
-    if (!result || result.length === 0) {
-      classLoadError.value = 'No classes found for the selected branch.';
+  
+  console.log('🔍 Loading classes for branch:', selectedBranch.value);
+  const result = await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
+  console.log('🔍 Classes loaded:', result);
+  
+  if (!result || classes.value.length === 0) {
+    classLoadError.value = 'No classes found for the selected branch.';
+    console.log('❌ No classes found for branch');
+  } else {
+    console.log('✅ Classes loaded successfully:', classes.value.length, 'classes');
+    // Auto-select class if there's only one
+    if (classes.value.length === 1) {
+      selectedClass.value = classes.value[0].id;
+      console.log('🔍 Auto-selected single class:', selectedClass.value);
+      // Load sections for the auto-selected class
+      await onClassChange();
     }
   }
 };
@@ -508,7 +520,15 @@ const onClassChange = async () => {
   sections.value = [];
   
   if (selectedClass.value) {
+    console.log('🔍 Loading sections for class:', selectedClass.value);
     await fetchSections(authStore.currentUser?.school_id, selectedBranch.value, selectedClass.value);
+    console.log('🔍 Sections loaded:', sections.value.length, 'sections');
+    
+    // Auto-select section if there's only one
+    if (sections.value.length === 1) {
+      selectedSection.value = sections.value[0].id;
+      console.log('🔍 Auto-selected single section:', selectedSection.value);
+    }
   }
 };
 
@@ -648,6 +668,14 @@ onMounted(async () => {
   // Load branches and academic years for all users
   await fetchBranches(authStore.currentUser?.school_id);
   await fetchAcademicYears(authStore.currentUser?.school_id);
+  
+  // Auto-select branch if there's only one
+  if (branches.value.length === 1) {
+    selectedBranch.value = branches.value[0].id;
+    console.log('🔍 Auto-selected single branch:', selectedBranch.value);
+    // Load classes for the auto-selected branch
+    await onBranchChange();
+  }
 });
 
 // Watcher to reload classes if selectedBranch changes outside of dropdown
@@ -656,5 +684,15 @@ watch(selectedBranch, async (newVal, oldVal) => {
     await onBranchChange();
   }
 });
+
+// Watcher to auto-select branch when branches are loaded
+watch(branches, async (newBranches) => {
+  if (newBranches.length === 1 && !selectedBranch.value) {
+    selectedBranch.value = newBranches[0].id;
+    console.log('🔍 Auto-selected single branch from watcher:', selectedBranch.value);
+    // Load classes for the auto-selected branch
+    await onBranchChange();
+  }
+}, { immediate: true });
 </script>
 

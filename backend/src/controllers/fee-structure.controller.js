@@ -1,4 +1,4 @@
-const { FeeStructure, FeeType } = require('../models');
+const { FeeStructure, FeeType, AcademicYear, Class } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
 
@@ -6,34 +6,53 @@ const { logger } = require('../utils/logger');
 const createFeeStructure = async (req, res, next) => {
   try {
     const {
-      name,
-      academic_year,
-      class_name,
+      academic_year_id,
+      class_id,
       section,
       fee_type_id,
       amount,
-      installment_type,
-      installment_count,
-      due_month,
-      due_day,
-      discount_applicable,
-      discount_amount,
-      discount_type,
-      notes,
+      is_active = true,
     } = req.body;
 
-    // Check if fee structure already exists for this class and fee type
+    // Get academic year details
+    const academicYear = await AcademicYear.findOne({
+      where: {
+        id: academic_year_id,
+      },
+    });
+
+    if (!academicYear) {
+      throw new ApiError(404, 'Academic year not found.');
+    }
+
+    // Get class details
+    const classData = await Class.findOne({
+      where: {
+        id: class_id,
+        school_id: req.schoolId,
+      },
+    });
+
+    if (!classData) {
+      throw new ApiError(404, 'Class not found.');
+    }
+
+    // Check if fee structure already exists for this class, section, and fee type (only active ones)
     const existingFeeStructure = await FeeStructure.findOne({
       where: {
         school_id: req.schoolId,
-        academic_year,
-        class_name,
+        branch_id: req.branchId,
+        academic_year: academicYear.name,
+        class_name: classData.name,
+        section: section || null,
         fee_type_id,
+        is_active: true,
       },
     });
 
     if (existingFeeStructure) {
-      throw new ApiError(400, 'Fee structure already exists for this class and fee type in this academic year.');
+      const sectionText = section ? ` and section ${section}` : '';
+      throw new ApiError(400, `Fee structure already exists for this class${sectionText} and fee type in this academic year.`);
     }
 
     // Verify fee type exists
@@ -41,6 +60,7 @@ const createFeeStructure = async (req, res, next) => {
       where: {
         id: fee_type_id,
         school_id: req.schoolId,
+        branch_id: req.branchId,
         is_active: true,
       },
     });
@@ -50,21 +70,21 @@ const createFeeStructure = async (req, res, next) => {
     }
 
     // Create fee structure
+    const sectionText = section ? ` - ${section}` : '';
     const feeStructure = await FeeStructure.create({
-      name,
-      academic_year,
-      class_name,
-      section,
+      name: `${feeType.name} - ${classData.name}${sectionText} (${academicYear.name})`,
+      academic_year: academicYear.name,
+      class_name: classData.name,
+      section: section || null,
       fee_type_id,
       amount,
-      installment_type,
-      installment_count,
-      due_month,
-      due_day,
-      discount_applicable,
-      discount_amount,
-      discount_type,
-      notes,
+      installment_type: 'one_time',
+      installment_count: 1,
+      due_day: 10,
+      discount_applicable: false,
+      discount_amount: 0.00,
+      discount_type: 'fixed',
+      is_active,
       school_id: req.schoolId,
       branch_id: req.branchId,
       created_by: req.user.id,
@@ -98,6 +118,11 @@ const getFeeStructures = async (req, res, next) => {
       is_active: true,
     };
 
+    // Add branch filter if branch context is set
+    if (req.branchId) {
+      whereClause.branch_id = req.branchId;
+    }
+
     if (academic_year) whereClause.academic_year = academic_year;
     if (class_name) whereClause.class_name = class_name;
     if (fee_type_id) whereClause.fee_type_id = fee_type_id;
@@ -125,11 +150,18 @@ const getFeeStructureById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter if branch context is set
+    if (req.branchId) {
+      whereClause.branch_id = req.branchId;
+    }
+
     const feeStructure = await FeeStructure.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: FeeType,
@@ -153,25 +185,79 @@ const getFeeStructureById = async (req, res, next) => {
 const updateFeeStructure = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const {
+      academic_year_id,
+      class_id,
+      section,
+      fee_type_id,
+      amount,
+      is_active,
+    } = req.body;
+
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter if branch context is set
+    if (req.branchId) {
+      whereClause.branch_id = req.branchId;
+    }
 
     const feeStructure = await FeeStructure.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
     });
 
     if (!feeStructure) {
       throw new ApiError(404, 'Fee structure not found.');
     }
 
+    // Prepare update data
+    const updateData = {
+      amount,
+      is_active,
+      section: section || null,
+      updated_by: req.user.id,
+    };
+
+    // If academic_year_id is provided, get the academic year name
+    if (academic_year_id) {
+      const academicYear = await AcademicYear.findOne({
+        where: {
+          id: academic_year_id,
+        },
+      });
+
+      if (!academicYear) {
+        throw new ApiError(404, 'Academic year not found.');
+      }
+
+      updateData.academic_year = academicYear.name;
+    }
+
+    // If class_id is provided, get the class name
+    if (class_id) {
+      const classData = await Class.findOne({
+        where: {
+          id: class_id,
+          school_id: req.schoolId,
+        },
+      });
+
+      if (!classData) {
+        throw new ApiError(404, 'Class not found.');
+      }
+
+      updateData.class_name = classData.name;
+    }
+
     // If fee_type_id is being updated, verify it exists
-    if (updates.fee_type_id && updates.fee_type_id !== feeStructure.fee_type_id) {
+    if (fee_type_id && fee_type_id !== feeStructure.fee_type_id) {
       const feeType = await FeeType.findOne({
         where: {
-          id: updates.fee_type_id,
+          id: fee_type_id,
           school_id: req.schoolId,
+          branch_id: req.branchId,
           is_active: true,
         },
       });
@@ -179,12 +265,47 @@ const updateFeeStructure = async (req, res, next) => {
       if (!feeType) {
         throw new ApiError(404, 'Fee type not found.');
       }
+
+      updateData.fee_type_id = fee_type_id;
     }
 
-    await feeStructure.update({
-      ...updates,
-      updated_by: req.user.id,
-    });
+    // Check for duplicate fee structure if class, section, or academic year is being updated
+    const newAcademicYear = updateData.academic_year || feeStructure.academic_year;
+    const newClassName = updateData.class_name || feeStructure.class_name;
+    const newSection = updateData.section || feeStructure.section;
+    const newFeeTypeId = updateData.fee_type_id || feeStructure.fee_type_id;
+
+    if (updateData.academic_year || updateData.class_name || updateData.section || updateData.fee_type_id) {
+      const existingFeeStructure = await FeeStructure.findOne({
+        where: {
+          school_id: req.schoolId,
+          branch_id: req.branchId,
+          academic_year: newAcademicYear,
+          class_name: newClassName,
+          section: newSection,
+          fee_type_id: newFeeTypeId,
+          is_active: true,
+          id: { [require('sequelize').Op.ne]: id }, // Exclude current record
+        },
+      });
+
+      if (existingFeeStructure) {
+        const sectionText = newSection ? ` and section ${newSection}` : '';
+        throw new ApiError(400, `Fee structure already exists for this class${sectionText} and fee type in this academic year.`);
+      }
+    }
+
+    // Update the name if class, section, or fee type is being updated
+    if (updateData.class_name || updateData.section || updateData.fee_type_id) {
+      const feeType = await FeeType.findByPk(updateData.fee_type_id || feeStructure.fee_type_id);
+      const sectionText = updateData.section || feeStructure.section ? ` - ${updateData.section || feeStructure.section}` : '';
+      const className = updateData.class_name || feeStructure.class_name;
+      const academicYear = updateData.academic_year || feeStructure.academic_year;
+      
+      updateData.name = `${feeType.name} - ${className}${sectionText} (${academicYear})`;
+    }
+
+    await feeStructure.update(updateData);
 
     const updatedFeeStructure = await FeeStructure.findByPk(feeStructure.id, {
       include: [
@@ -208,11 +329,18 @@ const deleteFeeStructure = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter if branch context is set
+    if (req.branchId) {
+      whereClause.branch_id = req.branchId;
+    }
+
     const feeStructure = await FeeStructure.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
     });
 
     if (!feeStructure) {
@@ -260,66 +388,62 @@ const cloneFeeStructure = async (req, res, next) => {
     });
 
     if (!originalStructure) {
-      throw new ApiError(404, 'Fee structure not found');
+      throw new ApiError(404, 'Fee structure not found.');
     }
 
-    const clonedStructures = [];
-
-    if (clone_to_multiple_classes && target_classes.length > 0) {
-      // Clone to multiple classes
-      for (const targetClass of target_classes) {
-        const newStructure = await FeeStructure.create({
-          name: `${originalStructure.name} - ${targetClass}`,
-          academic_year: new_academic_year || originalStructure.academic_year,
-          class_name: targetClass,
-          section: new_section || originalStructure.section,
-          fee_type_id: originalStructure.fee_type_id,
-          amount: originalStructure.amount,
-          installment_type: originalStructure.installment_type,
-          installment_count: originalStructure.installment_count,
-          due_month: originalStructure.due_month,
-          due_day: originalStructure.due_day,
-          discount_applicable: originalStructure.discount_applicable,
-          discount_amount: originalStructure.discount_amount,
-          discount_type: originalStructure.discount_type,
-          notes: `Cloned from ${originalStructure.name}`,
-          school_id: req.schoolId,
-          branch_id: req.branchId,
-          created_by: req.user.id,
-        });
-
-        clonedStructures.push(newStructure);
-      }
-    } else {
-      // Clone to single class
-      const newStructure = await FeeStructure.create({
-        name: new_name || `${originalStructure.name} (Copy)`,
-        academic_year: new_academic_year || originalStructure.academic_year,
-        class_name: new_class_name || originalStructure.class_name,
-        section: new_section || originalStructure.section,
-        fee_type_id: originalStructure.fee_type_id,
-        amount: originalStructure.amount,
-        installment_type: originalStructure.installment_type,
-        installment_count: originalStructure.installment_count,
-        due_month: originalStructure.due_month,
-        due_day: originalStructure.due_day,
-        discount_applicable: originalStructure.discount_applicable,
-        discount_amount: originalStructure.discount_amount,
-        discount_type: originalStructure.discount_type,
-        notes: `Cloned from ${originalStructure.name}`,
+    // Check if fee structure already exists for the new combination (only active ones)
+    const newAcademicYear = new_academic_year || originalStructure.academic_year;
+    const newClassName = new_class_name || originalStructure.class_name;
+    
+    const existingFeeStructure = await FeeStructure.findOne({
+      where: {
         school_id: req.schoolId,
         branch_id: req.branchId,
-        created_by: req.user.id,
-      });
+        academic_year: newAcademicYear,
+        class_name: newClassName,
+        fee_type_id: originalStructure.fee_type_id,
+        is_active: true,
+      },
+    });
 
-      clonedStructures.push(newStructure);
+    if (existingFeeStructure) {
+      throw new ApiError(400, 'Fee structure already exists for this class and fee type in this academic year.');
     }
 
-    return res.status(201).json({
-      success: true,
-      message: `Fee structure cloned successfully. ${clonedStructures.length} structure(s) created.`,
-      data: clonedStructures,
+    // Create cloned fee structure
+    const clonedStructure = await FeeStructure.create({
+      name: new_name || `${originalStructure.name} (Clone)`,
+      academic_year: new_academic_year || originalStructure.academic_year,
+      class_name: new_class_name || originalStructure.class_name,
+      section: new_section || originalStructure.section,
+      fee_type_id: originalStructure.fee_type_id,
+      amount: originalStructure.amount,
+      installment_type: originalStructure.installment_type,
+      installment_count: originalStructure.installment_count,
+      due_month: originalStructure.due_month,
+      due_day: originalStructure.due_day,
+      discount_applicable: originalStructure.discount_applicable,
+      discount_amount: originalStructure.discount_amount,
+      discount_type: originalStructure.discount_type,
+      notes: originalStructure.notes,
+      is_active: true,
+      school_id: req.schoolId,
+      branch_id: req.branchId,
+      created_by: req.user.id,
     });
+
+    // Include fee type in response
+    const clonedStructureWithType = await FeeStructure.findByPk(clonedStructure.id, {
+      include: [
+        {
+          model: FeeType,
+          as: 'feeType',
+        },
+      ],
+    });
+
+    logger.info(`Fee structure cloned: ${clonedStructure.name} - ${clonedStructure.class_name} (${clonedStructure.academic_year})`);
+    return res.status(201).json({ success: true, data: clonedStructureWithType });
   } catch (error) {
     logger.error('Error cloning fee structure:', error);
     return next(error);

@@ -24,9 +24,19 @@ const generateInvoices = async (req, res, next) => {
     const studentFilter = {
       school_id: req.schoolId,
       academic_year,
-      current_class: class_name,
       status: 'active',
     };
+
+    // Handle class name matching - try both full name and code
+    if (class_name) {
+      // Extract the class code from the full name (e.g., "Class I" -> "I")
+      const classCode = class_name.replace(/^Class\s+/i, '').trim();
+      
+      // Try to match students with either the full class name or the class code
+      studentFilter.current_class = {
+        [Op.or]: [class_name, classCode]
+      };
+    }
 
     if (section) studentFilter.section = section;
     if (student_ids && student_ids.length > 0) studentFilter.id = { [Op.in]: student_ids };
@@ -36,8 +46,31 @@ const generateInvoices = async (req, res, next) => {
       where: studentFilter,
     });
 
+    // Debug logging
+    logger.debug('Fee invoice generation - Student filter:', {
+      filter: studentFilter,
+      studentsFound: students.length,
+      class_name: class_name,
+      section: section,
+      academic_year: academic_year
+    });
+
     if (students.length === 0) {
-      throw new ApiError(404, 'No active students found for the specified criteria');
+      // Try to find students with similar criteria for debugging
+      const similarStudents = await Student.findAll({
+        where: {
+          school_id: req.schoolId,
+          academic_year,
+          status: 'active',
+          current_class: { [Op.like]: `%${class_name?.replace(/^Class\s+/i, '').trim() || ''}%` }
+        },
+        attributes: ['id', 'first_name', 'last_name', 'current_class', 'section', 'academic_year'],
+        limit: 5
+      });
+
+      logger.debug('Similar students found for debugging:', similarStudents);
+
+      throw new ApiError(404, `No active students found for the specified criteria. Found ${similarStudents.length} students with similar criteria.`);
     }
 
     // Build fee structure filter
@@ -103,24 +136,76 @@ const generateInvoices = async (req, res, next) => {
             }
           }
 
-          // Apply tax if applicable
+          // Apply tax if applicable (default to no tax for minimal fee types)
           if (feeStructure.feeType.tax_applicable) {
             const taxableAmount = baseAmount - discountAmount;
-            taxAmount = (taxableAmount * parseFloat(feeStructure.feeType.tax_percentage)) / 100;
+            taxAmount = (taxableAmount * parseFloat(feeStructure.feeType.tax_percentage || 0)) / 100;
           }
 
           const totalAmount = baseAmount - discountAmount + taxAmount;
 
           // Calculate due date
-          let calculatedDueDate = due_date;
+          let calculatedDueDate = null;
+          
+          // Check if due_date is provided and valid
+          if (due_date && due_date.trim() !== '') {
+            calculatedDueDate = new Date(due_date);
+            // Validate the date
+            if (isNaN(calculatedDueDate.getTime())) {
+              calculatedDueDate = null; // Invalid date, will use fallback
+            }
+          }
+          
+          // If no valid due date provided, calculate based on fee structure or default
           if (!calculatedDueDate) {
             const today = new Date();
             calculatedDueDate = new Date(today);
-            calculatedDueDate.setDate(today.getDate() + feeStructure.feeType.due_date_days);
+            
+            // Try to get due days from fee type settings first, then fee structure, then default
+            let dueDays = 30; // Default fallback
+            
+            // Check if fee type has due_date_days configured
+            if (feeStructure.feeType.due_date_days) {
+              dueDays = feeStructure.feeType.due_date_days;
+            }
+            
+            // Check if fee structure has due_day configured (for monthly due dates)
+            if (feeStructure.due_day) {
+              // Calculate due date based on due_day of current month
+              const currentMonth = today.getMonth();
+              const currentYear = today.getFullYear();
+              calculatedDueDate = new Date(currentYear, currentMonth, feeStructure.due_day);
+              
+              // If the due day has passed this month, set it to next month
+              if (calculatedDueDate < today) {
+                calculatedDueDate = new Date(currentYear, currentMonth + 1, feeStructure.due_day);
+              }
+            } else {
+              // Use simple X-day calculation based on fee type settings
+              calculatedDueDate.setDate(today.getDate() + dueDays);
+            }
+            
+            // Log the due date calculation for debugging
+            logger.debug('Due date calculation:', {
+              student_id: student.id,
+              fee_type: feeStructure.feeType.name,
+              provided_due_date: due_date,
+              calculated_due_date: calculatedDueDate.toISOString().split('T')[0],
+              due_days: dueDays,
+              fee_structure_due_day: feeStructure.due_day,
+              fee_type_due_date_days: feeStructure.feeType.due_date_days
+            });
           }
+
+          // Generate invoice number
+          const year = new Date().getFullYear();
+          const month = String(new Date().getMonth() + 1).padStart(2, '0');
+          const count = await FeeInvoice.count({ where: { school_id: req.schoolId } });
+          const invoiceNumber = `INV-${year}${month}-${String(count + 1).padStart(4, '0')}`;
 
           // Create invoice
           const invoice = await FeeInvoice.create({
+            invoice_number: invoiceNumber,
             student_id: student.id,
             fee_structure_id: feeStructure.id,
             academic_year,
@@ -360,7 +445,6 @@ const applyLateFees = async (req, res, next) => {
         message: 'Late fees applied successfully',
         data: {
           invoice_id: invoice.id,
-          late_fee_amount: lateFeeAmount,
           new_total_amount: newTotalAmount,
           new_balance_amount: newBalanceAmount
         }
@@ -418,6 +502,7 @@ const recordPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
+      amount,
       payment_amount,
       payment_method = 'cash',
       payment_date,
@@ -425,7 +510,10 @@ const recordPayment = async (req, res, next) => {
       notes,
     } = req.body;
 
-    if (!payment_amount || payment_amount <= 0) {
+    // Support both 'amount' and 'payment_amount' for backward compatibility
+    const paymentAmount = amount || payment_amount;
+
+    if (!paymentAmount || paymentAmount <= 0) {
       throw new ApiError(400, 'Valid payment amount is required');
     }
 
@@ -448,7 +536,7 @@ const recordPayment = async (req, res, next) => {
       throw new ApiError(400, 'Cannot record payment for cancelled invoice');
     }
 
-    const newPaidAmount = parseFloat(invoice.paid_amount) + parseFloat(payment_amount);
+    const newPaidAmount = parseFloat(invoice.paid_amount) + parseFloat(paymentAmount);
 
     if (newPaidAmount > parseFloat(invoice.total_amount)) {
       throw new ApiError(400, 'Payment amount exceeds invoice total');
@@ -464,14 +552,14 @@ const recordPayment = async (req, res, next) => {
 
     // TODO: Create payment record in separate payments table (future enhancement)
     
-    logger.info(`Payment recorded: ${payment_amount} for invoice ${invoice.invoice_number}`);
+    logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number}`);
 
     return res.status(200).json({
       success: true,
       message: 'Payment recorded successfully',
       data: {
         invoice_id: invoice.id,
-        payment_amount: parseFloat(payment_amount),
+        payment_amount: parseFloat(paymentAmount),
         new_paid_amount: newPaidAmount,
         remaining_balance: parseFloat(invoice.total_amount) - newPaidAmount,
         status: invoice.status,
@@ -1044,7 +1132,6 @@ const getFeeStats = async (req, res, next) => {
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('late_fee_amount')), 'total_late_fees'],
       ],
       raw: true,
     });
@@ -1217,7 +1304,6 @@ const getStudentFeeLedger = async (req, res, next) => {
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('late_fee_amount')), 'total_late_fees'],
       ],
       raw: true,
     });

@@ -66,6 +66,29 @@ const FeeType = sequelize.define('FeeType', {
       key: 'id',
     },
   },
+  due_date_days: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 30,
+    validate: {
+      min: { args: [1], msg: 'Due date days must be at least 1' },
+      max: { args: [365], msg: 'Due date days cannot exceed 365' },
+    },
+  },
+  tax_applicable: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+  tax_percentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+    validate: {
+      min: { args: [0], msg: 'Tax percentage cannot be negative' },
+      max: { args: [100], msg: 'Tax percentage cannot exceed 100%' },
+    },
+  },
 }, {
   tableName: 'fee_types',
   timestamps: true,
@@ -75,8 +98,6 @@ const FeeType = sequelize.define('FeeType', {
     { fields: ['school_id'] },
     { fields: ['category'] },
     { fields: ['is_active'] },
-    { fields: ['is_mandatory'] },
-    { fields: ['sort_order'] },
   ],
   hooks: {
     afterCreate: async (feeType) => {

@@ -2,8 +2,11 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
-      <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Types</h1>
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Management</h1>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Manage fee types for your institution</p>
+        </div>
         <button
           @click="openCreateModal"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
@@ -14,7 +17,7 @@
       </div>
 
       <!-- Fee Types List -->
-      <div class="mt-8">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div v-if="isLoading" class="p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee types...</p>
@@ -23,46 +26,56 @@
         <div v-else-if="feeTypes.length === 0" class="p-8 text-center">
           <BanknoteIcon class="mx-auto h-12 w-12 text-gray-400" />
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">No fee types found.</p>
+          <button
+            @click="openCreateModal"
+            class="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200 dark:text-indigo-400 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40"
+          >
+            <PlusIcon class="h-4 w-4 mr-2" />
+            Create your first fee type
+          </button>
         </div>
 
-        <div v-else class="shadow overflow-hidden border-b border-gray-200 dark:border-gray-700 sm:rounded-lg">
+        <div v-else class="overflow-hidden">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="feeType in feeTypes" :key="feeType.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {{ feeType.name }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ feeType.code }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  <span class="capitalize">{{ feeType.category }}</span>
-                </td>
-                
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr v-for="feeType in feeTypes" :key="feeType.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': feeType.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': !feeType.is_active,
-                    }"
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  >
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ feeType.name }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ feeType.code }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
+                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': feeType.category === 'academic',
+                    'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400': feeType.category === 'transport',
+                    'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400': feeType.category === 'hostel',
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400': feeType.category === 'other'
+                  }">
+                    {{ feeType.category }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
+                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': feeType.is_active,
+                    'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400': !feeType.is_active
+                  }">
                     {{ feeType.is_active ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
                     @click="editFeeType(feeType)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4"
                   >
                     Edit
                   </button>
@@ -82,7 +95,7 @@
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {{ isEditing ? 'Edit Fee Type' : 'Create Fee Type' }}
@@ -98,7 +111,10 @@
                   <select
                     v-model="selectedSchoolId"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    :class="[
+                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                      validationErrors.school_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    ]"
                     @change="onSchoolChange"
                   >
                     <option value="">Select a school first</option>
@@ -106,6 +122,7 @@
                       {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
                     </option>
                   </select>
+                  <div v-if="validationErrors.school_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.school_id }}</div>
                 </div>
                 
                 <!-- Branch Selector for Super Admin -->
@@ -114,113 +131,126 @@
                   <select
                     v-model="selectedBranchId"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    :class="[
+                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                      validationErrors.branch_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    ]"
                   >
                     <option value="">Select a branch</option>
                     <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                       {{ branch.name }}
                     </option>
                   </select>
+                  <div v-if="validationErrors.branch_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.branch_id }}</div>
                 </div>
                 
-                <div v-if="!selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
+                <div v-if="!selectedSchoolId && !validationErrors.school_id" class="text-xs text-blue-600 dark:text-blue-400">
                   ⚠️ Please select a school before creating the fee type
                 </div>
-                <div v-if="selectedSchoolId && !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                <div v-if="selectedSchoolId && !selectedBranchId && !validationErrors.branch_id" class="text-xs text-blue-600 dark:text-blue-400">
                   ⚠️ Please select a branch before creating the fee type
                 </div>
               </div>
             </div>
 
             <!-- Branch Selector for School Admin -->
-            <div v-if="user?.role === 'school_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select Branch Context</h4>
+            <div v-if="user?.role === 'school_admin'" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                📍 {{ isEditing ? 'Branch Context (Read-only)' : 'Select Branch Context' }}
+              </h4>
               <div class="space-y-3">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
                   <select
                     v-model="selectedBranchId"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    :required="!isEditing"
+                    :disabled="isEditing"
+                    :class="[
+                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                      validationErrors.branch_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600',
+                      isEditing ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : ''
+                    ]"
                   >
                     <option value="">Select a branch</option>
                     <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                       {{ branch.name }}
                     </option>
                   </select>
+                  <div v-if="validationErrors.branch_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.branch_id }}</div>
                 </div>
-                <div v-if="!selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                <div v-if="!selectedBranchId && !validationErrors.branch_id && !isEditing" class="text-xs text-blue-600 dark:text-blue-400">
                   ⚠️ Please select a branch before creating the fee type
                 </div>
+                <div v-if="isEditing" class="text-xs text-blue-600 dark:text-blue-400">
+                  ℹ️ Branch cannot be changed when editing a fee type
+                </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Basic Information -->
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
-                  <input
-                    v-model="form.name"
-                    type="text"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter fee type name"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code *</label>
-                  <input
-                    v-model="form.code"
-                    type="text"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., TUITION, TRANSPORT, HOSTEL"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category *</label>
-                  <select
-                    v-model="form.category"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="academic">Academic</option>
-                    <option value="transport">Transport</option>
-                    <option value="hostel">Hostel</option>
-                    <option value="library">Library</option>
-                    <option value="laboratory">Laboratory</option>
-                    <option value="sports">Sports</option>
-                    <option value="examination">Examination</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                
-              </div>
-
-              <!-- Settings -->
-              <div class="space-y-4">
-                
-
-                
-
-                
-              </div>
+            <!-- Validation Errors Display -->
+            <div v-if="validationErrors.general" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div class="text-red-800 text-sm">{{ validationErrors.general }}</div>
             </div>
 
-            <!-- Status -->
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <label class="flex items-center">
+            <!-- Fee Type Form -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                <input
+                  v-model="form.name"
+                  type="text"
+                  required
+                  :class="[
+                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                    validationErrors.name ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  ]"
+                  placeholder="Enter fee type name"
+                />
+                <div v-if="validationErrors.name" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.name }}</div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code *</label>
+                <input
+                  v-model="form.code"
+                  type="text"
+                  required
+                  :class="[
+                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                    validationErrors.code ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  ]"
+                  placeholder="e.g., TUITION, TRANSPORT, HOSTEL"
+                />
+                <div v-if="validationErrors.code" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.code }}</div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
+                <select
+                  v-model="form.category"
+                  required
+                  :class="[
+                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
+                    validationErrors.category ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  ]"
+                >
+                  <option value="academic">Academic</option>
+                  <option value="transport">Transport</option>
+                  <option value="hostel">Hostel</option>
+                  <option value="other">Other</option>
+                </select>
+                <div v-if="validationErrors.category" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.category }}</div>
+              </div>
+
+              <div class="flex items-center">
                 <input
                   v-model="form.is_active"
                   type="checkbox"
-                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
-              </label>
+                <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
+              </div>
+              <div v-if="validationErrors.is_active" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.is_active }}</div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4">
@@ -233,7 +263,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId))"
+                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId)) || (user?.role === 'school_admin' && !isEditing && !selectedBranchId)"
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
@@ -251,10 +281,12 @@ import { ref, onMounted } from 'vue';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useToast } from '~/composables/useToast';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // Get auth context
 const { user } = useAuth();
+const { showSuccess, showError } = useToast();
 
 const feeTypes = ref([]);
 const isLoading = ref(false);
@@ -279,6 +311,9 @@ const form = ref({
   is_active: true
 });
 
+// Add validation errors state
+const validationErrors = ref({});
+
 const resetForm = () => {
   form.value = {
     name: '',
@@ -287,6 +322,9 @@ const resetForm = () => {
     is_active: true
   };
   selectedSchoolId.value = '';
+  selectedBranchId.value = '';
+  // Clear validation errors
+  validationErrors.value = {};
 };
 
 // Fetch schools for super admin
@@ -294,25 +332,18 @@ const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
   
   try {
-
     const response = await apiClient.schools.getAll();
-
     
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
-      // API returns schools array directly
       availableSchools.value = response.data.schools;
     } else if (response.data?.items) {
-      // Fallback for paginated response
       availableSchools.value = response.data.items;
     } else if (response.data) {
-      // Direct array response
       availableSchools.value = response.data;
     } else {
       availableSchools.value = [];
     }
-    
-
   } catch (error) {
     console.error('❌ Error fetching schools:', error);
     availableSchools.value = [];
@@ -324,11 +355,29 @@ const onSchoolChange = async () => {
   selectedBranchId.value = ''; // Reset branch selection
   if (selectedSchoolId.value) {
     try {
+      console.log('[FeeTypes] Fetching branches for school:', selectedSchoolId.value);
       const response = await fetchBranches(selectedSchoolId.value);
-      availableBranches.value = response.data || [];
+      console.log('[FeeTypes] Branches response for school:', response);
+      
+      // Extract branches from response
+      if (response.success && response.data) {
+        if (response.data.branches) {
+          availableBranches.value = response.data.branches;
+        } else if (Array.isArray(response.data)) {
+          availableBranches.value = response.data;
+        } else {
+          availableBranches.value = [];
+        }
+      } else {
+        availableBranches.value = [];
+      }
+      
+      console.log('[FeeTypes] Available branches for school:', availableBranches.value);
+      
       // Auto-select if only one branch
       if (availableBranches.value.length === 1) {
         selectedBranchId.value = availableBranches.value[0].id;
+        console.log('[FeeTypes] Auto-selected branch:', selectedBranchId.value);
       }
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -344,15 +393,40 @@ const onSchoolChange = async () => {
 
 // Fetch branches for school admin
 const fetchBranchesForSchoolAdmin = async () => {
-  if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
+  console.log('[FeeTypes] User data:', user.value);
+  console.log('[FeeTypes] User role:', user.value?.role);
+  console.log('[FeeTypes] User school_id:', user.value?.school_id);
+  console.log('[FeeTypes] User branch_id:', user.value?.branch_id);
+  
+  if (user.value?.role !== 'school_admin' || !user.value?.school_id) {
+    console.log('[FeeTypes] Skipping branch fetch - not school admin or no school_id');
+    return;
+  }
   
   try {
+    console.log('[FeeTypes] Fetching branches for school admin, school_id:', user.value.school_id);
     const response = await fetchBranches(user.value.school_id);
-    console.log('🔍 Branches response:', response);
-    availableBranches.value = response.data || [];
+    console.log('[FeeTypes] Branches response:', response);
+    
+    // Extract branches from response
+    if (response.success && response.data) {
+      if (response.data.branches) {
+        availableBranches.value = response.data.branches;
+      } else if (Array.isArray(response.data)) {
+        availableBranches.value = response.data;
+      } else {
+        availableBranches.value = [];
+      }
+    } else {
+      availableBranches.value = [];
+    }
+    
+    console.log('[FeeTypes] Available branches:', availableBranches.value);
+    
     // Auto-select if only one branch
     if (availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
+      console.log('[FeeTypes] Auto-selected branch:', selectedBranchId.value);
     }
   } catch (error) {
     console.error('Error fetching branches for school admin:', error);
@@ -377,18 +451,25 @@ const fetchFeeTypes = async () => {
 };
 
 const openCreateModal = () => {
+  console.log('[FeeTypes] Opening create modal');
+  console.log('[FeeTypes] User data in modal:', user.value);
+  console.log('[FeeTypes] User role in modal:', user.value?.role);
+  console.log('[FeeTypes] Available schools:', availableSchools.value);
+  console.log('[FeeTypes] Available branches:', availableBranches.value);
+  
   resetForm();
   isEditing.value = false;
   showModal.value = true;
   
   // Load schools for super admin if not already loaded
   if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
+    console.log('[FeeTypes] Loading schools for super admin in modal');
     fetchSchools();
   }
 
   // Load branches for school admin if not already loaded
   if (user.value?.role === 'school_admin' && user.value?.school_id && availableBranches.value.length === 0) {
-    // Fetch branches for school admin's school directly
+    console.log('[FeeTypes] Loading branches for school admin in modal');
     fetchBranchesForSchoolAdmin();
   }
 };
@@ -403,67 +484,67 @@ const editFeeType = (feeType) => {
   editingId.value = feeType.id;
   isEditing.value = true;
   showModal.value = true;
+  
+  // Set the branch ID for editing (so it's passed to the API)
+  if (feeType.branch_id) {
+    selectedBranchId.value = feeType.branch_id;
+  }
 };
 
 const closeModal = () => {
   showModal.value = false;
   resetForm();
   editingId.value = null;
+  // Clear branch selection when closing modal
+  selectedBranchId.value = '';
 };
 
 const saveFeeType = async () => {
   isSubmitting.value = true;
+  // Clear previous validation errors
+  validationErrors.value = {};
+  
   try {
-    const payload = {
-      name: form.value.name,
-      code: form.value.code,
-      category: form.value.category,
-      is_active: form.value.is_active
+    const feeTypeData = {
+      ...form.value,
+      // Only send school_id for super admin
+      ...(user.value?.role === 'super_admin' && { school_id: selectedSchoolId.value }),
+      // Send branch_id if selected or available
+      ...(selectedBranchId.value && { branch_id: selectedBranchId.value })
     };
 
-    // Add school_id and branch_id for super admin users
-    if (user.value?.role === 'super_admin') {
-      if (isEditing.value) {
-        // For editing, use the school_id from the existing fee type
-        // This should be handled by the backend based on the fee type's existing school_id
-      } else {
-        // For creating, use the selected school and branch
-        if (selectedSchoolId.value) {
-          payload.school_id = selectedSchoolId.value;
-        } else {
-          console.error('School ID is required for super admin');
-          return;
-        }
-        if (selectedBranchId.value) {
-          payload.branch_id = selectedBranchId.value;
-        } else {
-          console.error('Branch ID is required for super admin');
-          return;
-        }
-      }
-    } else if (user.value?.role === 'school_admin') {
-      // For school admin, add their school_id and the selected branch_id
-      payload.school_id = user.value.school_id;
-      if (selectedBranchId.value) {
-        payload.branch_id = selectedBranchId.value;
-      } else {
-        console.error('Branch ID is required for school admin');
-        return;
-      }
+    // For editing, ensure branch_id is always sent if we have it
+    if (isEditing.value && selectedBranchId.value) {
+      feeTypeData.branch_id = selectedBranchId.value;
     }
-
-
 
     if (isEditing.value) {
-      await apiClient.feeTypes.update(editingId.value, payload);
+      await apiClient.feeTypes.update(editingId.value, feeTypeData);
     } else {
-      await apiClient.feeTypes.create(payload);
+      await apiClient.feeTypes.create(feeTypeData);
     }
 
-    closeModal();
     await fetchFeeTypes();
+    closeModal();
+    
+    // Show success message
+    showSuccess(`Fee type ${isEditing.value ? 'updated' : 'created'} successfully!`);
   } catch (error) {
     console.error('Error saving fee type:', error);
+    
+    // Handle validation errors from backend
+    if (error.response?.data?.errors) {
+      validationErrors.value = error.response.data.errors;
+    } else if (error.response?.data?.message) {
+      // Handle single error message
+      validationErrors.value = { general: error.response.data.message };
+    } else {
+      // Handle generic error
+      validationErrors.value = { general: 'An error occurred while saving the fee type' };
+    }
+    
+    // Show error toast
+    showError('Failed to save fee type. Please check the form for errors.');
   } finally {
     isSubmitting.value = false;
   }
@@ -481,17 +562,25 @@ const deleteFeeType = async (id) => {
 };
 
 onMounted(async () => {
+  console.log('[FeeTypes] Component mounted');
+  console.log('[FeeTypes] User data on mount:', user.value);
+  console.log('[FeeTypes] User role on mount:', user.value?.role);
+  console.log('[FeeTypes] User school_id on mount:', user.value?.school_id);
+  
   // Load schools for super admin on component mount
   if (user.value?.role === 'super_admin') {
+    console.log('[FeeTypes] Loading schools for super admin');
     await fetchSchools();
   }
   
   // Load branches for school admin on component mount
   if (user.value?.role === 'school_admin') {
+    console.log('[FeeTypes] Loading branches for school admin');
     await fetchBranchesForSchoolAdmin();
   }
   
   // Load fee types
+  console.log('[FeeTypes] Loading fee types');
   await fetchFeeTypes();
 });
 </script>

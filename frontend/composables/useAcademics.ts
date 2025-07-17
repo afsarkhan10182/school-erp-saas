@@ -70,16 +70,21 @@ export function useAcademics() {
       if (schoolId) params.append('school_id', schoolId);
       if (branchId) params.append('branch_id', branchId);
       
+      console.log('🔍 Fetching classes with params:', params.toString());
       const response = await apiClient.classes.getDropdown(params.toString());
+      console.log('🔍 Classes API response:', response);
+      
       if (response.success) {
         classes.value = response.data || [];
+        console.log('✅ Classes loaded:', classes.value.length, 'classes');
         return response.data;
       } else {
         error.value = response.message || 'Failed to fetch classes.';
+        console.error('❌ Classes API error:', response.message);
         return [];
       }
     } catch (e) {
-      console.error('Error fetching classes:', e);
+      console.error('❌ Error fetching classes:', e);
       error.value = 'Network error while fetching classes.';
       return [];
     } finally {

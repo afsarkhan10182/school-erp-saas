@@ -15,18 +15,29 @@ export function useBranches() {
       const response = await apiClient.branches.getAll(schoolId);
       console.log('[useBranches] API response:', response);
       if (response.success) {
-        // Handle different response structures - some endpoints return 'branches', others 'items'
+        // Handle different response structures
         const responseData = response.data as any;
-        branches.value = responseData?.branches || responseData?.items || responseData || [];
+        if (responseData?.branches) {
+          // Backend returns { branches: [...], pagination: {...} }
+          branches.value = responseData.branches;
+        } else if (responseData?.items) {
+          // Fallback for paginated response
+          branches.value = responseData.items;
+        } else if (Array.isArray(responseData)) {
+          // Direct array response
+          branches.value = responseData;
+        } else {
+          branches.value = [];
+        }
         console.log('[useBranches] Set branches array:', branches.value);
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }
-      return response; // <--- ADDED THIS LINE
+      return response;
     } catch (e) {
       console.error('Error fetching branches:', e);
       error.value = 'Network error.';
-      return { success: false, message: 'Network error.' }; // <--- ADDED THIS LINE for error case
+      return { success: false, message: 'Network error.' };
     } finally {
       loading.value = false;
     }
@@ -39,9 +50,20 @@ export function useBranches() {
     try {
       const response = await apiClient.branches.getAll(undefined, params);
       if (response.success) {
-        // Handle different response structures - some endpoints return 'branches', others 'items'
+        // Handle different response structures
         const responseData = response.data as any;
-        branches.value = responseData?.branches || responseData?.items || responseData || [];
+        if (responseData?.branches) {
+          // Backend returns { branches: [...], pagination: {...} }
+          branches.value = responseData.branches;
+        } else if (responseData?.items) {
+          // Fallback for paginated response
+          branches.value = responseData.items;
+        } else if (Array.isArray(responseData)) {
+          // Direct array response
+          branches.value = responseData;
+        } else {
+          branches.value = [];
+        }
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }

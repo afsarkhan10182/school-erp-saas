@@ -131,6 +131,28 @@
                 </div>
               </div>
 
+              <!-- Branch Selector for School Admin and Branch Admin -->
+              <div v-if="(authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin') && !isEditing && availableBranches.length > 1" class="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-green-900 dark:text-green-100 mb-3">🏢 Select Branch Context</h4>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch (Optional)</label>
+                    <select
+                      v-model="selectedBranchId"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">All branches (school-wide class)</option>
+                      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                        {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                      </option>
+                    </select>
+                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">
+                      💡 Leave empty to create a school-wide class, or select a specific branch
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class Name *</label>
                 <input
@@ -268,6 +290,22 @@ const fetchBranchesForSchool = async (schoolId) => {
   }
 };
 
+// Fetch branches for current user's school
+const fetchBranchesForCurrentSchool = async () => {
+  if (authStore.user?.role === 'super_admin') return; // Super admin uses school selection
+  
+  try {
+    const schoolId = authStore.user?.school_id;
+    if (!schoolId) return;
+    
+    const response = await apiClient.branches.getAll(schoolId);
+    availableBranches.value = response.data?.branches || [];
+  } catch (error) {
+    console.error('Error fetching branches for current school:', error);
+    availableBranches.value = [];
+  }
+};
+
 // Handle school selection change
 const onSchoolChange = async () => {
   selectedBranchId.value = '';
@@ -332,6 +370,13 @@ const saveClass = async () => {
       payload.school_id = selectedSchoolId.value;
       
       // Add branch_id if selected
+      if (selectedBranchId.value) {
+        payload.branch_id = selectedBranchId.value;
+      }
+    }
+
+    // Add branch_id for school admin and branch admin when creating a new class
+    if (!isEditing.value && (authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin')) {
       if (selectedBranchId.value) {
         payload.branch_id = selectedBranchId.value;
       }
@@ -436,6 +481,11 @@ onMounted(() => {
   // Fetch schools for super admin
   if (authStore.user?.role === 'super_admin') {
     fetchSchools();
+  }
+  
+  // Fetch branches for school admin and branch admin
+  if (authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin') {
+    fetchBranchesForCurrentSchool();
   }
 });
 </script> 

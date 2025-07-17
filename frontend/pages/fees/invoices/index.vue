@@ -105,47 +105,90 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year</label>
-              <select v-model="filters.academic_year" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="">All Years</option>
-                <option value="2024-25">2024-25</option>
-                <option value="2023-24">2023-24</option>
-              </select>
+              <div class="relative">
+                <select 
+                  v-model="filters.academic_year" 
+                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                >
+                  <option value="">All Years</option>
+                  <option v-for="year in academicYears" :key="year.id" :value="year.name">
+                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
+                  </option>
+                </select>
+                <!-- Custom dropdown arrow -->
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg 
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Class</label>
-              <select v-model="filters.class_name" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="">All Classes</option>
-                <option value="1st">1st</option>
-                <option value="2nd">2nd</option>
-                <option value="3rd">3rd</option>
-                <option value="4th">4th</option>
-                <option value="5th">5th</option>
-                <option value="6th">6th</option>
-                <option value="7th">7th</option>
-                <option value="8th">8th</option>
-                <option value="9th">9th</option>
-                <option value="10th">10th</option>
-              </select>
+              <div class="relative">
+                <select 
+                  v-model="filters.class_name" 
+                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                >
+                  <option value="">All Classes</option>
+                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.name">
+                    {{ classItem.name }}
+                  </option>
+                </select>
+                <!-- Custom dropdown arrow -->
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg 
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <select v-model="filters.status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="paid">Paid</option>
-                <option value="partial_paid">Partial Paid</option>
-                <option value="overdue">Overdue</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <div class="relative">
+                <select 
+                  v-model="filters.status" 
+                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                >
+                  <option value="">All Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="sent">Sent</option>
+                  <option value="paid">Paid</option>
+                  <option value="partial_paid">Partial Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <!-- Custom dropdown arrow -->
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg 
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div class="flex items-end">
               <button
                 @click="fetchInvoices"
-                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                :disabled="isLoading"
+                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 <Search class="-ml-1 mr-2 h-4 w-4" />
-                Filter
+                {{ isLoading ? 'Loading...' : 'Filter' }}
               </button>
             </div>
           </div>
@@ -172,7 +215,17 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-if="isLoading" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Loading invoices...
+                </td>
+              </tr>
+              <tr v-else-if="invoices.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  No invoices found
+                </td>
+              </tr>
+              <tr v-else v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   {{ invoice.invoice_number }}
                 </td>
@@ -267,7 +320,7 @@
     <QuickCollectFeeModal
       :show="showQuickCollectModal"
       @close="showQuickCollectModal = false"
-      @payment-recorded="fetchInvoices"
+      @payment-recorded="onPaymentRecorded"
     />
 
     <!-- Generate Invoices Modal -->
@@ -279,40 +332,95 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year *</label>
-                <select v-model="generateForm.academic_year" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="">Select Year</option>
-                  <option value="2024-25">2024-25</option>
-                  <option value="2023-24">2023-24</option>
-                </select>
+                <div class="relative">
+                  <select 
+                    v-model="generateForm.academic_year" 
+                    required
+                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                  >
+                    <option value="">Select Year</option>
+                    <option v-for="year in academicYears" :key="year.id" :value="year.name">
+                      {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
+                    </option>
+                  </select>
+                  <!-- Custom dropdown arrow -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg 
+                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Class *</label>
-                <select v-model="generateForm.class_name" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="">Select Class</option>
-                  <option value="1st">1st</option>
-                  <option value="2nd">2nd</option>
-                  <option value="3rd">3rd</option>
-                  <option value="4th">4th</option>
-                  <option value="5th">5th</option>
-                  <option value="6th">6th</option>
-                  <option value="7th">7th</option>
-                  <option value="8th">8th</option>
-                  <option value="9th">9th</option>
-                  <option value="10th">10th</option>
-                </select>
+                <div class="relative">
+                  <select 
+                    v-model="generateForm.class_name" 
+                    required
+                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                  >
+                    <option value="">Select Class</option>
+                    <option v-for="classItem in classes" :key="classItem.id" :value="classItem.name">
+                      {{ classItem.name }}
+                    </option>
+                  </select>
+                  <!-- Custom dropdown arrow -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg 
+                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Section</label>
-                <select v-model="generateForm.section" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="">All Sections</option>
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
-                </select>
+                <div class="relative">
+                  <select 
+                    v-model="generateForm.section" 
+                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+                  >
+                    <option value="">All Sections</option>
+                    <option v-for="section in sections" :key="section.id" :value="section.name">
+                      {{ section.name }}
+                    </option>
+                  </select>
+                  <!-- Custom dropdown arrow -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg 
+                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Due Date</label>
-                <input v-model="generateForm.due_date" type="date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Due Date 
+                  <span class="text-xs text-gray-500 dark:text-gray-400">(Optional - will auto-calculate if not set)</span>
+                </label>
+                <input 
+                  v-model="generateForm.due_date" 
+                  type="date" 
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  :min="new Date().toISOString().split('T')[0]"
+                >
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Leave empty to use fee type default due date settings
+                </p>
               </div>
             </div>
             <div class="mt-6 flex justify-end space-x-3">
@@ -345,24 +453,41 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Invoice Number</label>
-                <input v-model="paymentForm.invoice_number" type="text" placeholder="Enter invoice number" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <input v-model="paymentForm.invoice_number" type="text" placeholder="Enter invoice number" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount *</label>
-                <input v-model="paymentForm.amount" type="number" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <input v-model="paymentForm.amount" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Method</label>
-                <select v-model="paymentForm.payment_method" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
+                <div class="relative">
+                  <select 
+                    v-model="paymentForm.payment_method" 
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                  <!-- Custom dropdown arrow -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg 
+                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
-                <textarea v-model="paymentForm.notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                <textarea v-model="paymentForm.notes" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"></textarea>
               </div>
             </div>
             <div class="mt-6 flex justify-end space-x-3">
@@ -389,7 +514,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { 
   Plus, 
   CreditCard, 
@@ -399,8 +524,22 @@ import {
   DollarSign,
   Search
 } from 'lucide-vue-next';
-import apiClient from '~/utils/api';
+import { apiClient } from '~/utils/api';
+import { useAcademics } from '~/composables/useAcademics';
+import { useToast } from '~/composables/useToast';
 import QuickCollectFeeModal from '~/components/QuickCollectFeeModal.vue';
+
+// Composables
+const { showToast } = useToast();
+const { 
+  academicYears, 
+  classes, 
+  sections, 
+  loading: academicsLoading,
+  fetchAcademicYears, 
+  fetchClasses, 
+  fetchSections 
+} = useAcademics();
 
 // State
 const invoices = ref([]);
@@ -440,6 +579,8 @@ const paymentForm = reactive({
   notes: '',
 });
 
+
+
 // Methods
 const fetchInvoices = async () => {
   isLoading.value = true;
@@ -451,11 +592,12 @@ const fetchInvoices = async () => {
     };
     
     const response = await apiClient.feeInvoices.getAll(params);
-    invoices.value = response.data.items || response.data || [];
-    totalItems.value = response.pagination?.total || 0;
-    totalPages.value = response.pagination?.totalPages || 0;
+    invoices.value = response.data.invoices || [];
+    totalItems.value = response.data.pagination?.total_count || 0;
+    totalPages.value = response.data.pagination?.total_pages || 0;
   } catch (error) {
     console.error('Error fetching invoices:', error);
+    showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
   }
@@ -464,9 +606,21 @@ const fetchInvoices = async () => {
 const fetchSummary = async () => {
   try {
     const response = await apiClient.feeInvoices.getSummary();
-    summary.value = response.data || {};
+    const data = response.data || {};
+    
+    // Transform backend data structure to frontend expected structure
+    summary.value = {
+      totalInvoices: data.invoice_counts?.total || 0,
+      paidInvoices: data.invoice_counts?.paid || 0,
+      overdueInvoices: data.invoice_counts?.overdue || 0,
+      totalCollected: data.amounts?.total_paid || 0,
+      totalAmount: data.amounts?.total_amount || 0,
+      totalBalance: data.amounts?.total_balance || 0,
+      collectionPercentage: data.amounts?.collection_percentage || 0
+    };
   } catch (error) {
     console.error('Error fetching summary:', error);
+    showToast('Error fetching summary', 'error');
   }
 };
 
@@ -477,10 +631,16 @@ const generateInvoices = async () => {
     showGenerateModal.value = false;
     await fetchInvoices();
     await fetchSummary();
-    alert('Invoices generated successfully!');
+    showToast('Invoices generated successfully!', 'success');
+    
+    // Reset form
+    generateForm.academic_year = '';
+    generateForm.class_name = '';
+    generateForm.section = '';
+    generateForm.due_date = '';
   } catch (error) {
     console.error('Error generating invoices:', error);
-    alert('Error generating invoices. Please try again.');
+    showToast(error.message || 'Error generating invoices', 'error');
   } finally {
     isGenerating.value = false;
   }
@@ -492,7 +652,7 @@ const submitPayment = async () => {
     // Find invoice by number
     const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
     if (!invoice) {
-      alert('Invoice not found!');
+      showToast('Invoice not found!', 'error');
       return;
     }
     
@@ -500,24 +660,35 @@ const submitPayment = async () => {
     showPaymentModal.value = false;
     await fetchInvoices();
     await fetchSummary();
-    alert('Payment recorded successfully!');
+    showToast('Payment recorded successfully!', 'success');
+    
+    // Reset form
+    paymentForm.invoice_number = '';
+    paymentForm.amount = '';
+    paymentForm.payment_method = 'cash';
+    paymentForm.notes = '';
   } catch (error) {
     console.error('Error recording payment:', error);
-    alert('Error recording payment. Please try again.');
+    showToast(error.message || 'Error recording payment', 'error');
   } finally {
     isSubmittingPayment.value = false;
   }
 };
 
 const viewInvoice = (invoice) => {
-  // Navigate to invoice detail page
-  navigateTo(`/fees/invoices/${invoice.id}`);
+  // Navigate to student fee ledger page for this invoice's student
+  navigateTo(`/students/${invoice.student_id}/fee-ledger`);
 };
 
 const recordPayment = (invoice) => {
   paymentForm.invoice_number = invoice.invoice_number;
   paymentForm.amount = invoice.balance_amount;
   showPaymentModal.value = true;
+};
+
+const onPaymentRecorded = async () => {
+  await fetchInvoices();
+  await fetchSummary();
 };
 
 const previousPage = () => {
@@ -566,7 +737,41 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
+// Load academic data
+const loadAcademicData = async () => {
+  try {
+    await Promise.all([
+      fetchAcademicYears(),
+      fetchClasses()
+    ]);
+    
+    // Set current academic year as default
+    if (academicYears.value.length > 0) {
+      const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
+      if (currentYear) {
+        filters.academic_year = currentYear.name;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading academic data:', error);
+    showToast('Error loading academic data', 'error');
+  }
+};
+
+// Watch for class changes to load sections
+watch(() => generateForm.class_name, async (newClass) => {
+  if (newClass) {
+    const selectedClass = classes.value.find(c => c.name === newClass);
+    if (selectedClass) {
+      await fetchSections(undefined, undefined, selectedClass.id);
+    }
+  } else {
+    sections.value = [];
+  }
+});
+
 onMounted(async () => {
+  await loadAcademicData();
   await fetchInvoices();
   await fetchSummary();
 });

@@ -139,7 +139,7 @@ const FeeStructure = sequelize.define('FeeStructure', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'academic_year', 'class_name', 'fee_type_id'], unique: true },
+    { fields: ['school_id', 'academic_year', 'class_name', 'fee_type_id', 'is_active'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['fee_type_id'] },
