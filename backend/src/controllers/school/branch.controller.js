@@ -111,11 +111,25 @@ class BranchController {
       const { page = 1, limit = 10, search, status } = req.query;
       
       // Verify School Admin can only access their own school
-      if (req.user.role === 'school_admin' && req.user.school_id !== schoolId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
+      if (req.user.role === 'school_admin') {
+        const userSchoolId = String(req.user.school_id || '').trim();
+        const requestedSchoolId = String(schoolId || '').trim();
+        
+        console.log('School Admin Authorization Check:', {
+          userRole: req.user.role,
+          userSchoolId: userSchoolId,
+          requestedSchoolId: requestedSchoolId,
+          userSchoolIdLength: userSchoolId.length,
+          requestedSchoolIdLength: requestedSchoolId.length,
+          match: userSchoolId === requestedSchoolId
         });
+        
+        if (userSchoolId !== requestedSchoolId) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied - School ID mismatch',
+          });
+        }
       }
       
       const branches = await BranchService.getBranchesBySchool(schoolId, {

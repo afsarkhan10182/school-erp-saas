@@ -85,19 +85,13 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(45),
     allowNull: true,
   },
-  email_verified: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  phone_verified: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
   two_factor_enabled: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
+  },
+  deleted_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
     defaultValue: false,
   },
   two_factor_secret: {
@@ -158,6 +152,8 @@ const User = sequelize.define('User', {
   tableName: 'users',
   timestamps: true,
   underscored: true,
+  paranoid: true, // Enable soft deletes
+  deletedAt: 'deleted_at', // Custom field name for soft delete
   indexes: [
     { fields: ['email'], unique: true },
     { fields: ['school_id'] },

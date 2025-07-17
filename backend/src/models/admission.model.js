@@ -17,34 +17,75 @@ const Admission = sequelize.define('Admission', {
   },
   student_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'students',
       key: 'id',
     },
   },
-  academic_year_id: {
-    type: DataTypes.UUID,
+  first_name: {
+    type: DataTypes.STRING(50),
     allowNull: false,
-    references: {
-      model: 'academic_years',
-      key: 'id',
-    },
   },
-  class_id: {
-    type: DataTypes.UUID,
+  last_name: {
+    type: DataTypes.STRING(50),
     allowNull: false,
-    references: {
-      model: 'classes',
-      key: 'id',
-    },
   },
-  section_id: {
-    type: DataTypes.UUID,
+  middle_name: {
+    type: DataTypes.STRING(50),
     allowNull: true,
-    references: {
-      model: 'sections',
-      key: 'id',
+  },
+  date_of_birth: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+  },
+  gender: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  city: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  postal_code: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  country: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    defaultValue: 'India',
+  },
+  applied_class: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+  },
+  academic_year: {
+    type: DataTypes.STRING(10),
+    allowNull: false,
+  },
+  admission_type: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'new',
+    validate: {
+      isIn: [['new', 'transfer', 'readmission']],
     },
   },
   application_date: {
@@ -52,66 +93,19 @@ const Admission = sequelize.define('Admission', {
     allowNull: false,
     defaultValue: DataTypes.NOW,
   },
-  admission_date: {
-    type: DataTypes.DATEONLY,
-    allowNull: true,
-  },
   status: {
-    type: DataTypes.ENUM('pending', 'under_review', 'approved', 'rejected', 'admitted', 'cancelled'),
+    type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'pending',
   },
-  priority: {
-    type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
-    allowNull: false,
-    defaultValue: 'medium',
-  },
-  admission_type: {
-    type: DataTypes.ENUM('new', 'transfer', 'readmission'),
-    allowNull: false,
-    defaultValue: 'new',
-  },
-  previous_school: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-  },
-  previous_class: {
-    type: DataTypes.STRING(20),
-    allowNull: true,
-  },
-  transfer_certificate: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  documents_submitted: {
+  documents: {
     type: DataTypes.JSONB,
     allowNull: false,
     defaultValue: {},
   },
-  entrance_test_score: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-  },
-  interview_score: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-  },
-  total_score: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-  },
-  remarks: {
+  notes: {
     type: DataTypes.TEXT,
     allowNull: true,
-  },
-  rejection_reason: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  fees_paid: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.00,
   },
   school_id: {
     type: DataTypes.UUID,
@@ -126,14 +120,6 @@ const Admission = sequelize.define('Admission', {
     allowNull: true,
     references: {
       model: 'branches',
-      key: 'id',
-    },
-  },
-  processed_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'users',
       key: 'id',
     },
   },
@@ -160,15 +146,11 @@ const Admission = sequelize.define('Admission', {
   indexes: [
     { fields: ['school_id', 'application_number'], unique: true },
     { fields: ['student_id'] },
-    { fields: ['academic_year_id'] },
-    { fields: ['class_id'] },
-    { fields: ['section_id'] },
+    { fields: ['academic_year'] },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['status'] },
-    { fields: ['admission_type'] },
     { fields: ['application_date'] },
-    { fields: ['admission_date'] },
   ],
   hooks: {
     beforeCreate: async (admission) => {
@@ -199,23 +181,8 @@ Admission.associate = (models) => {
     as: 'student',
   });
 
-  // Admission belongs to AcademicYear
-  Admission.belongsTo(models.AcademicYear, {
-    foreignKey: 'academic_year_id',
-    as: 'academicYear',
-  });
-
-  // Admission belongs to Class
-  Admission.belongsTo(models.Class, {
-    foreignKey: 'class_id',
-    as: 'class',
-  });
-
-  // Admission belongs to Section
-  Admission.belongsTo(models.Section, {
-    foreignKey: 'section_id',
-    as: 'section',
-  });
+  // Note: academic_year, class_id, and section_id are stored as strings in this table
+  // For relationships, we would need to join based on string values or create separate lookup tables
 
   // Admission belongs to School
   Admission.belongsTo(models.School, {
@@ -227,12 +194,6 @@ Admission.associate = (models) => {
   Admission.belongsTo(models.Branch, {
     foreignKey: 'branch_id',
     as: 'branch',
-  });
-
-  // Admission belongs to User (processed_by)
-  Admission.belongsTo(models.User, {
-    foreignKey: 'processed_by',
-    as: 'processedBy',
   });
 
   // Admission belongs to User (created_by)

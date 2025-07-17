@@ -122,52 +122,50 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-                <input
-                  v-model="form.name"
-                  type="text"
+            <!-- MVP Form - Minimal Fields -->
+            <div class="space-y-4">
+              <!-- Academic Year - Auto-filled for school admin, dropdown for super admin -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year *</label>
+                <select
+                  v-if="user?.role === 'super_admin'"
+                  v-model="form.academic_year_id"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter fee structure name"
-                />
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select Academic Year</option>
+                  <option v-for="year in academicYears" :key="year.id" :value="year.id">
+                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
+                  </option>
+                </select>
                 <input
+                  v-else
                   v-model="form.academic_year"
                   type="text"
+                  readonly
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                  :placeholder="currentAcademicYear?.name || 'Loading...'"
+                />
+              </div>
+
+              <!-- Class Dropdown -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class *</label>
+                <select
+                  v-model="form.class_id"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., 2024-2025"
-                />
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select Class</option>
+                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
+                    {{ classItem.name }}
+                  </option>
+                </select>
               </div>
 
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
-                <input
-                  v-model="form.class_name"
-                  type="text"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter class name"
-                />
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section (Optional)</label>
-                <input
-                  v-model="form.section"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter section"
-                />
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fee Type</label>
+              <!-- Fee Type Dropdown -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fee Type *</label>
                 <select
                   v-model="form.fee_type_id"
                   required
@@ -180,50 +178,30 @@
                 </select>
               </div>
 
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
+              <!-- Amount Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount *</label>
                 <input
                   v-model="form.amount"
                   type="number"
                   step="0.01"
+                  min="0"
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter amount"
                 />
               </div>
 
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Installments</label>
-                <input
-                  v-model="form.installments"
-                  type="number"
-                  min="1"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Number of installments"
-                />
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount Percentage</label>
-                <input
-                  v-model="form.discount_percentage"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter discount percentage"
-                />
-              </div>
-
-              <div class="mb-4 md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
-                <textarea
-                  v-model="form.notes"
-                  rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter any notes"
-                ></textarea>
+              <!-- Active Toggle -->
+              <div>
+                <label class="flex items-center">
+                  <input
+                    v-model="form.is_active"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+                </label>
               </div>
             </div>
 
@@ -265,10 +243,12 @@
 import { ref, onMounted } from 'vue';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
+import { useAcademics } from '~/composables/useAcademics';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // Get auth context
 const { user } = useAuth();
+const { academicYears, classes, fetchAcademicYears, fetchClasses, currentAcademicYear } = useAcademics();
 
 const feeStructures = ref([]);
 const feeTypes = ref([]);
@@ -283,29 +263,21 @@ const selectedSchoolId = ref('');
 const availableSchools = ref([]);
 
 const form = ref({
-  name: '',
+  academic_year_id: '',
   academic_year: '',
-  class_name: '',
-  section: '',
+  class_id: '',
   fee_type_id: '',
   amount: '',
-  installments: 1,
-  discount_percentage: 0,
-  notes: '',
   is_active: true
 });
 
 const resetForm = () => {
   form.value = {
-    name: '',
+    academic_year_id: '',
     academic_year: '',
-    class_name: '',
-    section: '',
+    class_id: '',
     fee_type_id: '',
     amount: '',
-    installments: 1,
-    discount_percentage: 0,
-    notes: '',
     is_active: true
   };
   selectedSchoolId.value = '';
@@ -316,9 +288,9 @@ const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
   
   try {
-    console.log('🔍 Fetching schools for super admin...');
+
     const response = await apiClient.schools.getAll();
-    console.log('🔍 Schools API response:', response);
+
     
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
@@ -334,7 +306,7 @@ const fetchSchools = async () => {
       availableSchools.value = [];
     }
     
-    console.log('✅ Schools loaded:', availableSchools.value.length);
+
   } catch (error) {
     console.error('❌ Error fetching schools:', error);
     availableSchools.value = [];
@@ -343,7 +315,7 @@ const fetchSchools = async () => {
 
 // Handle school selection change
 const onSchoolChange = () => {
-  console.log('🔍 School changed to:', selectedSchoolId.value);
+
   // Reset form when school changes
   if (!isEditing.value) {
     resetForm();
@@ -364,14 +336,34 @@ const fetchFeeStructures = async () => {
 
 const fetchFeeTypes = async () => {
   try {
-    const response = await apiClient.feeTypes.getAll();
+    const params = {};
+    if (user.value?.school_id) {
+      params.school_id = user.value.school_id;
+    }
+    const response = await apiClient.feeTypes.getAll(params);
     feeTypes.value = response.data.filter(type => type.is_active);
   } catch (error) {
     console.error('Error fetching fee types:', error);
   }
 };
 
-const openCreateModal = () => {
+// Load form data (academic years and classes)
+const loadFormData = async () => {
+  try {
+    // Load academic years
+    await fetchAcademicYears(user.value?.school_id);
+    
+    // Load classes
+    await fetchClasses(user.value?.school_id);
+    
+    // Load fee types
+    await fetchFeeTypes();
+  } catch (error) {
+    console.error('Error loading form data:', error);
+  }
+};
+
+const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
@@ -380,20 +372,27 @@ const openCreateModal = () => {
   if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
     fetchSchools();
   }
+
+  // Load academic years and classes
+  await loadFormData();
+
+  // Auto-fill academic year for school admin
+  if (user.value?.role !== 'super_admin' && currentAcademicYear.value) {
+    form.value.academic_year = currentAcademicYear.value.name;
+  }
 };
 
-const editFeeStructure = (structure) => {
+const editFeeStructure = async (structure) => {
+  // Load form data first
+  await loadFormData();
+  
   form.value = {
-    name: structure.name,
+    academic_year_id: structure.academic_year_id || '',
     academic_year: structure.academic_year,
-    class_name: structure.class_name,
-    section: structure.section || '',
+    class_id: structure.class_id || '',
     fee_type_id: structure.fee_type_id,
     amount: structure.amount,
-    installments: structure.installments || 1,
-    discount_percentage: structure.discount_percentage || 0,
-    notes: structure.notes || '',
-    is_active: structure.is_active
+    is_active: structure.is_active !== false
   };
   editingId.value = structure.id;
   isEditing.value = true;
@@ -445,16 +444,24 @@ const closeModal = () => {
 const saveFeeStructure = async () => {
   isSubmitting.value = true;
   try {
+    // Get academic year name for super admin
+    let academicYearName = form.value.academic_year;
+    if (user.value?.role === 'super_admin' && form.value.academic_year_id) {
+      const selectedYear = academicYears.value.find(y => y.id === form.value.academic_year_id);
+      academicYearName = selectedYear?.name || form.value.academic_year;
+    }
+
+    // Get class name
+    const selectedClass = classes.value.find(c => c.id === form.value.class_id);
+    const className = selectedClass?.name || '';
+
     const payload = {
-      name: form.value.name,
-      academic_year: form.value.academic_year,
-      class_name: form.value.class_name,
-      section: form.value.section || null,
+      academic_year_id: form.value.academic_year_id || null,
+      academic_year: academicYearName,
+      class_id: form.value.class_id,
+      class_name: className,
       fee_type_id: parseInt(form.value.fee_type_id),
       amount: parseFloat(form.value.amount),
-      installments: parseInt(form.value.installments),
-      discount_percentage: parseFloat(form.value.discount_percentage),
-      notes: form.value.notes || null,
       is_active: form.value.is_active
     };
 
@@ -473,8 +480,6 @@ const saveFeeStructure = async () => {
         }
       }
     }
-
-    console.log('🔍 Saving fee structure with payload:', payload);
 
     if (isEditing.value) {
       await apiClient.feeStructures.update(editingId.value, payload);

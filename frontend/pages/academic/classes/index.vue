@@ -243,7 +243,7 @@ const fetchSchools = async () => {
   
   try {
     const response = await apiClient.schools.getAll();
-    console.log('Schools API response:', response);
+
     availableSchools.value = response.data?.schools || [];
   } catch (error) {
     console.error('Error fetching schools:', error);
@@ -260,7 +260,7 @@ const fetchBranchesForSchool = async (schoolId) => {
   
   try {
     const response = await apiClient.branches.getAll(schoolId);
-    console.log('Branches API response:', response);
+
     availableBranches.value = response.data?.branches || [];
   } catch (error) {
     console.error('Error fetching branches:', error);

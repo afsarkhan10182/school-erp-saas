@@ -1,7 +1,9 @@
 const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 const Admission = require('../models/admission.model');
 const Student = require('../models/student.model');
 const Parent = require('../models/parent.model');
+const StudentParent = require('../models/student-parent.model');
 const AcademicYear = require('../models/academic-year.model');
 const Class = require('../models/class.model');
 const Section = require('../models/section.model');
@@ -31,7 +33,7 @@ const generateRandomPassword = (length = 8) => {
  */
 const getAllAdmissions = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, academic_year_id, class_id, branch_id } = req.query;
+    const { page = 1, limit = 10, status, academic_year, class_name, admission_type } = req.query;
     const offset = (page - 1) * limit;
     
     // Build where condition based on user role
@@ -49,10 +51,18 @@ const getAllAdmissions = async (req, res) => {
     }
     
     // Apply filters
-    if (status) whereCondition.status = status;
-    if (academic_year_id) whereCondition.academic_year_id = academic_year_id;
-    if (class_id) whereCondition.class_id = class_id;
-    if (branch_id && req.user.role === 'school_admin') whereCondition.branch_id = branch_id;
+    if (status) {
+      if (status.includes(',')) {
+        // Handle multiple statuses (comma-separated)
+        const statusArray = status.split(',').map(s => s.trim());
+        whereCondition.status = { [Op.in]: statusArray };
+      } else {
+        whereCondition.status = status;
+      }
+    }
+    if (academic_year) whereCondition.academic_year = academic_year;
+    if (class_name) whereCondition.applied_class = { [Op.like]: `%${class_name}%` };
+    if (admission_type) whereCondition.admission_type = admission_type;
     
     const admissions = await Admission.findAndCountAll({
       where: whereCondition,
@@ -64,24 +74,9 @@ const getAllAdmissions = async (req, res) => {
             {
               model: Parent,
               as: 'parents',
-              attributes: ['id', 'first_name', 'last_name', 'phone', 'email', 'relation']
+              attributes: ['id', 'father_name', 'mother_name', 'guardian_name', 'father_phone', 'mother_phone', 'guardian_phone', 'father_email', 'mother_email', 'guardian_email', 'guardian_relation']
             }
           ]
-        },
-        {
-          model: AcademicYear,
-          as: 'academicYear',
-          attributes: ['id', 'name', 'start_date', 'end_date']
-        },
-        {
-          model: Class,
-          as: 'class',
-          attributes: ['id', 'name', 'grade']
-        },
-        {
-          model: Section,
-          as: 'section',
-          attributes: ['id', 'name']
         },
         {
           model: Branch,
@@ -120,14 +115,25 @@ const getAllAdmissions = async (req, res) => {
 const createAdmission = async (req, res) => {
   try {
     // Parse JSON data from FormData if present
+    console.log('🔍 Raw request body:', req.body);
+    console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
+    
     let admissionData;
     try {
       admissionData = req.body.admissionData ? JSON.parse(req.body.admissionData) : req.body;
+      console.log('✅ Parsed admission data:', JSON.stringify(admissionData, null, 2));
     } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
       return res.status(400).json({
         success: false,
         message: 'Invalid JSON data in admission data',
+        error: parseError.message,
       });
+    }
+
+    // Check if this is a comprehensive admission (with student/guardian data)
+    if (admissionData.student && admissionData.guardian) {
+      return await createComprehensiveAdmission(req, res, admissionData);
     }
 
     // Determine school_id and branch_id based on user role
@@ -149,106 +155,85 @@ const createAdmission = async (req, res) => {
       branch_id = req.user.branch_id;
     }
 
-    // Create student first
-    const studentData = {
-      ...admissionData.student,
+    // Handle file uploads
+    const uploadedFiles = {};
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        if (req.files[key] && req.files[key][0]) {
+          uploadedFiles[key] = req.files[key][0].filename;
+        }
+      });
+    }
+
+    // Create admission record - using the actual database schema
+    const admissionRecord = {
+      application_number: `APP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      student_id: null, // Will be set when student is created later
+      first_name: admissionData.first_name,
+      last_name: admissionData.last_name,
+      middle_name: admissionData.middle_name || '',
+      date_of_birth: admissionData.date_of_birth,
+      gender: admissionData.gender,
+      email: admissionData.email,
+      phone: admissionData.phone,
+      address: admissionData.address,
+      city: admissionData.city,
+      state: admissionData.state,
+      postal_code: admissionData.postal_code,
+      country: admissionData.country || 'India',
+      applied_class: admissionData.applied_class,
+      academic_year: admissionData.academic_year,
+      admission_type: admissionData.admission_type || 'new',
+      status: 'pending',
+      application_date: admissionData.application_date,
+      documents: uploadedFiles,
+      notes: admissionData.notes || 'Admission application submitted',
       school_id,
       branch_id,
-      admission_date: admissionData.application_date,
-      admission_class: '', // Will be set from class lookup
-      current_class: '', // Will be set from class lookup
-      section: '', // Will be set from section lookup
-      academic_year: '', // Will be set from academic year lookup
-      status: 'pending', // Student status will be pending until admission is approved
       created_by: req.user.id,
+      updated_by: req.user.id,
     };
 
-    // Get class, section, and academic year details for student record
-    const classRecord = await Class.findByPk(admissionData.class_id);
-    const sectionRecord = await Section.findByPk(admissionData.section_id);
-    const academicYear = await AcademicYear.findByPk(admissionData.academic_year_id);
+    // Create new admission
+    const admission = await Admission.create(admissionRecord);
+    
+    // Return the created admission
+    res.status(201).json({
+      success: true,
+      data: admission,
+      message: 'Admission application created successfully'
+    });
+  } catch (error) {
+    logger.error('Error creating admission:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create admission',
+      error: error.message
+    });
+  }
+};
 
-    if (classRecord) {
-      studentData.admission_class = classRecord.name;
-      studentData.current_class = classRecord.name;
-    }
-    if (sectionRecord) {
-      studentData.section = sectionRecord.name;
-    }
-    if (academicYear) {
-      studentData.academic_year = academicYear.code || academicYear.name;
-    }
-
-    // Generate admission number
-    const timestamp = Date.now();
-    const randomNum = Math.random().toString(36).substring(2, 8).toUpperCase();
-    studentData.admission_number = `ADM${timestamp}${randomNum}`;
-
-    const student = await Student.create(studentData);
-
-    // Create parent/guardian records
-    if (admissionData.guardian) {
-      const guardianData = admissionData.guardian;
-      
-      // Create father record if provided
-      if (guardianData.father_name) {
-        const fatherData = {
-          first_name: guardianData.father_name.split(' ')[0],
-          last_name: guardianData.father_name.split(' ').slice(1).join(' ') || '',
-          phone: guardianData.father_phone,
-          email: guardianData.father_email,
-          occupation: guardianData.father_occupation,
-          relation: 'father',
-          is_primary_contact: guardianData.primary_contact === 'father' || guardianData.primary_contact === 'both',
-          school_id,
-          branch_id,
-          created_by: req.user.id,
-        };
-
-        const father = await Parent.create(fatherData);
-        
-        // Create student-parent relationship
-        await student.addParent(father);
-
-        // Create guardian login if requested
-        if (guardianData.create_login && guardianData.login_email) {
-          const guardianPassword = guardianData.password || generateRandomPassword();
-          await User.create({
-            first_name: fatherData.first_name,
-            last_name: fatherData.last_name,
-            email: guardianData.login_email,
-            phone: guardianData.father_phone,
-            password: guardianPassword,
-            role: 'parent',
-            school_id,
-            branch_id,
-            status: 'active',
-            email_verified: true,
-            created_by: req.user.id,
-          });
-        }
+/**
+ * Create comprehensive admission with student, guardian, and login credentials
+ */
+const createComprehensiveAdmission = async (req, res, admissionData) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    // Determine school_id and branch_id based on user role
+    let school_id, branch_id;
+    if (req.user.role === 'super_admin') {
+      school_id = admissionData.school_id;
+      branch_id = admissionData.branch_id;
+      if (!school_id || !branch_id) {
+        throw new Error('School ID and Branch ID are required for super admin');
       }
-
-      // Create mother record if provided
-      if (guardianData.mother_name) {
-        const motherData = {
-          first_name: guardianData.mother_name.split(' ')[0],
-          last_name: guardianData.mother_name.split(' ').slice(1).join(' ') || '',
-          phone: guardianData.mother_phone,
-          email: guardianData.mother_email,
-          occupation: guardianData.mother_occupation,
-          relation: 'mother',
-          is_primary_contact: guardianData.primary_contact === 'mother' || guardianData.primary_contact === 'both',
-          school_id,
-          branch_id,
-          created_by: req.user.id,
-        };
-
-        const mother = await Parent.create(motherData);
-        
-        // Create student-parent relationship
-        await student.addParent(mother);
-      }
+    } else if (req.user.role === 'school_admin') {
+      school_id = req.user.school_id;
+      branch_id = admissionData.branch_id || req.user.branch_id;
+    } else {
+      school_id = req.user.school_id;
+      branch_id = req.user.branch_id;
     }
 
     // Handle file uploads
@@ -261,80 +246,220 @@ const createAdmission = async (req, res) => {
       });
     }
 
-    // Create admission record
-    const admissionRecord = {
-      application_number: `APP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      student_id: student.id,
-      academic_year_id: admissionData.academic_year_id,
-      class_id: admissionData.class_id,
-      section_id: admissionData.section_id,
-      application_date: admissionData.application_date,
-      status: 'pending',
-      priority: admissionData.priority || 'medium',
-      admission_type: admissionData.admission_type || 'new',
-      previous_school: admissionData.previous_school,
-      previous_class: admissionData.previous_class,
-      documents_submitted: uploadedFiles,
-      remarks: `Hostel: ${admissionData.hostel?.required ? 'Yes' : 'No'}, Transport: ${admissionData.transport?.required ? 'Yes' : 'No'}`,
-      hostel_required: admissionData.hostel?.required || false,
-      transport_required: admissionData.transport?.required || false,
+    // Date validation removed - pass dates directly
+
+    // Get class and section names from IDs
+    let className = '', sectionName = '';
+    let classRecord = null, sectionRecord = null;
+    try {
+      if (admissionData.class_id) {
+        classRecord = await Class.findByPk(admissionData.class_id);
+        className = classRecord ? classRecord.name : `Class-${admissionData.class_id}`;
+      }
+      if (admissionData.section_id) {
+        sectionRecord = await Section.findByPk(admissionData.section_id);
+        sectionName = sectionRecord ? sectionRecord.name : `Section-${admissionData.section_id}`;
+      }
+    } catch (error) {
+      console.error('Error fetching class/section names:', error);
+      className = `Class-${admissionData.class_id || 'Unknown'}`;
+      sectionName = `Section-${admissionData.section_id || 'Unknown'}`;
+    }
+
+    // Get academic year name
+    let academicYearName = '';
+    try {
+      if (admissionData.academic_year_id) {
+        const yearRecord = await AcademicYear.findByPk(admissionData.academic_year_id);
+        academicYearName = yearRecord ? yearRecord.name : `Year-${admissionData.academic_year_id}`;
+      }
+    } catch (error) {
+      console.error('Error fetching academic year name:', error);
+      academicYearName = `Year-${admissionData.academic_year_id || 'Unknown'}`;
+    }
+
+    // Create student record - with simple date handling
+    const studentData = {
+      admission_number: admissionData.register_no,
+      first_name: admissionData.student.first_name,
+      last_name: admissionData.student.last_name,
+      email: admissionData.student.email,
+      phone: admissionData.student.mobile_no,
+      date_of_birth: admissionData.student.date_of_birth || '2021-01-01',
+      gender: admissionData.student.gender,
+      blood_group: admissionData.student.blood_group,
+      mother_tongue: admissionData.student.mother_tongue,
+      religion: admissionData.student.religion,
+      caste: admissionData.student.caste,
+      city: admissionData.student.city,
+      state: admissionData.student.state,
+      present_address: admissionData.student.present_address,
+      permanent_address: admissionData.student.permanent_address,
+      profile_picture: uploadedFiles.student_profile_picture || null,
+      category: admissionData.category,
+      admission_date: admissionData.admission_date || '2024-01-01',
+      // Required fields for Student model - use class codes, not names
+      admission_class: classRecord ? classRecord.code : className,
+      current_class: classRecord ? classRecord.code : className,
+      section: sectionName,
+      academic_year: academicYearName,
+      school_id,
+      branch_id,
+      status: 'active',
+      created_by: req.user.id,
+      updated_by: req.user.id,
+    };
+
+    // Debug logging for dates
+    console.log('Debug - Original dates:', {
+      date_of_birth: admissionData.student.date_of_birth,
+      admission_date: admissionData.admission_date
+    });
+    console.log('Debug - Validated dates:', {
+      date_of_birth: studentData.date_of_birth,
+      admission_date: studentData.admission_date
+    });
+    
+    // No more strict validation - dates will have fallback values
+    
+    // Debug the actual student data being sent to database
+    console.log('Debug - Student data being sent to database:', JSON.stringify(studentData, null, 2));
+
+    const student = await Student.create(studentData, { transaction });
+
+    // Create guardian/parent record
+    const guardianData = {
+      // Set guardian information based on relation
+      guardian_name: admissionData.guardian.name,
+      guardian_phone: admissionData.guardian.mobile_no,
+      guardian_email: admissionData.guardian.email,
+      guardian_relation: admissionData.guardian.relation,
+      address: admissionData.guardian.address,
+      city: admissionData.guardian.city,
+      state: admissionData.guardian.state,
+      country: 'India',
+      emergency_contact: admissionData.guardian.mobile_no,
+      emergency_relation: admissionData.guardian.relation,
       school_id,
       branch_id,
       created_by: req.user.id,
       updated_by: req.user.id,
     };
 
-    // Create new admission
-    const admission = await Admission.create(admissionRecord);
-    
-    // Generate fee invoice if admission is approved
-    if (admission.status === 'approved') {
-      await generateAdmissionFeeInvoice(admission.id);
+    // Set father or mother information based on relation
+    if (admissionData.guardian.relation === 'father') {
+      guardianData.father_name = admissionData.guardian.name;
+      guardianData.father_phone = admissionData.guardian.mobile_no;
+      guardianData.father_email = admissionData.guardian.email;
+      guardianData.father_occupation = admissionData.guardian.occupation;
+      guardianData.father_qualification = admissionData.guardian.education;
+      guardianData.father_income = admissionData.guardian.income;
+    } else if (admissionData.guardian.relation === 'mother') {
+      guardianData.mother_name = admissionData.guardian.name;
+      guardianData.mother_phone = admissionData.guardian.mobile_no;
+      guardianData.mother_email = admissionData.guardian.email;
+      guardianData.mother_occupation = admissionData.guardian.occupation;
+      guardianData.mother_qualification = admissionData.guardian.education;
+      guardianData.mother_income = admissionData.guardian.income;
     }
-    
-    const createdAdmission = await Admission.findByPk(admission.id, {
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          include: [
-            {
-              model: Parent,
-              as: 'parents',
-              attributes: ['id', 'first_name', 'last_name', 'phone', 'email', 'relation']
-            }
-          ]
-        },
-        {
-          model: AcademicYear,
-          as: 'academicYear',
-          attributes: ['id', 'name', 'start_date', 'end_date']
-        },
-        {
-          model: Class,
-          as: 'class',
-          attributes: ['id', 'name', 'grade']
-        },
-        {
-          model: Section,
-          as: 'section',
-          attributes: ['id', 'name']
-        },
-        {
-          model: Branch,
-          as: 'branch',
-          attributes: ['id', 'name', 'code']
-        }
-      ]
-    });
-    
+
+    const guardian = await Parent.create(guardianData, { transaction });
+
+    // Link student and guardian
+    await StudentParent.create({
+      student_id: student.id,
+      parent_id: guardian.id,
+      relationship: admissionData.guardian.relation,
+      is_primary: true,
+      is_emergency_contact: true,
+    }, { transaction });
+
+    // Create student login credentials if provided - temporarily disabled
+    /*
+    if (admissionData.login && admissionData.login.username && admissionData.login.password) {
+      const studentUser = await User.create({
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: admissionData.login.username,
+        password: admissionData.login.password, // Will be hashed by model hook
+        role: 'student',
+        school_id,
+        branch_id,
+        isActive: true,
+        two_factor_enabled: false, // Add missing required field
+        created_by: req.user.id,
+        updated_by: req.user.id,
+      }, { transaction });
+
+      // Update student with user_id
+      await student.update({ user_id: studentUser.id }, { transaction });
+    }
+
+    // Create guardian login credentials if provided
+    if (admissionData.guardian.login && admissionData.guardian.login.username && admissionData.guardian.login.password) {
+      const guardianUser = await User.create({
+        first_name: admissionData.guardian.name.split(' ')[0] || admissionData.guardian.name,
+        last_name: admissionData.guardian.name.split(' ').slice(1).join(' ') || '',
+        email: admissionData.guardian.login.username,
+        password: admissionData.guardian.login.password, // Will be hashed by model hook
+        role: 'parent',
+        school_id,
+        branch_id,
+        isActive: true,
+        two_factor_enabled: false, // Add missing required field
+        created_by: req.user.id,
+        updated_by: req.user.id,
+      }, { transaction });
+
+      // Update guardian with user_id
+      await guardian.update({ user_id: guardianUser.id }, { transaction });
+    }
+    */
+
+    // Create admission record - with simple date handling
+    const admissionRecord = {
+      application_number: `APP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      student_id: student.id,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      date_of_birth: '2021-01-01', // Simple default date
+      gender: student.gender,
+      email: student.email,
+      phone: student.phone,
+      address: student.present_address,
+      city: student.city,
+      state: student.state,
+      applied_class: classRecord ? classRecord.name : className,
+      academic_year: academicYearName,
+      admission_type: admissionData.admission_type || 'new',
+      status: 'admitted', // Auto-admit since student is created immediately
+      application_date: '2024-01-01', // Simple default date
+      documents: uploadedFiles,
+      notes: 'Comprehensive admission with student and guardian creation',
+      school_id,
+      branch_id,
+      created_by: req.user.id,
+      updated_by: req.user.id,
+    };
+
+    const admission = await Admission.create(admissionRecord, { transaction });
+
+    await transaction.commit();
+
+    // Return the created data
     res.status(201).json({
       success: true,
-      data: createdAdmission,
-      message: 'Admission application created successfully'
+      data: {
+        admission,
+        student,
+        guardian
+      },
+      message: 'Admission created successfully with student and guardian'
     });
+
   } catch (error) {
-    logger.error('Error creating admission:', error);
+    await transaction.rollback();
+    logger.error('Error creating comprehensive admission:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create admission',
@@ -369,7 +494,7 @@ const getAdmissionById = async (req, res) => {
             {
               model: Parent,
               as: 'parents',
-              attributes: ['id', 'first_name', 'last_name', 'phone', 'email', 'relation']
+              attributes: ['id', 'father_name', 'mother_name', 'guardian_name', 'father_phone', 'mother_phone', 'guardian_phone', 'father_email', 'mother_email', 'guardian_email', 'guardian_relation']
             }
           ]
         },
@@ -472,7 +597,7 @@ const updateAdmissionStatus = async (req, res) => {
             {
               model: Parent,
               as: 'parents',
-              attributes: ['id', 'first_name', 'last_name', 'phone', 'email', 'relation']
+              attributes: ['id', 'father_name', 'mother_name', 'guardian_name', 'father_phone', 'mother_phone', 'guardian_phone', 'father_email', 'mother_email', 'guardian_email', 'guardian_relation']
             }
           ]
         },

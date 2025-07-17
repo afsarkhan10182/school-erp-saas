@@ -81,29 +81,6 @@ const Parent = sequelize.define('Parent', {
     type: DataTypes.STRING(50),
     allowNull: true,
   },
-  guardian_occupation: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-  },
-  primary_contact: {
-    type: DataTypes.ENUM('father', 'mother', 'guardian'),
-    allowNull: false,
-    defaultValue: 'father',
-  },
-  primary_phone: {
-    type: DataTypes.STRING(20),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Primary phone is required' },
-    },
-  },
-  primary_email: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isEmail: { msg: 'Please provide a valid primary email' },
-    },
-  },
   address: {
     type: DataTypes.TEXT,
     allowNull: true,
@@ -125,37 +102,12 @@ const Parent = sequelize.define('Parent', {
     allowNull: false,
     defaultValue: 'India',
   },
-  emergency_contact_name: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-  },
-  emergency_contact_phone: {
+  emergency_contact: {
     type: DataTypes.STRING(20),
     allowNull: true,
   },
-  emergency_contact_relation: {
+  emergency_relation: {
     type: DataTypes.STRING(50),
-    allowNull: true,
-  },
-  annual_income: {
-    type: DataTypes.DECIMAL(12, 2),
-    allowNull: true,
-  },
-  income_certificate: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  photo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  documents: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: {},
-  },
-  notes: {
-    type: DataTypes.TEXT,
     allowNull: true,
   },
   school_id: {
@@ -163,6 +115,14 @@ const Parent = sequelize.define('Parent', {
     allowNull: false,
     references: {
       model: 'schools',
+      key: 'id',
+    },
+  },
+  branch_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'branches',
       key: 'id',
     },
   },
@@ -196,14 +156,15 @@ const Parent = sequelize.define('Parent', {
   underscored: true,
   indexes: [
     { fields: ['school_id'] },
-    { fields: ['primary_phone'] },
-    { fields: ['primary_email'] },
+    { fields: ['branch_id'] },
     { fields: ['father_phone'] },
     { fields: ['mother_phone'] },
   ],
   hooks: {
     afterCreate: async (parent) => {
-      logger.info(`New parent record created: ${parent.primary_contact} contact (${parent.primary_phone})`);
+      const contactInfo = parent.guardian_name || parent.father_name || parent.mother_name || 'Unknown';
+      const phoneInfo = parent.guardian_phone || parent.father_phone || parent.mother_phone || 'No phone';
+      logger.info(`New parent record created: ${contactInfo} (${phoneInfo})`);
     },
   },
 });

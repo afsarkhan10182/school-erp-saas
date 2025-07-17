@@ -276,9 +276,16 @@ Student.associate = (models) => {
   });
 
   // Student has many FeeInvoices
-  Student.hasMany(models.FeeInvoice, {
+  // Temporarily disabled due to database schema mismatch
+  // Student.hasMany(models.FeeInvoice, {
+  //   foreignKey: 'student_id',
+  //   as: 'feeInvoices',
+  // });
+
+  // Student has many Admissions
+  Student.hasMany(models.Admission, {
     foreignKey: 'student_id',
-    as: 'feeInvoices',
+    as: 'admissions',
   });
 };
 

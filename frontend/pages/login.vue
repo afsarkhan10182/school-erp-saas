@@ -150,7 +150,7 @@ function autofillSuperAdmin() {
 }
 function autofillSchoolAdmin() {
   form.email = 'admin@huda.edu';
-  form.password = 'School@123';
+  form.password = 'admin123';
 }
 
 const isDark = ref(false);

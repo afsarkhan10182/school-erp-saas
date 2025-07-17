@@ -59,15 +59,19 @@ class App {
       credentials: true,
     }));
 
-    // Rate limiting with robust error handling
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // limit each IP to 100 requests per windowMs
-      message: 'Too many requests from this IP, please try again later',
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
-    this.app.use(safeMiddleware(limiter, 'Rate Limiter'));
+    // Rate limiting with robust error handling (disabled in development)
+    if (process.env.NODE_ENV !== 'development') {
+      const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100, // limit each IP to 100 requests per windowMs
+        message: 'Too many requests from this IP, please try again later',
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+      this.app.use(safeMiddleware(limiter, 'Rate Limiter'));
+    } else {
+      logger.info('Rate limiting disabled in development mode');
+    }
 
     // Request logging
     if (process.env.NODE_ENV === 'development') {

@@ -407,7 +407,7 @@ class SubscriptionService {
           
           // Handle password update if provided
           if (subscriptionData.admin_password) {
-            adminUpdateData.password = await bcrypt.hash(subscriptionData.admin_password, 10);
+            adminUpdateData.password = subscriptionData.admin_password; // Let User model hook handle hashing
           }
           
           await adminUser.update(adminUpdateData, { transaction });

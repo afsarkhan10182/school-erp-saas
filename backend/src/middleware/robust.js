@@ -21,24 +21,63 @@ const robustMiddleware = (middleware, options = {}) => {
     name = 'Unknown Middleware' // Name for logging
   } = options;
 
-  return async (req, res, next) => {
+  return (req, res, next) => {
     const startTime = Date.now();
     
     try {
-      // Add timeout protection
-      const timeoutMiddleware = withTimeout(middleware, timeout);
-      
-      await timeoutMiddleware(req, res, next);
-      
-      // Log performance if middleware takes too long
-      const duration = Date.now() - startTime;
-      if (duration > 1000) { // Log if takes more than 1 second
-        logger.warn(`${name} took ${duration}ms to complete`, {
-          url: req.originalUrl,
-          method: req.method,
-          duration
-        });
-      }
+      // Call the middleware directly (Express middleware doesn't return promises)
+      middleware(req, res, (err) => {
+        const duration = Date.now() - startTime;
+        
+        // Log performance if middleware takes too long
+        if (duration > 1000) { // Log if takes more than 1 second
+          logger.warn(`${name} took ${duration}ms to complete`, {
+            url: req.originalUrl,
+            method: req.method,
+            duration
+          });
+        }
+        
+        if (err) {
+          logger.error(`${name} failed after ${duration}ms`, {
+            url: req.originalUrl,
+            method: req.method,
+            error: err.message,
+            stack: err.stack,
+            duration
+          });
+
+          // If middleware is critical, don't continue
+          if (critical) {
+            if (!res.headersSent) {
+              return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                message: 'Critical middleware failed',
+                error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+              });
+            }
+            return;
+          }
+
+          // Try fallback if provided
+          if (fallback && typeof fallback === 'function') {
+            try {
+              fallback(req, res, next);
+              return;
+            } catch (fallbackError) {
+              logger.error(`${name} fallback also failed`, {
+                error: fallbackError.message,
+                originalError: err.message
+              });
+            }
+          }
+
+          // Continue to next middleware with error
+          next(err);
+        } else {
+          next();
+        }
+      });
       
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -66,7 +105,7 @@ const robustMiddleware = (middleware, options = {}) => {
       // Try fallback if provided
       if (fallback && typeof fallback === 'function') {
         try {
-          await fallback(req, res, next);
+          fallback(req, res, next);
           return;
         } catch (fallbackError) {
           logger.error(`${name} fallback also failed`, {

@@ -15,15 +15,18 @@ export function useBranches() {
       const response = await apiClient.branches.getAll(schoolId);
       console.log('[useBranches] API response:', response);
       if (response.success) {
-        // Handle different response structures - PaginatedResponse has 'items'
-        branches.value = response.data?.items || response.data || response.data.branches || [];
+        // Handle different response structures - some endpoints return 'branches', others 'items'
+        const responseData = response.data as any;
+        branches.value = responseData?.branches || responseData?.items || responseData || [];
         console.log('[useBranches] Set branches array:', branches.value);
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }
+      return response; // <--- ADDED THIS LINE
     } catch (e) {
       console.error('Error fetching branches:', e);
       error.value = 'Network error.';
+      return { success: false, message: 'Network error.' }; // <--- ADDED THIS LINE for error case
     } finally {
       loading.value = false;
     }
@@ -36,8 +39,9 @@ export function useBranches() {
     try {
       const response = await apiClient.branches.getAll(undefined, params);
       if (response.success) {
-        // Handle different response structures - PaginatedResponse has 'items'
-        branches.value = response.data?.branches || response.data || [];
+        // Handle different response structures - some endpoints return 'branches', others 'items'
+        const responseData = response.data as any;
+        branches.value = responseData?.branches || responseData?.items || responseData || [];
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }

@@ -36,7 +36,7 @@ onMounted(async () => {
   error.value = '';
   try {
     const result = await fetchSchoolsWithSubscriptions({ id: route.params.id });
-    console.log('afsarresult', result);
+
     school.value = result.data.schools?.[0] || null;
     if (!school.value) error.value = 'School not found.';
   } catch (e) {

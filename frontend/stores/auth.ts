@@ -112,7 +112,7 @@ const initializeAuth = async () => {
 
     if (savedToken && savedUser) {
       token.value = savedToken;
-      refreshToken.value = savedRefreshToken;
+      refreshToken.value = savedRefreshToken || null;
       user.value = JSON.parse(savedUser);
       currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
       currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
@@ -258,37 +258,46 @@ const initializeAuth = async () => {
   // Refresh token
   const refreshAuth = async (): Promise<boolean> => {
     console.log('🔄 Attempting token refresh...');
+    console.log('🔍 Current refresh token:', refreshToken.value ? 'present' : 'missing');
+    
     if (!refreshToken.value) {
       console.log('❌ No refresh token available');
       return false;
     }
     
     try {
+      console.log('🔄 Calling /auth/refresh endpoint...');
       const response = await apiClient.auth.refresh(refreshToken.value);
       console.log('🔄 Refresh response:', response);
       
       if (response.success) {
-        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        const { token: newToken } = response.data;
         
-        // Update both tokens
+        // Update token
         token.value = newToken;
-        if (newRefreshToken) {
-          refreshToken.value = newRefreshToken;
-        }
         
-        // Update cookies
-        setTokens(newToken, refreshToken.value);
+        // Update cookies (keep existing refresh token if no new one provided)
+        if (refreshToken.value) {
+          setTokens(newToken, refreshToken.value);
+        }
         console.log('✅ Token refresh successful');
         
         return true;
       } else {
         console.log('❌ Token refresh failed:', response.message);
+        return false;
+      }
+    } catch (error: any) {
+      console.error('❌ Token refresh error:', error);
+      
+      // Check if it's a 401 error (refresh token expired)
+      if (error.response?.status === 401) {
+        console.log('❌ Refresh token expired - logging out');
         await logout();
         return false;
       }
-    } catch (error) {
-      console.error('❌ Token refresh error:', error);
-      await logout();
+      
+      // For other errors, don't logout immediately, just return false
       return false;
     }
   };

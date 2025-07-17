@@ -32,7 +32,6 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -48,9 +47,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   <span class="capitalize">{{ feeType.category }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ feeType.amount }}
-                </td>
+                
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
                     :class="{
@@ -110,8 +107,50 @@
                     </option>
                   </select>
                 </div>
+                
+                <!-- Branch Selector for Super Admin -->
+                <div v-if="selectedSchoolId">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <select
+                    v-model="selectedBranchId"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select a branch</option>
+                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                      {{ branch.name }}
+                    </option>
+                  </select>
+                </div>
+                
                 <div v-if="!selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
                   ⚠️ Please select a school before creating the fee type
+                </div>
+                <div v-if="selectedSchoolId && !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                  ⚠️ Please select a branch before creating the fee type
+                </div>
+              </div>
+            </div>
+
+            <!-- Branch Selector for School Admin -->
+            <div v-if="user?.role === 'school_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select Branch Context</h4>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <select
+                    v-model="selectedBranchId"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select a branch</option>
+                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                      {{ branch.name }}
+                    </option>
+                  </select>
+                </div>
+                <div v-if="!selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                  ⚠️ Please select a branch before creating the fee type
                 </div>
               </div>
             </div>
@@ -159,107 +198,16 @@
                   </select>
                 </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
-                  <textarea
-                    v-model="form.description"
-                    rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter description"
-                  ></textarea>
-                </div>
+                
               </div>
 
               <!-- Settings -->
               <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Due Date (Days)</label>
-                  <input
-                    v-model="form.due_date_days"
-                    type="number"
-                    min="1"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="30"
-                  />
-                </div>
+                
 
-                <!-- Checkboxes -->
-                <div class="space-y-3">
-                  <label class="flex items-center">
-                    <input
-                      v-model="form.is_mandatory"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                    />
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Mandatory</span>
-                  </label>
+                
 
-                  <label class="flex items-center">
-                    <input
-                      v-model="form.is_refundable"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                    />
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Refundable</span>
-                  </label>
-
-                  <label class="flex items-center">
-                    <input
-                      v-model="form.late_fee_applicable"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                    />
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Late Fee Applicable</span>
-                  </label>
-
-                  <label class="flex items-center">
-                    <input
-                      v-model="form.tax_applicable"
-                      type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                    />
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Tax Applicable</span>
-                  </label>
-                </div>
-
-                <!-- Late Fee Settings -->
-                <div v-if="form.late_fee_applicable" class="space-y-3">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Late Fee Amount</label>
-                    <input
-                      v-model="form.late_fee_amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Late Fee Type</label>
-                    <select
-                      v-model="form.late_fee_type"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="fixed">Fixed Amount</option>
-                      <option value="percentage">Percentage</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div v-if="form.tax_applicable">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tax Percentage (%)</label>
-                  <input
-                    v-model="form.tax_percentage"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="0.00"
-                  />
-                </div>
+                
               </div>
             </div>
 
@@ -285,7 +233,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && !selectedSchoolId)"
+                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId))"
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
@@ -302,6 +250,7 @@
 import { ref, onMounted } from 'vue';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
+import { useBranches } from '~/composables/useBranches';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // Get auth context
@@ -318,19 +267,15 @@ const editingId = ref(null);
 const selectedSchoolId = ref('');
 const availableSchools = ref([]);
 
+// Branch selector for school admin
+const selectedBranchId = ref('');
+const availableBranches = ref([]);
+const { fetchBranches } = useBranches();
+
 const form = ref({
   name: '',
   code: '',
-  description: '',
   category: 'academic',
-  is_mandatory: true,
-  is_refundable: false,
-  due_date_days: 30,
-  late_fee_applicable: false,
-  late_fee_amount: 0,
-  late_fee_type: 'fixed',
-  tax_applicable: false,
-  tax_percentage: 0,
   is_active: true
 });
 
@@ -338,16 +283,7 @@ const resetForm = () => {
   form.value = {
     name: '',
     code: '',
-    description: '',
     category: 'academic',
-    is_mandatory: true,
-    is_refundable: false,
-    due_date_days: 30,
-    late_fee_applicable: false,
-    late_fee_amount: 0,
-    late_fee_type: 'fixed',
-    tax_applicable: false,
-    tax_percentage: 0,
     is_active: true
   };
   selectedSchoolId.value = '';
@@ -358,9 +294,9 @@ const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
   
   try {
-    console.log('🔍 Fetching schools for super admin...');
+
     const response = await apiClient.schools.getAll();
-    console.log('🔍 Schools API response:', response);
+
     
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
@@ -376,7 +312,7 @@ const fetchSchools = async () => {
       availableSchools.value = [];
     }
     
-    console.log('✅ Schools loaded:', availableSchools.value.length);
+
   } catch (error) {
     console.error('❌ Error fetching schools:', error);
     availableSchools.value = [];
@@ -384,18 +320,54 @@ const fetchSchools = async () => {
 };
 
 // Handle school selection change
-const onSchoolChange = () => {
-  console.log('🔍 School changed to:', selectedSchoolId.value);
+const onSchoolChange = async () => {
+  selectedBranchId.value = ''; // Reset branch selection
+  if (selectedSchoolId.value) {
+    try {
+      const response = await fetchBranches(selectedSchoolId.value);
+      availableBranches.value = response.data || [];
+      // Auto-select if only one branch
+      if (availableBranches.value.length === 1) {
+        selectedBranchId.value = availableBranches.value[0].id;
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      availableBranches.value = [];
+    }
+  }
+
   // Reset form when school changes
   if (!isEditing.value) {
     resetForm();
   }
 };
 
+// Fetch branches for school admin
+const fetchBranchesForSchoolAdmin = async () => {
+  if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
+  
+  try {
+    const response = await fetchBranches(user.value.school_id);
+    console.log('🔍 Branches response:', response);
+    availableBranches.value = response.data || [];
+    // Auto-select if only one branch
+    if (availableBranches.value.length === 1) {
+      selectedBranchId.value = availableBranches.value[0].id;
+    }
+  } catch (error) {
+    console.error('Error fetching branches for school admin:', error);
+    availableBranches.value = [];
+  }
+};
+
 const fetchFeeTypes = async () => {
   isLoading.value = true;
   try {
-    const response = await apiClient.feeTypes.getAll();
+    const params = {};
+    if (user.value?.school_id) {
+      params.school_id = user.value.school_id;
+    }
+    const response = await apiClient.feeTypes.getAll(params);
     feeTypes.value = response.data;
   } catch (error) {
     console.error('Error fetching fee types:', error);
@@ -413,22 +385,19 @@ const openCreateModal = () => {
   if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
     fetchSchools();
   }
+
+  // Load branches for school admin if not already loaded
+  if (user.value?.role === 'school_admin' && user.value?.school_id && availableBranches.value.length === 0) {
+    // Fetch branches for school admin's school directly
+    fetchBranchesForSchoolAdmin();
+  }
 };
 
 const editFeeType = (feeType) => {
   form.value = {
     name: feeType.name,
     code: feeType.code,
-    description: feeType.description || '',
     category: feeType.category || 'academic',
-    is_mandatory: feeType.is_mandatory !== false,
-    is_refundable: feeType.is_refundable === true,
-    due_date_days: feeType.due_date_days || 30,
-    late_fee_applicable: feeType.late_fee_applicable === true,
-    late_fee_amount: feeType.late_fee_amount || 0,
-    late_fee_type: feeType.late_fee_type || 'fixed',
-    tax_applicable: feeType.tax_applicable === true,
-    tax_percentage: feeType.tax_percentage || 0,
     is_active: feeType.is_active !== false
   };
   editingId.value = feeType.id;
@@ -448,36 +417,42 @@ const saveFeeType = async () => {
     const payload = {
       name: form.value.name,
       code: form.value.code,
-      description: form.value.description,
       category: form.value.category,
-      is_mandatory: form.value.is_mandatory,
-      is_refundable: form.value.is_refundable,
-      due_date_days: parseInt(form.value.due_date_days),
-      late_fee_applicable: form.value.late_fee_applicable,
-      late_fee_amount: parseFloat(form.value.late_fee_amount),
-      late_fee_type: form.value.late_fee_type,
-      tax_applicable: form.value.tax_applicable,
-      tax_percentage: parseFloat(form.value.tax_percentage),
       is_active: form.value.is_active
     };
 
-    // Add school_id for super admin users
+    // Add school_id and branch_id for super admin users
     if (user.value?.role === 'super_admin') {
       if (isEditing.value) {
         // For editing, use the school_id from the existing fee type
         // This should be handled by the backend based on the fee type's existing school_id
       } else {
-        // For creating, use the selected school
+        // For creating, use the selected school and branch
         if (selectedSchoolId.value) {
           payload.school_id = selectedSchoolId.value;
         } else {
           console.error('School ID is required for super admin');
           return;
         }
+        if (selectedBranchId.value) {
+          payload.branch_id = selectedBranchId.value;
+        } else {
+          console.error('Branch ID is required for super admin');
+          return;
+        }
+      }
+    } else if (user.value?.role === 'school_admin') {
+      // For school admin, add their school_id and the selected branch_id
+      payload.school_id = user.value.school_id;
+      if (selectedBranchId.value) {
+        payload.branch_id = selectedBranchId.value;
+      } else {
+        console.error('Branch ID is required for school admin');
+        return;
       }
     }
 
-    console.log('🔍 Saving fee type with payload:', payload);
+
 
     if (isEditing.value) {
       await apiClient.feeTypes.update(editingId.value, payload);
@@ -509,6 +484,11 @@ onMounted(async () => {
   // Load schools for super admin on component mount
   if (user.value?.role === 'super_admin') {
     await fetchSchools();
+  }
+  
+  // Load branches for school admin on component mount
+  if (user.value?.role === 'school_admin') {
+    await fetchBranchesForSchoolAdmin();
   }
   
   // Load fee types

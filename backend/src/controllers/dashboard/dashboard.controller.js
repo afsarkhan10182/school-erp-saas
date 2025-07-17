@@ -1,4 +1,5 @@
 const { User, School, Branch, FeeInvoice, Admission, Student } = require('../../models');
+const { Sequelize } = require('../../config/database');
 const SchoolService = require('../../services/school/school.service');
 const BranchService = require('../../services/school/branch.service');
 const { logger } = require('../../utils/logger');
@@ -333,6 +334,133 @@ class DashboardController {
         message: 'Failed to fetch recent activities',
         error: error.message
       });
+    }
+  }
+
+  static async getAdmissionsChartData(req, res, next) {
+    try {
+      const user = req.user;
+      let where = {};
+      if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+      } else if (user.role === 'branch_admin') {
+        where.branch_id = user.branch_id;
+      }
+
+      const admissions = await Admission.findAll({
+        where,
+        attributes: [
+          [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
+          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+        ],
+        group: ['month'],
+        order: [[Sequelize.col('month'), 'ASC']],
+      });
+
+      const labels = admissions.map(a => new Date(a.get('month')).toLocaleString('default', { month: 'short' }));
+      const data = admissions.map(a => a.get('count'));
+
+      res.json({ success: true, data: { labels, data } });
+    } catch (error) {
+      logger.error('Error in DashboardController.getAdmissionsChartData:', error);
+      next(error);
+    }
+  }
+
+  static async getFeesChartData(req, res, next) {
+    try {
+      const user = req.user;
+      let where = {};
+      if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+      } else if (user.role === 'branch_admin') {
+        where.branch_id = user.branch_id;
+      }
+
+      const fees = await FeeInvoice.findAll({
+        where,
+        attributes: [
+          'status',
+          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+        ],
+        group: ['status'],
+      });
+
+      const labels = fees.map(f => f.status);
+      const data = fees.map(f => f.get('count'));
+
+      res.json({ success: true, data: { labels, data } });
+    } catch (error) {
+      logger.error('Error in DashboardController.getFeesChartData:', error);
+      next(error);
+    }
+  }
+
+  static async getStudentDistributionData(req, res, next) {
+    try {
+      const user = req.user;
+      let where = {};
+      if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+      } else if (user.role === 'branch_admin') {
+        where.branch_id = user.branch_id;
+      }
+
+      const students = await Student.findAll({
+        where,
+        attributes: [
+          'current_class',
+          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+        ],
+        group: ['current_class'],
+        order: [[Sequelize.col('current_class'), 'ASC']],
+      });
+
+      const labels = students.map(s => s.current_class || 'Unknown');
+      const data = students.map(s => s.get('count'));
+
+      res.json({ success: true, data: { labels, data } });
+    } catch (error) {
+      logger.error('Error in DashboardController.getStudentDistributionData:', error);
+      next(error);
+    }
+  }
+
+  static async getFeeTrendData(req, res, next) {
+    try {
+      const user = req.user;
+      let where = {};
+      if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+      } else if (user.role === 'branch_admin') {
+        where.branch_id = user.branch_id;
+      }
+
+      // Get fee collection data for last 6 months
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      where.created_at = {
+        [Op.gte]: sixMonthsAgo
+      };
+
+      const fees = await FeeInvoice.findAll({
+        where: { ...where, status: 'paid' },
+        attributes: [
+          [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
+          [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
+        ],
+        group: ['month'],
+        order: [[Sequelize.col('month'), 'ASC']],
+      });
+
+      const labels = fees.map(f => new Date(f.get('month')).toLocaleString('default', { month: 'short' }));
+      const data = fees.map(f => parseFloat(f.get('total_paid') || 0));
+
+      res.json({ success: true, data: { labels, data } });
+    } catch (error) {
+      logger.error('Error in DashboardController.getFeeTrendData:', error);
+      next(error);
     }
   }
 }

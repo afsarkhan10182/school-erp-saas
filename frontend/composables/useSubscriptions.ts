@@ -15,7 +15,7 @@ export function useSubscriptions() {
     error.value = '';
     try {
       const response = await apiClient.subscriptions.getSchoolsWithSubscriptions(params);
-      console.log('afsarresponse', response);
+
       if (response.success) {
         schools.value = response.data.schools || [];
         return response;

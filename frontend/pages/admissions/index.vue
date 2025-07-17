@@ -5,7 +5,7 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Student Admissions</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student admission applications and approvals</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student admissions and view admitted students</p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -19,7 +19,7 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
           <div class="p-5">
             <div class="flex items-center">
@@ -28,8 +28,8 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Applications</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.totalApplications || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Admissions</dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.totalAdmissions || 0 }}</dd>
                 </dl>
               </div>
             </div>
@@ -40,12 +40,12 @@
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
-                <Clock class="h-6 w-6 text-yellow-400" />
+                <UserPlus class="h-6 w-6 text-green-400" />
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Pending Review</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.pendingReview || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Admitted Students</dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.admittedStudents || 0 }}</dd>
                 </dl>
               </div>
             </div>
@@ -56,28 +56,12 @@
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
-                <CheckCircle class="h-6 w-6 text-green-400" />
+                <CheckCircle class="h-6 w-6 text-purple-400" />
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Approved</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.approved || 0 }}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <UserPlus class="h-6 w-6 text-purple-400" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Admitted</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.admitted || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">This Month</dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.thisMonth || 0 }}</dd>
                 </dl>
               </div>
             </div>
@@ -88,19 +72,7 @@
       <!-- Filters -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
         <div class="px-4 py-5 sm:p-6">
-          <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <select v-model="filters.status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="under_review">Under Review</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="admitted">Admitted</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year</label>
               <select v-model="filters.academic_year" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -150,7 +122,7 @@
       <!-- Admissions Table -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Admission Applications</h3>
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Admitted Students</h3>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -160,7 +132,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Application Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Admission Date</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -191,7 +163,7 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ admission.class?.name || admission.class_name }}{{ admission.section?.name ? `-${admission.section.name}` : '' }}
+                  {{ admission.applied_class || 'N/A' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <span class="capitalize">{{ admission.admission_type }}</span>
@@ -212,25 +184,11 @@
                     View
                   </button>
                   <button
-                    v-if="admission.status === 'pending' || admission.status === 'under_review'"
-                    @click="updateStatus(admission, 'approved')"
-                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                    v-if="admission.student_id && authStore.isAuthenticated"
+                    @click="viewStudent(admission.student_id)"
+                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                   >
-                    Approve
-                  </button>
-                  <button
-                    v-if="admission.status === 'pending' || admission.status === 'under_review'"
-                    @click="updateStatus(admission, 'rejected')"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 mr-3"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    v-if="admission.status === 'approved'"
-                    @click="updateStatus(admission, 'admitted')"
-                    class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
-                  >
-                    Admit
+                    Student Profile
                   </button>
                 </td>
               </tr>
@@ -285,48 +243,138 @@
       </div>
     </div>
 
-    <!-- Status Update Modal -->
-    <div v-if="showStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <!-- Admission Detail Modal -->
+    <div v-if="showAdmissionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Update Admission Status</h3>
-          <form @submit.prevent="submitStatusUpdate">
-            <div class="space-y-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Admission Details</h3>
+            <button
+              @click="showAdmissionModal = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <div v-if="selectedAdmission" class="space-y-6">
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">New Status</label>
-                <select v-model="statusForm.status" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="admitted">Admitted</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <h4 class="font-medium text-gray-900 dark:text-white mb-3">Basic Information</h4>
+                <dl class="space-y-2">
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Application Number</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.application_number }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Student Name</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.first_name }} {{ selectedAdmission.last_name }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Class</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.applied_class }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Admission Type</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.admission_type }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
+                    <dd class="text-sm">
+                      <span :class="getStatusClass(selectedAdmission.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                        {{ getStatusText(selectedAdmission.status) }}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Admission Date</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ formatDate(selectedAdmission.application_date) }}</dd>
+                  </div>
+                </dl>
               </div>
+
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Remarks</label>
-                <textarea v-model="statusForm.remarks" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
-              </div>
-              <div v-if="statusForm.status === 'rejected'">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Reason *</label>
-                <textarea v-model="statusForm.rejection_reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                <h4 class="font-medium text-gray-900 dark:text-white mb-3">Contact Information</h4>
+                <dl class="space-y-2">
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.email || 'Not provided' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.phone || 'Not provided' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Address</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.address || 'Not provided' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">City</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.city || 'Not provided' }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">State</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.state || 'Not provided' }}</dd>
+                  </div>
+                </dl>
               </div>
             </div>
-            <div class="mt-6 flex justify-end space-x-3">
+
+            <!-- Student Information (if available) -->
+            <div v-if="selectedAdmission.student" class="border-t pt-6">
+              <h4 class="font-medium text-gray-900 dark:text-white mb-3">Student Information</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <dl class="space-y-2">
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Student ID</dt>
+                      <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.student.id }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Admission Number</dt>
+                      <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.student.admission_number }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Class</dt>
+                      <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.student.current_class }}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div>
+                  <dl class="space-y-2">
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Student Email</dt>
+                      <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.student.email || 'Not provided' }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Student Phone</dt>
+                      <dd class="text-sm text-gray-900 dark:text-white">{{ selectedAdmission.student.phone || 'Not provided' }}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="border-t pt-6 flex justify-end space-x-3">
               <button
-                type="button"
-                @click="showStatusModal = false"
-                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                v-if="selectedAdmission.student_id"
+                @click="viewStudent(selectedAdmission.student_id)"
+                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
               >
-                Cancel
+                View Student Profile
               </button>
               <button
-                type="submit"
-                :disabled="isUpdatingStatus"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                @click="showAdmissionModal = false"
+                class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                {{ isUpdatingStatus ? 'Updating...' : 'Update Status' }}
+                Close
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
@@ -338,20 +386,24 @@ import { ref, reactive, onMounted } from 'vue';
 import { 
   Plus, 
   FileText, 
-  Clock, 
   CheckCircle, 
   UserPlus,
   Search
 } from 'lucide-vue-next';
 import apiClient from '~/utils/api';
+import { useAuthStore } from '~/stores/auth';
 
 // State
 const admissions = ref([]);
 const stats = ref({});
 const isLoading = ref(false);
-const showStatusModal = ref(false);
-const isUpdatingStatus = ref(false);
+
+// Modal state
+const showAdmissionModal = ref(false);
 const selectedAdmission = ref(null);
+
+// Auth store
+const authStore = useAuthStore();
 
 // Pagination
 const currentPage = ref(1);
@@ -361,26 +413,25 @@ const totalPages = ref(0);
 
 // Filters
 const filters = reactive({
-  status: '',
   academic_year: '',
   class_name: '',
   admission_type: '',
-});
-
-// Forms
-const statusForm = reactive({
-  status: '',
-  remarks: '',
-  rejection_reason: '',
 });
 
 // Methods
 const fetchAdmissions = async () => {
   isLoading.value = true;
   try {
+    // Check if user is authenticated
+    if (!authStore.isAuthenticated) {
+      console.error('User not authenticated');
+      return;
+    }
+    
     const params = {
       page: currentPage.value,
       limit: pageSize.value,
+      status: 'admitted,approved', // Show both admitted and approved students
       ...filters
     };
     
@@ -388,6 +439,18 @@ const fetchAdmissions = async () => {
     admissions.value = response.data.items || response.data || [];
     totalItems.value = response.pagination?.total || 0;
     totalPages.value = response.pagination?.totalPages || 0;
+    
+    // Debug logging
+    console.log('Admissions data:', admissions.value);
+    admissions.value.forEach(admission => {
+      console.log('Admission:', {
+        id: admission.id,
+        application_number: admission.application_number,
+        student_id: admission.student_id,
+        student: admission.student,
+        status: admission.status
+      });
+    });
   } catch (error) {
     console.error('Error fetching admissions:', error);
   } finally {
@@ -405,41 +468,19 @@ const fetchStats = async () => {
   }
 };
 
-const updateStatus = (admission, status) => {
-  selectedAdmission.value = admission;
-  statusForm.status = status;
-  statusForm.remarks = '';
-  statusForm.rejection_reason = '';
-  showStatusModal.value = true;
-};
-
-const submitStatusUpdate = async () => {
-  isUpdatingStatus.value = true;
-  try {
-    const payload = {
-      status: statusForm.status,
-      remarks: statusForm.remarks,
-    };
-    
-    if (statusForm.status === 'rejected') {
-      payload.rejection_reason = statusForm.rejection_reason;
-    }
-    
-    await apiClient.admissions.updateStatus(selectedAdmission.value.id, payload);
-    showStatusModal.value = false;
-    await fetchAdmissions();
-    await fetchStats();
-    alert('Status updated successfully!');
-  } catch (error) {
-    console.error('Error updating status:', error);
-    alert('Error updating status. Please try again.');
-  } finally {
-    isUpdatingStatus.value = false;
-  }
-};
-
 const viewAdmission = (admission) => {
-  navigateTo(`/admissions/${admission.id}`);
+  selectedAdmission.value = admission;
+  showAdmissionModal.value = true;
+};
+
+const viewStudent = (studentId) => {
+  if (!authStore.isAuthenticated) {
+    console.error('User not authenticated');
+    // Redirect to login
+    navigateTo('/login');
+    return;
+  }
+  navigateTo(`/students/${studentId}`);
 };
 
 const previousPage = () => {
@@ -462,26 +503,20 @@ const formatDate = (date) => {
 
 const getStatusClass = (status) => {
   const classes = {
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    under_review: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    admitted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    admitted: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   };
-  return classes[status] || classes.pending;
+  return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
 };
 
 const getStatusText = (status) => {
   const texts = {
-    pending: 'Pending',
-    under_review: 'Under Review',
-    approved: 'Approved',
-    rejected: 'Rejected',
     admitted: 'Admitted',
-    cancelled: 'Cancelled',
+    approved: 'Admitted', // Show approved as admitted since student is created
+    active: 'Active',
   };
-  return texts[status] || status;
+  return texts[status] || 'Admitted';
 };
 
 onMounted(async () => {

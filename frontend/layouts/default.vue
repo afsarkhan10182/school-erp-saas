@@ -29,7 +29,7 @@ import Toast from '~/components/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
 
-const sidebarOpen = ref(true);
+const sidebarOpen = ref(false);
 const router = useRouter();
 const route = useRoute();
 
@@ -39,10 +39,8 @@ let mql;
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768;
-  // Auto-close sidebar on mobile
-  if (isMobile.value) {
-    sidebarOpen.value = false;
-  }
+  // Auto-close sidebar on mobile, open on desktop
+  sidebarOpen.value = !isMobile.value;
 };
 
 const authStore = useAuthStore();
@@ -115,7 +113,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   aside {
     display: none;
   }

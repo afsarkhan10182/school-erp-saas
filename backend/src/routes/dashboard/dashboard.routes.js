@@ -86,4 +86,12 @@ router.get('/school-report', authorize('school_admin'), DashboardController.getS
  */
 router.get('/recent-activities', DashboardController.getRecentActivities);
 
+router.get('/admissions-chart', DashboardController.getAdmissionsChartData);
+
+router.get('/fees-chart', DashboardController.getFeesChartData);
+
+router.get('/student-distribution', DashboardController.getStudentDistributionData);
+
+router.get('/fee-trend', DashboardController.getFeeTrendData);
+
 module.exports = router; 

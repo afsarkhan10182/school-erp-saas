@@ -133,6 +133,7 @@ export function useAcademics() {
 
   // Auto-load sections when class changes
   const loadSectionsByClass = async (classId: string, schoolId?: string, branchId?: string) => {
+    
     if (!classId) {
       sections.value = [];
       return [];

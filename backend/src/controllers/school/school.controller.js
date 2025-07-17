@@ -96,6 +96,63 @@ class SchoolController {
     success(res, { school }, 'School updated successfully');
   });
 
+  // Get all staff members for a specific school
+  static getSchoolStaff = asyncHandler(async (req, res) => {
+    const { id: schoolId } = req.params;
+    const { page = 1, limit = 10, search, role, status } = req.query;
+    const user = req.user;
+
+    // Access control - only super admin or school admin of this school can access
+    if (user.role === 'school_admin' && user.school_id !== parseInt(schoolId)) {
+      throw new ApiError(403, 'Access denied');
+    }
+
+    const users = await User.findAndCountAll({
+      where: {
+        school_id: schoolId,
+        role: { [Op.ne]: 'super_admin' }, // Exclude super admins
+        ...(search && {
+          [Op.or]: [
+            { first_name: { [Op.iLike]: `%${search}%` } },
+            { last_name: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } },
+          ]
+        }),
+        ...(role && { role }),
+        ...(status && { status }),
+        deleted_at: null
+      },
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: School,
+          as: 'school',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
+      ],
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: (page - 1) * limit,
+    });
+
+    const result = {
+      users: users.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: users.count,
+        pages: Math.ceil(users.count / limit),
+      },
+    };
+
+    success(res, result);
+  });
+
   static deleteSchool = asyncHandler(async (req, res) => {
     const { id } = req.params;
 

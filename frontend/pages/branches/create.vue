@@ -21,6 +21,10 @@
           <input v-model="form.name" type="text" required class="input-field" placeholder="Enter branch name" />
         </div>
         <div>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Branch Code *</label>
+          <input v-model="form.code" type="text" required class="input-field" placeholder="e.g., MAIN, NORTH, SOUTH" />
+        </div>
+        <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
           <input v-model="form.email" type="email" class="input-field" placeholder="Branch email (optional)" />
         </div>
@@ -92,6 +96,7 @@ const { schools, fetchSchoolsWithSubscriptions } = useSubscriptions();
 const form = ref({
   schoolId: '',
   name: '',
+  code: '',
   email: '',
   phone: '',
   currency: '',
@@ -133,6 +138,7 @@ const handleSubmit = async () => {
   const formData = new FormData();
   formData.append('school_id', form.value.schoolId);
   formData.append('name', form.value.name);
+  formData.append('code', form.value.code);
   formData.append('email', form.value.email);
   formData.append('phone', form.value.phone);
   formData.append('currency', form.value.currency);

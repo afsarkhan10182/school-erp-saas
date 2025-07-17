@@ -4,10 +4,11 @@
   
   <!-- Sidebar -->
   <div 
-    :class="[
-      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 flex flex-col',
+:class="[
+      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 flex flex-col', 
       isMobile ? (open ? 'w-64 translate-x-0' : 'w-64 -translate-x-full') : (open ? 'w-64' : 'w-16'),
-      isMobile ? 'md:w-16 md:translate-x-0' : ''
+      isMobile ? 'md:w-16 md:translate-x-0' : '',
+      'transform' // Add transform class for smoother transitions
     ]"
   >
     <!-- Logo/Brand Header -->
@@ -160,7 +161,13 @@ import {
 const props = defineProps({
   open: {
     type: Boolean,
-    default: true
+    default: () => {
+      // Try to get stored state first, fallback to window width check
+      if (typeof window !== 'undefined' && localStorage.getItem('sidebarOpen') !== null) {
+        return localStorage.getItem('sidebarOpen') === 'true';
+      }
+      return window?.innerWidth > 768;
+    }
   },
   user: {
     type: Object,
@@ -170,6 +177,13 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle']);
 
+// Function to save sidebar state
+const saveSidebarState = (isOpen) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('sidebarOpen', isOpen.toString());
+  }
+};
+
 const authStore = useAuthStore();
 const menuOpen = ref('');
 
@@ -178,6 +192,8 @@ watch(() => props.open, (newValue) => {
   if (!newValue) {
     menuOpen.value = '';
   }
+  // Save state to localStorage whenever it changes
+  saveSidebarState(newValue);
 });
 
 // Role checks
@@ -234,7 +250,7 @@ const menuGroups = computed(() => {
           children: [
             { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
             { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
-            { id: 'applications', title: 'Applications', path: '/admissions', icon: ClipboardList },
+            { id: 'applications', title: 'Total Applications', path: '/admissions', icon: ClipboardList },
           ]
         }
       ]
@@ -318,6 +334,7 @@ const menuGroups = computed(() => {
       id: 'settings',
       title: 'Settings',
       items: [
+      { id: 'manage-users', title: 'Users', path: '/users', icon: Users },
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
         { id: 'branch-settings', title: 'Branch Settings', path: '/settings/branch', icon: Building2 },
         { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
@@ -362,7 +379,15 @@ const isMobile = ref(false);
 let mql;
 
 const checkMobile = () => {
-  isMobile.value = window.innerWidth < 768;
+  if (window) {
+    const newIsMobile = window.innerWidth < 768;
+    if (newIsMobile !== isMobile.value) {
+      isMobile.value = newIsMobile;
+      const shouldBeOpen = !newIsMobile;
+      emit('toggle', shouldBeOpen);
+      saveSidebarState(shouldBeOpen); // Save state when toggling based on mobile detection
+    }
+  }
 };
 
 onMounted(() => {

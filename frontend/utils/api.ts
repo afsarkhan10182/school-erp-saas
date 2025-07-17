@@ -47,40 +47,71 @@ export function createApiInstance(): AxiosInstance {
     (response: AxiosResponse) => response,
     async (error) => {
       const originalRequest = error.config;
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      
+      // Prevent infinite loop for refresh token requests
+      if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
         originalRequest._retry = true;
+        console.log('🔄 Access token expired, attempting refresh...');
+        console.log('🔍 Original request URL:', originalRequest.url);
+        
         try {
           // Try to get refresh token from cookie
           let refreshToken = null;
           if (process.client) {
             const refreshCookie = useCookie('refresh-token');
             refreshToken = refreshCookie.value;
+            console.log('🔍 Refresh token from cookie:', refreshToken ? 'present' : 'missing');
           }
           
           if (refreshToken) {
+            console.log('🔄 Calling refreshAuth...');
             const authStore = useAuthStore();
             const refreshed = await authStore.refreshAuth();
+            console.log('🔄 Refresh result:', refreshed);
             
             if (refreshed) {
               // Get the new token from the auth store
               const newToken = authStore.token;
+              console.log('🔍 New token obtained:', newToken ? 'present' : 'missing');
               if (newToken) {
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                console.log('🔄 Retrying original request with new token...');
                 return api(originalRequest);
               }
             }
-            throw new Error('Token refresh failed');
           }
+          
+          // If refresh failed or no refresh token, logout and redirect
+          if (process.client) {
+            const authStore = useAuthStore();
+            await authStore.logout();
+            await navigateTo('/login');
+          }
+          return Promise.reject(new Error('Authentication failed'));
+          
         } catch (refreshError) {
+          console.error('Token refresh error:', refreshError);
           // Clear auth state and redirect to login
           if (process.client) {
             const authStore = useAuthStore();
             await authStore.logout();
             await navigateTo('/login');
           }
-          return Promise.reject(refreshError);
+          return Promise.reject(new Error('Authentication failed'));
         }
       }
+      
+      // For refresh token requests that fail, just reject without retrying
+      if (error.response?.status === 401 && originalRequest.url?.includes('/auth/refresh')) {
+        console.error('Refresh token request failed - logging out');
+        if (process.client) {
+          const authStore = useAuthStore();
+          await authStore.logout();
+          await navigateTo('/login');
+        }
+        return Promise.reject(new Error('Refresh token expired'));
+      }
+      
       return Promise.reject(error);
     }
   );
@@ -374,6 +405,30 @@ export const apiClient = {
       const response = await api.get<ApiResponse<any>>('/dashboard/recent-activities', { params });
       return response.data;
     },
+
+    getAdmissionsChartData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/admissions-chart');
+      return response.data;
+    },
+
+    getFeesChartData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fees-chart');
+      return response.data;
+    },
+
+    getStudentDistributionData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/student-distribution');
+      return response.data;
+    },
+
+    getFeeTrendData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend');
+      return response.data;
+    },
   },
 
   // Academic Year endpoints
@@ -505,7 +560,7 @@ export const apiClient = {
 
   // Enhanced Student endpoints with reports
   students: {
-    getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string }) => {
+    getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string; branch_id?: string; class_id?: string; section_id?: string; search?: string }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/students', { params });
       return response.data;
@@ -523,9 +578,29 @@ export const apiClient = {
       return response.data;
     },
     
+    createWithFormData: async (formData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/students', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    },
+    
     update: async (id: string, studentData: any) => {
       const api = createApiInstance();
       const response = await api.put<ApiResponse<any>>(`/students/${id}`, studentData);
+      return response.data;
+    },
+    
+    updateWithFormData: async (id: string, formData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/students/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     },
     
@@ -577,6 +652,26 @@ export const apiClient = {
     create: async (admissionData: any) => {
       const api = createApiInstance();
       const response = await api.post<ApiResponse<any>>('/admissions', admissionData);
+      return response.data;
+    },
+    
+    createWithFormData: async (formData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/admissions', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    },
+
+    createSchoolWithSubscription: async (schoolData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/subscriptions/schools', schoolData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       return response.data;
     },
     

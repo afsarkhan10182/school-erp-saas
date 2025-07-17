@@ -8,17 +8,8 @@ const createFeeType = async (req, res, next) => {
     const {
       name,
       code,
-      description,
       category,
-      is_mandatory,
-      is_refundable,
-      due_date_days,
-      late_fee_applicable,
-      late_fee_amount,
-      late_fee_type,
-      tax_applicable,
-      tax_percentage,
-      sort_order,
+      is_active = true,
     } = req.body;
 
     // Check if fee type already exists
@@ -37,17 +28,8 @@ const createFeeType = async (req, res, next) => {
     const feeType = await FeeType.create({
       name,
       code,
-      description,
       category,
-      is_mandatory,
-      is_refundable,
-      due_date_days,
-      late_fee_applicable,
-      late_fee_amount,
-      late_fee_type,
-      tax_applicable,
-      tax_percentage,
-      sort_order,
+      is_active,
       school_id: req.schoolId,
       created_by: req.user.id,
     });
@@ -105,7 +87,7 @@ const getFeeTypeById = async (req, res, next) => {
 const updateFeeType = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const { name, code, category, is_active } = req.body;
 
     const feeType = await FeeType.findOne({
       where: {
@@ -119,10 +101,10 @@ const updateFeeType = async (req, res, next) => {
     }
 
     // Check if code is being updated and if it already exists
-    if (updates.code && updates.code !== feeType.code) {
+    if (code && code !== feeType.code) {
       const existingFeeType = await FeeType.findOne({
         where: {
-          code: updates.code,
+          code: code,
           school_id: req.schoolId,
         },
       });
@@ -133,7 +115,10 @@ const updateFeeType = async (req, res, next) => {
     }
 
     await feeType.update({
-      ...updates,
+      name,
+      code,
+      category,
+      is_active,
       updated_by: req.user.id,
     });
 

@@ -49,22 +49,38 @@ class UserService {
       const offset = (page - 1) * limit;
       const where = {};
 
+      // Only include non-deleted users
+      where.deleted_at = null;
+
+      // Apply search filter
       if (search) {
         where[Op.or] = [
           { first_name: { [Op.iLike]: `%${search}%` } },
           { last_name: { [Op.iLike]: `%${search}%` } },
           { email: { [Op.iLike]: `%${search}%` } },
+          { phone: { [Op.iLike]: `%${search}%` } },
+          { '$school.name$': { [Op.iLike]: `%${search}%` } },
+          { '$branch.name$': { [Op.iLike]: `%${search}%` } },
         ];
       }
 
+      // Apply role filter
       if (role) {
         where.role = role;
+      } else if (school_id) {
+        // If filtering by school, exclude super admins by default
+        where.role = { [Op.ne]: 'super_admin' };
       }
 
+      // Apply status filter
       if (status) {
         where.status = status;
+      } else {
+        // Only show active users by default
+        where.status = 'active';
       }
 
+      // Apply school filter if provided
       if (school_id) {
         where.school_id = school_id;
       }

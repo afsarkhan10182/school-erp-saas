@@ -53,6 +53,13 @@ router.put(
   SchoolController.updateMySchool
 );
 
+// School staff management
+router.get(
+  '/:id/staff',
+  authorize('super_admin', 'school_admin'),
+  SchoolController.getSchoolStaff
+);
+
 router.get(
   '/:id',
   authorize('super_admin', 'school_admin'),

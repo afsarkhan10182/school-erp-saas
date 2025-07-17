@@ -22,63 +22,13 @@ const FeeType = sequelize.define('FeeType', {
       notEmpty: { msg: 'Fee type code is required' },
     },
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
+  
   category: {
     type: DataTypes.ENUM('academic', 'transport', 'hostel', 'library', 'exam', 'sports', 'other'),
-    allowNull: false,
-    defaultValue: 'academic',
+    allowNull: true,
+    defaultValue: 'other',
   },
-  is_mandatory: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-  },
-  is_refundable: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  due_date_days: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 30,
-    validate: {
-      min: { args: [1], msg: 'Due date days must be at least 1' },
-    },
-  },
-  late_fee_applicable: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  late_fee_amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-  },
-  late_fee_type: {
-    type: DataTypes.ENUM('fixed', 'percentage'),
-    allowNull: false,
-    defaultValue: 'fixed',
-  },
-  tax_applicable: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  tax_percentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-  },
-  sort_order: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
+  
   is_active: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

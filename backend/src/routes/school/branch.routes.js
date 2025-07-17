@@ -60,7 +60,7 @@ router.delete(
 // School Admin routes (can manage branches in their school)
 router.get(
   '/school/:schoolId',
-  authorize('super_admin', 'school_admin'),
+  authorize(['super_admin', 'school_admin']),
   BranchController.getBranchesBySchool
 );
 

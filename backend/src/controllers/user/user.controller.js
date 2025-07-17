@@ -2,14 +2,27 @@ const UserService = require('../../services/user/user.service');
 const { logger } = require('../../utils/logger');
 
 class UserController {
-  // Create a new user
+  // Create a new user with role-based access control
   static async createUser(req, res, next) {
     try {
+      const { role } = req.user;
+      const { role: newUserRole } = req.body;
+      
+      // School admins can only create certain roles
+      if (role === 'school_admin') {
+        const allowedRoles = ['teacher', 'accountant', 'librarian', 'receptionist', 'admin'];
+        if (!allowedRoles.includes(newUserRole)) {
+          throw new ApiError(403, 'You are not authorized to create this role');
+        }
+      }
+
       const userData = {
         ...req.body,
         created_by: req.user.id,
         // If School Admin, use their school_id
-        school_id: req.user.role === 'school_admin' ? req.user.school_id : req.body.school_id,
+        school_id: role === 'school_admin' ? req.user.school_id : req.body.school_id,
+        // Set default status to active if not provided
+        status: req.body.status || 'active',
       };
 
       const user = await UserService.createUser(userData);
@@ -25,10 +38,14 @@ class UserController {
     }
   }
 
-  // Get all users (Super Admin only)
+  // Get all users with role-based access control
   static async getAllUsers(req, res, next) {
     try {
-      const { page = 1, limit = 10, search, role, status, school_id } = req.query;
+      const { page = 1, limit = 10, search, role, status } = req.query;
+      const { user } = req;
+      
+      // If school admin, only show users from their school
+      const school_id = user.role === 'school_admin' ? user.school_id : req.query.school_id;
       
       const users = await UserService.getAllUsers({
         page: parseInt(page),

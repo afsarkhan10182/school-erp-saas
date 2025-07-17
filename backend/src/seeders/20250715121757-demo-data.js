@@ -296,7 +296,7 @@ module.exports = {
       {
         id: schoolAdminId,
         email: 'admin@huda.edu',
-        password: await hashPassword('School@123'),
+        password: await hashPassword('admin123'),
         first_name: 'Rajesh',
         last_name: 'Kumar',
         phone: '+91-9876543211',
@@ -955,7 +955,7 @@ module.exports = {
     console.log('✅ Demo data seeding completed successfully!');
     console.log('🔑 Login Credentials:');
     console.log('   Super Admin: superadmin@example.com / Admin@123');
-    console.log('   School Admin: admin@huda.edu / School@123');
+    console.log('   School Admin: admin@huda.edu / admin123');
     console.log('   Branch Admin: branch.admin@huda.edu / Branch@123');
     console.log('   Teacher: teacher1@huda.edu / Teacher@123');
     console.log('   Accountant: accountant@huda.edu / Account@123');

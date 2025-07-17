@@ -79,23 +79,91 @@ const createStudent = async (req, res, next) => {
 // Get all students
 const getStudents = async (req, res, next) => {
   try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      academic_year, 
+      class_name, 
+      section, 
+      status,
+      branch_id,
+      class_id,
+      section_id
+    } = req.query;
+
+    // Build where clause for Student table
+    const whereClause = {};
+    
+    // Only filter by school_id if it's provided (for school_admin and branch_admin)
+    // Super admin can see all students
+    if (req.schoolId) {
+      whereClause.school_id = req.schoolId;
+    }
+
+    // Apply filters
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    if (academic_year) whereClause.academic_year = academic_year;
+    if (class_name) whereClause.current_class = class_name;
+    if (section) whereClause.section = section;
+    if (status) whereClause.status = status;
+    if (branch_id) whereClause.branch_id = branch_id;
+
+    // Handle class_id and section_id by getting their codes/names
+    if (class_id) {
+      const classRecord = await Class.findByPk(class_id);
+      if (classRecord) {
+        // Students are stored with class codes (I, II, III), not full names
+        whereClause.current_class = classRecord.code;
+      }
+    }
+
+    if (section_id) {
+      const sectionRecord = await Section.findByPk(section_id);
+      if (sectionRecord) {
+        whereClause.section = sectionRecord.name;
+      }
+    }
+
+    // Calculate pagination
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await Student.count({ where: whereClause });
+
+    // Get students with pagination
     const students = await Student.findAll({
-      where: {
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Parent,
           as: 'parents',
           through: { attributes: [] },
         },
-        {
-          model: FeeInvoice,
-          as: 'feeInvoices',
-        },
       ],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
     });
-    return res.status(200).json({ success: true, data: students });
+
+    return res.status(200).json({ 
+      success: true, 
+      data: students,
+      pagination: {
+        current_page: parseInt(page),
+        total_pages: Math.ceil(totalCount / limit),
+        total_count: totalCount,
+        limit: parseInt(limit),
+      }
+    });
   } catch (error) {
     logger.error('Error fetching students:', error);
     return next(error);
@@ -107,6 +175,32 @@ const getStudentById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // Debug logging
+    console.log('=== STUDENT CONTROLLER DEBUG ===');
+    console.log('User:', req.user);
+    console.log('SchoolId from middleware:', req.schoolId);
+    console.log('Student ID requested:', id);
+    console.log('User school_id:', req.user?.school_id);
+    console.log('User branch_id:', req.user?.branch_id);
+
+    // First, try to find the student without school_id filter to see if it exists
+    const studentWithoutFilter = await Student.findByPk(id);
+    console.log('Student without school filter:', studentWithoutFilter ? {
+      id: studentWithoutFilter.id,
+      name: `${studentWithoutFilter.first_name} ${studentWithoutFilter.last_name}`,
+      school_id: studentWithoutFilter.school_id,
+      branch_id: studentWithoutFilter.branch_id
+    } : 'Not found');
+
+    // Check if schoolId is set
+    if (!req.schoolId) {
+      console.log('ERROR: req.schoolId is undefined!');
+      console.log('User object:', req.user);
+      throw new ApiError(500, 'School context not properly set');
+    }
+
+    console.log('Looking for student with criteria:', { id, school_id: req.schoolId });
+
     const student = await Student.findOne({
       where: {
         id,
@@ -116,31 +210,28 @@ const getStudentById = async (req, res, next) => {
         {
           model: Parent,
           as: 'parents',
-          through: { attributes: ['relationship', 'is_primary', 'is_fee_payer'] },
-        },
-        {
-          model: FeeInvoice,
-          as: 'feeInvoices',
-          include: [
-            {
-              model: FeeStructure,
-              as: 'feeStructure',
-              include: [
-                {
-                  model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
+          through: { attributes: ['relationship', 'is_primary'] },
+          attributes: [
+            'id', 'father_name', 'mother_name', 'guardian_name', 
+            'father_phone', 'mother_phone', 'guardian_phone',
+            'father_email', 'mother_email', 'guardian_email',
+            'father_occupation', 'mother_occupation',
+            'father_qualification', 'mother_qualification',
+            'father_income', 'mother_income',
+            'guardian_relation', 'city', 'state', 'address'
           ],
         },
       ],
     });
 
     if (!student) {
+      console.log('Student not found with criteria:', { id, school_id: req.schoolId });
+      console.log('Available school_id for this student:', studentWithoutFilter?.school_id);
+      console.log('User school_id:', req.user?.school_id);
       throw new ApiError(404, 'Student not found');
     }
 
+    console.log('Student found:', student.id);
     return res.status(200).json({ success: true, data: student });
   } catch (error) {
     logger.error('Error fetching student:', error);
@@ -154,6 +245,9 @@ const updateStudent = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
+    console.log('🔍 Update Student Request Body:', JSON.stringify(updates, null, 2));
+    console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
+
     const student = await Student.findOne({
       where: {
         id,
@@ -165,10 +259,266 @@ const updateStudent = async (req, res, next) => {
       throw new ApiError(404, 'Student not found');
     }
 
-    await student.update({
-      ...updates,
+    // Handle both FormData and JSON formats
+    let studentUpdates = {};
+    let academicUpdates = {};
+    
+    console.log('🔍 Checking data structure...');
+    console.log('🔍 Has studentData field?', !!updates.studentData);
+    console.log('🔍 Has student field?', !!updates.student);
+    console.log('🔍 Student field type:', typeof updates.student);
+    console.log('🔍 Content-Type:', req.headers['content-type']);
+    
+    try {
+      // Check if data is sent as FormData with JSON string
+      if (updates.studentData) {
+        const parsedData = JSON.parse(updates.studentData);
+        console.log('🔍 Parsed student data from FormData:', JSON.stringify(parsedData, null, 2));
+        
+        // Extract student data from nested structure
+        if (parsedData.student && typeof parsedData.student === 'object') {
+          studentUpdates = { ...parsedData.student };
+          console.log('🔍 Extracted student data from FormData:', studentUpdates);
+        } else {
+          studentUpdates = { ...parsedData };
+          console.log('🔍 Using parsed data directly:', studentUpdates);
+        }
+        
+        // Extract academic fields from main structure
+        if (parsedData.roll_number) academicUpdates.roll_number = parsedData.roll_number;
+        if (parsedData.admission_date) academicUpdates.admission_date = parsedData.admission_date;
+        if (parsedData.category) academicUpdates.category = parsedData.category;
+        if (parsedData.register_no) academicUpdates.admission_number = parsedData.register_no;
+        
+        // Store class_id and section_id for later processing
+        if (parsedData.class_id) academicUpdates._class_id = parsedData.class_id;
+        if (parsedData.section_id) academicUpdates._section_id = parsedData.section_id;
+        if (parsedData.academic_year_id) academicUpdates._academic_year_id = parsedData.academic_year_id;
+        
+      } else if (updates.student && typeof updates.student === 'object') {
+        // Direct nested object (already parsed) - this is the current case
+        studentUpdates = { ...updates.student };
+        console.log('🔍 Extracted student data from direct object:', studentUpdates);
+        console.log('🔍 First name from student object:', studentUpdates.first_name);
+        
+        // Extract academic fields from main structure
+        if (updates.roll_number) academicUpdates.roll_number = updates.roll_number;
+        if (updates.admission_date) academicUpdates.admission_date = updates.admission_date;
+        if (updates.category) academicUpdates.category = updates.category;
+        if (updates.register_no) academicUpdates.admission_number = updates.register_no;
+        
+        // Store class_id and section_id for later processing
+        if (updates.class_id) academicUpdates._class_id = updates.class_id;
+        if (updates.section_id) academicUpdates._section_id = updates.section_id;
+        if (updates.academic_year_id) academicUpdates._academic_year_id = updates.academic_year_id;
+        
+      } else {
+        // Flat data structure
+        studentUpdates = { ...updates };
+        console.log('🔍 Using flat data structure:', studentUpdates);
+      }
+    } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      // Fallback to flat structure
+      studentUpdates = { ...updates };
+      console.log('🔍 Fallback to flat structure:', studentUpdates);
+    }
+
+    // Handle file uploads
+    if (req.files && req.files.student_profile_picture) {
+      studentUpdates.profile_picture = req.files.student_profile_picture[0].filename;
+    }
+
+    // Remove any fields that shouldn't be updated directly
+    delete studentUpdates.id;
+    delete studentUpdates.created_at;
+    delete studentUpdates.updated_at;
+    delete studentUpdates.created_by;
+
+    console.log('🔍 Final student updates:', studentUpdates);
+    console.log('🔍 Academic updates:', academicUpdates);
+    console.log('🔍 First name being updated:', studentUpdates.first_name);
+    console.log('🔍 Last name being updated:', studentUpdates.last_name);
+    console.log('🔍 Class ID being processed:', academicUpdates._class_id);
+    console.log('🔍 Section ID being processed:', academicUpdates._section_id);
+    console.log('🔍 Category being updated:', academicUpdates.category);
+    console.log('🔍 Register number being updated:', academicUpdates.admission_number);
+
+    // Get class and section names from IDs if provided
+    if (academicUpdates._class_id) {
+      try {
+        const classRecord = await Class.findByPk(academicUpdates._class_id);
+        if (classRecord) {
+          academicUpdates.admission_class = classRecord.name;
+          academicUpdates.current_class = classRecord.name;
+          console.log('🔍 Class name resolved:', classRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching class:', error);
+      }
+      delete academicUpdates._class_id;
+    }
+    
+    if (academicUpdates._section_id) {
+      try {
+        console.log('🔍 Looking up section with ID:', academicUpdates._section_id);
+        const sectionRecord = await Section.findByPk(academicUpdates._section_id);
+        console.log('🔍 Section record found:', sectionRecord ? {
+          id: sectionRecord.id,
+          name: sectionRecord.name,
+          code: sectionRecord.code
+        } : 'Not found');
+        
+        if (sectionRecord) {
+          academicUpdates.section = sectionRecord.name;
+          console.log('🔍 Section name resolved:', sectionRecord.name);
+        } else {
+          console.log('⚠️ Section not found with ID:', academicUpdates._section_id);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching section:', error);
+      }
+      delete academicUpdates._section_id;
+    }
+    
+    if (academicUpdates._academic_year_id) {
+      try {
+        const yearRecord = await AcademicYear.findByPk(academicUpdates._academic_year_id);
+        if (yearRecord) {
+          academicUpdates.academic_year = yearRecord.name;
+          console.log('🔍 Academic year resolved:', yearRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching academic year:', error);
+      }
+      delete academicUpdates._academic_year_id;
+    }
+
+    const updateData = {
+      ...studentUpdates,
+      ...academicUpdates,
       updated_by: req.user.id,
-    });
+    };
+    
+    console.log('🔍 Data being sent to database update:', updateData);
+    console.log('🔍 Section field in update data:', updateData.section);
+    console.log('🔍 Admission class field in update data:', updateData.admission_class);
+    console.log('🔍 Current class field in update data:', updateData.current_class);
+
+    await student.update(updateData);
+    
+    // Log what was actually saved
+    console.log('✅ Update completed');
+    console.log('🔍 Student section after update:', student.section);
+    console.log('🔍 Student admission class after update:', student.admission_class);
+    console.log('🔍 Student current class after update:', student.current_class);
+
+    // Update parent/guardian information if provided
+    let guardianUpdates = null;
+    
+    // Extract guardian data from nested structure
+    if (updates.guardian && typeof updates.guardian === 'object') {
+      guardianUpdates = updates.guardian;
+    } else if (updates.studentData) {
+      try {
+        const parsedData = JSON.parse(updates.studentData);
+        if (parsedData.guardian && typeof parsedData.guardian === 'object') {
+          guardianUpdates = parsedData.guardian;
+        }
+      } catch (parseError) {
+        console.error('❌ Error parsing guardian data:', parseError);
+      }
+    } else if (updates.student && typeof updates.student === 'object') {
+      // For direct object format, guardian data is at the same level
+      if (updates.guardian && typeof updates.guardian === 'object') {
+        guardianUpdates = updates.guardian;
+      }
+    }
+    
+    if (guardianUpdates) {
+      console.log('🔍 Updating guardian information:', guardianUpdates);
+      
+      // Get the primary parent for this student
+      const studentParent = await StudentParent.findOne({
+        where: { 
+          student_id: student.id,
+          is_primary: true 
+        },
+        include: [{ model: Parent, as: 'parent' }]
+      });
+
+      if (studentParent && studentParent.parent) {
+        const parentUpdateData = {
+          // Set guardian information based on relation
+          guardian_name: guardianUpdates.name,
+          guardian_phone: guardianUpdates.mobile_no,
+          guardian_email: guardianUpdates.email,
+          guardian_relation: guardianUpdates.relation,
+          address: guardianUpdates.address,
+          city: guardianUpdates.city,
+          state: guardianUpdates.state,
+          emergency_contact: guardianUpdates.mobile_no,
+          emergency_relation: guardianUpdates.relation,
+          updated_by: req.user.id,
+        };
+
+        // Set father or mother information based on relation
+        if (guardianUpdates.relation === 'father') {
+          parentUpdateData.father_name = guardianUpdates.name;
+          parentUpdateData.father_phone = guardianUpdates.mobile_no;
+          parentUpdateData.father_email = guardianUpdates.email;
+          parentUpdateData.father_occupation = guardianUpdates.occupation;
+          parentUpdateData.father_qualification = guardianUpdates.education;
+          parentUpdateData.father_income = guardianUpdates.income;
+        } else if (guardianUpdates.relation === 'mother') {
+          parentUpdateData.mother_name = guardianUpdates.name;
+          parentUpdateData.mother_phone = guardianUpdates.mobile_no;
+          parentUpdateData.mother_email = guardianUpdates.email;
+          parentUpdateData.mother_occupation = guardianUpdates.occupation;
+          parentUpdateData.mother_qualification = guardianUpdates.education;
+          parentUpdateData.mother_income = guardianUpdates.income;
+        }
+
+        // Always update both father and mother names if provided
+        if (guardianUpdates.father_name) {
+          parentUpdateData.father_name = guardianUpdates.father_name;
+        }
+        if (guardianUpdates.mother_name) {
+          parentUpdateData.mother_name = guardianUpdates.mother_name;
+        }
+        
+        // Update additional guardian fields if provided
+        if (guardianUpdates.occupation) {
+          if (guardianUpdates.relation === 'father') {
+            parentUpdateData.father_occupation = guardianUpdates.occupation;
+          } else if (guardianUpdates.relation === 'mother') {
+            parentUpdateData.mother_occupation = guardianUpdates.occupation;
+          }
+        }
+        
+        if (guardianUpdates.education) {
+          if (guardianUpdates.relation === 'father') {
+            parentUpdateData.father_qualification = guardianUpdates.education;
+          } else if (guardianUpdates.relation === 'mother') {
+            parentUpdateData.mother_qualification = guardianUpdates.education;
+          }
+        }
+        
+        if (guardianUpdates.income) {
+          if (guardianUpdates.relation === 'father') {
+            parentUpdateData.father_income = guardianUpdates.income;
+          } else if (guardianUpdates.relation === 'mother') {
+            parentUpdateData.mother_income = guardianUpdates.income;
+          }
+        }
+
+        console.log('🔍 Guardian updates being applied:', parentUpdateData);
+        await studentParent.parent.update(parentUpdateData);
+        console.log('✅ Guardian information updated successfully');
+      } else {
+        console.log('⚠️ No primary parent found for student');
+      }
+    }
 
     logger.info(`Student updated: ${student.first_name} ${student.last_name} (${student.admission_number})`);
     return res.status(200).json({ success: true, data: student });
@@ -218,13 +568,39 @@ const getStudentsByClass = async (req, res, next) => {
 // Get student statistics
 const getStudentStats = async (req, res, next) => {
   try {
-    const { academic_year } = req.query;
+    const { 
+      academic_year, 
+      branch_id, 
+      class_id, 
+      section_id 
+    } = req.query;
 
-    const whereClause = {
-      school_id: req.schoolId,
-    };
+    const whereClause = {};
+    
+    // Only filter by school_id if it's provided (for school_admin and branch_admin)
+    // Super admin can see all students
+    if (req.schoolId) {
+      whereClause.school_id = req.schoolId;
+    }
 
     if (academic_year) whereClause.academic_year = academic_year;
+    if (branch_id) whereClause.branch_id = branch_id;
+
+    // Handle class_id and section_id by getting their codes/names
+    if (class_id) {
+      const classRecord = await Class.findByPk(class_id);
+      if (classRecord) {
+        // Students are stored with class codes (I, II, III), not full names
+        whereClause.current_class = classRecord.code;
+      }
+    }
+
+    if (section_id) {
+      const sectionRecord = await Section.findByPk(section_id);
+      if (sectionRecord) {
+        whereClause.section = sectionRecord.name;
+      }
+    }
 
     const totalStudents = await Student.count({
       where: whereClause,
@@ -292,9 +668,13 @@ const getStudentReport = async (req, res, next) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // Build where clause based on user role
-    let whereClause = {
-      school_id: req.schoolId,
-    };
+    let whereClause = {};
+    
+    // Only filter by school_id if it's provided (for school_admin and branch_admin)
+    // Super admin can see all students
+    if (req.schoolId) {
+      whereClause.school_id = req.schoolId;
+    }
 
     // Add filters
     if (academic_year) whereClause.academic_year = academic_year;
@@ -374,9 +754,13 @@ const exportStudentReport = async (req, res, next) => {
     } = req.query;
 
     // Build where clause
-    let whereClause = {
-      school_id: req.schoolId,
-    };
+    let whereClause = {};
+    
+    // Only filter by school_id if it's provided (for school_admin and branch_admin)
+    // Super admin can see all students
+    if (req.schoolId) {
+      whereClause.school_id = req.schoolId;
+    }
 
     // Add filters
     if (academic_year) whereClause.academic_year = academic_year;

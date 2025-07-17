@@ -25,16 +25,11 @@ const StudentParent = sequelize.define('StudentParent', {
     },
   },
   relationship: {
-    type: DataTypes.ENUM('father', 'mother', 'guardian', 'other'),
+    type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'father',
   },
   is_primary: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  is_fee_payer: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
@@ -44,39 +39,6 @@ const StudentParent = sequelize.define('StudentParent', {
     allowNull: false,
     defaultValue: false,
   },
-  can_pickup: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-  },
-  notes: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  school_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'schools',
-      key: 'id',
-    },
-  },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id',
-    },
-  },
-  updated_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id',
-    },
-  },
 }, {
   tableName: 'student_parents',
   timestamps: true,
@@ -85,10 +47,8 @@ const StudentParent = sequelize.define('StudentParent', {
     { fields: ['student_id', 'parent_id'], unique: true },
     { fields: ['student_id'] },
     { fields: ['parent_id'] },
-    { fields: ['school_id'] },
     { fields: ['relationship'] },
     { fields: ['is_primary'] },
-    { fields: ['is_fee_payer'] },
   ],
   hooks: {
     afterCreate: async (studentParent) => {
@@ -109,24 +69,6 @@ StudentParent.associate = (models) => {
   StudentParent.belongsTo(models.Parent, {
     foreignKey: 'parent_id',
     as: 'parent',
-  });
-
-  // StudentParent belongs to School
-  StudentParent.belongsTo(models.School, {
-    foreignKey: 'school_id',
-    as: 'school',
-  });
-
-  // StudentParent belongs to User (created_by)
-  StudentParent.belongsTo(models.User, {
-    foreignKey: 'created_by',
-    as: 'createdBy',
-  });
-
-  // StudentParent belongs to User (updated_by)
-  StudentParent.belongsTo(models.User, {
-    foreignKey: 'updated_by',
-    as: 'updatedBy',
   });
 };
 

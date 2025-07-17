@@ -6,6 +6,7 @@ const { robustMiddleware, safeMiddleware } = require('./robust');
 
 const verifyToken = async (req, res, next) => {
   try {
+    console.log(`[DEBUG] verifyToken - req._debugReqId:`, req._debugReqId);
     logger.debug('Auth middleware - Request headers:', req.headers);
     logger.debug('Auth middleware - Request cookies:', req.cookies);
     
@@ -62,6 +63,14 @@ const verifyToken = async (req, res, next) => {
 
     // Add user to request object
     req.user = decoded;
+    console.log('[DEBUG] verifyToken - req._debugReqId:', req._debugReqId, 'req.user:', req.user);
+    logger.debug('Token verification successful - User:', {
+      id: decoded.id,
+      role: decoded.role,
+      email: decoded.email,
+      school_id: decoded.school_id,
+      branch_id: decoded.branch_id
+    });
     next();
   } catch (error) {
     logger.error('Unexpected error in auth middleware:', error);
@@ -70,14 +79,34 @@ const verifyToken = async (req, res, next) => {
 };
 
 // Role-based authorization middleware
-const authorize = (...roles) => {
+const authorize = (roles) => {
   return (req, res, next) => {
     try {
+      console.log('=== AUTHORIZE MIDDLEWARE DEBUG ===');
+      console.log('authorize middleware - roles parameter:', roles);
+      console.log('authorize middleware - roles type:', typeof roles);
+      console.log('authorize middleware - roles length:', Array.isArray(roles) ? roles.length : 'not an array');
+      console.log('authorize middleware - user object:', req.user);
+      console.log('authorize middleware - user role:', req.user?.role);
+      console.log('authorize middleware - user role type:', typeof req.user?.role);
+      console.log('authorize middleware - request URL:', req.url);
+      console.log('authorize middleware - request method:', req.method);
+      
       if (!req.user) {
+        console.log('authorize: No user found in request');
         return next(new ApiError(401, 'Authentication required'));
       }
       
-      if (!roles.includes(req.user.role)) {
+      // Ensure roles is an array
+      const rolesArray = Array.isArray(roles) ? roles : [roles];
+      console.log('authorize middleware - rolesArray:', rolesArray);
+      
+      const isAuthorized = rolesArray.includes(req.user.role);
+      console.log('authorize middleware - includes check result:', isAuthorized);
+      console.log('authorize middleware - rolesArray.includes check:', rolesArray.includes(req.user.role));
+      
+      if (!isAuthorized) {
+        console.log(`authorize: User role "${req.user.role}" not in allowed roles: [${rolesArray.join(', ')}]`);
         return next(
           new ApiError(
             403,
@@ -85,9 +114,11 @@ const authorize = (...roles) => {
           )
         );
       }
+      
+      console.log('authorize: User authorized successfully');
       next();
     } catch (error) {
-      logger.error('Authorization middleware error:', error);
+      console.error('Authorization middleware error:', error);
       next(new ApiError(403, 'Authorization failed'));
     }
   };
@@ -128,32 +159,78 @@ const requireRole = (...roles) => {
 // School context middleware
 const setSchoolContext = (req, res, next) => {
   try {
+    console.log(`[DEBUG] setSchoolContext - req._debugReqId:`, req._debugReqId, 'req.user:', req.user);
+    console.log('=== SET SCHOOL CONTEXT DEBUG ===');
+    console.log('User object:', req.user);
+    console.log('User role:', req.user?.role);
+    console.log('User school_id:', req.user?.school_id);
+    console.log('User branch_id:', req.user?.branch_id);
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Query school_id:', req.query?.school_id);
+    console.log('Params school_id:', req.params?.school_id);
+    console.log('Body school_id:', req.body?.school_id);
+    
+    // Check if user is properly authenticated
+    if (!req.user) {
+      console.log('setSchoolContext: No user found in request');
+      logger.warn('setSchoolContext: No user found in request');
+      return next(new ApiError(401, 'Authentication required'));
+    }
+    
+    // Additional defensive check
+    if (!req.user.school_id) {
+      console.log('setSchoolContext: No school_id found for user in token:', req.user);
+      logger.warn('setSchoolContext: No school_id found for user in token:', req.user);
+      return next(new ApiError(403, 'School context setup failed: User not associated with a school'));
+    }
+    
     logger.debug('setSchoolContext: Setting school context for user:', {
       role: req.user?.role,
-      school_id: req.user?.school_id,
-      query_school_id: req.query.school_id,
-      params_school_id: req.params.school_id,
-      body_school_id: req.body.school_id
+      user_school_id: req.user?.school_id,
+      query_school_id: req.query?.school_id,
+      params_school_id: req.params?.school_id,
+      body_school_id: req.body?.school_id
     });
     
     // If user is a super admin, they can access any school
     if (req.user.role === 'super_admin') {
-      // If school_id is provided in query/params, use it
-      req.schoolId = req.query.school_id || req.params.school_id || req.body.school_id;
+      // Super admin can specify school_id via query, params, or body
+      req.schoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
+      
+      // If no schoolId is provided for super admin, it's an error
+      if (!req.schoolId) {
+        console.log('setSchoolContext: Super admin - No school_id provided in request');
+        logger.warn('setSchoolContext: Super admin - No school_id provided in request');
+        return next(new ApiError(403, 'School ID is required for super admin requests'));
+      }
+      console.log('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       logger.debug('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       return next();
     }
     
-    // For other roles, they can only access their own school
-    if (req.user.school_id) {
-      req.schoolId = req.user.school_id;
-      logger.debug('setSchoolContext: Regular user - schoolId set to:', req.schoolId);
-      return next();
+    // For other roles, they can only access their assigned school
+    req.schoolId = req.user.school_id;
+    console.log('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
+    logger.debug('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
+    
+    // Optional: If a school_id is provided in query/params for non-super-admin, validate it matches user's school_id
+    const requestSchoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
+    if (requestSchoolId && requestSchoolId !== req.schoolId) {
+      console.log('setSchoolContext: User trying to access data outside their school context', {
+        userSchoolId: req.schoolId,
+        requestSchoolId: requestSchoolId
+      });
+      logger.warn('setSchoolContext: User trying to access data outside their school context', {
+        userSchoolId: req.schoolId,
+        requestSchoolId: requestSchoolId
+      });
+      return next(new ApiError(403, 'Not authorized to access this school context'));
     }
     
-    logger.warn('setSchoolContext: No school_id found for user:', req.user);
-    return next(new ApiError(403, 'Not authorized to access this school context'));
+    return next();
   } catch (error) {
+    console.error('setSchoolContext middleware error:', error);
     logger.error('setSchoolContext middleware error:', error);
     next(new ApiError(403, 'School context setup failed'));
   }
@@ -165,7 +242,7 @@ const setBranchContext = (req, res, next) => {
     // Super admin and school admin can access any branch in their school
     if (['super_admin', 'school_admin'].includes(req.user.role)) {
       // If branch_id is provided in query/params, use it
-      req.branchId = req.query.branch_id || req.params.branch_id || req.body.branch_id;
+      req.branchId = req.query?.branch_id || req.params?.branch_id || req.body?.branch_id;
       return next();
     }
     
@@ -220,14 +297,10 @@ const tenantIsolation = (model) => {
 
 // Export wrapped middleware for better error handling
 module.exports = {
-  verifyToken: robustMiddleware(verifyToken, { 
-    name: 'Token Verification',
-    critical: true,
-    timeout: 10000 // 10 seconds for token verification
-  }),
+  verifyToken,
   authorize,
   requireRole,
-  setSchoolContext: safeMiddleware(setSchoolContext, 'School Context'),
-  setBranchContext: safeMiddleware(setBranchContext, 'Branch Context'),
-  tenantIsolation: safeMiddleware(tenantIsolation, 'Tenant Isolation'),
+  setSchoolContext,
+  setBranchContext, // removed safeMiddleware wrapper
+  tenantIsolation, // removed safeMiddleware wrapper
 };
