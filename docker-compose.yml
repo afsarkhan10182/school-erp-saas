@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # ✅ Postgres
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: school_erp_new
+      POSTGRES_USER: school_user
+      POSTGRES_PASSWORD: school_erp_user
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # ✅ Redis
+  redis:
+    image: redis:alpine
+    restart: always
+    networks:
+      - app-network
+
+  # ✅ Backend API (Express)
+  backend:
+    build: ./backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_USER: school_user
+      DB_PASSWORD: school_erp_user
+      DB_NAME: school_erp_new
+      DATABASE_URL: postgres://school_user:school_erp_user@postgres:5432/school_erp_new
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: sh -c "npx wait-port postgres:5432 && npm start"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+  # ✅ Frontend Nuxt SSR
+  frontend:
+    build: ./frontend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NUXT_PUBLIC_API_BASE: https://schooapi.digitalfuzed.com/api
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+
