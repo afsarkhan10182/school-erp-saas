@@ -2,13 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const { errorHandler, notFoundHandler, gracefulShutdown } = require('./middleware/errorHandler');
 const { swaggerSpec, swaggerUi } = require('./config/swagger');
 const { testConnection } = require('./config/database');
 const { connectRedis, isRedisEnabled } = require('./config/redis');
 const { logger } = require('./utils/logger');
-const { safeMiddleware } = require('./middleware/robust');
 const routes = require('./routes');
 
 // Load environment variables
@@ -38,7 +36,7 @@ class App {
           logger.info('Redis connected successfully');
         } catch (redisError) {
           logger.warn('Redis connection failed, continuing without Redis:', redisError.message);
-          logger.info('Application will run with reduced functionality (no caching, rate limiting will use memory)');
+          logger.info('Application will run with reduced functionality (no caching)');
         }
       } else {
         logger.info('Redis is disabled, application will run without Redis');
@@ -58,20 +56,6 @@ class App {
       origin: process.env.CORS_ORIGIN || '*',
       credentials: true,
     }));
-
-    // Rate limiting with robust error handling (disabled in development)
-    if (process.env.NODE_ENV !== 'development') {
-      const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        message: 'Too many requests from this IP, please try again later',
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-      this.app.use(safeMiddleware(limiter, 'Rate Limiter'));
-    } else {
-      logger.info('Rate limiting disabled in development mode');
-    }
 
     // Request logging
     if (process.env.NODE_ENV === 'development') {
@@ -137,6 +121,7 @@ class App {
         logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${this.port}`);
         logger.info(`API Documentation available at http://localhost:${this.port}/api-docs`);
         logger.info(`Health check available at http://localhost:${this.port}${this.apiPrefix}/health`);
+        logger.info('Rate limiting completely disabled for all environments');
       });
 
       // Setup graceful shutdown

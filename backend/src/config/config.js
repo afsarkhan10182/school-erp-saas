@@ -31,12 +31,6 @@ const config = {
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Content-Type', 'Authorization']
   },
-  rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: env === 'development' ? 1000 : 100, // 1000 in dev, 100 in prod
-    message: 'Too many requests from this IP, please try again later',
-    skipPaths: ['/health', '/api/health', '/api-docs']
-  },
   redis: {
     enabled: redisEnabled,
     host: process.env.REDIS_HOST || 'localhost',
