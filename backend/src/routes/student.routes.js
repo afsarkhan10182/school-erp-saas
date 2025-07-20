@@ -8,9 +8,10 @@ const {
   getStudentStats,
   getStudentReport,
   exportStudentReport,
+  bulkImportStudents,
 } = require('../controllers/student.controller');
 const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
-const { uploadFields } = require('../middleware/upload');
+const { uploadFields, uploadSingle, uploadCSV } = require('../middleware/upload');
 const router = express.Router();
 
 
@@ -28,6 +29,12 @@ router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 
 
 // POST endpoint to create a new student
 router.post('/', createStudent);
+
+// POST endpoint for bulk import students from CSV
+router.post('/bulk-import', 
+  uploadCSV('csv_file'),
+  bulkImportStudents
+);
 
 // GET endpoint to retrieve all students
 router.get('/', getStudents);

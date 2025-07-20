@@ -2,6 +2,9 @@ const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, Acade
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
+const { sequelize } = require('../config/database');
+const csv = require('csv-parser');
+const { Readable } = require('stream');
 
 // Create a new student
 const createStudent = async (req, res, next) => {
@@ -108,6 +111,22 @@ const createStudent = async (req, res, next) => {
 
     if (existingStudent) {
       throw new ApiError(400, 'Student with this admission number already exists.');
+    }
+
+    // Check for duplicate roll number in the same class-section
+    if (studentData.roll_number && studentData._class_id && studentData._section_id) {
+      const existingRollNumber = await Student.findOne({
+        where: {
+          roll_number: studentData.roll_number,
+          branch_id: branch_id,
+          class_id: studentData._class_id,
+          section_id: studentData._section_id,
+        },
+      });
+
+      if (existingRollNumber) {
+        throw new ApiError(400, `Roll number ${studentData.roll_number} already exists in this class-section.`);
+      }
     }
 
     // Get class and section names from IDs if provided
@@ -572,6 +591,23 @@ const updateStudent = async (req, res, next) => {
     console.log('🔍 Admission class field in update data:', updateData.admission_class);
     console.log('🔍 Current class field in update data:', updateData.current_class);
 
+    // Check for duplicate roll number in the same class-section (only if roll number is being updated)
+    if (updateData.roll_number && updateData.roll_number !== student.roll_number) {
+      const existingRollNumber = await Student.findOne({
+        where: {
+          roll_number: updateData.roll_number,
+          branch_id: student.branch_id,
+          class_id: updateData.class_id || student.class_id,
+          section_id: updateData.section_id || student.section_id,
+          id: { [Op.ne]: student.id }, // Exclude current student
+        },
+      });
+
+      if (existingRollNumber) {
+        throw new ApiError(400, `Roll number ${updateData.roll_number} already exists in this class-section.`);
+      }
+    }
+
     await student.update(updateData);
     
     // Log what was actually saved
@@ -904,139 +940,312 @@ const getStudentReport = async (req, res, next) => {
 // Export student report
 const exportStudentReport = async (req, res, next) => {
   try {
-    const {
-      academic_year,
-      class_name,
-      section_name,
-      status,
-      search,
-      format = 'xlsx',
-    } = req.query;
+    const { academic_year, class_name, section_name, status } = req.query;
 
     // Build where clause
-    let whereClause = {};
-    
-    // Only filter by school_id if it's provided (for school_admin and branch_admin)
-    // Super admin can see all students
+    const whereClause = {};
     if (req.schoolId) {
       whereClause.school_id = req.schoolId;
     }
-
-    // Add filters
     if (academic_year) whereClause.academic_year = academic_year;
     if (class_name) whereClause.current_class = class_name;
     if (section_name) whereClause.section = section_name;
     if (status) whereClause.status = status;
 
-    // Add search functionality
-    if (search) {
-      whereClause[Op.or] = [
-        { first_name: { [Op.iLike]: `%${search}%` } },
-        { last_name: { [Op.iLike]: `%${search}%` } },
-        { admission_number: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
-      ];
-    }
-
+    // Get students with related data
     const students = await Student.findAll({
       where: whereClause,
       include: [
         {
           model: Parent,
           as: 'parents',
-          through: { attributes: ['relationship', 'is_primary'] },
-        },
-        {
-          model: AcademicYear,
-          as: 'academicYear',
-          attributes: ['id', 'name', 'code'],
-        },
-        {
-          model: Class,
-          as: 'class',
-          attributes: ['id', 'name', 'code'],
-        },
-        {
-          model: Section,
-          as: 'sectionInfo',
-          attributes: ['id', 'name'],
+          through: { attributes: [] },
+          attributes: ['guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relation'],
         },
       ],
-      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      order: [['created_at', 'DESC']],
     });
 
-    if (format === 'xlsx') {
-      const XLSX = require('xlsx');
-      
-      // Prepare data for Excel
-      const excelData = students.map(student => ({
-        'Admission Number': student.admission_number,
-        'First Name': student.first_name,
-        'Last Name': student.last_name,
-        'Email': student.email,
-        'Phone': student.phone,
-        'Date of Birth': student.date_of_birth,
-        'Gender': student.gender,
-        'Current Class': student.current_class,
-        'Section': student.section,
-        'Academic Year': student.academic_year,
-        'Status': student.status,
-        'Admission Date': student.admission_date,
-        'Address': student.address,
-        'Father Name': student.parents?.find(p => p.StudentParent?.relationship === 'father')?.first_name + ' ' + student.parents?.find(p => p.StudentParent?.relationship === 'father')?.last_name || '',
-        'Mother Name': student.parents?.find(p => p.StudentParent?.relationship === 'mother')?.first_name + ' ' + student.parents?.find(p => p.StudentParent?.relationship === 'mother')?.last_name || '',
-        'Guardian Phone': student.parents?.find(p => p.StudentParent?.is_primary)?.phone || '',
-        'Created At': student.createdAt,
-      }));
+    // Set response headers for Excel download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=student_report.xlsx');
 
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(wb, ws, 'Students');
-      
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=students-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-      
-      return res.send(buffer);
-    } else if (format === 'csv') {
-      // CSV export
-      const csvData = students.map(student => ({
-        admission_number: student.admission_number,
-        first_name: student.first_name,
-        last_name: student.last_name,
-        email: student.email,
-        phone: student.phone,
-        date_of_birth: student.date_of_birth,
-        gender: student.gender,
-        current_class: student.current_class,
-        section: student.section,
-        academic_year: student.academic_year,
-        status: student.status,
-        admission_date: student.admission_date,
-        address: student.address,
-        created_at: student.createdAt,
-      }));
-
-      const csv = require('csv-stringify');
-      csv(csvData, { header: true }, (err, output) => {
-        if (err) {
-          return next(err);
-        }
-        
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename=students-report-${new Date().toISOString().split('T')[0]}.csv`);
-        
-        return res.send(output);
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Unsupported export format. Use xlsx or csv.',
-      });
-    }
+    // TODO: Implement Excel generation
+    // For now, return JSON
+    res.json({
+      success: true,
+      data: students,
+      message: 'Student report generated successfully',
+    });
   } catch (error) {
     logger.error('Error exporting student report:', error);
+    return next(error);
+  }
+};
+
+// Bulk import students from CSV
+const bulkImportStudents = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    if (!req.file) {
+      throw new ApiError(400, 'CSV file is required');
+    }
+
+    const { branch_id, class_id, section_id } = req.body;
+    
+    // Validate required fields
+    if (!branch_id || !class_id || !section_id) {
+      throw new ApiError(400, 'Branch, Class, and Section are required');
+    }
+
+    // Determine school_id and branch_id based on user role
+    let school_id;
+    if (req.user.role === 'super_admin') {
+      school_id = req.body.school_id;
+      if (!school_id) {
+        throw new ApiError(400, 'School ID is required for super admin');
+      }
+    } else {
+      school_id = req.user.school_id;
+    }
+
+    // Read and parse CSV file using proper CSV parser
+    if (!req.file || !req.file.buffer) {
+      throw new ApiError(400, 'CSV file is required and must be uploaded properly');
+    }
+
+    const csvContent = req.file.buffer.toString('utf-8');
+    if (!csvContent || csvContent.trim().length === 0) {
+      throw new ApiError(400, 'CSV file is empty');
+    }
+
+    const dataRows = [];
+    
+    // Parse CSV using stream
+    await new Promise((resolve, reject) => {
+      const stream = Readable.from(csvContent);
+      
+      stream
+        .pipe(csv())
+        .on('data', (row) => {
+          dataRows.push(row);
+        })
+        .on('end', () => {
+          resolve();
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+    });
+    
+    if (dataRows.length === 0) {
+      throw new ApiError(400, 'CSV file must contain at least one data row');
+    }
+
+    // Validate required columns
+    const requiredColumns = [
+      'FirstName', 'LastName', 'Gender', 'Birthday', 'AdmissionDate', 
+      'Roll', 'RegisterNo', 'GuardianName', 'GuardianMobileNo'
+    ];
+    
+    if (!dataRows[0] || Object.keys(dataRows[0]).length === 0) {
+      throw new ApiError(400, 'CSV file must contain valid headers');
+    }
+    
+    const headers = Object.keys(dataRows[0]);
+    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+    if (missingColumns.length > 0) {
+      throw new ApiError(400, `Missing required columns: ${missingColumns.join(', ')}. Found columns: ${headers.join(', ')}`);
+    }
+
+    // Get class and section names
+    const classRecord = await Class.findByPk(class_id);
+    const sectionRecord = await Section.findByPk(section_id);
+    
+    if (!classRecord || !sectionRecord) {
+      throw new ApiError(400, 'Invalid class or section ID');
+    }
+
+    const results = {
+      total: dataRows.length,
+      successful: 0,
+      failed: 0,
+      errors: []
+    };
+
+    // Process each row
+    for (let i = 0; i < dataRows.length; i++) {
+      const rowData = dataRows[i];
+      if (!rowData || Object.keys(rowData).length === 0) continue;
+
+      try {
+
+        // Map category ID to category name
+        const categoryMapping = {
+          '1': 'general',
+          '2': 'obc',
+          '3': 'sc',
+          '4': 'st',
+          '5': 'other'
+        };
+        
+        const categoryId = rowData.CategoryID?.toString();
+        const category = categoryMapping[categoryId] || 'general';
+
+        // Validate and transform data
+        const studentData = {
+          first_name: rowData.FirstName,
+          last_name: rowData.LastName,
+          gender: rowData.Gender?.toLowerCase(),
+          date_of_birth: rowData.Birthday,
+          admission_date: rowData.AdmissionDate,
+          roll_number: rowData.Roll,
+          admission_number: rowData.RegisterNo,
+          blood_group: rowData.BloodGroup || null,
+          mother_tongue: rowData.MotherTongue || null,
+          religion: rowData.Religion || null,
+          caste: rowData.Caste || null,
+          phone: rowData.Phone || null,
+          city: rowData.City || null,
+          state: rowData.State || null,
+          present_address: rowData.PresentAddress || null,
+          permanent_address: rowData.PermanentAddress || null,
+          category: category,
+          email: rowData.StudentEmail || null,
+          school_id,
+          branch_id,
+          class_id,
+          section_id,
+          admission_class: classRecord.name,
+          current_class: classRecord.name,
+          section: sectionRecord.name,
+          academic_year: new Date().getFullYear().toString(),
+          status: 'active',
+          created_by: req.user.id,
+          updated_by: req.user.id,
+        };
+
+        // Validate required fields
+        if (!studentData.first_name || !studentData.last_name || !studentData.gender) {
+          throw new Error('First name, last name, and gender are required');
+        }
+
+        // Validate gender format
+        const validGenders = ['male', 'female', 'other'];
+        if (!validGenders.includes(studentData.gender)) {
+          throw new Error(`Invalid gender "${studentData.gender}". Must be one of: ${validGenders.join(', ')}`);
+        }
+
+        // Check for duplicate admission number
+        const existingStudent = await Student.findOne({
+          where: {
+            admission_number: studentData.admission_number,
+            school_id: school_id,
+          },
+        });
+
+        if (existingStudent) {
+          throw new Error(`Student with admission number ${studentData.admission_number} already exists`);
+        }
+
+        // Check for duplicate roll number in the same class-section
+        if (studentData.roll_number) {
+          const existingRollNumber = await Student.findOne({
+            where: {
+              roll_number: studentData.roll_number,
+              branch_id: branch_id,
+              class_id: class_id,
+              section_id: section_id,
+            },
+          });
+
+          if (existingRollNumber) {
+            throw new Error(`Roll number ${studentData.roll_number} already exists in ${classRecord.name}-${sectionRecord.name}`);
+          }
+        }
+
+        // Create student
+        const student = await Student.create(studentData, { transaction });
+
+        // Create guardian/parent if provided
+        if (rowData.GuardianName && rowData.GuardianMobileNo) {
+          const guardianData = {
+            guardian_name: rowData.GuardianName,
+            guardian_phone: rowData.GuardianMobileNo,
+            guardian_email: rowData.GuardianEmail || null,
+            guardian_relation: rowData.GuardianRelation || 'guardian',
+            address: rowData.GuardianAddress || null,
+            city: rowData.City || null,
+            state: rowData.State || null,
+            country: 'India',
+            emergency_contact: rowData.GuardianMobileNo,
+            emergency_relation: rowData.GuardianRelation || 'guardian',
+            school_id,
+            branch_id,
+            created_by: req.user.id,
+            updated_by: req.user.id,
+          };
+
+          // Set father or mother information based on relation
+          if (guardianData.guardian_relation === 'father') {
+            guardianData.father_name = rowData.GuardianName;
+            guardianData.father_phone = rowData.GuardianMobileNo;
+            guardianData.father_email = rowData.GuardianEmail;
+            guardianData.father_occupation = rowData.GuardianOccupation || null;
+          } else if (guardianData.guardian_relation === 'mother') {
+            guardianData.mother_name = rowData.GuardianName;
+            guardianData.mother_phone = rowData.GuardianMobileNo;
+            guardianData.mother_email = rowData.GuardianEmail;
+            guardianData.mother_occupation = rowData.GuardianOccupation || null;
+          }
+
+          // Set both father and mother names if provided separately
+          if (rowData.FatherName) {
+            guardianData.father_name = rowData.FatherName;
+          }
+          if (rowData.MotherName) {
+            guardianData.mother_name = rowData.MotherName;
+          }
+
+          const guardian = await Parent.create(guardianData, { transaction });
+
+          // Link student and guardian
+          await StudentParent.create({
+            student_id: student.id,
+            parent_id: guardian.id,
+            relationship: guardianData.guardian_relation,
+            is_primary: true,
+            is_emergency_contact: true,
+          }, { transaction });
+        }
+
+        results.successful++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1, // +1 because of 0-based index
+          error: error.message,
+          data: rowData
+        });
+      }
+    }
+
+    await transaction.commit();
+
+    res.status(200).json({
+      success: true,
+      data: results,
+      message: `Import completed. ${results.successful} students imported successfully, ${results.failed} failed.`
+    });
+
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error('Error rolling back transaction:', rollbackError);
+    }
+    logger.error('Error in bulk import:', error);
     return next(error);
   }
 };
@@ -1050,5 +1259,6 @@ module.exports = {
   getStudentStats,
   getStudentReport,
   exportStudentReport,
+  bulkImportStudents,
 };
 

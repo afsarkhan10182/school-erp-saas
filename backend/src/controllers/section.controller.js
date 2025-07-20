@@ -1,7 +1,8 @@
-const { Section, Class, School, Branch, User } = require('../models');
-const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
+const { Section, Class, Branch, User } = require('../models');
+const { logger } = require('../utils/logger');
 const { validationResult } = require('express-validator');
+const { ApiError } = require('../utils/ApiError');
 
 class SectionController {
   // Get all sections with filtering and pagination
@@ -447,19 +448,27 @@ class SectionController {
   // Get sections for dropdown/select
   static async getSectionsForDropdown(req, res, next) {
     try {
+      console.log('🔍 getSectionsForDropdown called with user role:', req.user.role);
+      console.log('🔍 Query parameters:', req.query);
+      
       let whereClause = { is_active: true };
 
       if (req.user.role === 'super_admin') {
+        console.log('🔍 Processing super_admin request');
         if (req.query.school_id) {
           whereClause.school_id = req.query.school_id;
+          console.log('🔍 Added school_id filter:', req.query.school_id);
         }
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;
+          console.log('🔍 Added branch_id filter:', req.query.branch_id);
         }
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
+          console.log('🔍 Added class_id filter:', req.query.class_id);
         }
       } else if (req.user.role === 'school_admin') {
+        console.log('🔍 Processing school_admin request');
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
           // For school_admin, allow sections from the specified branch OR sections without branch_id (school-wide sections)
@@ -472,6 +481,7 @@ class SectionController {
           whereClause.class_id = req.query.class_id;
         }
       } else if (req.user.role === 'branch_admin') {
+        console.log('🔍 Processing branch_admin request');
         whereClause.school_id = req.user.school_id;
         // For branch_admin, allow sections from their branch OR sections without branch_id (school-wide sections)
         if (req.query.branch_id) {
@@ -487,11 +497,16 @@ class SectionController {
         }
       }
 
+      console.log('🔍 Final whereClause:', JSON.stringify(whereClause, null, 2));
+
       const sections = await Section.findAll({
         where: whereClause,
         attributes: ['id', 'name', 'capacity'],
         order: [['name', 'ASC']],
       });
+
+      console.log('🔍 Found sections:', sections.length);
+      console.log('🔍 Sections data:', sections.map(s => ({ id: s.id, name: s.name })));
 
       res.json({
         success: true,

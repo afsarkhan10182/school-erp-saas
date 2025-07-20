@@ -570,6 +570,16 @@ export const apiClient = {
       return response.data;
     },
     
+    bulkImport: async (formData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/students/bulk-import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    },
+    
     update: async (id: string, studentData: any) => {
       const api = createApiInstance();
       const response = await api.put<ApiResponse<any>>(`/students/${id}`, studentData);

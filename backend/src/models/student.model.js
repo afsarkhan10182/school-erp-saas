@@ -228,7 +228,7 @@ const Student = sequelize.define('Student', {
   underscored: true,
   indexes: [
     { fields: ['school_id', 'admission_number'], unique: true },
-    { fields: ['school_id', 'roll_number'], unique: true },
+    { fields: ['branch_id', 'class_id', 'section_id', 'roll_number'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['status'] },
@@ -238,6 +238,7 @@ const Student = sequelize.define('Student', {
     { fields: ['class_id'] },
     { fields: ['section_id'] },
     { fields: ['class_id', 'section_id'] },
+    { fields: ['branch_id', 'class_id', 'section_id'] },
   ],
   hooks: {
     beforeCreate: async (student) => {

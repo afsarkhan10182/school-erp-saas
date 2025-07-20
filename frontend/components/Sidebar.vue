@@ -250,6 +250,7 @@ const menuGroups = computed(() => {
             { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
             { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
             { id: 'applications', title: 'Total Applications', path: '/admissions', icon: ClipboardList },
+            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList },
           ]
         }
       ]

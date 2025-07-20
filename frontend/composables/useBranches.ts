@@ -10,10 +10,13 @@ export function useBranches() {
   const fetchBranches = async (schoolId: string) => {
     loading.value = true;
     error.value = '';
-    console.log('[useBranches] Fetching branches for school:', schoolId);
     try {
+      console.log('🔍 Fetching branches for school:', schoolId);
+      
       const response = await apiClient.branches.getAll(schoolId);
-      console.log('[useBranches] API response:', response);
+      
+      console.log('🔍 Branches API response:', response);
+      
       if (response.success) {
         // Handle different response structures
         const responseData = response.data as any;
@@ -29,15 +32,19 @@ export function useBranches() {
         } else {
           branches.value = [];
         }
-        console.log('[useBranches] Set branches array:', branches.value);
+        console.log('🔍 Branches loaded successfully:', branches.value.length);
+        return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
+        console.error('❌ Branches API error:', response.message);
+        branches.value = [];
+        return [];
       }
-      return response;
     } catch (e) {
-      console.error('Error fetching branches:', e);
-      error.value = 'Network error.';
-      return { success: false, message: 'Network error.' };
+      console.error('❌ Error fetching branches:', e);
+      error.value = 'Network error while fetching branches.';
+      branches.value = [];
+      return [];
     } finally {
       loading.value = false;
     }

@@ -34,6 +34,8 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv',
+    'application/csv',
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -61,6 +63,45 @@ const upload = multer({
 // Middleware for handling single file upload
 const uploadSingle = (fieldName) => (req, res, next) => {
   upload.single(fieldName)(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return next(
+          new ApiError(
+            httpStatus.BAD_REQUEST,
+            `File too large. Max size is ${config.uploads?.maxFileSize || 5 * 1024 * 1024} bytes.`
+          )
+        );
+      }
+      return next(new ApiError(httpStatus.BAD_REQUEST, err.message));
+    }
+    next();
+  });
+};
+
+// Middleware for handling CSV file upload in memory
+const uploadCSV = (fieldName) => (req, res, next) => {
+  const csvUpload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['text/csv', 'application/csv'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(
+          new ApiError(
+            httpStatus.BAD_REQUEST,
+            'Invalid file type. Only CSV files are allowed.'
+          ),
+          false
+        );
+      }
+    },
+    limits: {
+      fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024, // 5MB default
+    },
+  });
+
+  csvUpload.single(fieldName)(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return next(
@@ -123,6 +164,7 @@ const uploadFields = (fields) => (req, res, next) => {
 module.exports = {
   upload,
   uploadSingle,
+  uploadCSV,
   uploadMultiple,
   uploadFields,
 };

@@ -96,10 +96,15 @@ export function useAcademics() {
       if (branchId) params.append('branch_id', branchId);
       if (classId) params.append('class_id', classId);
       
+      console.log('🔍 Fetching sections with params:', params.toString());
+      
       const response = await apiClient.sections.getDropdown(params.toString());
+      
+      console.log('🔍 Sections API response:', response);
       
       if (response.success) {
         sections.value = response.data || [];
+        console.log('🔍 Sections loaded successfully:', sections.value.length);
         return response.data;
       } else {
         error.value = response.message || 'Failed to fetch sections.';
