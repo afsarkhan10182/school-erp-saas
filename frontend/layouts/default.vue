@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
+  <div v-if="shouldRender" class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
     <!-- Sidebar (only if logged in and user loaded) -->
     <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
 
@@ -36,9 +36,11 @@ const isMobile = ref(false);
 let mql;
 
 const checkMobile = () => {
-  isMobile.value = window.innerWidth < 768;
-  // Auto-close sidebar on mobile, open on desktop
-  sidebarOpen.value = !isMobile.value;
+  if (import.meta.client) {
+    isMobile.value = window.innerWidth < 768;
+    // Auto-close sidebar on mobile, open on desktop
+    sidebarOpen.value = !isMobile.value;
+  }
 };
 
 const authStore = useAuthStore();
@@ -46,6 +48,12 @@ const { initializeBranchContext } = useBranchContext();
 
 const user = computed(() => authStore.currentUser);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
+
+// Don't render layout until auth is initialized (client-side only)
+const shouldRender = computed(() => {
+  if (import.meta.server) return true; // Always render on server
+  return !authStore.isInitializing;
+});
 
 // Computed class for main content to avoid hydration issues
 const mainContentClasses = computed(() => {
@@ -57,7 +65,7 @@ const mainContentClasses = computed(() => {
 
 const handleLogout = async () => {
   await authStore.logout();
-  await router.push('/login');
+  await navigateTo('/login');
 };
 
 const toggleMobileSidebar = () => {
@@ -71,7 +79,6 @@ const pageTitle = computed(() => {
   if (path.startsWith('/users')) return 'Users';
   if (path.startsWith('/branches')) return 'Branches';
   if (path.startsWith('/students')) return 'Students';
-  if (path.startsWith('/admissions')) return 'Admissions';
   if (path.startsWith('/fees')) return 'Fee Management';
   if (path.startsWith('/academic')) return 'Academic Management';
   if (path.startsWith('/reports')) return 'Reports';
@@ -110,10 +117,12 @@ onMounted(async () => {
     }
   });
 
-  // Initialize mobile detection
-  checkMobile();
-  mql = window.matchMedia('(max-width: 767px)');
-  mql.addEventListener('change', checkMobile);
+  // Initialize mobile detection (client-side only)
+  if (import.meta.client) {
+    checkMobile();
+    mql = window.matchMedia('(max-width: 767px)');
+    mql.addEventListener('change', checkMobile);
+  }
 
   // Initialize branch context if user is logged in
   if (authStore.isLoggedIn) {

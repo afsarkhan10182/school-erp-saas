@@ -44,8 +44,8 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">New Admissions</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.newAdmissions || 0 }}</dd>
+                          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">New Students</dt>
+        <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.newStudents || 0 }}</dd>
                 </dl>
               </div>
             </div>

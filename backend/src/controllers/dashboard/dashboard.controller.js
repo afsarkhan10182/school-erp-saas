@@ -1,4 +1,4 @@
-const { User, School, Branch, FeeInvoice, Admission, Student } = require('../../models');
+const { User, School, Branch, FeeInvoice, Student } = require('../../models');
 const { Sequelize } = require('../../config/database');
 const SchoolService = require('../../services/school/school.service');
 const BranchService = require('../../services/school/branch.service');
@@ -31,11 +31,11 @@ class DashboardController {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
         
-        const [totalStudents, totalBranches, newAdmissions, feeCollection] = await Promise.all([
+        const [totalStudents, totalBranches, newStudents, feeCollection, activeStudents, pendingFees, overdueFees] = await Promise.all([
           Student.count({ where: { school_id: user.school_id } }),
           Branch.count({ where: { school_id: user.school_id } }),
-          // Count admissions in last 30 days
-          Admission.count({ 
+          // Count new students in last 30 days
+          Student.count({ 
             where: { 
               school_id: user.school_id,
               created_at: {
@@ -49,22 +49,53 @@ class DashboardController {
               school_id: user.school_id,
               status: 'paid'
             } 
+          }),
+          // Count active students (students with status 'active' or null)
+          Student.count({ 
+            where: { 
+              school_id: user.school_id,
+              status: { [Op.or]: ['active', null] }
+            } 
+          }),
+          // Count pending invoices (sent status)
+          FeeInvoice.count({ 
+            where: { 
+              school_id: user.school_id,
+              status: 'sent'
+            } 
+          }),
+          // Count overdue invoices
+          FeeInvoice.count({ 
+            where: { 
+              school_id: user.school_id,
+              status: 'overdue'
+            } 
           })
         ]);
         
         stats = {
           totalStudents,
           totalBranches,
-          newAdmissions,
+          newStudents, // New students in last 30 days
           feeCollection: feeCollection || 0,
+          activeStudents,
+          pendingFees,
+          overdueFees,
         };
       } else if (user.role === 'branch_admin') {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
         
-        const [branchStudents, pendingAdmissions, branchCollection, overdueFees] = await Promise.all([
+        const [totalStudents, newStudents, feeCollection, overdueFees, activeStudents, pendingFees] = await Promise.all([
           Student.count({ where: { branch_id: user.branch_id } }),
-          Admission.count({ where: { branch_id: user.branch_id, status: 'pending' } }),
+          Student.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              created_at: {
+                [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+              }
+            } 
+          }),
           // Calculate fee collection for the branch
           FeeInvoice.sum('paid_amount', { 
             where: { 
@@ -78,14 +109,30 @@ class DashboardController {
               branch_id: user.branch_id,
               status: 'overdue'
             } 
+          }),
+          // Count active students
+          Student.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: { [Op.or]: ['active', null] }
+            } 
+          }),
+          // Count pending invoices (sent status)
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'sent'
+            } 
           })
         ]);
         
         stats = {
-          branchStudents,
-          pendingAdmissions,
-          branchCollection: branchCollection || 0,
+          totalStudents,
+          newStudents,
+          feeCollection: feeCollection || 0,
           overdueFees,
+          activeStudents,
+          pendingFees,
         };
       } else {
         // For other roles, return basic info
@@ -120,7 +167,10 @@ class DashboardController {
       const expiringTrials = await School.findAll({
         where: {
           status: 'trial',
-          subscription_end_date: { $lte: in7days, $gte: now }
+          subscription_end_date: { 
+            [Op.lte]: in7days, 
+            [Op.gte]: now 
+          }
         },
         attributes: ['id', 'name', 'email', 'subscription_end_date']
       });
@@ -188,33 +238,32 @@ class DashboardController {
 
       if (user.role === 'super_admin') {
         // Get recent activities across all schools - simplified without complex associations
-        const [recentAdmissions, recentPayments, recentUsers] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments, recentUsers] = await Promise.all([
+          Student.findAll({
             limit: Math.ceil(limit / 3),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at', 'school_id']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { status: 'paid' },
             limit: Math.ceil(limit / 3),
             order: [['last_payment_date', 'DESC']],
-            attributes: ['id', 'paid_amount', 'last_payment_date', 'school_id']
+            attributes: ['id', 'paid_amount', 'last_payment_date']
           }).catch(() => []),
           User.findAll({
             limit: Math.ceil(limit / 3),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at', 'school_id']
+            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at']
           }).catch(() => [])
         ]);
 
-        // Convert to activity format
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -231,21 +280,21 @@ class DashboardController {
         recentUsers.forEach(user => {
           activities.push({
             id: `user_${user.id}`,
-            type: 'user_registration',
-            title: 'New User Registration',
-            description: `${user.first_name || 'User'} ${user.last_name || ''} (${user.role || 'user'}) registered`,
+            type: 'user_created',
+            title: 'New User Created',
+            description: `${user.first_name} ${user.last_name} (${user.role})`,
             created_at: user.created_at ? new Date(user.created_at).toISOString() : null
           });
         });
 
       } else if (user.role === 'school_admin') {
         // Get recent activities for the school
-        const [recentAdmissions, recentPayments] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments] = await Promise.all([
+          Student.findAll({
             where: { school_id: user.school_id },
             limit: Math.ceil(limit / 2),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { 
@@ -258,13 +307,13 @@ class DashboardController {
           }).catch(() => [])
         ]);
 
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -280,12 +329,12 @@ class DashboardController {
 
       } else if (user.role === 'branch_admin') {
         // Get recent activities for the branch
-        const [recentAdmissions, recentPayments] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments] = await Promise.all([
+          Student.findAll({
             where: { branch_id: user.branch_id },
             limit: Math.ceil(limit / 2),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { 
@@ -298,13 +347,13 @@ class DashboardController {
           }).catch(() => [])
         ]);
 
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -337,7 +386,7 @@ class DashboardController {
     }
   }
 
-  static async getAdmissionsChartData(req, res, next) {
+  static async getStudentsChartData(req, res, next) {
     try {
       const user = req.user;
       let where = {};
@@ -347,7 +396,7 @@ class DashboardController {
         where.branch_id = user.branch_id;
       }
 
-      const admissions = await Admission.findAll({
+      const students = await Student.findAll({
         where,
         attributes: [
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
@@ -357,12 +406,12 @@ class DashboardController {
         order: [[Sequelize.col('month'), 'ASC']],
       });
 
-      const labels = admissions.map(a => new Date(a.get('month')).toLocaleString('default', { month: 'short' }));
-      const data = admissions.map(a => a.get('count'));
+      const labels = students.map(s => new Date(s.get('month')).toLocaleString('default', { month: 'short' }));
+      const data = students.map(s => s.get('count'));
 
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
-      logger.error('Error in DashboardController.getAdmissionsChartData:', error);
+      logger.error('Error in DashboardController.getStudentsChartData:', error);
       next(error);
     }
   }

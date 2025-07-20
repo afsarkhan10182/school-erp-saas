@@ -312,7 +312,7 @@ class AcademicYearController {
         });
       }
 
-      // TODO: Add validation to check if academic year is referenced by any schools or admissions
+      // TODO: Add validation to check if academic year is referenced by any schools
       
       await academicYear.destroy();
 

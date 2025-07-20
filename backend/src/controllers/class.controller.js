@@ -217,27 +217,38 @@ class ClassController {
 
       const { name, code, numeric_value, description, capacity, sort_order, is_active = true, branch_id } = req.body;
 
-      // Determine school_id based on user role
-      let school_id;
+      // Determine school_id and branch_id based on user role
+      let school_id, final_branch_id;
+      
       if (req.user.role === 'super_admin') {
         school_id = req.body.school_id;
+        final_branch_id = branch_id;
+        
         if (!school_id) {
           return res.status(400).json({
             success: false,
             message: 'School ID is required for super admin',
           });
         }
-      } else if (req.user.role === 'school_admin') {
-        school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        school_id = req.user.school_id;
-        // Branch admin can only create classes for their branch
-        if (branch_id && branch_id !== req.user.branch_id) {
-          return res.status(403).json({
+        if (!final_branch_id) {
+          return res.status(400).json({
             success: false,
-            message: 'Access denied: Cannot create class for other branches',
+            message: 'Branch ID is required for super admin',
           });
         }
+      } else if (req.user.role === 'school_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = branch_id;
+        
+        if (!final_branch_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Branch ID is required',
+          });
+        }
+      } else if (req.user.role === 'branch_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = req.user.branch_id; // Branch admin can only create for their branch
       } else {
         return res.status(403).json({
           success: false,
@@ -254,29 +265,37 @@ class ClassController {
         });
       }
 
-      // Check if branch exists (if branch_id is provided)
-      if (branch_id) {
-        const branch = await Branch.findByPk(branch_id);
-        if (!branch || branch.school_id !== school_id) {
-          return res.status(404).json({
-            success: false,
-            message: 'Branch not found or does not belong to the school',
-          });
-        }
+      // Check if branch exists and belongs to the school
+      const branch = await Branch.findByPk(final_branch_id);
+      if (!branch || branch.school_id !== school_id) {
+        return res.status(404).json({
+          success: false,
+          message: 'Branch not found or does not belong to the school',
+        });
       }
 
-      // Check if class code already exists for this school
-      if (code) {
-        const existingClass = await Class.findOne({
-          where: { school_id, code },
-        });
+      // Check if class name already exists for this school and branch
+      const existingClassByName = await Class.findOne({
+        where: { school_id, branch_id: final_branch_id, name },
+      });
 
-        if (existingClass) {
-          return res.status(400).json({
-            success: false,
-            message: 'Class code already exists for this school',
-          });
-        }
+      if (existingClassByName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class name already exists for this branch',
+        });
+      }
+
+      // Check if class code already exists for this school and branch
+      const existingClassByCode = await Class.findOne({
+        where: { school_id, branch_id: final_branch_id, code },
+      });
+
+      if (existingClassByCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class code already exists for this branch',
+        });
       }
 
       // Create class
@@ -289,7 +308,7 @@ class ClassController {
         sort_order: sort_order || 0,
         is_active,
         school_id,
-        branch_id,
+        branch_id: final_branch_id,
         created_by: req.user.id,
       });
 
@@ -364,20 +383,40 @@ class ClassController {
         });
       }
 
-      // Check if updated code conflicts with existing class
-      if (code && code !== classItem.code) {
-        const existingClass = await Class.findOne({
+      // Check if updated name conflicts with existing class in the same branch
+      if (name && name !== classItem.name) {
+        const existingClassByName = await Class.findOne({
           where: { 
             school_id: classItem.school_id, 
+            branch_id: classItem.branch_id,
+            name,
+            id: { [Op.ne]: id }
+          },
+        });
+
+        if (existingClassByName) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class name already exists for this branch',
+          });
+        }
+      }
+
+      // Check if updated code conflicts with existing class in the same branch
+      if (code && code !== classItem.code) {
+        const existingClassByCode = await Class.findOne({
+          where: { 
+            school_id: classItem.school_id, 
+            branch_id: classItem.branch_id,
             code,
             id: { [Op.ne]: id }
           },
         });
 
-        if (existingClass) {
+        if (existingClassByCode) {
           return res.status(400).json({
             success: false,
-            message: 'Class code already exists for this school',
+            message: 'Class code already exists for this branch',
           });
         }
       }

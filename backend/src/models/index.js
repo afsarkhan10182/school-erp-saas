@@ -14,8 +14,6 @@ const FeeInvoice = require('./fee-invoice.model');
 const AcademicYear = require('./academic-year.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
-const Admission = require('./admission.model');
-
 // Initialize associations
 const models = {
   User,
@@ -33,7 +31,6 @@ const models = {
   AcademicYear,
   Class,
   Section,
-  Admission,
 };
 
 // Call associate function for each model if it exists

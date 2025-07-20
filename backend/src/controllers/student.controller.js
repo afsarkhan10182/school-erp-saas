@@ -262,15 +262,21 @@ const getStudents = async (req, res, next) => {
       status,
       branch_id,
       class_id,
-      section_id
+      section_id,
+      school_id
     } = req.query;
 
     // Build where clause for Student table
     const whereClause = {};
     
-    // Only filter by school_id if it's provided (for school_admin and branch_admin)
-    // Super admin can see all students
-    if (req.schoolId) {
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all students
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
 
@@ -775,14 +781,20 @@ const getStudentStats = async (req, res, next) => {
       academic_year, 
       branch_id, 
       class_id, 
-      section_id 
+      section_id,
+      school_id
     } = req.query;
 
     const whereClause = {};
     
-    // Only filter by school_id if it's provided (for school_admin and branch_admin)
-    // Super admin can see all students
-    if (req.schoolId) {
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all students
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
 
@@ -830,13 +842,50 @@ const getStudentStats = async (req, res, next) => {
       raw: true,
     });
 
+    // Get branch-wise distribution (only when viewing by school, not by branch)
+    let branchDistribution = [];
+    if (school_id && !branch_id) {
+      branchDistribution = await Student.findAll({
+        where: whereClause,
+        attributes: [
+          'branch_id',
+          [Student.sequelize.fn('COUNT', Student.sequelize.col('id')), 'count'],
+        ],
+        group: ['branch_id'],
+        order: [['branch_id', 'ASC']],
+        raw: true,
+      });
+    }
+
+    // Get new students this month
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const newThisMonth = await Student.count({
+      where: {
+        ...whereClause,
+        created_at: {
+          [Op.gte]: firstDayOfMonth,
+        },
+      },
+    });
+
+    // Get class count
+    const classCount = await Student.count({
+      where: whereClause,
+      distinct: true,
+      col: 'current_class',
+    });
+
     const stats = {
       total: totalStudents,
       active: activeStudents,
       inactive: inactiveStudents,
       graduated: graduatedStudents,
       dropped: droppedStudents,
+      newThisMonth: newThisMonth,
+      classCount: classCount,
       class_distribution: classDistribution,
+      branch_distribution: branchDistribution,
     };
 
     return res.status(200).json({ success: true, data: stats });
@@ -859,6 +908,7 @@ const getStudentReport = async (req, res, next) => {
       search,
       sort_by = 'created_at',
       sort_order = 'DESC',
+      school_id,
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -866,9 +916,14 @@ const getStudentReport = async (req, res, next) => {
     // Build where clause based on user role
     let whereClause = {};
     
-    // Only filter by school_id if it's provided (for school_admin and branch_admin)
-    // Super admin can see all students
-    if (req.schoolId) {
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all students
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
 
@@ -940,11 +995,19 @@ const getStudentReport = async (req, res, next) => {
 // Export student report
 const exportStudentReport = async (req, res, next) => {
   try {
-    const { academic_year, class_name, section_name, status } = req.query;
+    const { academic_year, class_name, section_name, status, school_id } = req.query;
 
     // Build where clause
     const whereClause = {};
-    if (req.schoolId) {
+    
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all students
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
       whereClause.school_id = req.schoolId;
     }
     if (academic_year) whereClause.academic_year = academic_year;

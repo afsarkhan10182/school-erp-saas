@@ -1,13 +1,19 @@
-const { Op } = require('sequelize');
-const { Section, Class, Branch, User } = require('../models');
+const { Section, Class, School, Branch, User } = require('../models');
 const { logger } = require('../utils/logger');
+const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
-const { ApiError } = require('../utils/ApiError');
 
 class SectionController {
-  // Get all sections with filtering and pagination
+  // Get all sections with role-based access control
   static async getAllSections(req, res, next) {
     try {
+      logger.debug('getAllSections: Request received', {
+        userRole: req.user?.role,
+        userSchoolId: req.user?.school_id,
+        userBranchId: req.user?.branch_id,
+        query: req.query
+      });
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -20,79 +26,76 @@ class SectionController {
       const {
         page = 1,
         limit = 10,
-        search = '',
-        is_active = '',
-        class_id = '',
-        branch_id = '',
         sort_by = 'name',
         sort_order = 'ASC',
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
-      // Build where clause based on user role
+      // Build where clause based on user role only
       let whereClause = {};
-
+      
       // Super admin can see all sections
       if (req.user.role === 'super_admin') {
+        logger.debug('getAllSections: Super admin - no additional constraints');
         // No additional constraints
       } else if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
+        logger.debug('getAllSections: School admin - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
-        // For branch_admin, allow sections from their branch OR sections without branch_id (school-wide sections)
-        whereClause[Op.or] = [
-          { branch_id: req.user.branch_id },
-          { branch_id: null }
-        ];
+        whereClause.branch_id = req.user.branch_id;
+        logger.debug('getAllSections: Branch admin - filtering by school_id:', req.user.school_id, 'and branch_id:', req.user.branch_id);
       } else {
+        logger.warn('getAllSections: Access denied for role:', req.user.role);
         return res.status(403).json({
           success: false,
           message: 'Access denied',
         });
       }
 
-      // Add search filter
-      if (search) {
-        whereClause[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-        ];
-      }
-
-      // Add is_active filter
-      if (is_active !== '') {
-        whereClause.is_active = is_active === 'true';
-      }
-
-      // Add class_id filter
-      if (class_id) {
-        whereClause.class_id = class_id;
-      }
-
-      // Add branch_id filter
-      if (branch_id) {
-        whereClause.branch_id = branch_id;
-      }
+      // Build include array with safe associations
+      const includeArray = [];
+      
+      // Include associations safely
+      includeArray.push({
+        model: Class,
+        as: 'class',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: School,
+        as: 'school',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: Branch,
+        as: 'branch',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: User,
+        as: 'classTeacher',
+        attributes: ['id', 'first_name', 'last_name'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: User,
+        as: 'createdBy',
+        attributes: ['id', 'first_name', 'last_name'],
+        required: false,
+      });
 
       const { count, rows } = await Section.findAndCountAll({
         where: whereClause,
-        include: [
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code'],
-          },
-          {
-            model: Branch,
-            as: 'branch',
-            attributes: ['id', 'name', 'code'],
-          },
-          {
-            model: User,
-            as: 'classTeacher',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+        include: includeArray,
         order: [[sort_by, sort_order.toUpperCase()]],
         limit: parseInt(limit),
         offset,
@@ -131,6 +134,11 @@ class SectionController {
             attributes: ['id', 'name', 'code'],
           },
           {
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+          },
+          {
             model: Branch,
             as: 'branch',
             attributes: ['id', 'name', 'code'],
@@ -138,6 +146,16 @@ class SectionController {
           {
             model: User,
             as: 'classTeacher',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: User,
+            as: 'createdBy',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: User,
+            as: 'updatedBy',
             attributes: ['id', 'first_name', 'last_name'],
           },
         ],
@@ -188,27 +206,35 @@ class SectionController {
         });
       }
 
-      const { name, capacity, class_teacher_id, is_active = true, class_id, branch_id } = req.body;
+      const { name, capacity, current_strength, is_active = true, class_id, class_teacher_id } = req.body;
 
-      // Determine school_id based on user role
-      let school_id;
+      // Determine school_id and branch_id based on user role
+      let school_id, branch_id;
+      
       if (req.user.role === 'super_admin') {
-        school_id = req.body.school_id;
-        if (!school_id) {
+        // Super admin must provide class_id, and we'll get school_id and branch_id from the class
+        if (!class_id) {
           return res.status(400).json({
             success: false,
-            message: 'School ID is required for super admin',
+            message: 'Class ID is required for super admin',
           });
         }
       } else if (req.user.role === 'school_admin') {
         school_id = req.user.school_id;
+        // School admin must provide class_id, and we'll get branch_id from the class
+        if (!class_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class ID is required',
+          });
+        }
       } else if (req.user.role === 'branch_admin') {
         school_id = req.user.school_id;
-        // Branch admin can only create sections for their branch
-        if (branch_id && branch_id !== req.user.branch_id) {
-          return res.status(403).json({
+        branch_id = req.user.branch_id; // Branch admin can only create for their branch
+        if (!class_id) {
+          return res.status(400).json({
             success: false,
-            message: 'Access denied: Cannot create section for other branches',
+            message: 'Class ID is required',
           });
         }
       } else {
@@ -218,24 +244,50 @@ class SectionController {
         });
       }
 
-      // Check if class exists
-      const classInstance = await Class.findByPk(class_id);
-      if (!classInstance || classInstance.school_id !== school_id) {
+      // Get class details to validate and get school_id/branch_id
+      const classItem = await Class.findByPk(class_id, {
+        include: [
+          {
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name'],
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name'],
+          },
+        ],
+      });
+
+      if (!classItem) {
         return res.status(404).json({
           success: false,
-          message: 'Class not found or does not belong to the school',
+          message: 'Class not found',
         });
       }
 
-      // Check if branch exists (if branch_id is provided)
-      if (branch_id) {
-        const branch = await Branch.findByPk(branch_id);
-        if (!branch || branch.school_id !== school_id) {
-          return res.status(404).json({
-            success: false,
-            message: 'Branch not found or does not belong to the school',
-          });
-        }
+      // Set school_id and branch_id from class if not already set
+      if (!school_id) {
+        school_id = classItem.school_id;
+      }
+      if (!branch_id) {
+        branch_id = classItem.branch_id;
+      }
+
+      // Validate permissions
+      if (req.user.role === 'school_admin' && classItem.school_id !== req.user.school_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Class does not belong to your school',
+        });
+      }
+
+      if (req.user.role === 'branch_admin' && classItem.branch_id !== req.user.branch_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Class does not belong to your branch',
+        });
       }
 
       // Check if section name already exists for this class
@@ -250,16 +302,27 @@ class SectionController {
         });
       }
 
+      // Validate class teacher if provided
+      if (class_teacher_id) {
+        const teacher = await User.findByPk(class_teacher_id);
+        if (!teacher || teacher.school_id !== school_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class teacher not found or does not belong to the school',
+          });
+        }
+      }
+
       // Create section
       const section = await Section.create({
         name,
         capacity: capacity || 30,
-        current_strength: 0,
+        current_strength: current_strength || 0,
         is_active,
         class_id,
-        branch_id,
         class_teacher_id,
         school_id,
+        branch_id,
         created_by: req.user.id,
       });
 
@@ -272,6 +335,11 @@ class SectionController {
             attributes: ['id', 'name', 'code'],
           },
           {
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+          },
+          {
             model: Branch,
             as: 'branch',
             attributes: ['id', 'name', 'code'],
@@ -279,6 +347,11 @@ class SectionController {
           {
             model: User,
             as: 'classTeacher',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: User,
+            as: 'createdBy',
             attributes: ['id', 'first_name', 'last_name'],
           },
         ],
@@ -308,9 +381,18 @@ class SectionController {
       }
 
       const { id } = req.params;
-      const { name, capacity, class_teacher_id, is_active } = req.body;
+      const { name, capacity, current_strength, is_active, class_teacher_id } = req.body;
 
-      const section = await Section.findByPk(id);
+      const section = await Section.findByPk(id, {
+        include: [
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name', 'code'],
+          },
+        ],
+      });
+
       if (!section) {
         return res.status(404).json({
           success: false,
@@ -334,11 +416,11 @@ class SectionController {
         });
       }
 
-      // Check if updated name conflicts with existing section
+      // Check if updated name conflicts with existing section in the same class
       if (name && name !== section.name) {
         const existingSection = await Section.findOne({
           where: { 
-            class_id: section.class_id, 
+            class_id: section.class_id,
             name,
             id: { [Op.ne]: id }
           },
@@ -352,12 +434,24 @@ class SectionController {
         }
       }
 
+      // Validate class teacher if provided
+      if (class_teacher_id && class_teacher_id !== section.class_teacher_id) {
+        const teacher = await User.findByPk(class_teacher_id);
+        if (!teacher || teacher.school_id !== section.school_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class teacher not found or does not belong to the school',
+          });
+        }
+      }
+
       // Update section
       await section.update({
         name: name || section.name,
         capacity: capacity !== undefined ? capacity : section.capacity,
-        class_teacher_id: class_teacher_id || section.class_teacher_id,
+        current_strength: current_strength !== undefined ? current_strength : section.current_strength,
         is_active: is_active !== undefined ? is_active : section.is_active,
+        class_teacher_id: class_teacher_id !== undefined ? class_teacher_id : section.class_teacher_id,
         updated_by: req.user.id,
       });
 
@@ -370,6 +464,11 @@ class SectionController {
             attributes: ['id', 'name', 'code'],
           },
           {
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+          },
+          {
             model: Branch,
             as: 'branch',
             attributes: ['id', 'name', 'code'],
@@ -377,6 +476,16 @@ class SectionController {
           {
             model: User,
             as: 'classTeacher',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: User,
+            as: 'createdBy',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: User,
+            as: 'updatedBy',
             attributes: ['id', 'first_name', 'last_name'],
           },
         ],
@@ -398,15 +507,7 @@ class SectionController {
     try {
       const { id } = req.params;
 
-      const section = await Section.findByPk(id, {
-        include: [
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
-      });
+      const section = await Section.findByPk(id);
 
       if (!section) {
         return res.status(404).json({
@@ -448,65 +549,55 @@ class SectionController {
   // Get sections for dropdown/select
   static async getSectionsForDropdown(req, res, next) {
     try {
-      console.log('🔍 getSectionsForDropdown called with user role:', req.user.role);
-      console.log('🔍 Query parameters:', req.query);
-      
       let whereClause = { is_active: true };
-
+      
       if (req.user.role === 'super_admin') {
-        console.log('🔍 Processing super_admin request');
         if (req.query.school_id) {
           whereClause.school_id = req.query.school_id;
-          console.log('🔍 Added school_id filter:', req.query.school_id);
         }
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;
-          console.log('🔍 Added branch_id filter:', req.query.branch_id);
         }
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
-          console.log('🔍 Added class_id filter:', req.query.class_id);
         }
       } else if (req.user.role === 'school_admin') {
-        console.log('🔍 Processing school_admin request');
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
-          // For school_admin, allow sections from the specified branch OR sections without branch_id (school-wide sections)
-          whereClause[Op.or] = [
-            { branch_id: req.query.branch_id },
-            { branch_id: null }
-          ];
+          whereClause.branch_id = req.query.branch_id;
         }
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
       } else if (req.user.role === 'branch_admin') {
-        console.log('🔍 Processing branch_admin request');
         whereClause.school_id = req.user.school_id;
-        // For branch_admin, allow sections from their branch OR sections without branch_id (school-wide sections)
-        if (req.query.branch_id) {
-          whereClause.branch_id = req.query.branch_id;
-        } else {
-          whereClause[Op.or] = [
-            { branch_id: req.user.branch_id },
-            { branch_id: null }
-          ];
-        }
+        whereClause.branch_id = req.user.branch_id;
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
       }
 
-      console.log('🔍 Final whereClause:', JSON.stringify(whereClause, null, 2));
+      console.log('🔍 Fetching sections with whereClause:', whereClause);
 
       const sections = await Section.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'capacity'],
+        attributes: ['id', 'name', 'capacity', 'current_strength'],
+        include: [
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name', 'code'],
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name'],
+          },
+        ],
         order: [['name', 'ASC']],
       });
 
       console.log('🔍 Found sections:', sections.length);
-      console.log('🔍 Sections data:', sections.map(s => ({ id: s.id, name: s.name })));
 
       res.json({
         success: true,

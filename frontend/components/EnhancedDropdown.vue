@@ -9,7 +9,7 @@
       <select
         :id="id"
         :value="modelValue"
-        @change="$emit('update:modelValue', $event.target.value)"
+        @change="handleChange"
         :disabled="disabled"
         :class="[
           'appearance-none w-full px-4 py-3 pr-10 rounded-lg border transition-all duration-200 ease-in-out',
@@ -121,6 +121,13 @@ const isOpen = ref(false)
 watch(() => props.modelValue, (newValue) => {
   emit('change', newValue)
 })
+
+const handleChange = (event) => {
+  const value = event.target.value
+  console.log('🔍 EnhancedDropdown handleChange:', value)
+  emit('update:modelValue', value)
+  emit('change', value)
+}
 </script>
 
 <style scoped>

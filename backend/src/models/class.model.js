@@ -62,7 +62,7 @@ const Class = sequelize.define('Class', {
   },
   branch_id: {
     type: DataTypes.UUID,
-    allowNull: true,
+    allowNull: false, // Changed from true to false - classes must always have a branch
     references: {
       model: 'branches',
       key: 'id',
@@ -89,7 +89,9 @@ const Class = sequelize.define('Class', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'code'], unique: true },
+    // Updated unique constraints: school_id + branch_id + name/code (allows same name/code across branches)
+    { fields: ['school_id', 'branch_id', 'name'], unique: true },
+    { fields: ['school_id', 'branch_id', 'code'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['is_active'] },
@@ -97,7 +99,7 @@ const Class = sequelize.define('Class', {
   ],
   hooks: {
     afterCreate: async (classInstance) => {
-      logger.info(`New class created: ${classInstance.name} (${classInstance.code})`);
+      logger.info(`New class created: ${classInstance.name} (${classInstance.code}) for branch ${classInstance.branch_id}`);
     },
   },
 });

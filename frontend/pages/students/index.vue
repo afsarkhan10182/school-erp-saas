@@ -5,11 +5,11 @@
       <div class="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Students</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student admissions and records</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student records and information</p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
-            @click="navigateTo('/admissions/create')"
+            @click="navigateTo('/students/form')"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             <PlusIcon class="-ml-1 mr-2 h-5 w-5" />
@@ -17,8 +17,6 @@
           </button>
         </div>
       </div>
-
-
 
       <!-- Filters Section -->
       <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-6 py-6 border border-gray-200 dark:border-gray-700">
@@ -29,10 +27,25 @@
             </svg>
             Filter Students
           </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Select criteria to filter and search students</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ isSuperAdmin ? 'Select school and branch to view students, then click Apply Filters' : 'Select branch to view students, then click Apply Filters' }}
+          </p>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
+          <!-- School Selector (Super Admin Only) -->
+          <EnhancedDropdown
+            v-if="isSuperAdmin"
+            v-model="selectedSchool"
+            :options="schoolOptions"
+            label="School"
+            placeholder="Select School"
+            id="school-filter"
+            :loading="schoolsLoading"
+            @update:modelValue="onSchoolChange"
+          />
+          
+          <!-- Branch Selector -->
           <EnhancedDropdown
             v-model="selectedBranch"
             :options="branchOptions"
@@ -40,40 +53,47 @@
             placeholder="Select Branch"
             id="branch-filter"
             :loading="branchesLoading"
+            :disabled="isSuperAdmin && !selectedSchool"
+            @update:modelValue="onBranchChange"
             @change="onBranchChange"
+            :class="isSuperAdmin ? 'md:col-span-1' : 'md:col-span-2'"
           />
           
+          <!-- Class Selector (Optional) -->
           <EnhancedDropdown
             v-model="selectedClass"
             :options="classOptions"
-            label="Class"
-            placeholder="Select Class"
+            label="Class (Optional)"
+            placeholder="All Classes"
             id="class-filter"
-            :disabled="!selectedBranch || classesLoading"
             :loading="classesLoading"
-            :error="classLoadError"
-            @change="onClassChange"
+            :disabled="!selectedBranch"
+            @update:modelValue="onClassChange"
           />
           
+          <!-- Section Selector (Optional) -->
           <EnhancedDropdown
             v-model="selectedSection"
             :options="sectionOptions"
-            label="Section"
-            placeholder="Select Section"
+            label="Section (Optional)"
+            placeholder="All Sections"
             id="section-filter"
-            :disabled="!selectedClass || sectionsLoading"
             :loading="sectionsLoading"
-            @change="onSectionChange"
+            :disabled="!selectedClass"
+            @update:modelValue="onSectionChange"
           />
           
+          <!-- Academic Year -->
           <EnhancedDropdown
             v-model="filters.academic_year"
             :options="academicYearOptions"
             label="Academic Year"
             placeholder="All Years"
             id="academic-year"
+            @update:modelValue="onAcademicYearChange"
           />
           
+          <!-- Search -->
           <div class="relative">
             <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <svg class="w-4 h-4 inline mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,11 +115,11 @@
         <div class="mt-6 flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             @click="applyFilters"
-            :disabled="!canViewStudents"
+            :disabled="!canApplyFilters"
             class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 dark:focus:ring-offset-gray-800 transition-all duration-200 ease-in-out shadow-lg hover:shadow-xl"
           >
             <Users class="-ml-1 mr-2 h-5 w-5" />
-            Filter Students
+            Apply Filters
           </button>
           
           <button
@@ -114,57 +134,6 @@
         </div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 ease-in-out group">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors duration-200">
-              <Users class="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Students</p>
-              <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total || 0 }}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 ease-in-out group">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 p-3 rounded-lg bg-green-100 dark:bg-green-900/30 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors duration-200">
-              <CheckCircle class="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Students</p>
-              <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.active || 0 }}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 ease-in-out group">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors duration-200">
-              <UserPlus class="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">New This Month</p>
-              <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.newThisMonth || 0 }}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 ease-in-out group">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors duration-200">
-              <GraduationCap class="h-8 w-8 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Classes</p>
-              <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.classCount || 0 }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Students Table -->
       <div class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="px-6 py-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
@@ -176,19 +145,23 @@
                 </svg>
                 Student List
               </h2>
-              <p v-if="hasSelectedFilters" class="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
+              <p v-if="hasAppliedFilters" class="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
                 <svg class="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Showing students for <span class="font-medium text-gray-900 dark:text-white">{{ selectedBranchName }}</span> - 
-                <span class="font-medium text-gray-900 dark:text-white">{{ selectedClassName }}</span> - 
-                <span class="font-medium text-gray-900 dark:text-white">{{ selectedSectionName }}</span>
+                Showing students for 
+                <span v-if="isSuperAdmin && selectedSchoolName" class="font-medium text-gray-900 dark:text-white ml-1">{{ selectedSchoolName }}</span>
+                <span v-if="selectedBranchName" class="font-medium text-gray-900 dark:text-white">{{ isSuperAdmin && selectedSchoolName ? ' - ' : '' }}{{ selectedBranchName }}</span>
+                <span v-if="selectedClassName && selectedClassName !== 'All Classes'" class="font-medium text-gray-900 dark:text-white"> - {{ selectedClassName }}</span>
+                <span v-if="selectedSectionName && selectedSectionName !== 'All Sections'" class="font-medium text-gray-900 dark:text-white"> - {{ selectedSectionName }}</span>
+                <span v-if="filters.academic_year && filters.academic_year !== 'All Years'" class="font-medium text-gray-900 dark:text-white"> - {{ filters.academic_year }}</span>
+                <span v-if="searchQuery" class="font-medium text-gray-900 dark:text-white"> - Search: "{{ searchQuery }}"</span>
               </p>
               <p v-else class="mt-2 text-sm text-gray-600 dark:text-gray-400 flex items-center">
                 <svg class="w-4 h-4 mr-1 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                Select filters and click "Filter Students" to view results
+                {{ isSuperAdmin ? 'Select school and branch, then click Apply Filters to view students' : 'Select branch, then click Apply Filters to view students' }}
               </p>
             </div>
             <div v-if="students.length > 0" class="text-right">
@@ -204,15 +177,15 @@
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Please wait while we fetch the data</p>
         </div>
         
-        <div v-else-if="students.length === 0" class="p-12 text-center">
+        <div v-else-if="students.length === 0 && hasAppliedFilters" class="p-12 text-center">
           <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
             <Users class="h-12 w-12 text-gray-400 dark:text-gray-500" />
           </div>
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            {{ hasSelectedFilters ? 'No students found' : 'No students available' }}
+            No students found
           </h3>
           <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            {{ hasSelectedFilters ? 'No students match the selected criteria. Try adjusting your filters.' : 'Use the filters above to search for students or add new students to get started.' }}
+            No students match the selected criteria. Try adjusting your filters or adding new students.
           </p>
           <div class="flex justify-center space-x-4">
             <button
@@ -225,7 +198,7 @@
               Reset Filters
             </button>
             <button
-              @click="navigateTo('/admissions/create')"
+              @click="navigateTo('/students/form')"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,6 +207,20 @@
               Add Student
             </button>
           </div>
+        </div>
+        
+        <div v-else-if="!hasAppliedFilters" class="p-12 text-center">
+          <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
+            <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Select filters to view students
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            {{ isSuperAdmin ? 'Choose a school and branch, then click Apply Filters to view students.' : 'Choose a branch, then click Apply Filters to view students.' }}
+          </p>
         </div>
         
         <div v-else class="overflow-x-auto">
@@ -396,6 +383,7 @@ import { apiClient } from '~/utils/api';
 import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
+import { useSchools } from '~/composables/useSchools';
 import {
   PlusIcon,
   Users,
@@ -418,24 +406,40 @@ const {
   fetchSections 
 } = useAcademics();
 
+// Separate loading states for better UX
+const classesLoading = ref(false);
+const sectionsLoading = ref(false);
+const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
+
 const students = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
 const stats = ref({});
+const hasAppliedFilters = ref(false);
 
-// Selection state for school admin
+// Role-based state
+const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
+const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+
+// Selection state
+const selectedSchool = ref('');
 const selectedBranch = ref('');
 const selectedClass = ref('');
 const selectedSection = ref('');
-const classLoadError = ref('');
 
-
-const hasSelectedFilters = computed(() => {
-  return selectedBranch.value && selectedClass.value && selectedSection.value;
+const canApplyFilters = computed(() => {
+  if (isSuperAdmin.value) {
+    // Super Admin needs school and branch selection
+    return selectedSchool.value && selectedBranch.value;
+  } else {
+    // School Admin needs branch selection
+    return selectedBranch.value;
+  }
 });
 
-const canViewStudents = computed(() => {
-  return selectedBranch.value && selectedClass.value && selectedSection.value;
+const selectedSchoolName = computed(() => {
+  const school = schools.value.find(s => s.id === selectedSchool.value);
+  return school?.name || '';
 });
 
 const selectedBranchName = computed(() => {
@@ -453,7 +457,14 @@ const selectedSectionName = computed(() => {
   return section?.name || '';
 });
 
-// Computed properties for dropdown options
+// Computed properties for dropdown options with "Select All" options
+const schoolOptions = computed(() => {
+  return schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }));
+});
+
 const branchOptions = computed(() => {
   return branches.value.map(branch => ({
     value: branch.id,
@@ -462,24 +473,27 @@ const branchOptions = computed(() => {
 });
 
 const classOptions = computed(() => {
-  return classes.value.map(cls => ({
+  const options = classes.value.map(cls => ({
     value: cls.id,
     label: cls.name
   }));
+  return options;
 });
 
 const sectionOptions = computed(() => {
-  return sections.value.map(section => ({
+  const options = sections.value.map(section => ({
     value: section.id,
     label: section.name
   }));
+  return options;
 });
 
 const academicYearOptions = computed(() => {
-  return academicYears.value.map(year => ({
+  const options = academicYears.value.map(year => ({
     value: year.name,
     label: year.name
   }));
+  return options;
 });
 
 const filters = reactive({
@@ -489,23 +503,41 @@ const filters = reactive({
 });
 
 // Methods
+const onSchoolChange = async () => {
+  selectedBranch.value = '';
+  selectedClass.value = '';
+  selectedSection.value = '';
+  branches.value = [];
+  classes.value = [];
+  sections.value = [];
+  hasAppliedFilters.value = false;
+  students.value = [];
+  
+  if (selectedSchool.value) {
+    await fetchBranches(selectedSchool.value);
+  }
+};
+
 const onBranchChange = async () => {
+  console.log('🔍 onBranchChange called with branch_id:', selectedBranch.value);
   selectedClass.value = '';
   selectedSection.value = '';
   classes.value = [];
   sections.value = [];
-  classLoadError.value = '';
+  hasAppliedFilters.value = false;
+  students.value = [];
   
-  const result = await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
-  
-  if (!result || classes.value.length === 0) {
-    classLoadError.value = 'No classes found for the selected branch.';
-  } else {
-    // Auto-select class if there's only one
-    if (classes.value.length === 1) {
-      selectedClass.value = classes.value[0].id;
-      // Load sections for the auto-selected class
-      await onClassChange();
+  if (selectedBranch.value) {
+    classesLoading.value = true;
+    try {
+      const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
+      console.log('🔍 Fetching classes for school_id:', schoolId, 'branch_id:', selectedBranch.value);
+      await fetchClasses(schoolId, selectedBranch.value);
+      console.log('🔍 Classes loaded:', classes.value.length);
+    } catch (error) {
+      console.error('❌ Error loading classes:', error);
+    } finally {
+      classesLoading.value = false;
     }
   }
 };
@@ -515,27 +547,41 @@ const onClassChange = async () => {
   sections.value = [];
   
   if (selectedClass.value) {
-    await fetchSections(authStore.currentUser?.school_id, selectedBranch.value, selectedClass.value);
-    
-    // Auto-select section if there's only one
-    if (sections.value.length === 1) {
-      selectedSection.value = sections.value[0].id;
+    sectionsLoading.value = true;
+    try {
+      const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
+      await fetchSections(schoolId, selectedBranch.value, selectedClass.value);
+    } finally {
+      sectionsLoading.value = false;
     }
   }
 };
 
 const onSectionChange = () => {
-  // Section changed
+  // No auto-fetch, just update the selection
+};
+
+const onAcademicYearChange = () => {
+  // No auto-fetch, just update the selection
 };
 
 const applyFilters = async () => {
-  if (canViewStudents.value) {
+  console.log('🔍 Applying filters:', {
+    canApplyFilters: canApplyFilters.value,
+    selectedSchool: selectedSchool.value,
+    selectedBranch: selectedBranch.value,
+    selectedClass: selectedClass.value,
+    selectedSection: selectedSection.value,
+    academicYear: filters.academic_year
+  });
+  
+  if (canApplyFilters.value) {
     await fetchStudents();
-    await fetchStats();
   }
 };
 
 const resetFilters = () => {
+  selectedSchool.value = '';
   selectedBranch.value = '';
   selectedClass.value = '';
   selectedSection.value = '';
@@ -543,16 +589,13 @@ const resetFilters = () => {
   searchQuery.value = '';
   students.value = [];
   stats.value = {};
+  hasAppliedFilters.value = false;
 };
-
-
-
-
-
-
 
 const fetchStudents = async () => {
   isLoading.value = true;
+  hasAppliedFilters.value = true;
+  
   try {
     const params = {};
 
@@ -566,42 +609,47 @@ const fetchStudents = async () => {
       params.academic_year = filters.academic_year;
     }
 
-    // Add branch, class, and section filters
-    if (hasSelectedFilters.value) {
+    // Add school filter for Super Admin
+    if (isSuperAdmin.value && selectedSchool.value) {
+      params.school_id = selectedSchool.value;
+    }
+
+    // Add branch filter
+    if (selectedBranch.value) {
       params.branch_id = selectedBranch.value;
+    }
+
+    // Add class filter (only if not "All Classes")
+    if (selectedClass.value) {
       params.class_id = selectedClass.value;
+    }
+
+    // Add section filter (only if not "All Sections")
+    if (selectedSection.value) {
       params.section_id = selectedSection.value;
     }
+
+    console.log('🔍 Fetching students with params:', params);
 
     const response = await apiClient.students.getAll(params);
-    students.value = response.data || [];
+    console.log('🔍 Students response:', response);
+    
+    if (response.success) {
+      if (response.data && Array.isArray(response.data)) {
+        students.value = response.data;
+      } else if (response.data && response.data.items) {
+        students.value = response.data.items;
+      } else {
+        students.value = [];
+      }
+    } else {
+      students.value = [];
+    }
   } catch (error) {
     console.error('Error fetching students:', error);
+    students.value = [];
   } finally {
     isLoading.value = false;
-  }
-};
-
-const fetchStats = async () => {
-  try {
-    const params = {};
-    
-    // Add academic year filter
-    if (filters.academic_year) {
-      params.academic_year = filters.academic_year;
-    }
-
-    // Add branch, class, and section filters
-    if (hasSelectedFilters.value) {
-      params.branch_id = selectedBranch.value;
-      params.class_id = selectedClass.value;
-      params.section_id = selectedSection.value;
-    }
-
-    const response = await apiClient.students.getStats(params);
-    stats.value = response.data;
-  } catch (error) {
-    console.error('Error fetching stats:', error);
   }
 };
 
@@ -611,14 +659,6 @@ const viewStudent = (id) => {
 
 const editStudent = (id) => {
   navigateTo(`/students/${id}/edit`);
-};
-
-let debounceTimer;
-const debouncedSearch = () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    fetchStudents();
-  }, 300);
 };
 
 const getStatusClass = (status) => {
@@ -645,32 +685,39 @@ const getStatusText = (status) => {
 
 // Initialize data
 onMounted(async () => {
-  // Load branches and academic years for all users
-  await fetchBranches(authStore.currentUser?.school_id);
-  await fetchAcademicYears(authStore.currentUser?.school_id);
+  // Load schools for Super Admin
+  if (isSuperAdmin.value) {
+    await fetchSchools();
+  }
   
-  // Auto-select branch if there's only one
-  if (branches.value.length === 1) {
-    selectedBranch.value = branches.value[0].id;
-    // Load classes for the auto-selected branch
-    await onBranchChange();
+  // Load branches for School Admin
+  if (isSchoolAdmin.value) {
+    await fetchBranches(authStore.currentUser?.school_id);
+  }
+  
+  // Load academic years for all users
+  await fetchAcademicYears(authStore.currentUser?.school_id);
+});
+
+// Watch for branch changes
+watch(selectedBranch, (newBranch, oldBranch) => {
+  console.log('🔍 Branch watcher triggered:', oldBranch, '->', newBranch);
+  if (newBranch !== oldBranch && newBranch) {
+    onBranchChange();
   }
 });
 
-// Watcher to reload classes if selectedBranch changes outside of dropdown
-watch(selectedBranch, async (newVal, oldVal) => {
-  if (newVal !== oldVal) {
-    await onBranchChange();
+// Watch search query for auto-refresh only when filters are applied
+watch(searchQuery, () => {
+  if (hasAppliedFilters.value) {
+    // Debounced search when filters are already applied
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      fetchStudents();
+    }, 300);
   }
 });
 
-// Watcher to auto-select branch when branches are loaded
-watch(branches, async (newBranches) => {
-  if (newBranches.length === 1 && !selectedBranch.value) {
-    selectedBranch.value = newBranches[0].id;
-    // Load classes for the auto-selected branch
-    await onBranchChange();
-  }
-}, { immediate: true });
+let debounceTimer;
 </script>
 

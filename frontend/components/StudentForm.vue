@@ -670,11 +670,12 @@ const onSchoolChange = async () => {
 
 // Branch change handler
 const onBranchChange = async () => {
-  console.log('🔍 onBranchChange called with branch_id:', form.branch_id);
+  console.log('🔍 StudentForm onBranchChange called with branch_id:', form.branch_id);
   form.class_id = '';
   form.section_id = '';
   if (form.branch_id) {
     try {
+      console.log('🔍 Loading academic data for branch:', form.branch_id);
       await loadAcademicData();
       console.log('🔍 Academic data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length);
       if (academicYears.value && academicYears.value.length > 0) {
@@ -691,6 +692,7 @@ const onBranchChange = async () => {
         await onClassChange(true); // Mark as auto-selection
       }
     } catch (error) {
+      console.error('❌ Error loading academic data:', error);
       showError('Failed to load academic data');
     }
   }
@@ -749,21 +751,28 @@ const onSectionChange = () => {
 // Load academic data
 const loadAcademicData = async () => {
   try {
-    if (!form.school_id || !form.branch_id) return;
+    if (!form.school_id || !form.branch_id) {
+      console.log('🔍 loadAcademicData: Missing school_id or branch_id');
+      return;
+    }
+    console.log('🔍 loadAcademicData: Loading for school_id:', form.school_id, 'branch_id:', form.branch_id);
     academicsLoading.value = true;
     await Promise.all([
       fetchAcademicYears(form.school_id),
       fetchClasses(form.school_id, form.branch_id)
     ]);
+    console.log('🔍 loadAcademicData: Data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length);
     if (academicYears.value?.length > 0) {
       const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
       if (currentYear) {
         form.academic_year_id = currentYear.id;
+        console.log('🔍 loadAcademicData: Set academic year:', form.academic_year_id);
       }
     }
     // Don't auto-select class in create mode - let user choose
     // Auto-selection only happens in edit mode through onBranchChange
   } catch (error) {
+    console.error('❌ loadAcademicData error:', error);
     showError('Failed to load academic data');
   } finally {
     academicsLoading.value = false;
@@ -851,12 +860,8 @@ const handleSubmit = async () => {
     console.log('🔍 Form submission - roll_number:', form.roll_number);
     console.log('🔍 Form submission - dataStructure:', dataStructure);
     
-    // Use different field names for different APIs
-    if (props.isAdmission) {
-      formData.append('admissionData', JSON.stringify(dataStructure));
-    } else {
-      formData.append('studentData', JSON.stringify(dataStructure));
-    }
+    // Always use student API since admissions are now handled through student creation
+    formData.append('studentData', JSON.stringify(dataStructure));
     
     if (form.student.profile_picture) {
       formData.append('student_profile_picture', form.student.profile_picture);
@@ -864,21 +869,15 @@ const handleSubmit = async () => {
     if (form.guardian.picture) {
       formData.append('guardian_picture', form.guardian.picture);
     }
+    
     let response;
-    if (props.isAdmission) {
-      // Use admission API for admissions
-      response = await apiClient.admissions.createWithFormData(formData);
+    if (props.isEditing && props.studentId) {
+      response = await apiClient.students.updateWithFormData(props.studentId, formData);
     } else {
-      // Use student API for students
-      if (props.isEditing && props.studentId) {
-        response = await apiClient.students.updateWithFormData(props.studentId, formData);
-      } else {
-        response = await apiClient.students.createWithFormData(formData);
-      }
+      response = await apiClient.students.createWithFormData(formData);
     }
     if (response.success) {
-      const entityType = props.isAdmission ? 'Admission' : 'Student';
-      showSuccess(`${entityType} ${props.isEditing ? 'updated' : 'created'} successfully!`);
+      showSuccess(`Student ${props.isEditing ? 'updated' : 'created'} successfully!`);
       
       // If updating, update form with response data instead of resetting
       if (props.isEditing && response.data) {
@@ -891,8 +890,7 @@ const handleSubmit = async () => {
         router.push(props.redirectTo);
       }, 2000);
     } else {
-      const entityType = props.isAdmission ? 'admission' : 'student';
-      showError(response.message || `Failed to ${props.isEditing ? 'update' : 'create'} ${entityType}`);
+      showError(response.message || `Failed to ${props.isEditing ? 'update' : 'create'} student`);
     }
   } catch (error) {
     showError(`An error occurred while ${props.isEditing ? 'updating' : 'creating'} the student`);
@@ -989,6 +987,14 @@ watch([() => form.school_id, () => form.branch_id], async ([newSchoolId, newBran
     await loadAcademicData();
     // Map class and section names to IDs after loading academic data
     await mapClassAndSectionNames();
+  }
+}, { immediate: false });
+
+// Watch for branch changes in create mode
+watch(() => form.branch_id, async (newBranchId, oldBranchId) => {
+  if (!props.isEditing && newBranchId && newBranchId !== oldBranchId) {
+    console.log('🔍 Branch changed in create mode:', oldBranchId, '->', newBranchId);
+    await onBranchChange();
   }
 }, { immediate: false });
 

@@ -2,12 +2,13 @@ import { useAuthStore } from '~/stores/auth';
 
 export default defineNuxtRouteMiddleware((to) => {
   // Only run on client
-  if (process.server) return;
+  if (import.meta.server) return;
   
   const authStore = useAuthStore();
+  const token = useCookie('accessToken').value;
   
   // Instant check - no async, no waiting
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isLoggedIn && !token) {
     return navigateTo('/login');
   }
   

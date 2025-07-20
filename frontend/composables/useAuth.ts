@@ -2,23 +2,34 @@ import { useAuthStore } from '~/stores/auth';
 
 export const useAuth = () => {
   const authStore = useAuthStore();
-  const router = useRouter();
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      
+      console.log('🚀 Starting login process...');
       const result = await authStore.login(credentials);
       
       if (result.success) {
-        // Wait a moment for the store to update
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Redirect to dashboard
-        await router.push('/dashboard');
+        console.log('🚀 Login successful, checking auth state...');
+        
+        // Wait a moment for auth state to be fully set
+        await nextTick();
+        
+        // Debug: Check auth state before navigation
+        console.log('🚀 About to navigate:', { 
+          isLoggedIn: authStore.isLoggedIn,
+          user: !!authStore.currentUser
+        });
+        
+        // Force redirect to dashboard - use replace to prevent back navigation
+        console.log('🚀 Navigating to dashboard...');
+        await navigateTo('/dashboard', { replace: true });
         return result;
       } else {
+        console.log('❌ Login failed:', result.error);
         return result;
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       return { 
         success: false, 
         error: 'An unexpected error occurred during login.' 
@@ -29,11 +40,11 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       await authStore.logout();
-      await router.push('/login');
+      await navigateTo('/login');
     } catch (error) {
       console.error('Logout error:', error);
       // Force redirect even if logout fails
-      await router.push('/login');
+      await navigateTo('/login');
     }
   };
 
@@ -44,7 +55,7 @@ export const useAuth = () => {
   const requireAuth = async () => {
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
-      await router.push('/login');
+      await navigateTo('/login');
       return false;
     }
     return true;
@@ -56,7 +67,7 @@ export const useAuth = () => {
     
     const userRole = authStore.userRole;
     if (!userRole || !allowedRoles.includes(userRole)) {
-      await router.push('/unauthorized');
+      await navigateTo('/unauthorized');
       return false;
     }
     

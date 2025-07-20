@@ -62,7 +62,7 @@ const Section = sequelize.define('Section', {
   },
   branch_id: {
     type: DataTypes.UUID,
-    allowNull: true,
+    allowNull: false, // Changed from true to false - sections must always have a branch
     references: {
       model: 'branches',
       key: 'id',
@@ -89,6 +89,7 @@ const Section = sequelize.define('Section', {
   timestamps: true,
   underscored: true,
   indexes: [
+    // Updated unique constraint: class_id + name (sections are unique within a class)
     { fields: ['class_id', 'name'], unique: true },
     { fields: ['class_id'] },
     { fields: ['class_teacher_id'] },
@@ -98,7 +99,7 @@ const Section = sequelize.define('Section', {
   ],
   hooks: {
     afterCreate: async (section) => {
-      logger.info(`New section created: ${section.name} for class ${section.class_id}`);
+      logger.info(`New section created: ${section.name} for class ${section.class_id} in branch ${section.branch_id}`);
     },
   },
 });

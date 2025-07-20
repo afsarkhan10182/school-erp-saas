@@ -86,12 +86,72 @@ router.get('/school-report', authorize(['school_admin']), DashboardController.ge
  */
 router.get('/recent-activities', DashboardController.getRecentActivities);
 
-router.get('/admissions-chart', DashboardController.getAdmissionsChartData);
+/**
+ * @swagger
+ * /dashboard/students-chart:
+ *   get:
+ *     summary: Get students chart data
+ *     description: Get monthly students data for chart visualization
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Students chart data retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/students-chart', DashboardController.getStudentsChartData);
 
+/**
+ * @swagger
+ * /dashboard/fees-chart:
+ *   get:
+ *     summary: Get fees chart data
+ *     description: Get fee collection status data for chart visualization
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Fees chart data retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/fees-chart', DashboardController.getFeesChartData);
 
+/**
+ * @swagger
+ * /dashboard/student-distribution:
+ *   get:
+ *     summary: Get student distribution data
+ *     description: Get student distribution by class for chart visualization
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Student distribution data retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/student-distribution', DashboardController.getStudentDistributionData);
 
+/**
+ * @swagger
+ * /dashboard/fee-trend:
+ *   get:
+ *     summary: Get fee trend data
+ *     description: Get fee collection trend data for chart visualization
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Fee trend data retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/fee-trend', DashboardController.getFeeTrendData);
 
 module.exports = router; 

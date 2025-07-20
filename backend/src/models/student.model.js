@@ -314,11 +314,7 @@ Student.associate = (models) => {
   //   as: 'feeInvoices',
   // });
 
-  // Student has many Admissions
-  Student.hasMany(models.Admission, {
-    foreignKey: 'student_id',
-    as: 'admissions',
-  });
+
 };
 
 module.exports = Student;

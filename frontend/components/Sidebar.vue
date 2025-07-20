@@ -36,7 +36,11 @@
       <nav class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
-          <NuxtLink :to="'/dashboard'" :class="navClass('/dashboard')">
+          <NuxtLink 
+            :to="'/dashboard'" 
+            :class="navClass('/dashboard')"
+            @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve('/dashboard').href, '_blank') : null"
+          >
             <Home class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
             <span v-if="open || isMobile">Dashboard</span>
           </NuxtLink>
@@ -82,6 +86,7 @@
                     :key="subItem.id"
                     :to="subItem.path" 
                     class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                    @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(subItem.path).href, '_blank') : null"
                   >
                     <component :is="subItem.icon" class="w-4 h-4 mr-2" />
                     <span>{{ subItem.title }}</span>
@@ -101,6 +106,8 @@
                     :key="subItem.id"
                     :to="subItem.path" 
                     :class="navClass(subItem.path)"
+                    @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(subItem.path).href, '_blank') : null"
+                    @auxclick="$event.button === 1 ? window.open($router.resolve(subItem.path).href, '_blank') : null"
                   >
                     <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                     <span>{{ subItem.title }}</span>
@@ -111,7 +118,12 @@
             
             <!-- Direct Link Menu -->
             <div v-else class="relative group">
-              <NuxtLink :to="menuItem.path" :class="navClass(menuItem.path)">
+              <NuxtLink 
+                :to="menuItem.path" 
+                :class="navClass(menuItem.path)"
+                @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+                @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+              >
                 <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
                 <span v-if="open || isMobile">{{ menuItem.title }}</span>
               </NuxtLink>
@@ -243,13 +255,12 @@ const menuGroups = computed(() => {
       title: 'Student Management',
       items: [
         {
-          id: 'admission',
-          title: 'Admission',
+          id: 'students',
+          title: 'Students',
           icon: GraduationCap,
           children: [
-            { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
+            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus },
             { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
-            { id: 'applications', title: 'Total Applications', path: '/admissions', icon: ClipboardList },
             { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList },
           ]
         }
@@ -308,7 +319,6 @@ const menuGroups = computed(() => {
       items: [
         { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
         { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
-        { id: 'admission-reports', title: 'Admission Reports', path: '/reports/admissions', icon: TrendingUp },
       ]
     });
   }
@@ -319,8 +329,8 @@ const menuGroups = computed(() => {
       id: 'front-office',
       title: 'Front Office',
       items: [
-        { id: 'new-admission', title: 'New Admission', path: '/admissions/create', icon: UserPlus },
-        { id: 'applications', title: 'Applications', path: '/admissions', icon: ClipboardList },
+        { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus },
+        { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
         { id: 'visitors', title: 'Visitors', path: '/visitors', icon: UserCheck },
       ]
     });

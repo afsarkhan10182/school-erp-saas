@@ -162,22 +162,7 @@ module.exports = {
       console.log('Index transactions_payment_status_created_at already exists, skipping...');
     }
     
-    // Admissions table - composite indexes
-    try {
-      await queryInterface.addIndex('admissions', ['school_id', 'academic_year']);
-    } catch (error) {
-      console.log('Index admissions_school_id_academic_year already exists, skipping...');
-    }
-    try {
-      await queryInterface.addIndex('admissions', ['school_id', 'status']);
-    } catch (error) {
-      console.log('Index admissions_school_id_status already exists, skipping...');
-    }
-    try {
-      await queryInterface.addIndex('admissions', ['academic_year', 'applied_class', 'status']);
-    } catch (error) {
-      console.log('Index admissions_academic_year_applied_class_status already exists, skipping...');
-    }
+
     
     // Academic Years table - composite indexes
     try {

@@ -28,34 +28,34 @@
             </div>
             <div class="stat-card bg-green-500 text-white">
               <UserPlus class="w-8 h-8" />
-              <p class="mt-2 text-sm font-medium">New Admissions</p>
-              <p class="text-3xl font-bold">{{ stats.newAdmissions || 0 }}</p>
-            </div>
-            <div class="stat-card bg-yellow-500 text-white">
-              <DollarSign class="w-8 h-8" />
-              <p class="mt-2 text-sm font-medium">Fee Collection</p>
-              <p class="text-3xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
+              <p class="mt-2 text-sm font-medium">New Students (30d)</p>
+              <p class="text-3xl font-bold">{{ stats.newStudents || 0 }}</p>
             </div>
             <div class="stat-card bg-purple-500 text-white">
-              <Building2 class="w-8 h-8" />
-              <p class="mt-2 text-sm font-medium">Total Branches</p>
-              <p class="text-3xl font-bold">{{ stats.totalBranches || 0 }}</p>
+              <DollarSign class="w-8 h-8" />
+              <p class="mt-2 text-sm font-medium">Fee Collection (This Month)</p>
+              <p class="text-3xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
+            </div>
+            <div class="stat-card bg-red-500 text-white">
+              <AlertTriangle class="w-8 h-8" />
+              <p class="mt-2 text-sm font-medium">Pending/Overdue Fees</p>
+              <p class="text-3xl font-bold">{{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}</p>
             </div>
           </section>
 
           <!-- Charts Section -->
           <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Monthly Admissions Chart -->
+            <!-- Monthly Student Trends Chart -->
             <div class="card">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-semibold">Monthly Admissions</h2>
+                <h2 class="text-xl font-semibold">Monthly Student Trends</h2>
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span class="text-sm text-gray-600 dark:text-gray-400">Admissions</span>
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Students</span>
                 </div>
               </div>
               <div class="relative h-64">
-                <canvas ref="admissionsChart" class="w-full h-full"></canvas>
+                <canvas ref="studentsChart" class="w-full h-full"></canvas>
               </div>
             </div>
 
@@ -79,7 +79,7 @@
             <!-- Student Distribution by Class -->
             <div class="card">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-semibold">Student Distribution</h2>
+                <h2 class="text-xl font-semibold">Student Distribution by Class</h2>
                 <div class="flex items-center space-x-2">
                   <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
                   <span class="text-sm text-gray-600 dark:text-gray-400">By Class</span>
@@ -114,7 +114,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Schools</p>
               </div>
               <div>
-                <p class="text-3xl font-bold text-green-500">{{ platformStats.totalRevenue || 0 }}</p>
+                <p class="text-3xl font-bold text-green-500">₹{{ formatCurrency(platformStats.totalRevenue || 0) }}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
               </div>
               <div>
@@ -124,27 +124,7 @@
             </div>
           </section>
 
-          <section v-if="isSchoolAdmin" class="card">
-            <h2 class="text-xl font-semibold mb-4">School Overview</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div>
-                <p class="text-3xl font-bold text-blue-500">{{ schoolStats.totalStudents || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Students</p>
-              </div>
-              <div>
-                <p class="text-3xl font-bold text-green-500">{{ schoolStats.totalTeachers || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Teachers</p>
-              </div>
-              <div>
-                <p class="text-3xl font-bold text-yellow-500">{{ schoolStats.totalStaff || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Staff</p>
-              </div>
-              <div>
-                <p class="text-3xl font-bold text-purple-500">{{ schoolStats.totalParents || 0 }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Parents</p>
-              </div>
-            </div>
-          </section>
+         
         </div>
 
         <!-- Right Column -->
@@ -202,7 +182,11 @@ import {
   Building2, 
   User,
   GraduationCap,
-  CreditCard
+  CreditCard,
+  FileText,
+  Clock,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { apiClient } from '~/utils/api';
@@ -214,15 +198,17 @@ const stats = ref({});
 const platformStats = ref({});
 const schoolStats = ref({});
 const recentActivities = ref([]);
+const recentAdmissions = ref([]);
+const overdueFees = ref([]);
 
 // Chart refs
-const admissionsChart = ref(null);
+const studentsChart = ref(null);
 const feesChart = ref(null);
 const studentDistributionChart = ref(null);
 const feeTrendChart = ref(null);
 
 // Chart instances
-let admissionsChartInstance = null;
+let studentsChartInstance = null;
 let feesChartInstance = null;
 let studentDistributionChartInstance = null;
 let feeTrendChartInstance = null;
@@ -231,12 +217,8 @@ const user = computed(() => authStore.currentUser);
 const isSuperAdmin = computed(() => authStore.isSuperAdmin);
 const isSchoolAdmin = computed(() => authStore.isSchoolAdmin);
 
-// Mock data for calendar
-const upcomingEvents = ref([
-  { id: 1, title: 'Annual Sports Day', date: { day: '25', month: 'Jul' }, time: '9:00 AM - 3:00 PM' },
-  { id: 2, title: 'Parent-Teacher Meeting', date: { day: '28', month: 'Jul' }, time: '11:00 AM - 1:00 PM' },
-  { id: 3, title: 'Science Exhibition', date: { day: '02', month: 'Aug' }, time: '10:00 AM - 4:00 PM' },
-]);
+// Upcoming events - will be populated from API when available
+const upcomingEvents = ref([]);
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -255,7 +237,7 @@ const formatDate = (dateString) => {
 // Get activity icon
 const getActivityIcon = (type) => {
   switch (type) {
-    case 'student_admission':
+    case 'student_created':
       return UserPlus;
     case 'fee_payment':
       return CreditCard;
@@ -267,28 +249,20 @@ const getActivityIcon = (type) => {
 };
 
 // Create charts
-const createCharts = (admissionsData, feesData, studentDistributionData, feeTrendData) => {
-  console.log("Creating charts with data:", { admissionsData, feesData, studentDistributionData, feeTrendData });
-
-  // Monthly Admissions Chart (Line Chart)
-  if (admissionsChart.value) {
-    if (admissionsChartInstance) {
-      admissionsChartInstance.destroy();
+const createCharts = (studentsData, feesData, studentDistributionData, feeTrendData) => {
+  // Monthly Students Chart (Line Chart)
+  if (studentsChart.value && studentsData) {
+    if (studentsChartInstance) {
+      studentsChartInstance.destroy();
     }
     
-    // Use API data or fallback to realistic mock data
-    const admissionLabels = admissionsData?.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const admissionValues = admissionsData?.data || [12, 19, 15, 25, 22, 30];
-    
-    console.log("Admissions chart data:", { labels: admissionLabels, data: admissionValues });
-    
-    admissionsChartInstance = new Chart(admissionsChart.value.getContext('2d'), {
+    studentsChartInstance = new Chart(studentsChart.value.getContext('2d'), {
       type: 'line',
       data: {
-        labels: admissionLabels,
+        labels: studentsData.labels || [],
         datasets: [{
-          label: 'New Admissions',
-          data: admissionValues,
+          label: 'New Students',
+          data: studentsData.data || [],
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           borderWidth: 3,
@@ -333,23 +307,17 @@ const createCharts = (admissionsData, feesData, studentDistributionData, feeTren
   }
 
   // Fee Collection Status Chart (Doughnut Chart)
-  if (feesChart.value) {
+  if (feesChart.value && feesData) {
     if (feesChartInstance) {
       feesChartInstance.destroy();
     }
     
-    // Use API data or fallback to realistic mock data
-    const feeLabels = feesData?.labels || ['Paid', 'Pending', 'Overdue'];
-    const feeValues = feesData?.data || [65, 25, 10];
-    
-    console.log("Fees chart data:", { labels: feeLabels, data: feeValues });
-    
     feesChartInstance = new Chart(feesChart.value.getContext('2d'), {
       type: 'doughnut',
       data: {
-        labels: feeLabels,
+        labels: feesData.labels || [],
         datasets: [{
-          data: feeValues,
+          data: feesData.data || [],
           backgroundColor: [
             'rgba(16, 185, 129, 0.8)',
             'rgba(245, 158, 11, 0.8)',
@@ -382,24 +350,18 @@ const createCharts = (admissionsData, feesData, studentDistributionData, feeTren
   }
 
   // Student Distribution Chart (Bar Chart)
-  if (studentDistributionChart.value) {
+  if (studentDistributionChart.value && studentDistributionData) {
     if (studentDistributionChartInstance) {
       studentDistributionChartInstance.destroy();
     }
     
-    // Use API data or fallback to realistic mock data
-    const distributionLabels = studentDistributionData?.labels || ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'];
-    const distributionValues = studentDistributionData?.data || [45, 52, 38, 41, 35];
-    
-    console.log("Student distribution chart data:", { labels: distributionLabels, data: distributionValues });
-    
     studentDistributionChartInstance = new Chart(studentDistributionChart.value.getContext('2d'), {
       type: 'bar',
       data: {
-        labels: distributionLabels,
+        labels: studentDistributionData.labels || [],
         datasets: [{
           label: 'Students',
-          data: distributionValues,
+          data: studentDistributionData.data || [],
           backgroundColor: 'rgba(147, 51, 234, 0.8)',
           borderColor: 'rgb(147, 51, 234)',
           borderWidth: 1,
@@ -438,24 +400,18 @@ const createCharts = (admissionsData, feesData, studentDistributionData, feeTren
   }
 
   // Fee Collection Trend Chart (Area Chart)
-  if (feeTrendChart.value) {
+  if (feeTrendChart.value && feeTrendData) {
     if (feeTrendChartInstance) {
       feeTrendChartInstance.destroy();
     }
     
-    // Use API data or fallback to realistic mock data
-    const trendLabels = feeTrendData?.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const trendValues = feeTrendData?.data || [85000, 92000, 78000, 95000, 88000, 102000];
-    
-    console.log("Fee trend chart data:", { labels: trendLabels, data: trendValues });
-    
     feeTrendChartInstance = new Chart(feeTrendChart.value.getContext('2d'), {
       type: 'line',
       data: {
-        labels: trendLabels,
+        labels: feeTrendData.labels || [],
         datasets: [{
           label: 'Fee Collection',
-          data: trendValues,
+          data: feeTrendData.data || [],
           borderColor: 'rgb(245, 158, 11)',
           backgroundColor: 'rgba(245, 158, 11, 0.1)',
           borderWidth: 3,
@@ -525,6 +481,7 @@ const fetchDashboardData = async () => {
       if (schoolResponse.success) {
         schoolStats.value = schoolResponse.data;
       }
+      
     }
 
     // Fetch recent activities
@@ -538,58 +495,34 @@ const fetchDashboardData = async () => {
     await nextTick(); // Wait for DOM update
 
     // Fetch chart data
-    try {
-      console.log("Fetching chart data...");
-      
-      const [admissionsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] = await Promise.allSettled([
-        apiClient.dashboard.getAdmissionsChartData(),
-        apiClient.dashboard.getFeesChartData(),
-        apiClient.dashboard.getStudentDistributionData(),
-        apiClient.dashboard.getFeeTrendData()
-      ]);
+    const [studentsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] = await Promise.allSettled([
+      apiClient.dashboard.getStudentsChartData(),
+      apiClient.dashboard.getFeesChartData(),
+      apiClient.dashboard.getStudentDistributionData(),
+      apiClient.dashboard.getFeeTrendData()
+    ]);
 
-      console.log("Chart data responses:", {
-        admissions: admissionsResponse,
-        fees: feesResponse,
-        studentDistribution: studentDistributionResponse,
-        feeTrend: feeTrendResponse
-      });
+    // Extract data from successful responses
+    const studentsData = studentsResponse.status === 'fulfilled' && studentsResponse.value.success ? studentsResponse.value.data : null;
+    const feesData = feesResponse.status === 'fulfilled' && feesResponse.value.success ? feesResponse.value.data : null;
+    const studentDistributionData = studentDistributionResponse.status === 'fulfilled' && studentDistributionResponse.value.success ? studentDistributionResponse.value.data : null;
+    const feeTrendData = feeTrendResponse.status === 'fulfilled' && feeTrendResponse.value.success ? feeTrendResponse.value.data : null;
 
-      // Extract data from successful responses, use fallback for failed ones
-      const admissionsData = admissionsResponse.status === 'fulfilled' ? admissionsResponse.value.data : null;
-      const feesData = feesResponse.status === 'fulfilled' ? feesResponse.value.data : null;
-      const studentDistributionData = studentDistributionResponse.status === 'fulfilled' ? studentDistributionResponse.value.data : null;
-      const feeTrendData = feeTrendResponse.status === 'fulfilled' ? feeTrendResponse.value.data : null;
-
-      console.log("Processed chart data:", {
-        admissionsData,
-        feesData,
-        studentDistributionData,
-        feeTrendData
-      });
-
-      // Create charts with available data
-      createCharts(admissionsData, feesData, studentDistributionData, feeTrendData);
-    } catch (error) {
-      console.error('Error fetching chart data:', error);
-      // Create charts with fallback data
-      createCharts(null, null, null, null);
-    }
+    // Create charts with available data
+    createCharts(studentsData, feesData, studentDistributionData, feeTrendData);
 
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     loading.value = false;
-    
-    // Create charts with mock data on error
-    await nextTick();
-    createCharts(null, null, null, null);
   }
 };
 
+
+
 // Cleanup charts on component unmount
 onUnmounted(() => {
-  if (admissionsChartInstance) {
-    admissionsChartInstance.destroy();
+  if (studentsChartInstance) {
+    studentsChartInstance.destroy();
   }
   if (feesChartInstance) {
     feesChartInstance.destroy();

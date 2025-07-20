@@ -58,7 +58,7 @@ export function createApiInstance(): AxiosInstance {
         }
         
         // If refresh failed, logout and redirect (but only once)
-        if (process.client) {
+        if (import.meta.client) {
           const authStore = useAuthStore();
           // Only logout if not already on login page
           if (window.location.pathname !== '/login') {
@@ -388,9 +388,9 @@ export const apiClient = {
       return response.data;
     },
 
-    getAdmissionsChartData: async () => {
+    getStudentsChartData: async () => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/admissions-chart');
+      const response = await api.get<ApiResponse<any>>('/dashboard/students-chart');
       return response.data;
     },
 
@@ -542,7 +542,7 @@ export const apiClient = {
 
   // Enhanced Student endpoints with reports
   students: {
-    getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string; branch_id?: string; class_id?: string; section_id?: string; search?: string }) => {
+    getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string; branch_id?: string; class_id?: string; section_id?: string; search?: string; school_id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/students', { params });
       return response.data;
@@ -608,13 +608,13 @@ export const apiClient = {
       return response.data;
     },
     
-    getStats: async (params?: { academic_year?: string }) => {
+    getStats: async (params?: { academic_year?: string; school_id?: string; branch_id?: string; class_id?: string; section_id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/students/stats', { params });
       return response.data;
     },
     
-    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; class_name?: string; section_name?: string; status?: string }) => {
+    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; class_name?: string; section_name?: string; status?: string; school_id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/students/report', { params });
       return response.data;
@@ -627,70 +627,7 @@ export const apiClient = {
     }
   },
 
-  // Enhanced Admission endpoints with reports
-  admissions: {
-    getAll: async (params?: { page?: number; limit?: number; status?: string; academic_year?: string; class_name?: string; admission_type?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/admissions', { params });
-      return response.data;
-    },
-    
-    getById: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/admissions/${id}`);
-      return response.data;
-    },
-    
-    create: async (admissionData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/admissions', admissionData);
-      return response.data;
-    },
-    
-    createWithFormData: async (formData: FormData) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/admissions', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return response.data;
-    },
 
-    createSchoolWithSubscription: async (schoolData: FormData) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/subscriptions/schools', schoolData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return response.data;
-    },
-    
-    updateStatus: async (id: string, statusData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/admissions/${id}/status`, statusData);
-      return response.data;
-    },
-    
-    getStats: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/admissions/stats');
-      return response.data;
-    },
-    
-    getReport: async (params?: { page?: number; limit?: number; dateRange?: string; fromDate?: string; toDate?: string; class_name?: string; status?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/admissions/report', { params });
-      return response.data;
-    },
-    
-    exportReport: async (queryString: string) => {
-      const api = createApiInstance();
-      const response = await api.get(`/admissions/export?${queryString}`, { responseType: 'blob' });
-      return response;
-    }
-  },
 
   // Enhanced User endpoints with profile management
   users: {

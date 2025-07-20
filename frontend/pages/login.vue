@@ -27,8 +27,19 @@
       <Moon v-else class="w-5 h-5 text-white" />
     </button>
 
+    <!-- Loading Screen -->
+    <div v-if="checkingAuth" class="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <span class="text-white font-bold text-2xl">S</span>
+        </div>
+        <div class="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-white/70 text-sm">Checking authentication...</p>
+      </div>
+    </div>
+
     <!-- Login Container -->
-    <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+    <div v-else class="min-h-screen flex items-center justify-center p-4 relative z-10">
       <div class="w-full max-w-md">
         <!-- Glassmorphic card -->
         <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8">
@@ -140,6 +151,7 @@ const form = reactive({
 
 const error = ref('');
 const loading = ref(false);
+const checkingAuth = ref(false); // Only show loading if we have cached data to check
 const router = useRouter();
 const { login } = useAuth();
 
@@ -169,7 +181,77 @@ const toggleTheme = () => {
   });
 };
 
-// Use Nuxt 3's onMounted lifecycle hook
+// Check authentication on component mount
+const checkExistingAuth = async () => {
+  if (!import.meta.client) {
+    return;
+  }
+
+  const authStore = useAuthStore();
+  
+  // First, check if we have any cached data or if user is already logged in
+  const savedUser = localStorage.getItem('auth-user');
+  const hasAuthData = authStore.isLoggedIn || authStore.currentUser || savedUser;
+  
+  // Only show "Checking authentication..." if we have data to check
+  if (!hasAuthData) {
+    // No auth data, show login form immediately (good for incognito/new users)
+    return;
+  }
+  
+  // We have cached data, show checking screen and verify
+  checkingAuth.value = true;
+  
+  // Wait for auth store to finish initializing
+  const waitForAuthInit = async () => {
+    if (authStore.isInitializing) {
+      await new Promise((resolve) => {
+        const checkInit = () => {
+          if (!authStore.isInitializing) {
+            resolve(true);
+          } else {
+            setTimeout(checkInit, 50);
+          }
+        };
+        checkInit();
+      });
+    }
+  };
+  
+  try {
+    await waitForAuthInit();
+    
+    // If user is already logged in, redirect immediately
+    if (authStore.isLoggedIn && authStore.currentUser) {
+      await navigateTo('/dashboard', { replace: true });
+      return;
+    }
+    
+    // We have cached user data, verify with server
+    if (savedUser) {
+      try {
+        const isValid = await authStore.checkAuth();
+        if (isValid) {
+          await navigateTo('/dashboard', { replace: true });
+          return;
+        }
+      } catch (error) {
+        // Server check failed, show login form
+        console.log('Session check failed, proceeding to login');
+      }
+    }
+  } finally {
+    // Show login form after checks are complete
+    checkingAuth.value = false;
+  }
+};
+
+// Run auth check immediately
+if (import.meta.client) {
+  checkExistingAuth();
+}
+
+// Use Nuxt 3's onMounted lifecycle hook for theme setup only
 onMounted(() => {
   // Set theme using Nuxt's useCookie for better SSR handling
   const themeCookie = useCookie('theme', { default: () => 'dark' });
@@ -181,15 +263,6 @@ onMounted(() => {
       class: isDark.value ? 'dark' : ''
     }
   });
-  
-  // Check auth status using Nuxt's composables
-  const authStore = useAuthStore();
-  
-  // If user is already logged in, redirect immediately
-  if (authStore.isLoggedIn) {
-    navigateTo('/dashboard');
-    return;
-  }
 });
 
 const handleLogin = async () => {
@@ -198,10 +271,12 @@ const handleLogin = async () => {
 
   try {
     const result = await login({ email: form.email, password: form.password });
-    if (!result.success) {
+    if (result.success) {
+      // Login successful - let the useAuth composable handle navigation
+      // No need to navigate here as useAuth will do it
+    } else {
       error.value = result.error || 'Login failed';
     }
-    // If successful, the useAuth composable will handle the redirect
   } catch (err) {
     console.error('Login error:', err);
     error.value = 'Network error. Please check if the backend is running.';
