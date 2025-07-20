@@ -125,8 +125,8 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
-import { useCookie } from 'nuxt/app';
 import { Mail, Lock, Sun, Moon } from 'lucide-vue-next';
+import { useAuthStore } from '~/stores/auth';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -156,20 +156,39 @@ function autofillSchoolAdmin() {
 const isDark = ref(false);
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
-  }
+  
+  // Use Nuxt's useCookie for theme persistence
+  const themeCookie = useCookie('theme');
+  themeCookie.value = isDark.value ? 'dark' : 'light';
+  
+  // Apply theme using Nuxt's useHead
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
 };
 
+// Use Nuxt 3's onMounted lifecycle hook
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  isDark.value = savedTheme === 'dark';
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
+  // Set theme using Nuxt's useCookie for better SSR handling
+  const themeCookie = useCookie('theme', { default: () => 'dark' });
+  isDark.value = themeCookie.value === 'dark';
+  
+  // Apply theme using Nuxt's useHead for better SSR
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
+  
+  // Check auth status using Nuxt's composables
+  const authStore = useAuthStore();
+  
+  // If user is already logged in, redirect immediately
+  if (authStore.isLoggedIn) {
+    navigateTo('/dashboard');
+    return;
   }
 });
 

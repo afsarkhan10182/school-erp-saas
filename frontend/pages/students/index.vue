@@ -496,19 +496,14 @@ const onBranchChange = async () => {
   sections.value = [];
   classLoadError.value = '';
   
-  console.log('🔍 Loading classes for branch:', selectedBranch.value);
   const result = await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
-  console.log('🔍 Classes loaded:', result);
   
   if (!result || classes.value.length === 0) {
     classLoadError.value = 'No classes found for the selected branch.';
-    console.log('❌ No classes found for branch');
   } else {
-    console.log('✅ Classes loaded successfully:', classes.value.length, 'classes');
     // Auto-select class if there's only one
     if (classes.value.length === 1) {
       selectedClass.value = classes.value[0].id;
-      console.log('🔍 Auto-selected single class:', selectedClass.value);
       // Load sections for the auto-selected class
       await onClassChange();
     }
@@ -520,35 +515,23 @@ const onClassChange = async () => {
   sections.value = [];
   
   if (selectedClass.value) {
-    console.log('🔍 Loading sections for class:', selectedClass.value);
     await fetchSections(authStore.currentUser?.school_id, selectedBranch.value, selectedClass.value);
-    console.log('🔍 Sections loaded:', sections.value.length, 'sections');
     
     // Auto-select section if there's only one
     if (sections.value.length === 1) {
       selectedSection.value = sections.value[0].id;
-      console.log('🔍 Auto-selected single section:', selectedSection.value);
     }
   }
 };
 
 const onSectionChange = () => {
   // Section changed
-  console.log('🔍 Section changed to:', selectedSection.value);
 };
 
 const applyFilters = async () => {
-  console.log('🔍 Apply Filters clicked');
-  console.log('🔍 selectedBranch:', selectedBranch.value);
-  console.log('🔍 selectedClass:', selectedClass.value);
-  console.log('🔍 selectedSection:', selectedSection.value);
-  
   if (canViewStudents.value) {
-    console.log('✅ Fetching students...');
     await fetchStudents();
     await fetchStats();
-  } else {
-    console.log('❌ Cannot apply filters - missing selections');
   }
 };
 
@@ -590,11 +573,8 @@ const fetchStudents = async () => {
       params.section_id = selectedSection.value;
     }
 
-    console.log('🔍 Fetching students with params:', params);
     const response = await apiClient.students.getAll(params);
-    console.log('🔍 Students API response:', response);
     students.value = response.data || [];
-    console.log('🔍 Set students array:', students.value);
   } catch (error) {
     console.error('Error fetching students:', error);
   } finally {
@@ -672,7 +652,6 @@ onMounted(async () => {
   // Auto-select branch if there's only one
   if (branches.value.length === 1) {
     selectedBranch.value = branches.value[0].id;
-    console.log('🔍 Auto-selected single branch:', selectedBranch.value);
     // Load classes for the auto-selected branch
     await onBranchChange();
   }
@@ -689,7 +668,6 @@ watch(selectedBranch, async (newVal, oldVal) => {
 watch(branches, async (newBranches) => {
   if (newBranches.length === 1 && !selectedBranch.value) {
     selectedBranch.value = newBranches[0].id;
-    console.log('🔍 Auto-selected single branch from watcher:', selectedBranch.value);
     // Load classes for the auto-selected branch
     await onBranchChange();
   }

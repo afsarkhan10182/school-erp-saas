@@ -115,14 +115,7 @@ class BranchController {
         const userSchoolId = String(req.user.school_id || '').trim();
         const requestedSchoolId = String(schoolId || '').trim();
         
-        console.log('School Admin Authorization Check:', {
-          userRole: req.user.role,
-          userSchoolId: userSchoolId,
-          requestedSchoolId: requestedSchoolId,
-          userSchoolIdLength: userSchoolId.length,
-          requestedSchoolIdLength: requestedSchoolId.length,
-          match: userSchoolId === requestedSchoolId
-        });
+
         
         if (userSchoolId !== requestedSchoolId) {
           return res.status(403).json({

@@ -275,7 +275,7 @@ const updateRoleCounts = () => {
 
 const fetchBranches = async () => {
   try {
-    console.log('Fetching branches for school:', authStore.user?.school_id);
+
     if (authStore.user?.school_id) {
       const response = await apiClient.branches.getAll(authStore.user.school_id);
       console.log('Branches response:', response);

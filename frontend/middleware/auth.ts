@@ -1,17 +1,14 @@
 import { useAuthStore } from '~/stores/auth';
 
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware((to) => {
   // Only run on client
   if (process.server) return;
   
   const authStore = useAuthStore();
   
-  // Check if user is authenticated
+  // Instant check - no async, no waiting
   if (!authStore.isLoggedIn) {
-    const isAuthenticated = await authStore.checkAuth();
-    if (!isAuthenticated) {
-      return navigateTo('/login');
-    }
+    return navigateTo('/login');
   }
   
   // Check role-based access for specific routes

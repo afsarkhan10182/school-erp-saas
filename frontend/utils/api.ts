@@ -15,28 +15,9 @@ export function createApiInstance(): AxiosInstance {
     },
   });
 
-  // Request interceptor to add auth token
+  // Request interceptor - no need to manually add tokens since they're in secure cookies
   api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      // Directly use token from cookie
-      let token = null;
-      if (process.client) {
-        const authCookie = useCookie('auth-token');
-        token = authCookie.value;
-        
-        console.log('🔍 API Request Debug:', {
-          url: config.url,
-          method: config.method,
-          tokenFromCookie: token ? 'present' : 'missing',
-          tokenLength: token ? token.length : 0
-        });
-      }
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        console.warn('⚠️ No token found for request:', config.url);
-      }
       return config;
     },
     (error: any) => Promise.reject(error)
@@ -48,68 +29,49 @@ export function createApiInstance(): AxiosInstance {
     async (error) => {
       const originalRequest = error.config;
       
-      // Prevent infinite loop for refresh token requests
-      if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+      // Don't attempt token refresh for auth endpoints (login, logout, refresh)
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                            originalRequest.url?.includes('/auth/logout') || 
+                            originalRequest.url?.includes('/auth/refresh-token');
+      
+      // Don't attempt token refresh for /auth/me endpoint (prevents logout loops)
+      const isMeEndpoint = originalRequest.url?.includes('/auth/me');
+      
+      // Handle 401 errors with automatic token refresh (only for non-auth endpoints)
+      if (error.response?.status === 401 && 
+          !originalRequest._retry && 
+          !isAuthEndpoint &&
+          !isMeEndpoint) {
+        
         originalRequest._retry = true;
-        console.log('🔄 Access token expired, attempting refresh...');
-        console.log('🔍 Original request URL:', originalRequest.url);
         
         try {
-          // Try to get refresh token from cookie
-          let refreshToken = null;
-          if (process.client) {
-            const refreshCookie = useCookie('refresh-token');
-            refreshToken = refreshCookie.value;
-            console.log('🔍 Refresh token from cookie:', refreshToken ? 'present' : 'missing');
-          }
+          // Call refresh endpoint to get new tokens
+          const refreshResponse = await api.post('/auth/refresh-token');
           
-          if (refreshToken) {
-            console.log('🔄 Calling refreshAuth...');
-            const authStore = useAuthStore();
-            const refreshed = await authStore.refreshAuth();
-            console.log('🔄 Refresh result:', refreshed);
-            
-            if (refreshed) {
-              // Get the new token from the auth store
-              const newToken = authStore.token;
-              console.log('🔍 New token obtained:', newToken ? 'present' : 'missing');
-              if (newToken) {
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                console.log('🔄 Retrying original request with new token...');
-                return api(originalRequest);
-              }
-            }
+          if (refreshResponse.status === 200) {
+            // Retry the original request with new tokens (cookies are automatically included)
+            return api(originalRequest);
           }
-          
-          // If refresh failed or no refresh token, logout and redirect
-          if (process.client) {
-            const authStore = useAuthStore();
-            await authStore.logout();
-            await navigateTo('/login');
-          }
-          return Promise.reject(new Error('Authentication failed'));
-          
-        } catch (refreshError) {
-          console.error('Token refresh error:', refreshError);
-          // Clear auth state and redirect to login
-          if (process.client) {
-            const authStore = useAuthStore();
-            await authStore.logout();
-            await navigateTo('/login');
-          }
-          return Promise.reject(new Error('Authentication failed'));
+        } catch (refreshError: any) {
+          console.error('❌ Token refresh failed:', refreshError);
         }
-      }
-      
-      // For refresh token requests that fail, just reject without retrying
-      if (error.response?.status === 401 && originalRequest.url?.includes('/auth/refresh')) {
-        console.error('Refresh token request failed - logging out');
+        
+        // If refresh failed, logout and redirect (but only once)
         if (process.client) {
           const authStore = useAuthStore();
-          await authStore.logout();
-          await navigateTo('/login');
+          // Only logout if not already on login page
+          if (window.location.pathname !== '/login') {
+            await authStore.logout();
+            await navigateTo('/login');
+          }
         }
-        return Promise.reject(new Error('Refresh token expired'));
+        return Promise.reject(new Error('Authentication required'));
+      }
+      
+      // For auth endpoints with 401, just reject the error without attempting refresh
+      if (error.response?.status === 401 && (isAuthEndpoint || isMeEndpoint)) {
+        return Promise.reject(error);
       }
       
       return Promise.reject(error);
@@ -124,29 +86,37 @@ export const apiClient = {
   auth: {
     login: async (credentials: { email: string; password: string }) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<{ user: any; token: string; refreshToken: string }>>('/auth/login', credentials);
+      const response = await api.post<ApiResponse<{ user: any }>>('/auth/login', credentials);
       return response.data;
     },
     
     logout: async () => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<null>>('/auth/logout');
-      return response.data;
+      try {
+        const response = await api.post<ApiResponse<null>>('/auth/logout');
+        return response.data;
+      } catch (error: any) {
+        // If logout fails due to authentication issues, still return success
+        // This handles cases where the token is expired/invalid
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          return {
+            success: true,
+            message: 'Logout successful (local cleanup only)',
+            data: null
+          };
+        }
+        throw error;
+      }
     },
     
-    refresh: async (refreshToken: string) => {
+    refresh: async () => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<{ token: string }>>('/auth/refresh', { refreshToken });
+      const response = await api.post<ApiResponse<{ user: any }>>('/auth/refresh-token');
       return response.data;
     },
     
     me: async () => {
       const api = createApiInstance();
-      // Debug logging for auth/me calls
-      if (process.dev) {
-        const { authDebug } = await import('./auth-debug');
-        authDebug.logCall('/auth/me');
-      }
       const response = await api.get<ApiResponse<any>>('/auth/me');
       return response.data;
     }
@@ -851,4 +821,4 @@ export const apiClient = {
   }
 };
 
-export default apiClient; 
+export default apiClient;

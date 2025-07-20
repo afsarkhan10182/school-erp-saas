@@ -115,13 +115,13 @@ const getAllAdmissions = async (req, res) => {
 const createAdmission = async (req, res) => {
   try {
     // Parse JSON data from FormData if present
-    console.log('🔍 Raw request body:', req.body);
+
     console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
     
     let admissionData;
     try {
       admissionData = req.body.admissionData ? JSON.parse(req.body.admissionData) : req.body;
-      console.log('✅ Parsed admission data:', JSON.stringify(admissionData, null, 2));
+  
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
       return res.status(400).json({

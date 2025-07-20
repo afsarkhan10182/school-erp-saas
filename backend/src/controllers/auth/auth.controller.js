@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const AuthService = require('../../services/auth/auth.service');
+const jwt = require('jsonwebtoken');
 
 class AuthController {
   static async register(req, res, next) {
@@ -41,12 +42,21 @@ class AuthController {
       // Authenticate user
       const { user, tokens } = await AuthService.login(email, password, ip);
       
-      // Set HTTP-only cookie for refresh token
+      // Set HTTP-only cookies for both tokens
+      res.cookie('accessToken', tokens.access.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax', // Allow cross-origin requests
+        maxAge: 60 * 60 * 1000, // 60 minutes
+        path: '/',
+      });
+      
       res.cookie('refreshToken', tokens.refresh.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax', // Allow cross-origin requests
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/',
       });
       
       res.json({
@@ -54,8 +64,7 @@ class AuthController {
         message: 'Login successful',
         data: {
           user,
-          token: tokens.access.token,
-          refreshToken: tokens.refresh.token,
+          // Don't return tokens in response body for security
         },
       });
     } catch (error) {
@@ -74,18 +83,28 @@ class AuthController {
       // Get new tokens
       const { user, tokens } = await AuthService.refreshToken(refreshToken);
       
-      // Set HTTP-only cookie for new refresh token
+      // Set HTTP-only cookies for both new tokens
+      res.cookie('accessToken', tokens.access.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax', // Allow cross-origin requests
+        maxAge: 60 * 60 * 1000, // 60 minutes
+        path: '/',
+      });
+      
       res.cookie('refreshToken', tokens.refresh.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax', // Allow cross-origin requests
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/',
       });
       
       res.json({
         success: true,
         data: {
-          token: tokens.access.token,
+          user,
+          // Don't return tokens in response body for security
         },
       });
     } catch (error) {
@@ -97,28 +116,42 @@ class AuthController {
     try {
       const { allDevices = false } = req.body || {};
       
-      // Get the current token from the request
-      let currentToken = null;
-      if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        currentToken = req.headers.authorization.split(' ')[1];
-      } else if (req.cookies?.['auth-token']) {
-        currentToken = req.cookies['auth-token'];
-      } else if (req.cookies?.token) {
-        currentToken = req.cookies.token;
+      // Get the current token from cookies
+      const currentToken = req.cookies?.accessToken;
+      
+      // Try to get user from request (might be null if token is expired/invalid)
+      const userId = req.user?.id;
+      
+      if (userId) {
+        // User is authenticated, perform full logout
+        await AuthService.logout(userId, allDevices, currentToken);
+      } else if (currentToken) {
+        // User has a token but it's expired/invalid, just blacklist it
+        try {
+          const decoded = jwt.verify(currentToken, process.env.JWT_SECRET);
+          await AuthService.logout(decoded.id, allDevices, currentToken);
+        } catch (tokenError) {
+          // Token is invalid, just clear cookies
+        }
       }
       
-      // Logout user
-      await AuthService.logout(req.user.id, allDevices, currentToken);
-      
-      // Clear refresh token cookie
-      res.clearCookie('refreshToken');
+      // Always clear both token cookies regardless of authentication status
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
       
       res.json({
         success: true,
         message: 'Logout successful',
       });
     } catch (error) {
-      next(error);
+      // Even if logout fails, clear cookies to ensure user is logged out
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+      
+      res.json({
+        success: true,
+        message: 'Logout successful',
+      });
     }
   }
 

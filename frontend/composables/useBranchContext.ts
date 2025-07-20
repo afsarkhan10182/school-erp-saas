@@ -19,23 +19,19 @@ export const useBranchContext = () => {
   // Fetch branches for the current user
   const fetchBranches = async () => {
     if (!authStore.isLoggedIn) {
-      console.log('useBranchContext: User not logged in, skipping fetch');
       return;
     }
 
     loading.value = true;
     error.value = '';
-    console.log('useBranchContext: Fetching branches for role:', authStore.userRole);
 
     try {
       let response;
       
       if (authStore.isSuperAdmin) {
-        console.log('useBranchContext: Fetching all branches for super admin');
         // Super admin can see all branches
         response = await apiClient.branches.getAll();
       } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
-        console.log('useBranchContext: Fetching branches for school admin, school ID:', authStore.currentSchool.id);
         // School admin can see branches of their school
         response = await apiClient.branches.getAll(authStore.currentSchool.id);
       } else {
@@ -48,7 +44,6 @@ export const useBranchContext = () => {
 
       if (response.success) {
         const branches = response.data?.items || [];
-        console.log('useBranchContext: API response success, branches:', branches);
         authStore.setAvailableBranches(branches);
         
         // Set current branch if not already set

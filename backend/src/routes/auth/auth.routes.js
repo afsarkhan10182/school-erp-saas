@@ -49,9 +49,9 @@ router.post(
 );
 
 // Protected routes (require authentication)
-router.use(verifyToken);
+router.get('/me', verifyToken, AuthController.getCurrentUser);
 
-router.get('/me', AuthController.getCurrentUser);
+// Logout route - can work with expired/invalid tokens
 router.post('/logout', AuthController.logout);
 
 module.exports = router;

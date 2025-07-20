@@ -428,8 +428,7 @@ const fetchStudent = async () => {
     }
     
     console.log('Fetching student with ID:', studentId);
-    console.log('Current user:', authStore.currentUser);
-    console.log('User school_id:', authStore.currentUser?.school_id);
+
     
     const response = await apiClient.students.getById(studentId);
     student.value = response.data;

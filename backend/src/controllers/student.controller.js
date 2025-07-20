@@ -6,7 +6,7 @@ const { logger } = require('../utils/logger');
 // Create a new student
 const createStudent = async (req, res, next) => {
   try {
-    console.log('🔍 Create Student Request Body:', JSON.stringify(req.body, null, 2));
+  
     console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
 
     // Handle both FormData and JSON formats
@@ -540,7 +540,7 @@ const updateStudent = async (req, res, next) => {
           academicUpdates.section = sectionRecord.name;
           console.log('🔍 Section name resolved:', sectionRecord.name);
         } else {
-          console.log('⚠️ Section not found with ID:', academicUpdates._section_id);
+  
         }
       } catch (error) {
         console.error('❌ Error fetching section:', error);
@@ -575,7 +575,7 @@ const updateStudent = async (req, res, next) => {
     await student.update(updateData);
     
     // Log what was actually saved
-    console.log('✅ Update completed');
+    
     console.log('🔍 Student section after update:', student.section);
     console.log('🔍 Student admission class after update:', student.admission_class);
     console.log('🔍 Student current class after update:', student.current_class);
@@ -681,9 +681,9 @@ const updateStudent = async (req, res, next) => {
 
         console.log('🔍 Guardian updates being applied:', parentUpdateData);
         await studentParent.parent.update(parentUpdateData);
-        console.log('✅ Guardian information updated successfully');
+        // Guardian information updated successfully
       } else {
-        console.log('⚠️ No primary parent found for student');
+        // No primary parent found for student
       }
     }
 

@@ -346,9 +346,7 @@ const fetchReport = async () => {
       ...filters
     };
     
-    console.log('🔍 Fetching fee report with params:', params);
     const response = await apiClient.feeInvoices.getReport(params);
-    console.log('🔍 Fee report response:', response);
     
     invoices.value = response.data?.invoices || response.data?.items || [];
     totalItems.value = response.data?.pagination?.total_records || response.pagination?.total || 0;
@@ -365,9 +363,7 @@ const fetchReport = async () => {
 
 const fetchStats = async () => {
   try {
-    console.log('🔍 Fetching fee stats...');
     const response = await apiClient.feeInvoices.getStats();
-    console.log('🔍 Fee stats response:', response);
     stats.value = response.data || {};
   } catch (error) {
     console.error('Error fetching fee stats:', error);
@@ -376,9 +372,7 @@ const fetchStats = async () => {
 
 const fetchClasses = async () => {
   try {
-    console.log('🔍 Fetching classes...');
     const response = await apiClient.classes.getAll();
-    console.log('🔍 Classes response:', response);
     classes.value = response.data || [];
   } catch (error) {
     console.error('Error fetching classes:', error);
@@ -521,14 +515,6 @@ const getStatusText = (status) => {
 };
 
 onMounted(async () => {
-  console.log('🔍 User authentication status:', {
-    isLoggedIn: authStore.isLoggedIn,
-    userRole: authStore.userRole,
-    user: authStore.currentUser,
-    schoolId: authStore.currentUser?.school_id,
-    branchId: authStore.currentUser?.branch_id
-  });
-  
   await Promise.all([
     fetchReport(),
     fetchStats(),

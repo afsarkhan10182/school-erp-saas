@@ -13,12 +13,7 @@ const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth
 const { uploadFields } = require('../middleware/upload');
 const router = express.Router();
 
-// Debug middleware to assign a unique request ID and log it
-router.use((req, res, next) => {
-  req._debugReqId = Math.random().toString(36).substring(2, 10);
-  console.log(`[DEBUG] Request ID: ${req._debugReqId} - URL: ${req.url}`);
-  next();
-});
+
 
 // Middleware to ensure authentication
 router.use(verifyToken);
@@ -29,21 +24,7 @@ router.use(setSchoolContext);
 // Middleware to ensure user has appropriate role
 router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']));
 
-// Debug endpoint to check user context
-router.get('/debug/user-info', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      user: req.user,
-      schoolId: req.schoolId,
-      branchId: req.branchId,
-      url: req.url,
-      method: req.method,
-      headers: req.headers,
-      cookies: req.cookies
-    }
-  });
-});
+
 
 // POST endpoint to create a new student
 router.post('/', createStudent);

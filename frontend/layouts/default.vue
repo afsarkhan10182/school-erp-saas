@@ -1,12 +1,10 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
-    <!-- Sidebar (only if logged in and user loaded, client-only) -->
-    <client-only>
-      <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
-    </client-only>
+    <!-- Sidebar (only if logged in and user loaded) -->
+    <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
 
     <!-- Main content -->
-    <div :class="isLoggedIn && !isMobile ? (sidebarOpen ? 'ml-64' : 'ml-16') : ''" class="flex-1 flex flex-col min-h-screen transition-all duration-300">
+    <div :key="`main-${isLoggedIn}-${sidebarOpen}`" :class="mainContentClasses" class="flex-1 flex flex-col min-h-screen transition-all duration-300">
       <!-- Header (only if logged in) -->
       <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
       <!-- Page content -->
@@ -49,6 +47,14 @@ const { initializeBranchContext } = useBranchContext();
 const user = computed(() => authStore.currentUser);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
+// Computed class for main content to avoid hydration issues
+const mainContentClasses = computed(() => {
+  if (!isLoggedIn.value || isMobile.value) {
+    return '';
+  }
+  return sidebarOpen.value ? 'ml-64' : 'ml-16';
+});
+
 const handleLogout = async () => {
   await authStore.logout();
   await router.push('/login');
@@ -79,22 +85,30 @@ const isDark = ref(false);
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
-  }
+  
+  // Use Nuxt's useCookie for theme persistence
+  const themeCookie = useCookie('theme');
+  themeCookie.value = isDark.value ? 'dark' : 'light';
+  
+  // Apply theme using Nuxt's useHead
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
 };
 
 onMounted(async () => {
-  // Check for saved theme preference or default to dark
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  isDark.value = savedTheme === 'dark';
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-  }
+  // Check for saved theme preference using Nuxt's useCookie
+  const themeCookie = useCookie('theme', { default: () => 'dark' });
+  isDark.value = themeCookie.value === 'dark';
+  
+  // Apply theme using Nuxt's useHead
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
 
   // Initialize mobile detection
   checkMobile();
