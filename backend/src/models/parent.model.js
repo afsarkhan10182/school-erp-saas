@@ -20,7 +20,14 @@ const Parent = sequelize.define('Parent', {
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
-      isEmail: { msg: 'Please provide a valid father email' },
+      isFatherEmailValid(value) {
+        if (value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw new Error('Please provide a valid father email');
+          }
+        }
+      },
     },
   },
   father_occupation: {
@@ -47,7 +54,14 @@ const Parent = sequelize.define('Parent', {
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
-      isEmail: { msg: 'Please provide a valid mother email' },
+      isMotherEmailValid(value) {
+        if (value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw new Error('Please provide a valid mother email');
+          }
+        }
+      },
     },
   },
   mother_occupation: {
@@ -64,26 +78,75 @@ const Parent = sequelize.define('Parent', {
   },
   guardian_name: {
     type: DataTypes.STRING(100),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian name is required' },
+    },
   },
   guardian_phone: {
     type: DataTypes.STRING(20),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian phone is required' },
+    },
   },
   guardian_email: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
     validate: {
-      isEmail: { msg: 'Please provide a valid guardian email' },
+      notEmpty: { msg: 'Guardian email is required' },
+      isGuardianEmailValid(value) {
+        if (value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw new Error('Please provide a valid guardian email');
+          }
+        }
+      },
     },
   },
   guardian_relation: {
     type: DataTypes.STRING(50),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian relation is required' },
+    },
+  },
+  guardian_occupation: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian occupation is required' },
+    },
+  },
+  guardian_income: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian income is required' },
+      isGuardianIncomeValid(value) {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = parseFloat(value);
+          if (isNaN(numValue) || numValue < 0) {
+            throw new Error('Guardian income must be a valid positive number');
+          }
+        }
+      },
+    },
+  },
+  guardian_education: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Guardian education is required' },
+    },
   },
   address: {
     type: DataTypes.TEXT,
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Address is required' },
+    },
   },
   city: {
     type: DataTypes.STRING(50),
@@ -103,12 +166,9 @@ const Parent = sequelize.define('Parent', {
     defaultValue: 'India',
   },
   emergency_contact: {
-    type: DataTypes.STRING(20),
-    allowNull: true,
-  },
-  emergency_relation: {
-    type: DataTypes.STRING(50),
-    allowNull: true,
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
   },
   school_id: {
     type: DataTypes.UUID,
@@ -126,14 +186,7 @@ const Parent = sequelize.define('Parent', {
       key: 'id',
     },
   },
-  user_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id',
-    },
-  },
+
   created_by: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -177,11 +230,7 @@ Parent.associate = (models) => {
     as: 'school',
   });
 
-  // Parent belongs to User (for login account)
-  Parent.belongsTo(models.User, {
-    foreignKey: 'user_id',
-    as: 'user',
-  });
+
 
   // Parent belongs to User (created_by)
   Parent.belongsTo(models.User, {

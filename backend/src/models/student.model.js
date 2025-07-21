@@ -28,14 +28,24 @@ const Student = sequelize.define('Student', {
   },
   last_name: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Last name is required' },
-    },
+    allowNull: true,
   },
   middle_name: {
     type: DataTypes.STRING(50),
     allowNull: true,
+  },
+  aadhaar_number: {
+    type: DataTypes.STRING(12),
+    allowNull: true,
+    validate: {
+      isAadhaarValid(value) {
+        if (value && value.trim() !== '') {
+          if (!/^\d{12}$/.test(value)) {
+            throw new Error('Aadhaar number must be exactly 12 digits');
+          }
+        }
+      },
+    },
   },
   date_of_birth: {
     type: DataTypes.DATEONLY,
@@ -66,7 +76,10 @@ const Student = sequelize.define('Student', {
   },
   category: {
     type: DataTypes.ENUM('general', 'obc', 'sc', 'st', 'other'),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'Category is required' },
+    },
   },
   nationality: {
     type: DataTypes.STRING(50),
@@ -81,7 +94,14 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
-      isEmail: { msg: 'Please provide a valid email' },
+      isEmailValid(value) {
+        if (value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw new Error('Please provide a valid email');
+          }
+        }
+      },
     },
   },
   phone: {
@@ -158,6 +178,18 @@ const Student = sequelize.define('Student', {
     validate: {
       notEmpty: { msg: 'Academic year is required' },
     },
+  },
+  // Junior College specific fields
+  admission_sought_in: {
+    type: DataTypes.ENUM('arts', 'commerce', 'science'),
+    allowNull: true,
+    comment: 'Stream selection (Arts/Commerce/Science)'
+  },
+  previous_exam_details: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Previous exam details (SSC, FYJC, SYJC, etc.)'
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'transferred', 'graduated', 'dropped'),

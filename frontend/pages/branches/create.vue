@@ -30,7 +30,7 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Mobile No</label>
-          <input v-model="form.phone" type="text" class="input-field" placeholder="Branch phone (optional)" />
+          <input v-model="form.phone" type="text" class="input-field" placeholder="Branch phone (optional)" @input="form.phone = form.phone.replace(/[^\d]/g, '')" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency *</label>

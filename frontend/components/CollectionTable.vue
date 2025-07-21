@@ -38,7 +38,7 @@
                   <img v-if="collection.student?.photo" :src="collection.student.photo" alt="" class="h-10 w-10 rounded-full" />
                   <div v-else class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {{ collection.student?.first_name?.charAt(0) }}{{ collection.student?.last_name?.charAt(0) }}
+                      {{ (collection.student?.first_name || '').charAt(0) }}{{ (collection.student?.last_name || '').charAt(0) }}
                     </span>
                   </div>
                 </div>

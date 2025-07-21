@@ -218,9 +218,20 @@ module.exports = {
   internal: (res, message = 'Internal Server Error') => 
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR }),
   
-  validationError: (res, errors = {}, message = 'Validation Error') => 
-    errorResponse(res, new Error(message), { 
-      statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, 
-      errors 
-    }),
+  validationError: (res, errors = {}, message = 'Validation Error') => {
+    // Enhanced validation error response with field-specific errors
+    const response = {
+      success: false,
+      message,
+      statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      errors,
+      // Add a structured format for frontend field mapping
+      fieldErrors: Object.keys(errors).map(field => ({
+        field,
+        message: errors[field]
+      }))
+    };
+    
+    return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json(response);
+  },
 };

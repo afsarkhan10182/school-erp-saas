@@ -293,13 +293,13 @@
                         class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center ring-2 ring-indigo-100 dark:ring-indigo-900"
                       >
                         <span class="text-sm font-bold text-white">
-                          {{ student.first_name.charAt(0) }}{{ student.last_name.charAt(0) }}
+                          {{ (student.first_name || '').charAt(0) }}{{ (student.last_name || '').charAt(0) }}
                         </span>
                       </div>
                     </div>
                     <div class="ml-4">
                       <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                        {{ student.first_name }} {{ student.last_name }}
+                        {{ student.first_name || '' }} {{ student.last_name || '' }}
                       </div>
                       <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -633,17 +633,24 @@ const fetchStudents = async () => {
 
     const response = await apiClient.students.getAll(params);
     console.log('🔍 Students response:', response);
+    console.log('🔍 Response data type:', typeof response.data);
+    console.log('🔍 Response data is array:', Array.isArray(response.data));
+    console.log('🔍 Response data:', response.data);
     
     if (response.success) {
       if (response.data && Array.isArray(response.data)) {
         students.value = response.data;
+        console.log('🔍 Set students from direct array:', students.value.length);
       } else if (response.data && response.data.items) {
         students.value = response.data.items;
+        console.log('🔍 Set students from paginated response:', students.value.length);
       } else {
         students.value = [];
+        console.log('🔍 No valid data found, set empty array');
       }
     } else {
       students.value = [];
+      console.log('🔍 Response not successful, set empty array');
     }
   } catch (error) {
     console.error('Error fetching students:', error);

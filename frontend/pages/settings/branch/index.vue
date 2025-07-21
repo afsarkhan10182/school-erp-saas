@@ -83,6 +83,7 @@
                 class="input-field"
                 type="tel"
                 placeholder="Enter phone number"
+                @input="settings.phone = settings.phone.replace(/[^\d+]/g, '')"
               />
             </div>
 

@@ -968,7 +968,14 @@ const getFeeInvoiceReport = async (req, res, next) => {
       includeClause[0].where[Op.or] = [
         { first_name: { [Op.iLike]: `%${search}%` } },
         { last_name: { [Op.iLike]: `%${search}%` } },
-        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
       ];
     }
     if (class_name) includeClause[0].where.current_class = class_name;
@@ -1043,7 +1050,14 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       includeClause[0].where[Op.or] = [
         { first_name: { [Op.iLike]: `%${search}%` } },
         { last_name: { [Op.iLike]: `%${search}%` } },
-        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
       ];
     }
     if (class_name) includeClause[0].where.current_class = class_name;

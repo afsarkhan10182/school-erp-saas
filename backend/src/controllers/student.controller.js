@@ -6,6 +6,62 @@ const { sequelize } = require('../config/database');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 
+// Utility function to handle ENUM validation errors
+const handleEnumValidationError = (error) => {
+  console.log('🔍 Handling ENUM validation error:', error.message);
+  
+  if (error.message && error.message.includes('enum_students_admission_sought_in')) {
+    throw new ApiError(400, 'Please select a valid stream (Arts, Commerce, or Science) or leave it empty.');
+  }
+  if (error.message && error.message.includes('enum_students_gender')) {
+    throw new ApiError(400, 'Please select a valid gender (Male, Female, or Other).');
+  }
+  if (error.message && error.message.includes('enum_students_category')) {
+    throw new ApiError(400, 'Please select a valid category (General, OBC, SC, ST, or Other).');
+  }
+  if (error.message && error.message.includes('enum_students_status')) {
+    throw new ApiError(400, 'Please select a valid status (Active, Inactive, Transferred, Graduated, or Dropped).');
+  }
+  // Re-throw other errors
+  throw error;
+};
+
+// Utility function to sanitize ENUM fields
+const sanitizeEnumFields = (data) => {
+  console.log('🔍 Before sanitizing ENUM fields:', {
+    admission_sought_in: data.admission_sought_in,
+    gender: data.gender,
+    category: data.category,
+    status: data.status
+  });
+  
+  // Handle empty string for ENUM fields - convert to null
+  if (data.admission_sought_in === '' || data.admission_sought_in === undefined) {
+    data.admission_sought_in = null;
+  }
+  
+  if (data.gender === '' || data.gender === undefined) {
+    data.gender = null;
+  }
+  
+  if (data.category === '' || data.category === undefined) {
+    data.category = null;
+  }
+  
+  if (data.status === '' || data.status === undefined) {
+    data.status = 'active'; // Default status
+  }
+  
+  console.log('🔍 After sanitizing ENUM fields:', {
+    admission_sought_in: data.admission_sought_in,
+    gender: data.gender,
+    category: data.category,
+    status: data.status
+  });
+  
+  return data;
+};
+
 // Create a new student
 const createStudent = async (req, res, next) => {
   try {
@@ -36,17 +92,17 @@ const createStudent = async (req, res, next) => {
           guardianData = { ...parsedData.guardian };
         }
         
-        // Extract academic fields from main structure
+        // Always merge root-level academic fields with student data
+        if (parsedData.admission_number) studentData.admission_number = parsedData.admission_number;
         if (parsedData.roll_number) studentData.roll_number = parsedData.roll_number;
         if (parsedData.admission_date) studentData.admission_date = parsedData.admission_date;
         if (parsedData.category) studentData.category = parsedData.category;
-        if (parsedData.register_no) studentData.admission_number = parsedData.register_no;
-        
-        // Store class_id and section_id for later processing
         if (parsedData.class_id) studentData._class_id = parsedData.class_id;
         if (parsedData.section_id) studentData._section_id = parsedData.section_id;
         if (parsedData.academic_year_id) studentData._academic_year_id = parsedData.academic_year_id;
         
+        if (studentData.mobile_no) studentData.phone = studentData.mobile_no;
+        if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentData.admission_type = parsedData.admission_type;
       } else {
         // Direct nested object (already parsed)
         if (req.body.student && typeof req.body.student === 'object') {
@@ -62,13 +118,11 @@ const createStudent = async (req, res, next) => {
           guardianData = { ...req.body.guardian };
         }
         
-        // Extract academic fields from main structure
+        // Always merge root-level academic fields with student data
+        if (req.body.admission_number) studentData.admission_number = req.body.admission_number;
         if (req.body.roll_number) studentData.roll_number = req.body.roll_number;
         if (req.body.admission_date) studentData.admission_date = req.body.admission_date;
         if (req.body.category) studentData.category = req.body.category;
-        if (req.body.register_no) studentData.admission_number = req.body.register_no;
-        
-        // Store class_id and section_id for later processing
         if (req.body.class_id) studentData._class_id = req.body.class_id;
         if (req.body.section_id) studentData._section_id = req.body.section_id;
         if (req.body.academic_year_id) studentData._academic_year_id = req.body.academic_year_id;
@@ -110,7 +164,11 @@ const createStudent = async (req, res, next) => {
     });
 
     if (existingStudent) {
-      throw new ApiError(400, 'Student with this admission number already exists.');
+      throw new ApiError(400, 'Student with this admission number already exists.', {
+        errors: {
+          admission_number: 'Student with this admission number already exists.'
+        }
+      });
     }
 
     // Check for duplicate roll number in the same class-section
@@ -125,7 +183,11 @@ const createStudent = async (req, res, next) => {
       });
 
       if (existingRollNumber) {
-        throw new ApiError(400, `Roll number ${studentData.roll_number} already exists in this class-section.`);
+        throw new ApiError(400, `Roll number ${studentData.roll_number} already exists in this class-section.`, {
+          errors: {
+            roll_number: `Roll number ${studentData.roll_number} already exists in this class-section.`
+          }
+        });
       }
     }
 
@@ -136,6 +198,7 @@ const createStudent = async (req, res, next) => {
         if (classRecord) {
           studentData.admission_class = classRecord.name;
           studentData.current_class = classRecord.name;
+          studentData.class_id = studentData._class_id; // Set the actual class_id
           console.log('🔍 Class name resolved:', classRecord.name);
         }
       } catch (error) {
@@ -149,6 +212,7 @@ const createStudent = async (req, res, next) => {
         const sectionRecord = await Section.findByPk(studentData._section_id);
         if (sectionRecord) {
           studentData.section = sectionRecord.name;
+          studentData.section_id = studentData._section_id; // Set the actual section_id
           console.log('🔍 Section name resolved:', sectionRecord.name);
         }
       } catch (error) {
@@ -178,10 +242,19 @@ const createStudent = async (req, res, next) => {
       created_by: req.user.id,
     };
 
+    // Sanitize ENUM fields
+    sanitizeEnumFields(finalStudentData);
+
     console.log('🔍 Final student data for creation:', finalStudentData);
 
     // Create student record
-    const student = await Student.create(finalStudentData);
+    let student;
+    try {
+      student = await Student.create(finalStudentData);
+    } catch (error) {
+      // Handle ENUM validation errors specifically
+      handleEnumValidationError(error);
+    }
 
     // Create guardian/parent record if provided
     if (guardianData && Object.keys(guardianData).length > 0) {
@@ -191,12 +264,14 @@ const createStudent = async (req, res, next) => {
         guardian_phone: guardianData.mobile_no,
         guardian_email: guardianData.email,
         guardian_relation: guardianData.relation,
+        guardian_occupation: guardianData.occupation,
+        guardian_income: guardianData.income,
+        guardian_education: guardianData.education,
         address: guardianData.address,
         city: guardianData.city,
         state: guardianData.state,
         country: 'India',
-        emergency_contact: guardianData.mobile_no,
-        emergency_relation: guardianData.relation,
+        emergency_contact: true, // Set to true since this is the emergency contact
         school_id,
         branch_id,
         created_by: req.user.id,
@@ -285,8 +360,22 @@ const getStudents = async (req, res, next) => {
       whereClause[Op.or] = [
         { first_name: { [Op.iLike]: `%${search}%` } },
         { last_name: { [Op.iLike]: `%${search}%` } },
-        { admission_number: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
+        { 
+          email: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
       ];
     }
 
@@ -480,13 +569,15 @@ const updateStudent = async (req, res, next) => {
         if (parsedData.roll_number) studentUpdates.roll_number = parsedData.roll_number;
         if (parsedData.admission_date) academicUpdates.admission_date = parsedData.admission_date;
         if (parsedData.category) academicUpdates.category = parsedData.category;
-        if (parsedData.register_no) academicUpdates.admission_number = parsedData.register_no;
+        if (parsedData.admission_number) academicUpdates.admission_number = parsedData.admission_number;
         
         // Store class_id and section_id for later processing
         if (parsedData.class_id) academicUpdates._class_id = parsedData.class_id;
         if (parsedData.section_id) academicUpdates._section_id = parsedData.section_id;
         if (parsedData.academic_year_id) academicUpdates._academic_year_id = parsedData.academic_year_id;
         
+        if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
+        if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentUpdates.admission_type = parsedData.admission_type;
       } else if (updates.student && typeof updates.student === 'object') {
         // Direct nested object (already parsed) - this is the current case
         studentUpdates = { ...updates.student };
@@ -497,13 +588,16 @@ const updateStudent = async (req, res, next) => {
         if (updates.roll_number) studentUpdates.roll_number = updates.roll_number;
         if (updates.admission_date) academicUpdates.admission_date = updates.admission_date;
         if (updates.category) academicUpdates.category = updates.category;
-        if (updates.register_no) academicUpdates.admission_number = updates.register_no;
+        if (updates.admission_number) academicUpdates.admission_number = updates.admission_number;
         
         // Store class_id and section_id for later processing
         if (updates.class_id) academicUpdates._class_id = updates.class_id;
         if (updates.section_id) academicUpdates._section_id = updates.section_id;
         if (updates.academic_year_id) academicUpdates._academic_year_id = updates.academic_year_id;
         
+        if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
+        if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentUpdates.admission_type = parsedData.admission_type;
+        if ('admission_type' in updates) studentUpdates.admission_type = updates.admission_type;
       } else {
         // Flat data structure
         studentUpdates = { ...updates };
@@ -543,6 +637,7 @@ const updateStudent = async (req, res, next) => {
         if (classRecord) {
           academicUpdates.admission_class = classRecord.name;
           academicUpdates.current_class = classRecord.name;
+          academicUpdates.class_id = academicUpdates._class_id; // Set the actual class_id
           console.log('🔍 Class name resolved:', classRecord.name);
         }
       } catch (error) {
@@ -563,6 +658,7 @@ const updateStudent = async (req, res, next) => {
         
         if (sectionRecord) {
           academicUpdates.section = sectionRecord.name;
+          academicUpdates.section_id = academicUpdates._section_id; // Set the actual section_id
           console.log('🔍 Section name resolved:', sectionRecord.name);
         } else {
   
@@ -592,6 +688,9 @@ const updateStudent = async (req, res, next) => {
       updated_by: req.user.id,
     };
     
+    // Sanitize ENUM fields
+    sanitizeEnumFields(updateData);
+
     console.log('🔍 Data being sent to database update:', updateData);
     console.log('🔍 Section field in update data:', updateData.section);
     console.log('🔍 Admission class field in update data:', updateData.admission_class);
@@ -614,7 +713,12 @@ const updateStudent = async (req, res, next) => {
       }
     }
 
-    await student.update(updateData);
+    try {
+      await student.update(updateData);
+    } catch (error) {
+      // Handle ENUM validation errors specifically
+      handleEnumValidationError(error);
+    }
     
     // Log what was actually saved
     
@@ -663,11 +767,13 @@ const updateStudent = async (req, res, next) => {
           guardian_phone: guardianUpdates.mobile_no,
           guardian_email: guardianUpdates.email,
           guardian_relation: guardianUpdates.relation,
+          guardian_occupation: guardianUpdates.occupation,
+          guardian_income: guardianUpdates.income,
+          guardian_education: guardianUpdates.education,
           address: guardianUpdates.address,
           city: guardianUpdates.city,
           state: guardianUpdates.state,
-          emergency_contact: guardianUpdates.mobile_no,
-          emergency_relation: guardianUpdates.relation,
+          emergency_contact: true, // Set to true since this is the emergency contact
           updated_by: req.user.id,
         };
 
@@ -938,8 +1044,22 @@ const getStudentReport = async (req, res, next) => {
       whereClause[Op.or] = [
         { first_name: { [Op.iLike]: `%${search}%` } },
         { last_name: { [Op.iLike]: `%${search}%` } },
-        { admission_number: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
+        { 
+          email: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
       ];
     }
 
@@ -1106,10 +1226,10 @@ const bulkImportStudents = async (req, res, next) => {
       throw new ApiError(400, 'CSV file must contain at least one data row');
     }
 
-    // Validate required columns
+    // Validate required columns - all mandatory fields
     const requiredColumns = [
-      'FirstName', 'LastName', 'Gender', 'Birthday', 'AdmissionDate', 
-      'Roll', 'RegisterNo', 'GuardianName', 'GuardianMobileNo'
+      'FirstName', 'Gender', 'Birthday', 'AdmissionDate', 'AdmissionNumber', 'Category',
+      'GuardianName', 'GuardianRelation', 'GuardianOccupation', 'GuardianIncome', 'GuardianEducation', 'GuardianMobileNo', 'GuardianEmail', 'GuardianAddress'
     ];
     
     if (!dataRows[0] || Object.keys(dataRows[0]).length === 0) {
@@ -1153,22 +1273,24 @@ const bulkImportStudents = async (req, res, next) => {
           '5': 'other'
         };
         
-        const categoryId = rowData.CategoryID?.toString();
+        const categoryId = rowData.Category?.toString() || rowData.CategoryID?.toString();
         const category = categoryMapping[categoryId] || 'general';
 
         // Validate and transform data
         const studentData = {
           first_name: rowData.FirstName,
-          last_name: rowData.LastName,
+          last_name: rowData.LastName || null, // Now optional
           gender: rowData.Gender?.toLowerCase(),
           date_of_birth: rowData.Birthday,
           admission_date: rowData.AdmissionDate,
-          roll_number: rowData.Roll,
-          admission_number: rowData.RegisterNo,
+          roll_number: rowData.Roll || null,
+          admission_number: rowData.AdmissionNumber || `TEMP_${Date.now()}_${i}`,
           blood_group: rowData.BloodGroup || null,
-          mother_tongue: rowData.MotherTongue || null,
-          religion: rowData.Religion || null,
-          caste: rowData.Caste || null,
+          mother_tongue: rowData.MotherTongue || null,      // Always mapped
+          religion: rowData.Religion || null,               // Always mapped
+          caste: rowData.Caste || null,                     // Always mapped
+          aadhaar_number: rowData.AadhaarNumber || null,    // Always mapped
+          address: rowData.Address || null,                 // Always mapped
           phone: rowData.Phone || null,
           city: rowData.City || null,
           state: rowData.State || null,
@@ -1176,6 +1298,9 @@ const bulkImportStudents = async (req, res, next) => {
           permanent_address: rowData.PermanentAddress || null,
           category: category,
           email: rowData.StudentEmail || null,
+          // Junior college specific fields
+          admission_sought_in: rowData.Stream?.toLowerCase() || null, // arts, commerce, science
+          previous_exam_details: rowData.PreviousExams ? JSON.parse(rowData.PreviousExams) : [],
           school_id,
           branch_id,
           class_id,
@@ -1189,9 +1314,42 @@ const bulkImportStudents = async (req, res, next) => {
           updated_by: req.user.id,
         };
 
-        // Validate required fields
-        if (!studentData.first_name || !studentData.last_name || !studentData.gender) {
-          throw new Error('First name, last name, and gender are required');
+        // Validate student required fields with strict checking
+        const studentRequiredFields = [
+          { field: 'FirstName', value: rowData.FirstName, name: 'First Name' },
+          { field: 'Gender', value: rowData.Gender, name: 'Gender' },
+          { field: 'Birthday', value: rowData.Birthday, name: 'Date of Birth' },
+          { field: 'AdmissionDate', value: rowData.AdmissionDate, name: 'Admission Date' },
+          { field: 'AdmissionNumber', value: rowData.AdmissionNumber, name: 'Admission Number' },
+          { field: 'Category', value: rowData.Category, name: 'Category' }
+        ];
+
+        const missingStudentFields = studentRequiredFields
+          .filter(field => !field.value || String(field.value).trim() === '')
+          .map(field => field.name);
+
+        if (missingStudentFields.length > 0) {
+          throw new Error(`Missing required student fields: ${missingStudentFields.join(', ')}`);
+        }
+
+        // Validate guardian required fields with strict checking
+        const guardianRequiredFields = [
+          { field: 'GuardianName', value: rowData.GuardianName, name: 'Guardian Name' },
+          { field: 'GuardianRelation', value: rowData.GuardianRelation, name: 'Guardian Relation' },
+          { field: 'GuardianOccupation', value: rowData.GuardianOccupation, name: 'Guardian Occupation' },
+          { field: 'GuardianIncome', value: rowData.GuardianIncome, name: 'Guardian Income' },
+          { field: 'GuardianEducation', value: rowData.GuardianEducation, name: 'Guardian Education' },
+          { field: 'GuardianMobileNo', value: rowData.GuardianMobileNo, name: 'Guardian Mobile No' },
+          { field: 'GuardianEmail', value: rowData.GuardianEmail, name: 'Guardian Email' },
+          { field: 'GuardianAddress', value: rowData.GuardianAddress, name: 'Guardian Address' }
+        ];
+
+        const missingGuardianFields = guardianRequiredFields
+          .filter(field => !field.value || String(field.value).trim() === '')
+          .map(field => field.name);
+
+        if (missingGuardianFields.length > 0) {
+          throw new Error(`Missing required guardian fields: ${missingGuardianFields.join(', ')}`);
         }
 
         // Validate gender format
@@ -1230,24 +1388,26 @@ const bulkImportStudents = async (req, res, next) => {
 
         // Create student
         const student = await Student.create(studentData, { transaction });
-
-        // Create guardian/parent if provided
-        if (rowData.GuardianName && rowData.GuardianMobileNo) {
+        // Create guardian/parent (required fields already validated)
+        {
           const guardianData = {
             guardian_name: rowData.GuardianName,
             guardian_phone: rowData.GuardianMobileNo,
-            guardian_email: rowData.GuardianEmail || null,
+            guardian_email: rowData.GuardianEmail,
             guardian_relation: rowData.GuardianRelation || 'guardian',
+            guardian_occupation: rowData.GuardianOccupation || null,
+            guardian_income: rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null, // Always mapped, allow null
+            guardian_education: rowData.GuardianEducation || null,                                 // Always mapped, allow null
             address: rowData.GuardianAddress || null,
             city: rowData.City || null,
             state: rowData.State || null,
             country: 'India',
-            emergency_contact: rowData.GuardianMobileNo,
-            emergency_relation: rowData.GuardianRelation || 'guardian',
+            emergency_contact: true, // Set to true since this is the emergency contact
             school_id,
             branch_id,
             created_by: req.user.id,
             updated_by: req.user.id,
+            mother_name: rowData.MotherName || null, // Always mapped
           };
 
           // Set father or mother information based on relation

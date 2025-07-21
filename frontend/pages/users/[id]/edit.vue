@@ -19,7 +19,7 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-          <input v-model="form.phone" type="text" class="input-field" />
+          <input v-model="form.phone" type="text" class="input-field" @input="form.phone = form.phone.replace(/[^\d]/g, '')" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role *</label>

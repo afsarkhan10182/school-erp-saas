@@ -28,7 +28,20 @@ router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 
 
 
 // POST endpoint to create a new student
-router.post('/', createStudent);
+router.post('/', 
+  uploadFields([
+    { name: 'student_profile_picture', maxCount: 1 },
+    { name: 'guardian_picture', maxCount: 1 },
+  ]),
+  createStudent
+);
+
+// GET endpoint to download student import template
+router.get('/import-template', (req, res) => {
+  const path = require('path');
+  const templatePath = path.join(__dirname, '../../templates/student-import-template.csv');
+  res.download(templatePath, 'Student-Admission-template.csv');
+});
 
 // POST endpoint for bulk import students from CSV
 router.post('/bulk-import', 

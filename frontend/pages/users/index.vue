@@ -236,7 +236,7 @@ const filteredRoleTabs = computed(() => {
 const getUserInitials = (user) => {
   const firstName = user.first_name || '';
   const lastName = user.last_name || '';
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '?';
+  return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase() || '?';
 };
 
 const filteredUsers = computed(() => {

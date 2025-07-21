@@ -75,6 +75,15 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Handle ApiError with field-specific errors
+  if (err.name === 'ApiError' && err.details && err.details.errors) {
+    return errorResponse(res, err, {
+      statusCode: err.statusCode,
+      message: err.message,
+      errors: err.details.errors,
+    });
+  }
+
   // Handle other specific error types
   switch (err.name) {
     case 'SequelizeUniqueConstraintError':

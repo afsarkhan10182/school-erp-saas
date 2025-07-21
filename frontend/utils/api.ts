@@ -544,7 +544,7 @@ export const apiClient = {
   students: {
     getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string; branch_id?: string; class_id?: string; section_id?: string; search?: string; school_id?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/students', { params });
+      const response = await api.get<ApiResponse<any>>('/students', { params });
       return response.data;
     },
     
@@ -578,6 +578,14 @@ export const apiClient = {
         }
       });
       return response.data;
+    },
+    
+    downloadTemplate: async () => {
+      const api = createApiInstance();
+      const response = await api.get('/students/import-template', {
+        responseType: 'blob'
+      });
+      return response;
     },
     
     update: async (id: string, studentData: any) => {

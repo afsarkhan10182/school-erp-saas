@@ -178,3 +178,62 @@ export interface DashboardStats {
   recentUsers?: User[];
   recentSchools?: School[];
 } 
+
+export interface PreviousExamDetail {
+  exam_name: string; // e.g., "SSC", "FYJC", "SYJC"
+  institution: string; // Institution last attended
+  board_university: string; // Board/University
+  month_year: string; // Month & Year
+  exam_seat_number: string; // Exam Seat No.
+  class_obtained: string; // Class Obtained
+  attempts: number; // No. of Attempts
+  percentage: number; // Percent
+}
+
+export interface Student {
+  id: string;
+  admission_number: string;
+  roll_number?: string;
+  first_name: string;
+  last_name: string;
+  middle_name?: string;
+  aadhaar_number?: string; // Student's Aadhaar number
+  date_of_birth: string;
+  gender: 'male' | 'female' | 'other';
+  blood_group?: string;
+  religion?: string;
+  caste?: string;
+  category?: 'general' | 'obc' | 'sc' | 'st' | 'other';
+  nationality?: string;
+  mother_tongue?: string;
+  email?: string;
+  phone?: string;
+  emergency_contact?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  admission_date: string;
+  admission_class: string;
+  current_class: string;
+  section?: string;
+  class_id?: string;
+  section_id?: string;
+  academic_year: string;
+  // Junior College specific fields
+  admission_sought_in?: 'arts' | 'commerce' | 'science'; // Stream selection
+  previous_exam_details?: PreviousExamDetail[]; // Previous exam details
+  status: 'active' | 'inactive' | 'transferred' | 'graduated' | 'dropped';
+  photo?: string;
+  documents?: any;
+  medical_info?: any;
+  notes?: string;
+  school_id: string;
+  branch_id?: string;
+  user_id?: string;
+  created_by?: string;
+  updated_by?: string;
+  created_at?: string;
+  updated_at?: string;
+} 

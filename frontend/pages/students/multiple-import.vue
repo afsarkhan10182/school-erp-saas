@@ -22,14 +22,17 @@
           </div>
           
           <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>Download the first sample file.</li>
-            <li>Open the downloaded 'csv' file and carefully fill the details of the student.</li>
-            <li>The date you are trying to enter the "Birthday" and "AdmissionDate" column make sure the date format is Y-m-d (2025-07-20).</li>
-            <li>Do not import the duplicate "Roll Number" And "Register No".</li>
-            <li>For student "Gender" use Male, Female value.</li>
-            <li>If enable Automatically Generate login details, leave the "username" and "password" columns blank.</li>
-            <li>For "CategoryID" use: 1=General, 2=OBC, 3=SC, 4=ST, 5=Other</li>
-            <li>If a parent is existing / if you want to use the same parent information for multiple students only enter the "GuardianUsername" and leave other columns blank.</li>
+            <li>Download the sample file to see the correct format.</li>
+            <li>Open the downloaded CSV file and carefully fill the details of the students.</li>
+            <li>For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD (e.g., 2005-06-15).</li>
+            <li><strong>Mandatory Student Fields:</strong> FirstName, Gender, Birthday, AdmissionDate, AdmissionNumber, Category</li>
+            <li><strong>Mandatory Guardian Fields:</strong> GuardianName, GuardianRelation, GuardianOccupation, GuardianIncome, GuardianEducation, GuardianMobileNo, GuardianEmail, GuardianAddress</li>
+            <li><strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion, Caste, FatherName, MotherName</li>
+            <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
+            <li>For "Gender" use: male, female, other</li>
+            <li>For "Category" use: 1=General, 2=OBC, 3=SC, 4=ST, 5=Other</li>
+            <li>For "Stream" use: science, commerce, arts (for junior college students)</li>
+            <li>For "PreviousExams" use valid JSON format as shown in the sample</li>
           </ol>
         </div>
       </div>
@@ -586,22 +589,29 @@ const removeFile = () => {
 
 
 
-const downloadSampleFile = () => {
-  const csvContent = `FirstName,LastName,BloodGroup,Gender,Birthday,MotherTongue,Religion,Caste,Phone,City,State,PresentAddress,PermanentAddress,CategoryID,Roll,RegisterNo,AdmissionDate,StudentEmail,StudentUsername,StudentPassword,GuardianName,GuardianRelation,FatherName,MotherName,GuardianOccupation,GuardianMobileNo,GuardianAddress,GuardianEmail,GuardianUsername,GuardianPassword
-student fname,student lname,,Female,2008-09-01,Urdu,Muslim,General,1234567890,Bhiwandi,Maharashtra,Address ,permanent Address,1,1,100,2008-09-01,studentemail@tezt.com,,,Guardionname,Father,Saleem,Amna,,1234567890,address guardion,guardian@gmail.com,,`;
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'Student-Admission-template.csv';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
-  
-  showSuccess('Sample file downloaded successfully!');
+const downloadSampleFile = async () => {
+  try {
+    const response = await apiClient.students.downloadTemplate();
+    
+    // Create blob from response
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create download link
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Student-Admission-template.csv';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showSuccess('Sample file downloaded successfully!');
+  } catch (error) {
+    console.error('Error downloading template:', error);
+    showError('Failed to download template file. Please try again.');
+  }
 };
 
 const handleSubmit = async () => {
@@ -621,7 +631,7 @@ const handleSubmit = async () => {
     }
 
     const response = await apiClient.students.bulkImport(formData);
-    
+  
     if (response.success) {
       importResults.value = response.data;
       showResults.value = true;

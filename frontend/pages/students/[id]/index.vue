@@ -73,7 +73,7 @@
                   class="w-24 h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
                 >
                   <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                    {{ student.first_name.charAt(0) }}{{ student.last_name.charAt(0) }}
+                    {{ (student.first_name || '').charAt(0) }}{{ (student.last_name || '').charAt(0) }}
                   </span>
                 </div>
               </div>

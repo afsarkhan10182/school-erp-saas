@@ -12,6 +12,14 @@
     <!-- Form -->
     <form @submit.prevent="handleSubmit" class="space-y-8">
       
+      <!-- Validation Summary -->
+      <FormValidationSummary 
+        :categorized-errors="getCategorizedErrors()"
+        :has-errors="hasErrors"
+        :error-count="errorCount"
+        @clear-errors="clearErrors"
+      />
+      
       <!-- School and Branch Selection -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
@@ -21,13 +29,15 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- School Dropdown (Super Admin Only) -->
           <div v-if="userRole === 'super_admin'">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              School <span class="text-red-500">*</span>
+            </label>
             <select 
               v-model="form.school_id" 
               @change="onSchoolChange" 
               required 
               class="input-field"
-              :class="{ 'opacity-50': loadingSchools }"
+              :class="{ 'opacity-50': loadingSchools, 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('school_id') }"
               :disabled="loadingSchools"
             >
               <option value="">Loading schools...</option>
@@ -35,18 +45,26 @@
                 {{ school.name }}
               </option>
             </select>
+            <div v-if="getFieldError('school_id')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('school_id') }}
+            </div>
             <p v-if="schools.length === 0 && !loadingSchools" class="mt-1 text-sm text-red-600">No schools found</p>
           </div>
 
           <!-- Branch Dropdown (Super Admin & School Admin) -->
           <div v-if="userRole !== 'branch_admin'">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Branch <span class="text-red-500">*</span>
+            </label>
             <select 
               v-model="form.branch_id" 
               @change="onBranchChange" 
               required 
               class="input-field"
-              :class="{ 'opacity-50': loadingBranches }"
+              :class="{ 'opacity-50': loadingBranches, 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('branch_id') }"
               :disabled="!form.school_id || loadingBranches"
             >
               <option value="">{{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}</option>
@@ -54,6 +72,12 @@
                 {{ branch.name }}
               </option>
             </select>
+            <div v-if="getFieldError('branch_id')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('branch_id') }}
+            </div>
             <p v-if="branches.length === 0 && !loadingBranches && form.school_id" class="mt-1 text-sm text-red-600">No branches found for this school</p>
           </div>
 
@@ -75,48 +99,124 @@
           Academic Details
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField 
+            id="academic_year_id"
+            label="Academic Year"
+            required
+            :error-message="getFieldError('academic_year_id')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <select 
+                :id="id"
+                v-model="form.academic_year_id" 
+                :class="fieldClass"
+                :disabled="academicsLoading"
+              >
+                <option value="">Select Academic Year</option>
+                <option v-for="year in academicYears" :key="year.id" :value="year.id">
+                  {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
+                </option>
+              </select>
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="admission_number"
+            label="Admission Number"
+            required
+            :error-message="getFieldError('admission_number')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.admission_number" 
+                type="text" 
+                :class="fieldClass" 
+                placeholder="e.g., ISC-0001" 
+              />
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="roll_number"
+            label="Roll Number"
+            :error-message="getFieldError('roll_number')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.roll_number" 
+                type="text" 
+                :class="[fieldClass, { 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('roll_number') }]" 
+                placeholder="Student roll number" 
+                @input="form.roll_number = form.roll_number.replace(/[^\d]/g, '')"
+              />
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="admission_date"
+            label="Admission Date"
+            required
+            :error-message="getFieldError('admission_date')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.admission_date" 
+                type="date" 
+                :class="fieldClass" 
+              />
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="class_id"
+            label="Class"
+            required
+            :error-message="getFieldError('class_id')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <select 
+                :id="id"
+                v-model="form.class_id" 
+                @change="onClassChange" 
+                :class="fieldClass"
+              >
+                <option value="">Select Class</option>
+                <option v-for="cls in activeClasses" :key="cls.id" :value="cls.id">
+                  {{ cls.name }}
+                </option>
+              </select>
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="section_id"
+            label="Section"
+            required
+            :error-message="getFieldError('section_id')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <select 
+                :id="id"
+                v-model="form.section_id" 
+                :class="fieldClass"
+                :disabled="!form.class_id || sectionsLoading" 
+                @change="onSectionChange"
+              >
+                <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSections.length === 0 ? 'No sections found' : 'Select Section') }}</option>
+                <option v-for="section in activeSections" :key="section.id" :value="section.id">
+                  {{ section.name }}
+                </option>
+              </select>
+            </template>
+                    </FormField>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year *</label>
-            <select v-model="form.academic_year_id" required class="input-field" :disabled="academicsLoading">
-              <option value="">Select Academic Year</option>
-              <option v-for="year in academicYears" :key="year.id" :value="year.id">
-                {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Register No *</label>
-            <input v-model="form.register_no" type="text" required class="input-field" placeholder="e.g., ISC-0001" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roll Number</label>
-            <input v-model="form.roll_number" type="text" class="input-field" placeholder="Student roll number" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Admission Date *</label>
-            <input v-model="form.admission_date" type="date" required class="input-field" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
-            <select v-model="form.class_id" @change="onClassChange" required class="input-field">
-              <option value="">Select Class</option>
-              <option v-for="cls in activeClasses" :key="cls.id" :value="cls.id">
-                {{ cls.name }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section *</label>
-            <select v-model="form.section_id" required class="input-field" :disabled="!form.class_id || sectionsLoading" @change="onSectionChange">
-              <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSections.length === 0 ? 'No sections found' : 'Select Section') }}</option>
-              <option v-for="section in activeSections" :key="section.id" :value="section.id">
-                {{ section.name }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
-            <select v-model="form.category" required class="input-field">
+            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category <span class="text-red-500">*</span>
+            </label>
+            <select id="category" v-model="form.category" required class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('category') }">
               <option value="">Select Category</option>
               <option value="general">General</option>
               <option value="obc">OBC</option>
@@ -124,15 +224,39 @@
               <option value="st">ST</option>
               <option value="other">Other</option>
             </select>
+            <div v-if="getFieldError('category')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('category') }}
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Admission Type *</label>
-            <select v-model="form.admission_type" required class="input-field">
+            <label for="admission_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Admission Type
+            </label>
+            <select id="admission_type" v-model="form.admission_type" class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('admission_type') }">
               <option value="">Select Admission Type</option>
               <option value="new">New Admission</option>
               <option value="transfer">Transfer</option>
               <option value="readmission">Readmission</option>
             </select>
+            <div v-if="getFieldError('admission_type')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('admission_type') }}
+            </div>
+          </div>
+          <div>
+            <label for="stream_selection" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream Selection</label>
+            <select id="stream_selection" v-model="form.student.admission_sought_in" class="input-field">
+              <option value="">Select Stream</option>
+              <option value="arts">Arts</option>
+              <option value="commerce">Commerce</option>
+              <option value="science">Science</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For Junior College students</p>
           </div>
         </div>
       </div>
@@ -144,26 +268,58 @@
           Student Details
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField 
+            id="student.first_name"
+            label="First Name"
+            required
+            :error-message="getFieldError('student.first_name')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.student.first_name" 
+                type="text" 
+                :class="fieldClass" 
+                placeholder="Enter first name" 
+              />
+            </template>
+          </FormField>
+          
+          <FormField 
+            id="student.last_name"
+            label="Last Name"
+            :error-message="getFieldError('student.last_name')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.student.last_name" 
+                type="text" 
+                :class="fieldClass" 
+                placeholder="Enter last name" 
+              />
+            </template>
+          </FormField>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
-            <input v-model="form.student.first_name" type="text" required class="input-field" placeholder="Enter first name" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
-            <input v-model="form.student.last_name" type="text" required class="input-field" placeholder="Enter last name" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender *</label>
-            <select v-model="form.student.gender" required class="input-field">
+            <label for="student_gender" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Gender <span class="text-red-500">*</span>
+            </label>
+            <select id="student_gender" v-model="form.student.gender" required class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('student.gender') }">
               <option value="">Select Gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Other</option>
             </select>
+            <div v-if="getFieldError('student.gender')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('student.gender') }}
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Blood Group</label>
-            <select v-model="form.student.blood_group" class="input-field">
+            <label for="student_blood_group" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Blood Group</label>
+            <select id="student_blood_group" v-model="form.student.blood_group" class="input-field">
               <option value="">Select Blood Group</option>
               <option value="A+">A+</option>
               <option value="A-">A-</option>
@@ -176,71 +332,227 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth *</label>
-            <input v-model="form.student.date_of_birth" type="date" required class="input-field" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
-            <input v-model="form.student.email" type="email" required class="input-field" placeholder="Enter email address" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mother Tongue</label>
-            <input v-model="form.student.mother_tongue" type="text" class="input-field" placeholder="Enter mother tongue" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Religion</label>
-            <input v-model="form.student.religion" type="text" class="input-field" placeholder="Enter religion" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caste</label>
-            <input v-model="form.student.caste" type="text" class="input-field" placeholder="Enter caste" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile No</label>
-            <input v-model="form.student.mobile_no" type="tel" class="input-field" placeholder="Enter mobile number" />
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-            <input v-model="form.student.city" type="text" class="input-field" placeholder="Enter city" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
-            <input v-model="form.student.state" type="text" class="input-field" placeholder="Enter state" />
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-            <textarea v-model="form.student.address" class="input-field" rows="2" placeholder="Enter student address"></textarea>
+            <label for="student_date_of_birth" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Date of Birth <span class="text-red-500">*</span>
+            </label>
+            <input id="student_date_of_birth" v-model="form.student.date_of_birth" type="date" required class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('student.date_of_birth') }" />
+            <div v-if="getFieldError('student.date_of_birth')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('student.date_of_birth') }}
+            </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Picture</label>
-            <input ref="studentProfileInput" type="file" accept="image/*" class="input-field" @change="handleFileUpload('student_profile', $event)" />
+            <label for="student_aadhaar_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aadhaar Number</label>
+            <input id="student_aadhaar_number" v-model="form.student.aadhaar_number" type="text" class="input-field" placeholder="Enter 12-digit Aadhaar number" maxlength="12" />
+            </div>
+         
+          <div>
+            <label for="student_mother_tongue" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mother Tongue</label>
+            <input id="student_mother_tongue" v-model="form.student.mother_tongue" type="text" class="input-field" placeholder="Enter mother tongue" />
+          </div>
+          <div>
+            <label for="student_religion" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Religion</label>
+            <input id="student_religion" v-model="form.student.religion" type="text" class="input-field" placeholder="Enter religion" />
+          </div>
+          <div>
+            <label for="student_caste" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caste</label>
+            <input id="student_caste" v-model="form.student.caste" type="text" class="input-field" placeholder="Enter caste" />
+          </div>
+          <div>
+            <label for="student_mobile_no" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Mobile No
+            </label>
+            <input 
+              id="student_mobile_no"
+              v-model="form.student.mobile_no" 
+              type="text" 
+              class="input-field"
+              placeholder="Enter mobile number" 
+              @input="form.student.mobile_no = form.student.mobile_no.replace(/[^\d]/g, '')"
+             />
+          </div>
+            <div>
+              <label for="student_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Email
+            </label>
+              <input 
+                 id="student_email"
+                v-model="form.student.email" 
+                type="email" 
+                class="input-field"
+                placeholder="Enter email address" 
+              />
+            </div>
+          
+          <div>
+            <label for="student_city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+            <input id="student_city" v-model="form.student.city" type="text" class="input-field" placeholder="Enter city" />
+          </div>
+          <div>
+            <label for="student_state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+            <input id="student_state" v-model="form.student.state" type="text" class="input-field" placeholder="Enter state" />
+          </div>
+          <div class="md:col-span-2">
+            <label for="student_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+            <textarea id="student_address" v-model="form.student.address" class="input-field" rows="2" placeholder="Enter student address"></textarea>
+          </div>
+
+          <div>
+            <label for="student_profile_picture" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Picture</label>
+            <input id="student_profile_picture" ref="studentProfileInput" type="file" accept="image/*" class="input-field" @change="handleFileUpload('student_profile', $event)" />
+          </div>
+        </div>
+
+        <!-- Student Login Details -->
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Student Login Details</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="student_login_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <input id="student_login_username" v-model="form.login.username" type="text" class="input-field" placeholder="Enter username" />
+            </div>
+            <div>
+              <label for="student_login_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input id="student_login_password" v-model="form.login.password" type="password" class="input-field" placeholder="Enter password" />
+            </div>
+            <div>
+              <label for="student_login_retype_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Retype Password</label>
+              <input id="student_login_retype_password" v-model="form.login.retype_password" type="password" class="input-field" placeholder="Retype password" />
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Login Details -->
+      <!-- Previous Exam Details (Junior College) -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
           <span class="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center mr-3">4</span>
-          Login Details
+          Previous Exam Details
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-            <input v-model="form.login.username" type="text" class="input-field" placeholder="Enter username" />
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Add details of previous examinations (SSC, FYJC, SYJC, etc.)</p>
+        
+        <!-- Previous Exam Entries -->
+        <div v-for="(exam, index) in form.student.previous_exam_details" :key="index" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-md font-medium text-gray-900 dark:text-white">Exam {{ index + 1 }}</h3>
+            <button 
+              type="button" 
+              @click="removeExamDetail(index)" 
+              class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-            <input v-model="form.login.password" type="password" class="input-field" placeholder="Enter password" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Retype Password</label>
-            <input v-model="form.login.retype_password" type="password" class="input-field" placeholder="Retype password" />
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label for="exam_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exam Name</label>
+              <input 
+                id="exam_name"
+                v-model="exam.exam_name" 
+                type="text"   
+                class="input-field" 
+                placeholder="e.g., SSC, FYJC, SYJC" 
+              />
+            </div>
+            <div>
+              <label for="institution" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Institution</label>
+              <input 
+                id="institution"
+                v-model="exam.institution" 
+                type="text" 
+                class="input-field" 
+                placeholder="Institution last attended" 
+              />
+            </div>
+            <div>
+              <label for="board_university" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Board/University </label>
+              <input 
+                id="board_university"
+                v-model="exam.board_university" 
+                type="text" 
+                class="input-field" 
+                placeholder="Board or University" 
+              />
+            </div>
+            <div>
+              <label for="month_year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Month & Year</label>
+              <input 
+                id="month_year"
+                v-model="exam.month_year" 
+                type="text" 
+                class="input-field" 
+                placeholder="e.g., March 2023" 
+              />
+            </div>
+            <div>
+              <label for="exam_seat_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exam Seat Number</label>
+              <input 
+                id="exam_seat_number"
+                v-model="exam.exam_seat_number" 
+                type="text" 
+                class="input-field" 
+                placeholder="Exam seat number" 
+              />
+            </div>
+            <div>
+              <label for="class_obtained" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class Obtained</label>
+              <input 
+                id="class_obtained"
+                v-model="exam.class_obtained" 
+                type="text" 
+                class="input-field" 
+                placeholder="e.g., First Class, Distinction" 
+              />
+            </div>
+            <div>
+              <label for="attempts" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No. of Attempts</label>
+              <input 
+                id="attempts"
+                v-model.number="exam.attempts" 
+                type="number" 
+                min="1" 
+                class="input-field" 
+                placeholder="Number of attempts" 
+              />
+            </div>
+            <div>
+              <label for="percentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Percentage</label>
+              <input 
+                id="percentage"
+                v-model.number="exam.percentage" 
+                type="number" 
+                min="0" 
+                max="100" 
+                step="0.01"
+                class="input-field" 
+                placeholder="Percentage obtained" 
+              />
+            </div>
           </div>
         </div>
+        
+        <!-- Add New Exam Button -->
+        <button 
+          type="button" 
+          @click="addExamDetail" 
+          class="w-full py-3 px-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+        >
+          <div class="flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Add Another Exam Detail
+          </div>
+        </button>
       </div>
+
+
 
       <!-- Guardian Details -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -248,22 +560,31 @@
           <span class="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center mr-3">5</span>
           Guardian Details
         </h2>
-        
-        <div class="mb-4">
-          <label class="flex items-center">
-            <input v-model="form.guardian.already_exists" type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Guardian Already Exists</span>
-          </label>
-        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
-            <input v-model="form.guardian.name" type="text" required class="input-field" placeholder="Enter guardian name" />
+            <label for="guardian_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Name <span class="text-red-500">*</span>
+            </label>
+            <input 
+              id="guardian_name"
+              v-model="form.guardian.name" 
+              type="text" 
+              required 
+              class="input-field" 
+              placeholder="Enter guardian name" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Relation *</label>
-            <select v-model="form.guardian.relation" required class="input-field">
+            <label for="guardian_relation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Relation <span class="text-red-500">*</span>
+            </label>
+            <select 
+              id="guardian_relation"
+              v-model="form.guardian.relation" 
+              required 
+              class="input-field"
+            >
               <option value="">Select Relation</option>
               <option value="father">Father</option>
               <option value="mother">Mother</option>
@@ -275,48 +596,129 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Father Name</label>
-            <input v-model="form.guardian.father_name" type="text" class="input-field" placeholder="Enter father name" />
+            <label for="father_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Father Name</label>
+            <input 
+              id="father_name"
+              v-model="form.guardian.father_name" 
+              type="text" 
+              class="input-field" 
+              placeholder="Enter father name" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mother Name</label>
-            <input v-model="form.guardian.mother_name" type="text" class="input-field" placeholder="Enter mother name" />
+            <label for="mother_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mother Name</label>
+            <input 
+              id="mother_name"
+              v-model="form.guardian.mother_name" 
+              type="text" 
+              class="input-field" 
+              placeholder="Enter mother name" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Occupation *</label>
-            <input v-model="form.guardian.occupation" type="text" required class="input-field" placeholder="Enter occupation" />
+            <label for="guardian_occupation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Occupation <span class="text-red-500">*</span>
+            </label>
+            <input 
+              id="guardian_occupation"
+              v-model="form.guardian.occupation" 
+              type="text" 
+              required 
+              class="input-field" 
+              placeholder="Enter occupation" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Income *</label>
-            <input v-model="form.guardian.income" type="number" required class="input-field" placeholder="Enter annual income" />
+            <label for="guardian_income" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Income <span class="text-red-500">*</span>
+            </label>
+            <input 
+              id="guardian_income"
+              v-model="form.guardian.income" 
+              type="number" 
+              required 
+              class="input-field" 
+              placeholder="Enter annual income" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Education *</label>
-            <input v-model="form.guardian.education" type="text" required class="input-field" placeholder="Enter education qualification" />
+            <label for="guardian_education" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Education <span class="text-red-500">*</span>
+            </label>
+            <input 
+              id="guardian_education"
+              v-model="form.guardian.education" 
+              type="text" 
+              required 
+              class="input-field" 
+              placeholder="Enter education qualification" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-            <input v-model="form.guardian.city" type="text" class="input-field" placeholder="Enter city" />
+            <label for="guardian_city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+            <input 
+              id="guardian_city"
+              v-model="form.guardian.city" 
+              type="text" 
+              class="input-field" 
+              placeholder="Enter city" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
-            <input v-model="form.guardian.state" type="text" class="input-field" placeholder="Enter state" />
+            <label for="guardian_state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+            <input 
+              id="guardian_state"
+              v-model="form.guardian.state" 
+              type="text" 
+              class="input-field" 
+              placeholder="Enter state" 
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile No *</label>
-            <input v-model="form.guardian.mobile_no" type="tel" required class="input-field" placeholder="Enter mobile number" />
+            <label for="guardian_mobile_no" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Mobile No <span class="text-red-500">*</span>
+            </label>
+            <input 
+              id="guardian_mobile_no"
+              v-model="form.guardian.mobile_no" 
+              type="text" 
+              required 
+              :class="['input-field', { 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('guardian.mobile_no') }]"
+              placeholder="Enter mobile number" 
+              @input="form.guardian.mobile_no = form.guardian.mobile_no.replace(/[^\d]/g, '')"
+            />
+            <div v-if="getFieldError('guardian.mobile_no')" class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-start">
+              <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              {{ getFieldError('guardian.mobile_no') }}
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
-            <input v-model="form.guardian.email" type="email" required class="input-field" placeholder="Enter email address" />
-          </div>
+          <FormField 
+            id="guardian.email"
+            label="Email"
+            :required="true"
+            :error-message="getFieldError('guardian.email')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <input 
+                :id="id"
+                v-model="form.guardian.email" 
+                type="email" 
+                :class="fieldClass" 
+                placeholder="Enter email address" 
+              />
+            </template>
+          </FormField>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Picture</label>
-            <input ref="guardianPictureInput" type="file" accept="image/*" class="input-field" @change="handleFileUpload('guardian_picture', $event)" />
+            <label for="guardian_picture" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Picture</label>
+            <input id="guardian_picture" ref="guardianPictureInput" type="file" accept="image/*" class="input-field" @change="handleFileUpload('guardian_picture', $event)" />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Address <span class="text-red-500">*</span>
+            </label>
             <textarea v-model="form.guardian.address" required class="input-field" rows="2" placeholder="Enter address"></textarea>
           </div>
         </div>
@@ -326,16 +728,34 @@
           <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Guardian Login Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-              <input v-model="form.guardian.login.username" type="text" class="input-field" placeholder="Enter username" />
+              <label for="guardian_login_username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <input 
+                id="guardian_login_username"
+                v-model="form.guardian.login.username" 
+                type="text" 
+                class="input-field" 
+                placeholder="Enter username" 
+              />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-              <input v-model="form.guardian.login.password" type="password" class="input-field" placeholder="Enter password" />
+              <label for="guardian_login_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input 
+                id="guardian_login_password"
+                v-model="form.guardian.login.password" 
+                type="password" 
+                class="input-field" 
+                placeholder="Enter password" 
+              />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Retype Password</label>
-              <input v-model="form.guardian.login.retype_password" type="password" class="input-field" placeholder="Retype password" />
+              <label for="guardian_login_retype_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Retype Password</label>
+              <input 
+                id="guardian_login_retype_password"
+                v-model="form.guardian.login.retype_password" 
+                type="password" 
+                class="input-field" 
+                placeholder="Retype password" 
+              />
             </div>
           </div>
         </div>
@@ -430,6 +850,24 @@ const { branches, fetchBranches } = useBranches();
 // Toast
 const { showSuccess, showError } = useToast();
 
+// Form validation
+const {
+  fieldErrors,
+  isSubmitting,
+  hasErrors,
+  errorCount,
+  validationState,
+  clearErrors,
+  clearFieldError,
+  setFieldError,
+  setFieldErrors,
+  handleApiError,
+  hasFieldError,
+  getFieldError,
+  getAllErrors,
+  getCategorizedErrors
+} = useFormValidation();
+
 // Form state
 const loading = ref(false);
 const sectionsLoading = ref(false);
@@ -448,7 +886,7 @@ const form = reactive({
 
   // Academic details
   academic_year_id: '',
-  register_no: '',
+  admission_number: '',
   roll_number: '',
   admission_date: new Date().toISOString().split('T')[0],
   class_id: '',
@@ -477,6 +915,9 @@ const form = reactive({
     state: '',
     address: '',
     profile_picture: null,
+    aadhaar_number: '',
+    admission_sought_in: '',
+    previous_exam_details: [],
   },
 
   // Login details
@@ -488,7 +929,6 @@ const form = reactive({
 
   // Guardian details
   guardian: {
-    already_exists: false,
     name: '',
     relation: '',
     father_name: '',
@@ -521,7 +961,7 @@ watch(() => props.initialData, async (newData) => {
     // Academic details
     if (newData.school_id) form.school_id = newData.school_id;
     if (newData.branch_id) form.branch_id = newData.branch_id;
-    if (newData.admission_number) form.register_no = newData.admission_number;
+    if (newData.admission_number) form.admission_number = newData.admission_number;
     if (newData.roll_number) {
       form.roll_number = newData.roll_number;
       console.log('🔍 Set roll_number from initial data:', newData.roll_number);
@@ -564,6 +1004,21 @@ watch(() => props.initialData, async (newData) => {
     if (newData.city) form.student.city = newData.city;
     if (newData.state) form.student.state = newData.state;
     if (newData.address) form.student.address = newData.address;
+    if (newData.aadhaar_number) form.student.aadhaar_number = newData.aadhaar_number;
+    if (newData.admission_sought_in) form.student.admission_sought_in = newData.admission_sought_in;
+    if (newData.previous_exam_details) {
+      // Handle both string and array formats
+      if (typeof newData.previous_exam_details === 'string') {
+        try {
+          form.student.previous_exam_details = JSON.parse(newData.previous_exam_details);
+        } catch (e) {
+          console.warn('Failed to parse previous_exam_details JSON:', e);
+          form.student.previous_exam_details = [];
+        }
+      } else {
+        form.student.previous_exam_details = newData.previous_exam_details || [];
+      }
+    }
     
     // Guardian details
     if (newData.parents && newData.parents.length > 0) {
@@ -641,6 +1096,25 @@ const handleFileUpload = (type, event) => {
       form.guardian.picture = file;
     }
   }
+};
+
+// Add new exam detail
+const addExamDetail = () => {
+  form.student.previous_exam_details.push({
+    exam_name: '',
+    institution: '',
+    board_university: '',
+    month_year: '',
+    exam_seat_number: '',
+    class_obtained: '',
+    attempts: 1,
+    percentage: 0,
+  });
+};
+
+// Remove exam detail
+const removeExamDetail = (index) => {
+  form.student.previous_exam_details.splice(index, 1);
 };
 
 // School change handler
@@ -779,8 +1253,45 @@ const loadAcademicData = async () => {
   }
 };
 
+// Validation functions for numeric fields
+const validateRollNumber = () => {
+  clearFieldError('roll_number');
+  if (form.roll_number && form.roll_number < 1) {
+    setFieldError('roll_number', 'Roll number must be a positive number');
+  }
+};
+
+const validateMobileNumber = () => {
+  clearFieldError('student.mobile_no');
+  if (form.student.mobile_no) {
+    const mobileStr = form.student.mobile_no.toString();
+    if (mobileStr.length < 10 || mobileStr.length > 12) {
+      setFieldError('student.mobile_no', 'Mobile number must be between 10 and 12 digits');
+    } else if (mobileStr.length === 10 && !mobileStr.startsWith('6') && !mobileStr.startsWith('7') && !mobileStr.startsWith('8') && !mobileStr.startsWith('9')) {
+      setFieldError('student.mobile_no', 'Mobile number should start with 6, 7, 8, or 9');
+    }
+  }
+};
+
+const validateGuardianMobileNumber = () => {
+  clearFieldError('guardian.mobile_no');
+  if (form.guardian.mobile_no) {
+    const mobileStr = form.guardian.mobile_no.toString();
+    if (mobileStr.length < 10 || mobileStr.length > 12) {
+      setFieldError('guardian.mobile_no', 'Mobile number must be between 10 and 12 digits');
+    } else if (mobileStr.length === 10 && !mobileStr.startsWith('6') && !mobileStr.startsWith('7') && !mobileStr.startsWith('8') && !mobileStr.startsWith('9')) {
+      setFieldError('guardian.mobile_no', 'Mobile number should start with 6, 7, 8, or 9');
+    }
+  }
+};
+
 // Form validation (same as admission form)
 const validateForm = () => {
+  // Validate numeric fields
+  validateRollNumber();
+  validateMobileNumber();
+  validateGuardianMobileNumber();
+  
   if (form.login.username || form.login.password || form.login.retype_password) {
     if (!form.login.username) {
       showError('Student username is required if providing login details');
@@ -829,10 +1340,93 @@ const validateForm = () => {
   return true;
 };
 
+// Email validation function
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 // Form submission
 const handleSubmit = async () => {
-  if (!validateForm()) return;
+  // Clear any previous errors
+  clearErrors();
+  
+  // Validate mandatory fields - Academic Details
+  if (!form.branch_id) {
+    setFieldError('branch_id', 'Branch is required');
+  }
+  if (!form.academic_year_id) {
+    setFieldError('academic_year_id', 'Academic year is required');
+  }
+  if (!form.admission_number) {
+    setFieldError('admission_number', 'Admission number is required');
+  }
+  if (!form.admission_date) {
+    setFieldError('admission_date', 'Admission date is required');
+  }
+  if (!form.class_id) {
+    setFieldError('class_id', 'Class is required');
+  }
+  if (!form.section_id) {
+    setFieldError('section_id', 'Section is required');
+  }
+  if (!form.category) {
+    setFieldError('category', 'Category is required');
+  }
+  
+  // Validate mandatory fields - Student Details
+  if (!form.student.first_name) {
+    setFieldError('student.first_name', 'First name is required');
+  }
+  if (!form.student.gender) {
+    setFieldError('student.gender', 'Gender is required');
+  }
+  if (!form.student.date_of_birth) {
+    setFieldError('student.date_of_birth', 'Date of birth is required');
+  }
+  
+  // Validate mandatory fields - Guardian Details
+  if (!form.guardian.name) {
+    setFieldError('guardian.name', 'Guardian name is required');
+  }
+  if (!form.guardian.relation) {
+    setFieldError('guardian.relation', 'Guardian relation is required');
+  }
+  if (!form.guardian.occupation) {
+    setFieldError('guardian.occupation', 'Guardian occupation is required');
+  }
+  if (!form.guardian.income) {
+    setFieldError('guardian.income', 'Guardian income is required');
+  }
+  if (!form.guardian.education) {
+    setFieldError('guardian.education', 'Guardian education is required');
+  }
+  if (!form.guardian.mobile_no) {
+    setFieldError('guardian.mobile_no', 'Guardian mobile number is required');
+  }
+  if (!form.guardian.email) {
+    setFieldError('guardian.email', 'Guardian email is required');
+  }
+  if (!form.guardian.address) {
+    setFieldError('guardian.address', 'Guardian address is required');
+  }
+  
+  // Validate email formats (only if provided)
+  if (form.student.email && !isValidEmail(form.student.email)) {
+    setFieldError('student.email', 'Please enter a valid email address');
+  }
+  if (form.guardian.email && !isValidEmail(form.guardian.email)) {
+    setFieldError('guardian.email', 'Please enter a valid email address');
+  }
+  
+  // Check if there are any validation errors
+  if (hasErrors.value) {
+    return;
+  }
+
   loading.value = true;
+  isSubmitting.value = true;
+  
   try {
     const formData = new FormData();
     
@@ -841,7 +1435,7 @@ const handleSubmit = async () => {
       school_id: form.school_id,
       branch_id: form.branch_id,
       academic_year_id: form.academic_year_id,
-      register_no: form.register_no,
+      admission_number: form.admission_number,
       roll_number: form.roll_number,
       admission_date: form.admission_date,
       class_id: form.class_id,
@@ -890,12 +1484,69 @@ const handleSubmit = async () => {
         router.push(props.redirectTo);
       }, 2000);
     } else {
-      showError(response.message || `Failed to ${props.isEditing ? 'update' : 'create'} student`);
+      // Handle API validation errors
+      console.error('❌ API returned error response:', response);
+      
+      if (response.errors && typeof response.errors === 'object') {
+        setFieldErrors(response.errors);
+      }
+      
+      // Show error message
+      const errorMessage = response.message || response.error || `Failed to ${props.isEditing ? 'update' : 'create'} student`;
+      showError(errorMessage);
     }
   } catch (error) {
-    showError(`An error occurred while ${props.isEditing ? 'updating' : 'creating'} the student`);
+    // Handle network or other errors
+    console.error('❌ Form submission error:', error);
+    
+    // Extract error message from different error formats
+    let errorMessage = `An error occurred while ${props.isEditing ? 'updating' : 'creating'} the student`;
+    
+    if (error.response) {
+      // Server responded with error status
+      const status = error.response.status;
+      const data = error.response.data;
+      
+      console.error('❌ Server error response:', { status, data });
+      
+      if (data && data.message) {
+        errorMessage = data.message;
+      } else if (data && data.error) {
+        errorMessage = data.error;
+      } else if (status === 500) {
+        errorMessage = 'Server error occurred. Please try again or contact support.';
+      } else if (status === 400) {
+        errorMessage = 'Invalid request. Please check your input and try again.';
+      } else if (status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (status === 403) {
+        errorMessage = 'You do not have permission to perform this action.';
+      } else if (status === 404) {
+        errorMessage = 'Resource not found.';
+      } else {
+        errorMessage = `Server error (${status}). Please try again.`;
+      }
+      
+      // Handle field-specific errors
+      if (data && data.errors && typeof data.errors === 'object') {
+        setFieldErrors(data.errors);
+      }
+    } else if (error.request) {
+      // Network error
+      errorMessage = 'Network error. Please check your connection and try again.';
+    } else if (error.message) {
+      // Other error
+      errorMessage = error.message;
+    }
+    
+    // Show the error message
+    showError(errorMessage);
+    
+    // Also handle API errors for field validation
+    handleApiError(error);
   } finally {
     loading.value = false;
+    isSubmitting.value = false;
   }
 };
 
@@ -913,7 +1564,7 @@ const resetForm = () => {
     school_id: user.value?.school_id || '',
     branch_id: user.value?.branch_id || '',
     academic_year_id: '',
-    register_no: '',
+    admission_number: '',
     roll_number: '',
     admission_date: new Date().toISOString().split('T')[0],
     class_id: '',
@@ -938,6 +1589,9 @@ const resetForm = () => {
       state: '',
       address: '',
       profile_picture: null,
+      aadhaar_number: '',
+      admission_sought_in: '',
+      previous_exam_details: [],
     },
     login: {
       username: '',
@@ -945,7 +1599,6 @@ const resetForm = () => {
       retype_password: '',
     },
     guardian: {
-      already_exists: false,
       name: '',
       relation: '',
       father_name: '',
@@ -1060,7 +1713,7 @@ watch([() => form.school_id, () => form.branch_id, () => form._temp_class_name, 
 const updateFormWithResponseData = async (data) => {
   
   // Update basic fields
-  form.register_no = data.admission_number || form.register_no;
+  form.admission_number = data.admission_number || form.admission_number;
   form.roll_number = data.roll_number || form.roll_number;
   form.admission_date = data.admission_date || form.admission_date;
   form.category = data.category || form.category;
@@ -1081,6 +1734,21 @@ const updateFormWithResponseData = async (data) => {
   if (data.city) form.student.city = data.city;
   if (data.state) form.student.state = data.state;
   if (data.address) form.student.address = data.address;
+  if (data.aadhaar_number) form.student.aadhaar_number = data.aadhaar_number;
+  if (data.admission_sought_in) form.student.admission_sought_in = data.admission_sought_in;
+  if (data.previous_exam_details) {
+    // Handle both string and array formats
+    if (typeof data.previous_exam_details === 'string') {
+      try {
+        form.student.previous_exam_details = JSON.parse(data.previous_exam_details);
+      } catch (e) {
+        console.warn('Failed to parse previous_exam_details JSON:', e);
+        form.student.previous_exam_details = [];
+      }
+    } else {
+      form.student.previous_exam_details = data.previous_exam_details || [];
+    }
+  }
   
   // Map class and section names to IDs
   if (data.current_class && classes.value.length > 0) {

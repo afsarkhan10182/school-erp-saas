@@ -78,7 +78,7 @@ const {
 
 const userInitials = computed(() => {
   if (!props.user) return '';
-  return `${props.user.first_name?.charAt(0) || ''}${props.user.last_name?.charAt(0) || ''}`.toUpperCase();
+  return `${(props.user.first_name || '').charAt(0)}${(props.user.last_name || '').charAt(0)}`.toUpperCase();
 });
 
 const userName = computed(() => {

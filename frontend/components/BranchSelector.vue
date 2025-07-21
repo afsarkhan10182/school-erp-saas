@@ -13,6 +13,7 @@
           'opacity-50 cursor-not-allowed': disabled || loading,
           'hover:border-gray-500': !disabled && !loading
         }"
+        style="appearance: none; background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%2394a3b8%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3e%3c/svg%3e'); background-position: right 12px center; background-repeat: no-repeat; background-size: 16px; padding-right: 40px;"
       >
         <option value="" disabled class="bg-gray-800 text-white">
           {{ loading ? 'Loading branches...' : 'Select a branch' }}

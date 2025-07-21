@@ -103,7 +103,7 @@
                 ]"
                 placeholder="+1234567890"
                 @blur="validateField('phone')"
-                @input="clearError('phone')"
+                @input="formData.phone = formData.phone.replace(/[^\d+]/g, ''); clearError('phone')"
               />
               <div v-if="errors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
                 {{ errors.phone }}
