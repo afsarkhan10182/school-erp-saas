@@ -10,33 +10,58 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
   const isPublicRoute = publicRoutes.includes(to.path);
   
-  // Skip middleware if auth is still initializing (prevents race conditions)
-  if (authStore.isInitializing) {
-    return;
-  }
-
-  // Check if user is authenticated (we can't check HTTP-only cookies directly)
+  // INSTANT CHECK: Look for HTTP-only cookie presence (prevents flash on new tabs)
+  const accessToken = useCookie('accessToken');
+  const hasTokenCookie = !!accessToken.value;
+  
+  // Check if user is authenticated from store state
   const isAuthenticated = authStore.isLoggedIn && authStore.currentUser;
   
-  // CASE 1: User is authenticated and trying to access login page
-  if (to.path === '/login' && isAuthenticated) {
+  // CASE 1: User is authenticated (via store or cookie) and trying to access login page
+  if (to.path === '/login' && (isAuthenticated || hasTokenCookie)) {
     console.log('🔄 User already authenticated, redirecting to dashboard');
     return navigateTo('/dashboard');
   }
   
   // CASE 2: User not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute) {
-    // Try to check with server first (maybe they have a valid session)
-    try {
-      const serverAuth = await authStore.checkAuth();
-      if (!serverAuth) {
-        console.log('🔒 No valid authentication, redirecting to login');
-        return navigateTo('/login');
-      }
-      // If server auth successful, allow navigation to continue
-    } catch (error) {
-      console.log('🔒 Auth check failed, redirecting to login');
-      return navigateTo('/login');
+    // If we have a token cookie but store isn't initialized, allow navigation
+    // and let the store initialize in the background
+    if (hasTokenCookie) {
+      console.log('🔑 Token cookie found, allowing navigation and verifying in background');
+      
+      // Trigger async auth verification in background (non-blocking)
+      nextTick(async () => {
+        try {
+          const isValid = await authStore.checkAuth();
+          if (!isValid) {
+            console.log('🔒 Background auth check failed, redirecting to login');
+            await navigateTo('/login');
+          }
+        } catch (error) {
+          console.error('🔒 Background auth check error:', error);
+          await navigateTo('/login');
+        }
+      });
+      
+      // Allow immediate navigation
+      return;
     }
+    
+    // No token cookie and not authenticated - redirect to login immediately
+    console.log('🔒 No authentication found, redirecting to login');
+    return navigateTo('/login');
+  }
+  
+  // For all other cases, if we have a cookie but store isn't fully initialized,
+  // trigger background verification without blocking navigation
+  if (hasTokenCookie && !isAuthenticated && !authStore.isInitializing) {
+    nextTick(async () => {
+      try {
+        await authStore.checkAuth();
+      } catch (error) {
+        console.error('🔒 Background auth verification failed:', error);
+      }
+    });
   }
 });

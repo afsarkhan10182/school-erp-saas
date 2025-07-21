@@ -94,11 +94,8 @@ export const useAuthStore = defineStore('auth', () => {
             ]);
             
             if (!isValid) {
-              console.log('❌ Background verification failed - clearing auth');
-              user.value = null;
-              currentBranch.value = null;
-              currentSchool.value = null;
-              clearAuthData();
+              console.log('❌ Background verification failed - performing silent logout');
+              await silentLogout();
               
               // Redirect to login if not already there
               if (window.location.pathname !== '/login') {
@@ -301,6 +298,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
+  // Silent logout - clears auth state without navigation (for background checks)
+  const silentLogout = async () => {
+    try {
+      // Call logout endpoint to invalidate tokens on server
+      await apiClient.auth.logout();
+    } catch (error: any) {
+      // Handle specific error cases silently
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        // User already logged out or token expired - continuing with local cleanup
+      }
+      // Even if the server logout fails, we should still clear local state
+      console.log('⚠️ Silent logout server call failed, continuing with local cleanup:', error.message);
+    } finally {
+      // Always clear all auth data regardless of server response
+      user.value = null;
+      currentBranch.value = null;
+      currentSchool.value = null;
+      availableBranches.value = [];
+      lastAuthCheck.value = 0;
+      
+      // Clear localStorage and cookies (this will also clear the refresh timer)
+      clearAuthData();
+      
+      // Signal other tabs about logout (without navigation)
+      if (import.meta.client) {
+        localStorage.setItem('auth-action', 'logout');
+        setTimeout(() => {
+          localStorage.removeItem('auth-action');
+        }, 100);
+      }
+      
+      console.log('🔇 Silent logout completed - auth state cleared');
+    }
+  };
+
   // Check authentication
   const checkAuth = async (): Promise<boolean> => {
     try {
@@ -486,6 +518,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Actions
     login,
     logout,
+    silentLogout,
     checkAuth,
     updateUser,
     setCurrentBranch,
