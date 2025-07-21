@@ -17,7 +17,7 @@
       </div>
 
       <!-- Fee Types List -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee types...</p>
@@ -35,7 +35,7 @@
           </button>
         </div>
 
-        <div v-else class="overflow-hidden">
+        <div v-else>
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -277,16 +277,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
+// SSR-safe window check
+const isClient = import.meta.client;
+
 // Get auth context
 const { user } = useAuth();
 const { showSuccess, showError } = useToast();
+const router = useRouter();
+const route = useRoute();
 
 const feeTypes = ref([]);
 const isLoading = ref(false);
@@ -561,7 +567,11 @@ const deleteFeeType = async (id) => {
   }
 };
 
+// Handle window resize
+let resizeObserver;
+
 onMounted(async () => {
+  if (isClient) {
   console.log('[FeeTypes] Component mounted');
   console.log('[FeeTypes] User data on mount:', user.value);
   console.log('[FeeTypes] User role on mount:', user.value?.role);
@@ -579,9 +589,21 @@ onMounted(async () => {
     await fetchBranchesForSchoolAdmin();
   }
   
-  // Load fee types
-  console.log('[FeeTypes] Loading fee types');
-  await fetchFeeTypes();
+    // Load fee types
+    await fetchFeeTypes();
+    
+    // Setup resize observer
+    resizeObserver = new ResizeObserver(() => {
+      checkMobile();
+    });
+    resizeObserver.observe(document.body);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (isClient && resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
 </script>
 

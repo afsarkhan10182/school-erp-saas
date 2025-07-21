@@ -17,7 +17,7 @@
       </div>
 
       <!-- Fee Structures List -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee structures...</p>
@@ -35,7 +35,7 @@
           </button>
         </div>
 
-        <div v-else class="overflow-hidden">
+        <div v-else>
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -285,7 +285,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
@@ -293,8 +294,13 @@ import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
+// SSR-safe window check
+const isClient = import.meta.client;
+
 // Get auth context
 const { user } = useAuth();
+const router = useRouter();
+const route = useRoute();
 const { academicYears, classes, sections, fetchAcademicYears, fetchClasses, fetchSections, loadSectionsByClass, currentAcademicYear } = useAcademics();
 const { fetchBranches } = useBranches();
 const { showSuccess, showError } = useToast();
@@ -759,7 +765,11 @@ watch(sections, (newSections) => {
   }
 }, { immediate: true });
 
+// Handle window resize
+let resizeObserver;
+
 onMounted(async () => {
+  if (isClient) {
   // Load schools for super admin on component mount
   if (user.value?.role === 'super_admin') {
     await fetchSchools();
@@ -770,8 +780,21 @@ onMounted(async () => {
     await fetchBranchesForSchoolAdmin();
   }
   
-  // Load fee structures and fee types
-  await Promise.all([fetchFeeStructures(), fetchFeeTypes()]);
+    // Load fee structures and fee types
+    await Promise.all([fetchFeeStructures(), fetchFeeTypes()]);
+    
+    // Setup resize observer
+    resizeObserver = new ResizeObserver(() => {
+      checkMobile();
+    });
+    resizeObserver.observe(document.body);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (isClient && resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
 </script>
 

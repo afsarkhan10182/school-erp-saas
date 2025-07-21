@@ -489,6 +489,7 @@ const getStudentById = async (req, res, next) => {
             'father_occupation', 'mother_occupation',
             'father_qualification', 'mother_qualification',
             'father_income', 'mother_income',
+            'guardian_income', 'guardian_education', 'guardian_occupation',
             'guardian_relation', 'city', 'state', 'address'
           ],
         },
@@ -1410,6 +1411,8 @@ const bulkImportStudents = async (req, res, next) => {
             mother_name: rowData.MotherName || null, // Always mapped
           };
 
+
+
           // Set father or mother information based on relation
           if (guardianData.guardian_relation === 'father') {
             guardianData.father_name = rowData.GuardianName;
@@ -1432,6 +1435,8 @@ const bulkImportStudents = async (req, res, next) => {
           }
 
           const guardian = await Parent.create(guardianData, { transaction });
+
+
 
           // Link student and guardian
           await StudentParent.create({

@@ -27,7 +27,7 @@ import Toast from '~/components/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
 
-const sidebarOpen = ref(false);
+const sidebarOpen = ref(window?.innerWidth >= 768);
 const router = useRouter();
 const route = useRoute();
 
@@ -137,11 +137,24 @@ onUnmounted(() => {
 
 <style scoped>
 @media (max-width: 768px) {
-  aside {
-    display: none;
-  }
   .ml-64, .ml-16 {
     margin-left: 0 !important;
+  }
+  
+  /* Ensure content fills screen width on mobile */
+  .flex-1 {
+    width: 100%;
+  }
+  
+  /* Adjust padding for mobile */
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* Handle overflow properly */
+  .min-h-screen {
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 </style> 

@@ -1,14 +1,19 @@
 <template>
   <!-- Mobile overlay -->
-  <div v-if="isMobile && open" class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden" @click="$emit('toggle')"></div>
+  <div 
+    v-if="isMobile && open" 
+    class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden backdrop-blur-sm" 
+    @click="$emit('toggle')"
+    @touchmove.prevent
+  ></div>
   
   <!-- Sidebar -->
   <div 
 :class="[
-      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 flex flex-col', 
-      isMobile ? (open ? 'w-64 translate-x-0' : 'w-64 -translate-x-full') : (open ? 'w-64' : 'w-16'),
+      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      isMobile ? (open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full') : (open ? 'w-64' : 'w-16'),
       isMobile ? 'md:w-16 md:translate-x-0' : '',
-      'transform' // Add transform class for smoother transitions
+      'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
   >
     <!-- Logo/Brand Header -->
@@ -32,14 +37,14 @@
     </div>
 
     <!-- Scrollable Navigation -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden">
+    <div class="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
       <nav class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
           <NuxtLink 
             :to="'/dashboard'" 
             :class="navClass('/dashboard')"
-            @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve('/dashboard').href, '_blank') : null"
+            @click="handleMenuClick('/dashboard', $event)"
           >
             <Home class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
             <span v-if="open || isMobile">Dashboard</span>
@@ -76,7 +81,7 @@
               </div>
             <!-- Hover Menu for Collapsed State -->
               <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0">
                 <div class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">
                   {{ menuItem.title }}
                 </div>
@@ -97,7 +102,7 @@
               <!-- Submenu Items -->
               <div 
                 v-show="menuOpen === menuItem.id && open" 
-                class="overflow-hidden transition-all duration-300"
+                class="overflow-hidden transition-all duration-300 ease-in-out"
                 :class="[open ? 'max-h-96' : 'max-h-0']"
               >
                 <div class="ml-8 space-y-1 py-1">
@@ -106,7 +111,7 @@
                     :key="subItem.id"
                     :to="subItem.path" 
                     :class="navClass(subItem.path)"
-                    @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(subItem.path).href, '_blank') : null"
+                    @click="handleMenuClick(subItem.path, $event)"
                     @auxclick="$event.button === 1 ? window.open($router.resolve(subItem.path).href, '_blank') : null"
                   >
                     <component :is="subItem.icon" class="w-5 h-5 mr-3" />
@@ -121,7 +126,7 @@
               <NuxtLink 
                 :to="menuItem.path" 
                 :class="navClass(menuItem.path)"
-                @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+                @click="handleMenuClick(menuItem.path, $event)"
                 @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
               >
                 <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
@@ -173,13 +178,7 @@ import {
 const props = defineProps({
   open: {
     type: Boolean,
-    default: () => {
-      // Try to get stored state first, fallback to window width check
-      if (typeof window !== 'undefined' && localStorage.getItem('sidebarOpen') !== null) {
-        return localStorage.getItem('sidebarOpen') === 'true';
-      }
-      return window?.innerWidth > 768;
-    }
+    default: () => true
   },
   user: {
     type: Object,
@@ -377,6 +376,20 @@ const subNavClass = (path) => {
   return navClass(path);
 };
 
+const handleMenuClick = (path, event) => {
+  // Handle middle click or Ctrl/Cmd + click to open in new tab
+  if (event.button === 1 || ((event.ctrlKey || event.metaKey) && event.type === 'click')) {
+    event.preventDefault();
+    window.open($router.resolve(path).href, '_blank');
+    return;
+  }
+
+  // For normal clicks, close the sidebar if on mobile
+  if (isMobile.value) {
+    emit('toggle');
+  }
+};
+
 const logout = async () => {
   await authStore.logout();
   await navigateTo('/login');
@@ -391,9 +404,17 @@ const checkMobile = () => {
     const newIsMobile = window.innerWidth < 768;
     if (newIsMobile !== isMobile.value) {
       isMobile.value = newIsMobile;
-      const shouldBeOpen = !newIsMobile;
-      emit('toggle', shouldBeOpen);
-      saveSidebarState(shouldBeOpen); // Save state when toggling based on mobile detection
+      
+      // On desktop (non-mobile), always keep the menu open
+      // On mobile, always close it initially
+      emit('toggle', !newIsMobile);
+      
+      // Prevent body scroll when sidebar is open on mobile
+      if (newIsMobile && props.open) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
     }
   }
 };
@@ -440,7 +461,7 @@ onUnmounted(() => {
 /* Smooth transitions */
 .slide-sidebar-enter-active,
 .slide-sidebar-leave-active {
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-sidebar-enter-from,
@@ -453,9 +474,27 @@ onUnmounted(() => {
   transform: translateX(0);
 }
 
+/* Improve hover menu animations */
+.group:hover .group-hover\:block {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Ensure proper spacing and prevent content overflow */
 nav {
   min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Smooth menu transitions */
