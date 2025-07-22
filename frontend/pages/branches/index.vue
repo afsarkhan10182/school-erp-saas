@@ -96,6 +96,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useBranches } from '~/composables/useBranches';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access branches
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage branches.');
+  await navigateTo('/dashboard');
+}
 
 const { branches, loading, error, fetchAllBranches, deleteBranch } = useBranches();
 const search = ref('');

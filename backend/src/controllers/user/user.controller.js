@@ -1,6 +1,7 @@
 const UserService = require('../../services/user/user.service');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
+const { RoleManager, ROLES } = require('../../utils/roleManager');
 
 class UserController {
   // Create a new user with role-based access control
@@ -43,16 +44,18 @@ class UserController {
       }
       
       // Validate required fields
-      if (!cleanData.email || !cleanData.password || !cleanData.first_name || !cleanData.last_name || !cleanData.role) {
-        throw new ApiError(400, 'Missing required fields: email, password, first_name, last_name, role');
+      if (!cleanData.email || !cleanData.first_name || !cleanData.last_name || !cleanData.role) {
+        throw new ApiError(400, 'Missing required fields: email, first_name, last_name, role');
       }
       
-      // School admins can only create certain roles
-      if (role === 'school_admin') {
-        const allowedRoles = ['teacher', 'accountant', 'librarian', 'receptionist', 'school_admin'];
-        if (!allowedRoles.includes(newUserRole)) {
-          throw new ApiError(403, 'You are not authorized to create this role');
-        }
+      // If password is empty or not provided, it will be auto-generated in the service
+      if (!cleanData.password || cleanData.password.trim() === '') {
+        delete cleanData.password;
+      }
+      
+      // Validate role assignment using RoleManager
+      if (!RoleManager.hasRoleOrHigher(role, newUserRole)) {
+        throw new ApiError(403, `You are not authorized to create users with role: ${newUserRole}`);
       }
       
       const userData = {
@@ -66,10 +69,21 @@ class UserController {
 
       const user = await UserService.createUser(userData);
       
+      // Prepare response data
+      const responseData = { ...user };
+      
+      // If password was auto-generated, include it in the response
+      if (user.generatedPassword) {
+        responseData.generatedPassword = user.generatedPassword;
+        // Remove the generated password from the main user object for security
+        delete responseData.generatedPassword;
+      }
+      
       res.status(201).json({
         success: true,
         message: 'User created successfully',
-        data: user,
+        data: responseData,
+        generatedPassword: user.generatedPassword || null,
       });
     } catch (error) {
       logger.error('Error in UserController.createUser:', error);
@@ -165,8 +179,8 @@ class UserController {
       const { schoolId } = req.params;
       const { page = 1, limit = 10, search, role, status } = req.query;
       
-      // Verify School Admin can only access their own school
-      if (req.user.role === 'school_admin' && req.user.school_id !== schoolId) {
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessSchool(req.user.role, req.user.school_id, schoolId)) {
         return res.status(403).json({
           success: false,
           message: 'Access denied',

@@ -33,7 +33,7 @@ export const useBranchContext = () => {
         response = await apiClient.branches.getAll();
       } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
-        response = await apiClient.branches.getAll(authStore.currentSchool.id);
+        response = await apiClient.branches.getBySchool(authStore.currentSchool.id);
       } else {
         // Other roles can only see their assigned branch
         if (authStore.currentBranch) {
@@ -72,7 +72,7 @@ export const useBranchContext = () => {
       const success = await authStore.switchBranch(branchId);
       if (success) {
         // Emit event to notify other components about branch change
-        if (process.client) {
+        if (import.meta.client) {
           window.dispatchEvent(new CustomEvent('branch-changed', {
             detail: { branch: authStore.currentBranch }
           }));

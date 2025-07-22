@@ -214,6 +214,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { apiClient } from '~/utils/api';
+import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { 
   Plus, 
@@ -228,66 +230,27 @@ definePageMeta({
   layout: 'default'
 });
 
-// No need to destructure from composable since we're using apiClient directly
+const authStore = useAuthStore();
 const { showError } = useToast();
 
-// Reactive data
-const schools = ref([]);
-const plans = ref([]);
-const loading = ref(true);
-const error = ref('');
-const pagination = ref(null);
+// Access control - only Super Admin can access schools subscription management
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage school subscriptions.');
+  await navigateTo('/dashboard');
+}
 
-// Filters
-const filters = ref({
-  search: '',
-  status: '',
-  subscription_plan: '',
-  page: 1,
-  limit: 10
-});
-
-// Debounced search
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    filters.value.page = 1;
-    loadSchools();
-  }, 500);
-};
-
-// Load schools
-const loadSchools = async () => {
-  loading.value = true;
-  error.value = '';
-  
-  try {
-    const result = await apiClient.subscriptions.getSchoolsWithSubscriptions(filters.value);
-    schools.value = result.data.schools || [];
-    pagination.value = result.data.pagination || null;
-  } catch (err) {
-    error.value = 'Failed to load schools. Please try again.';
-    showError('Failed to load schools');
-  } finally {
-    loading.value = false;
-  }
-};
+const { schools, loading, error, fetchSchoolsWithSubscriptions, suspendSchool, reactivateSchool, plans, pagination, filters, loadSchools, handlePageChange, debouncedSearch } = useSubscriptions();
 
 // Load plans for filter dropdown
 const loadPlans = async () => {
   try {
     const result = await apiClient.subscriptions.getPlans();
-    plans.value = result.data.plans || [];
+    // Assuming plans.value is managed by useSubscriptions, so we don't need to reassign here
+    // plans.value = result.data.plans || []; 
   } catch (err) {
     console.error('Failed to load plans:', err);
   }
-};
-
-// Handle pagination
-const handlePageChange = (page) => {
-  filters.value.page = page;
-  loadSchools();
 };
 
 // Format date

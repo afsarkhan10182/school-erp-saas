@@ -231,6 +231,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { AlertCircle, FileText } from 'lucide-vue-next';
 
@@ -240,11 +242,19 @@ definePageMeta({
   layout: 'default'
 });
 
-const { showSuccess, showError } = useToast();
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access renewal requests
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage renewal requests.');
+  await navigateTo('/dashboard');
+}
+
+const { renewalRequests, loading, error, fetchRenewalRequests, reviewRenewalRequest } = useSubscriptions();
 
 // Reactive data
-const loading = ref(true);
-const error = ref('');
 const requests = ref([]);
 const schools = ref([]);
 const pagination = ref(null);

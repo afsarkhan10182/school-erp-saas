@@ -91,7 +91,7 @@
       </div>
 
       <!-- Create/Edit Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
           <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -310,7 +310,7 @@ const fetchBranchesForSchool = async (schoolId) => {
   }
   
   try {
-    const response = await apiClient.branches.getAll(schoolId);
+    const response = await apiClient.branches.getBySchool(schoolId);
     availableBranches.value = response.data?.branches || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
@@ -326,7 +326,7 @@ const fetchBranchesForCurrentSchool = async () => {
     const schoolId = authStore.user?.school_id;
     if (!schoolId) return;
     
-    const response = await apiClient.branches.getAll(schoolId);
+    const response = await apiClient.branches.getBySchool(schoolId);
     availableBranches.value = response.data?.branches || [];
   } catch (error) {
     console.error('Error fetching branches for current school:', error);

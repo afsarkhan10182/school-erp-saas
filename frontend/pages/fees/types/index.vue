@@ -42,6 +42,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -63,6 +64,14 @@
                   }">
                     {{ feeType.category }}
                   </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div v-if="feeType.branch" class="flex items-center">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="font-medium">{{ feeType.branch.name }}</span>
+                    <span v-if="feeType.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ feeType.branch.code }})</span>
+                  </div>
+                  <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
@@ -277,7 +286,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
@@ -305,7 +314,7 @@ const editingId = ref(null);
 const selectedSchoolId = ref('');
 const availableSchools = ref([]);
 
-// Branch selector for school admin
+// Branch selector for school admin (only for modal)
 const selectedBranchId = ref('');
 const availableBranches = ref([]);
 const { fetchBranches } = useBranches();
@@ -362,18 +371,12 @@ const onSchoolChange = async () => {
   if (selectedSchoolId.value) {
     try {
       console.log('[FeeTypes] Fetching branches for school:', selectedSchoolId.value);
-      const response = await fetchBranches(selectedSchoolId.value);
-      console.log('[FeeTypes] Branches response for school:', response);
+      const branches = await fetchBranches(selectedSchoolId.value);
+      console.log('[FeeTypes] Branches response for school:', branches);
       
-      // Extract branches from response
-      if (response.success && response.data) {
-        if (response.data.branches) {
-          availableBranches.value = response.data.branches;
-        } else if (Array.isArray(response.data)) {
-          availableBranches.value = response.data;
-        } else {
-          availableBranches.value = [];
-        }
+      // fetchBranches returns the branches array directly
+      if (Array.isArray(branches)) {
+        availableBranches.value = branches;
       } else {
         availableBranches.value = [];
       }
@@ -411,18 +414,12 @@ const fetchBranchesForSchoolAdmin = async () => {
   
   try {
     console.log('[FeeTypes] Fetching branches for school admin, school_id:', user.value.school_id);
-    const response = await fetchBranches(user.value.school_id);
-    console.log('[FeeTypes] Branches response:', response);
+    const branches = await fetchBranches(user.value.school_id);
+    console.log('[FeeTypes] Branches response:', branches);
     
-    // Extract branches from response
-    if (response.success && response.data) {
-      if (response.data.branches) {
-        availableBranches.value = response.data.branches;
-      } else if (Array.isArray(response.data)) {
-        availableBranches.value = response.data;
-      } else {
-        availableBranches.value = [];
-      }
+    // fetchBranches returns the branches array directly
+    if (Array.isArray(branches)) {
+      availableBranches.value = branches;
     } else {
       availableBranches.value = [];
     }
@@ -440,6 +437,24 @@ const fetchBranchesForSchoolAdmin = async () => {
   }
 };
 
+// Force reload branches for school admin (for debugging)
+const forceReloadBranches = async () => {
+  if (user.value?.role === 'school_admin' && user.value?.school_id) {
+    console.log('[FeeTypes] Force reloading branches...');
+    await fetchBranchesForSchoolAdmin();
+  }
+};
+
+// Watch for user data changes to load branches
+watch(user, async (newUser) => {
+  if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
+    console.log('[FeeTypes] User changed, loading branches for school admin');
+    await fetchBranchesForSchoolAdmin();
+  }
+}, { immediate: true });
+
+
+
 const fetchFeeTypes = async () => {
   isLoading.value = true;
   try {
@@ -456,7 +471,7 @@ const fetchFeeTypes = async () => {
   }
 };
 
-const openCreateModal = () => {
+const openCreateModal = async () => {
   console.log('[FeeTypes] Opening create modal');
   console.log('[FeeTypes] User data in modal:', user.value);
   console.log('[FeeTypes] User role in modal:', user.value?.role);
@@ -467,16 +482,16 @@ const openCreateModal = () => {
   isEditing.value = false;
   showModal.value = true;
   
-  // Load schools for super admin if not already loaded
-  if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
+  // Load schools for super admin
+  if (user.value?.role === 'super_admin') {
     console.log('[FeeTypes] Loading schools for super admin in modal');
-    fetchSchools();
+    await fetchSchools();
   }
 
-  // Load branches for school admin if not already loaded
-  if (user.value?.role === 'school_admin' && user.value?.school_id && availableBranches.value.length === 0) {
+  // Load branches for school admin (always load to ensure fresh data)
+  if (user.value?.role === 'school_admin' && user.value?.school_id) {
     console.log('[FeeTypes] Loading branches for school admin in modal');
-    fetchBranchesForSchoolAdmin();
+    await fetchBranchesForSchoolAdmin();
   }
 };
 
@@ -570,25 +585,31 @@ const deleteFeeType = async (id) => {
 // Handle window resize
 let resizeObserver;
 
+// Add missing checkMobile function
+const checkMobile = () => {
+  // This function was referenced but not defined
+  // For now, we'll leave it empty as it's not critical for dropdown functionality
+};
+
 onMounted(async () => {
   if (isClient) {
-  console.log('[FeeTypes] Component mounted');
-  console.log('[FeeTypes] User data on mount:', user.value);
-  console.log('[FeeTypes] User role on mount:', user.value?.role);
-  console.log('[FeeTypes] User school_id on mount:', user.value?.school_id);
-  
-  // Load schools for super admin on component mount
-  if (user.value?.role === 'super_admin') {
-    console.log('[FeeTypes] Loading schools for super admin');
-    await fetchSchools();
-  }
-  
-  // Load branches for school admin on component mount
-  if (user.value?.role === 'school_admin') {
-    console.log('[FeeTypes] Loading branches for school admin');
-    await fetchBranchesForSchoolAdmin();
-  }
-  
+    console.log('[FeeTypes] Component mounted');
+    console.log('[FeeTypes] User data on mount:', user.value);
+    console.log('[FeeTypes] User role on mount:', user.value?.role);
+    console.log('[FeeTypes] User school_id on mount:', user.value?.school_id);
+    
+    // Load schools for super admin on component mount
+    if (user.value?.role === 'super_admin') {
+      console.log('[FeeTypes] Loading schools for super admin');
+      await fetchSchools();
+    }
+    
+    // Load branches for school admin on component mount
+    if (user.value?.role === 'school_admin') {
+      console.log('[FeeTypes] Loading branches for school admin');
+      await fetchBranchesForSchoolAdmin();
+    }
+    
     // Load fee types
     await fetchFeeTypes();
     

@@ -140,7 +140,7 @@
                 {{ user.branch?.name || '-' }}
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <!-- <div class="flex items-center justify-end space-x-2">
+                <div class="flex items-center justify-end space-x-2">
                   <NuxtLink 
                     :to="`/users/${user.id}/edit`" 
                     class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
@@ -151,6 +151,7 @@
                     </svg>
                   </NuxtLink>
                   <button 
+                    v-if="!isSchoolAdmin || (user.role !== 'school_admin' && user.id !== authStore.user?.id)"
                     @click="confirmDelete(user)" 
                     class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                     title="Delete"
@@ -159,24 +160,75 @@
                       <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                   </button>
-                </div> -->
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3 text-center">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
+            <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mt-4">Delete User</h3>
+          <div class="mt-2 px-7 py-3">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Are you sure you want to delete <strong>{{ userToDelete?.first_name }} {{ userToDelete?.last_name }}</strong>? This action cannot be undone.
+            </p>
+          </div>
+          <div class="items-center px-4 py-3">
+            <button
+              @click="deleteUser"
+              class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+            >
+              Delete
+            </button>
+            <button
+              @click="showDeleteModal = false"
+              class="mt-2 px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </client-only>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
-import apiClient from '~/utils/api';
+import { apiClient } from '~/utils/api';
 import { useToast } from 'vue-toastification';
 
-const { user } = useAuthStore();
+const authStore = useAuthStore();
+
+// Access control - only Super Admin and School Admin can access user management
+const user = authStore.user;
+if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
+  // Show error toast
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent('show-toast', {
+      detail: {
+        message: 'Access denied. Only Super Admin and School Admin can manage users.',
+        type: 'error'
+      }
+    });
+    window.dispatchEvent(event);
+  }
+  await navigateTo('/dashboard');
+}
+
+const { user: currentUser } = useAuthStore();
 const users = ref([]);
 const branches = ref([]);
 const searchQuery = ref('');
@@ -185,7 +237,7 @@ const showDeleteModal = ref(false);
 const userToDelete = ref(null);
 const isLoading = ref(true);
 const router = useRouter();
-const authStore = useAuthStore();
+const route = useRoute();
 
 const newStaff = ref({
   first_name: '',
@@ -218,6 +270,7 @@ const roleTabs = ref([
   { key: 'accountant', label: 'Accountants', count: 0 },
   { key: 'librarian', label: 'Librarians', count: 0 },
   { key: 'receptionist', label: 'Receptionists', count: 0 },
+  { key: 'branch_admin', label: 'Branch Admins', count: 0 },
   { key: 'school_admin', label: 'School Admins', count: 0 },
   { key: 'super_admin', label: 'Super Admins', count: 0 },
 ]);
@@ -227,7 +280,7 @@ const roleCounts = ref({});
 const filteredRoleTabs = computed(() => {
   if (isSchoolAdmin.value) {
     return roleTabs.value.filter(tab => 
-      ['all', 'teacher', 'accountant', 'librarian', 'receptionist', 'school_admin'].includes(tab.key)
+      ['all', 'teacher', 'accountant', 'librarian', 'receptionist', 'branch_admin'].includes(tab.key)
     );
   }
   return roleTabs.value;
@@ -241,6 +294,11 @@ const getUserInitials = (user) => {
 
 const filteredUsers = computed(() => {
   let result = [...users.value];
+  
+  // If current user is School Admin, exclude other School Admin users
+  if (isSchoolAdmin.value) {
+    result = result.filter(user => user.role !== 'school_admin');
+  }
   
   // Filter by search query
   if (searchQuery.value) {
@@ -262,11 +320,19 @@ const filteredUsers = computed(() => {
 });
 
 const updateRoleCounts = () => {
-  const counts = { all: users.value.length };
+  // Filter users based on current user's role
+  let filteredUsers = [...users.value];
+  
+  // If current user is School Admin, exclude other School Admin users from counts
+  if (isSchoolAdmin.value) {
+    filteredUsers = filteredUsers.filter(user => user.role !== 'school_admin');
+  }
+  
+  const counts = { all: filteredUsers.length };
   
   roleTabs.value.forEach(tab => {
     if (tab.key !== 'all') {
-      counts[tab.key] = users.value.filter(user => user.role === tab.key).length;
+      counts[tab.key] = filteredUsers.filter(user => user.role === tab.key).length;
     }
   });
   
@@ -275,14 +341,9 @@ const updateRoleCounts = () => {
 
 const fetchBranches = async () => {
   try {
-
     if (authStore.user?.school_id) {
-      const response = await apiClient.branches.getAll(authStore.user.school_id);
-      console.log('Branches response:', response);
-      branches.value = response.data || [];
-      console.log('Branches loaded:', branches.value);
-    } else {
-      console.log('No school_id found for user');
+      const response = await apiClient.branches.getBySchool(authStore.user.school_id);
+      branches.value = response.data.branches || response.data || [];
     }
   } catch (error) {
     console.error('Error fetching branches:', error);
@@ -295,24 +356,35 @@ const fetchUsers = async (showLoading = true) => {
       isLoading.value = true;
     }
     
+    let response;
     if (isSchoolAdmin.value) {
-      // Use the school staff endpoint for school admins
-      const response = await apiClient.schools.getStaff(authStore.user.school_id, {
+      // Use the users endpoint with school_id filter for school admins
+      response = await apiClient.users.getAll({
+        schoolId: authStore.user.school_id,
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
         search: searchQuery.value || undefined,
       });
-      users.value = response.data.users || response.data;
     } else {
       // Super admin can see all users
-      const response = await apiClient.users.getAll({
+      response = await apiClient.users.getAll({
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
         search: searchQuery.value || undefined,
       });
-      users.value = response.data.users || response.data;
+    }
+    
+    // Handle response structure from backend
+    if (response.data && response.data.users && Array.isArray(response.data.users)) {
+      users.value = response.data.users;
+    } else if (response.data && Array.isArray(response.data)) {
+      users.value = response.data;
+    } else {
+      users.value = [];
     }
     
     updateRoleCounts();
-    useToast().success('Users list updated');
+    if (showLoading) {
+      useToast().success('Users list updated');
+    }
   } catch (error) {
     console.error('Error fetching users:', error);
     useToast().error(error.response?.data?.message || 'Failed to fetch users. Please try again.');
@@ -322,15 +394,32 @@ const fetchUsers = async (showLoading = true) => {
 };
 
 onMounted(() => {
-  console.log('User info:', {
-    role: authStore.user?.role,
-    school_id: authStore.user?.school_id,
-    branch_id: authStore.user?.branch_id,
-    email: authStore.user?.email
-  });
   fetchUsers();
   fetchBranches();
 });
+
+// Watch for route changes to handle refresh parameter
+watch(() => route.query.refresh, (newVal) => {
+  if (newVal === 'true') {
+    // Remove the refresh parameter from URL
+    router.replace({ query: { ...route.query, refresh: undefined } });
+    // Fetch users again
+    fetchUsers();
+  }
+});
+
+// Watch for route changes to refresh when returning from edit
+watch(() => route.path, (newPath, oldPath) => {
+  if (newPath === '/users' && oldPath && oldPath.startsWith('/users/') && oldPath.includes('/edit')) {
+    // User returned from edit page, refresh the list
+    fetchUsers(false);
+  }
+});
+
+// Watch for search and role filter changes
+watch([searchQuery, selectedRole], () => {
+  fetchUsers(false); // Don't show loading indicator for filter changes
+}, { debounce: 300 });
 
 const confirmDelete = (user) => {
   userToDelete.value = user;

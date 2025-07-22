@@ -1,7 +1,8 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent } = require('../models');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
+const { generateInstallmentReceipt } = require('../services/receipt.service');
 
 // Generate invoices for students based on fee structure
 const generateInvoices = async (req, res, next) => {
@@ -46,31 +47,10 @@ const generateInvoices = async (req, res, next) => {
       where: studentFilter,
     });
 
-    // Debug logging
-    logger.debug('Fee invoice generation - Student filter:', {
-      filter: studentFilter,
-      studentsFound: students.length,
-      class_name: class_name,
-      section: section,
-      academic_year: academic_year
-    });
+
 
     if (students.length === 0) {
-      // Try to find students with similar criteria for debugging
-      const similarStudents = await Student.findAll({
-        where: {
-          school_id: req.schoolId,
-          academic_year,
-          status: 'active',
-          current_class: { [Op.like]: `%${class_name?.replace(/^Class\s+/i, '').trim() || ''}%` }
-        },
-        attributes: ['id', 'first_name', 'last_name', 'current_class', 'section', 'academic_year'],
-        limit: 5
-      });
-
-      logger.debug('Similar students found for debugging:', similarStudents);
-
-      throw new ApiError(404, `No active students found for the specified criteria. Found ${similarStudents.length} students with similar criteria.`);
+      throw new ApiError(404, 'No active students found for the specified criteria');
     }
 
     // Build fee structure filter
@@ -185,16 +165,7 @@ const generateInvoices = async (req, res, next) => {
               calculatedDueDate.setDate(today.getDate() + dueDays);
             }
             
-            // Log the due date calculation for debugging
-            logger.debug('Due date calculation:', {
-              student_id: student.id,
-              fee_type: feeStructure.feeType.name,
-              provided_due_date: due_date,
-              calculated_due_date: calculatedDueDate.toISOString().split('T')[0],
-              due_days: dueDays,
-              fee_structure_due_day: feeStructure.due_day,
-              fee_type_due_date_days: feeStructure.feeType.due_date_days
-            });
+
           }
 
           // Generate invoice number
@@ -239,16 +210,7 @@ const generateInvoices = async (req, res, next) => {
             created_by: req.user.id,
           };
 
-          logger.debug('Creating invoice with data:', {
-            invoice_number: invoiceNumber,
-            school_id: req.schoolId,
-            student_id: student.id,
-            fee_structure_id: feeStructure.id,
-            academic_year,
-            class_name: student.current_class || class_name,
-            section: student.section || section,
-            fee_type_name: feeStructure.feeType.name
-          });
+
 
           const invoice = await FeeInvoice.create(invoiceData);
 
@@ -290,6 +252,7 @@ const getInvoices = async (req, res, next) => {
       section,
       status,
       student_id,
+      branch_id,
       page = 1,
       limit = 50,
     } = req.query;
@@ -301,6 +264,7 @@ const getInvoices = async (req, res, next) => {
     if (academic_year) whereClause.academic_year = academic_year;
     if (status) whereClause.status = status;
     if (student_id) whereClause.student_id = student_id;
+    if (branch_id) whereClause.branch_id = branch_id;
 
     // Debug logging
     logger.debug('getInvoices - Debug info:', {
@@ -319,6 +283,13 @@ const getInvoices = async (req, res, next) => {
         model: Student,
         as: 'student',
         where: {},
+        include: [
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code'],
+          },
+        ],
       },
       {
         model: FeeStructure,
@@ -329,6 +300,11 @@ const getInvoices = async (req, res, next) => {
             as: 'feeType',
           },
         ],
+      },
+      {
+        model: Branch,
+        as: 'branch',
+        attributes: ['id', 'name', 'code'],
       },
     ];
 
@@ -501,41 +477,66 @@ const applyLateFees = async (req, res, next) => {
 
 // Generate receipt after payment
 const generateReceipt = async (invoice, paymentAmount, paymentMethod, transactionId) => {
-  const receiptData = {
-    receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    invoice_number: invoice.invoice_number,
-    student_name: invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
-    payment_amount: paymentAmount,
-    payment_method: paymentMethod,
-    transaction_id: transactionId,
-    payment_date: new Date(),
-    remaining_balance: parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount) - parseFloat(paymentAmount),
-    school_name: invoice.school ? invoice.school.name : 'School Name'
-  };
-  
-  // In a real implementation, you would generate a PDF receipt
-  const receiptHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
-      <h2 style="text-align: center; color: #333;">Payment Receipt</h2>
-      <hr>
-      <p><strong>Receipt No:</strong> ${receiptData.receipt_number}</p>
-      <p><strong>Invoice No:</strong> ${receiptData.invoice_number}</p>
-      <p><strong>Student:</strong> ${receiptData.student_name}</p>
-      <p><strong>Amount Paid:</strong> $${receiptData.payment_amount}</p>
-      <p><strong>Payment Method:</strong> ${receiptData.payment_method}</p>
-      <p><strong>Transaction ID:</strong> ${receiptData.transaction_id || 'N/A'}</p>
-      <p><strong>Payment Date:</strong> ${receiptData.payment_date.toLocaleDateString()}</p>
-      <p><strong>Remaining Balance:</strong> $${receiptData.remaining_balance}</p>
-      <hr>
-      <p style="text-align: center; font-size: 12px; color: #666;">Thank you for your payment!</p>
-    </div>
-  `;
-  
-  return {
-    receipt_number: receiptData.receipt_number,
-    receipt_html: receiptHtml,
-    receipt_data: receiptData
-  };
+  try {
+    const { generateInstallmentReceipt } = require('../services/receipt.service');
+    const { School } = require('../models');
+    
+    // Get school data
+    const school = await School.findByPk(invoice.school_id);
+    
+    // Get student data
+    const student = invoice.student || await Student.findByPk(invoice.student_id);
+    
+    // Generate professional receipt
+    const receipt = await generateInstallmentReceipt(
+      invoice, 
+      paymentAmount, 
+      paymentMethod, 
+      transactionId, 
+      school, 
+      student
+    );
+    
+    return receipt;
+  } catch (error) {
+    logger.error('Error generating receipt:', error);
+    
+    // Fallback to simple receipt
+    const receiptData = {
+      receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      invoice_number: invoice.invoice_number,
+      student_name: invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
+      payment_amount: paymentAmount,
+      payment_method: paymentMethod,
+      transaction_id: transactionId,
+      payment_date: new Date(),
+      remaining_balance: parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount) - parseFloat(paymentAmount),
+      school_name: invoice.school ? invoice.school.name : 'School Name'
+    };
+    
+    const receiptHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
+        <h2 style="text-align: center; color: #333;">Payment Receipt</h2>
+        <hr>
+        <p><strong>Receipt No:</strong> ${receiptData.receipt_number}</p>
+        <p><strong>Invoice No:</strong> ${receiptData.invoice_number}</p>
+        <p><strong>Student:</strong> ${receiptData.student_name}</p>
+        <p><strong>Amount Paid:</strong> ₹${receiptData.payment_amount}</p>
+        <p><strong>Payment Method:</strong> ${receiptData.payment_method}</p>
+        <p><strong>Transaction ID:</strong> ${receiptData.transaction_id || 'N/A'}</p>
+        <p><strong>Payment Date:</strong> ${receiptData.payment_date.toLocaleDateString()}</p>
+        <p><strong>Remaining Balance:</strong> ₹${receiptData.remaining_balance}</p>
+        <hr>
+        <p style="text-align: center; font-size: 12px; color: #666;">Thank you for your payment!</p>
+      </div>
+    `;
+    
+    return {
+      receipt_number: receiptData.receipt_number,
+      receipt_html: receiptHtml,
+      receipt_data: receiptData
+    };
+  }
 };
 
 // Record payment for an invoice
@@ -548,6 +549,9 @@ const recordPayment = async (req, res, next) => {
       payment_method = 'cash',
       payment_date,
       transaction_id,
+      cheque_number,
+      bank_name,
+      reference_number,
       notes,
     } = req.body;
 
@@ -563,6 +567,22 @@ const recordPayment = async (req, res, next) => {
         id,
         school_id: req.schoolId,
       },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+        },
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+      ],
     });
 
     if (!invoice) {
@@ -583,6 +603,56 @@ const recordPayment = async (req, res, next) => {
       throw new ApiError(400, 'Payment amount exceeds invoice total');
     }
 
+    // Get school data for receipt generation
+    const school = await School.findByPk(req.schoolId);
+
+    // Generate receipt for this payment
+    const receipt = await generateInstallmentReceipt(
+      invoice, 
+      paymentAmount, 
+      payment_method, 
+      transaction_id, 
+      school, 
+      invoice.student
+    );
+
+    // Create payment record
+    const paymentData = {
+      payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      receipt_number: receipt.receipt_number,
+      invoice_id: invoice.id,
+      student_id: invoice.student_id,
+      payment_amount: parseFloat(paymentAmount),
+      payment_method,
+      payment_date: payment_date || new Date(),
+      transaction_id,
+      cheque_number,
+      bank_name,
+      reference_number,
+      payment_status: 'completed',
+      receipt_html: receipt.receipt_html,
+      receipt_data: {
+        receipt_number: receipt.receipt_number,
+        invoice_number: invoice.invoice_number,
+        student_name: `${invoice.student.first_name} ${invoice.student.last_name}`,
+        payment_amount: paymentAmount,
+        payment_method,
+        transaction_id,
+        payment_date: payment_date || new Date(),
+        remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
+        school_name: school.name,
+        fee_type: invoice.fee_type_name,
+        class_name: invoice.class_name,
+        section: invoice.section,
+      },
+      notes,
+      school_id: req.schoolId,
+      branch_id: req.branchId,
+      created_by: req.user.id,
+    };
+
+    const payment = await FeePayment.create(paymentData);
+
     // Update invoice with payment
     await invoice.update({
       paid_amount: newPaidAmount,
@@ -590,20 +660,25 @@ const recordPayment = async (req, res, next) => {
       last_payment_date: payment_date || new Date(),
       updated_by: req.user.id,
     });
-
-    // TODO: Create payment record in separate payments table (future enhancement)
     
-    logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number}`);
+    logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`);
 
     return res.status(200).json({
       success: true,
       message: 'Payment recorded successfully',
       data: {
+        payment_id: payment.id,
+        payment_number: payment.payment_number,
+        receipt_number: payment.receipt_number,
         invoice_id: invoice.id,
         payment_amount: parseFloat(paymentAmount),
         new_paid_amount: newPaidAmount,
-        remaining_balance: parseFloat(invoice.total_amount) - newPaidAmount,
+        remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
         status: invoice.status,
+        receipt: {
+          receipt_number: payment.receipt_number,
+          receipt_html: payment.receipt_html,
+        },
       },
     });
   } catch (error) {
@@ -1393,6 +1468,384 @@ const getStudentFeeLedger = async (req, res, next) => {
   }
 };
 
+// Generate receipt for a fee invoice
+const generateReceiptForInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Find the invoice
+    const invoice = await FeeInvoice.findByPk(id, {
+      include: [
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+        {
+          model: Student,
+          as: 'student',
+        },
+      ],
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+      });
+    }
+
+    // Check if invoice has any payments (allow receipts for partial payments)
+    if (invoice.status === 'sent' || parseFloat(invoice.paid_amount || 0) === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Receipt can only be generated for invoices with payments',
+      });
+    }
+
+    // Get school data
+    const school = await School.findByPk(req.schoolId);
+    if (!school) {
+      return res.status(404).json({
+        success: false,
+        message: 'School not found',
+      });
+    }
+
+    // Generate receipt using the existing service
+    const receipt = await generateInstallmentReceipt(invoice, invoice.paid_amount, 'cash', null, school, invoice.student);
+
+    // Update invoice with receipt number
+    await invoice.update({
+      receipt_number: receipt.receipt_number,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Receipt generated successfully',
+      data: {
+        receipt: {
+          receipt_number: receipt.receipt_number,
+          receipt_html: receipt.receipt_html,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error generating receipt:', error);
+    return next(error);
+  }
+};
+
+// Get receipt for a fee invoice
+const getReceiptForInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Find the invoice
+    const invoice = await FeeInvoice.findByPk(id, {
+      include: [
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+        {
+          model: Student,
+          as: 'student',
+        },
+      ],
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+      });
+    }
+
+    if (!invoice.receipt_number) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found for this invoice',
+      });
+    }
+
+    // Get school data
+    const school = await School.findByPk(req.schoolId);
+    if (!school) {
+      return res.status(404).json({
+        success: false,
+        message: 'School not found',
+      });
+    }
+
+    // Generate receipt HTML
+    const receipt = await generateInstallmentReceipt(invoice, invoice.paid_amount, 'cash', null, school, invoice.student);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        receipt: {
+          receipt_number: receipt.receipt_number,
+          receipt_html: receipt.receipt_html,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching receipt:', error);
+    return next(error);
+  }
+};
+
+// Get all payments for an invoice
+const getInvoicePayments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    const invoice = await FeeInvoice.findOne({
+      where: {
+        id,
+        school_id: req.schoolId,
+      },
+    });
+
+    if (!invoice) {
+      throw new ApiError(404, 'Invoice not found');
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: payments } = await FeePayment.findAndCountAll({
+      where: {
+        invoice_id: id,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'admission_number'],
+        },
+      ],
+      order: [['payment_date', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        payments,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: count,
+          limit: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching invoice payments:', error);
+    return next(error);
+  }
+};
+
+// Get a specific payment by ID
+const getPaymentById = async (req, res, next) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await FeePayment.findOne({
+      where: {
+        id: paymentId,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'admission_number'],
+        },
+        {
+          model: FeeInvoice,
+          as: 'invoice',
+          attributes: ['id', 'invoice_number', 'total_amount', 'fee_type_name', 'class_name', 'section'],
+        },
+      ],
+    });
+
+    if (!payment) {
+      throw new ApiError(404, 'Payment not found');
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: payment,
+    });
+  } catch (error) {
+    logger.error('Error fetching payment:', error);
+    return next(error);
+  }
+};
+
+// Get receipt for a specific payment
+const getPaymentReceipt = async (req, res, next) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await FeePayment.findOne({
+      where: {
+        id: paymentId,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+        },
+        {
+          model: FeeInvoice,
+          as: 'invoice',
+          include: [
+            {
+              model: FeeStructure,
+              as: 'feeStructure',
+              include: [
+                {
+                  model: FeeType,
+                  as: 'feeType',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!payment) {
+      throw new ApiError(404, 'Payment not found');
+    }
+
+    // If receipt HTML exists, return it
+    if (payment.receipt_html) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          receipt_number: payment.receipt_number,
+          receipt_html: payment.receipt_html,
+          payment_data: payment.receipt_data,
+        },
+      });
+    }
+
+    // Regenerate receipt if not stored
+    const school = await School.findByPk(req.schoolId);
+    const receipt = await generateInstallmentReceipt(
+      payment.invoice,
+      payment.payment_amount,
+      payment.payment_method,
+      payment.transaction_id,
+      school,
+      payment.student
+    );
+
+    // Update payment with receipt
+    await payment.update({
+      receipt_html: receipt.receipt_html,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        receipt_number: payment.receipt_number,
+        receipt_html: receipt.receipt_html,
+        payment_data: payment.receipt_data,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching payment receipt:', error);
+    return next(error);
+  }
+};
+
+// Get all payments for a student
+const getStudentPayments = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { page = 1, limit = 50, academic_year } = req.query;
+
+    const student = await Student.findOne({
+      where: {
+        id: studentId,
+        school_id: req.schoolId,
+      },
+    });
+
+    if (!student) {
+      throw new ApiError(404, 'Student not found');
+    }
+
+    const offset = (page - 1) * limit;
+
+    const whereClause = {
+      student_id: studentId,
+      school_id: req.schoolId,
+    };
+
+    const { count, rows: payments } = await FeePayment.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: FeeInvoice,
+          as: 'invoice',
+          where: academic_year ? { academic_year } : {},
+          attributes: ['id', 'invoice_number', 'total_amount', 'fee_type_name', 'class_name', 'section', 'academic_year'],
+        },
+      ],
+      order: [['payment_date', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        student: {
+          id: student.id,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          admission_number: student.admission_number,
+        },
+        payments,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_count: count,
+          limit: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student payments:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   generateInvoices,
   getInvoices,
@@ -1408,5 +1861,11 @@ module.exports = {
   applyLateFees,
   getStudentDues,
   getStudentFeeLedger,
-  adjustInvoice
+  adjustInvoice,
+  generateReceipt: generateReceiptForInvoice,
+  getReceipt: getReceiptForInvoice,
+  getInvoicePayments,
+  getPaymentById,
+  getPaymentReceipt,
+  getStudentPayments,
 };

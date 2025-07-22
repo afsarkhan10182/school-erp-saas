@@ -4,20 +4,7 @@ const jwt = require('jsonwebtoken');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
 
-const ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  SCHOOL_ADMIN: 'school_admin',
-  BRANCH_ADMIN: 'branch_admin',
-  TEACHER: 'teacher',
-  ACCOUNTANT: 'accountant',
-  LIBRARIAN: 'librarian',
-  RECEPTIONIST: 'receptionist',
-  STUDENT: 'student',
-  PARENT: 'parent',
-  TRANSPORT_MANAGER: 'transport_manager',
-  HR: 'hr',
-  ALUMNI: 'alumni',
-};
+const { ROLES } = require('../utils/roleManager');
 
 const User = sequelize.define('User', {
   id: {

@@ -22,12 +22,22 @@ export default defineNuxtRouteMiddleware((to) => {
   
   // Super admin only routes
   const superAdminOnlyRoutes = [
-    '/subscriptions/schools',
-    '/subscriptions/plans',
+    '/subscriptions',
+    '/branches'
+  ];
+  
+  // Routes accessible by both Super Admin and School Admin
+  const adminRoutes = [
     '/users'
   ];
   
-  if (superAdminOnlyRoutes.some(route => to.path.startsWith(route)) && userRole !== 'super_admin') {
+  // Check super admin only routes
+  if (superAdminOnlyRoutes.some(route => to.path.startsWith(route)) && userRole && userRole !== 'super_admin') {
+    return navigateTo('/dashboard');
+  }
+  
+  // Check admin routes (Super Admin and School Admin)
+  if (adminRoutes.some(route => to.path.startsWith(route)) && userRole && !['super_admin', 'school_admin'].includes(userRole)) {
     return navigateTo('/dashboard');
   }
 }); 

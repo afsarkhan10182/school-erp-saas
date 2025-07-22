@@ -78,9 +78,13 @@ const createFeeStructure = async (req, res, next) => {
       section: section || null,
       fee_type_id,
       amount,
-      installment_type: 'one_time',
-      installment_count: 1,
-      due_day: 10,
+      payment_model: req.body.payment_model || 'monthly',
+      installment_type: req.body.installment_type || 'one_time',
+      installment_count: req.body.installment_count || 1,
+      installment_amounts: req.body.installment_amounts || [],
+      monthly_payment_amount: req.body.monthly_payment_amount || amount,
+      total_months: req.body.total_months || 12,
+      due_day: req.body.due_day || 10,
       discount_applicable: false,
       discount_amount: 0.00,
       discount_type: 'fixed',
@@ -219,6 +223,29 @@ const updateFeeStructure = async (req, res, next) => {
       section: section || null,
       updated_by: req.user.id,
     };
+
+    // Add payment model specific fields if provided
+    if (req.body.payment_model !== undefined) {
+      updateData.payment_model = req.body.payment_model;
+    }
+    if (req.body.installment_type !== undefined) {
+      updateData.installment_type = req.body.installment_type;
+    }
+    if (req.body.installment_count !== undefined) {
+      updateData.installment_count = req.body.installment_count;
+    }
+    if (req.body.installment_amounts !== undefined) {
+      updateData.installment_amounts = req.body.installment_amounts;
+    }
+    if (req.body.monthly_payment_amount !== undefined) {
+      updateData.monthly_payment_amount = req.body.monthly_payment_amount;
+    }
+    if (req.body.total_months !== undefined) {
+      updateData.total_months = req.body.total_months;
+    }
+    if (req.body.due_day !== undefined) {
+      updateData.due_day = req.body.due_day;
+    }
 
     // If academic_year_id is provided, get the academic year name
     if (academic_year_id) {

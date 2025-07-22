@@ -288,8 +288,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuth } from '~/composables/useAuth';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Check, AlertCircle } from 'lucide-vue-next';
 
@@ -299,10 +299,19 @@ definePageMeta({
   layout: 'default'
 });
 
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription details
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can view subscription details.');
+  await navigateTo('/dashboard');
+}
+
 const route = useRoute();
-const { user } = useAuth();
 const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans } = useSubscriptions();
-const { showSuccess, showError } = useToast();
+const { showSuccess, showError: toastError } = useToast();
 
 // Reactive data
 const loading = ref(true);
@@ -437,7 +446,7 @@ const loadData = async () => {
   } catch (err) {
     console.error('Error loading data:', err);
     error.value = 'Failed to load subscription details';
-    showError('Failed to load subscription details');
+    toastError('Failed to load subscription details');
   } finally {
     loading.value = false;
   }
@@ -469,11 +478,11 @@ const submitRenewalRequest = async () => {
       };
       await loadData(); // Reload data to show new request
     } else {
-      showError(response.message || 'Failed to submit renewal request');
+      toastError(response.message || 'Failed to submit renewal request');
     }
   } catch (err) {
     console.error('Error submitting renewal request:', err);
-    showError('Failed to submit renewal request');
+    toastError('Failed to submit renewal request');
   } finally {
     submitting.value = false;
   }

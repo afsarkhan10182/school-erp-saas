@@ -184,15 +184,22 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access transactions
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can view transactions.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const schoolId = route.params.id;
-const { fetchSchoolTransactions, createManualTransaction } = useSubscriptions();
-
-const transactions = ref([]);
-const loading = ref(false);
-const error = ref('');
-const pagination = ref(null);
+const { fetchSchoolTransactions, createManualTransaction, loading, error, transactions, pagination } = useSubscriptions();
 
 // Toast notification state
 const showToast = ref(false);

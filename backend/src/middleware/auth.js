@@ -150,8 +150,8 @@ const setSchoolContext = (req, res, next) => {
       return next(new ApiError(401, 'Authentication required'));
     }
     
-    // Additional defensive check
-    if (!req.user.school_id) {
+    // Additional defensive check - but allow super_admin to proceed without school_id
+    if (!req.user.school_id && req.user.role !== 'super_admin') {
       logger.warn('setSchoolContext: No school_id found for user in token:', req.user);
       return next(new ApiError(403, 'School context setup failed: User not associated with a school'));
     }

@@ -278,8 +278,19 @@
 import { ref, onMounted, computed } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 
-const { user, isAuthenticated } = useAuth();
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscriptions
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage subscriptions.');
+  await navigateTo('/dashboard');
+}
+
 const { schools, plans, loading, error, fetchSchoolsWithSubscriptions, fetchPlans, suspendSchool, reactivateSchool } = useSubscriptions();
 
 const filters = ref({

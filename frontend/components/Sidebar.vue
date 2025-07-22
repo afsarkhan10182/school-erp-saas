@@ -10,7 +10,7 @@
   <!-- Sidebar -->
   <div 
 :class="[
-      'fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      'fixed inset-y-0 left-0 z-30 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
       isMobile ? (open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full') : (open ? 'w-64' : 'w-16'),
       isMobile ? 'md:w-16 md:translate-x-0' : '',
       'transform transition-all duration-300 ease-in-out will-change-transform'
@@ -51,7 +51,7 @@
           </NuxtLink>
           <!-- Hover Menu for Collapsed State -->
           <div v-if="!open && !isMobile" 
-               class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+               class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700">
             <span class="text-sm font-medium text-gray-900 dark:text-white">Dashboard</span>
           </div>
         </div>
@@ -81,7 +81,7 @@
               </div>
             <!-- Hover Menu for Collapsed State -->
               <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0">
+                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0">
                 <div class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">
                   {{ menuItem.title }}
                 </div>
@@ -134,7 +134,7 @@
               </NuxtLink>
               <!-- Hover Menu for Collapsed State -->
               <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-[60] border border-gray-200 dark:border-gray-700">
+                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700">
                 <span class="text-sm font-medium text-gray-900 dark:text-white">{{ menuItem.title }}</span>
               </div>
             </div>
@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { 
@@ -237,7 +237,7 @@ const menuGroups = computed(() => {
       ]
     });
 
-    // School Administration (Super Admin)
+    // School Administration (Super Admin Only)
     groups.push({
       id: 'school-admin',
       title: 'School Administration',
@@ -267,28 +267,8 @@ const menuGroups = computed(() => {
     });
   }
 
-  // Fee Management
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isAccountant.value) {
-    groups.push({
-      id: 'fees',
-      title: 'Fee Management',
-      items: [
-        {
-          id: 'fee-management',
-          title: 'Fees',
-          icon: DollarSign,
-          children: [
-            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
-            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
-            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Academic Management
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+   // Academic Management
+   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'academic',
       title: 'Academic Management',
@@ -310,8 +290,28 @@ const menuGroups = computed(() => {
     });
   }
 
-  // Reports & Analytics
+  // Fee Management
   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isAccountant.value) {
+    groups.push({
+      id: 'fees',
+      title: 'Fee Management',
+      items: [
+        {
+          id: 'fee-management',
+          title: 'Fees',
+          icon: DollarSign,
+          children: [
+            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
+            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
+            { id: 'invoices', title: 'Invoices & Payments', path: '/fees/invoices', icon: Receipt }
+          ]
+        }
+      ]
+    });
+  }
+
+  // Reports & Analytics
+  if (isSuperAdmin.value) {
     groups.push({
       id: 'reports',
       title: 'Reports & Analytics',
@@ -343,8 +343,7 @@ const menuGroups = computed(() => {
       items: [
         { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
-        { id: 'branch-settings', title: 'Branch Settings', path: '/settings/branch', icon: Building2 },
-        { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
+        // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
       ]
     });
   }

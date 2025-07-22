@@ -9,6 +9,7 @@ const { success, error, asyncHandler } = require('../../utils/apiResponse');
 const { validate } = require('../../middleware/validate');
 const { verifyToken, authorize } = require('../../middleware/auth');
 const RedisUtils = require('../../utils/redis-utils');
+const { RoleManager, ROLES } = require('../../utils/roleManager');
 
 class SchoolController {
   static createSchool = asyncHandler(async (req, res) => {
@@ -67,8 +68,8 @@ class SchoolController {
     const { id } = req.params;
     const user = req.user;
 
-    // Access control
-    if (user.role === 'school_admin' && user.school_id !== id) {
+    // Use RoleManager for access control
+    if (!RoleManager.canAccessSchool(user.role, user.school_id, id)) {
       throw new ApiError(403, 'Access denied');
     }
 
@@ -104,7 +105,9 @@ class SchoolController {
     const user = req.user;
 
     // Access control - only super admin or school admin of this school can access
-    if (user.role === 'school_admin' && user.school_id !== schoolId) {
+    if (user.role === 'super_admin') {
+      // Allow super admin to access any school
+    } else if (user.role === 'school_admin' && user.school_id !== schoolId) {
       throw new ApiError(403, 'Access denied');
     }
 
@@ -213,28 +216,169 @@ class SchoolController {
   });
 
   static updateMySchool = asyncHandler(async (req, res) => {
-    const user = req.user;
-    const updateData = {
-      ...req.body,
-      ...req.files, // Include uploaded files
-    };
-
-    if (!user.school_id) {
-      throw new ApiError(404, 'No school assigned to this user');
+    const school = await School.findByPk(req.user.school_id);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
     }
 
-    // Add updated_by field
-    updateData.updated_by = user.id;
-
-    const school = await SchoolService.updateSchool(user.school_id, updateData);
-
-    // Clear related caches
-    await RedisUtils.del(`school:${user.school_id}`);
-    await RedisUtils.del('cache:schools:list');
-    await RedisUtils.del('cache:schools:stats');
-
-    success(res, { school }, 'School updated successfully');
+    const updatedSchool = await school.update(req.body);
+    res.json({
+      success: true,
+      message: 'School updated successfully',
+      data: updatedSchool,
+    });
   });
-}
+
+  // Update school module settings (Super Admin only)
+  static updateSchoolModules = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { modules, subscription_plan } = req.body;
+
+    // Only super admin can update school modules
+    if (req.user.role !== 'super_admin') {
+      throw new ApiError(403, 'Only Super Admin can update school modules');
+    }
+
+    const school = await School.findByPk(id);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    // Import module configuration
+    const { ModuleConfig } = require('../../utils/moduleConfig');
+
+    // Validate modules if provided
+    if (modules && !ModuleConfig.validateModules(modules)) {
+      throw new ApiError(400, 'Invalid modules provided');
+    }
+
+    // If subscription plan is provided, get modules for that plan
+    let updatedModules = modules;
+    if (subscription_plan) {
+      updatedModules = ModuleConfig.getModulesForPlan(subscription_plan);
+    }
+
+    // Update school
+    const updateData = {};
+    if (updatedModules) updateData.modules = updatedModules;
+    if (subscription_plan) updateData.subscription_plan = subscription_plan;
+
+    const updatedSchool = await school.update(updateData);
+    
+    res.json({
+      success: true,
+      message: 'School modules updated successfully',
+      data: updatedSchool,
+    });
+  });
+
+  // Get school module settings (read-only for School Admin)
+  static getSchoolModules = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // School admin can only view their own school's modules
+    if (req.user.role === 'school_admin' && req.user.school_id !== id) {
+      throw new ApiError(403, 'You can only view your own school modules');
+    }
+
+    const school = await School.findByPk(id);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    // Import module configuration
+    const { ModuleConfig } = require('../../utils/moduleConfig');
+
+    // Get modules for display
+    const modulesForDisplay = ModuleConfig.getModulesForDisplay(school);
+    const planComparison = ModuleConfig.getPlanComparison(school.subscription_plan);
+
+    res.json({
+      success: true,
+      message: 'School modules retrieved successfully',
+      data: {
+        modules: modulesForDisplay,
+        subscription_plan: school.subscription_plan,
+        plan_comparison: planComparison,
+        can_upgrade: req.user.role === 'school_admin',
+      },
+    });
+  });
+
+  // Get available subscription plans (for upgrade requests)
+  static getSubscriptionPlans = asyncHandler(async (req, res) => {
+    const { ModuleConfig } = require('../../utils/moduleConfig');
+    
+    const plans = ModuleConfig.getAllSubscriptionPlans();
+    const planDetails = Object.entries(plans).map(([key, plan]) => ({
+      key,
+      name: plan.name,
+      description: plan.description,
+      price: plan.price,
+      modules: plan.modules.map(moduleKey => ({
+        key: moduleKey,
+        ...ModuleConfig.getModuleDescription(moduleKey),
+      })),
+      max_students: plan.max_students,
+      max_branches: plan.max_branches,
+      max_staff: plan.max_staff,
+    }));
+
+    res.json({
+      success: true,
+      message: 'Subscription plans retrieved successfully',
+      data: planDetails,
+    });
+  });
+
+  // Request subscription upgrade (School Admin only)
+  static requestUpgrade = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { requested_plan, reason } = req.body;
+
+    // Only school admin can request upgrades
+    if (req.user.role !== 'school_admin') {
+      throw new ApiError(403, 'Only School Admin can request upgrades');
+    }
+
+    // School admin can only request for their own school
+    if (req.user.school_id !== id) {
+      throw new ApiError(403, 'You can only request upgrade for your own school');
+    }
+
+    const school = await School.findByPk(id);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    const { ModuleConfig } = require('../../utils/moduleConfig');
+    
+    // Validate requested plan
+    const plan = ModuleConfig.getSubscriptionPlan(requested_plan);
+    if (!plan) {
+      throw new ApiError(400, 'Invalid subscription plan');
+    }
+
+    // Check if it's actually an upgrade
+    const currentPlan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+    if (plan.price <= currentPlan.price) {
+      throw new ApiError(400, 'Requested plan is not an upgrade');
+    }
+
+    // TODO: Create upgrade request in database
+    // For now, just log the request
+    logger.info(`Upgrade request from school ${school.name} (${id}): ${requested_plan} - ${reason}`);
+
+    res.json({
+      success: true,
+      message: 'Upgrade request submitted successfully. We will contact you soon.',
+      data: {
+        requested_plan: requested_plan,
+        current_plan: school.subscription_plan,
+        reason: reason,
+      },
+    });
+  });
+};
 
 module.exports = SchoolController; 

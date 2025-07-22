@@ -1013,6 +1013,8 @@ const getStudentReport = async (req, res, next) => {
       section_name,
       status,
       search,
+      date_from,
+      date_to,
       sort_by = 'created_at',
       sort_order = 'DESC',
       school_id,
@@ -1039,6 +1041,17 @@ const getStudentReport = async (req, res, next) => {
     if (class_name) whereClause.current_class = class_name;
     if (section_name) whereClause.section = section_name;
     if (status) whereClause.status = status;
+    
+    // Add date range filters
+    if (date_from || date_to) {
+      whereClause.admission_date = {};
+      if (date_from) {
+        whereClause.admission_date[Op.gte] = new Date(date_from);
+      }
+      if (date_to) {
+        whereClause.admission_date[Op.lte] = new Date(date_to);
+      }
+    }
 
     // Add search functionality
     if (search) {
@@ -1071,11 +1084,6 @@ const getStudentReport = async (req, res, next) => {
           model: Parent,
           as: 'parents',
           through: { attributes: ['relationship', 'is_primary'] },
-        },
-        {
-          model: AcademicYear,
-          as: 'academicYear',
-          attributes: ['id', 'name', 'code'],
         },
         {
           model: Class,

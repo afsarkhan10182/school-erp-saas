@@ -81,10 +81,22 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 
-const { updatePlan, loading, error } = useSubscriptions();
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription plans
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage subscription plans.');
+  await navigateTo('/dashboard');
+}
+
 const route = useRoute();
 const router = useRouter();
+const { updatePlan, getPlanById, loading, error } = useSubscriptions();
 
 const allModules = [
   'academics', 'attendance', 'fees', 'exams', 'library', 'hostel', 'transport', 'hr', 'accounting', 'alumni'

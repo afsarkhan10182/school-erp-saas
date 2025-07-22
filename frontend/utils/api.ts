@@ -1,10 +1,11 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, PaginatedResponse } from '~/types';
+import { useAuthStore } from '~/stores/auth';
 
 export function createApiInstance(): AxiosInstance {
   const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
+  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
 
   const api: AxiosInstance = axios.create({
     baseURL: apiBase,
@@ -18,6 +19,10 @@ export function createApiInstance(): AxiosInstance {
   // Request interceptor - no need to manually add tokens since they're in secure cookies
   api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+      // Ensure config exists and has required properties
+      if (!config) {
+        throw new Error('Request configuration is undefined');
+      }
       return config;
     },
     (error: any) => Promise.reject(error)
@@ -28,6 +33,12 @@ export function createApiInstance(): AxiosInstance {
     (response: AxiosResponse) => response,
     async (error) => {
       const originalRequest = error.config;
+      
+      // Safety check for originalRequest
+      if (!originalRequest) {
+        console.error('❌ Original request is undefined:', error);
+        return Promise.reject(error);
+      }
       
       // Don't attempt token refresh for auth endpoints (login, logout, refresh)
       const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
@@ -126,7 +137,7 @@ export const apiClient = {
 
   // School endpoints
   schools: {
-    getAll: async (params?: { page?: number; limit?: number }) => {
+    getAll: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/schools', { params });
       return response.data;
@@ -138,27 +149,19 @@ export const apiClient = {
       return response.data;
     },
     
-    getStaff: async (schoolId: string, params?: { page?: number; limit?: number; search?: string; role?: string; status?: string }) => {
+    create: async (schoolData: FormData) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/schools/${schoolId}/staff`, { params });
+      const response = await api.post<ApiResponse<any>>('/schools', schoolData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       return response.data;
     },
     
-    createStaff: async (schoolId: string, staffData: any) => {
+    update: async (id: string, schoolData: FormData) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/schools/${schoolId}/staff`, staffData);
-      return response.data;
-    },
-
-    create: async (schoolData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/schools', schoolData);
-      return response.data;
-    },
-    
-    update: async (id: string, schoolData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/schools/${id}`, schoolData);
+      const response = await api.put<ApiResponse<any>>(`/schools/${id}`, schoolData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       return response.data;
     },
     
@@ -166,15 +169,52 @@ export const apiClient = {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/schools/${id}`);
       return response.data;
-    }
+    },
+
+    // Module management (Super Admin controls, School Admin view-only)
+    getModules: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/schools/${id}/modules`);
+      return response.data;
+    },
+    
+    updateModules: async (id: string, modules: string[], subscriptionPlan?: string) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/schools/${id}/modules`, { 
+        modules, 
+        subscription_plan: subscriptionPlan 
+      });
+      return response.data;
+    },
+
+    // Subscription plans
+    getSubscriptionPlans: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/schools/subscription-plans');
+      return response.data;
+    },
+
+    requestUpgrade: async (schoolId: string, requestedPlan: string, reason: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/schools/${schoolId}/request-upgrade`, {
+        requested_plan: requestedPlan,
+        reason
+      });
+      return response.data;
+    },
   },
 
   // Branch endpoints
   branches: {
-    getAll: async (schoolId?: string, params?: { page?: number; limit?: number }) => {
+    getAll: async (params?: { page?: number; limit?: number }) => {
       const api = createApiInstance();
-      const url = schoolId ? `/branches/school/${schoolId}` : '/branches';
-      const response = await api.get<PaginatedResponse<any>>(url, { params });
+      const response = await api.get<PaginatedResponse<any>>('/branches', { params });
+      return response.data;
+    },
+    
+    getBySchool: async (schoolId: string, params?: { page?: number; limit?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>(`/branches/school/${schoolId}`, { params });
       return response.data;
     },
     
@@ -286,16 +326,58 @@ export const apiClient = {
       return response.data;
     },
 
-    // New endpoints for enhanced features
-    getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
+    getMonthlyFeeStructures: async (params?: { payment_model?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/student-dues', { params });
+      const response = await api.get<ApiResponse<any>>('/fee-structures', { params: { ...params, payment_model: 'monthly' } });
+      return response.data;
+    },
+    
+    generateReceipt: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/receipt`);
+      return response.data;
+    },
+    
+    getReceipt: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/${id}/receipt`);
+      return response.data;
+    },
+
+    // New payment tracking endpoints
+    getInvoicePayments: async (id: string, params?: { page?: number; limit?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>(`/fee-invoices/${id}/payments`, { params });
+      return response.data;
+    },
+
+    getPaymentById: async (paymentId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/payment/${paymentId}`);
+      return response.data;
+    },
+
+    getPaymentReceipt: async (paymentId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/payment/${paymentId}/receipt`);
+      return response.data;
+    },
+
+    getStudentPayments: async (studentId: string, params?: { page?: number; limit?: number; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>(`/fee-invoices/student/${studentId}/payments`, { params });
       return response.data;
     },
 
     getStudentLedger: async (params: { student_id: string; academic_year?: string; page?: number; limit?: number }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/student-ledger', { params });
+      return response.data;
+    },
+
+    getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/student-dues', { params });
       return response.data;
     },
 
@@ -310,13 +392,63 @@ export const apiClient = {
       const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/late-fees`);
       return response.data;
     },
-    
+
+    // Report and export methods
+    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; class_id?: string; section_id?: string; fee_type_id?: string; payment_status?: string; date_from?: string; date_to?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/report', { params });
+      return response.data;
+    },
+
     exportReport: async (queryString: string) => {
       const api = createApiInstance();
       const response = await api.get(`/fee-invoices/export?${queryString}`, { responseType: 'blob' });
       return response;
-    }
+    },
   },
+
+  // Monthly Payment endpoints
+  monthlyPayments: {
+    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; fee_structure_id?: string; month?: number; year?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/monthly-payments', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/monthly-payments/${id}`);
+      return response.data;
+    },
+    
+    generatePayments: async (paymentData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/monthly-payments/generate', paymentData);
+      return response.data;
+    },
+    
+    recordPayment: async (id: string, paymentData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/monthly-payments/${id}/payment`, paymentData);
+      return response.data;
+    },
+    
+    generateReceipt: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/monthly-payments/${id}/receipt`);
+      return response.data;
+    },
+    
+    getStudentPayments: async (params?: { student_id?: string; academic_year?: string; fee_structure_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/monthly-payments/student/payments', { params });
+      return response.data;
+    },
+
+    // New endpoints for enhanced features
+  },
+
+
 
   // Enhanced Fee Structure endpoints
   feeStructures: {

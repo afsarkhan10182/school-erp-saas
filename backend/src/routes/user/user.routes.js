@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../../middleware/auth');
 const { validate } = require('../../middleware/validate');
+const { validateRoleAssignment } = require('../../middleware/roleValidation');
 const UserController = require('../../controllers/user/user.controller');
 const {
   createUserValidator,
@@ -59,6 +60,8 @@ router.get(
 router.put(
   '/:id',
   authorize(['super_admin', 'school_admin']),
+  validate(updateUserValidator),
+  validateRoleAssignment,
   UserController.updateUser
 );
 
@@ -73,6 +76,7 @@ router.post(
   '/',
   authorize(['super_admin', 'school_admin']),
   validate(createUserValidator),
+  validateRoleAssignment,
   UserController.createUser
 );
 

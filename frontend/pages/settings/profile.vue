@@ -51,7 +51,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
                 <input 
-                  v-model="form.firstName" 
+                  v-model="form.first_name" 
                   type="text" 
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
@@ -61,7 +61,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
                 <input 
-                  v-model="form.lastName" 
+                  v-model="form.last_name" 
                   type="text" 
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
@@ -150,33 +150,27 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password *</label>
-                <input 
-                  v-model="passwordForm.currentPassword" 
-                  type="password" 
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                <PasswordInput
+                  v-model="passwordForm.currentPassword"
                   placeholder="Enter current password"
+                  required
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password *</label>
-                <input 
-                  v-model="passwordForm.newPassword" 
-                  type="password" 
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                <PasswordInput
+                  v-model="passwordForm.newPassword"
                   placeholder="Enter new password"
+                  required
                 />
               </div>
             </div>
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password *</label>
-              <input 
-                v-model="passwordForm.confirmPassword" 
-                type="password" 
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              <PasswordInput
+                v-model="passwordForm.confirmPassword"
                 placeholder="Confirm new password"
+                required
               />
             </div>
             <div class="flex justify-end">
@@ -201,6 +195,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import apiClient from '~/utils/api';
+import PasswordInput from '~/components/PasswordInput.vue';
 import { 
   User, 
   Upload, 
@@ -217,8 +212,8 @@ const schoolName = ref('');
 const branchName = ref('');
 
 const form = reactive({
-  firstName: '',
-  lastName: '',
+  first_name: '',
+  last_name: '',
   email: '',
   phone: '',
   profilePicture: null
@@ -241,8 +236,8 @@ const updateProfile = async () => {
   isSubmitting.value = true;
   try {
     const formData = new FormData();
-    formData.append('firstName', form.firstName);
-    formData.append('lastName', form.lastName);
+    formData.append('first_name', form.first_name);
+    formData.append('last_name', form.last_name);
     formData.append('email', form.email);
     formData.append('phone', form.phone);
     
@@ -257,8 +252,8 @@ const updateProfile = async () => {
     
     // Update local user data
     authStore.updateUser({
-      firstName: form.firstName,
-      lastName: form.lastName,
+      first_name: form.first_name,
+      last_name: form.last_name,
       email: form.email,
       phone: form.phone
     });
@@ -369,8 +364,8 @@ const fetchSchoolAndBranchNames = async () => {
 onMounted(() => {
   // Initialize form with current user data
   if (user.value) {
-    form.firstName = user.value.firstName || '';
-    form.lastName = user.value.lastName || '';
+    form.first_name = user.value.first_name || '';
+    form.last_name = user.value.last_name || '';
     form.email = user.value.email || '';
     form.phone = user.value.phone || '';
   }

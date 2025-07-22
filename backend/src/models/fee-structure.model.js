@@ -48,6 +48,13 @@ const FeeStructure = sequelize.define('FeeStructure', {
       min: { args: [0], msg: 'Amount cannot be negative' },
     },
   },
+  // Payment model type for different payment behaviors
+  payment_model: {
+    type: DataTypes.ENUM('installment', 'monthly'),
+    allowNull: false,
+    defaultValue: 'monthly',
+    comment: 'installment: one-time or installment payments, monthly: recurring monthly payments'
+  },
   installment_type: {
     type: DataTypes.ENUM('one_time', 'monthly', 'quarterly', 'half_yearly', 'yearly'),
     allowNull: false,
@@ -60,6 +67,25 @@ const FeeStructure = sequelize.define('FeeStructure', {
     validate: {
       min: { args: [1], msg: 'Installment count must be at least 1' },
     },
+  },
+  // For senior branch: installment amounts
+  installment_amounts: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of installment amounts for senior branch'
+  },
+  // For school branch: monthly payment details
+  monthly_payment_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    comment: 'Monthly payment amount for school branch'
+  },
+  total_months: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 12,
+    comment: 'Total months for school branch payment'
   },
   due_month: {
     type: DataTypes.INTEGER,
@@ -139,52 +165,75 @@ const FeeStructure = sequelize.define('FeeStructure', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'academic_year', 'class_name', 'fee_type_id', 'is_active'], unique: true },
-    { fields: ['school_id'] },
-    { fields: ['branch_id'] },
+    { fields: ['school_id', 'academic_year', 'class_name'] },
     { fields: ['fee_type_id'] },
-    { fields: ['academic_year'] },
-    { fields: ['class_name'] },
+    { fields: ['payment_model'] },
     { fields: ['is_active'] },
   ],
   hooks: {
-    afterCreate: async (feeStructure) => {
-      logger.info(`New fee structure created: ${feeStructure.name} - ${feeStructure.class_name} (${feeStructure.academic_year})`);
+    beforeCreate: async (feeStructure) => {
+      // Validate payment model specific fields
+      if (feeStructure.payment_model === 'installment') {
+        // For installment model, only require installment amounts if there are multiple installments
+        if (feeStructure.installment_count > 1 && (!feeStructure.installment_amounts || feeStructure.installment_amounts.length === 0)) {
+          throw new Error('Installment amounts are required for multiple installments');
+        }
+      } else if (feeStructure.payment_model === 'monthly') {
+        if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {
+          throw new Error('Monthly payment amount is required for monthly payment model');
+        }
+      }
     },
-  },
-});
-
-// Define associations
-FeeStructure.associate = (models) => {
-  // FeeStructure belongs to School
-  FeeStructure.belongsTo(models.School, {
-    foreignKey: 'school_id',
-    as: 'school',
+    beforeUpdate: async (feeStructure) => {
+      // Validate payment model specific fields
+      if (feeStructure.payment_model === 'installment') {
+        // For installment model, only require installment amounts if there are multiple installments
+        if (feeStructure.installment_count > 1 && (!feeStructure.installment_amounts || feeStructure.installment_amounts.length === 0)) {
+          throw new Error('Installment amounts are required for multiple installments');
+        }
+      } else if (feeStructure.payment_model === 'monthly') {
+        if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {
+          throw new Error('Monthly payment amount is required for monthly payment model');
+        }
+      }
+    },
+          afterCreate: async (feeStructure) => {
+        logger.info(`New fee structure created: ${feeStructure.name} for ${feeStructure.payment_model} model`);
+      },
+    },
   });
 
-  // FeeStructure belongs to Branch
-  FeeStructure.belongsTo(models.Branch, {
-    foreignKey: 'branch_id',
-    as: 'branch',
-  });
+  // Define associations
+  FeeStructure.associate = (models) => {
+    // FeeStructure belongs to FeeType
+    FeeStructure.belongsTo(models.FeeType, {
+      foreignKey: 'fee_type_id',
+      as: 'feeType',
+    });
 
-  // FeeStructure belongs to FeeType
-  FeeStructure.belongsTo(models.FeeType, {
-    foreignKey: 'fee_type_id',
-    as: 'feeType',
-  });
+    // FeeStructure belongs to School
+    FeeStructure.belongsTo(models.School, {
+      foreignKey: 'school_id',
+      as: 'school',
+    });
 
-  // FeeStructure belongs to User (created_by)
-  FeeStructure.belongsTo(models.User, {
-    foreignKey: 'created_by',
-    as: 'createdBy',
-  });
+    // FeeStructure belongs to Branch
+    FeeStructure.belongsTo(models.Branch, {
+      foreignKey: 'branch_id',
+      as: 'branch',
+    });
 
-  // FeeStructure belongs to User (updated_by)
-  FeeStructure.belongsTo(models.User, {
-    foreignKey: 'updated_by',
-    as: 'updatedBy',
-  });
-};
+    // FeeStructure belongs to User (created_by)
+    FeeStructure.belongsTo(models.User, {
+      foreignKey: 'created_by',
+      as: 'createdBy',
+    });
 
-module.exports = FeeStructure;
+    // FeeStructure belongs to User (updated_by)
+    FeeStructure.belongsTo(models.User, {
+      foreignKey: 'updated_by',
+      as: 'updatedBy',
+    });
+  };
+
+  module.exports = FeeStructure;

@@ -21,6 +21,7 @@ const createUserValidator = [
     .normalizeEmail(),
   
   body('password')
+    .optional({ checkFalsy: true })
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
@@ -31,9 +32,22 @@ const createUserValidator = [
     .withMessage('Invalid role'),
   
   body('phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
+    .optional({ checkFalsy: true })
+    .custom((value) => {
+      if (value && value.trim() !== '') {
+        // Remove all non-digit characters for validation
+        const digitsOnly = value.replace(/[^\d]/g, '');
+        if (digitsOnly.length !== 10) {
+          throw new Error('Mobile number must be 10 digits');
+        }
+        // Check if it starts with a valid Indian mobile pattern (6, 7, 8, 9)
+        const phoneRegex = /^[\+]?[6-9][\d\s\-\(\)]{9,15}$/;
+        if (!phoneRegex.test(value)) {
+          throw new Error('Please provide a valid mobile number');
+        }
+      }
+      return true;
+    }),
   
   body('school_id')
     .optional()
@@ -87,9 +101,22 @@ const updateUserValidator = [
     .withMessage('Invalid role'),
   
   body('phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
+    .optional({ checkFalsy: true })
+    .custom((value) => {
+      if (value && value.trim() !== '') {
+        // Remove all non-digit characters for validation
+        const digitsOnly = value.replace(/[^\d]/g, '');
+        if (digitsOnly.length !== 10) {
+          throw new Error('Mobile number must be 10 digits');
+        }
+        // Check if it starts with a valid Indian mobile pattern (6, 7, 8, 9)
+        const phoneRegex = /^[\+]?[6-9][\d\s\-\(\)]{9,15}$/;
+        if (!phoneRegex.test(value)) {
+          throw new Error('Please provide a valid Indian mobile number');
+        }
+      }
+      return true;
+    }),
   
   body('school_id')
     .optional()

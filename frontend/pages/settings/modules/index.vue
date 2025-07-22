@@ -5,440 +5,463 @@
       <div class="container mx-auto px-4 py-6">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Module Settings</h1>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Module Management</h1>
             <p class="text-gray-600 dark:text-gray-400 mt-2">
-              Configure and manage school management modules and role permissions
+              {{ isSuperAdmin ? 'Manage school modules and subscriptions' : 'View your school modules and subscription' }}
             </p>
           </div>
           <div class="flex items-center space-x-3">
             <button
-              @click="resetToDefaults"
-              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              v-if="isSuperAdmin"
+              @click="showPlanSelector = true"
+              class="btn-primary"
             >
-              Reset to Defaults
+              <Icon name="heroicons:plus" class="w-4 h-4 mr-2" />
+              Update Subscription
             </button>
             <button
-              @click="saveModuleSettings"
-              :disabled="isSaving"
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              v-if="!isSuperAdmin"
+              @click="showUpgradeModal = true"
+              class="btn-primary"
             >
-              <span v-if="isSaving" class="flex items-center">
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </span>
-              <span v-else>Save Changes</span>
+              <Icon name="heroicons:arrow-up" class="w-4 h-4 mr-2" />
+              Request Upgrade
             </button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Main Content -->
     <div class="container mx-auto px-4 py-8">
-      <!-- Module Cards Section -->
+      <!-- Current Subscription Info -->
       <div class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Available Modules</h2>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm text-gray-600 dark:text-gray-400">
-              {{ enabledModulesCount }} of {{ modules.length }} modules enabled
-            </span>
-            <div class="flex items-center space-x-2">
-              <button
-                @click="enableAllModules"
-                class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Enable All
-              </button>
-              <span class="text-gray-400">|</span>
-              <button
-                @click="disableAllModules"
-                class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-              >
-                Disable All
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div
-            v-for="module in modules"
-            :key="module.id"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 overflow-hidden"
-          >
-            <!-- Module Header -->
-            <div class="p-6">
-              <div class="flex items-start justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <component :is="getModuleIcon(module.id)" class="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ module.name }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ module.description }}</p>
-                  </div>
-                </div>
-                <toggle-switch
-                  :value="module.enabled"
-                  @toggle="toggleModule(module.id, $event)"
-                />
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Current Subscription
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {{ currentPlan?.name || 'Trial' }}
               </div>
-
-              <!-- Module Status -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <div 
-                    class="w-2 h-2 rounded-full"
-                    :class="module.enabled ? 'bg-green-500' : 'bg-gray-400'"
-                  ></div>
-                  <span 
-                    class="text-sm font-medium"
-                    :class="module.enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'"
-                  >
-                    {{ module.enabled ? 'Active' : 'Inactive' }}
-                  </span>
-                </div>
-                
-                <div class="flex items-center space-x-2">
-                  <button
-                    v-if="module.enabled"
-                    @click="configureModule(module.id)"
-                    class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                  >
-                    Configure
-                  </button>
-                  <button
-                    v-if="module.enabled"
-                    @click="showModuleInfo(module)"
-                    class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                  </button>
-                </div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                Subscription Plan
               </div>
             </div>
-
-            <!-- Module Features (if enabled) -->
-            <div v-if="module.enabled" class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Features</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{ getModuleFeatures(module.id).length }} available</span>
+            <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div class="text-2xl font-bold text-green-600 dark:text-green-400">
+                {{ enabledModules.length }}
               </div>
-              <div class="mt-2 flex flex-wrap gap-1">
-                <span
-                  v-for="feature in getModuleFeatures(module.id).slice(0, 3)"
-                  :key="feature"
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                >
-                  {{ feature }}
-                </span>
-                <span
-                  v-if="getModuleFeatures(module.id).length > 3"
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
-                >
-                  +{{ getModuleFeatures(module.id).length - 3 }} more
-                </span>
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                Active Modules
+              </div>
+            </div>
+            <div class="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                ₹{{ currentPlan?.price || 0 }}
+              </div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                Monthly Price
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Role Permissions Section -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Role Permissions</h2>
-              <p class="text-gray-600 dark:text-gray-400 mt-1">
-                Configure what each role can access and manage
-              </p>
+      <!-- Modules Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-for="module in modules"
+          :key="module.key"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200 hover:shadow-md"
+          :class="{
+            'ring-2 ring-green-500': module.enabled,
+            'opacity-75': !module.enabled
+          }"
+        >
+          <!-- Module Header -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="text-3xl">{{ module.icon }}</div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  {{ module.name }}
+                </h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ module.description }}
+                </p>
+              </div>
             </div>
+            <div class="flex items-center space-x-2">
+              <!-- Status Badge -->
+              <span
+                v-if="module.enabled"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              >
+                <Icon name="heroicons:check-circle" class="w-3 h-3 mr-1" />
+                Active
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+              >
+                <Icon name="heroicons:lock-closed" class="w-3 h-3 mr-1" />
+                Locked
+              </span>
+            </div>
+          </div>
+
+          <!-- Module Features -->
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Features:
+            </h4>
+            <ul class="space-y-1">
+              <li
+                v-for="feature in module.features"
+                :key="feature"
+                class="text-xs text-gray-600 dark:text-gray-400 flex items-center"
+              >
+                <Icon name="heroicons:check" class="w-3 h-3 mr-1 text-green-500" />
+                {{ feature }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Action Button -->
+          <div v-if="!module.enabled && !isSuperAdmin" class="mt-4">
             <button
-              @click="expandAllRoles"
-              class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              @click="requestUpgrade(module.key)"
+              class="w-full text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
             >
-              {{ allRolesExpanded ? 'Collapse All' : 'Expand All' }}
+              Upgrade to unlock →
             </button>
           </div>
         </div>
+      </div>
 
-        <div class="p-6">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div
-              v-for="role in roles"
-              :key="role.id"
-              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-            >
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-2">
-                  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                  </div>
-                  <h3 class="font-semibold text-gray-900 dark:text-white">{{ role.name }}</h3>
-                </div>
-                <button
-                  @click="toggleRoleExpanded(role.id)"
-                  class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                >
-                  <svg 
-                    class="w-5 h-5 transition-transform"
-                    :class="{ 'rotate-180': expandedRoles.includes(role.id) }"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-              </div>
-
-              <div 
-                class="space-y-3 transition-all duration-200 overflow-hidden"
-                :class="expandedRoles.includes(role.id) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'"
+      <!-- Upgrade Info for School Admin -->
+      <div v-if="!isSuperAdmin" class="mt-8">
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+          <div class="flex items-start">
+            <Icon name="heroicons:information-circle" class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3" />
+            <div>
+              <h3 class="text-lg font-medium text-blue-900 dark:text-blue-100">
+                Need More Features?
+              </h3>
+              <p class="text-blue-700 dark:text-blue-300 mt-1">
+                Contact us to upgrade your subscription and unlock additional modules like Attendance, Exams, Library, and more.
+              </p>
+              <button
+                @click="showUpgradeModal = true"
+                class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <div
-                  v-for="permission in role.permissions"
-                  :key="permission.id"
-                  class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                >
-                  <div class="flex items-center space-x-3">
-                    <input
-                      :id="`${role.id}-${permission.id}`"
-                      v-model="permission.enabled"
-                      type="checkbox"
-                      class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                    />
-                    <label 
-                      :for="`${role.id}-${permission.id}`" 
-                      class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-                    >
-                      {{ permission.name }}
-                    </label>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <span 
-                      class="text-xs px-2 py-1 rounded-full"
-                      :class="permission.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-400'"
-                    >
-                      {{ permission.enabled ? 'Allowed' : 'Denied' }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Permission Summary -->
-              <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-600 dark:text-gray-400">Permissions</span>
-                  <span class="font-medium text-gray-900 dark:text-white">
-                    {{ role.permissions.filter(p => p.enabled).length }}/{{ role.permissions.length }}
-                  </span>
-                </div>
-                <div class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    :style="{ width: `${(role.permissions.filter(p => p.enabled).length / role.permissions.length) * 100}%` }"
-                  ></div>
-                </div>
-              </div>
+                Request Upgrade
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Module Info Modal -->
-    <div v-if="selectedModule" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ selectedModule.name }}</h3>
-            <button
-              @click="selectedModule = null"
-              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+    <!-- Subscription Plan Selector Modal (Super Admin Only) -->
+    <Modal v-if="showPlanSelector" @close="showPlanSelector = false" size="lg">
+      <template #header>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+          Update School Subscription
+        </h3>
+      </template>
+      
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Subscription Plan
+            </label>
+            <select
+              v-model="selectedPlan"
+              class="input-field"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
+              <option value="">Select a plan...</option>
+              <option
+                v-for="plan in subscriptionPlans"
+                :key="plan.key"
+                :value="plan.key"
+              >
+                {{ plan.name }} - ₹{{ plan.price }}/month
+              </option>
+            </select>
           </div>
-          <p class="text-gray-600 dark:text-gray-400 mb-4">{{ selectedModule.description }}</p>
-          <div class="space-y-3">
-            <div>
-              <h4 class="font-medium text-gray-900 dark:text-white mb-2">Features</h4>
-              <ul class="space-y-1">
-                <li
-                  v-for="feature in getModuleFeatures(selectedModule.id)"
-                  :key="feature"
-                  class="flex items-center text-sm text-gray-600 dark:text-gray-400"
-                >
-                  <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                  {{ feature }}
-                </li>
-              </ul>
+
+          <div v-if="selectedPlan" class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">
+              Plan Details:
+            </h4>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              <p><strong>Price:</strong> ₹{{ selectedPlanDetails?.price }}/month</p>
+              <p><strong>Max Students:</strong> {{ selectedPlanDetails?.max_students === -1 ? 'Unlimited' : selectedPlanDetails?.max_students }}</p>
+              <p><strong>Max Branches:</strong> {{ selectedPlanDetails?.max_branches === -1 ? 'Unlimited' : selectedPlanDetails?.max_branches }}</p>
+              <p><strong>Max Staff:</strong> {{ selectedPlanDetails?.max_staff === -1 ? 'Unlimited' : selectedPlanDetails?.max_staff }}</p>
             </div>
           </div>
         </div>
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
           <button
-            @click="selectedModule = null"
-            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            @click="showPlanSelector = false"
+            class="btn-secondary"
           >
-            Close
+            Cancel
+          </button>
+          <button
+            @click="updateSubscription"
+            :disabled="!selectedPlan || isUpdating"
+            class="btn-primary"
+          >
+            <Icon v-if="isUpdating" name="heroicons:arrow-path" class="w-4 h-4 mr-2 animate-spin" />
+            {{ isUpdating ? 'Updating...' : 'Update Subscription' }}
           </button>
         </div>
-      </div>
-    </div>
+      </template>
+    </Modal>
+
+    <!-- Upgrade Request Modal (School Admin Only) -->
+    <Modal v-if="showUpgradeModal" @close="showUpgradeModal = false" size="lg">
+      <template #header>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+          Request Subscription Upgrade
+        </h3>
+      </template>
+      
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Desired Plan
+            </label>
+            <select
+              v-model="upgradeRequest.plan"
+              class="input-field"
+            >
+              <option value="">Select a plan...</option>
+              <option
+                v-for="plan in upgradeablePlans"
+                :key="plan.key"
+                :value="plan.key"
+              >
+                {{ plan.name }} - ₹{{ plan.price }}/month
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Reason for Upgrade
+            </label>
+            <textarea
+              v-model="upgradeRequest.reason"
+              rows="4"
+              class="input-field"
+              placeholder="Please explain why you need this upgrade..."
+            ></textarea>
+          </div>
+
+          <div v-if="upgradeRequest.plan" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-2">
+              Plan Comparison:
+            </h4>
+            <div class="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+              <p><strong>Current:</strong> {{ currentPlan?.name }} ({{ enabledModules.length }} modules)</p>
+              <p><strong>Upgrade to:</strong> {{ upgradeRequestDetails?.name }} ({{ upgradeRequestDetails?.modules?.length }} modules)</p>
+              <p><strong>Additional Cost:</strong> ₹{{ upgradeRequestDetails?.price - (currentPlan?.price || 0) }}/month</p>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="showUpgradeModal = false"
+            class="btn-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            @click="submitUpgradeRequest"
+            :disabled="!upgradeRequest.plan || !upgradeRequest.reason || isSubmitting"
+            class="btn-primary"
+          >
+            <Icon v-if="isSubmitting" name="heroicons:arrow-path" class="w-4 h-4 mr-2 animate-spin" />
+            {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useModulesStore } from '~/stores/modules';
-import { useToast } from '~/composables/useToast';
-import ToggleSwitch from '~/components/ToggleSwitch.vue';
-import { 
-  DollarSign, 
-  Calendar, 
-  BookOpen, 
-  Library, 
-  Truck, 
-  Home,
-  Users,
-  UserCheck,
-  BarChart3,
-  Settings,
-  Clock,
-  MessageSquare,
-  Package
-} from 'lucide-vue-next';
+import { ref, computed, onMounted } from 'vue'
+import { useAuth } from '~/composables/useAuth'
+import { useToast } from '~/composables/useToast'
+import { apiClient } from '~/utils/api'
 
-const modulesStore = useModulesStore();
-const { showSuccess, showError } = useToast();
+// Composables
+const { user } = useAuth()
+const { showSuccess, showError } = useToast()
 
-const modules = ref(modulesStore.getModules());
-const roles = ref(modulesStore.getRoles());
-const isSaving = ref(false);
-const selectedModule = ref(null);
-const expandedRoles = ref([]);
-const allRolesExpanded = ref(false);
+// Reactive data
+const modules = ref([])
+const subscriptionPlans = ref([])
+const currentPlan = ref(null)
+const isLoading = ref(false)
+const isUpdating = ref(false)
+const isSubmitting = ref(false)
+
+// Modal states
+const showPlanSelector = ref(false)
+const showUpgradeModal = ref(false)
+const selectedPlan = ref('')
+const upgradeRequest = ref({
+  plan: '',
+  reason: ''
+})
 
 // Computed properties
-const enabledModulesCount = computed(() => modules.value.filter(m => m.enabled).length);
+const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
+const isSchoolAdmin = computed(() => user.value?.role === 'school_admin')
 
-// Module icons mapping
-const getModuleIcon = (moduleId) => {
-  const icons = {
-    fees: DollarSign,
-    attendance: Calendar,
-    exams: BookOpen,
-    library: Library,
-    transport: Truck,
-    hostel: Home,
-    timetable: Clock,
-    communication: MessageSquare,
-    inventory: Package
-  };
-  return icons[moduleId] || Settings;
-};
+const enabledModules = computed(() => 
+  modules.value.filter(module => module.enabled)
+)
 
-// Module features mapping
-const getModuleFeatures = (moduleId) => {
-  const features = {
-    fees: ['Fee Collection', 'Invoice Generation', 'Payment Tracking', 'Financial Reports', 'Late Fee Management'],
-    attendance: ['Student Attendance', 'Staff Attendance', 'Attendance Reports', 'Absence Tracking', 'Attendance Alerts'],
-    exams: ['Exam Scheduling', 'Grade Management', 'Performance Analytics', 'Report Cards', 'Academic Reports'],
-    library: ['Book Management', 'Lending System', 'Return Tracking', 'Library Reports', 'Book Inventory'],
-    transport: ['Route Management', 'Vehicle Tracking', 'Driver Management', 'Transport Reports', 'Route Optimization'],
-    hostel: ['Room Management', 'Student Accommodation', 'Hostel Reports', 'Facility Management', 'Visitor Tracking'],
-    timetable: ['Class Scheduling', 'Teacher Assignments', 'Room Allocation', 'Conflict Detection', 'Schedule Optimization'],
-    communication: ['Internal Messaging', 'Announcements', 'Email Notifications', 'SMS Alerts', 'Communication History'],
-    inventory: ['Supply Tracking', 'Equipment Management', 'Purchase Orders', 'Stock Alerts', 'Inventory Reports']
-  };
-  return features[moduleId] || [];
-};
+const selectedPlanDetails = computed(() => 
+  subscriptionPlans.value.find(plan => plan.key === selectedPlan.value)
+)
+
+const upgradeablePlans = computed(() => 
+  subscriptionPlans.value.filter(plan => plan.price > (currentPlan.value?.price || 0))
+)
+
+const upgradeRequestDetails = computed(() => 
+  subscriptionPlans.value.find(plan => plan.key === upgradeRequest.plan)
+)
 
 // Methods
-const toggleModule = (moduleId, enabled) => {
-  modulesStore.toggleModule(moduleId, enabled);
-};
-
-const configureModule = (moduleId) => {
-  navigateTo(`/settings/modules/${moduleId}`);
-};
-
-const showModuleInfo = (module) => {
-  selectedModule.value = module;
-};
-
-const enableAllModules = () => {
-  modules.value.forEach(module => {
-    module.enabled = true;
-  });
-};
-
-const disableAllModules = () => {
-  modules.value.forEach(module => {
-    module.enabled = false;
-  });
-};
-
-const toggleRoleExpanded = (roleId) => {
-  const index = expandedRoles.value.indexOf(roleId);
-  if (index > -1) {
-    expandedRoles.value.splice(index, 1);
-  } else {
-    expandedRoles.value.push(roleId);
-  }
-};
-
-const expandAllRoles = () => {
-  if (allRolesExpanded.value) {
-    expandedRoles.value = [];
-    allRolesExpanded.value = false;
-  } else {
-    expandedRoles.value = roles.value.map(role => role.id);
-    allRolesExpanded.value = true;
-  }
-};
-
-const resetToDefaults = () => {
-  if (confirm('Are you sure you want to reset all module settings to defaults? This action cannot be undone.')) {
-    modulesStore.loadModuleSettings();
-    showSuccess('Module settings reset to defaults');
-  }
-};
-
-const saveModuleSettings = async () => {
-  isSaving.value = true;
+const loadModules = async () => {
   try {
-    await modulesStore.saveModuleSettings();
-    showSuccess('Module settings saved successfully!');
-  } catch (error) {
-    console.error('Error saving module settings:', error);
-    showError('Failed to save module settings. Please try again.');
-  } finally {
-    isSaving.value = false;
-  }
-};
+    isLoading.value = true
+    const schoolId = user.value?.school_id
+    
+    if (!schoolId) {
+      showError('No school assigned to your account')
+      return
+    }
 
-onMounted(async () => {
-  await modulesStore.fetchModules();
-  // Expand first role by default
-  if (roles.value.length > 0) {
-    expandedRoles.value = [roles.value[0].id];
+    const response = await apiClient.schools.getModules(schoolId)
+    
+    if (response.success) {
+      modules.value = response.data.modules || []
+      currentPlan.value = response.data.plan_comparison?.find(plan => plan.isCurrentPlan)
+    }
+  } catch (error) {
+    console.error('Error loading modules:', error)
+    showError('Failed to load modules')
+  } finally {
+    isLoading.value = false
   }
-});
+}
+
+const loadSubscriptionPlans = async () => {
+  try {
+    const response = await apiClient.schools.getSubscriptionPlans()
+    
+    if (response.success) {
+      subscriptionPlans.value = response.data || []
+    }
+  } catch (error) {
+    console.error('Error loading subscription plans:', error)
+    showError('Failed to load subscription plans')
+  }
+}
+
+const updateSubscription = async () => {
+  if (!selectedPlan.value) return
+
+  try {
+    isUpdating.value = true
+    const schoolId = user.value?.school_id
+    
+    const response = await apiClient.schools.updateModules(
+      schoolId, 
+      selectedPlanDetails.value.modules.map(m => m.key),
+      selectedPlan.value
+    )
+    
+    if (response.success) {
+      showSuccess('Subscription updated successfully')
+      showPlanSelector.value = false
+      selectedPlan.value = ''
+      await loadModules()
+    }
+  } catch (error) {
+    console.error('Error updating subscription:', error)
+    showError('Failed to update subscription')
+  } finally {
+    isUpdating.value = false
+  }
+}
+
+const requestUpgrade = (moduleKey) => {
+  // Find a plan that includes this module
+  const plan = subscriptionPlans.value.find(p => 
+    p.modules.some(m => m.key === moduleKey) && p.price > (currentPlan.value?.price || 0)
+  )
+  
+  if (plan) {
+    upgradeRequest.value.plan = plan.key
+    upgradeRequest.value.reason = `Need access to ${moduleKey} module`
+    showUpgradeModal.value = true
+  }
+}
+
+const submitUpgradeRequest = async () => {
+  if (!upgradeRequest.value.plan || !upgradeRequest.value.reason) return
+
+  try {
+    isSubmitting.value = true
+    const schoolId = user.value?.school_id
+    
+    const response = await apiClient.schools.requestUpgrade(
+      schoolId,
+      upgradeRequest.value.plan,
+      upgradeRequest.value.reason
+    )
+    
+    if (response.success) {
+      showSuccess('Upgrade request submitted successfully')
+      showUpgradeModal.value = false
+      upgradeRequest.value = { plan: '', reason: '' }
+    }
+  } catch (error) {
+    console.error('Error submitting upgrade request:', error)
+    showError('Failed to submit upgrade request')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Lifecycle
+onMounted(async () => {
+  await Promise.all([
+    loadModules(),
+    loadSubscriptionPlans()
+  ])
+})
 </script>
 
 <style scoped>
@@ -449,24 +472,6 @@ onMounted(async () => {
 /* Smooth transitions */
 .transition-all {
   transition: all 0.2s ease-in-out;
-}
-
-/* Custom scrollbar for expanded content */
-.overflow-hidden::-webkit-scrollbar {
-  width: 4px;
-}
-
-.overflow-hidden::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.overflow-hidden::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3);
-  border-radius: 2px;
-}
-
-.overflow-hidden::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.5);
 }
 </style>
 

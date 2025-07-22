@@ -78,19 +78,14 @@ const createFeeType = async (req, res, next) => {
 // Get all fee types
 const getFeeTypes = async (req, res, next) => {
   try {
-    // For school admin, use their school_id from the token
-    // For super admin, use the school_id from query params or their context
-    const schoolId = req.user.role === 'super_admin' ? (req.query.school_id || req.schoolId) : req.user.school_id;
-    const branchId = req.query.branch_id || req.user.branch_id;
-
     const whereClause = {
-      school_id: schoolId,
+      school_id: req.schoolId,
       is_active: true,
     };
 
-    // Add branch filter if branch context is set
-    if (branchId) {
-      whereClause.branch_id = branchId;
+    // Add branch filter if branch context is set and not super admin
+    if (req.branchId && req.user.role !== 'super_admin') {
+      whereClause.branch_id = req.branchId;
     }
 
     const feeTypes = await FeeType.findAll({

@@ -41,7 +41,9 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Academic Year</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Payment Model</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -56,8 +58,30 @@
                   <div class="text-sm text-gray-500 dark:text-gray-400">{{ structure.class_name }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
+                  <div v-if="structure.branch" class="flex items-center">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="font-medium">{{ structure.branch.name }}</span>
+                    <span v-if="structure.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ structure.branch.code }})</span>
+                  </div>
+                  <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 dark:text-white">{{ structure.feeType?.name || 'N/A' }}</div>
                   <div class="text-xs text-gray-500 dark:text-gray-400">{{ structure.feeType?.code || '' }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
+                    'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400': structure.payment_model === 'installment',
+                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': structure.payment_model === 'monthly'
+                  }">
+                    {{ structure.payment_model === 'installment' ? 'Installment-based' : 'Monthly-based' }}
+                  </span>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {{ structure.payment_model === 'installment' ? 
+                      (structure.installment_count > 1 ? `${structure.installment_count} installments` : 'One time') : 
+                      `₹${structure.monthly_payment_amount}/month` 
+                    }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">₹{{ structure.amount }}</div>
@@ -134,6 +158,7 @@
                       'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
                       isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''
                     ]"
+                    @change="onBranchChange"
                   >
                     <option value="">Select a branch</option>
                     <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
@@ -165,6 +190,7 @@
                       'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
                       isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''
                     ]"
+                    @change="onBranchChange"
                   >
                     <option value="">Select a branch</option>
                     <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
@@ -250,6 +276,116 @@
                 />
               </div>
 
+              <!-- Payment Model -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Model *</label>
+                <select
+                  v-model="form.payment_model"
+                  required
+                  @change="onPaymentModelChange"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select Payment Model</option>
+                  <option value="installment">Installment-based</option>
+                  <option value="monthly">Monthly-based</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Installment-based: One-time or installment payments | Monthly-based: Monthly payments
+                </p>
+              </div>
+
+              <!-- Installment-based Fields -->
+              <div v-if="form.payment_model === 'installment'" class="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">Installment Configuration</h4>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Type</label>
+                  <select
+                    v-model="form.installment_type"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="one_time">One Time</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="half_yearly">Half Yearly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Installments</label>
+                  <input
+                    v-model="form.installment_count"
+                    type="number"
+                    min="1"
+                    max="12"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 2 for half-yearly"
+                  />
+                </div>
+
+                <div v-if="form.installment_count > 1">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Amounts</label>
+                  <div class="space-y-2">
+                    <div v-for="i in parseInt(form.installment_count)" :key="i" class="flex items-center space-x-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400 w-8">#{{ i }}:</span>
+                      <input
+                        v-model="form.installment_amounts[i-1]"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                        :placeholder="`Installment ${i} amount`"
+                      />
+                    </div>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Total: ₹{{ totalInstallmentAmount }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Monthly-based Fields -->
+              <div v-if="form.payment_model === 'monthly'" class="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <h4 class="text-sm font-medium text-green-900 dark:text-green-100">Monthly Configuration</h4>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Payment Amount (₹)</label>
+                  <input
+                    v-model="form.monthly_payment_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 1000"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Months</label>
+                  <input
+                    v-model="form.total_months"
+                    type="number"
+                    min="1"
+                    max="12"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 12 for full year"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Day of Month</label>
+                  <input
+                    v-model="form.due_day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 10 for 10th of each month"
+                  />
+                </div>
+              </div>
+
               <!-- Status -->
               <div class="flex items-center">
                 <input
@@ -317,7 +453,7 @@ const editingId = ref(null);
 const selectedSchoolId = ref('');
 const availableSchools = ref([]);
 
-// Branch selector for school admin
+// Branch selector for school admin (only for modal)
 const selectedBranchId = ref('');
 const availableBranches = ref([]);
 
@@ -327,6 +463,13 @@ const form = ref({
   section_id: '',
   fee_type_id: '',
   amount: '',
+  payment_model: '',
+  installment_type: 'one_time',
+  installment_count: 1,
+  installment_amounts: [],
+  monthly_payment_amount: '',
+  total_months: 12,
+  due_day: 10,
   is_active: true
 });
 
@@ -342,6 +485,14 @@ const currentAcademicYearName = computed(() => {
   return 'Loading...';
 });
 
+// Computed property for total installment amount
+const totalInstallmentAmount = computed(() => {
+  if (form.value.installment_amounts && form.value.installment_amounts.length > 0) {
+    return form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toFixed(2);
+  }
+  return '0.00';
+});
+
 const resetForm = () => {
   form.value = {
     academic_year_id: '',
@@ -349,6 +500,13 @@ const resetForm = () => {
     section_id: '',
     fee_type_id: '',
     amount: '',
+    payment_model: '',
+    installment_type: 'one_time',
+    installment_count: 1,
+    installment_amounts: [],
+    monthly_payment_amount: '',
+    total_months: 12,
+    due_day: 10,
     is_active: true
   };
   selectedSchoolId.value = '';
@@ -362,6 +520,20 @@ const resetForm = () => {
     } else {
       form.value.academic_year_id = academicYears.value[0].id;
     }
+  }
+};
+
+// Handle payment model change
+const onPaymentModelChange = () => {
+  if (form.value.payment_model === 'installment') {
+    // Reset monthly fields
+    form.value.monthly_payment_amount = '';
+    form.value.total_months = 12;
+  } else if (form.value.payment_model === 'monthly') {
+    // Reset installment fields
+    form.value.installment_type = 'one_time';
+    form.value.installment_count = 1;
+    form.value.installment_amounts = [];
   }
 };
 
@@ -394,18 +566,12 @@ const onSchoolChange = async () => {
   if (selectedSchoolId.value) {
     try {
       console.log('[FeeStructures] Fetching branches for school:', selectedSchoolId.value);
-      const response = await fetchBranches(selectedSchoolId.value);
-      console.log('[FeeStructures] Branches response for school:', response);
+      const branches = await fetchBranches(selectedSchoolId.value);
+      console.log('[FeeStructures] Branches response for school:', branches);
       
-      // Extract branches from response
-      if (response.success && response.data) {
-        if (response.data.branches) {
-          availableBranches.value = response.data.branches;
-        } else if (Array.isArray(response.data)) {
-          availableBranches.value = response.data;
-        } else {
-          availableBranches.value = [];
-        }
+      // fetchBranches returns the branches array directly
+      if (Array.isArray(branches)) {
+        availableBranches.value = branches;
       } else {
         availableBranches.value = [];
       }
@@ -429,24 +595,41 @@ const onSchoolChange = async () => {
   }
 };
 
+// Handle branch selection change
+const onBranchChange = async () => {
+  // Reset class and section selection when branch changes
+  form.value.class_id = '';
+  form.value.section_id = '';
+  sections.value = []; // Clear sections
+  
+  // Reload classes for the selected branch
+  if (selectedBranchId.value) {
+    try {
+      const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+      await fetchClasses(schoolId, selectedBranchId.value);
+    } catch (error) {
+      console.error('Error loading classes for branch:', error);
+    }
+  } else {
+    classes.value = []; // Clear classes if no branch selected
+  }
+  
+  // Reload fee types for the selected branch
+  await fetchFeeTypes();
+};
+
 // Fetch branches for school admin
 const fetchBranchesForSchoolAdmin = async () => {
   if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
   
   try {
     console.log('[FeeStructures] Fetching branches for school admin, school_id:', user.value.school_id);
-    const response = await fetchBranches(user.value.school_id);
-    console.log('[FeeStructures] Branches response:', response);
+    const branches = await fetchBranches(user.value.school_id);
+    console.log('[FeeStructures] Branches response:', branches);
     
-    // Extract branches from response
-    if (response.success && response.data) {
-      if (response.data.branches) {
-        availableBranches.value = response.data.branches;
-      } else if (Array.isArray(response.data)) {
-        availableBranches.value = response.data;
-      } else {
-        availableBranches.value = [];
-      }
+    // fetchBranches returns the branches array directly
+    if (Array.isArray(branches)) {
+      availableBranches.value = branches;
     } else {
       availableBranches.value = [];
     }
@@ -485,6 +668,10 @@ const fetchFeeTypes = async () => {
     const params = {};
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
+    }
+    // Filter fee types by the selected branch
+    if (selectedBranchId.value) {
+      params.branch_id = selectedBranchId.value;
     }
     const response = await apiClient.feeTypes.getAll(params);
     feeTypes.value = response.data.filter(type => type.is_active);
@@ -538,18 +725,28 @@ const onClassChange = async () => {
   }
 };
 
+// Watch for user data changes to load branches
+watch(user, async (newUser) => {
+  if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
+    console.log('[FeeStructures] User changed, loading branches for school admin');
+    await fetchBranchesForSchoolAdmin();
+  }
+}, { immediate: true });
+
+
+
 const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
   
-  // Load schools for super admin if not already loaded
-  if (user.value?.role === 'super_admin' && availableSchools.value.length === 0) {
+  // Load schools for super admin
+  if (user.value?.role === 'super_admin') {
     await fetchSchools();
   }
 
-  // Load branches for school admin if not already loaded
-  if (user.value?.role === 'school_admin' && user.value?.school_id && availableBranches.value.length === 0) {
+  // Load branches for school admin (always load to ensure fresh data)
+  if (user.value?.role === 'school_admin' && user.value?.school_id) {
     await fetchBranchesForSchoolAdmin();
   }
 
@@ -570,15 +767,11 @@ const editFeeStructure = async (structure) => {
     // Load branches for the school
     if (structure.school_id) {
       try {
-        const response = await fetchBranches(structure.school_id);
-        if (response.success && response.data) {
-          if (response.data.branches) {
-            availableBranches.value = response.data.branches;
-          } else if (Array.isArray(response.data)) {
-            availableBranches.value = response.data;
-          } else {
-            availableBranches.value = [];
-          }
+        const branches = await fetchBranches(structure.school_id);
+        if (Array.isArray(branches)) {
+          availableBranches.value = branches;
+        } else {
+          availableBranches.value = [];
         }
       } catch (error) {
         console.error('Error fetching branches for edit:', error);
@@ -632,6 +825,13 @@ const editFeeStructure = async (structure) => {
     section_id: sectionId || '',
     fee_type_id: structure.fee_type_id,
     amount: structure.amount,
+    payment_model: structure.payment_model || 'monthly',
+    installment_type: structure.installment_type || 'one_time',
+    installment_count: structure.installment_count || 1,
+    installment_amounts: structure.installment_amounts || [],
+    monthly_payment_amount: structure.monthly_payment_amount || '',
+    total_months: structure.total_months || 12,
+    due_day: structure.due_day || 10,
     is_active: structure.is_active !== false
   };
   
@@ -663,6 +863,9 @@ const saveFeeStructure = async () => {
       school_id: user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
       branch_id: selectedBranchId.value || user.value?.branch_id
     };
+
+    // Debug: Log the data being sent
+    console.log('🔍 Fee structure data being sent:', feeStructureData);
 
     if (isEditing.value) {
       await apiClient.feeStructures.update(editingId.value, feeStructureData);
@@ -768,18 +971,24 @@ watch(sections, (newSections) => {
 // Handle window resize
 let resizeObserver;
 
+// Add missing checkMobile function
+const checkMobile = () => {
+  // This function was referenced but not defined
+  // For now, we'll leave it empty as it's not critical for dropdown functionality
+};
+
 onMounted(async () => {
   if (isClient) {
-  // Load schools for super admin on component mount
-  if (user.value?.role === 'super_admin') {
-    await fetchSchools();
-  }
-  
-  // Load branches for school admin on component mount
-  if (user.value?.role === 'school_admin') {
-    await fetchBranchesForSchoolAdmin();
-  }
-  
+    // Load schools for super admin on component mount
+    if (user.value?.role === 'super_admin') {
+      await fetchSchools();
+    }
+    
+    // Load branches for school admin on component mount
+    if (user.value?.role === 'school_admin') {
+      await fetchBranchesForSchoolAdmin();
+    }
+    
     // Load fee structures and fee types
     await Promise.all([fetchFeeStructures(), fetchFeeTypes()]);
     

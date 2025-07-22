@@ -13,7 +13,7 @@ export function useBranches() {
     try {
       console.log('🔍 Fetching branches for school:', schoolId);
       
-      const response = await apiClient.branches.getAll(schoolId);
+      const response = await apiClient.branches.getBySchool(schoolId);
       
       console.log('🔍 Branches API response:', response);
       
@@ -55,7 +55,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getAll(undefined, params);
+      const response = await apiClient.branches.getAll(params);
       if (response.success) {
         // Handle different response structures
         const responseData = response.data as any;

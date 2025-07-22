@@ -14,6 +14,12 @@ const {
   getStudentDues,
   getStudentFeeLedger,
   adjustInvoice,
+  generateReceipt,
+  getReceipt,
+  getInvoicePayments,
+  getPaymentById,
+  getPaymentReceipt,
+  getStudentPayments
 } = require('../controllers/fee-invoice.controller');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
 const router = express.Router();
@@ -57,6 +63,15 @@ router.put('/:id', requireRole('super_admin', 'school_admin', 'accountant'), upd
 // POST endpoint to record payment for an invoice
 router.post('/:id/payment', requireRole('super_admin', 'school_admin', 'accountant'), recordPayment);
 
+// GET endpoint to get all payments for an invoice
+router.get('/:id/payments', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoicePayments);
+
+// POST endpoint to generate receipt for an invoice (legacy - now use payment receipts)
+router.post('/:id/receipt', requireRole('super_admin', 'school_admin', 'accountant'), generateReceipt);
+
+// GET endpoint to get receipt for an invoice (legacy - now use payment receipts)
+router.get('/:id/receipt', requireRole('super_admin', 'school_admin', 'accountant'), getReceipt);
+
 // PUT endpoint to cancel an invoice (admin only)
 router.put('/:id/cancel', requireRole('super_admin', 'school_admin'), cancelInvoice);
 
@@ -65,5 +80,15 @@ router.post('/:id/late-fees', requireRole('super_admin', 'school_admin', 'accoun
 
 // POST endpoint to manually adjust invoice (admin only)
 router.post('/:id/adjust', requireRole('super_admin', 'school_admin'), adjustInvoice);
+
+// Payment-specific routes
+// GET endpoint to get a specific payment by ID
+router.get('/payment/:paymentId', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getPaymentById);
+
+// GET endpoint to get receipt for a specific payment
+router.get('/payment/:paymentId/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getPaymentReceipt);
+
+// GET endpoint to get all payments for a student
+router.get('/student/:studentId/payments', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentPayments);
 
 module.exports = router;

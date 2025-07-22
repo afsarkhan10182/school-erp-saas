@@ -80,9 +80,22 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBranches } from '~/composables/useBranches';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access branches
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage branches.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const router = useRouter();
+const { getBranchById, updateBranch } = useBranches();
 const branchId = route.params.id;
 const { loading, error } = useBranches();
 const branch = ref({});

@@ -104,4 +104,30 @@ router.post(
   SchoolController.reactivateSchool
 );
 
+// Module management routes (Super Admin controls, School Admin view-only)
+router.get(
+  '/:id/modules',
+  authorize(['super_admin', 'school_admin']),
+  SchoolController.getSchoolModules
+);
+
+router.put(
+  '/:id/modules',
+  authorize(['super_admin']), // Only Super Admin can update modules
+  SchoolController.updateSchoolModules
+);
+
+// Subscription plan routes
+router.get(
+  '/subscription-plans',
+  authorize(['super_admin', 'school_admin']),
+  SchoolController.getSubscriptionPlans
+);
+
+router.post(
+  '/:id/request-upgrade',
+  authorize(['school_admin']), // Only School Admin can request upgrades
+  SchoolController.requestUpgrade
+);
+
 module.exports = router; 

@@ -371,16 +371,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access school subscription management
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage school subscriptions.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const router = useRouter();
-const { plans, fetchPlans, fetchSchoolsWithSubscriptions, updateSchoolSubscription } = useSubscriptions();
+const { getSchoolById, updateSchoolSubscription, plans, fetchPlans, loading, error } = useSubscriptions();
 
-const loading = ref(false);
-const error = ref('');
 const formError = ref('');
 const emailError = ref('');
 const adminEmailError = ref('');
@@ -578,8 +589,7 @@ const loadSchool = async () => {
     await fetchPlans({ is_active: true });
     
     // Fetch school details
-    const schoolsData = await fetchSchoolsWithSubscriptions({ id: route.params.id });
-    const school = schoolsData?.data?.schools?.[0];
+    const school = await getSchoolById(route.params.id);
     if (!school) throw new Error('School not found');
     
     // Populate form

@@ -373,11 +373,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
 
-const { plans, loading, error, createSchoolWithSubscription, fetchPlans } = useSubscriptions();
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access school subscription management
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage school subscriptions.');
+  await navigateTo('/dashboard');
+}
+
+const { createSchoolWithSubscription, plans, fetchPlans, loading, error } = useSubscriptions();
 const adminEmailError = ref(''); 
 const isSchoolCodeValid = ref(true);
 const plansLoading = ref(false);

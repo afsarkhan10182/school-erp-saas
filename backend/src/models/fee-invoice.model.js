@@ -257,6 +257,12 @@ FeeInvoice.associate = (models) => {
     foreignKey: 'updated_by',
     as: 'updatedBy',
   });
+
+  // FeeInvoice has many FeePayments
+  FeeInvoice.hasMany(models.FeePayment, {
+    foreignKey: 'invoice_id',
+    as: 'payments',
+  });
 };
 
 module.exports = FeeInvoice;

@@ -68,9 +68,21 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription plans
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage subscription plans.');
+  await navigateTo('/dashboard');
+}
 
 const { createPlan, loading, error, plans, fetchPlans } = useSubscriptions();
 
