@@ -29,6 +29,12 @@ const FeeStructure = sequelize.define('FeeStructure', {
       notEmpty: { msg: 'Class name is required' },
     },
   },
+  applicable_classes: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of class names that this fee structure applies to'
+  },
   section: {
     type: DataTypes.STRING(10),
     allowNull: true,

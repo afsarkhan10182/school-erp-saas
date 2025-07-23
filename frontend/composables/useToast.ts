@@ -8,7 +8,7 @@ interface ToastOptions {
 
 export const useToast = () => {
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', duration: number = 5000) => {
-    if (process.client) {
+    if (import.meta.client) {
       // Dispatch custom event to show toast
       const event = new CustomEvent('show-toast', {
         detail: {

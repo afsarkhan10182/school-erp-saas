@@ -209,21 +209,7 @@
           </div>
         </div>
         
-        <div v-else-if="!hasAppliedFilters" class="p-12 text-center">
-          <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-            <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Select filters to view students
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            {{ isSuperAdmin ? 'Choose a school and branch, then click Apply Filters to view students.' : 'Choose a branch, then click Apply Filters to view students.' }}
-          </p>
-        </div>
-        
-        <div v-else class="overflow-x-auto">
+        <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
               <tr>
@@ -597,7 +583,11 @@ const fetchStudents = async () => {
   hasAppliedFilters.value = true;
   
   try {
-    const params = {};
+    // Always include default pagination parameters
+    const params = {
+      page: 1,
+      limit: 10
+    };
 
     // Add search if present
     if (searchQuery.value) {
@@ -704,6 +694,9 @@ onMounted(async () => {
   
   // Load academic years for all users
   await fetchAcademicYears(authStore.currentUser?.school_id);
+  
+  // Auto-fetch students data on first load with default pagination
+  await fetchStudents();
 });
 
 // Watch for branch changes

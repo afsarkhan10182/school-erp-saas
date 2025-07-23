@@ -1,11 +1,13 @@
 const express = require('express');
 const {
   createFeeStructure,
+  createSectionBasedFeeStructures,
   getFeeStructures,
   getFeeStructureById,
   updateFeeStructure,
   deleteFeeStructure,
   cloneFeeStructure,
+  getFeeStructuresWithContext,
 } = require('../controllers/fee-structure.controller');
 const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('../middleware/auth');
 const router = express.Router();
@@ -22,8 +24,17 @@ router.use(setBranchContext);
 // POST endpoint to create a new fee structure (admin only)
 router.post('/', requireRole('super_admin', 'school_admin'), createFeeStructure);
 
+// POST endpoint to create multiple section-based fee structures (admin only)
+router.post('/section-based', requireRole('super_admin', 'school_admin'), createSectionBasedFeeStructures);
+
+
+
 // GET endpoint to retrieve all fee structures
 router.get('/', getFeeStructures);
+
+// GET endpoint to retrieve fee structures with complete context (for invoice generation)
+// This must come before /:id route to prevent conflicts
+router.get('/with-context', getFeeStructuresWithContext);
 
 // GET endpoint to retrieve a specific fee structure by ID
 router.get('/:id', getFeeStructureById);

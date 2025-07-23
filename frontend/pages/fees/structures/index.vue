@@ -40,7 +40,7 @@
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Academic Year</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Applicable Classes</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Payment Model</th>
@@ -54,8 +54,25 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">{{ structure.academic_year }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ structure.class_name }}</div>
+                <td class="px-6 py-4">
+                  <div class="text-sm text-gray-900 dark:text-white">
+                    <!-- Show applicable classes if available, otherwise fallback to class_name -->
+                    <div v-if="structure.applicable_classes && structure.applicable_classes.length > 0" class="flex flex-wrap gap-1">
+                      <span 
+                        v-for="className in structure.applicable_classes" 
+                        :key="className"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                      >
+                        {{ className }}
+                      </span>
+                    </div>
+                    <div v-else class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ structure.class_name || 'N/A' }}
+                    </div>
+                  </div>
+                  <div v-if="structure.section" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Section: {{ structure.section }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="structure.branch" class="flex items-center">
@@ -217,20 +234,44 @@
                 />
               </div>
 
-              <!-- Class Dropdown -->
+              <!-- Class Dropdown - Updated to Multi-Select -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
-                <select
-                  v-model="form.class_id"
-                  required
-                  @change="onClassChange"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Select Class</option>
-                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-                    {{ classItem.name }}
-                  </option>
-                </select>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Applicable Classes *</label>
+                <div class="relative">
+                  <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 dark:bg-gray-700 dark:text-white min-h-[42px]">
+                    <div v-for="className in form.applicable_classes" :key="className" class="flex items-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-md text-sm">
+                      <span>{{ className }}</span>
+                      <button
+                        type="button"
+                        @click="removeClass(className)"
+                        class="ml-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <select
+                      v-model="selectedClassToAdd"
+                      @change="addClass"
+                      class="flex-1 bg-transparent border-none outline-none text-sm"
+                      :disabled="form.applicable_classes.length >= classes.length"
+                    >
+                      <option value="">Select classes to add...</option>
+                      <option 
+                        v-for="classItem in availableClassesForSelection" 
+                        :key="classItem.id" 
+                        :value="classItem.name"
+                      >
+                        {{ classItem.name }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Select multiple classes that this fee structure applies to. Students in any of these classes will be assigned this fee structure.
+                </p>
+                <div v-if="form.applicable_classes.length === 0" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                  At least one class must be selected.
+                </div>
               </div>
 
               <!-- Section Dropdown -->
@@ -262,20 +303,6 @@
                 </select>
               </div>
 
-              <!-- Amount Input -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (₹) *</label>
-                <input
-                  v-model="form.amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter amount"
-                />
-              </div>
-
               <!-- Payment Model -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Model *</label>
@@ -302,6 +329,7 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Type</label>
                   <select
                     v-model="form.installment_type"
+                    @change="onInstallmentTypeChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="one_time">One Time</option>
@@ -319,6 +347,7 @@
                     type="number"
                     min="1"
                     max="12"
+                    @change="onInstallmentCountChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., 2 for half-yearly"
                   />
@@ -332,8 +361,9 @@
                       <input
                         v-model="form.installment_amounts[i-1]"
                         type="number"
-                        step="0.01"
-                        min="0"
+                        step="100"
+                        min="100"
+                        @input="onInstallmentAmountChange"
                         class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                         :placeholder="`Installment ${i} amount`"
                       />
@@ -341,6 +371,26 @@
                   </div>
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Total: ₹{{ totalInstallmentAmount }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Students can pay partial amounts within each installment.
+                  </p>
+                </div>
+
+                <!-- Partial Payment Configuration -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Minimum Partial Payment (%)</label>
+                  <input
+                    v-model="form.min_partial_percentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 10 for 10%"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Minimum percentage of installment amount that can be paid as partial payment (default: 10%)
                   </p>
                 </div>
               </div>
@@ -354,11 +404,15 @@
                   <input
                     v-model="form.monthly_payment_amount"
                     type="number"
-                    step="0.01"
-                    min="0"
+                    step="100"
+                    min="100"
+                    @input="onMonthlyPaymentChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., 1000"
                   />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Students can only pay in multiples of this amount (e.g., ₹1,000, ₹2,000, ₹3,000).
+                  </p>
                 </div>
 
                 <div>
@@ -368,6 +422,7 @@
                     type="number"
                     min="1"
                     max="12"
+                    @input="onMonthlyPaymentChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., 12 for full year"
                   />
@@ -383,6 +438,21 @@
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., 10 for 10th of each month"
                   />
+                </div>
+              </div>
+
+              <!-- Total Amount Display -->
+              <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                <div class="flex justify-between items-center">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Amount (₹)</label>
+                  <div class="text-right">
+                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                      ₹{{ calculatedTotalAmount }}
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ amountCalculationNote }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -457,9 +527,13 @@ const availableSchools = ref([]);
 const selectedBranchId = ref('');
 const availableBranches = ref([]);
 
+// Multi-class selection
+const selectedClassToAdd = ref('');
+
 const form = ref({
   academic_year_id: '',
-  class_id: '',
+  applicable_classes: [], // New field for multi-class selection
+  class_id: '', // Keep for backward compatibility
   section_id: '',
   fee_type_id: '',
   amount: '',
@@ -470,7 +544,8 @@ const form = ref({
   monthly_payment_amount: '',
   total_months: 12,
   due_day: 10,
-  is_active: true
+  is_active: true,
+  min_partial_percentage: 10, // Added for partial payment
 });
 
 // Computed property for current academic year name
@@ -493,10 +568,38 @@ const totalInstallmentAmount = computed(() => {
   return '0.00';
 });
 
+// Computed property for calculated total amount
+const calculatedTotalAmount = computed(() => {
+  if (form.value.payment_model === 'installment') {
+    return totalInstallmentAmount.value;
+  } else if (form.value.payment_model === 'monthly') {
+    const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
+    const totalMonths = parseFloat(form.value.total_months) || 1;
+    return (monthlyAmount * totalMonths).toFixed(2);
+  }
+  return '0.00';
+});
+
+// Computed property for amount calculation note
+const amountCalculationNote = computed(() => {
+  if (form.value.payment_model === 'installment') {
+    return `Total amount is calculated based on the sum of all installment amounts.`;
+  } else if (form.value.payment_model === 'monthly') {
+    return `Total amount is calculated based on the monthly payment amount multiplied by the total months.`;
+  }
+  return '';
+});
+
+// Computed property for available classes for selection (exclude already selected)
+const availableClassesForSelection = computed(() => {
+  return classes.value.filter(classItem => !form.value.applicable_classes.includes(classItem.name));
+});
+
 const resetForm = () => {
   form.value = {
     academic_year_id: '',
-    class_id: '',
+    applicable_classes: [], // Reset for create
+    class_id: '', // Reset for create
     section_id: '',
     fee_type_id: '',
     amount: '',
@@ -507,10 +610,12 @@ const resetForm = () => {
     monthly_payment_amount: '',
     total_months: 12,
     due_day: 10,
-    is_active: true
+    is_active: true,
+    min_partial_percentage: 10, // Reset for create
   };
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
+  selectedClassToAdd.value = '';
   
   // Set current academic year ID if available (only for create mode)
   if (!isEditing.value && academicYears.value && academicYears.value.length > 0) {
@@ -523,17 +628,97 @@ const resetForm = () => {
   }
 };
 
+// Multi-class selection functions
+const addClass = () => {
+  if (selectedClassToAdd.value && !form.value.applicable_classes.includes(selectedClassToAdd.value)) {
+    form.value.applicable_classes.push(selectedClassToAdd.value);
+    selectedClassToAdd.value = '';
+  }
+};
+
+const removeClass = (className) => {
+  const index = form.value.applicable_classes.indexOf(className);
+  if (index > -1) {
+    form.value.applicable_classes.splice(index, 1);
+  }
+};
+
 // Handle payment model change
 const onPaymentModelChange = () => {
   if (form.value.payment_model === 'installment') {
     // Reset monthly fields
     form.value.monthly_payment_amount = '';
     form.value.total_months = 12;
+    form.value.min_partial_percentage = 10; // Reset for installment
   } else if (form.value.payment_model === 'monthly') {
     // Reset installment fields
     form.value.installment_type = 'one_time';
     form.value.installment_count = 1;
     form.value.installment_amounts = [];
+  }
+};
+
+// Handle installment type change
+const onInstallmentTypeChange = () => {
+  // Auto-set installment count based on type
+  switch (form.value.installment_type) {
+    case 'one_time':
+      form.value.installment_count = 1;
+      break;
+    case 'monthly':
+      form.value.installment_count = 12;
+      break;
+    case 'quarterly':
+      form.value.installment_count = 4;
+      break;
+    case 'half_yearly':
+      form.value.installment_count = 2;
+      break;
+    case 'yearly':
+      form.value.installment_count = 1;
+      break;
+  }
+  
+  // Reset installment amounts when count changes
+  form.value.installment_amounts = [];
+};
+
+// Handle installment count change
+const onInstallmentCountChange = () => {
+  const count = parseInt(form.value.installment_count) || 1;
+  
+  // Ensure installment_amounts array matches the count
+  while (form.value.installment_amounts.length < count) {
+    form.value.installment_amounts.push('');
+  }
+  
+  // Remove extra amounts if count is reduced
+  if (form.value.installment_amounts.length > count) {
+    form.value.installment_amounts = form.value.installment_amounts.slice(0, count);
+  }
+};
+
+// Handle installment amount change
+const onInstallmentAmountChange = () => {
+  // Auto-calculate total amount when installment amounts change
+  if (form.value.payment_model === 'installment') {
+    const total = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+    if (total > 0) {
+      form.value.amount = total.toFixed(2);
+    }
+  }
+};
+
+// Handle monthly payment change
+const onMonthlyPaymentChange = () => {
+  // Auto-calculate total amount when monthly payment changes
+  if (form.value.payment_model === 'monthly') {
+    const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
+    const totalMonths = parseFloat(form.value.total_months) || 1;
+    const total = monthlyAmount * totalMonths;
+    if (total > 0) {
+      form.value.amount = total.toFixed(2);
+    }
   }
 };
 
@@ -565,9 +750,7 @@ const onSchoolChange = async () => {
   selectedBranchId.value = ''; // Reset branch selection
   if (selectedSchoolId.value) {
     try {
-      console.log('[FeeStructures] Fetching branches for school:', selectedSchoolId.value);
       const branches = await fetchBranches(selectedSchoolId.value);
-      console.log('[FeeStructures] Branches response for school:', branches);
       
       // fetchBranches returns the branches array directly
       if (Array.isArray(branches)) {
@@ -576,12 +759,9 @@ const onSchoolChange = async () => {
         availableBranches.value = [];
       }
       
-      console.log('[FeeStructures] Available branches for school:', availableBranches.value);
-      
       // Auto-select if only one branch
       if (availableBranches.value.length === 1) {
         selectedBranchId.value = availableBranches.value[0].id;
-        console.log('[FeeStructures] Auto-selected branch:', selectedBranchId.value);
       }
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -598,7 +778,8 @@ const onSchoolChange = async () => {
 // Handle branch selection change
 const onBranchChange = async () => {
   // Reset class and section selection when branch changes
-  form.value.class_id = '';
+  form.value.applicable_classes = []; // Clear applicable classes
+  form.value.class_id = ''; // Clear class_id for backward compatibility
   form.value.section_id = '';
   sections.value = []; // Clear sections
   
@@ -623,9 +804,7 @@ const fetchBranchesForSchoolAdmin = async () => {
   if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
   
   try {
-    console.log('[FeeStructures] Fetching branches for school admin, school_id:', user.value.school_id);
     const branches = await fetchBranches(user.value.school_id);
-    console.log('[FeeStructures] Branches response:', branches);
     
     // fetchBranches returns the branches array directly
     if (Array.isArray(branches)) {
@@ -634,12 +813,9 @@ const fetchBranchesForSchoolAdmin = async () => {
       availableBranches.value = [];
     }
     
-    console.log('[FeeStructures] Available branches:', availableBranches.value);
-    
     // Auto-select if only one branch
     if (availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
-      console.log('[FeeStructures] Auto-selected branch:', selectedBranchId.value);
     }
   } catch (error) {
     console.error('Error fetching branches for school admin:', error);
@@ -709,26 +885,9 @@ const loadFormData = async () => {
   }
 };
 
-// Handle class change to load sections
-const onClassChange = async () => {
-  form.value.section_id = ''; // Reset section selection
-  if (form.value.class_id) {
-    try {
-      const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
-      const branchId = selectedBranchId.value;
-      await loadSectionsByClass(form.value.class_id, schoolId, branchId);
-    } catch (error) {
-      console.error('Error loading sections for class:', error);
-    }
-  } else {
-    sections.value = []; // Clear sections if no class selected
-  }
-};
-
 // Watch for user data changes to load branches
 watch(user, async (newUser) => {
   if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
-    console.log('[FeeStructures] User changed, loading branches for school admin');
     await fetchBranchesForSchoolAdmin();
   }
 }, { immediate: true });
@@ -755,9 +914,6 @@ const openCreateModal = async () => {
 };
 
 const editFeeStructure = async (structure) => {
-  console.log('🔍 Editing fee structure:', structure);
-  
-  // Set editing mode first
   isEditing.value = true;
   editingId.value = structure.id;
   
@@ -785,17 +941,13 @@ const editFeeStructure = async (structure) => {
   // Now load form data with the correct context
   await loadFormData();
   
-  // Find the class ID by matching class name (fee structure stores class_name, not class_id)
-  let classId = '';
-  if (structure.class_name && classes.value.length > 0) {
-    const matchingClass = classes.value.find(cls => cls.name === structure.class_name);
-    if (matchingClass) {
-      classId = matchingClass.id;
-      console.log('🔍 Found matching class:', matchingClass.name, 'ID:', classId);
-    } else {
-      console.log('🔍 No matching class found for:', structure.class_name);
-      console.log('🔍 Available classes:', classes.value.map(c => c.name));
-    }
+  // Handle applicable_classes - support both new array format and legacy class_name
+  let applicableClasses = [];
+  if (structure.applicable_classes && Array.isArray(structure.applicable_classes)) {
+    applicableClasses = structure.applicable_classes;
+  } else if (structure.class_name) {
+    // Legacy support: convert single class_name to array
+    applicableClasses = [structure.class_name];
   }
   
   // Find the academic year ID by matching academic year name
@@ -804,7 +956,6 @@ const editFeeStructure = async (structure) => {
     const matchingYear = academicYears.value.find(year => year.name === structure.academic_year);
     if (matchingYear) {
       academicYearId = matchingYear.id;
-      console.log('🔍 Found matching academic year:', matchingYear.name, 'ID:', academicYearId);
     }
   }
   
@@ -814,14 +965,14 @@ const editFeeStructure = async (structure) => {
     const matchingSection = sections.value.find(sec => sec.name === structure.section);
     if (matchingSection) {
       sectionId = matchingSection.id;
-      console.log('🔍 Found matching section:', matchingSection.name, 'ID:', sectionId);
     }
   }
   
   // Set form values
   form.value = {
     academic_year_id: academicYearId,
-    class_id: classId || '',
+    applicable_classes: applicableClasses, // Set for edit
+    class_id: '', // Keep empty for edit mode since we use applicable_classes
     section_id: sectionId || '',
     fee_type_id: structure.fee_type_id,
     amount: structure.amount,
@@ -832,11 +983,9 @@ const editFeeStructure = async (structure) => {
     monthly_payment_amount: structure.monthly_payment_amount || '',
     total_months: structure.total_months || 12,
     due_day: structure.due_day || 10,
-    is_active: structure.is_active !== false
+    is_active: structure.is_active !== false,
+    min_partial_percentage: structure.min_partial_percentage || 10, // Set for edit
   };
-  
-  console.log('🔍 Form values set:', form.value);
-  console.log('🔍 Available classes:', classes.value);
   
   showModal.value = true;
 };
@@ -850,6 +999,12 @@ const closeModal = () => {
 const saveFeeStructure = async () => {
   isSubmitting.value = true;
   try {
+    // Validate that at least one class is selected
+    if (form.value.applicable_classes.length === 0) {
+      showError('At least one class must be selected.');
+      return;
+    }
+
     // Get section name if section_id is provided
     let sectionName = null;
     if (form.value.section_id) {
@@ -859,13 +1014,11 @@ const saveFeeStructure = async () => {
 
     const feeStructureData = {
       ...form.value,
+      applicable_classes: form.value.applicable_classes, // Send applicable classes array
       section: sectionName, // Send section name instead of section_id
       school_id: user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
       branch_id: selectedBranchId.value || user.value?.branch_id
     };
-
-    // Debug: Log the data being sent
-    console.log('🔍 Fee structure data being sent:', feeStructureData);
 
     if (isEditing.value) {
       await apiClient.feeStructures.update(editingId.value, feeStructureData);
@@ -924,15 +1077,18 @@ watch(classes, (newClasses) => {
     // Find the fee structure being edited
     const structure = feeStructures.value.find(s => s.id === editingId.value);
     if (structure) {
-      // Try to find matching class by name (fee structure stores class_name, not class_id)
-      if (structure.class_name) {
-        const matchingClass = newClasses.find(cls => cls.name === structure.class_name);
-        if (matchingClass) {
-          form.value.class_id = matchingClass.id;
-          console.log('🔍 Watcher: Set class_id to', matchingClass.id, 'for class', matchingClass.name);
-        } else {
-          console.log('🔍 Watcher: No matching class found for:', structure.class_name);
-        }
+      // Handle applicable_classes - support both new array format and legacy class_name
+      let applicableClasses = [];
+      if (structure.applicable_classes && Array.isArray(structure.applicable_classes)) {
+        applicableClasses = structure.applicable_classes;
+      } else if (structure.class_name) {
+        // Legacy support: convert single class_name to array
+        applicableClasses = [structure.class_name];
+      }
+      
+      // Set applicable_classes if not already set
+      if (form.value.applicable_classes.length === 0 && applicableClasses.length > 0) {
+        form.value.applicable_classes = applicableClasses;
       }
     }
   }
@@ -947,7 +1103,6 @@ watch(academicYears, (newYears) => {
       const matchingYear = newYears.find(year => year.name === structure.academic_year);
       if (matchingYear) {
         form.value.academic_year_id = matchingYear.id;
-        console.log('🔍 Watcher: Set academic_year_id to', matchingYear.id, 'for year', matchingYear.name);
       }
     }
   }
@@ -962,7 +1117,6 @@ watch(sections, (newSections) => {
       const matchingSection = newSections.find(sec => sec.name === structure.section);
       if (matchingSection) {
         form.value.section_id = matchingSection.id;
-        console.log('🔍 Watcher: Set section_id to', matchingSection.id, 'for section', matchingSection.name);
       }
     }
   }

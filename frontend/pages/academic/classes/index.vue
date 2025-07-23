@@ -151,6 +151,16 @@
                     </select>
               </div>
 
+              <!-- Branch Information Display for School Admin with Single Branch -->
+              <div v-if="authStore.user?.role === 'school_admin' && !isEditing && availableBranches.length === 1" class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">📍 Branch Information</h4>
+                <div class="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>{{ availableBranches[0].name }}</strong>
+                  <span v-if="availableBranches[0].code" class="text-blue-600 dark:text-blue-300"> ({{ availableBranches[0].code }})</span>
+                  <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1">This is your only branch - automatically selected</span>
+                </div>
+              </div>
+
               <!-- Branch Information Display for Edit Mode -->
               <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Branch Information</h4>
@@ -243,6 +253,9 @@ import { apiClient } from '~/utils/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
+import { useToast } from '~/composables/useToast';
+
+const { showError, showWarning } = useToast();
 
 const classes = ref([]);
 const isLoading = ref(false);
@@ -324,10 +337,24 @@ const fetchBranchesForCurrentSchool = async () => {
   
   try {
     const schoolId = authStore.user?.school_id;
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.error('No school_id found for user:', authStore.user);
+      return;
+    }
     
+    console.log('Fetching branches for school:', schoolId);
     const response = await apiClient.branches.getBySchool(schoolId);
-    availableBranches.value = response.data?.branches || [];
+    console.log('Branches response:', response);
+    
+    availableBranches.value = response.data?.branches || response.data?.items || [];
+    
+    // Auto-select the only branch for School Admin if there's only one
+    if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
+      selectedBranchId.value = availableBranches.value[0].id;
+      console.log('Auto-selected branch:', selectedBranchId.value);
+    }
+    
+    console.log('Available branches after fetch:', availableBranches.value);
   } catch (error) {
     console.error('Error fetching branches for current school:', error);
     availableBranches.value = [];
@@ -427,7 +454,7 @@ const saveClass = async () => {
     // Add school_id and branch_id for super admin when creating a new class
     if (!isEditing.value && authStore.user?.role === 'super_admin') {
       if (!selectedSchoolId.value || !selectedBranchId.value) {
-        alert('Please select both school and branch first to create the class');
+        showWarning('Please select both school and branch first to create the class');
         return;
       }
       
@@ -437,8 +464,9 @@ const saveClass = async () => {
 
     // Add branch_id for school admin when creating a new class
     if (!isEditing.value && authStore.user?.role === 'school_admin') {
+      // For School Admin, branch_id is always required
       if (availableBranches.length > 1 && !selectedBranchId.value) {
-        alert('Please select a branch first to create the class');
+        showWarning('Please select a branch first to create the class');
         return;
       }
       
@@ -447,6 +475,22 @@ const saveClass = async () => {
       } else if (availableBranches.length === 1) {
         // Auto-select the only branch
         payload.branch_id = availableBranches[0].id;
+      } else {
+        // Fallback: try to get branch from user context
+        const branchContext = getBranchContext();
+        console.log('Branch context:', branchContext);
+        console.log('Available branches:', availableBranches.value);
+        console.log('Selected branch ID:', selectedBranchId.value);
+        
+        if (branchContext?.branchId) {
+          payload.branch_id = branchContext.branchId;
+        } else if (authStore.user?.branch_id) {
+          // Use user's assigned branch as last resort
+          payload.branch_id = authStore.user.branch_id;
+        } else {
+          showError('Unable to determine branch. Please refresh the page and try again.');
+          return;
+        }
       }
     }
 
@@ -462,14 +506,17 @@ const saveClass = async () => {
     await fetchClasses();
     
     // Show success message
-    if (typeof window !== 'undefined') {
+    if (import.meta.client) {
+      console.log('Dispatching success toast event');
       const event = new CustomEvent('show-toast', {
         detail: {
           message: `Class ${isEditing.value ? 'updated' : 'created'} successfully!`,
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
+      console.log('Success toast event dispatched');
     }
   } catch (error) {
     console.error('Error saving class:', error);
@@ -478,7 +525,8 @@ const saveClass = async () => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Error saving class. Please try again.',
-          type: 'error'
+          type: 'error',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -500,7 +548,8 @@ const toggleStatus = async (classItem) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: `Class ${classItem.is_active ? 'deactivated' : 'activated'} successfully!`,
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -524,7 +573,8 @@ const deleteClass = async (id) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Class deleted successfully!',
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -536,7 +586,8 @@ const deleteClass = async (id) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Error deleting class. Please try again.',
-          type: 'error'
+          type: 'error',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -544,7 +595,7 @@ const deleteClass = async (id) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchClasses();
   
   // Fetch schools for super admin
@@ -554,7 +605,8 @@ onMounted(() => {
   
   // Fetch branches for school admin
   if (authStore.user?.role === 'school_admin') {
-    fetchBranchesForCurrentSchool();
+    await fetchBranchesForCurrentSchool();
+    console.log('Branches fetched for school admin:', availableBranches.value);
   }
 });
 </script> 

@@ -1,316 +1,294 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-    <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Plus class="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Generate Invoices & Payments</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Create installment invoices or monthly payments for students</p>
-          </div>
-        </div>
-        <button
-          @click="$emit('close')"
-          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Modal Body -->
+  <Modal :show="show" @close="$emit('close')">
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+        Generate Invoices
+      </h3>
+    </template>
+    
+    <template #body>
       <div class="p-6">
         <form @submit.prevent="generateInvoices" class="space-y-6">
-          <!-- Payment Model Selection -->
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Payment Model <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-              <select 
-                v-model="form.payment_model" 
-                required
-                @change="onPaymentModelChange"
-                class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-              >
-                <option value="">Select Payment Model</option>
-                <option value="installment">Installment Payments</option>
-                <option value="monthly">Monthly Payments</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+        <!-- Payment Model Selection -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Payment Model <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select 
+              v-model="form.payment_model" 
+              required
+              @change="onPaymentModelChange"
+              class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
+            >
+              <option value="">Select Payment Model</option>
+              <option value="installment">Installment Payments</option>
+              <option value="monthly">Monthly Payments</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
+        </div>
 
-          <!-- Fee Structure Selection (for monthly payments) -->
-          <div v-if="form.payment_model === 'monthly'" class="space-y-2">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Fee Structure <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-              <select 
-                v-model="form.fee_structure_id" 
-                required
-                class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-              >
-                <option value="">Select Fee Structure</option>
-                <option v-for="structure in filteredMonthlyFeeStructures" :key="structure.id" :value="structure.id">
-                  {{ structure.name }} - {{ structure.feeType?.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Role-based Context Selection -->
-          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-4 border border-blue-200 dark:border-blue-800">
-            <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 flex items-center">
-              <Building2 class="w-4 h-4 mr-2" />
-              {{ userRole === 'super_admin' ? 'Select School & Branch' : userRole === 'school_admin' ? 'Select Branch' : 'Academic Context' }}
-            </h4>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- School Dropdown (Super Admin Only) -->
-              <div v-if="userRole === 'super_admin'">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  School <span class="text-red-500">*</span>
-                </label>
-                <select 
-                  v-model="form.school_id" 
-                  @change="onSchoolChange" 
-                  required 
-                  class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-                  :class="{ 'opacity-50': schoolsLoading }"
-                  :disabled="schoolsLoading"
-                >
-                                <option value="">{{ props.schoolsLoading ? 'Loading schools...' : 'Select School' }}</option>
-              <option v-for="school in filteredSchools" :key="school.id" :value="school.id">
-                {{ school.name }}
+        <!-- Fee Structure Selection (Primary Selection) -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Fee Structure <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select 
+              v-model="form.fee_structure_id" 
+              required
+              @change="onFeeStructureChange"
+              class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
+            >
+              <option value="">Select Fee Structure</option>
+              <option v-for="structure in availableFeeStructures" :key="structure.id" :value="structure.id">
+                {{ structure.name }} - {{ structure.feeType?.name }} ({{ structure.class_name }}{{ structure.section ? ` - ${structure.section}` : '' }})
               </option>
-                </select>
-              </div>
-
-              <!-- Branch Dropdown (Super Admin & School Admin) -->
-              <div v-if="userRole !== 'branch_admin'">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Branch <span class="text-red-500">*</span>
-                </label>
-                <select 
-                  v-model="form.branch_id" 
-                  @change="onBranchChange" 
-                  required 
-                  class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-                  :class="{ 'opacity-50': branchesLoading }"
-                  :disabled="!canSelectBranch || branchesLoading"
-                >
-                                <option value="">{{ props.branchesLoading ? 'Loading branches...' : getBranchPlaceholder() }}</option>
-              <option v-for="branch in filteredBranches" :key="branch.id" :value="branch.id">
-                {{ branch.name }}
-              </option>
-                </select>
-              </div>
-
-              <!-- Auto-selected Branch Info (Branch Admin) -->
-              <div v-if="userRole === 'branch_admin'" class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Branch
-                </label>
-                <div class="px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-                  <span class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ userBranch?.name || 'Your Branch' }}
-                  </span>
-                </div>
-              </div>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Fee structure contains all context: Branch, Class, Section, Academic Year, and Amount
+          </p>
+        </div>
 
-          <!-- Academic Details Section -->
-          <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
-            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-              <GraduationCap class="w-4 h-4 mr-2" />
-              Academic Details
-            </h4>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Academic Year <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select 
-                    v-model="form.academic_year" 
-                    required
-                    class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-                  >
-                    <option value="">Select Year</option>
-                    <option v-for="year in filteredAcademicYears" :key="year.id" :value="year.name">
-                      {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                    </option>
-                  </select>
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Class <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select 
-                    v-model="form.class_name" 
-                    required
-                    @change="onClassChange"
-                    class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-                    :class="{ 'opacity-50': loadingClasses }"
-                    :disabled="!canSelectClass || loadingClasses"
-                  >
-                    <option value="">{{ loadingClasses ? 'Loading classes...' : getClassPlaceholder() }}</option>
-                    <option v-for="classItem in filteredClasses" :key="classItem.id" :value="classItem.name">
-                      {{ classItem.name }}
-                    </option>
-                  </select>
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Section</label>
-                <div class="relative">
-                  <select 
-                    v-model="form.section" 
-                    class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
-                    :class="{ 'opacity-50': loadingSections }"
-                    :disabled="!canSelectSection || loadingSections"
-                  >
-                    <option value="">{{ loadingSections ? 'Loading sections...' : 'All Sections' }}</option>
-                    <option v-for="section in filteredSections" :key="section.id" :value="section.name">
-                      {{ section.name }}
-                    </option>
-                  </select>
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+        <!-- Fee Structure Context Display (Read-only) -->
+        <div v-if="selectedFeeStructure" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📋 Fee Structure Context</h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Branch:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.branch?.name || 'N/A' }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Class:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">
+                <span v-if="selectedFeeStructure.applicable_classes && selectedFeeStructure.applicable_classes.length > 0">
+                  {{ selectedFeeStructure.applicable_classes.join(', ') }}
+                </span>
+                <span v-else>{{ selectedFeeStructure.class_name }}</span>
+              </span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Section:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.section || 'All Sections' }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Academic Year:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.academic_year }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Fee Type:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.feeType?.name }}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">Amount:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">
+                ₹{{ form.payment_model === 'monthly' 
+                  ? (selectedFeeStructure.monthly_payment_amount?.toLocaleString() || selectedFeeStructure.amount?.toLocaleString()) 
+                  : selectedFeeStructure.amount?.toLocaleString() }}
+                <span v-if="form.payment_model === 'monthly'" class="text-xs text-gray-500">(monthly)</span>
+                <span v-else class="text-xs text-gray-500">(total)</span>
+              </span>
             </div>
           </div>
+        </div>
 
-          <!-- Monthly Payment Specific Fields -->
-          <div v-if="form.payment_model === 'monthly'" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-4 border border-blue-200 dark:border-blue-800">
-            <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 flex items-center">
-              <Calendar class="w-4 h-4 mr-2" />
-              Monthly Payment Details
-            </h4>
+        <!-- Student Selection (Optional) -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Students (Optional)
+          </label>
+          <div class="relative">
+            <select 
+              v-model="form.student_selection" 
+              @change="onStudentSelectionChange"
+              class="w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium appearance-none"
+            >
+              <option value="all">All Students in Class</option>
+              <option value="specific">Select Specific Students</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Leave as "All Students" to generate for entire class, or select specific students
+          </p>
+        </div>
+
+        <!-- Specific Student Selection -->
+        <div v-if="form.student_selection === 'specific'" class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Select Students
+          </label>
+          <div class="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+            <!-- Loading state -->
+            <div v-if="loadingStudents" class="flex items-center justify-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <span class="ml-2 text-sm text-gray-500">Loading students...</span>
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Year <span class="text-red-500">*</span>
-                </label>
-                <input
-                  v-model="form.year"
-                  type="number"
-                  required
-                  min="2020"
-                  max="2030"
-                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                  placeholder="e.g., 2024"
+            <!-- No students found -->
+            <div v-else-if="availableStudents.length === 0" class="text-center py-4 text-sm text-gray-500">
+              No students found for the selected fee structure
+            </div>
+            
+            <!-- Students list -->
+            <div v-else>
+              <div v-for="student in availableStudents" :key="student.id" class="flex items-center mb-2">
+                <input 
+                  type="checkbox" 
+                  :id="student.id" 
+                  :value="student.id" 
+                  v-model="form.selected_student_ids"
+                  class="mr-2"
                 />
-              </div>
-            </div>
-
-            <div class="space-y-3">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Months <span class="text-red-500">*</span>
-              </label>
-              <div class="grid grid-cols-3 gap-3">
-                <label v-for="month in months" :key="month.value" class="flex items-center p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    :value="month.value"
-                    v-model="form.months"
-                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{{ month.label }}</span>
+                <label :for="student.id" class="text-sm text-gray-700 dark:text-gray-300">
+                  {{ student.first_name }} {{ student.last_name }} ({{ student.admission_number }})
                 </label>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Installment Payment Specific Fields -->
-          <div v-if="form.payment_model === 'installment'" class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 space-y-4 border border-green-200 dark:border-green-800">
-            <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 flex items-center">
-              <Calendar class="w-4 h-4 mr-2" />
-              Installment Details
-            </h4>
-            
-            <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Due Date
-                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">(Optional - will auto-calculate if not set)</span>
-              </label>
-              <input 
-                v-model="form.due_date" 
-                type="date" 
-                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                :min="new Date().toISOString().split('T')[0]"
+        <!-- Monthly Payment Specific Fields -->
+        <div v-if="form.payment_model === 'monthly'" class="space-y-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Year <span class="text-red-500">*</span>
+            </label>
+            <input 
+              v-model="form.year" 
+              type="number" 
+              required
+              min="2020"
+              max="2030"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Months <span class="text-red-500">*</span>
+            </label>
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                All 12 months will be generated automatically
+              </span>
+              <button 
+                type="button"
+                @click="selectAllMonths"
+                class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
               >
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                Leave empty to use fee type default due date settings
-              </p>
+                Select All (12 months)
+              </button>
+            </div>
+            <div class="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+              <div v-for="month in months" :key="month.value" class="flex items-center">
+                <input 
+                  type="checkbox" 
+                  :id="`month-${month.value}`" 
+                  :value="month.value" 
+                  v-model="form.months"
+                  class="mr-2"
+                />
+                <label :for="`month-${month.value}`" class="text-sm text-gray-700 dark:text-gray-300">
+                  {{ month.label }}
+                </label>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              Selected: {{ form.months.length }} month{{ form.months.length !== 1 ? 's' : '' }}
             </div>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <!-- Modal Footer -->
-      <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-b-xl">
-        <button
-          type="button"
-          @click="$emit('close')"
-          class="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          :disabled="isGenerating || !canSubmit"
-          @click="generateInvoices"
-          class="px-6 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center space-x-2"
-        >
-          <div v-if="isGenerating" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span>{{ isGenerating ? 'Generating...' : 'Generate' }}</span>
-        </button>
+        <!-- Force Regenerate Option -->
+        <div class="space-y-2">
+          <div class="flex items-center">
+            <input 
+              type="checkbox" 
+              id="force_regenerate" 
+              v-model="form.force_regenerate"
+              class="mr-2"
+            />
+            <label for="force_regenerate" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Force Regenerate (Delete existing invoices and create new ones)
+            </label>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Check this if you want to delete existing invoices for the same fee structure and create fresh ones
+          </p>
+        </div>
+
+        <!-- Installment Payment Specific Fields -->
+        <div v-if="form.payment_model === 'installment'" class="space-y-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Due Date <span class="text-red-500">*</span>
+            </label>
+            <input 
+              v-model="form.due_date" 
+              type="date" 
+              required
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+            />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Notes (Optional)
+          </label>
+          <textarea 
+            v-model="form.notes" 
+            rows="3"
+            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+            placeholder="Add any additional notes..."
+          ></textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-3 pt-4">
+          <button 
+            type="button" 
+            @click="$emit('close')"
+            class="px-6 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            :disabled="!canSubmit || isGenerating"
+            class="px-6 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            <span v-if="isGenerating">Generating...</span>
+            <span v-else>Generate {{ form.payment_model === 'monthly' ? 'Monthly Payments' : 'Invoices' }}</span>
+          </button>
+        </div>
+      </form>
       </div>
-    </div>
-  </div>
+    </template>
+    
+    <template #footer>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
 import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue';
 import { Plus, GraduationCap, Calendar, Building2 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
+import { apiClient } from '~/utils/api';
+import { useToast } from '~/composables/useToast';
 
 const props = defineProps({
   show: {
@@ -355,10 +333,11 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'generate', 'school-change', 'branch-change', 'class-change']);
+const emit = defineEmits(['close', 'generate', 'school-change', 'branch-change', 'class-change', 'payment-model-change', 'fee-structure-change', 'student-selection-change']);
 
-// Auth store
+// Auth store and toast
 const authStore = useAuthStore();
+const { showToast } = useToast();
 
 // Local loading states (not used anymore since we get data from props)
 const loadingClasses = ref(false);
@@ -380,6 +359,10 @@ const form = reactive({
   due_date: '',
   year: new Date().getFullYear(),
   months: [],
+  student_selection: 'all', // 'all' or 'specific'
+  selected_student_ids: [], // For specific student selection
+  notes: '',
+  force_regenerate: false, // New field for force regenerate
 });
 
 const months = ref([
@@ -418,14 +401,13 @@ const canSelectSection = computed(() => {
   return !!form.class_name;
 });
 
+// Computed properties for filtered data
 const filteredClasses = computed(() => {
-  console.log('🔍 Filtered classes:', props.classes);
-  return Array.isArray(props.classes) ? props.classes : [];
+  return props.classes || [];
 });
 
 const filteredSections = computed(() => {
-  console.log('🔍 Filtered sections:', props.sections);
-  return Array.isArray(props.sections) ? props.sections : [];
+  return props.sections || [];
 });
 
 const filteredBranches = computed(() => {
@@ -444,17 +426,94 @@ const filteredMonthlyFeeStructures = computed(() => {
   return Array.isArray(props.monthlyFeeStructures) ? props.monthlyFeeStructures : [];
 });
 
-const canSubmit = computed(() => {
-  const baseRequirements = !!(form.payment_model && form.academic_year && form.class_name);
-  
-  if (userRole.value === 'super_admin') {
-    return baseRequirements && !!(form.school_id && form.branch_id);
-  } else if (userRole.value === 'school_admin') {
-    return baseRequirements && !!form.branch_id;
-  } else {
-    // Branch admin
-    return baseRequirements;
+const availableFeeStructures = computed(() => {
+  if (form.payment_model === 'monthly') {
+    return filteredMonthlyFeeStructures.value
+      .filter(structure => structure.payment_model === 'monthly')
+      .map(structure => ({
+        ...structure,
+        name: `${structure.name} - ${structure.feeType?.name}`,
+        class_name: structure.class_name,
+        section: structure.section,
+        academic_year: structure.academic_year,
+        amount: structure.amount,
+        branch: structure.branch,
+      }));
+  } else if (form.payment_model === 'installment') {
+    return filteredMonthlyFeeStructures.value
+      .filter(structure => structure.payment_model === 'installment')
+      .map(structure => ({
+        ...structure,
+        name: `${structure.name} - ${structure.feeType?.name}`,
+        class_name: structure.class_name,
+        section: structure.section,
+        academic_year: structure.academic_year,
+        amount: structure.amount,
+        branch: structure.branch,
+      }));
   }
+  return [];
+});
+
+const selectedFeeStructure = computed(() => {
+  if (form.fee_structure_id) {
+    return availableFeeStructures.value.find(s => s.id === form.fee_structure_id);
+  }
+  return null;
+});
+
+// Students state
+const availableStudents = ref([]);
+const loadingStudents = ref(false);
+
+// Fetch students based on selected fee structure
+const fetchStudents = async () => {
+  if (!form.fee_structure_id) {
+    availableStudents.value = [];
+    return;
+  }
+  
+  loadingStudents.value = true;
+  try {
+    const selectedStructure = availableFeeStructures.value.find(s => s.id === form.fee_structure_id);
+    if (!selectedStructure) {
+      availableStudents.value = [];
+      return;
+    }
+    
+    // Use the new fee_structure_id parameter to fetch students from all applicable classes
+    const params = {
+      branch_id: selectedStructure.branch_id,
+      fee_structure_id: form.fee_structure_id,
+      section: selectedStructure.section,
+      status: 'active'
+      // Note: academic_year will be automatically used from the fee structure
+    };
+    
+    const response = await apiClient.students.getByClass(params);
+    const allStudents = response.data || [];
+    
+    availableStudents.value = allStudents;
+    
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    availableStudents.value = [];
+    showToast('Error loading students', 'error');
+  } finally {
+    loadingStudents.value = false;
+  }
+};
+
+const canSubmit = computed(() => {
+  const baseRequirements = !!(form.payment_model && form.fee_structure_id);
+  
+  if (form.payment_model === 'monthly') {
+    return baseRequirements && !!(form.year && form.months.length > 0);
+  } else if (form.payment_model === 'installment') {
+    return baseRequirements && !!form.due_date;
+  }
+  
+  return baseRequirements;
 });
 
 // Helper functions
@@ -475,50 +534,79 @@ const getClassPlaceholder = () => {
 };
 
 // Event handlers
-const onPaymentModelChange = () => {
+const onPaymentModelChange = async () => {
+  
   // Clear fee structure and months when payment model changes
   form.fee_structure_id = '';
-  form.months = [];
+  availableStudents.value = [];
   
-  // Clear year for monthly payments if switching to installment
-  if (form.payment_model === 'installment') {
+  if (form.payment_model === 'monthly') {
+    // Automatically select all 12 months for monthly payments
+    form.months = months.value.map(month => month.value);
+    form.year = new Date().getFullYear();
+  } else if (form.payment_model === 'installment') {
+    // Clear months for installment payments
+    form.months = [];
     form.year = new Date().getFullYear();
   }
+  
+  // Emit change event to parent
+  emit('payment-model-change', form.payment_model);
 };
 
-const onSchoolChange = async () => {
-  form.branch_id = '';
-  form.class_name = '';
-  form.section = '';
+const onFeeStructureChange = async () => {
   
-  // Emit school change event to parent
-  if (form.school_id) {
-    emit('school-change', form.school_id);
+  // Clear months for monthly payments if switching to installment
+  if (form.payment_model === 'installment') {
+    form.months = [];
   }
+  
+  // Fetch students when fee structure changes
+  if (form.fee_structure_id) {
+    await fetchStudents();
+  } else {
+    availableStudents.value = [];
+  }
+  
+  // Emit change event to parent
+  emit('fee-structure-change', form.fee_structure_id);
 };
 
-const onBranchChange = async () => {
-  form.class_name = '';
-  form.section = '';
+const onStudentSelectionChange = async () => {
   
-  // Emit branch change event to parent
-  if (form.branch_id) {
-    emit('branch-change', form.branch_id);
+  // Clear selected students if switching to 'all'
+  if (form.student_selection === 'all') {
+    form.selected_student_ids = [];
+  } else if (form.student_selection === 'specific' && form.fee_structure_id) {
+    // Fetch students if switching to specific selection
+    await fetchStudents();
   }
+  
+  // Emit change event to parent
+  emit('student-selection-change', form.student_selection);
 };
 
-const onClassChange = async () => {
-  form.section = '';
-  
-  // Emit class change event to parent
-  if (form.class_name) {
-    emit('class-change', form.class_name);
-  }
+const selectAllMonths = () => {
+  form.months = months.value.map(month => month.value);
 };
 
 const generateInvoices = () => {
-  // Add role-based context to the form data
-  const formData = { ...form };
+  // Prepare form data based on payment model
+  const formData = { 
+    payment_model: form.payment_model,
+    fee_structure_ids: [form.fee_structure_id], // Send as array for invoice generation
+    student_ids: form.student_selection === 'specific' ? form.selected_student_ids : undefined,
+    notes: form.notes,
+    force_regenerate: form.force_regenerate, // Include force_regenerate
+  };
+  
+  // Add payment model specific fields
+  if (form.payment_model === 'monthly') {
+    formData.year = form.year;
+    formData.months = form.months;
+  } else if (form.payment_model === 'installment') {
+    formData.due_date = form.due_date;
+  }
   
   // Ensure auth store is properly initialized
   if (!authStore.currentUser) {
@@ -547,6 +635,12 @@ const initializeComponent = async () => {
     return;
   }
   
+  // Set default values
+  form.student_selection = 'all';
+  form.selected_student_ids = [];
+  form.notes = '';
+  form.force_regenerate = false; // Reset force regenerate
+  
   if (userRole.value === 'school_admin') {
     // Set school for school admin
     form.school_id = authStore.currentUser?.school_id;
@@ -571,18 +665,15 @@ watch(() => form.fee_structure_id, async (newStructure) => {
   }
 });
 
+// Watch for fee structures data changes
+watch(() => props.monthlyFeeStructures, (newStructures) => {
+}, { deep: true });
+
 // Initialize when modal opens
 watch(() => props.show, async (show) => {
   if (show) {
     // Add a small delay to ensure props are properly initialized
     await nextTick();
-    console.log('🔍 Modal opened with props:', {
-      schools: props.schools?.length || 0,
-      branches: props.branches?.length || 0,
-      academicYears: props.academicYears?.length || 0,
-      classes: props.classes?.length || 0,
-      sections: props.sections?.length || 0
-    });
     await initializeComponent();
   }
 });

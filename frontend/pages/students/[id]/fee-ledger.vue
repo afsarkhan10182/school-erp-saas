@@ -191,12 +191,12 @@
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="invoice in ledgerData.invoices" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="invoice in (ledgerData?.invoices || [])" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {{ invoice.invoice_number }}
+                  {{ invoice.invoice_number || 'N/A' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ invoice.feeStructure.feeType.name }}
+                  {{ invoice.feeStructure?.feeType?.name || 'Unknown' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ formatDate(invoice.due_date) }}
@@ -217,14 +217,14 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
-                    v-if="invoice.balance_amount > 0"
+                    v-if="(invoice.balance_amount || 0) > 0"
                     @click="recordPayment(invoice)"
                     class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
                   >
                     Pay
                   </button>
                   <button
-                    v-if="invoice.paid_amount > 0"
+                    v-if="(invoice.paid_amount || 0) > 0"
                     @click="showPaymentHistory(invoice)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
@@ -685,9 +685,11 @@ import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
+import { useToast } from '~/composables/useToast';
 
 const route = useRoute();
 const studentId = route.params.id;
+const { showSuccess, showError } = useToast();
 
 const student = ref(null);
 const ledgerData = ref(null);
@@ -734,11 +736,21 @@ const fetchStudent = async () => {
     student.value = response.data;
   } catch (error) {
     console.error('Error fetching student:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error fetching student details. Please try again.');
+    }
   }
 };
 
 // Fetch ledger data
 const fetchLedger = async () => {
+  if (!studentId) {
+    console.error('Student ID is undefined');
+    return;
+  }
+  
   isLoading.value = true;
   try {
     const response = await apiClient.feeInvoices.getStudentLedger({
@@ -750,6 +762,11 @@ const fetchLedger = async () => {
     ledgerData.value = response.data;
   } catch (error) {
     console.error('Error fetching ledger:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error fetching fee ledger. Please try again.');
+    }
   } finally {
     isLoading.value = false;
   }
@@ -768,10 +785,14 @@ const submitPayment = async () => {
     await apiClient.feeInvoices.recordPayment(selectedInvoice.value.id, paymentForm.value);
     showPaymentModal.value = false;
     await fetchLedger();
-    alert('Payment recorded successfully!');
+    showSuccess('Payment recorded successfully!');
   } catch (error) {
     console.error('Error recording payment:', error);
-    alert('Error recording payment. Please try again.');
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error recording payment. Please try again.');
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -791,10 +812,14 @@ const submitAdjustment = async () => {
     await apiClient.feeInvoices.adjustInvoice(selectedInvoice.value.id, adjustmentForm.value);
     showAdjustmentModal.value = false;
     await fetchLedger();
-    alert('Invoice adjusted successfully!');
+    showSuccess('Invoice adjusted successfully!');
   } catch (error) {
     console.error('Error adjusting invoice:', error);
-    alert('Error adjusting invoice. Please try again.');
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error adjusting invoice. Please try again.');
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -810,7 +835,11 @@ const showPaymentHistory = (invoice) => {
     })
     .catch(error => {
       console.error('Error fetching payment history:', error);
-      alert('Error fetching payment history. Please try again.');
+      if (error.response && error.response.data && error.response.data.message) {
+        showError(error.response.data.message);
+      } else {
+        showError('Error fetching payment history. Please try again.');
+      }
     })
     .finally(() => {
       showPaymentHistoryModal.value = true;
@@ -844,6 +873,11 @@ const fetchAllReceipts = async () => {
     }
   } catch (error) {
     console.error('Error fetching receipts:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error fetching receipts. Please try again.');
+    }
   } finally {
     isLoadingReceipts.value = false;
   }

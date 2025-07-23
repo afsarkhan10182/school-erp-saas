@@ -26,7 +26,7 @@ const FeePayment = sequelize.define('FeePayment', {
   },
   invoice_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'fee_invoices',
       key: 'id',
@@ -136,6 +136,7 @@ const FeePayment = sequelize.define('FeePayment', {
     { fields: ['payment_number'], unique: true },
     { fields: ['receipt_number'], unique: true },
     { fields: ['invoice_id'] },
+
     { fields: ['student_id'] },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
@@ -175,6 +176,8 @@ FeePayment.associate = (models) => {
     foreignKey: 'invoice_id',
     as: 'invoice',
   });
+
+
 
   // FeePayment belongs to Student
   FeePayment.belongsTo(models.Student, {

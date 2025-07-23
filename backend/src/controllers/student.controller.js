@@ -847,17 +847,61 @@ const updateStudent = async (req, res, next) => {
 // Get students by class
 const getStudentsByClass = async (req, res, next) => {
   try {
-    const { class_name, section, academic_year, status = 'active' } = req.query;
+    const { class_name, class_names, section, academic_year, status = 'active', fee_structure_id } = req.query;
 
-    if (!class_name) {
-      throw new ApiError(400, 'Class name is required');
+    if (!class_name && !class_names && !fee_structure_id) {
+      throw new ApiError(400, 'Class name, class names array, or fee structure ID is required');
     }
 
     const whereClause = {
       school_id: req.schoolId,
-      current_class: class_name,
       status,
     };
+
+    // Handle fee structure ID - fetch students from all applicable classes
+    if (fee_structure_id) {
+      const feeStructure = await FeeStructure.findOne({
+        where: { 
+          id: fee_structure_id,
+          school_id: req.schoolId,
+          is_active: true
+        }
+      });
+
+      if (!feeStructure) {
+        throw new ApiError(404, 'Fee structure not found');
+      }
+
+      // Use applicable_classes if available, otherwise fallback to class_name
+      if (feeStructure.applicable_classes && Array.isArray(feeStructure.applicable_classes) && feeStructure.applicable_classes.length > 0) {
+        const classNames = feeStructure.applicable_classes;
+        whereClause.current_class = {
+          [Op.in]: classNames
+        };
+        logger.info(`Fetching students for fee structure ${feeStructure.name} with multiple classes: ${classNames.join(', ')}`);
+      } else if (feeStructure.class_name) {
+        whereClause.current_class = feeStructure.class_name;
+        logger.info(`Fetching students for fee structure ${feeStructure.name} with single class: ${feeStructure.class_name}`);
+      }
+
+      // Use fee structure's academic year if not specified
+      if (!academic_year && feeStructure.academic_year) {
+        whereClause.academic_year = feeStructure.academic_year;
+      }
+    }
+    // Handle multiple classes if provided directly
+    else if (class_names && Array.isArray(JSON.parse(class_names))) {
+      const classNames = JSON.parse(class_names);
+      whereClause.current_class = {
+        [Op.in]: classNames
+      };
+      logger.info(`Fetching students for multiple classes: ${classNames.join(', ')}`);
+    } 
+    // Handle single class name
+    else if (class_name) {
+      whereClause.current_class = class_name;
+      logger.info(`Fetching students for single class: ${class_name}`);
+    }
 
     if (section) whereClause.section = section;
     if (academic_year) whereClause.academic_year = academic_year;
@@ -874,6 +918,7 @@ const getStudentsByClass = async (req, res, next) => {
       order: [['roll_number', 'ASC'], ['first_name', 'ASC']],
     });
 
+    logger.info(`Found ${students.length} students for the specified criteria`);
     return res.status(200).json({ success: true, data: students });
   } catch (error) {
     logger.error('Error fetching students by class:', error);

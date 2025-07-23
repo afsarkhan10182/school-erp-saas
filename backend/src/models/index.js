@@ -12,7 +12,6 @@ const FeeType = require('./fee-type.model');
 const FeeStructure = require('./fee-structure.model');
 const FeeInvoice = require('./fee-invoice.model');
 const FeePayment = require('./fee-payment.model');
-const MonthlyPayment = require('./monthly-payment.model');
 const AcademicYear = require('./academic-year.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
@@ -32,7 +31,6 @@ const models = {
   FeeStructure,
   FeeInvoice,
   FeePayment,
-  MonthlyPayment,
   AcademicYear,
   Class,
   Section,

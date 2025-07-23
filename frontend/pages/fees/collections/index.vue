@@ -17,7 +17,11 @@
           Refresh
         </button>
       </div>
-      <collection-table :collections="collections" />
+      <collection-table 
+        :collections="collections" 
+        @view="handleViewCollection"
+        @print="handlePrintCollection"
+      />
 
       <pagination
         v-if="pagination.total > pagination.limit"
@@ -30,10 +34,14 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { fetchCollectionsAPI } from '~/api/collections';
 import CollectionTable from '~/components/CollectionTable.vue';
 import Pagination from '~/components/Pagination.vue';
+import { useToast } from '~/composables/useToast';
 
+const router = useRouter();
+const { showError, showInfo } = useToast();
 const collections = ref([]);
 const pagination = reactive({ page: 1, limit: 10, total: 0 });
 const filters = reactive({ search: '' });
@@ -45,11 +53,32 @@ const fetchCollections = async () => {
     pagination.total = response.pagination.total;
   } catch (error) {
     console.error('Error fetching collections:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error fetching collections. Please try again.');
+    }
   }
 };
 
 const refreshCollections = () => {
   fetchCollections();
+};
+
+const handleViewCollection = (collection) => {
+  // Navigate to student fee ledger if student ID is available
+  if (collection.student?.id) {
+    router.push(`/students/${collection.student.id}/fee-ledger`);
+  } else {
+    // Show error message if student ID is not available
+    showError('Student information not available for this collection.');
+  }
+};
+
+const handlePrintCollection = (collection) => {
+  // Handle print functionality
+  console.log('Printing collection:', collection);
+  showInfo(`Printing receipt for collection ${collection.receipt_number}`);
 };
 
 onMounted(() => {

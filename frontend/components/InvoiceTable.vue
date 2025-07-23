@@ -7,8 +7,9 @@
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-700">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice/Payment</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Model</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice/Receipt No</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Months Covered</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Payment Model</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
@@ -21,23 +22,39 @@
         </thead>
         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           <tr v-if="isLoading" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-            <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            <td colspan="11" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
               Loading invoices...
             </td>
           </tr>
           <tr v-else-if="invoices.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-            <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            <td colspan="11" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
               No invoices found
             </td>
           </tr>
           <tr v-else v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-            <!-- Invoice/Payment Number -->
+            <!-- Invoice/Receipt Number -->
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
               <div class="flex items-center space-x-2">
                 <span>{{ getInvoiceNumber(invoice) }}</span>
-                <span v-if="isMonthlyPayment(invoice)" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <span v-if="isGroupedPayment(invoice)" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  Grouped
+                </span>
+                <span v-else-if="isMonthlyPayment(invoice)" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   {{ getMonthLabel(invoice.month) }}
                 </span>
+              </div>
+            </td>
+
+            <!-- Months Covered -->
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+              <div v-if="isGroupedPayment(invoice)" class="text-sm font-medium">
+                {{ getMonthsCovered(invoice) }}
+              </div>
+              <div v-else-if="isMonthlyPayment(invoice)" class="text-sm">
+                {{ getMonthLabel(invoice.month) }} {{ invoice.year }}
+              </div>
+              <div v-else class="text-sm">
+                -
               </div>
             </td>
 
@@ -51,7 +68,7 @@
 
             <!-- Student -->
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-              {{ invoice.student?.first_name }} {{ invoice.student?.last_name }}
+              {{ getStudentName(invoice) }}
             </td>
 
             <!-- Branch -->
@@ -93,31 +110,31 @@
             <!-- Actions -->
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <button
-                @click="viewInvoice(invoice)"
+                v-if="isGroupedPayment(invoice)"
+                @click="viewCombinedReceipt(invoice)"
                 class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
               >
-                View
+                View Combined Receipt
+              </button>
+              <button
+                v-else-if="canGenerateReceipt(invoice)"
+                @click="viewReceipt(invoice)"
+                class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
+              >
+                View Receipt
               </button>
               <button
                 v-if="canRecordPayment(invoice)"
                 @click="recordPayment(invoice)"
                 class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
               >
-                Pay
+                Pay Now
               </button>
               <button
-                v-if="canGenerateReceipt(invoice)"
-                @click="generateReceipt(invoice)"
-                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                @click="viewInvoice(invoice)"
+                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                {{ invoice.status === 'paid' ? 'Generate Receipt' : 'Generate Receipt (Partial)' }}
-              </button>
-              <button
-                v-if="invoice.receipt_number"
-                @click="viewReceipt(invoice)"
-                class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-              >
-                View Receipt
+                View
               </button>
             </td>
           </tr>
@@ -141,57 +158,57 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['view-invoice', 'record-payment', 'generate-receipt', 'view-receipt']);
+const emit = defineEmits(['view-invoice', 'record-payment', 'generate-receipt', 'view-receipt', 'view-combined-receipt']);
 
-// Helper functions to determine payment model
+// Helper functions to determine payment types
 const isMonthlyPayment = (invoice) => {
-  return invoice.month !== undefined && invoice.year !== undefined;
+  return invoice.payment_model === 'monthly';
+};
+
+const isGroupedPayment = (invoice) => {
+  return invoice.is_grouped === true;
 };
 
 const isInstallmentPayment = (invoice) => {
-  return !isMonthlyPayment(invoice) && invoice.invoice_number;
+  return !isMonthlyPayment(invoice) && !isGroupedPayment(invoice) && invoice.invoice_number;
 };
 
 const getInvoiceNumber = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return `MP-${invoice.id.slice(-8).toUpperCase()}`;
+  if (isGroupedPayment(invoice)) {
+    return invoice.invoice_number || `RCP-${invoice.receipt_group_id?.slice(-8) || 'UNKNOWN'}`;
   }
-  return invoice.invoice_number;
+  return invoice.invoice_number || `INV-${invoice.id.slice(-8).toUpperCase()}`;
 };
 
-const getAmount = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return invoice.due_amount || 0;
+const getMonthsCovered = (invoice) => {
+  if (isGroupedPayment(invoice)) {
+    // For grouped payments, show month names with years
+    if (invoice.month_names) {
+      return invoice.month_names;
+    }
+    if (invoice.month_range && invoice.year) {
+      // Convert month range to readable format
+      const months = invoice.month_range.split(' - ');
+      if (months.length === 2) {
+        const startMonth = getMonthName(parseInt(months[0]));
+        const endMonth = getMonthName(parseInt(months[1]));
+        return `${startMonth} ${invoice.year} - ${endMonth} ${invoice.year}`;
+      } else {
+        const month = getMonthName(parseInt(months[0]));
+        return `${month} ${invoice.year}`;
+      }
+    }
+    return `${invoice.months_covered} month(s)`;
   }
-  return invoice.total_amount || 0;
+  return '';
 };
 
-const getPaidAmount = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return invoice.paid_amount || 0;
-  }
-  return invoice.paid_amount || 0;
-};
-
-const getPaymentModelText = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return 'Monthly';
-  }
-  return 'Installment';
-};
-
-const getPaymentModelClass = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-  }
-  return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-};
-
-const getPaymentModelIcon = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    return Calendar;
-  }
-  return CreditCard;
+const getMonthName = (month) => {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return months[month - 1] || month;
 };
 
 const getMonthLabel = (month) => {
@@ -202,8 +219,49 @@ const getMonthLabel = (month) => {
   return months[month - 1] || month;
 };
 
+const getAmount = (invoice) => {
+  return invoice.total_amount || 0;
+};
+
+const getPaidAmount = (invoice) => {
+  return invoice.paid_amount || 0;
+};
+
+const getPaymentModelText = (invoice) => {
+  if (isGroupedPayment(invoice)) {
+    return 'Monthly';
+  }
+  if (isMonthlyPayment(invoice)) {
+    return 'Monthly';
+  }
+  return 'Installment';
+};
+
+const getPaymentModelClass = (invoice) => {
+  if (isGroupedPayment(invoice)) {
+    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+  }
+  if (isMonthlyPayment(invoice)) {
+    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+  }
+  return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+};
+
+const getPaymentModelIcon = (invoice) => {
+  if (isGroupedPayment(invoice) || isMonthlyPayment(invoice)) {
+    return Calendar;
+  }
+  return CreditCard;
+};
+
+const getStudentName = (invoice) => {
+  if (invoice.student) {
+    return `${invoice.student.first_name} ${invoice.student.last_name}`;
+  }
+  return 'N/A';
+};
+
 const getBranchName = (invoice) => {
-  // Check if branch data is available
   if (invoice.branch?.name) {
     return invoice.branch.name;
   }
@@ -217,7 +275,6 @@ const getBranchName = (invoice) => {
 };
 
 const getClassDisplay = (invoice) => {
-  // Check if class and section data is available
   if (invoice.student?.current_class) {
     const classInfo = invoice.student.current_class;
     const section = invoice.student.section;
@@ -263,12 +320,8 @@ const canRecordPayment = (invoice) => {
 };
 
 const canGenerateReceipt = (invoice) => {
-  // Allow receipt generation for paid invoices and partial payments
   const hasPayments = parseFloat(invoice.paid_amount || 0) > 0;
-  const notFullyPaid = invoice.status !== 'paid';
-  const noReceiptYet = !invoice.receipt_number;
-  
-  return hasPayments && noReceiptYet;
+  return hasPayments && !isGroupedPayment(invoice);
 };
 
 const formatCurrency = (amount) => {
@@ -276,6 +329,7 @@ const formatCurrency = (amount) => {
 };
 
 const formatDate = (date) => {
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('en-IN');
 };
 
@@ -288,11 +342,11 @@ const recordPayment = (invoice) => {
   emit('record-payment', invoice);
 };
 
-const generateReceipt = (invoice) => {
-  emit('generate-receipt', invoice);
-};
-
 const viewReceipt = (invoice) => {
   emit('view-receipt', invoice);
+};
+
+const viewCombinedReceipt = (invoice) => {
+  emit('view-combined-receipt', invoice);
 };
 </script> 

@@ -98,7 +98,23 @@ const School = sequelize.define('School', {
   time_format: {
     type: DataTypes.ENUM('12h', '24h'),
     allowNull: false,
-    defaultValue: '12h',
+    defaultValue: '24h',
+  },
+  starting_month: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 6, // June (default for most Indian schools)
+    validate: {
+      min: { args: [1], msg: 'Starting month must be between 1 and 12' },
+      max: { args: [12], msg: 'Starting month must be between 1 and 12' },
+    },
+    comment: 'Month when academic year starts (1=January, 6=June, etc.)'
+  },
+  academic_year_start: {
+    type: DataTypes.ENUM('calendar', 'academic'),
+    allowNull: false,
+    defaultValue: 'academic',
+    comment: 'calendar: Jan-Dec, academic: June-May or custom starting month'
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'suspended', 'trial'),

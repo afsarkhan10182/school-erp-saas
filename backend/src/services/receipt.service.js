@@ -8,7 +8,7 @@ const { logger } = require('../utils/logger');
  */
 const generateReceipt = async (paymentData, schoolData, studentData) => {
   try {
-    const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const receiptNumber = paymentData.receipt_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Calculate remaining months and balance for school branch
     let remainingMonths = 0;
@@ -49,6 +49,10 @@ const generateReceipt = async (paymentData, schoolData, studentData) => {
       total_fees: paymentData.total_fees,
       monthly_amount: paymentData.monthly_amount,
       payment_model: paymentData.payment_model,
+      monthly_payments: paymentData.monthly_payments, // Pass through monthly payments for enhanced receipts
+      total_months_paid: paymentData.total_months_paid, // Pass through total months paid
+      months_covered: paymentData.months_covered, // Pass through months covered for enhanced receipts
+      monthly_fee: paymentData.monthly_fee, // Pass through monthly fee for enhanced receipts
       generated_at: new Date()
     };
 
@@ -86,6 +90,18 @@ const generateReceiptHtml = (data, schoolData) => {
   const isJuniorCollege = data.class_name && data.class_name.toLowerCase().includes('junior');
   const schoolType = isJuniorCollege ? 'JUNIOR COLLEGE' : 'ENGLISH MEDIUM SCHOOL';
   const isMonthlyPayment = data.payment_model === 'monthly';
+  const isEnhancedPayment = data.payment_model === 'enhanced';
+  
+  // Debug logging for receipt generation
+  console.log('🔍 Generating receipt HTML with data:', {
+    payment_model: data.payment_model,
+    isMonthlyPayment,
+    month_paid: data.month_paid,
+    monthly_amount: data.monthly_amount,
+    months_paid: data.months_paid,
+    remaining_months: data.remaining_months,
+    total_yearly_amount: data.total_yearly_amount
+  });
   
   return `
     <!DOCTYPE html>
@@ -259,6 +275,33 @@ const generateReceiptHtml = (data, schoolData) => {
           </div>
           ` : ''}
           
+          ${isMonthlyPayment && data.month_paid ? `
+          <div class="info-row">
+            <span class="info-label">Month Paid:</span>
+            <span class="info-value">${data.month_paid}</span>
+          </div>
+          ` : ''}
+          
+          ${isEnhancedPayment ? `
+          <table class="fee-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Fee Type</th>
+                <th>Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(data.monthly_payments || []).map(payment => `
+                <tr>
+                  <td>${payment.month}/${payment.year}</td>
+                  <td>${payment.fee_structure}</td>
+                  <td>${payment.amount.toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          ` : `
           <table class="fee-table">
             <thead>
               <tr>
@@ -268,20 +311,21 @@ const generateReceiptHtml = (data, schoolData) => {
             </thead>
             <tbody>
               <tr>
-                <td>Tuition Fees</td>
+                <td>Tuition Fees${isMonthlyPayment && data.month_paid ? ` (${data.month_paid})` : ''}</td>
                 <td>${data.payment_amount.toLocaleString()}</td>
               </tr>
             </tbody>
           </table>
+          `}
           
           <div class="summary-section">
             <div class="info-row">
               <span class="info-label">Total Amount:</span>
-              <span class="info-value">₹${data.payment_amount.toLocaleString()}</span>
+              <span class="info-value">₹${(data.payment_amount || 0).toLocaleString()}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Payment Method:</span>
-              <span class="info-value">${data.payment_method.toUpperCase()}</span>
+              <span class="info-value">${(data.payment_method || 'cash').toUpperCase()}</span>
             </div>
             ${data.transaction_id ? `
             <div class="info-row">
@@ -291,16 +335,52 @@ const generateReceiptHtml = (data, schoolData) => {
             ` : ''}
           </div>
           
-          ${isMonthlyPayment ? `
+          ${isEnhancedPayment ? `
           <div class="remaining-info">
-            <div class="remaining-title">Remaining Balance Information</div>
+            <div class="remaining-title">Enhanced Payment Summary</div>
             <div class="info-row">
-              <span class="info-label">Remaining Months:</span>
-              <span class="info-value">${data.remaining_months} months</span>
+              <span class="info-label">Months Covered:</span>
+              <span class="info-value">${data.months_covered || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Monthly Fee:</span>
+              <span class="info-value">₹${(data.monthly_fee || 0).toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Amount Paid:</span>
+              <span class="info-value">₹${(data.payment_amount || 0).toLocaleString()}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Remaining Balance:</span>
-              <span class="info-value">₹${data.remaining_balance.toLocaleString()}</span>
+              <span class="info-value">₹${(data.remaining_balance || 0).toLocaleString()}</span>
+            </div>
+          </div>
+          ` : isMonthlyPayment ? `
+          <div class="remaining-info">
+            <div class="remaining-title">Monthly Payment Summary</div>
+            <div class="info-row">
+              <span class="info-label">Month Paid:</span>
+              <span class="info-value">${data.month_paid || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Monthly Amount:</span>
+              <span class="info-value">₹${(data.monthly_amount || 0).toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Months Paid:</span>
+              <span class="info-value">${data.months_paid || 0} out of ${data.total_months || 12}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Remaining Months:</span>
+              <span class="info-value">${data.remaining_months || 0} months</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Yearly Amount:</span>
+              <span class="info-value">₹${(data.total_yearly_amount || 0).toLocaleString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Remaining Balance:</span>
+              <span class="info-value">₹${(data.remaining_balance || 0).toLocaleString()}</span>
             </div>
           </div>
           ` : `
@@ -308,7 +388,7 @@ const generateReceiptHtml = (data, schoolData) => {
             <div class="remaining-title">Outstanding Balance</div>
             <div class="info-row">
               <span class="info-label">Remaining Amount:</span>
-              <span class="info-value">₹${data.remaining_balance.toLocaleString()}</span>
+              <span class="info-value">₹${(data.remaining_balance || 0).toLocaleString()}</span>
             </div>
           </div>
           `}
@@ -331,9 +411,60 @@ const generateReceiptHtml = (data, schoolData) => {
 };
 
 /**
+ * Generate consolidated receipt for enhanced payment (multiple monthly payments)
+ */
+const generateConsolidatedReceipt = async (monthlyPaymentDetails, schoolData, studentData, paymentMethod, totalPaymentAmount, transactionId, paymentDate) => {
+  try {
+    // Calculate total remaining balance across all monthly payments
+    const totalRemainingBalance = monthlyPaymentDetails.reduce((sum, detail) => {
+      const remainingBalance = Math.max(0, detail.paymentBalance - detail.amountToApply);
+      return sum + remainingBalance;
+    }, 0);
+
+    // Get month names for display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const monthsCovered = monthlyPaymentDetails.map(detail => 
+      `${monthNames[detail.monthlyPayment.month - 1]} ${detail.monthlyPayment.year}`
+    ).join(', ');
+
+    const paymentData = {
+      receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      invoice_number: `ENHANCED-${Date.now()}`,
+      payment_amount: totalPaymentAmount,
+      payment_method: paymentMethod || 'cash',
+      transaction_id: transactionId,
+      payment_date: paymentDate || new Date(),
+      remaining_balance: totalRemainingBalance,
+      fee_type_name: 'Tuition Fees (Multiple Months)',
+      academic_year: monthlyPaymentDetails[0]?.monthlyPayment.academic_year || '2025-26',
+      payment_model: 'enhanced',
+      monthly_payments: monthlyPaymentDetails.map(detail => ({
+        month: detail.monthlyPayment.month,
+        year: detail.monthlyPayment.year,
+        amount: detail.amountToApply,
+        fee_structure: detail.monthlyPayment.feeStructure?.name || 'Unknown',
+        class_name: detail.monthlyPayment.feeStructure?.class_name,
+        section: detail.monthlyPayment.feeStructure?.section,
+      })),
+      total_months_paid: monthlyPaymentDetails.length,
+      months_covered: monthsCovered,
+      monthly_fee: monthlyPaymentDetails[0]?.monthlyPayment.feeStructure?.monthly_payment_amount || 0,
+      total_fees: monthlyPaymentDetails.reduce((sum, detail) => sum + parseFloat(detail.monthlyPayment.feeStructure?.monthly_payment_amount || 0), 0),
+    };
+
+    return await generateReceipt(paymentData, schoolData, studentData);
+  } catch (error) {
+    logger.error('Error generating consolidated receipt:', error);
+    throw error;
+  }
+};
+
+/**
  * Generate receipt for monthly payment (school branch)
  */
-const generateMonthlyReceipt = async (monthlyPayment, schoolData, studentData) => {
+const generateMonthlyReceipt = async (monthlyPayment, schoolData, studentData, paymentMethod = null, paymentAmount = null, transactionId = null, paymentDate = null) => {
   try {
     // Calculate remaining months and balance
     const totalMonths = monthlyPayment.feeStructure?.total_months || 12;
@@ -344,10 +475,10 @@ const generateMonthlyReceipt = async (monthlyPayment, schoolData, studentData) =
     const paymentData = {
       receipt_number: monthlyPayment.receipt_number,
       invoice_number: `MONTH-${monthlyPayment.month}-${monthlyPayment.year}`,
-      payment_amount: monthlyPayment.paid_amount,
-      payment_method: monthlyPayment.payment_method,
-      transaction_id: monthlyPayment.transaction_id,
-      payment_date: monthlyPayment.payment_date,
+      payment_amount: paymentAmount || monthlyPayment.paid_amount,
+      payment_method: paymentMethod || monthlyPayment.payment_method || 'cash',
+      transaction_id: transactionId || monthlyPayment.transaction_id,
+      payment_date: paymentDate || monthlyPayment.payment_date || new Date(),
       remaining_balance: remainingBalance,
       remaining_months: remainingMonths,
       fee_type_name: 'Tuition Fees', // Focus on tuition fees as requested
@@ -396,6 +527,46 @@ const generateInstallmentReceipt = async (invoice, paymentAmount, paymentMethod,
   try {
     const remainingBalance = Math.max(0, parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount) - parseFloat(paymentAmount));
     
+    // Calculate month information for monthly payments
+    let monthInfo = {};
+    if (invoice.payment_model === 'monthly') {
+      // For monthly payments, calculate remaining months and month details
+      const totalMonths = 12; // Academic year has 12 months
+      const monthlyAmount = parseFloat(invoice.total_amount); // This is the monthly amount for monthly payments
+      const monthsPaid = Math.floor(parseFloat(invoice.paid_amount || 0) / monthlyAmount);
+      const remainingMonths = Math.max(0, totalMonths - monthsPaid);
+      
+      // Get month name
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      monthInfo = {
+        month_paid: invoice.month ? `${monthNames[invoice.month - 1]} ${invoice.year}` : 'N/A',
+        month_number: invoice.month,
+        year: invoice.year,
+        remaining_months: remainingMonths,
+        total_months: totalMonths,
+        months_paid: monthsPaid,
+        monthly_amount: monthlyAmount,
+        total_yearly_amount: monthlyAmount * totalMonths
+      };
+      
+      // Debug logging
+      console.log('🔍 Monthly payment receipt data:', {
+        invoice_id: invoice.id,
+        payment_model: invoice.payment_model,
+        month: invoice.month,
+        year: invoice.year,
+        month_paid: monthInfo.month_paid,
+        monthly_amount: monthInfo.monthly_amount,
+        months_paid: monthInfo.months_paid,
+        remaining_months: monthInfo.remaining_months,
+        total_yearly_amount: monthInfo.total_yearly_amount
+      });
+    }
+    
     const paymentData = {
       receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       invoice_number: invoice.invoice_number,
@@ -407,9 +578,11 @@ const generateInstallmentReceipt = async (invoice, paymentAmount, paymentMethod,
       fee_type_name: 'Tuition Fees', // Focus on tuition fees as requested
       academic_year: invoice.academic_year,
       total_fees: invoice.total_amount,
-      payment_model: 'installment',
+      payment_model: invoice.payment_model,
       installment_number: invoice.installment_number,
-      total_installments: invoice.total_installments
+      total_installments: invoice.total_installments,
+      // Add month information for monthly payments
+      ...monthInfo
     };
 
     return await generateReceipt(paymentData, schoolData, studentData);
@@ -422,6 +595,7 @@ const generateInstallmentReceipt = async (invoice, paymentAmount, paymentMethod,
 module.exports = {
   generateReceipt,
   generateMonthlyReceipt,
+  generateConsolidatedReceipt,
   generateInstallmentReceipt,
   calculatePaidMonths
 }; 

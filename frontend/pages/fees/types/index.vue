@@ -370,9 +370,7 @@ const onSchoolChange = async () => {
   selectedBranchId.value = ''; // Reset branch selection
   if (selectedSchoolId.value) {
     try {
-      console.log('[FeeTypes] Fetching branches for school:', selectedSchoolId.value);
       const branches = await fetchBranches(selectedSchoolId.value);
-      console.log('[FeeTypes] Branches response for school:', branches);
       
       // fetchBranches returns the branches array directly
       if (Array.isArray(branches)) {
@@ -381,12 +379,9 @@ const onSchoolChange = async () => {
         availableBranches.value = [];
       }
       
-      console.log('[FeeTypes] Available branches for school:', availableBranches.value);
-      
       // Auto-select if only one branch
       if (availableBranches.value.length === 1) {
         selectedBranchId.value = availableBranches.value[0].id;
-        console.log('[FeeTypes] Auto-selected branch:', selectedBranchId.value);
       }
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -402,20 +397,12 @@ const onSchoolChange = async () => {
 
 // Fetch branches for school admin
 const fetchBranchesForSchoolAdmin = async () => {
-  console.log('[FeeTypes] User data:', user.value);
-  console.log('[FeeTypes] User role:', user.value?.role);
-  console.log('[FeeTypes] User school_id:', user.value?.school_id);
-  console.log('[FeeTypes] User branch_id:', user.value?.branch_id);
-  
   if (user.value?.role !== 'school_admin' || !user.value?.school_id) {
-    console.log('[FeeTypes] Skipping branch fetch - not school admin or no school_id');
     return;
   }
   
   try {
-    console.log('[FeeTypes] Fetching branches for school admin, school_id:', user.value.school_id);
     const branches = await fetchBranches(user.value.school_id);
-    console.log('[FeeTypes] Branches response:', branches);
     
     // fetchBranches returns the branches array directly
     if (Array.isArray(branches)) {
@@ -424,12 +411,9 @@ const fetchBranchesForSchoolAdmin = async () => {
       availableBranches.value = [];
     }
     
-    console.log('[FeeTypes] Available branches:', availableBranches.value);
-    
     // Auto-select if only one branch
     if (availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
-      console.log('[FeeTypes] Auto-selected branch:', selectedBranchId.value);
     }
   } catch (error) {
     console.error('Error fetching branches for school admin:', error);
@@ -437,10 +421,9 @@ const fetchBranchesForSchoolAdmin = async () => {
   }
 };
 
-// Force reload branches for school admin (for debugging)
+// Force reload branches for school admin
 const forceReloadBranches = async () => {
   if (user.value?.role === 'school_admin' && user.value?.school_id) {
-    console.log('[FeeTypes] Force reloading branches...');
     await fetchBranchesForSchoolAdmin();
   }
 };
@@ -448,7 +431,6 @@ const forceReloadBranches = async () => {
 // Watch for user data changes to load branches
 watch(user, async (newUser) => {
   if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
-    console.log('[FeeTypes] User changed, loading branches for school admin');
     await fetchBranchesForSchoolAdmin();
   }
 }, { immediate: true });
@@ -472,25 +454,17 @@ const fetchFeeTypes = async () => {
 };
 
 const openCreateModal = async () => {
-  console.log('[FeeTypes] Opening create modal');
-  console.log('[FeeTypes] User data in modal:', user.value);
-  console.log('[FeeTypes] User role in modal:', user.value?.role);
-  console.log('[FeeTypes] Available schools:', availableSchools.value);
-  console.log('[FeeTypes] Available branches:', availableBranches.value);
-  
   resetForm();
   isEditing.value = false;
   showModal.value = true;
   
   // Load schools for super admin
   if (user.value?.role === 'super_admin') {
-    console.log('[FeeTypes] Loading schools for super admin in modal');
     await fetchSchools();
   }
 
   // Load branches for school admin (always load to ensure fresh data)
   if (user.value?.role === 'school_admin' && user.value?.school_id) {
-    console.log('[FeeTypes] Loading branches for school admin in modal');
     await fetchBranchesForSchoolAdmin();
   }
 };

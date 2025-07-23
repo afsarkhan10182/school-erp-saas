@@ -143,10 +143,6 @@ watch(() => form.value.schoolId, (schoolId) => {
 });
 
 const handleSubmit = async () => {
-  // Debug logging
-  console.log('Submitting branch form');
-  console.log('Selected schoolId:', form.value.schoolId);
-  console.log('Schools:', schools.value);
   success.value = false;
   const formData = new FormData();
   formData.append('school_id', form.value.schoolId);

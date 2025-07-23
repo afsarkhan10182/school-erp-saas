@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 relative z-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
@@ -20,7 +20,7 @@
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Plus class="-ml-1 mr-2 h-5 w-5" />
-            Generate Invoices/Payments
+            Generate Invoices
           </button>
           <button
             @click="showPaymentModal = true"
@@ -118,7 +118,10 @@
         @record-payment="recordPayment"
         @generate-receipt="generateReceipt"
         @view-receipt="viewReceipt"
+        @view-combined-receipt="viewCombinedReceipt"
       />
+      
+
       
       <!-- Pagination -->
       <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 rounded-b-lg">
@@ -181,26 +184,17 @@
       :academic-years="academicYears"
       :classes="classes"
       :sections="sections"
-      :monthly-fee-structures="monthlyFeeStructures"
+      :monthly-fee-structures="allFeeStructures"
       :is-generating="isGenerating"
       :schools-loading="schoolsLoading"
-      :branches-loading="branchesLoading"
-      @close="showGenerateModal = false"
+      :branches-loading="false"
+      @close="closeGenerateModal"
       @generate="generateInvoices"
       @school-change="onModalSchoolChange"
       @branch-change="onModalBranchChange"
       @class-change="onModalClassChange"
     />
     
-    <!-- Debug info -->
-    <div v-if="showGenerateModal" class="fixed bottom-4 right-4 bg-black text-white p-4 rounded-lg text-xs z-50">
-      <div>Schools: {{ schools?.length || 0 }}</div>
-      <div>Branches: {{ branches?.length || 0 }}</div>
-      <div>Academic Years: {{ academicYears?.length || 0 }}</div>
-      <div>Classes: {{ classes?.length || 0 }}</div>
-      <div>Sections: {{ sections?.length || 0 }}</div>
-    </div>
-
     <!-- Payment Modal -->
     <div v-if="showPaymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
@@ -215,6 +209,12 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount *</label>
                 <input v-model="paymentForm.amount" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                <!-- Monthly Payment Info -->
+                <div v-if="selectedInvoiceForPayment && selectedInvoiceForPayment.payment_model === 'monthly'" class="mt-2">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Monthly amount: ₹{{ formatCurrency(selectedInvoiceForPayment.total_amount) }}
+                  </p>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Method</label>
@@ -250,7 +250,7 @@
             <div class="mt-6 flex justify-end space-x-3">
               <button
                 type="button"
-                @click="showPaymentModal = false"
+                @click="closePaymentModal"
                 class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
@@ -360,21 +360,22 @@ const authStore = useAuthStore();
 const invoices = ref([]);
 const summary = ref({});
 const isLoading = ref(false);
-const showGenerateModal = ref(false);
+const showGenerateModal = ref(false); // Ensure modal starts closed
 const showPaymentModal = ref(false);
 const isGenerating = ref(false);
 const isSubmittingPayment = ref(false);
 const showQuickCollectModal = ref(false);
 const showReceiptModal = ref(false);
 const selectedReceipt = ref(null);
+const selectedInvoiceForPayment = ref(null);
 
-// Pagination
+// Pagination - Set to exactly 10 records
 const currentPage = ref(1);
 const pageSize = ref(10);
 const totalItems = ref(0);
 const totalPages = ref(0);
 
-// Filters
+// Filters - Start with empty filters
 const filters = reactive({
   payment_model: '',
   branch_id: '',
@@ -383,15 +384,17 @@ const filters = reactive({
   status: '',
 });
 
-// Auto-set branch filter based on user role
+// Use existing data from composables - no need to redeclare
+
+// Check if any filters are applied (for debugging purposes)
+const hasAppliedFilters = computed(() => {
+  return Object.values(filters).some(value => value !== '');
+});
+
+// Auto-set branch filter based on user role (but don't auto-apply filters)
 const setDefaultBranchFilter = () => {
-  if (authStore.isSchoolAdmin && branches.value?.length === 1) {
-    // School admin with single branch - auto-set the branch filter
-    filters.branch_id = branches.value[0]?.id;
-  } else if (authStore.isBranchAdmin) {
-    // Branch admin - auto-set their branch
-    filters.branch_id = authStore.currentUser?.branch_id;
-  }
+  // Don't auto-set any filters - let user choose
+  // This prevents heavy API calls on page load
 };
 
 
@@ -410,144 +413,102 @@ const paymentForm = reactive({
 const fetchInvoices = async () => {
   isLoading.value = true;
   try {
+    // Build params object with all filters
     const params = {
       page: currentPage.value,
       limit: pageSize.value,
-      ...filters
     };
     
-    let allInvoices = [];
-    let totalCount = 0;
+    // Add filters only if they have values
+    if (filters.payment_model) params.payment_model = filters.payment_model;
+    if (filters.branch_id) params.branch_id = filters.branch_id;
+    if (filters.academic_year) params.academic_year = filters.academic_year;
+    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.status) params.status = filters.status;
     
-    // Fetch based on payment model filter
-    if (filters.payment_model === 'monthly' || filters.payment_model === '') {
-      // Fetch monthly payments
-      try {
-        const monthlyResponse = await apiClient.monthlyPayments.getAll(params);
-        const monthlyPayments = monthlyResponse.data.payments || [];
-        allInvoices = [...allInvoices, ...monthlyPayments];
-        totalCount += monthlyResponse.data.pagination?.total_count || 0;
-      } catch (error) {
-        console.error('Error fetching monthly payments:', error);
-      }
-    }
+    // Use the new grouped API instead of getAll
+    const response = await apiClient.feeInvoices.getGrouped(params);
     
-    if (filters.payment_model === 'installment' || filters.payment_model === '') {
-      // Fetch fee invoices
-      try {
-        const invoiceResponse = await apiClient.feeInvoices.getAll(params);
-        const feeInvoices = invoiceResponse.data.invoices || [];
-        allInvoices = [...allInvoices, ...feeInvoices];
-        totalCount += invoiceResponse.data.pagination?.total_count || 0;
-      } catch (error) {
-        console.error('Error fetching fee invoices:', error);
-      }
-    }
+    invoices.value = response.data?.invoices || [];
+    totalItems.value = response.data?.pagination?.total_count || 0;
+    totalPages.value = response.data?.pagination?.total_pages || 0;
     
-    // Sort combined results by date (newest first)
-    allInvoices.sort((a, b) => {
-      const dateA = new Date(a.due_date || a.created_at);
-      const dateB = new Date(b.due_date || b.created_at);
-      return dateB - dateA;
-    });
-    
-    // Apply pagination to combined results
-    const startIndex = (currentPage.value - 1) * pageSize.value;
-    const endIndex = startIndex + pageSize.value;
-    invoices.value = allInvoices.slice(startIndex, endIndex);
-    
-    totalItems.value = totalCount;
-    totalPages.value = Math.ceil(totalCount / pageSize.value);
   } catch (error) {
-    console.error('Error fetching invoices:', error);
+    console.error('Error fetching grouped invoices:', error);
     showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
   }
 };
 
+// Fetch summary data properly
 const fetchSummary = async () => {
   try {
-    let totalInvoices = 0;
-    let paidInvoices = 0;
-    let overdueInvoices = 0;
-    let totalCollected = 0;
-    let totalAmount = 0;
-    let totalBalance = 0;
+    // Use the dedicated summary endpoint instead of fetching all invoices
+    const params = {};
     
-    // Fetch fee invoices summary
-    try {
-      const invoiceResponse = await apiClient.feeInvoices.getSummary();
-      const invoiceData = invoiceResponse.data || {};
-      
-      totalInvoices += invoiceData.invoice_counts?.total || 0;
-      paidInvoices += invoiceData.invoice_counts?.paid || 0;
-      overdueInvoices += invoiceData.invoice_counts?.overdue || 0;
-      totalCollected += invoiceData.amounts?.total_paid || 0;
-      totalAmount += invoiceData.amounts?.total_amount || 0;
-      totalBalance += invoiceData.amounts?.total_balance || 0;
-    } catch (error) {
-      console.error('Error fetching fee invoices summary:', error);
-    }
+    // Add current filters to summary
+    if (filters.payment_model) params.payment_model = filters.payment_model;
+    if (filters.branch_id) params.branch_id = filters.branch_id;
+    if (filters.academic_year) params.academic_year = filters.academic_year;
+    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.status) params.status = filters.status;
     
-    // Fetch monthly payments summary (we'll need to create this endpoint or calculate from data)
-    try {
-      const monthlyResponse = await apiClient.monthlyPayments.getAll({ limit: 1000 });
-      const monthlyPayments = monthlyResponse.data.payments || [];
-      
-      totalInvoices += monthlyPayments.length;
-      paidInvoices += monthlyPayments.filter(p => p.status === 'paid').length;
-      overdueInvoices += monthlyPayments.filter(p => p.status === 'overdue').length;
-      
-      monthlyPayments.forEach(payment => {
-        totalCollected += parseFloat(payment.paid_amount || 0);
-        totalAmount += parseFloat(payment.due_amount || 0);
-        totalBalance += parseFloat(payment.balance_amount || 0);
-      });
-    } catch (error) {
-      console.error('Error fetching monthly payments summary:', error);
-    }
+    const response = await apiClient.feeInvoices.getSummary(params);
     
-    // Transform backend data structure to frontend expected structure
+    // Use the summary data directly from the API - backend returns different structure
+    const data = response.data;
     summary.value = {
-      totalInvoices,
-      paidInvoices,
-      overdueInvoices,
-      totalCollected,
-      totalAmount,
-      totalBalance,
-      collectionPercentage: totalAmount > 0 ? (totalCollected / totalAmount) * 100 : 0
+      totalInvoices: data?.invoice_counts?.total || 0,
+      paidInvoices: data?.invoice_counts?.paid || 0,
+      overdueInvoices: data?.invoice_counts?.overdue || 0,
+      totalCollected: data?.amounts?.total_paid || 0
     };
+    
   } catch (error) {
     console.error('Error fetching summary:', error);
-    showToast('Error fetching summary', 'error');
+    // Set default values
+    summary.value = {
+      totalInvoices: 0,
+      paidInvoices: 0,
+      overdueInvoices: 0,
+      totalCollected: 0
+    };
   }
+};
+
+const closeGenerateModal = () => {
+  showGenerateModal.value = false;
 };
 
 const generateInvoices = async (formData) => {
   // Validate form based on payment model
+  if (!formData.fee_structure_ids || formData.fee_structure_ids.length === 0) {
+    showToast('Please select at least one fee structure', 'error');
+    return;
+  }
+
   if (formData.payment_model === 'monthly') {
-    if (!formData.fee_structure_id) {
-      showToast('Please select a fee structure for monthly payments', 'error');
+    if (!formData.months || formData.months.length === 0) {
+      showToast('Please select at least one month for monthly payments', 'error');
       return;
     }
-    if (formData.months.length === 0) {
-      showToast('Please select at least one month for monthly payments', 'error');
+    if (!formData.year) {
+      showToast('Please select a year for monthly payments', 'error');
+      return;
+    }
+  } else if (formData.payment_model === 'installment') {
+    if (!formData.due_date) {
+      showToast('Please select a due date for installment payments', 'error');
       return;
     }
   }
 
   isGenerating.value = true;
   try {
-    if (formData.payment_model === 'monthly') {
-      // Call monthly payments API
-      await apiClient.monthlyPayments.generatePayments(formData);
-      showToast('Monthly payments generated successfully!', 'success');
-    } else {
-      // Call regular invoices API
-      await apiClient.feeInvoices.generateInvoices(formData);
-      showToast('Invoices generated successfully!', 'success');
-    }
+    // Unified approach - use the same API for both monthly and installment payments
+    await apiClient.feeInvoices.generateInvoices(formData);
+    showToast('Invoices generated successfully!', 'success');
     
     showGenerateModal.value = false;
     await fetchInvoices();
@@ -565,30 +526,21 @@ const submitPayment = async () => {
   try {
     let response;
     
-    if (paymentForm.monthly_payment_id) {
-      // Record payment for monthly payment
-      response = await apiClient.monthlyPayments.recordPayment(paymentForm.monthly_payment_id, {
-        payment_amount: paymentForm.amount,
-        payment_method: paymentForm.payment_method,
-        notes: paymentForm.notes
-      });
-    } else {
-      // Find invoice by number for regular invoices
-      const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
-      if (!invoice) {
-        showToast('Invoice not found!', 'error');
-        return;
-      }
-      
-      // Record payment for fee invoice
-      response = await apiClient.feeInvoices.recordPayment(invoice.id, {
-        payment_amount: paymentForm.amount,
-        payment_method: paymentForm.payment_method,
-        notes: paymentForm.notes
-      });
+        // Find invoice by number for regular invoices
+    const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
+    if (!invoice) {
+      showToast('Invoice not found!', 'error');
+      return;
     }
     
-    showPaymentModal.value = false;
+    // Record payment for fee invoice (works for both installment and monthly)
+    response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+      payment_amount: paymentForm.amount,
+      payment_method: paymentForm.payment_method,
+      notes: paymentForm.notes
+    });
+    
+    closePaymentModal();
     await fetchInvoices();
     await fetchSummary();
     showToast('Payment recorded successfully!', 'success');
@@ -598,13 +550,6 @@ const submitPayment = async () => {
       selectedReceipt.value = response.data.receipt;
       showReceiptModal.value = true;
     }
-    
-    // Reset form
-    paymentForm.invoice_number = '';
-    paymentForm.amount = '';
-    paymentForm.payment_method = 'cash';
-    paymentForm.notes = '';
-    paymentForm.monthly_payment_id = null;
   } catch (error) {
     console.error('Error recording payment:', error);
     showToast(error.message || 'Error recording payment', 'error');
@@ -617,6 +562,7 @@ const onFilterChange = (newFilters) => {
   Object.assign(filters, newFilters);
   currentPage.value = 1; // Reset to first page when filters change
   fetchInvoices();
+  fetchSummary(); // Also update summary when filters change
 };
 
 const clearFilters = () => {
@@ -625,7 +571,10 @@ const clearFilters = () => {
   });
   currentPage.value = 1;
   fetchInvoices();
+  fetchSummary(); // Also update summary when filters are cleared
 };
+
+
 
 const viewInvoice = (invoice) => {
   // Navigate to student fee ledger page for this invoice's student
@@ -633,24 +582,17 @@ const viewInvoice = (invoice) => {
 };
 
 const recordPayment = (invoice) => {
-  if (isMonthlyPayment(invoice)) {
-    // For monthly payments, navigate to a payment modal or use a different approach
-    paymentForm.invoice_number = `MP-${invoice.id.slice(-8).toUpperCase()}`;
-    paymentForm.amount = invoice.balance_amount;
-    paymentForm.monthly_payment_id = invoice.id; // Store the monthly payment ID
-    showPaymentModal.value = true;
-  } else {
-    // For regular invoices
-    paymentForm.invoice_number = invoice.invoice_number;
-    paymentForm.amount = invoice.balance_amount;
-    paymentForm.monthly_payment_id = null; // Clear monthly payment ID
-    showPaymentModal.value = true;
-  }
+  // Unified approach - works for both installment and monthly invoices
+  paymentForm.invoice_number = invoice.invoice_number;
+  paymentForm.amount = invoice.balance_amount;
+  selectedInvoiceForPayment.value = invoice; // Store the invoice for payment suggestions
+  showPaymentModal.value = true;
 };
 
 // Helper function to determine if it's a monthly payment
 const isMonthlyPayment = (invoice) => {
-  return invoice.month !== undefined && invoice.year !== undefined;
+  // Simplified - only check payment_model field since we have unified approach
+  return invoice.payment_model === 'monthly';
 };
 
 const onPaymentRecorded = async () => {
@@ -660,48 +602,54 @@ const onPaymentRecorded = async () => {
 
 const generateReceipt = async (invoice) => {
   try {
-    let response;
+    // For invoices that have payments but no receipt, we should view the existing receipt
+    // The "Generate Receipt" button should actually be "View Receipt" for paid invoices
+    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
     
-    if (isMonthlyPayment(invoice)) {
-      // Generate receipt for monthly payment
-      response = await apiClient.monthlyPayments.generateReceipt(invoice.id);
-    } else {
-      // Generate receipt for fee invoice
-      response = await apiClient.feeInvoices.generateReceipt(invoice.id);
-    }
-    
-    showToast('Receipt generated successfully!', 'success');
-    await fetchInvoices(); // Refresh to show updated receipt_number
-    if (response.data.receipt) {
-      // Show receipt modal
-      selectedReceipt.value = response.data.receipt;
+    if (response.data && response.data.receipt_html) {
+      // Show receipt modal - the receipt data is directly in response.data
+      selectedReceipt.value = response.data;
       showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
-    console.error('Error generating receipt:', error);
-    showToast(error.message || 'Error generating receipt', 'error');
+    console.error('Error fetching receipt:', error);
+    showToast(error.message || 'Error fetching receipt', 'error');
   }
 };
 
 const viewReceipt = async (invoice) => {
   try {
-    let response;
+    // Unified approach - use feeInvoices API for both monthly and installment invoices
+    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
     
-    if (isMonthlyPayment(invoice)) {
-      // Get receipt for monthly payment
-      response = await apiClient.monthlyPayments.generateReceipt(invoice.id);
-    } else {
-      // Get receipt for fee invoice
-      response = await apiClient.feeInvoices.getReceipt(invoice.id);
-    }
-    
-    if (response.data.receipt) {
-      selectedReceipt.value = response.data.receipt;
+    if (response.data && response.data.receipt_html) {
+      // The receipt data is directly in response.data
+      selectedReceipt.value = response.data;
       showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
     console.error('Error fetching receipt:', error);
     showToast('Error fetching receipt', 'error');
+  }
+};
+
+const viewCombinedReceipt = async (combinedInvoice) => {
+  try {
+    const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+
+    if (response.data && response.data.receipt_html) {
+      selectedReceipt.value = response.data;
+      showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this combined invoice', 'error');
+    }
+  } catch (error) {
+    console.error('Error fetching combined receipt:', error);
+    showToast('Error fetching combined receipt', 'error');
   }
 };
 
@@ -855,43 +803,65 @@ const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
 };
 
-// Load academic data
-const loadAcademicData = async () => {
+// Simplified academic data loading - only load when modal is opened
+const loadAcademicDataForModal = async () => {
   try {
+    // Only fetch when modal is opened
     await Promise.all([
       fetchAcademicYears(),
       fetchClasses(),
-      fetchSchools() // Fetch schools for super admin
+      fetchSchools()
     ]);
-    
-    // Set current academic year as default
-    if (academicYears.value.length > 0) {
-      const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
-      if (currentYear) {
-        filters.academic_year = currentYear.name;
-      }
-    }
   } catch (error) {
     console.error('Error loading academic data:', error);
-    showToast('Error loading academic data', 'error');
   }
 };
 
 // Fetch monthly fee structures
 const monthlyFeeStructures = ref([]);
+const installmentFeeStructures = ref([]);
+
 const fetchMonthlyFeeStructures = async () => {
   try {
-    const response = await apiClient.feeInvoices.getMonthlyFeeStructures();
-    monthlyFeeStructures.value = response.data || [];
+    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    monthlyFeeStructures.value = response.data.fee_structures || [];
   } catch (error) {
     console.error('Error fetching monthly fee structures:', error);
-    showToast('Error fetching monthly fee structures', 'error');
+    showToast('Error loading monthly fee structures', 'error');
+    monthlyFeeStructures.value = [];
   }
 };
 
+const fetchInstallmentFeeStructures = async () => {
+  try {
+    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    installmentFeeStructures.value = response.data.fee_structures || [];
+  } catch (error) {
+    console.error('Error fetching installment fee structures:', error);
+    showToast('Error loading installment fee structures', 'error');
+    installmentFeeStructures.value = [];
+  }
+};
+
+// Simplified fee structures fetch - only when modal is opened
+const fetchFeeStructuresForModal = async () => {
+  try {
+    await Promise.all([
+      fetchMonthlyFeeStructures(),
+      fetchInstallmentFeeStructures()
+    ]);
+  } catch (error) {
+    console.error('Error fetching fee structures:', error);
+  }
+};
+
+// Combined fee structures for the modal
+const allFeeStructures = computed(() => {
+  return [...monthlyFeeStructures.value, ...installmentFeeStructures.value];
+});
+
 // Modal event handlers for dynamic data loading
 const onModalSchoolChange = async (schoolId) => {
-  console.log('🔍 Modal school change:', schoolId);
   if (schoolId) {
     // For super admin, filter branches by selected school
     if (authStore.isSuperAdmin) {
@@ -901,7 +871,6 @@ const onModalSchoolChange = async (schoolId) => {
 };
 
 const onModalBranchChange = async (branchId) => {
-  console.log('🔍 Modal branch change:', branchId);
   if (branchId) {
     // Fetch classes for the selected branch
     await fetchClasses();
@@ -909,7 +878,6 @@ const onModalBranchChange = async (branchId) => {
 };
 
 const onModalClassChange = async (className) => {
-  console.log('🔍 Modal class change:', className);
   if (className) {
     const classItem = classes.value.find(c => c.name === className);
     if (classItem) {
@@ -924,18 +892,18 @@ const onModalClassChange = async (className) => {
   }
 };
 
-// Branches state and fetch function
+// Branches state - will be populated when modal opens
 const branches = ref([]);
 
 // Debug logging for data loading
 watch([schools, branches, academicYears, classes, sections], ([newSchools, newBranches, newAcademicYears, newClasses, newSections]) => {
-  console.log('🔍 Data updated:', {
-    schools: newSchools?.length || 0,
-    branches: newBranches?.length || 0,
-    academicYears: newAcademicYears?.length || 0,
-    classes: newClasses?.length || 0,
-    sections: newSections?.length || 0
-  });
+  // console.log('🔍 Data updated:', {
+  //   schools: newSchools?.length || 0,
+  //   branches: newBranches?.length || 0,
+  //   academicYears: newAcademicYears?.length || 0,
+  //   classes: newClasses?.length || 0,
+  //   sections: newSections?.length || 0
+  // });
 });
 
 const fetchBranches = async () => {
@@ -945,40 +913,118 @@ const fetchBranches = async () => {
     if (authStore.isSuperAdmin) {
       // Super admin can see all branches
       response = await apiClient.branches.getAll();
+      branches.value = response.data?.branches || response.data || [];
     } else if (authStore.isSchoolAdmin) {
       // School admin sees only their school's branches
       response = await apiClient.branches.getBySchool(authStore.currentUser?.school_id);
+      branches.value = response.data?.branches || response.data || [];
     } else if (authStore.isBranchAdmin) {
       // Branch admin sees only their branch
       response = await apiClient.branches.getById(authStore.currentUser?.branch_id);
       branches.value = response.data ? [response.data] : [];
-      return;
     } else {
       // Default fallback
       response = await apiClient.branches.getAll();
+      branches.value = response.data?.branches || response.data || [];
     }
     
-    branches.value = response.data.branches || response.data || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
     showToast('Error fetching branches', 'error');
+    branches.value = [];
+  }
+};
+
+// Load academic data on page load
+const loadAcademicData = async () => {
+  try {
+    
+    // Get user context for API calls
+    const schoolId = authStore.currentUser?.school_id;
+    const branchId = authStore.currentUser?.branch_id;
+    
+    // Load academic years and classes for filters with individual error handling
+    const promises = [];
+    
+    // Academic years
+    promises.push(
+      fetchAcademicYears(schoolId).catch(error => {
+        console.error('Error fetching academic years:', error);
+        return null;
+      })
+    );
+    
+    // Classes
+    promises.push(
+      fetchClasses(schoolId, branchId).catch(error => {
+        console.error('Error fetching classes:', error);
+        return null;
+      })
+    );
+    
+    // Branches
+    promises.push(
+      fetchBranches().catch(error => {
+        console.error('Error fetching branches:', error);
+        return null;
+      })
+    );
+    
+    await Promise.all(promises);
+    
+    // Show warning if any data failed to load
+    if (academicYears.value.length === 0) {
+      console.warn('⚠️ No academic years loaded');
+    }
+    if (classes.value.length === 0) {
+      console.warn('⚠️ No classes loaded');
+    }
+    if (branches.value.length === 0) {
+      console.warn('⚠️ No branches loaded');
+    }
+    
+  } catch (error) {
+    console.error('Error loading academic data:', error);
+    showToast('Error loading filter data', 'error');
   }
 };
 
 
 onMounted(async () => {
   try {
+    // Load academic data first
     await loadAcademicData();
-    await fetchBranches();
-    setDefaultBranchFilter(); // Set default branch filter based on role
+    
+    // Then fetch invoices and summary
     await fetchInvoices();
     await fetchSummary();
-    await fetchMonthlyFeeStructures();
   } catch (error) {
     console.error('Error during component initialization:', error);
     showToast('Error initializing component', 'error');
   }
 });
+
+// Watch for modal opening to load data
+watch(showGenerateModal, async (isOpen) => {
+  if (isOpen) {
+    // Load data only when modal is opened
+    await loadAcademicDataForModal();
+    await fetchBranches();
+    await fetchFeeStructuresForModal();
+    
+    // Add a small delay to ensure all data is loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+});
+
+const closePaymentModal = () => {
+  showPaymentModal.value = false;
+  paymentForm.invoice_number = '';
+  paymentForm.amount = '';
+  paymentForm.payment_method = 'cash';
+  paymentForm.notes = '';
+  selectedInvoiceForPayment.value = null;
+};
 </script>
 
 <style scoped>

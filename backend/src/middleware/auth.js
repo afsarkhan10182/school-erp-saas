@@ -169,10 +169,11 @@ const setSchoolContext = (req, res, next) => {
       // Super admin can specify school_id via query, params, or body
       req.schoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
       
-      // If no schoolId is provided for super admin, it's an error
+      // If no schoolId is provided for super admin, allow access to all schools
       if (!req.schoolId) {
-        logger.warn('setSchoolContext: Super admin - No school_id provided in request');
-        return next(new ApiError(403, 'School ID is required for super admin requests'));
+        logger.debug('setSchoolContext: Super admin - No school_id provided, allowing access to all schools');
+        req.schoolId = null; // This will be handled in the controller
+        return next();
       }
       logger.debug('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       return next();

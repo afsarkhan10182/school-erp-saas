@@ -9,10 +9,10 @@ export const fetchCollectionsAPI = async (filters: any, pagination: any) => {
       ...filters
     };
     
-    const response = await api.get('/collections', { params });
+    const response = await api.get('/fee-invoices/collections', { params });
     return {
-      data: response.data.collections || [],
-      pagination: response.data.pagination || { total: 0 }
+      data: response.data.data.collections || [],
+      pagination: response.data.data.pagination || { total: 0 }
     };
   } catch (error) {
     console.error('Error fetching collections:', error);

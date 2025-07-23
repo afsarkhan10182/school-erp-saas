@@ -10,7 +10,7 @@
   <!-- Sidebar -->
   <div 
 :class="[
-      'fixed inset-y-0 left-0 z-30 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      'sidebar-container fixed inset-y-0 left-0 z-[9999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
       isMobile ? (open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full') : (open ? 'w-64' : 'w-16'),
       isMobile ? 'md:w-16 md:translate-x-0' : '',
       'transform transition-all duration-300 ease-in-out will-change-transform'
@@ -303,7 +303,7 @@ const menuGroups = computed(() => {
           children: [
             { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
             { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
-            { id: 'invoices', title: 'Invoices & Payments', path: '/fees/invoices', icon: Receipt }
+            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt }
           ]
         }
       ]
@@ -503,5 +503,20 @@ nav {
 
 .space-y-2 > * + * {
   margin-top: 0.5rem;
+}
+
+/* Ensure sidebar is always on top */
+.fixed {
+  position: fixed !important;
+}
+
+/* Prevent any content from appearing above sidebar */
+.z-\[9999\] {
+  z-index: 9999 !important;
+}
+
+/* Ensure proper stacking context */
+.flex {
+  position: relative;
 }
 </style>

@@ -122,6 +122,66 @@ const SUBSCRIPTION_PLANS = {
   },
 };
 
+// Utility functions for academic year and payment month calculations
+const getAcademicYearMonths = (startingMonth = 6) => {
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const month = ((startingMonth - 1 + i) % 12) + 1;
+    months.push(month);
+  }
+  return months;
+};
+
+const getCurrentAcademicMonth = (startingMonth = 6) => {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1; // 1-12
+  
+  // Calculate which month of the academic year we're in
+  let academicMonth = currentMonth - startingMonth + 1;
+  if (academicMonth <= 0) {
+    academicMonth += 12;
+  }
+  
+  return {
+    currentMonth,
+    academicMonth,
+    academicYear: getCurrentAcademicYear(startingMonth)
+  };
+};
+
+const getCurrentAcademicYear = (startingMonth = 6) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  
+  // If current month is before starting month, academic year started last year
+  if (currentMonth < startingMonth) {
+    return `${currentYear - 1}-${currentYear}`;
+  } else {
+    return `${currentYear}-${currentYear + 1}`;
+  }
+};
+
+const getMonthName = (monthNumber) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[monthNumber - 1];
+};
+
+const getPaymentMonthDisplay = (monthNumber, startingMonth = 6) => {
+  const academicMonths = getAcademicYearMonths(startingMonth);
+  const academicMonthIndex = academicMonths.indexOf(monthNumber);
+  
+  if (academicMonthIndex === -1) {
+    return getMonthName(monthNumber);
+  }
+  
+  const academicMonthNumber = academicMonthIndex + 1;
+  return `${getMonthName(monthNumber)} (Month ${academicMonthNumber})`;
+};
+
 class ModuleConfig {
   /**
    * Get all available modules
@@ -306,4 +366,11 @@ module.exports = {
   MODULE_DESCRIPTIONS,
   SUBSCRIPTION_PLANS,
   ModuleConfig,
+  
+  // Academic year utilities
+  getAcademicYearMonths,
+  getCurrentAcademicMonth,
+  getCurrentAcademicYear,
+  getMonthName,
+  getPaymentMonthDisplay
 }; 

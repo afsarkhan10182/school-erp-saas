@@ -4,11 +4,11 @@
     <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
 
     <!-- Main content -->
-    <div :key="`main-${isLoggedIn}-${sidebarOpen}`" :class="mainContentClasses" class="relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-10">
+    <div :key="`main-${isLoggedIn}-${sidebarOpen}`" :class="mainContentClasses" class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-0">
       <!-- Header (only if logged in) -->
       <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
       <!-- Page content -->
-      <main class="relative p-6 flex-1 bg-gray-50 dark:bg-gray-900 z-10">
+      <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900 z-0">
         <slot />
       </main>
     </div>

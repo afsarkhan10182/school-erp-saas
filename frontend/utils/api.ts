@@ -278,9 +278,64 @@ export const apiClient = {
 
   // Enhanced Fee Invoice endpoints with reports
   feeInvoices: {
-    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string }) => {
+    /**
+     * Get all invoices with optional filtering by payment model
+     * @param params - Query parameters including payment_model filter
+     * @param params.payment_model - Filter by payment model: 'monthly', 'installment', or undefined for both
+     * @example
+     * // Get only monthly payments
+     * await apiClient.feeInvoices.getAll({ payment_model: 'monthly', page: 1, limit: 10 })
+     * 
+     * // Get only installment invoices
+     * await apiClient.feeInvoices.getAll({ payment_model: 'installment', page: 1, limit: 10 })
+     * 
+     * // Get both types (default behavior)
+     * await apiClient.feeInvoices.getAll({ page: 1, limit: 10 })
+     */
+    getAll: async (params?: { 
+      page?: number; 
+      limit?: number; 
+      academic_year?: string; 
+      status?: string; 
+      student_id?: string;
+      payment_model?: 'monthly' | 'installment';
+      class_name?: string;
+      section?: string;
+      branch_id?: string;
+    }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/fee-invoices', { params });
+      return response.data;
+    },
+
+    /**
+     * Get grouped invoices for better UI display
+     * Groups invoices by receipt_group_id for paid/partial_paid invoices
+     * @param params - Query parameters
+     */
+    getGrouped: async (params?: { 
+      page?: number; 
+      limit?: number; 
+      academic_year?: string; 
+      status?: string; 
+      student_id?: string;
+      payment_model?: 'monthly' | 'installment';
+      class_name?: string;
+      section?: string;
+      branch_id?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/grouped', { params });
+      return response.data;
+    },
+
+    /**
+     * Get combined receipt for grouped payments
+     * @param receiptGroupId - The receipt group ID
+     */
+    getCombinedReceipt: async (receiptGroupId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/grouped-receipts/${receiptGroupId}`);
       return response.data;
     },
     
@@ -369,6 +424,37 @@ export const apiClient = {
       return response.data;
     },
 
+    // Enhanced payment recording
+    recordEnhancedPayment: async (paymentData: {
+      student_id: string;
+      payment_amount: number;
+      payment_method?: string;
+      payment_date?: string;
+      notes?: string;
+      target_invoice_id?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/fee-invoices/enhanced-payment', paymentData);
+      return response.data;
+    },
+
+    // Smart payment allocation (amount-based with receipt grouping)
+    recordSmartPayment: async (paymentData: {
+      student_id: string;
+      payment_amount: number;
+      payment_method?: string;
+      payment_date?: string;
+      notes?: string;
+      transaction_id?: string;
+      cheque_number?: string;
+      bank_name?: string;
+      reference_number?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/fee-invoices/smart-payment', paymentData);
+      return response.data;
+    },
+
     getStudentLedger: async (params: { student_id: string; academic_year?: string; page?: number; limit?: number }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/student-ledger', { params });
@@ -378,6 +464,26 @@ export const apiClient = {
     getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/student-dues', { params });
+      return response.data;
+    },
+
+    getAvailableMonths: async (params: { student_id: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/available-months', { params });
+      return response.data;
+    },
+
+    getGroupedReceipts: async (params: { student_id: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/grouped-receipts', { params });
+      return response.data;
+    },
+
+
+
+    getBreakdown: async (params: { student_id: string; fee_structure_id: string; academic_year: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/breakdown', { params });
       return response.data;
     },
 
@@ -407,46 +513,37 @@ export const apiClient = {
     },
   },
 
-  // Monthly Payment endpoints
-  monthlyPayments: {
-    getAll: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; fee_structure_id?: string; month?: number; year?: number }) => {
+  // Unified Invoices endpoints (new - replaces separate monthly/fee invoice calls)
+  invoices: {
+    getAll: async (params?: { 
+      payment_model?: 'monthly' | 'installment'; 
+      page?: number; 
+      limit?: number; 
+      academic_year?: string; 
+      status?: string; 
+      student_id?: string; 
+      fee_structure_id?: string; 
+      month?: number; 
+      year?: number;
+      class_name?: string;
+      section?: string;
+      branch_id?: string;
+      sort_by?: string;
+      sort_order?: 'ASC' | 'DESC';
+    }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/monthly-payments', { params });
+      const response = await api.get<PaginatedResponse<any>>('/invoices', { params });
       return response.data;
     },
     
-    getById: async (id: string) => {
+    getSummary: async (params?: { payment_model?: 'monthly' | 'installment'; academic_year?: string; status?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/monthly-payments/${id}`);
+      const response = await api.get<ApiResponse<any>>('/invoices/summary', { params });
       return response.data;
     },
-    
-    generatePayments: async (paymentData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/monthly-payments/generate', paymentData);
-      return response.data;
-    },
-    
-    recordPayment: async (id: string, paymentData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/monthly-payments/${id}/payment`, paymentData);
-      return response.data;
-    },
-    
-    generateReceipt: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/monthly-payments/${id}/receipt`);
-      return response.data;
-    },
-    
-    getStudentPayments: async (params?: { student_id?: string; academic_year?: string; fee_structure_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/monthly-payments/student/payments', { params });
-      return response.data;
-    },
-
-    // New endpoints for enhanced features
   },
+
+
 
 
 
@@ -455,6 +552,12 @@ export const apiClient = {
     getAll: async (params?: any) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-structures', { params });
+      return response.data;
+    },
+    
+    getWithContext: async (params?: { payment_model?: string; page?: number; limit?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-structures/with-context', { params });
       return response.data;
     },
     
@@ -742,7 +845,7 @@ export const apiClient = {
       return response.data;
     },
     
-    getByClass: async (params: { class_name: string; section?: string; academic_year?: string }) => {
+    getByClass: async (params: { class_name?: string; class_names?: string; section?: string; academic_year?: string; branch_id?: string; status?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/students/by-class', { params });
       return response.data;

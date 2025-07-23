@@ -140,17 +140,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
-import { useBranches } from '~/composables/useBranches';
-import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import { apiClient } from '~/utils/api';
 import PasswordInput from '~/components/PasswordInput.vue';
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin and School Admin can access user management
 const user = authStore.user;
