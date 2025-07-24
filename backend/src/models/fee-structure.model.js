@@ -62,7 +62,7 @@ const FeeStructure = sequelize.define('FeeStructure', {
     comment: 'installment: one-time or installment payments, monthly: recurring monthly payments'
   },
   installment_type: {
-    type: DataTypes.ENUM('one_time', 'monthly', 'quarterly', 'half_yearly', 'yearly'),
+    type: DataTypes.ENUM('one_time', 'multiple'),
     allowNull: false,
     defaultValue: 'one_time',
   },
@@ -80,6 +80,13 @@ const FeeStructure = sequelize.define('FeeStructure', {
     allowNull: true,
     defaultValue: [],
     comment: 'Array of installment amounts for senior branch'
+  },
+  // For multiple installments: installment due dates
+  installment_due_dates: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of due dates for multiple installments'
   },
   // For school branch: monthly payment details
   monthly_payment_amount: {
@@ -109,6 +116,11 @@ const FeeStructure = sequelize.define('FeeStructure', {
       min: { args: [1], msg: 'Due day must be between 1 and 31' },
       max: { args: [31], msg: 'Due day must be between 1 and 31' },
     },
+  },
+  due_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    comment: 'Due date for one-time full fee payments'
   },
   discount_applicable: {
     type: DataTypes.BOOLEAN,

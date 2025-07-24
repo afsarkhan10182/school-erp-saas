@@ -76,10 +76,8 @@ const Student = sequelize.define('Student', {
   },
   category: {
     type: DataTypes.ENUM('general', 'obc', 'sc', 'st', 'other'),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Category is required' },
-    },
+    allowNull: true,
+    defaultValue: 'general',
   },
   nationality: {
     type: DataTypes.STRING(50),
@@ -174,10 +172,8 @@ const Student = sequelize.define('Student', {
   },
   academic_year: {
     type: DataTypes.STRING(10),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Academic year is required' },
-    },
+    allowNull: true,
+    defaultValue: () => new Date().getFullYear().toString(),
   },
   // Junior College specific fields
   admission_sought_in: {

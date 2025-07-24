@@ -332,66 +332,119 @@
                     @change="onInstallmentTypeChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="one_time">One Time</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="half_yearly">Half Yearly</option>
-                    <option value="yearly">Yearly</option>
+                    <option value="one_time">One-Time Full Fee</option>
+                    <option value="multiple">Multiple Installments</option>
                   </select>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    One-Time Full Fee: Single invoice for entire amount | Multiple Installments: Split into 2-4 installments
+                  </p>
                 </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Installments</label>
-                  <input
-                    v-model="form.installment_count"
-                    type="number"
-                    min="1"
-                    max="12"
-                    @change="onInstallmentCountChange"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 2 for half-yearly"
-                  />
+                <!-- One-Time Full Fee Configuration -->
+                <div v-if="form.installment_type === 'one_time'" class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">One-Time Full Fee</h5>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Fee Amount (₹)</label>
+                    <input
+                      v-model="form.amount"
+                      type="number"
+                      step="100"
+                      min="100"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., 21000"
+                    />
+                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Total amount for the entire fee structure. Students can pay full amount or remaining balance.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date <span class="text-red-500">*</span></label>
+                    <input
+                      v-model="form.due_date"
+                      type="date"
+                      required
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Due date for the full payment. Partial payments are always allowed.
+                    </p>
+                  </div>
                 </div>
 
-                <div v-if="form.installment_count > 1">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Amounts</label>
-                  <div class="space-y-2">
-                    <div v-for="i in parseInt(form.installment_count)" :key="i" class="flex items-center space-x-2">
-                      <span class="text-sm text-gray-600 dark:text-gray-400 w-8">#{{ i }}:</span>
+                <!-- Multiple Installments Configuration -->
+                <div v-if="form.installment_type === 'multiple'" class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">Multiple Installments</h5>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Installments</label>
+                    <select
+                      v-model="form.installment_count"
+                      @change="onInstallmentCountChange"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="2">2 Installments</option>
+                      <option value="3">3 Installments</option>
+                      <option value="4">4 Installments</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Choose how many installments to split the total amount into.
+                    </p>
+                  </div>
+
+                  <div v-if="form.installment_count > 1">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Details</label>
+                    <div class="space-y-3">
+                      <div v-for="i in parseInt(form.installment_count)" :key="i" class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                        <div class="flex items-center space-x-2 mb-2">
+                          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Installment #{{ i }}:</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount (₹)</label>
+                            <input
+                              v-model="form.installment_amounts[i-1]"
+                              type="number"
+                              step="100"
+                              min="100"
+                              @input="onInstallmentAmountChange"
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                              :placeholder="`Installment ${i} amount`"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Due Date</label>
+                            <input
+                              v-model="form.installment_due_dates[i-1]"
+                              type="date"
+                              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      Total: ₹{{ totalInstallmentAmount }}
+                    </p>
+                  </div>
+
+                  <!-- Partial Payment Toggle for Multiple Installments -->
+                  <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div>
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Allow Partial Payments</label>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Students can pay partial amounts within each installment
+                      </p>
+                    </div>
+                    <div class="flex items-center">
                       <input
-                        v-model="form.installment_amounts[i-1]"
-                        type="number"
-                        step="100"
-                        min="100"
-                        @input="onInstallmentAmountChange"
-                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                        :placeholder="`Installment ${i} amount`"
+                        v-model="form.allow_partial_payments"
+                        type="checkbox"
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                     </div>
                   </div>
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Total: ₹{{ totalInstallmentAmount }}
-                  </p>
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Students can pay partial amounts within each installment.
-                  </p>
-                </div>
-
-                <!-- Partial Payment Configuration -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Minimum Partial Payment (%)</label>
-                  <input
-                    v-model="form.min_partial_percentage"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 10 for 10%"
-                  />
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Minimum percentage of installment amount that can be paid as partial payment (default: 10%)
-                  </p>
                 </div>
               </div>
 
@@ -400,7 +453,7 @@
                 <h4 class="text-sm font-medium text-green-900 dark:text-green-100">Monthly Configuration</h4>
                 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Payment Amount (₹)</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Amount (₹)</label>
                   <input
                     v-model="form.monthly_payment_amount"
                     type="number"
@@ -411,35 +464,66 @@
                     placeholder="e.g., 1000"
                   />
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Students can only pay in multiples of this amount (e.g., ₹1,000, ₹2,000, ₹3,000).
+                    Monthly payment amount for students.
                   </p>
                 </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Months</label>
-                  <input
-                    v-model="form.total_months"
-                    type="number"
-                    min="1"
-                    max="12"
-                    @input="onMonthlyPaymentChange"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 12 for full year"
-                  />
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Months</label>
+                    <input
+                      v-model="form.total_months"
+                      type="number"
+                      min="1"
+                      max="12"
+                      @input="onMonthlyPaymentChange"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., 12"
+                    />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Total number of months for the academic year.
+                    </p>
+                  </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Day of Month</label>
-                  <input
-                    v-model="form.due_day"
-                    type="number"
-                    min="1"
-                    max="31"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 10 for 10th of each month"
-                  />
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Month</label>
+                    <select
+                      v-model="form.start_month"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="1">January</option>
+                      <option value="2">February</option>
+                      <option value="3">March</option>
+                      <option value="4">April</option>
+                      <option value="5">May</option>
+                      <option value="6">June</option>
+                      <option value="7">July</option>
+                      <option value="8">August</option>
+                      <option value="9">September</option>
+                      <option value="10">October</option>
+                      <option value="11">November</option>
+                      <option value="12">December</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Starting month for monthly payments.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Day</label>
+                    <input
+                      v-model="form.due_day"
+                      type="number"
+                      min="1"
+                      max="31"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., 10"
+                    />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Day of each month when payment is due.
+                    </p>
+                  </div>
                 </div>
-              </div>
 
               <!-- Total Amount Display -->
               <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
@@ -466,6 +550,8 @@
                 <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
               </div>
             </div>
+          </div>
+          
 
             <div class="flex justify-end space-x-3 pt-4">
               <button
@@ -538,14 +624,17 @@ const form = ref({
   fee_type_id: '',
   amount: '',
   payment_model: '',
-  installment_type: 'one_time',
+  installment_type: 'one_time', // 'one_time' or 'multiple'
   installment_count: 1,
   installment_amounts: [],
+  installment_due_dates: [], // Added for multiple installments
   monthly_payment_amount: '',
   total_months: 12,
+  start_month: 6, // Added for monthly payments (default June)
   due_day: 10,
+  due_date: '', // Added for one-time full fee
   is_active: true,
-  min_partial_percentage: 10, // Added for partial payment
+  allow_partial_payments: true, // Changed from min_partial_percentage to toggle
 });
 
 // Computed property for current academic year name
@@ -607,11 +696,14 @@ const resetForm = () => {
     installment_type: 'one_time',
     installment_count: 1,
     installment_amounts: [],
+    installment_due_dates: [], // Reset for create
     monthly_payment_amount: '',
     total_months: 12,
+    start_month: 6, // Reset for create
     due_day: 10,
+    due_date: '', // Reset for create
     is_active: true,
-    min_partial_percentage: 10, // Reset for create
+    allow_partial_payments: true, // Reset for create
   };
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
@@ -642,7 +734,6 @@ const removeClass = (className) => {
     form.value.applicable_classes.splice(index, 1);
   }
 };
-
 // Handle payment model change
 const onPaymentModelChange = () => {
   if (form.value.payment_model === 'installment') {
@@ -660,27 +751,32 @@ const onPaymentModelChange = () => {
 
 // Handle installment type change
 const onInstallmentTypeChange = () => {
-  // Auto-set installment count based on type
-  switch (form.value.installment_type) {
-    case 'one_time':
-      form.value.installment_count = 1;
-      break;
-    case 'monthly':
-      form.value.installment_count = 12;
-      break;
-    case 'quarterly':
-      form.value.installment_count = 4;
-      break;
-    case 'half_yearly':
-      form.value.installment_count = 2;
-      break;
-    case 'yearly':
-      form.value.installment_count = 1;
-      break;
+  if (form.value.installment_type === 'one_time') {
+    // One-time full fee: single installment
+    form.value.installment_count = 1;
+    form.value.installment_amounts = [];
+    form.value.installment_due_dates = [];
+    
+    // Set default due date to current date + 3 months if not already set
+    if (!form.value.due_date) {
+      const defaultDate = new Date();
+      defaultDate.setMonth(defaultDate.getMonth() + 3);
+      form.value.due_date = defaultDate.toISOString().split('T')[0];
+    }
+  } else if (form.value.installment_type === 'multiple') {
+    // Multiple installments: default to 2
+    form.value.installment_count = 2;
+    form.value.installment_amounts = [];
+    form.value.installment_due_dates = [];
+    
+    // Set default due dates for installments (spread across the year)
+    const currentDate = new Date();
+    for (let i = 0; i < form.value.installment_count; i++) {
+      const installmentDate = new Date(currentDate);
+      installmentDate.setMonth(currentDate.getMonth() + (i * 6)); // Every 6 months
+      form.value.installment_due_dates[i] = installmentDate.toISOString().split('T')[0];
+    }
   }
-  
-  // Reset installment amounts when count changes
-  form.value.installment_amounts = [];
 };
 
 // Handle installment count change
@@ -696,12 +792,24 @@ const onInstallmentCountChange = () => {
   if (form.value.installment_amounts.length > count) {
     form.value.installment_amounts = form.value.installment_amounts.slice(0, count);
   }
+  
+  // Ensure installment_due_dates array matches the count
+  while (form.value.installment_due_dates.length < count) {
+    form.value.installment_due_dates.push('');
+  }
+  
+  // Remove extra due dates if count is reduced
+  if (form.value.installment_due_dates.length > count) {
+    form.value.installment_due_dates = form.value.installment_due_dates.slice(0, count);
+  }
 };
+
+
 
 // Handle installment amount change
 const onInstallmentAmountChange = () => {
   // Auto-calculate total amount when installment amounts change
-  if (form.value.payment_model === 'installment') {
+  if (form.value.payment_model === 'installment' && form.value.installment_type === 'multiple') {
     const total = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
     if (total > 0) {
       form.value.amount = total.toFixed(2);
@@ -980,12 +1088,17 @@ const editFeeStructure = async (structure) => {
     installment_type: structure.installment_type || 'one_time',
     installment_count: structure.installment_count || 1,
     installment_amounts: structure.installment_amounts || [],
+    installment_due_dates: structure.installment_due_dates || [], // Set for edit
     monthly_payment_amount: structure.monthly_payment_amount || '',
     total_months: structure.total_months || 12,
+    start_month: structure.start_month || 6, // Set for edit
     due_day: structure.due_day || 10,
+    due_date: structure.due_date || '', // Set for edit
     is_active: structure.is_active !== false,
-    min_partial_percentage: structure.min_partial_percentage || 10, // Set for edit
+    allow_partial_payments: structure.allow_partial_payments !== false, // Set for edit
   };
+  
+
   
   showModal.value = true;
 };
@@ -1005,6 +1118,56 @@ const saveFeeStructure = async () => {
       return;
     }
 
+    // Calculate the correct amount based on payment model
+    let calculatedAmount = 0;
+    if (form.value.payment_model === 'installment') {
+      if (form.value.installment_type === 'one_time') {
+        // For one-time full fee, use the amount field directly
+        calculatedAmount = parseFloat(form.value.amount) || 0;
+      } else if (form.value.installment_type === 'multiple') {
+        // For multiple installments, sum up all installment amounts
+        calculatedAmount = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+      }
+    } else if (form.value.payment_model === 'monthly') {
+      // For monthly payments, multiply monthly amount by total months
+      const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
+      const totalMonths = parseFloat(form.value.total_months) || 1;
+      calculatedAmount = monthlyAmount * totalMonths;
+    }
+
+    // Validate that the calculated amount is greater than 0
+    if (calculatedAmount <= 0) {
+      showError('Total amount must be greater than 0. Please check your fee structure configuration.');
+      return;
+    }
+
+    // Validate due date for installment payments
+    if (form.value.payment_model === 'installment') {
+      if (form.value.installment_type === 'one_time') {
+        if (!form.value.due_date) {
+          showError('Due date is required for one-time full fee payments.');
+          return;
+        }
+      } else if (form.value.installment_type === 'multiple') {
+        if (!form.value.installment_due_dates || form.value.installment_due_dates.length === 0) {
+          showError('Due dates are required for multiple installments.');
+          return;
+        }
+        // Check if all installment amounts have corresponding due dates
+        const installmentAmounts = form.value.installment_amounts || [];
+        const installmentDueDates = form.value.installment_due_dates || [];
+        if (installmentAmounts.length !== installmentDueDates.length) {
+          showError('Each installment must have a corresponding due date.');
+          return;
+        }
+        // Check if any due date is missing
+        if (installmentDueDates.some(date => !date)) {
+          showError('All installments must have due dates.');
+          return;
+        }
+      }
+    }
+
     // Get section name if section_id is provided
     let sectionName = null;
     if (form.value.section_id) {
@@ -1014,11 +1177,14 @@ const saveFeeStructure = async () => {
 
     const feeStructureData = {
       ...form.value,
+      amount: calculatedAmount, // Use the calculated amount
       applicable_classes: form.value.applicable_classes, // Send applicable classes array
       section: sectionName, // Send section name instead of section_id
       school_id: user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
       branch_id: selectedBranchId.value || user.value?.branch_id
     };
+    
+
 
     if (isEditing.value) {
       await apiClient.feeStructures.update(editingId.value, feeStructureData);
@@ -1070,6 +1236,38 @@ const deleteFeeStructure = async (id) => {
     }
   }
 };
+
+// Watch for form changes to ensure amount is properly calculated
+watch(() => [form.value.payment_model, form.value.installment_type, form.value.installment_amounts, form.value.monthly_payment_amount, form.value.total_months], () => {
+  // Auto-calculate amount based on current form state
+  if (form.value.payment_model === 'installment') {
+    if (form.value.installment_type === 'one_time') {
+      // For one-time full fee, amount is set directly by user
+      // No auto-calculation needed - don't override user input
+      
+      // Ensure due date is set for one-time full fee
+      if (!form.value.due_date) {
+        const defaultDate = new Date();
+        defaultDate.setMonth(defaultDate.getMonth() + 3);
+        form.value.due_date = defaultDate.toISOString().split('T')[0];
+      }
+    } else if (form.value.installment_type === 'multiple') {
+      // For multiple installments, sum up all installment amounts
+      const total = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+      if (total > 0) {
+        form.value.amount = total.toFixed(2);
+      }
+    }
+  } else if (form.value.payment_model === 'monthly') {
+    // For monthly payments, multiply monthly amount by total months
+    const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
+    const totalMonths = parseFloat(form.value.total_months) || 1;
+    const total = monthlyAmount * totalMonths;
+    if (total > 0) {
+      form.value.amount = total.toFixed(2);
+    }
+  }
+}, { deep: true });
 
 // Watch for classes to be loaded and set class_id if we're in edit mode
 watch(classes, (newClasses) => {
@@ -1155,8 +1353,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  if (isClient && resizeObserver) {
-    resizeObserver.disconnect();
+  if (isClient) {
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
   }
 });
 </script>

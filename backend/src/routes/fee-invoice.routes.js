@@ -1,7 +1,6 @@
 const express = require('express');
 const {
   generateInvoices,
-  getInvoices,
   getInvoiceById,
   recordPayment,
   recordSmartPayment,
@@ -23,7 +22,6 @@ const {
   getPaymentById,
   getPaymentReceipt,
   getStudentPayments,
-  getEnhancedPaymentReceipts,
   getGroupedReceipts,
   getAvailableMonths,
   getGroupedStudentInvoices,
@@ -51,8 +49,7 @@ router.post('/smart-payment', requireRole('super_admin', 'school_admin', 'accoun
 // POST endpoint for flexible installment payment (Branch 2 - Installment model)
 router.post('/flexible-installment', requireRole('super_admin', 'school_admin', 'accountant'), recordFlexibleInstallmentPayment);
 
-// GET endpoint to retrieve all invoices
-router.get('/', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoices);
+
 
 // GET endpoint to retrieve student dues for quick collection
 router.get('/student-dues', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentDues);
@@ -72,8 +69,7 @@ router.get('/grouped-receipts/:receiptGroupId', requireRole('super_admin', 'scho
 // GET endpoint to retrieve student fee ledger
 router.get('/student-ledger', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentFeeLedger);
 
-// GET endpoint to retrieve enhanced payment receipts for a student
-router.get('/enhanced-payment-receipts', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getEnhancedPaymentReceipts);
+
 
 // GET endpoint to retrieve grouped receipts for a student (for cleaner invoice listing)
 router.get('/grouped-receipts', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getGroupedReceipts);

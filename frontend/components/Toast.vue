@@ -123,6 +123,7 @@ const hide = () => {
 const handleShowToast = (event) => {
   console.log('Toast event received:', event.detail);
   const { message: msg, type: toastType, duration } = event.detail;
+  console.log('Showing toast with message:', msg, 'type:', toastType);
   showToast(msg, toastType, duration);
 };
 

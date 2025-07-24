@@ -214,9 +214,9 @@
                     </FormField>
           <div>
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Category <span class="text-red-500">*</span>
+              Category
             </label>
-            <select id="category" v-model="form.category" required class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('category') }">
+            <select id="category" v-model="form.category" class="input-field" :class="{ 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('category') }">
               <option value="">Select Category</option>
               <option value="general">General</option>
               <option value="obc">OBC</option>
@@ -617,39 +617,36 @@
           </div>
           <div>
             <label for="guardian_occupation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Occupation <span class="text-red-500">*</span>
+              Occupation
             </label>
             <input 
               id="guardian_occupation"
               v-model="form.guardian.occupation" 
               type="text" 
-              required 
               class="input-field" 
               placeholder="Enter occupation" 
             />
           </div>
           <div>
             <label for="guardian_income" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Income <span class="text-red-500">*</span>
+              Income
             </label>
             <input 
               id="guardian_income"
               v-model="form.guardian.income" 
               type="number" 
-              required 
               class="input-field" 
               placeholder="Enter annual income" 
             />
           </div>
           <div>
             <label for="guardian_education" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Education <span class="text-red-500">*</span>
+              Education
             </label>
             <input 
               id="guardian_education"
               v-model="form.guardian.education" 
               type="text" 
-              required 
               class="input-field" 
               placeholder="Enter education qualification" 
             />
@@ -697,7 +694,6 @@
           <FormField 
             id="guardian.email"
             label="Email"
-            :required="true"
             :error-message="getFieldError('guardian.email')"
           >
             <template #default="{ id, class: fieldClass }">
@@ -957,6 +953,9 @@ const userChangedSection = ref(false);
 // If editing, populate form with initialData
 watch(() => props.initialData, async (newData) => {
   if (props.isEditing && newData && Object.keys(newData).length > 0) {
+    // Set flag to prevent change handlers from interfering
+    isSettingFormValues.value = true;
+    console.log('🔍 Setting isSettingFormValues to true for initial data loading');
     
     // Academic details
     if (newData.school_id) form.school_id = newData.school_id;
@@ -972,19 +971,43 @@ watch(() => props.initialData, async (newData) => {
     }
     if (newData.category) form.category = newData.category;
     
-    // Store the class and section names for later mapping
-    // We'll map these to IDs after academic data is loaded
-    if (newData.current_class) {
+    // Use class and section IDs directly from API response if available
+    if (newData.class_id) {
+      form.class_id = newData.class_id;
+      console.log('🔍 Set class_id directly from API field:', newData.class_id);
+    } else if (newData.class && newData.class.id) {
+      form.class_id = newData.class.id;
+      console.log('🔍 Set class_id from class association:', newData.class.id);
+    } else if (newData.current_class) {
       form._temp_class_name = newData.current_class;
       console.log('🔍 Set temp class name:', newData.current_class);
     }
-    if (newData.section) {
+    
+    if (newData.section_id) {
+      form.section_id = newData.section_id;
+      console.log('🔍 Set section_id directly from API field:', newData.section_id);
+    } else if (newData.sectionInfo && newData.sectionInfo.id) {
+      form.section_id = newData.sectionInfo.id;
+      console.log('🔍 Set section_id from sectionInfo association:', newData.sectionInfo.id);
+    } else if (newData.section) {
       form._temp_section_name = newData.section;
       console.log('🔍 Set temp section name:', newData.section);
     }
+    
+    // If we have class_id but no temp names, we need to load sections for the dropdown
+    if (form.class_id && !form._temp_class_name && !form._temp_section_name) {
+      console.log('🔍 Class ID set directly, will load sections after academic data is loaded');
+    }
+    
     if (newData.academic_year) {
       form._temp_academic_year_name = newData.academic_year;
       console.log('🔍 Set temp academic year name:', newData.academic_year);
+    }
+    
+    // Also set academic_year_id if available (for backward compatibility)
+    if (newData.academic_year_id) {
+      form.academic_year_id = newData.academic_year_id;
+      console.log('🔍 Set academic_year_id directly:', newData.academic_year_id);
     }
     
     // Student details
@@ -1075,14 +1098,29 @@ watch(() => props.initialData, async (newData) => {
     if (props.isEditing && form.school_id && form.branch_id) {
       try {
         await loadAcademicData();
+        
+        // If we have temp names, map them to IDs
         if (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name) {
           console.log('🔍 Initial data loaded, mapping names to IDs');
           await mapClassAndSectionNames();
+        }
+        // If we have class_id directly, always load sections for dropdown
+        else if (form.class_id) {
+          console.log('🔍 Class ID set directly, loading sections for dropdown');
+          await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
+          console.log('🔍 Sections loaded for dropdown:', sections.value.length);
+          
+          // Small delay to ensure sections are fully loaded before resetting the flag
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       } catch (error) {
         console.error('Failed to load academic data for mapping:', error);
       }
     }
+    
+    // Reset the flag after initial data loading is complete
+    isSettingFormValues.value = false;
+    console.log('🔍 Setting isSettingFormValues to false after initial data loading');
   }
 }, { immediate: true });
 
@@ -1144,9 +1182,14 @@ const onSchoolChange = async () => {
 
 // Branch change handler
 const onBranchChange = async () => {
-  console.log('🔍 StudentForm onBranchChange called with branch_id:', form.branch_id);
-  form.class_id = '';
-  form.section_id = '';
+  console.log('🔍 StudentForm onBranchChange called with branch_id:', form.branch_id, 'isSettingFormValues:', isSettingFormValues.value);
+  
+  // Skip clearing values if we're setting form values (edit mode initialization)
+  if (!isSettingFormValues.value) {
+    form.class_id = '';
+    form.section_id = '';
+  }
+  
   if (form.branch_id) {
     try {
       console.log('🔍 Loading academic data for branch:', form.branch_id);
@@ -1175,14 +1218,24 @@ const onBranchChange = async () => {
 // Class change handler
 const onClassChange = async (isAutoSelection = false) => {
   console.log('🔍 onClassChange called with class_id:', form.class_id, 'isAutoSelection:', isAutoSelection, 'isSettingFormValues:', isSettingFormValues.value);
-  // Only mark as user-changed if it's not an auto-selection and not setting form values
-  if (!isAutoSelection && !isSettingFormValues.value) {
+  
+  // Skip processing if we're setting form values (edit mode initialization)
+  if (isSettingFormValues.value) {
+    console.log('🔍 Skipping onClassChange during form initialization');
+    return;
+  }
+  
+  // Only mark as user-changed if it's not an auto-selection
+  if (!isAutoSelection) {
     userChangedClass.value = true;
     console.log('🔍 Marked class as user-changed');
   }
   
-  form.section_id = '';
-  userChangedSection.value = false; // Reset section flag since class changed
+  // Only clear section_id if this is a user change (not during initialization)
+  if (!isAutoSelection && !isSettingFormValues.value) {
+    form.section_id = '';
+    userChangedSection.value = false; // Reset section flag since class changed
+  }
   
   if (form.class_id) {
     sectionsLoading.value = true;
@@ -1197,7 +1250,8 @@ const onClassChange = async (isAutoSelection = false) => {
         console.log('🔍 Sections loaded (without branch):', sections.value?.length);
       }
       
-      if (sections.value && sections.value.length === 1) {
+      // Only auto-select section if this is not during form initialization
+      if (sections.value && sections.value.length === 1 && !isSettingFormValues.value) {
         form.section_id = sections.value[0].id;
         console.log('🔍 Auto-selecting single section:', form.section_id);
       }
@@ -1355,9 +1409,11 @@ const handleSubmit = async () => {
   if (!form.branch_id) {
     setFieldError('branch_id', 'Branch is required');
   }
+
   if (!form.academic_year_id) {
     setFieldError('academic_year_id', 'Academic year is required');
   }
+
   if (!form.admission_number) {
     setFieldError('admission_number', 'Admission number is required');
   }
@@ -1370,9 +1426,7 @@ const handleSubmit = async () => {
   if (!form.section_id) {
     setFieldError('section_id', 'Section is required');
   }
-  if (!form.category) {
-    setFieldError('category', 'Category is required');
-  }
+
   
   // Validate mandatory fields - Student Details
   if (!form.student.first_name) {
@@ -1392,21 +1446,11 @@ const handleSubmit = async () => {
   if (!form.guardian.relation) {
     setFieldError('guardian.relation', 'Guardian relation is required');
   }
-  if (!form.guardian.occupation) {
-    setFieldError('guardian.occupation', 'Guardian occupation is required');
-  }
-  if (!form.guardian.income) {
-    setFieldError('guardian.income', 'Guardian income is required');
-  }
-  if (!form.guardian.education) {
-    setFieldError('guardian.education', 'Guardian education is required');
-  }
+
   if (!form.guardian.mobile_no) {
     setFieldError('guardian.mobile_no', 'Guardian mobile number is required');
   }
-  if (!form.guardian.email) {
-    setFieldError('guardian.email', 'Guardian email is required');
-  }
+
   if (!form.guardian.address) {
     setFieldError('guardian.address', 'Guardian address is required');
   }
@@ -1651,7 +1695,7 @@ watch(() => form.branch_id, async (newBranchId, oldBranchId) => {
   }
 }, { immediate: false });
 
-// Watch for initial data changes to reset mapping flags
+// Watch for initial data changes to reset mapping flags (simplified)
 watch(() => props.initialData, async (newData) => {
   if (props.isEditing && newData && Object.keys(newData).length > 0) {
     console.log('🔍 Initial data changed, resetting mapping flags');
@@ -1661,20 +1705,6 @@ watch(() => props.initialData, async (newData) => {
     userChangedClass.value = false;
     userChangedSection.value = false;
     mappingRetryCount.value = 0; // Reset retry count
-    
-    // Wait a bit for the form to be updated with new data
-    await nextTick();
-
-    // If we have a temp class name, force-load academic data for mapping
-    if (form._temp_class_name && form.school_id && form.branch_id) {
-      await loadAcademicData();
-    }
-    
-    // If we have academic data loaded, try mapping again
-    if (classes.value.length > 0 || sections.value.length > 0 || academicYears.value.length > 0) {
-      console.log('🔍 Academic data available, attempting to map names');
-      await mapClassAndSectionNames();
-    }
   }
 }, { deep: true });
 
@@ -1685,27 +1715,37 @@ const isSettingFormValues = ref(false);
 const mappingRetryCount = ref(0);
 const maxMappingRetries = 3;
 
-// Watch for academic data changes to map names to IDs in edit mode
+// Watch for academic data changes to map names to IDs in edit mode (simplified)
 watch([() => classes.value, () => sections.value, () => academicYears.value], async () => {
-  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
+  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && !isSettingFormValues.value && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
     console.log('🔍 Academic data loaded, mapping names to IDs');
-    console.log('🔍 Classes available:', classes.value.length);
-    console.log('🔍 Sections available:', sections.value.length);
-    console.log('🔍 Academic years available:', academicYears.value.length);
     await mapClassAndSectionNames();
   }
 }, { immediate: false });
 
-// HACK: Additional watcher for form data changes to trigger mapping
-watch([() => form.school_id, () => form.branch_id, () => form._temp_class_name, () => form._temp_section_name], async () => {
-  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && form.school_id && form.branch_id && (form._temp_class_name || form._temp_section_name)) {
-    console.log('🔍 HACK: Form data changed, attempting to map names');
-    // Add a small delay to ensure data is loaded
-    setTimeout(async () => {
-      if (!hasMappedNames.value) {
-        await mapClassAndSectionNames();
-      }
-    }, 500);
+// Removed HACK watcher to prevent conflicts
+
+// Watch for when class_id is set directly to load sections (only in edit mode)
+watch(() => form.class_id, async (newClassId, oldClassId) => {
+  console.log('🔍 Class ID changed from', oldClassId, 'to', newClassId, 'isSettingFormValues:', isSettingFormValues.value);
+  // Only load sections if this is a real change (not during initialization) and we're in edit mode
+  if (props.isEditing && newClassId && newClassId !== oldClassId && form.school_id && form.branch_id && !isSettingFormValues.value) {
+    console.log('🔍 Class ID set directly, loading sections for class:', newClassId);
+    try {
+      await loadSectionsByClass(newClassId, form.school_id, form.branch_id);
+      console.log('🔍 Sections loaded for class:', sections.value.length);
+    } catch (error) {
+      console.warn('Failed to load sections for class:', error);
+    }
+  }
+}, { immediate: false });
+
+// Watch section_id changes to track when it gets cleared
+watch(() => form.section_id, (newSectionId, oldSectionId) => {
+  console.log('🔍 Section ID changed from', oldSectionId, 'to', newSectionId, 'isSettingFormValues:', isSettingFormValues.value);
+  if (oldSectionId && !newSectionId && !isSettingFormValues.value) {
+    console.warn('🔍 WARNING: Section ID was cleared unexpectedly!');
+    console.trace('🔍 Stack trace for section ID clear');
   }
 }, { immediate: false });
 
@@ -1789,12 +1829,46 @@ const mapClassAndSectionNames = async () => {
   if (!props.isEditing || hasMappedNames.value || isMappingNames.value) return;
   
   console.log('🔍 Starting name mapping...');
+  console.log('🔍 Current class_id:', form.class_id);
+  console.log('🔍 Current section_id:', form.section_id);
+  console.log('🔍 Current academic_year_id:', form.academic_year_id);
   console.log('🔍 Temp class name:', form._temp_class_name);
   console.log('🔍 Temp section name:', form._temp_section_name);
   console.log('🔍 Temp academic year name:', form._temp_academic_year_name);
   console.log('🔍 Available classes:', classes.value.length);
   console.log('🔍 Available sections:', sections.value.length);
   console.log('🔍 Available academic years:', academicYears.value.length);
+  
+  // If we already have the IDs set directly from API, we still need to load sections for the dropdown
+  if (form.class_id && form.section_id && !form._temp_class_name && !form._temp_section_name) {
+    console.log('🔍 Class and section IDs already set directly from API, loading sections for dropdown');
+    // Load sections for the class to populate the dropdown
+    try {
+      await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Sections loaded for dropdown:', sections.value.length);
+      hasMappedNames.value = true;
+      isMappingNames.value = false;
+      isSettingFormValues.value = false;
+      return;
+    } catch (error) {
+      console.warn('Failed to load sections for dropdown:', error);
+    }
+  }
+  
+  // If we have class_id but no section_id, load sections for the dropdown
+  if (form.class_id && !form.section_id && !form._temp_class_name && !form._temp_section_name) {
+    console.log('🔍 Class ID set but no section ID, loading sections for dropdown');
+    try {
+      await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Sections loaded for dropdown:', sections.value.length);
+      hasMappedNames.value = true;
+      isMappingNames.value = false;
+      isSettingFormValues.value = false;
+      return;
+    } catch (error) {
+      console.warn('Failed to load sections for dropdown:', error);
+    }
+  }
   
   // Check if we have the necessary data
   if (classes.value.length === 0 && academicYears.value.length === 0) {

@@ -41,6 +41,14 @@ const Parent = sequelize.define('Parent', {
   father_income: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
+    set(value) {
+      // Convert empty string to null for DECIMAL field
+      if (value === '' || value === undefined) {
+        this.setDataValue('father_income', null);
+      } else {
+        this.setDataValue('father_income', value);
+      }
+    },
   },
   mother_name: {
     type: DataTypes.STRING(100),
@@ -75,6 +83,14 @@ const Parent = sequelize.define('Parent', {
   mother_income: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
+    set(value) {
+      // Convert empty string to null for DECIMAL field
+      if (value === '' || value === undefined) {
+        this.setDataValue('mother_income', null);
+      } else {
+        this.setDataValue('mother_income', value);
+      }
+    },
   },
   guardian_name: {
     type: DataTypes.STRING(100),
@@ -92,9 +108,8 @@ const Parent = sequelize.define('Parent', {
   },
   guardian_email: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     validate: {
-      notEmpty: { msg: 'Guardian email is required' },
       isGuardianEmailValid(value) {
         if (value && value.trim() !== '') {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -114,16 +129,12 @@ const Parent = sequelize.define('Parent', {
   },
   guardian_occupation: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Guardian occupation is required' },
-    },
+    allowNull: true,
   },
   guardian_income: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
+    allowNull: true,
     validate: {
-      notEmpty: { msg: 'Guardian income is required' },
       isGuardianIncomeValid(value) {
         if (value !== null && value !== undefined && value !== '') {
           const numValue = parseFloat(value);
@@ -133,13 +144,18 @@ const Parent = sequelize.define('Parent', {
         }
       },
     },
+    set(value) {
+      // Convert empty string to null for DECIMAL field
+      if (value === '' || value === undefined) {
+        this.setDataValue('guardian_income', null);
+      } else {
+        this.setDataValue('guardian_income', value);
+      }
+    },
   },
   guardian_education: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Guardian education is required' },
-    },
+    allowNull: true,
   },
   address: {
     type: DataTypes.TEXT,

@@ -512,6 +512,116 @@ class DashboardController {
       next(error);
     }
   }
+
+  static async getFeeCollectionSummary(req, res, next) {
+    try {
+      const user = req.user;
+      const { academic_year } = req.query;
+      
+      // Default to current academic year if not provided
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1; // 1-12
+      const defaultAcademicYear = currentMonth >= 6 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+      const targetAcademicYear = academic_year || defaultAcademicYear;
+
+      let where = { academic_year: targetAcademicYear };
+      let branchWhere = {};
+
+      if (user.role === 'super_admin') {
+        // Super admin can see all schools
+        // No additional filters needed
+      } else if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+        branchWhere.school_id = user.school_id;
+      } else if (user.role === 'branch_admin') {
+        where.branch_id = user.branch_id;
+        branchWhere.id = user.branch_id;
+      } else {
+        throw new ApiError(403, 'Access denied');
+      }
+
+      // Get total collected and pending amounts
+      const [totalCollected, totalPending] = await Promise.all([
+        FeeInvoice.sum('paid_amount', { 
+          where: { ...where, status: 'paid' } 
+        }),
+        FeeInvoice.sum('balance_amount', { 
+          where: { 
+            ...where, 
+            status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
+          } 
+        })
+      ]);
+
+      // Get branch-wise breakdown for school admin and super admin
+      let branchBreakdown = [];
+      if (user.role === 'school_admin' || user.role === 'super_admin') {
+        const branches = await Branch.findAll({
+          where: branchWhere,
+          attributes: ['id', 'name']
+        });
+
+        // Get fee data for each branch
+        const branchFeeData = await Promise.all(
+          branches.map(async (branch) => {
+            const branchWhereClause = { 
+              ...where, 
+              branch_id: branch.id 
+            };
+
+            const [collected, pending] = await Promise.all([
+              FeeInvoice.sum('paid_amount', { 
+                where: { ...branchWhereClause, status: 'paid' } 
+              }),
+              FeeInvoice.sum('balance_amount', { 
+                where: { 
+                  ...branchWhereClause, 
+                  status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
+                } 
+              })
+            ]);
+
+            return {
+              id: branch.id,
+              name: branch.name,
+              total_collected: parseFloat(collected || 0),
+              total_pending: parseFloat(pending || 0)
+            };
+          })
+        );
+
+        // Filter out branches with no fee data
+        branchBreakdown = branchFeeData.filter(branch => 
+          branch.total_collected > 0 || branch.total_pending > 0
+        );
+      }
+
+      // Get additional statistics
+      const [totalInvoices, paidInvoices, pendingInvoices, overdueInvoices] = await Promise.all([
+        FeeInvoice.count({ where }),
+        FeeInvoice.count({ where: { ...where, status: 'paid' } }),
+        FeeInvoice.count({ where: { ...where, status: { [Op.in]: ['sent', 'partial_paid'] } } }),
+        FeeInvoice.count({ where: { ...where, status: 'overdue' } })
+      ]);
+
+      const summary = {
+        academic_year: targetAcademicYear,
+        total_collected: parseFloat(totalCollected || 0),
+        total_pending: parseFloat(totalPending || 0),
+        total_invoices: totalInvoices,
+        paid_invoices: paidInvoices,
+        pending_invoices: pendingInvoices,
+        overdue_invoices: overdueInvoices,
+        collection_rate: totalInvoices > 0 ? ((paidInvoices / totalInvoices) * 100).toFixed(1) : 0,
+        branch_breakdown: branchBreakdown
+      };
+
+      res.json({ success: true, data: summary });
+    } catch (error) {
+      logger.error('Error in DashboardController.getFeeCollectionSummary:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = DashboardController; 

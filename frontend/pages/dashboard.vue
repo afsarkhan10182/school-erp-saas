@@ -105,6 +105,99 @@
             </div>
           </section>
 
+          <!-- Fee Collection Summary Widget -->
+          <section class="card">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold">📊 Fee Collection Summary ({{ feeCollectionSummary.academic_year || '2024-25' }})</h2>
+              <div class="flex items-center space-x-2">
+                <select 
+                  v-model="selectedAcademicYear" 
+                  @change="fetchFeeCollectionSummary"
+                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                >
+                  <option value="2024-25">2024-25</option>
+                  <option value="2023-24">2023-24</option>
+                  <option value="2022-23">2022-23</option>
+                </select>
+              </div>
+            </div>
+            
+            <div v-if="loadingFeeSummary" class="flex items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading fee summary...</span>
+            </div>
+            
+            <div v-else class="space-y-6">
+              <!-- Summary Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div class="flex items-center">
+                    <CheckCircle class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+                    <span class="text-sm font-medium text-green-800 dark:text-green-200">Total Collected</span>
+                  </div>
+                  <p class="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
+                    ₹{{ formatCurrency(feeCollectionSummary.total_collected || 0) }}
+                  </p>
+                </div>
+                
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div class="flex items-center">
+                    <AlertTriangle class="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                    <span class="text-sm font-medium text-red-800 dark:text-red-200">Total Pending</span>
+                  </div>
+                  <p class="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
+                    ₹{{ formatCurrency(feeCollectionSummary.total_pending || 0) }}
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Branch Breakdown (for School Admin and Super Admin) -->
+              <div v-if="feeCollectionSummary.branch_breakdown && feeCollectionSummary.branch_breakdown.length > 0">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">Branches Pending:</h3>
+                <div class="space-y-3">
+                  <div 
+                    v-for="branch in feeCollectionSummary.branch_breakdown" 
+                    :key="branch.id"
+                    class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <div class="flex items-center">
+                      <Building2 class="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
+                      <span class="font-medium text-gray-900 dark:text-white">{{ branch.name }}</span>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-sm text-gray-600 dark:text-gray-400">
+                        Collected: ₹{{ formatCurrency(branch.total_collected) }}
+                      </div>
+                      <div class="font-semibold text-red-600 dark:text-red-400">
+                        → ₹{{ formatCurrency(branch.total_pending) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Additional Stats -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="text-center">
+                  <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ feeCollectionSummary.total_invoices || 0 }}</p>
+                  <p class="text-xs text-gray-600 dark:text-gray-400">Total Invoices</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-lg font-semibold text-green-600 dark:text-green-400">{{ feeCollectionSummary.paid_invoices || 0 }}</p>
+                  <p class="text-xs text-gray-600 dark:text-gray-400">Paid</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">{{ feeCollectionSummary.pending_invoices || 0 }}</p>
+                  <p class="text-xs text-gray-600 dark:text-gray-400">Pending</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">{{ feeCollectionSummary.collection_rate || 0 }}%</p>
+                  <p class="text-xs text-gray-600 dark:text-gray-400">Collection Rate</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Role-specific content -->
           <section v-if="isSuperAdmin" class="card">
             <h2 class="text-xl font-semibold mb-4">Platform Overview</h2>
@@ -198,6 +291,9 @@ const stats = ref({});
 const platformStats = ref({});
 const schoolStats = ref({});
 const recentActivities = ref([]);
+const feeCollectionSummary = ref({});
+const loadingFeeSummary = ref(false);
+const selectedAcademicYear = ref('2024-25');
 const recentAdmissions = ref([]);
 const overdueFees = ref([]);
 
@@ -517,7 +613,22 @@ const fetchDashboardData = async () => {
   }
 };
 
-
+// Fetch fee collection summary
+const fetchFeeCollectionSummary = async () => {
+  loadingFeeSummary.value = true;
+  try {
+    const response = await apiClient.dashboard.getFeeCollectionSummary({ 
+      academic_year: selectedAcademicYear.value 
+    });
+    if (response.success) {
+      feeCollectionSummary.value = response.data;
+    }
+  } catch (error) {
+    console.error('Error fetching fee collection summary:', error);
+  } finally {
+    loadingFeeSummary.value = false;
+  }
+};
 
 // Cleanup charts on component unmount
 onUnmounted(() => {
@@ -537,6 +648,7 @@ onUnmounted(() => {
 
 onMounted(() => {
   fetchDashboardData();
+  fetchFeeCollectionSummary();
 });
 </script>
 

@@ -3,6 +3,7 @@ const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateCombinedReceipt } = require('./receipts');
+const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('../../utils/academicYearUtils');
 
 // Shared utility function to get student invoices
 const getStudentInvoices = async (studentId, schoolId, options = {}) => {
@@ -670,15 +671,25 @@ const getAvailableMonths = async (req, res, next) => {
       throw new ApiError(404, 'Student not found');
     }
 
+    // Get school to determine starting month
+    const school = await School.findByPk(req.schoolId);
+    const startingMonth = school.starting_month || 6; // Default to June
+
     // Get monthly payment invoices using shared utility
     const monthlyInvoices = await getStudentInvoices(student_id, req.schoolId, { 
       academic_year, 
       payment_model: 'monthly' 
     });
 
-    // Group by month and calculate totals (simplified logic)
+    // Get available payment months (enforcing sequence rules)
+    const availablePaymentInvoices = getAvailablePaymentMonths(monthlyInvoices, startingMonth, 12);
+    
+    // Get earliest pending month for reference
+    const earliestPending = getEarliestPendingMonth(monthlyInvoices, startingMonth);
+
+    // Group by month and calculate totals
     const monthGroups = {};
-    monthlyInvoices.forEach(invoice => {
+    availablePaymentInvoices.forEach(invoice => {
       const monthKey = `${invoice.month}-${invoice.year}`;
       if (!monthGroups[monthKey]) {
         monthGroups[monthKey] = {
@@ -690,6 +701,7 @@ const getAvailableMonths = async (req, res, next) => {
           paid_amount: 0,
           balance_amount: 0,
           fee_types: new Set(),
+          is_earliest_pending: false,
         };
       }
       
@@ -698,6 +710,11 @@ const getAvailableMonths = async (req, res, next) => {
       monthGroups[monthKey].paid_amount += parseFloat(invoice.paid_amount || 0);
       monthGroups[monthKey].balance_amount += parseFloat(invoice.balance_amount || 0);
       monthGroups[monthKey].fee_types.add(invoice.feeStructure?.feeType?.name || 'Unknown');
+      
+      // Mark if this is the earliest pending month
+      if (earliestPending && invoice.id === earliestPending.id) {
+        monthGroups[monthKey].is_earliest_pending = true;
+      }
     });
 
     // Convert to array and format
@@ -705,7 +722,7 @@ const getAvailableMonths = async (req, res, next) => {
       month: group.month,
       year: group.year,
       month_key: group.month_key,
-      display_name: `${group.month} ${group.year}`,
+      display_name: `${getMonthName(group.month)} ${group.year}`,
       total_amount: group.total_amount,
       paid_amount: group.paid_amount,
       balance_amount: group.balance_amount,
@@ -714,6 +731,8 @@ const getAvailableMonths = async (req, res, next) => {
       status: group.balance_amount <= 0 ? 'paid' : group.paid_amount > 0 ? 'partial_paid' : 'pending',
       due_date: group.invoices[0]?.due_date,
       invoice_ids: group.invoices.map(inv => inv.id),
+      is_earliest_pending: group.is_earliest_pending,
+      can_pay: group.balance_amount > 0, // Can only pay if there's a balance
     }));
 
     return res.status(200).json({
@@ -731,6 +750,10 @@ const getAvailableMonths = async (req, res, next) => {
           total_months: availableMonths.length,
           pending_months: availableMonths.filter(m => m.status !== 'paid').length,
           total_balance: availableMonths.reduce((sum, m) => sum + m.balance_amount, 0),
+          earliest_pending_month: earliestPending ? `${getMonthName(earliestPending.month)} ${earliestPending.year}` : null,
+          payment_sequence_enforced: true,
+          starting_month: startingMonth,
+          academic_year: academic_year,
         },
       },
     });

@@ -26,7 +26,7 @@ const handleEnumValidationError = (error) => {
   throw error;
 };
 
-// Utility function to sanitize ENUM fields
+// Utility function to sanitize ENUM fields and numeric fields
 const sanitizeEnumFields = (data) => {
   console.log('🔍 Before sanitizing ENUM fields:', {
     admission_sought_in: data.admission_sought_in,
@@ -44,8 +44,8 @@ const sanitizeEnumFields = (data) => {
     data.gender = null;
   }
   
-  if (data.category === '' || data.category === undefined) {
-    data.category = null;
+  if (data.category === '' || data.category === undefined || data.category === null) {
+    data.category = 'general'; // Default to general when category is not provided
   }
   
   if (data.status === '' || data.status === undefined) {
@@ -58,6 +58,20 @@ const sanitizeEnumFields = (data) => {
     category: data.category,
     status: data.status
   });
+  
+  // Sanitize numeric fields - convert empty strings to null
+  if (data.income !== undefined && data.income === '') {
+    data.income = null;
+  }
+  if (data.father_income !== undefined && data.father_income === '') {
+    data.father_income = null;
+  }
+  if (data.mother_income !== undefined && data.mother_income === '') {
+    data.mother_income = null;
+  }
+  if (data.guardian_income !== undefined && data.guardian_income === '') {
+    data.guardian_income = null;
+  }
   
   return data;
 };
@@ -284,14 +298,14 @@ const createStudent = async (req, res, next) => {
         parentData.father_email = guardianData.email;
         parentData.father_occupation = guardianData.occupation;
         parentData.father_qualification = guardianData.education;
-        parentData.father_income = guardianData.income;
+        parentData.father_income = guardianData.income === '' ? null : guardianData.income;
       } else if (guardianData.relation === 'mother') {
         parentData.mother_name = guardianData.name;
         parentData.mother_phone = guardianData.mobile_no;
         parentData.mother_email = guardianData.email;
         parentData.mother_occupation = guardianData.occupation;
         parentData.mother_qualification = guardianData.education;
-        parentData.mother_income = guardianData.income;
+        parentData.mother_income = guardianData.income === '' ? null : guardianData.income;
       }
 
       // Always set both father and mother names if provided
@@ -301,6 +315,9 @@ const createStudent = async (req, res, next) => {
       if (guardianData.mother_name) {
         parentData.mother_name = guardianData.mother_name;
       }
+
+      // Sanitize parent data for numeric fields
+      sanitizeEnumFields(parentData);
 
       const parent = await Parent.create(parentData);
 
@@ -514,6 +531,10 @@ const getStudentById = async (req, res, next) => {
     }
 
     console.log('Student found:', student.id);
+    console.log('Student class_id:', student.class_id);
+    console.log('Student section_id:', student.section_id);
+    console.log('Student class association:', student.class ? { id: student.class.id, name: student.class.name } : 'null');
+    console.log('Student sectionInfo association:', student.sectionInfo ? { id: student.sectionInfo.id, name: student.sectionInfo.name } : 'null');
     return res.status(200).json({ success: true, data: student });
   } catch (error) {
     logger.error('Error fetching student:', error);
@@ -1229,11 +1250,11 @@ const bulkImportStudents = async (req, res, next) => {
       throw new ApiError(400, 'CSV file is required');
     }
 
-    const { branch_id, class_id, section_id } = req.body;
+    const { branch_id, class_id, section_id, academic_year_id } = req.body;
     
     // Validate required fields
-    if (!branch_id || !class_id || !section_id) {
-      throw new ApiError(400, 'Branch, Class, and Section are required');
+    if (!branch_id || !class_id) {
+      throw new ApiError(400, 'Branch and Class are required');
     }
 
     // Determine school_id and branch_id based on user role
@@ -1282,8 +1303,8 @@ const bulkImportStudents = async (req, res, next) => {
 
     // Validate required columns - all mandatory fields
     const requiredColumns = [
-      'FirstName', 'Gender', 'Birthday', 'AdmissionDate', 'AdmissionNumber', 'Category',
-      'GuardianName', 'GuardianRelation', 'GuardianOccupation', 'GuardianIncome', 'GuardianEducation', 'GuardianMobileNo', 'GuardianEmail', 'GuardianAddress'
+      'FirstName', 'Gender', 'Birthday', 'AdmissionDate', 'AdmissionNumber',
+      'GuardianName', 'GuardianRelation', 'GuardianMobileNo', 'GuardianAddress'
     ];
     
     if (!dataRows[0] || Object.keys(dataRows[0]).length === 0) {
@@ -1298,10 +1319,25 @@ const bulkImportStudents = async (req, res, next) => {
 
     // Get class and section names
     const classRecord = await Class.findByPk(class_id);
-    const sectionRecord = await Section.findByPk(section_id);
+    if (!classRecord) {
+      throw new ApiError(400, 'Invalid class ID');
+    }
     
-    if (!classRecord || !sectionRecord) {
-      throw new ApiError(400, 'Invalid class or section ID');
+    let sectionRecord = null;
+    if (section_id) {
+      sectionRecord = await Section.findByPk(section_id);
+      if (!sectionRecord) {
+        throw new ApiError(400, 'Invalid section ID');
+      }
+    }
+
+    // Get academic year name if academic_year_id is provided
+    let academicYearName = new Date().getFullYear().toString();
+    if (academic_year_id) {
+      const academicYearRecord = await AcademicYear.findByPk(academic_year_id);
+      if (academicYearRecord) {
+        academicYearName = academicYearRecord.name;
+      }
     }
 
     const results = {
@@ -1358,11 +1394,11 @@ const bulkImportStudents = async (req, res, next) => {
           school_id,
           branch_id,
           class_id,
-          section_id,
+          section_id: section_id || null,
           admission_class: classRecord.name,
           current_class: classRecord.name,
-          section: sectionRecord.name,
-          academic_year: new Date().getFullYear().toString(),
+          section: sectionRecord ? sectionRecord.name : null,
+          academic_year: academicYearName,
           status: 'active',
           created_by: req.user.id,
           updated_by: req.user.id,
@@ -1374,8 +1410,7 @@ const bulkImportStudents = async (req, res, next) => {
           { field: 'Gender', value: rowData.Gender, name: 'Gender' },
           { field: 'Birthday', value: rowData.Birthday, name: 'Date of Birth' },
           { field: 'AdmissionDate', value: rowData.AdmissionDate, name: 'Admission Date' },
-          { field: 'AdmissionNumber', value: rowData.AdmissionNumber, name: 'Admission Number' },
-          { field: 'Category', value: rowData.Category, name: 'Category' }
+          { field: 'AdmissionNumber', value: rowData.AdmissionNumber, name: 'Admission Number' }
         ];
 
         const missingStudentFields = studentRequiredFields
@@ -1390,11 +1425,7 @@ const bulkImportStudents = async (req, res, next) => {
         const guardianRequiredFields = [
           { field: 'GuardianName', value: rowData.GuardianName, name: 'Guardian Name' },
           { field: 'GuardianRelation', value: rowData.GuardianRelation, name: 'Guardian Relation' },
-          { field: 'GuardianOccupation', value: rowData.GuardianOccupation, name: 'Guardian Occupation' },
-          { field: 'GuardianIncome', value: rowData.GuardianIncome, name: 'Guardian Income' },
-          { field: 'GuardianEducation', value: rowData.GuardianEducation, name: 'Guardian Education' },
           { field: 'GuardianMobileNo', value: rowData.GuardianMobileNo, name: 'Guardian Mobile No' },
-          { field: 'GuardianEmail', value: rowData.GuardianEmail, name: 'Guardian Email' },
           { field: 'GuardianAddress', value: rowData.GuardianAddress, name: 'Guardian Address' }
         ];
 
@@ -1426,17 +1457,24 @@ const bulkImportStudents = async (req, res, next) => {
 
         // Check for duplicate roll number in the same class-section
         if (studentData.roll_number) {
+          const rollNumberWhere = {
+            roll_number: studentData.roll_number,
+            branch_id: branch_id,
+            class_id: class_id,
+          };
+          
+          // Only include section_id in the query if it's provided
+          if (section_id) {
+            rollNumberWhere.section_id = section_id;
+          }
+          
           const existingRollNumber = await Student.findOne({
-            where: {
-              roll_number: studentData.roll_number,
-              branch_id: branch_id,
-              class_id: class_id,
-              section_id: section_id,
-            },
+            where: rollNumberWhere,
           });
 
           if (existingRollNumber) {
-            throw new Error(`Roll number ${studentData.roll_number} already exists in ${classRecord.name}-${sectionRecord.name}`);
+            const sectionName = sectionRecord ? sectionRecord.name : 'No Section';
+            throw new Error(`Roll number ${studentData.roll_number} already exists in ${classRecord.name}-${sectionName}`);
           }
         }
 
@@ -1472,11 +1510,15 @@ const bulkImportStudents = async (req, res, next) => {
             guardianData.father_phone = rowData.GuardianMobileNo;
             guardianData.father_email = rowData.GuardianEmail;
             guardianData.father_occupation = rowData.GuardianOccupation || null;
+            guardianData.father_qualification = rowData.GuardianEducation || null;
+            guardianData.father_income = rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null;
           } else if (guardianData.guardian_relation === 'mother') {
             guardianData.mother_name = rowData.GuardianName;
             guardianData.mother_phone = rowData.GuardianMobileNo;
             guardianData.mother_email = rowData.GuardianEmail;
             guardianData.mother_occupation = rowData.GuardianOccupation || null;
+            guardianData.mother_qualification = rowData.GuardianEducation || null;
+            guardianData.mother_income = rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null;
           }
 
           // Set both father and mother names if provided separately

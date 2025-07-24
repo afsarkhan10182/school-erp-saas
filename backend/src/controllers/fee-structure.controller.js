@@ -172,7 +172,30 @@ const createFeeStructure = async (req, res, next) => {
     );
 
     // Calculate amount based on payment model
-    let calculatedAmount = monthly_payment_amount * total_months;
+    let calculatedAmount = 0;
+    
+    // Log the received data for debugging
+    logger.info('Fee structure creation - received data:', {
+      amount: amount,
+      payment_model: payment_model,
+      installment_type: req.body.installment_type,
+      monthly_payment_amount: monthly_payment_amount,
+      total_months: total_months
+    });
+    
+    // Use the amount field from frontend if provided, otherwise calculate based on payment model
+    if (amount && parseFloat(amount) > 0) {
+      calculatedAmount = parseFloat(amount);
+      logger.info('Using amount from frontend:', calculatedAmount);
+    } else if (payment_model === 'installment') {
+      // For installment payments, use the amount field directly
+      calculatedAmount = parseFloat(amount) || 0;
+      logger.info('Using installment amount:', calculatedAmount);
+    } else if (payment_model === 'monthly') {
+      // For monthly payments, calculate from monthly amount
+      calculatedAmount = (parseFloat(monthly_payment_amount) || 0) * (parseFloat(total_months) || 12);
+      logger.info('Calculated monthly amount:', calculatedAmount);
+    }
 
     // Create single fee structure with applicable_classes
     const sectionText = section ? ` - ${section}` : '';
@@ -192,6 +215,7 @@ const createFeeStructure = async (req, res, next) => {
       monthly_payment_amount: monthly_payment_amount || calculatedAmount,
       total_months: total_months || 12,
       due_day: due_day || 10,
+      due_date: req.body.due_date || null,
       is_active,
       school_id: req.schoolId,
       branch_id: req.branchId,
@@ -329,6 +353,13 @@ const updateFeeStructure = async (req, res, next) => {
       throw new ApiError(404, 'Fee structure not found.');
     }
 
+    // Log the received data for debugging
+    logger.info('Fee structure update - received data:', {
+      amount: amount,
+      payment_model: req.body.payment_model,
+      installment_type: req.body.installment_type
+    });
+    
     // Prepare update data
     const updateData = {
       amount,

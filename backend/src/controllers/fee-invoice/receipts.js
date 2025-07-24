@@ -401,6 +401,32 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
     const monthlyPayments = invoices.filter(inv => inv.payment_model === 'monthly');
     const installmentPayments = invoices.filter(inv => inv.payment_model === 'installment');
     
+    // Calculate months being paid in this receipt
+    let remainingMonths = 0;
+    let totalMonths = 12;
+    let monthsPaidInThisReceipt = 0;
+    
+    if (monthlyPayments.length > 0) {
+      // Count the months being paid in THIS receipt
+      monthsPaidInThisReceipt = monthlyPayments.length;
+      
+      // Get the fee structure from the first monthly payment
+      const firstMonthlyPayment = monthlyPayments[0];
+      const { calculatePaidMonths } = require('../../services/receipt.service');
+      
+      // Calculate total paid months across all fee structures for this student (including this receipt)
+      const totalPaidMonths = await calculatePaidMonths(
+        student.id, 
+        firstMonthlyPayment.fee_structure_id, 
+        firstMonthlyPayment.academic_year,
+        monthlyPayments // Pass all monthly payments being made in this receipt
+      );
+      
+      // Add the months being paid in this receipt to get the total
+      const totalPaidMonthsAfterThisReceipt = totalPaidMonths + monthsPaidInThisReceipt;
+      remainingMonths = Math.max(0, totalMonths - totalPaidMonthsAfterThisReceipt);
+    }
+    
     // Create receipt data
     const receiptData = {
       receipt_number: receiptNumber,
@@ -424,8 +450,10 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
         amount: inv.total_amount,
         fee_type: inv.feeStructure?.feeType?.name
       })),
-      remaining_months: 12 - monthlyPayments.length, // Assuming 12 months
+      remaining_months: remainingMonths,
       remaining_balance: totalAmount - totalPaid,
+      total_months: totalMonths,
+      months_paid: totalPaidMonthsAfterThisReceipt || monthsPaidInThisReceipt
     };
 
     // Generate HTML receipt
@@ -458,7 +486,7 @@ const generateCombinedReceiptHtml = (data, school) => {
       </div>
       
       <div style="padding: 20px;">
-        <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #000;">COMBINED PAYMENT RECEIPT</div>
+        <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #000;">MULTIPLE MONTHS PAYMENT RECEIPT</div>
         
         <div style="margin-bottom: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
@@ -484,7 +512,7 @@ const generateCombinedReceiptHtml = (data, school) => {
         </div>
         
         <div style="margin-bottom: 15px;">
-          <h4 style="margin-bottom: 10px; color: #000;">Paid Months: ${paidMonthsText}</h4>
+          <h4 style="margin-bottom: 10px; color: #000;">Months Covered: ${paidMonthsText}</h4>
           <table class="fee-table" style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
             <thead>
               <tr style="background: #f8f9fa;">
@@ -507,16 +535,34 @@ const generateCombinedReceiptHtml = (data, school) => {
         
         <div class="summary-section" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="font-weight: bold; color: #000;">Total Paid:</span>
+            <span style="font-weight: bold; color: #000;">Total Amount:</span>
             <span style="font-weight: bold; color: #000;">₹${data.total_payment_amount}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #000;">Payment Method:</span>
+            <span style="color: #000;">${data.payment_method.toUpperCase()}</span>
+          </div>
+          ${data.transaction_id ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #000;">Transaction ID:</span>
+            <span style="color: #000;">${data.transaction_id}</span>
+          </div>
+          ` : ''}
+        </div>
+        
+        <div class="remaining-info" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+          <div class="remaining-title" style="font-weight: bold; margin-bottom: 10px; color: #000;">Monthly Payment Summary</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #000;">Months Paid:</span>
+            <span style="color: #000;">${data.months_paid || 0} out of ${data.total_months || 12}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span style="color: #000;">Remaining Months:</span>
-            <span style="color: #000;">${data.remaining_months}</span>
+            <span style="color: #000;">${data.remaining_months || 0} months</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
             <span style="color: #000;">Remaining Balance:</span>
-            <span style="color: #000;">₹${data.remaining_balance}</span>
+            <span style="color: #000;">₹${(data.remaining_balance || 0).toLocaleString()}</span>
           </div>
         </div>
         

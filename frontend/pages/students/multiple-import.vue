@@ -12,21 +12,50 @@
         <div class="p-6">
           <div class="flex justify-between items-start mb-4">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Instructions:</h2>
-            <button
-              @click="downloadSampleFile"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <Download class="w-4 h-4 mr-2" />
-              Download Sample Import File
-            </button>
+            <div class="relative" data-dropdown="download">
+              <button
+                @click="showDownloadDropdown = !showDownloadDropdown"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <Download class="w-4 h-4 mr-2" />
+                Download Student Sample Data
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div v-if="showDownloadDropdown" class="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+                <div class="py-1">
+                  <button
+                    @click="downloadTemplate('required'); showDownloadDropdown = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Download class="w-4 h-4" />
+                    Mandatory/Required Fields only
+                  </button>
+                  <button
+                    @click="downloadTemplate('complete'); showDownloadDropdown = false"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Download class="w-4 h-4" />
+                    All Fields
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>Download the sample file to see the correct format.</li>
+            <li>Choose your preferred template:</li>
+            <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+              <li><strong>Download Required Fields:</strong> Contains only mandatory fields with sample data for quick imports</li>
+              <li><strong>Download Complete Template:</strong> Contains all fields (mandatory + optional) with sample data for reference</li>
+            </ul>
             <li>Open the downloaded CSV file and carefully fill the details of the students.</li>
             <li>For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD (e.g., 2005-06-15).</li>
-            <li><strong>Mandatory Student Fields:</strong> FirstName, Gender, Birthday, AdmissionDate, AdmissionNumber, Category</li>
-            <li><strong>Mandatory Guardian Fields:</strong> GuardianName, GuardianRelation, GuardianOccupation, GuardianIncome, GuardianEducation, GuardianMobileNo, GuardianEmail, GuardianAddress</li>
+            <li><strong>Mandatory Student Fields:</strong> FirstName, Gender, Birthday, AdmissionDate, AdmissionNumber</li>
+            <li><strong>Mandatory Guardian Fields:</strong> GuardianName, GuardianRelation, GuardianMobileNo, GuardianAddress</li>
             <li><strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion, Caste, FatherName, MotherName</li>
             <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
             <li>For "Gender" use: male, female, other</li>
@@ -88,7 +117,7 @@
             <!-- Section Selection -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Section <span class="text-red-500">*</span>
+                Section
               </label>
               <EnhancedDropdown
                 v-model="form.section_id"
@@ -213,6 +242,8 @@
         </div>
       </div>
 
+
+
       <!-- Results Modal -->
       <Modal v-if="showResults" @close="showResults = false">
         <template #header>
@@ -266,7 +297,7 @@
         <template #footer>
           <button
             @click="showResults = false"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
           >
             Close
           </button>
@@ -277,7 +308,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
@@ -286,7 +317,6 @@ import { useToast } from '~/composables/useToast';
 import { apiClient } from '~/utils/api';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
-import Modal from '~/components/Modal.vue';
 
 // Meta
 definePageMeta({
@@ -300,9 +330,13 @@ const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
 const { 
   classes, 
   sections, 
+  academicYears,
+  currentAcademicYear,
   loading: academicsLoading,
   fetchClasses, 
-  fetchSections 
+  fetchSections,
+  fetchAcademicYears,
+  getCurrentAcademicYear
 } = useAcademics();
 const { showSuccess, showError, showWarning } = useToast();
 
@@ -314,6 +348,7 @@ const selectedFile = ref(null);
 const fileInput = ref(null);
 const showResults = ref(false);
 const importResults = ref({});
+const showDownloadDropdown = ref(false);
 
 // Form data
 const form = reactive({
@@ -321,14 +356,15 @@ const form = reactive({
   branch_id: '',
   class_id: '',
   section_id: '',
+  academic_year_id: '', // Will be auto-populated with current academic year
 });
 
 // Computed properties
 const canSubmit = computed(() => {
   if (authStore.currentUser?.role === 'super_admin') {
-    return form.school_id && form.branch_id && form.class_id && form.section_id && selectedFile.value;
+    return form.school_id && form.branch_id && form.class_id && selectedFile.value;
   }
-  return form.branch_id && form.class_id && form.section_id && selectedFile.value;
+  return form.branch_id && form.class_id && selectedFile.value;
 });
 
 const schoolOptions = computed(() => {
@@ -589,9 +625,9 @@ const removeFile = () => {
 
 
 
-const downloadSampleFile = async () => {
+const downloadTemplate = async (type = 'complete') => {
   try {
-    const response = await apiClient.students.downloadTemplate();
+    const response = await apiClient.students.downloadTemplate(type);
     
     // Create blob from response
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
@@ -600,14 +636,22 @@ const downloadSampleFile = async () => {
     // Create download link
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Student-Admission-template.csv';
+    
+    // Set filename based on type
+    if (type === 'required') {
+      a.download = 'Student-Import-Template-Required-Fields.csv';
+    } else {
+      a.download = 'Student-Import-Template-Complete-with-Sample-Data.csv';
+    }
+    
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
     
-    showSuccess('Sample file downloaded successfully!');
+    // Show success message
+    showSuccess(`${type === 'required' ? 'Required fields' : 'Complete'} template downloaded successfully!`);
   } catch (error) {
     console.error('Error downloading template:', error);
     showError('Failed to download template file. Please try again.');
@@ -624,6 +668,7 @@ const handleSubmit = async () => {
     formData.append('branch_id', form.branch_id);
     formData.append('class_id', form.class_id);
     formData.append('section_id', form.section_id);
+    formData.append('academic_year_id', form.academic_year_id);
 
     // Add school_id for super admin
     if (authStore.currentUser?.role === 'super_admin') {
@@ -671,6 +716,15 @@ const handleSubmit = async () => {
 
 // Initialize data
 onMounted(async () => {
+  // Fetch and auto-select current academic year
+  const schoolId = authStore.currentUser?.role === 'super_admin' ? null : authStore.currentUser?.school_id;
+  await fetchAcademicYears(schoolId);
+  
+  // Auto-select current academic year
+  if (currentAcademicYear.value) {
+    form.academic_year_id = currentAcademicYear.value.id;
+  }
+
   if (authStore.currentUser?.role === 'super_admin') {
     // Load schools for super admin
     await fetchSchools();
@@ -690,6 +744,21 @@ onMounted(async () => {
       await onBranchChange();
     }
   }
+
+  // Add click outside handler for dropdown
+  const handleClickOutside = (event) => {
+    const dropdown = document.querySelector('[data-dropdown="download"]');
+    if (dropdown && !dropdown.contains(event.target)) {
+      showDownloadDropdown.value = false;
+    }
+  };
+  
+  document.addEventListener('click', handleClickOutside);
+
+  // Cleanup event listener
+  onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside);
+  });
 });
 </script>
 

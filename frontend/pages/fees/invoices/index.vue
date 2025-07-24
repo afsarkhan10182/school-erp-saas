@@ -498,10 +498,7 @@ const generateInvoices = async (formData) => {
       return;
     }
   } else if (formData.payment_model === 'installment') {
-    if (!formData.due_date) {
-      showToast('Please select a due date for installment payments', 'error');
-      return;
-    }
+    // Due date validation removed - it comes from fee structure
   }
 
   isGenerating.value = true;

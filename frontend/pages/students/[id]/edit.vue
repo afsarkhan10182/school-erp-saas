@@ -35,7 +35,11 @@ const fetchStudentData = async () => {
     if (response.success) {
       studentData.value = response.data;
       console.log('🔍 Set studentData to:', studentData.value);
-      console.log('🔍 Student class:', studentData.value.current_class);
+      console.log('🔍 Student class_id:', studentData.value.class_id);
+      console.log('🔍 Student section_id:', studentData.value.section_id);
+      console.log('🔍 Student class association:', studentData.value.class);
+      console.log('🔍 Student sectionInfo association:', studentData.value.sectionInfo);
+      console.log('🔍 Student current_class:', studentData.value.current_class);
       console.log('🔍 Student section:', studentData.value.section);
       console.log('🔍 Student academic year:', studentData.value.academic_year);
       

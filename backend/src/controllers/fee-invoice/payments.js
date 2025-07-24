@@ -3,6 +3,7 @@ const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('../../services/receipt.service');
+const { validatePaymentSequence, getEarliestPendingMonth } = require('../../utils/academicYearUtils');
 
 // Calculate late fees based on due date
 const calculateLateFees = async (invoice) => {
@@ -199,6 +200,33 @@ const recordPayment = async (req, res, next) => {
 
     if (invoice.status === 'cancelled') {
       throw new ApiError(400, 'Cannot record payment for cancelled invoice');
+    }
+
+    // Validate payment sequence for monthly payments
+    if (invoice.payment_model === 'monthly') {
+      // Get school to determine starting month
+      const school = await School.findByPk(req.schoolId);
+      const startingMonth = school.starting_month || 6; // Default to June
+      
+      // Get all student invoices for this fee structure and academic year
+      const allStudentInvoices = await FeeInvoice.findAll({
+        where: {
+          student_id: invoice.student_id,
+          fee_structure_id: invoice.fee_structure_id,
+          academic_year: invoice.academic_year,
+          payment_model: 'monthly',
+          school_id: req.schoolId
+        },
+        order: [['month', 'ASC'], ['year', 'ASC']]
+      });
+      
+      // Validate payment sequence
+      const validation = validatePaymentSequence([invoice], allStudentInvoices, startingMonth);
+      if (!validation.isValid) {
+        throw new ApiError(400, validation.message);
+      }
+      
+      logger.info(`Payment sequence validation passed for invoice ${invoice.invoice_number}`);
     }
 
     const newPaidAmount = parseFloat(invoice.paid_amount) + parseFloat(paymentAmount);

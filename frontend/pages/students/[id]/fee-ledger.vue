@@ -788,9 +788,15 @@ const submitPayment = async () => {
     showSuccess('Payment recorded successfully!');
   } catch (error) {
     console.error('Error recording payment:', error);
+    console.log('Error response:', error.response);
+    console.log('Error response data:', error.response?.data);
+    console.log('Error message:', error.response?.data?.message);
+    
     if (error.response && error.response.data && error.response.data.message) {
+      console.log('Showing error toast with message:', error.response.data.message);
       showError(error.response.data.message);
     } else {
+      console.log('Showing generic error toast');
       showError('Error recording payment. Please try again.');
     }
   } finally {

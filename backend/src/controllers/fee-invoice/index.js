@@ -20,7 +20,6 @@ const advancedPayments = require('./advanced-payments');
 module.exports = {
   // Core operations
   generateInvoices: core.generateInvoices,
-  getInvoices: core.getInvoices,
   getInvoiceById: core.getInvoiceById,
   updateInvoice: core.updateInvoice,
   cancelInvoice: core.cancelInvoice,
@@ -55,7 +54,6 @@ module.exports = {
   // Receipt operations
   generateReceiptForInvoice: receipts.generateReceiptForInvoice,
   getReceiptForInvoice: receipts.getReceiptForInvoice,
-  getEnhancedPaymentReceipts: receipts.getEnhancedPaymentReceipts,
   getGroupedReceipts: receipts.getGroupedReceipts,
   getCombinedReceiptByGroupId: receipts.getCombinedReceiptByGroupId,
 

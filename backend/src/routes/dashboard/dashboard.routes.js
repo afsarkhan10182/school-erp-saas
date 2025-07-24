@@ -154,4 +154,30 @@ router.get('/student-distribution', DashboardController.getStudentDistributionDa
  */
 router.get('/fee-trend', DashboardController.getFeeTrendData);
 
+/**
+ * @swagger
+ * /dashboard/fee-collection-summary:
+ *   get:
+ *     summary: Get fee collection summary
+ *     description: Get detailed fee collection summary with branch breakdown
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: academic_year
+ *         schema:
+ *           type: string
+ *           example: "2024-25"
+ *         description: Academic year for the summary (optional, defaults to current)
+ *     responses:
+ *       200:
+ *         description: Fee collection summary retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Access denied
+ */
+router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
+
 module.exports = router; 

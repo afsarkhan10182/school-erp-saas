@@ -210,51 +210,7 @@
           </div>
         </div>
 
-        <!-- Force Regenerate Option -->
-        <div class="space-y-2">
-          <div class="flex items-center">
-            <input 
-              type="checkbox" 
-              id="force_regenerate" 
-              v-model="form.force_regenerate"
-              class="mr-2"
-            />
-            <label for="force_regenerate" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Force Regenerate (Delete existing invoices and create new ones)
-            </label>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            Check this if you want to delete existing invoices for the same fee structure and create fresh ones
-          </p>
-        </div>
 
-        <!-- Installment Payment Specific Fields -->
-        <div v-if="form.payment_model === 'installment'" class="space-y-4">
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Due Date <span class="text-red-500">*</span>
-            </label>
-            <input 
-              v-model="form.due_date" 
-              type="date" 
-              required
-              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-            />
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Notes (Optional)
-          </label>
-          <textarea 
-            v-model="form.notes" 
-            rows="3"
-            class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-            placeholder="Add any additional notes..."
-          ></textarea>
-        </div>
 
         <!-- Action Buttons -->
         <div class="flex justify-end space-x-3 pt-4">
@@ -356,13 +312,10 @@ const form = reactive({
   academic_year: '',
   class_name: '',
   section: '',
-  due_date: '',
   year: new Date().getFullYear(),
   months: [],
   student_selection: 'all', // 'all' or 'specific'
   selected_student_ids: [], // For specific student selection
-  notes: '',
-  force_regenerate: false, // New field for force regenerate
 });
 
 const months = ref([
@@ -510,7 +463,7 @@ const canSubmit = computed(() => {
   if (form.payment_model === 'monthly') {
     return baseRequirements && !!(form.year && form.months.length > 0);
   } else if (form.payment_model === 'installment') {
-    return baseRequirements && !!form.due_date;
+    return baseRequirements; // No due_date requirement since it comes from fee structure
   }
   
   return baseRequirements;
@@ -596,17 +549,14 @@ const generateInvoices = () => {
     payment_model: form.payment_model,
     fee_structure_ids: [form.fee_structure_id], // Send as array for invoice generation
     student_ids: form.student_selection === 'specific' ? form.selected_student_ids : undefined,
-    notes: form.notes,
-    force_regenerate: form.force_regenerate, // Include force_regenerate
   };
   
   // Add payment model specific fields
   if (form.payment_model === 'monthly') {
     formData.year = form.year;
     formData.months = form.months;
-  } else if (form.payment_model === 'installment') {
-    formData.due_date = form.due_date;
   }
+  // Note: For installment payments, due dates come from fee structure
   
   // Ensure auth store is properly initialized
   if (!authStore.currentUser) {
@@ -638,8 +588,6 @@ const initializeComponent = async () => {
   // Set default values
   form.student_selection = 'all';
   form.selected_student_ids = [];
-  form.notes = '';
-  form.force_regenerate = false; // Reset force regenerate
   
   if (userRole.value === 'school_admin') {
     // Set school for school admin

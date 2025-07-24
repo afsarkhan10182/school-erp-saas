@@ -279,36 +279,6 @@ export const apiClient = {
   // Enhanced Fee Invoice endpoints with reports
   feeInvoices: {
     /**
-     * Get all invoices with optional filtering by payment model
-     * @param params - Query parameters including payment_model filter
-     * @param params.payment_model - Filter by payment model: 'monthly', 'installment', or undefined for both
-     * @example
-     * // Get only monthly payments
-     * await apiClient.feeInvoices.getAll({ payment_model: 'monthly', page: 1, limit: 10 })
-     * 
-     * // Get only installment invoices
-     * await apiClient.feeInvoices.getAll({ payment_model: 'installment', page: 1, limit: 10 })
-     * 
-     * // Get both types (default behavior)
-     * await apiClient.feeInvoices.getAll({ page: 1, limit: 10 })
-     */
-    getAll: async (params?: { 
-      page?: number; 
-      limit?: number; 
-      academic_year?: string; 
-      status?: string; 
-      student_id?: string;
-      payment_model?: 'monthly' | 'installment';
-      class_name?: string;
-      section?: string;
-      branch_id?: string;
-    }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/fee-invoices', { params });
-      return response.data;
-    },
-
-    /**
      * Get grouped invoices for better UI display
      * Groups invoices by receipt_group_id for paid/partial_paid invoices
      * @param params - Query parameters
@@ -424,19 +394,7 @@ export const apiClient = {
       return response.data;
     },
 
-    // Enhanced payment recording
-    recordEnhancedPayment: async (paymentData: {
-      student_id: string;
-      payment_amount: number;
-      payment_method?: string;
-      payment_date?: string;
-      notes?: string;
-      target_invoice_id?: string;
-    }) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/fee-invoices/enhanced-payment', paymentData);
-      return response.data;
-    },
+
 
     // Smart payment allocation (amount-based with receipt grouping)
     recordSmartPayment: async (paymentData: {
@@ -646,6 +604,12 @@ export const apiClient = {
       const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend');
       return response.data;
     },
+
+    getFeeCollectionSummary: async (params?: { academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fee-collection-summary', { params });
+      return response.data;
+    },
   },
 
   // Academic Year endpoints
@@ -815,9 +779,10 @@ export const apiClient = {
       return response.data;
     },
     
-    downloadTemplate: async () => {
+    downloadTemplate: async (type: 'required' | 'complete' = 'complete') => {
       const api = createApiInstance();
       const response = await api.get('/students/import-template', {
+        params: { type },
         responseType: 'blob'
       });
       return response;

@@ -38,9 +38,9 @@ const ERROR_MESSAGE_MAP = {
   'guardian.mobile_no': 'Guardian mobile number is required (10 digits)',
   'guardian.email': 'Please enter a valid guardian email address',
   'guardian.address': 'Guardian address is required',
-  'guardian.occupation': 'Guardian occupation is required',
-  'guardian.education': 'Guardian education qualification is required',
-  'guardian.income': 'Guardian annual income is required',
+  'guardian.occupation': 'Guardian occupation (optional)',
+  'guardian.education': 'Guardian education qualification (optional)',
+  'guardian.income': 'Guardian annual income (optional)',
   
   // Login field errors
   'login.username': 'Username is required if providing login details',

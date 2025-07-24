@@ -159,6 +159,7 @@ Branch.associate = (models) => {
   Branch.belongsTo(models.User, { foreignKey: 'created_by', as: 'createdBy' });
   Branch.belongsTo(models.User, { foreignKey: 'updated_by', as: 'updatedBy' });
   Branch.hasMany(models.User, { foreignKey: 'branch_id', as: 'users' });
+  Branch.hasMany(models.FeeInvoice, { foreignKey: 'branch_id', as: 'feeInvoices' });
 };
 
 module.exports = Branch;
