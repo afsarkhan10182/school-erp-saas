@@ -245,7 +245,7 @@
 
 
       <!-- Results Modal -->
-      <Modal v-if="showResults" @close="showResults = false">
+      <Modal :show="showResults" @close="showResults = false">
         <template #header>
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Import Results</h3>
         </template>

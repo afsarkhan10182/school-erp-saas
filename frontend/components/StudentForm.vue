@@ -14,6 +14,7 @@
       
       <!-- Validation Summary -->
       <FormValidationSummary 
+        data-validation-summary
         :categorized-errors="getCategorizedErrors()"
         :has-errors="hasErrors"
         :error-count="errorCount"
@@ -194,7 +195,6 @@
           <FormField 
             id="section_id"
             label="Section"
-            required
             :error-message="getFieldError('section_id')"
           >
             <template #default="{ id, class: fieldClass }">
@@ -1423,9 +1423,7 @@ const handleSubmit = async () => {
   if (!form.class_id) {
     setFieldError('class_id', 'Class is required');
   }
-  if (!form.section_id) {
-    setFieldError('section_id', 'Section is required');
-  }
+  // Section is now optional - no validation required
 
   
   // Validate mandatory fields - Student Details
@@ -1465,6 +1463,10 @@ const handleSubmit = async () => {
   
   // Check if there are any validation errors
   if (hasErrors.value) {
+    // Scroll to validation summary and show toast
+    await nextTick();
+    scrollToValidationSummary();
+    showError(`Please fix ${errorCount.value} validation error${errorCount.value > 1 ? 's' : ''} below`);
     return;
   }
 
@@ -1535,9 +1537,15 @@ const handleSubmit = async () => {
         setFieldErrors(response.errors);
       }
       
-      // Show error message
+      // Show error message and scroll to validation summary
       const errorMessage = response.message || response.error || `Failed to ${props.isEditing ? 'update' : 'create'} student`;
       showError(errorMessage);
+      
+      // Scroll to validation summary if there are field errors
+      if (response.errors && Object.keys(response.errors).length > 0) {
+        await nextTick();
+        scrollToValidationSummary();
+      }
     }
   } catch (error) {
     // Handle network or other errors
@@ -1588,9 +1596,55 @@ const handleSubmit = async () => {
     
     // Also handle API errors for field validation
     handleApiError(error);
+    
+    // Scroll to validation summary if there are field errors
+    if (hasErrors.value) {
+      await nextTick();
+      scrollToValidationSummary();
+    }
   } finally {
     loading.value = false;
     isSubmitting.value = false;
+  }
+};
+
+// Scroll to validation summary when errors occur
+const scrollToValidationSummary = () => {
+  const validationSummary = document.querySelector('[data-validation-summary]');
+  if (validationSummary) {
+    validationSummary.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start' 
+    });
+    
+    // Add a subtle highlight effect
+    validationSummary.style.transition = 'box-shadow 0.3s ease';
+    validationSummary.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.3)';
+    setTimeout(() => {
+      validationSummary.style.boxShadow = '';
+    }, 2000);
+  }
+  
+  // Focus on the first error field if possible
+  focusFirstErrorField();
+};
+
+// Focus on the first error field
+const focusFirstErrorField = () => {
+  // Get the first field with an error
+  const firstErrorField = document.querySelector('.border-red-500');
+  if (firstErrorField) {
+    // Add a subtle focus effect
+    firstErrorField.style.transition = 'box-shadow 0.3s ease';
+    firstErrorField.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.4)';
+    
+    // Focus the field
+    firstErrorField.focus();
+    
+    // Remove the highlight after 3 seconds
+    setTimeout(() => {
+      firstErrorField.style.boxShadow = '';
+    }, 3000);
   }
 };
 
