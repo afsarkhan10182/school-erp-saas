@@ -235,17 +235,37 @@ const createStudent = async (req, res, next) => {
       delete studentData._section_id;
     }
     
+    // Handle academic year - use provided ID or fallback to current academic year
     if (studentData._academic_year_id) {
       try {
         const yearRecord = await AcademicYear.findByPk(studentData._academic_year_id);
         if (yearRecord) {
           studentData.academic_year = yearRecord.name;
-          console.log('🔍 Academic year resolved:', yearRecord.name);
+          console.log('🔍 Academic year resolved from ID:', yearRecord.name);
         }
       } catch (error) {
         console.error('❌ Error fetching academic year:', error);
       }
       delete studentData._academic_year_id;
+    } else {
+      // Fallback to current academic year if no ID provided
+      try {
+        const currentYear = await AcademicYear.findOne({ where: { is_current: true } });
+        if (currentYear) {
+          studentData.academic_year = currentYear.name;
+          console.log('🔍 Academic year fallback to current:', currentYear.name);
+        } else {
+          // Last resort: use current year as string
+          const currentYearString = new Date().getFullYear().toString();
+          studentData.academic_year = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
+          console.log('🔍 Academic year last resort:', studentData.academic_year);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching current academic year:', error);
+        // Last resort fallback
+        const currentYearString = new Date().getFullYear().toString();
+        studentData.academic_year = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
+      }
     }
 
     // Prepare student data for creation
@@ -881,34 +901,38 @@ const getStudentsByClass = async (req, res, next) => {
 
     // Handle fee structure ID - fetch students from all applicable classes
     if (fee_structure_id) {
-      const feeStructure = await FeeStructure.findOne({
-        where: { 
-          id: fee_structure_id,
-          school_id: req.schoolId,
-          is_active: true
-        }
-      });
+      const feeStructure = await FeeStructure.findByPk(fee_structure_id);
 
       if (!feeStructure) {
         throw new ApiError(404, 'Fee structure not found');
       }
 
-      // Use applicable_classes if available, otherwise fallback to class_name
-      if (feeStructure.applicable_classes && Array.isArray(feeStructure.applicable_classes) && feeStructure.applicable_classes.length > 0) {
-        const classNames = feeStructure.applicable_classes;
-        whereClause.current_class = {
-          [Op.in]: classNames
-        };
-        logger.info(`Fetching students for fee structure ${feeStructure.name} with multiple classes: ${classNames.join(', ')}`);
-      } else if (feeStructure.class_name) {
-        whereClause.current_class = feeStructure.class_name;
-        logger.info(`Fetching students for fee structure ${feeStructure.name} with single class: ${feeStructure.class_name}`);
+      // ✅ Normalize applicable classes (array or JSON string)
+      let applicableClasses = [];
+      if (feeStructure.applicable_classes) {
+        if (typeof feeStructure.applicable_classes === 'string') {
+          try {
+            applicableClasses = JSON.parse(feeStructure.applicable_classes);
+          } catch {
+            applicableClasses = [];
+          }
+        } else if (Array.isArray(feeStructure.applicable_classes)) {
+          applicableClasses = feeStructure.applicable_classes;
+        }
       }
 
-      // Use fee structure's academic year if not specified
-      if (!academic_year && feeStructure.academic_year) {
-        whereClause.academic_year = feeStructure.academic_year;
+      // ✅ If no array found, fallback to single class_name
+      if (!applicableClasses || applicableClasses.length === 0) {
+        applicableClasses = [feeStructure.class_name];
       }
+
+      console.log('✅ Final applicableClasses for this fee structure:', applicableClasses);
+
+      // ✅ Always use Op.in (even if 1 class)
+      whereClause.current_class = { [Op.in]: applicableClasses };
+
+      // ✅ Academic year fallback
+      whereClause.academic_year = academic_year || feeStructure.academic_year;
     }
     // Handle multiple classes if provided directly
     else if (class_names && Array.isArray(JSON.parse(class_names))) {
@@ -1331,12 +1355,34 @@ const bulkImportStudents = async (req, res, next) => {
       }
     }
 
-    // Get academic year name if academic_year_id is provided
-    let academicYearName = new Date().getFullYear().toString();
+    // Get academic year name - use provided ID or fallback to current academic year
+    let academicYearName;
     if (academic_year_id) {
       const academicYearRecord = await AcademicYear.findByPk(academic_year_id);
       if (academicYearRecord) {
         academicYearName = academicYearRecord.name;
+        console.log('🔍 Bulk import: Academic year from ID:', academicYearName);
+      }
+    }
+    
+    // Fallback to current academic year if no ID provided or ID not found
+    if (!academicYearName) {
+      try {
+        const currentYear = await AcademicYear.findOne({ where: { is_current: true } });
+        if (currentYear) {
+          academicYearName = currentYear.name;
+          console.log('🔍 Bulk import: Academic year fallback to current:', academicYearName);
+        } else {
+          // Last resort: use current year as string
+          const currentYearString = new Date().getFullYear().toString();
+          academicYearName = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
+          console.log('🔍 Bulk import: Academic year last resort:', academicYearName);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching current academic year for bulk import:', error);
+        // Last resort fallback
+        const currentYearString = new Date().getFullYear().toString();
+        academicYearName = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
       }
     }
 

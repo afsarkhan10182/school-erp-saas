@@ -2,6 +2,119 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
 
+// Helper function to normalize fee structure fields based on payment model
+const normalizeFeeStructure = (feeStructure) => {
+  if (feeStructure.payment_model === 'monthly') {
+    // For monthly payments: clear installment fields, keep monthly fields
+    feeStructure.installment_amounts = [];
+    feeStructure.installment_due_dates = [];
+    feeStructure.due_date = null;
+    feeStructure.installment_type = null; // Use NULL instead of 'one_time' for clarity
+    feeStructure.due_month = null; // Remove due_month for monthly payments (only due_day matters)
+    
+    // Ensure monthly fields are set
+    if (!feeStructure.monthly_payment_amount) {
+      feeStructure.monthly_payment_amount = feeStructure.amount || 1000;
+    }
+    if (!feeStructure.total_months) {
+      feeStructure.total_months = 12;
+    }
+    if (!feeStructure.due_day) {
+      feeStructure.due_day = 10;
+    }
+    
+  } else if (feeStructure.payment_model === 'installment') {
+    // For installment payments: clear monthly fields, keep installment fields
+    feeStructure.monthly_payment_amount = null;
+    feeStructure.total_months = null;
+    feeStructure.due_month = null;
+    feeStructure.due_day = null; // Use NULL for installment payments
+    
+    // Handle due_date based on installment type
+    if (feeStructure.installment_type === 'one_time') {
+      // One-time installments need a due_date
+      if (!feeStructure.due_date) {
+        feeStructure.due_date = '2025-10-24'; // Default due date
+      }
+      feeStructure.installment_amounts = [];
+      feeStructure.installment_due_dates = [];
+    } else if (feeStructure.installment_type === 'multiple') {
+      // Multiple installments use installment_due_dates, not due_date
+      feeStructure.due_date = null;
+      // Ensure installment arrays are properly initialized
+      if (!feeStructure.installment_amounts) {
+        feeStructure.installment_amounts = [];
+      }
+      if (!feeStructure.installment_due_dates) {
+        feeStructure.installment_due_dates = [];
+      }
+      
+      // If installment_amounts is provided but installment_due_dates is not,
+      // generate default due dates based on installment count
+      if (feeStructure.installment_amounts.length > 0 && feeStructure.installment_due_dates.length === 0) {
+        const currentDate = new Date();
+        feeStructure.installment_due_dates = [];
+        for (let i = 0; i < feeStructure.installment_amounts.length; i++) {
+          const installmentDate = new Date(currentDate);
+          installmentDate.setMonth(currentDate.getMonth() + (i * 3)); // Every 3 months
+          feeStructure.installment_due_dates.push(installmentDate.toISOString().split('T')[0]);
+        }
+      }
+    }
+  }
+};
+
+// Helper function to validate fee structure fields
+const validateFeeStructure = (feeStructure) => {
+  if (feeStructure.payment_model === 'installment') {
+    if (feeStructure.installment_type === 'multiple') {
+      // For multiple installments, validate arrays match
+      const amountsLength = feeStructure.installment_amounts ? feeStructure.installment_amounts.length : 0;
+      const dueDatesLength = feeStructure.installment_due_dates ? feeStructure.installment_due_dates.length : 0;
+      
+      if (amountsLength !== dueDatesLength) {
+        throw new Error(`Installment amounts (${amountsLength}) and due dates (${dueDatesLength}) arrays must have the same length`);
+      }
+      
+      if (amountsLength !== feeStructure.installment_count) {
+        throw new Error(`Installment count (${feeStructure.installment_count}) must match the number of installment amounts (${amountsLength})`);
+      }
+      
+      if (amountsLength === 0) {
+        throw new Error('Multiple installments require at least one installment amount and due date');
+      }
+      
+      // Validate that all amounts are positive
+      for (let i = 0; i < feeStructure.installment_amounts.length; i++) {
+        if (!feeStructure.installment_amounts[i] || feeStructure.installment_amounts[i] <= 0) {
+          throw new Error(`Installment amount ${i + 1} must be greater than 0`);
+        }
+      }
+      
+      // Validate that all due dates are valid dates
+      for (let i = 0; i < feeStructure.installment_due_dates.length; i++) {
+        if (!feeStructure.installment_due_dates[i] || !Date.parse(feeStructure.installment_due_dates[i])) {
+          throw new Error(`Installment due date ${i + 1} must be a valid date`);
+        }
+      }
+    } else if (feeStructure.installment_type === 'one_time') {
+      if (!feeStructure.due_date) {
+        throw new Error('One-time installments require a due date');
+      }
+    }
+  } else if (feeStructure.payment_model === 'monthly') {
+    if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {
+      throw new Error('Monthly payment amount is required and must be greater than 0');
+    }
+    if (!feeStructure.total_months || feeStructure.total_months <= 0) {
+      throw new Error('Total months is required and must be greater than 0');
+    }
+    if (!feeStructure.due_day || feeStructure.due_day < 1 || feeStructure.due_day > 31) {
+      throw new Error('Due day is required and must be between 1 and 31');
+    }
+  }
+};
+
 const FeeStructure = sequelize.define('FeeStructure', {
   id: {
     type: DataTypes.UUID,
@@ -63,8 +176,8 @@ const FeeStructure = sequelize.define('FeeStructure', {
   },
   installment_type: {
     type: DataTypes.ENUM('one_time', 'multiple'),
-    allowNull: false,
-    defaultValue: 'one_time',
+    allowNull: true, // Changed to allow NULL for monthly payments
+    defaultValue: null,
   },
   installment_count: {
     type: DataTypes.INTEGER,
@@ -98,11 +211,13 @@ const FeeStructure = sequelize.define('FeeStructure', {
     type: DataTypes.INTEGER,
     allowNull: true,
     defaultValue: 12,
-    comment: 'Total months for school branch payment'
+    validate: {
+      min: { args: [1], msg: 'Total months must be at least 1' },
+    },
   },
   due_month: {
     type: DataTypes.INTEGER,
-    allowNull: true,
+    allowNull: true, // Changed to allow NULL
     validate: {
       min: { args: [1], msg: 'Due month must be between 1 and 12' },
       max: { args: [12], msg: 'Due month must be between 1 and 12' },
@@ -110,8 +225,7 @@ const FeeStructure = sequelize.define('FeeStructure', {
   },
   due_day: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 10,
+    allowNull: true, // Changed to allow NULL for installment payments
     validate: {
       min: { args: [1], msg: 'Due day must be between 1 and 31' },
       max: { args: [31], msg: 'Due day must be between 1 and 31' },
@@ -120,7 +234,7 @@ const FeeStructure = sequelize.define('FeeStructure', {
   due_date: {
     type: DataTypes.DATEONLY,
     allowNull: true,
-    comment: 'Due date for one-time full fee payments'
+    comment: 'Due date for one-time installments'
   },
   discount_applicable: {
     type: DataTypes.BOOLEAN,
@@ -130,7 +244,10 @@ const FeeStructure = sequelize.define('FeeStructure', {
   discount_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    defaultValue: 0,
+    validate: {
+      min: { args: [0], msg: 'Discount amount cannot be negative' },
+    },
   },
   discount_type: {
     type: DataTypes.ENUM('fixed', 'percentage'),
@@ -190,68 +307,56 @@ const FeeStructure = sequelize.define('FeeStructure', {
   ],
   hooks: {
     beforeCreate: async (feeStructure) => {
-      // Validate payment model specific fields
-      if (feeStructure.payment_model === 'installment') {
-        // For installment model, only require installment amounts if there are multiple installments
-        if (feeStructure.installment_count > 1 && (!feeStructure.installment_amounts || feeStructure.installment_amounts.length === 0)) {
-          throw new Error('Installment amounts are required for multiple installments');
-        }
-      } else if (feeStructure.payment_model === 'monthly') {
-        if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {
-          throw new Error('Monthly payment amount is required for monthly payment model');
-        }
-      }
+      // Normalize fields based on payment model
+      normalizeFeeStructure(feeStructure);
+      
+      // Validate the normalized structure
+      validateFeeStructure(feeStructure);
     },
     beforeUpdate: async (feeStructure) => {
-      // Validate payment model specific fields
-      if (feeStructure.payment_model === 'installment') {
-        // For installment model, only require installment amounts if there are multiple installments
-        if (feeStructure.installment_count > 1 && (!feeStructure.installment_amounts || feeStructure.installment_amounts.length === 0)) {
-          throw new Error('Installment amounts are required for multiple installments');
-        }
-      } else if (feeStructure.payment_model === 'monthly') {
-        if (!feeStructure.monthly_payment_amount || feeStructure.monthly_payment_amount <= 0) {
-          throw new Error('Monthly payment amount is required for monthly payment model');
-        }
-      }
+      // Normalize fields based on payment model
+      normalizeFeeStructure(feeStructure);
+      
+      // Validate the normalized structure
+      validateFeeStructure(feeStructure);
     },
-          afterCreate: async (feeStructure) => {
-        logger.info(`New fee structure created: ${feeStructure.name} for ${feeStructure.payment_model} model`);
-      },
+    afterCreate: async (feeStructure) => {
+      // Fee structure created successfully
     },
+  },
+});
+
+// Define associations
+FeeStructure.associate = (models) => {
+  // FeeStructure belongs to FeeType
+  FeeStructure.belongsTo(models.FeeType, {
+    foreignKey: 'fee_type_id',
+    as: 'feeType',
   });
 
-  // Define associations
-  FeeStructure.associate = (models) => {
-    // FeeStructure belongs to FeeType
-    FeeStructure.belongsTo(models.FeeType, {
-      foreignKey: 'fee_type_id',
-      as: 'feeType',
-    });
+  // FeeStructure belongs to School
+  FeeStructure.belongsTo(models.School, {
+    foreignKey: 'school_id',
+    as: 'school',
+  });
 
-    // FeeStructure belongs to School
-    FeeStructure.belongsTo(models.School, {
-      foreignKey: 'school_id',
-      as: 'school',
-    });
+  // FeeStructure belongs to Branch
+  FeeStructure.belongsTo(models.Branch, {
+    foreignKey: 'branch_id',
+    as: 'branch',
+  });
 
-    // FeeStructure belongs to Branch
-    FeeStructure.belongsTo(models.Branch, {
-      foreignKey: 'branch_id',
-      as: 'branch',
-    });
+  // FeeStructure belongs to User (created_by)
+  FeeStructure.belongsTo(models.User, {
+    foreignKey: 'created_by',
+    as: 'createdBy',
+  });
 
-    // FeeStructure belongs to User (created_by)
-    FeeStructure.belongsTo(models.User, {
-      foreignKey: 'created_by',
-      as: 'createdBy',
-    });
+  // FeeStructure belongs to User (updated_by)
+  FeeStructure.belongsTo(models.User, {
+    foreignKey: 'updated_by',
+    as: 'updatedBy',
+  });
+};
 
-    // FeeStructure belongs to User (updated_by)
-    FeeStructure.belongsTo(models.User, {
-      foreignKey: 'updated_by',
-      as: 'updatedBy',
-    });
-  };
-
-  module.exports = FeeStructure;
+module.exports = FeeStructure;

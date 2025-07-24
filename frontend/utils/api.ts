@@ -810,7 +810,7 @@ export const apiClient = {
       return response.data;
     },
     
-    getByClass: async (params: { class_name?: string; class_names?: string; section?: string; academic_year?: string; branch_id?: string; status?: string }) => {
+    getByClass: async (params: { class_name?: string; class_names?: string; section?: string; academic_year?: string; branch_id?: string; status?: string; fee_structure_id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/students/by-class', { params });
       return response.data;

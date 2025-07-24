@@ -526,7 +526,7 @@
                 </div>
 
               <!-- Total Amount Display -->
-              <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div v-if="form.payment_model" class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                 <div class="flex justify-between items-center">
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Amount (₹)</label>
                   <div class="text-right">
@@ -563,7 +563,7 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId)) || (user?.role === 'school_admin' && !isEditing && !selectedBranchId)"
+                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId)) || (user?.role === 'school_admin' && !isEditing && !selectedBranchId) || !form.payment_model"
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
                 {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
@@ -577,7 +577,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiClient } from '~/utils/api';
 import { useAuth } from '~/composables/useAuth';
@@ -672,9 +672,9 @@ const calculatedTotalAmount = computed(() => {
 // Computed property for amount calculation note
 const amountCalculationNote = computed(() => {
   if (form.value.payment_model === 'installment') {
-    return `Total amount is calculated based on the sum of all installment amounts.`;
+    return `Sum of all installments`;
   } else if (form.value.payment_model === 'monthly') {
-    return `Total amount is calculated based on the monthly payment amount multiplied by the total months.`;
+    return `Monthly × Total months`;
   }
   return '';
 });
@@ -684,20 +684,24 @@ const availableClassesForSelection = computed(() => {
   return classes.value.filter(classItem => !form.value.applicable_classes.includes(classItem.name));
 });
 
+// Flag to prevent watcher from running during form reset
+const isResettingForm = ref(false);
+
 const resetForm = () => {
+  isResettingForm.value = true;
   form.value = {
     academic_year_id: '',
     applicable_classes: [], // Reset for create
     class_id: '', // Reset for create
     section_id: '',
     fee_type_id: '',
-    amount: '',
-    payment_model: '',
+    amount: '', // Reset amount to empty
+    payment_model: '', // No default - user must select
     installment_type: 'one_time',
     installment_count: 1,
     installment_amounts: [],
     installment_due_dates: [], // Reset for create
-    monthly_payment_amount: '',
+    monthly_payment_amount: '', // Reset to empty
     total_months: 12,
     start_month: 6, // Reset for create
     due_day: 10,
@@ -718,6 +722,11 @@ const resetForm = () => {
       form.value.academic_year_id = academicYears.value[0].id;
     }
   }
+  
+  // Reset the flag after form reset is complete
+  nextTick(() => {
+    isResettingForm.value = false;
+  });
 };
 
 // Multi-class selection functions
@@ -737,15 +746,39 @@ const removeClass = (className) => {
 // Handle payment model change
 const onPaymentModelChange = () => {
   if (form.value.payment_model === 'installment') {
-    // Reset monthly fields
-    form.value.monthly_payment_amount = '';
-    form.value.total_months = 12;
+    // Reset monthly fields for installment payments
+    form.value.monthly_payment_amount = null;
+    form.value.total_months = null;
+    form.value.due_month = null;
+    form.value.due_day = null; // Use NULL for installment payments
     form.value.min_partial_percentage = 10; // Reset for installment
-  } else if (form.value.payment_model === 'monthly') {
-    // Reset installment fields
+    
+    // Set default installment values
     form.value.installment_type = 'one_time';
     form.value.installment_count = 1;
     form.value.installment_amounts = [];
+    form.value.installment_due_dates = [];
+    
+    // Set default due date for one-time installments
+    if (!form.value.due_date) {
+      const defaultDate = new Date();
+      defaultDate.setMonth(defaultDate.getMonth() + 3);
+      form.value.due_date = defaultDate.toISOString().split('T')[0];
+    }
+    
+  } else if (form.value.payment_model === 'monthly') {
+    // Reset installment fields for monthly payments
+    form.value.installment_type = null; // Use NULL for monthly payments
+    form.value.installment_count = 1;
+    form.value.installment_amounts = [];
+    form.value.installment_due_dates = [];
+    form.value.due_date = null;
+    form.value.due_month = null; // Remove due_month for monthly payments
+    
+    // Set default monthly values
+    form.value.monthly_payment_amount = '';
+    form.value.total_months = 12;
+    form.value.due_day = 10;
   }
 };
 
@@ -756,6 +789,7 @@ const onInstallmentTypeChange = () => {
     form.value.installment_count = 1;
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
+    form.value.due_date = null; // Clear due_date for multiple installments
     
     // Set default due date to current date + 3 months if not already set
     if (!form.value.due_date) {
@@ -768,6 +802,7 @@ const onInstallmentTypeChange = () => {
     form.value.installment_count = 2;
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
+    form.value.due_date = null; // Multiple installments use installment_due_dates, not due_date
     
     // Set default due dates for installments (spread across the year)
     const currentDate = new Date();
@@ -1118,6 +1153,12 @@ const saveFeeStructure = async () => {
       return;
     }
 
+    // Validate that a payment model is selected
+    if (!form.value.payment_model) {
+      showError('Please select a payment model.');
+      return;
+    }
+
     // Calculate the correct amount based on payment model
     let calculatedAmount = 0;
     if (form.value.payment_model === 'installment') {
@@ -1239,7 +1280,12 @@ const deleteFeeStructure = async (id) => {
 
 // Watch for form changes to ensure amount is properly calculated
 watch(() => [form.value.payment_model, form.value.installment_type, form.value.installment_amounts, form.value.monthly_payment_amount, form.value.total_months], () => {
-  // Auto-calculate amount based on current form state
+  // Skip calculation if form is being reset
+  if (isResettingForm.value) {
+    return;
+  }
+  
+  // Only auto-calculate amount if user has actually entered values (not during form reset)
   if (form.value.payment_model === 'installment') {
     if (form.value.installment_type === 'one_time') {
       // For one-time full fee, amount is set directly by user

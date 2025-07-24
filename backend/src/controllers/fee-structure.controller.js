@@ -13,21 +13,28 @@ const { logger } = require('../utils/logger');
  * @param {string} fee_type_id - Fee type ID
  * @param {string} school_id - School ID
  */
-const validateFeeStructure = async (branch_id, classNames, academic_year, new_payment_model, section, fee_type_id, school_id) => {
+const validateFeeStructure = async (branch_id, classNames, academic_year, new_payment_model, section, fee_type_id, school_id, excludeId = null) => {
   // Check for existing fee structures for each class
   for (const className of classNames) {
+    const whereClause = { 
+      branch_id, 
+      academic_year,
+      school_id,
+      is_active: true,
+      // Check both class_name and applicable_classes
+      [Op.or]: [
+        { class_name: className },
+        { applicable_classes: { [Op.contains]: [className] } }
+      ]
+    };
+
+    // Exclude current record if updating
+    if (excludeId) {
+      whereClause.id = { [Op.ne]: excludeId };
+    }
+
     const existing = await FeeStructure.findOne({
-      where: { 
-        branch_id, 
-        academic_year,
-        school_id,
-        is_active: true,
-        // Check both class_name and applicable_classes
-        [Op.or]: [
-          { class_name: className },
-          { applicable_classes: { [Op.contains]: [className] } }
-        ]
-      }
+      where: whereClause
     });
 
     if (existing) {
@@ -168,7 +175,8 @@ const createFeeStructure = async (req, res, next) => {
       paymentModel,
       section,
       fee_type_id,
-      req.schoolId
+      req.schoolId,
+      null // No record to exclude for creation
     );
 
     // Calculate amount based on payment model
@@ -252,12 +260,22 @@ const createFeeStructure = async (req, res, next) => {
 // Get all fee structures
 const getFeeStructures = async (req, res, next) => {
   try {
-    const { academic_year, class_name, fee_type_id } = req.query;
+    const { academic_year, class_name, fee_type_id, school_id } = req.query;
     
     const whereClause = {
-      school_id: req.schoolId,
       is_active: true,
     };
+
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all fee structures
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
+      whereClause.school_id = req.schoolId;
+    }
 
     // Add branch filter if branch context is set
     if (req.branchId) {
@@ -293,8 +311,16 @@ const getFeeStructureById = async (req, res, next) => {
 
     const whereClause = {
       id,
-      school_id: req.schoolId,
     };
+
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can access any fee structure by ID
+      // No school_id filter needed
+    } else {
+      // School admin and branch admin are restricted to their school
+      whereClause.school_id = req.schoolId;
+    }
 
     // Add branch filter if branch context is set
     if (req.branchId) {
@@ -329,6 +355,7 @@ const updateFeeStructure = async (req, res, next) => {
     const {
       academic_year_id,
       class_id,
+      applicable_classes,
       section,
       fee_type_id,
       amount,
@@ -422,6 +449,18 @@ const updateFeeStructure = async (req, res, next) => {
       updateData.class_name = classData.name;
     }
 
+    // Handle applicable_classes for multi-class fee structures
+    if (applicable_classes !== undefined) {
+      if (Array.isArray(applicable_classes) && applicable_classes.length > 0) {
+        updateData.applicable_classes = applicable_classes;
+        // For multi-class structures, set class_name to the first class for backward compatibility
+        updateData.class_name = applicable_classes[0];
+      } else {
+        updateData.applicable_classes = [];
+        updateData.class_name = null;
+      }
+    }
+
     // If fee_type_id is being updated, verify it exists
     if (fee_type_id && fee_type_id !== feeStructure.fee_type_id) {
       const feeType = await FeeType.findOne({
@@ -445,59 +484,98 @@ const updateFeeStructure = async (req, res, next) => {
     const newClassName = updateData.class_name || feeStructure.class_name;
     const newSection = updateData.section || feeStructure.section;
     const newFeeTypeId = updateData.fee_type_id || feeStructure.fee_type_id;
+    const newApplicableClasses = updateData.applicable_classes || feeStructure.applicable_classes;
 
-    if (updateData.academic_year || updateData.class_name || updateData.section || updateData.fee_type_id) {
-      const existingFeeStructure = await FeeStructure.findOne({
-        where: {
-          school_id: req.schoolId,
-          branch_id: req.branchId,
-          academic_year: newAcademicYear,
-          class_name: newClassName,
-          section: newSection,
-          fee_type_id: newFeeTypeId,
-          is_active: true,
-          id: { [Op.ne]: id }, // Exclude current record
-        },
-      });
+    if (updateData.academic_year || updateData.class_name || updateData.section || updateData.fee_type_id || updateData.applicable_classes) {
+      // For multi-class fee structures, check each class for conflicts
+      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+        for (const className of newApplicableClasses) {
+          const existingFeeStructure = await FeeStructure.findOne({
+            where: {
+              school_id: req.schoolId,
+              branch_id: req.branchId,
+              academic_year: newAcademicYear,
+              section: newSection,
+              fee_type_id: newFeeTypeId,
+              is_active: true,
+              id: { [Op.ne]: id }, // Exclude current record
+              [Op.or]: [
+                { class_name: className },
+                { applicable_classes: { [Op.contains]: [className] } }
+              ]
+            },
+          });
 
-      if (existingFeeStructure) {
-        const sectionText = newSection ? ` and section ${newSection}` : '';
-        throw new ApiError(400, `Fee structure already exists for this class${sectionText} and fee type in this academic year.`);
+          if (existingFeeStructure) {
+            const sectionText = newSection ? ` and section ${newSection}` : '';
+            throw new ApiError(400, `Fee structure already exists for class "${className}"${sectionText} and fee type in this academic year.`);
+          }
+        }
+      } else {
+        // Single class validation (backward compatibility)
+        const existingFeeStructure = await FeeStructure.findOne({
+          where: {
+            school_id: req.schoolId,
+            branch_id: req.branchId,
+            academic_year: newAcademicYear,
+            class_name: newClassName,
+            section: newSection,
+            fee_type_id: newFeeTypeId,
+            is_active: true,
+            id: { [Op.ne]: id }, // Exclude current record
+          },
+        });
+
+        if (existingFeeStructure) {
+          const sectionText = newSection ? ` and section ${newSection}` : '';
+          throw new ApiError(400, `Fee structure already exists for this class${sectionText} and fee type in this academic year.`);
+        }
       }
     }
 
     // Enhanced validation: Check payment model conflicts when updating
     if (req.body.payment_model !== undefined && req.body.payment_model !== feeStructure.payment_model) {
       const newPaymentModel = req.body.payment_model;
-      const classNames = [newClassName];
+      const classNames = [];
       
-      // If the fee structure has applicable_classes, check those too
-      if (feeStructure.applicable_classes && Array.isArray(feeStructure.applicable_classes)) {
-        classNames.push(...feeStructure.applicable_classes);
+      // Use applicable_classes if available, otherwise use class_name
+      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+        classNames.push(...newApplicableClasses);
+      } else if (newClassName) {
+        classNames.push(newClassName);
       }
       
       // Remove duplicates
       const uniqueClassNames = [...new Set(classNames)];
       
-      await validateFeeStructure(
-        req.branchId,
-        uniqueClassNames,
-        newAcademicYear,
-        newPaymentModel,
-        newSection,
-        newFeeTypeId,
-        req.schoolId
-      );
+      if (uniqueClassNames.length > 0) {
+        await validateFeeStructure(
+          req.branchId,
+          uniqueClassNames,
+          newAcademicYear,
+          newPaymentModel,
+          newSection,
+          newFeeTypeId,
+          req.schoolId,
+          id // Pass the current record ID to exclude it from validation
+        );
+      }
     }
 
     // Update the name if class, section, or fee type is being updated
-    if (updateData.class_name || updateData.section || updateData.fee_type_id) {
+    if (updateData.class_name || updateData.section || updateData.fee_type_id || updateData.applicable_classes) {
       const feeType = await FeeType.findByPk(updateData.fee_type_id || feeStructure.fee_type_id);
       const sectionText = updateData.section || feeStructure.section ? ` - ${updateData.section || feeStructure.section}` : '';
-      const className = updateData.class_name || feeStructure.class_name;
       const academicYear = updateData.academic_year || feeStructure.academic_year;
       
-      updateData.name = `${feeType.name} - ${className}${sectionText} (${academicYear})`;
+      // Handle multi-class fee structures
+      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+        const classNames = newApplicableClasses.join(', ');
+        updateData.name = `${feeType.name} - ${classNames}${sectionText} (${academicYear})`;
+      } else {
+        const className = updateData.class_name || feeStructure.class_name;
+        updateData.name = `${feeType.name} - ${className}${sectionText} (${academicYear})`;
+      }
     }
 
     await feeStructure.update(updateData);
@@ -598,7 +676,8 @@ const cloneFeeStructure = async (req, res, next) => {
       originalStructure.payment_model,
       new_section || originalStructure.section,
       originalStructure.fee_type_id,
-      req.schoolId
+      req.schoolId,
+      null // No record to exclude for cloning
     );
 
     // Create cloned fee structure
@@ -960,12 +1039,22 @@ const createBranch1FeeStructures = async (req, res, next) => {
 
 const getFeeStructuresWithContext = async (req, res, next) => {
   try {
-    const { payment_model, academic_year, class_name, fee_type_id } = req.query;
+    const { payment_model, academic_year, class_name, fee_type_id, school_id } = req.query;
     
     const whereClause = {
-      school_id: req.schoolId,
       is_active: true,
     };
+
+    // Handle school_id filtering based on user role
+    if (req.user.role === 'super_admin') {
+      // Super admin can filter by school_id if provided, otherwise see all fee structures
+      if (school_id) {
+        whereClause.school_id = school_id;
+      }
+    } else {
+      // School admin and branch admin are restricted to their school
+      whereClause.school_id = req.schoolId;
+    }
 
     // Add branch filter if branch context is set
     if (req.branchId) {
@@ -998,6 +1087,7 @@ const getFeeStructuresWithContext = async (req, res, next) => {
       name: structure.name,
       academic_year: structure.academic_year,
       class_name: structure.class_name,
+      applicable_classes: structure.applicable_classes, // Add applicable_classes field
       section: structure.section,
       amount: structure.amount,
       payment_model: structure.payment_model,

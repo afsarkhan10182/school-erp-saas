@@ -173,7 +173,8 @@ const Student = sequelize.define('Student', {
   academic_year: {
     type: DataTypes.STRING(10),
     allowNull: true,
-    defaultValue: () => new Date().getFullYear().toString(),
+    // Removed defaultValue to prevent single year format (e.g., "2025")
+    // Academic year should always be in format "2025-26" and set by controller logic
   },
   // Junior College specific fields
   admission_sought_in: {

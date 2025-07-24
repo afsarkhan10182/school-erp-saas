@@ -387,6 +387,7 @@ const availableFeeStructures = computed(() => {
         ...structure,
         name: `${structure.name} - ${structure.feeType?.name}`,
         class_name: structure.class_name,
+        applicable_classes: structure.applicable_classes, // Preserve applicable_classes
         section: structure.section,
         academic_year: structure.academic_year,
         amount: structure.amount,
@@ -399,6 +400,7 @@ const availableFeeStructures = computed(() => {
         ...structure,
         name: `${structure.name} - ${structure.feeType?.name}`,
         class_name: structure.class_name,
+        applicable_classes: structure.applicable_classes, // Preserve applicable_classes
         section: structure.section,
         academic_year: structure.academic_year,
         amount: structure.amount,
