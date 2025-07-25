@@ -11,11 +11,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      console.log('🔍 Fetching branches for school:', schoolId);
-      
       const response = await apiClient.branches.getBySchool(schoolId);
-      
-      console.log('🔍 Branches API response:', response);
       
       if (response.success) {
         // Handle different response structures
@@ -32,7 +28,6 @@ export function useBranches() {
         } else {
           branches.value = [];
         }
-        console.log('🔍 Branches loaded successfully:', branches.value.length);
         return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
@@ -90,14 +85,11 @@ export function useBranches() {
       // For FormData, we need to use direct fetch since axios doesn't handle it well
       const config = useRuntimeConfig();
       const apiBase = config.public.apiBase;
-      const token = useCookie('auth-token').value;
       
+      // Don't set Authorization header - let cookies be sent automatically
       const res = await fetch(`${apiBase}/branches`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Do not set Content-Type for FormData
-        },
+        credentials: 'include', // Include cookies automatically
         body: formData
       });
       const data = await res.json();
@@ -143,14 +135,11 @@ export function useBranches() {
       // For FormData, we need to use direct fetch since axios doesn't handle it well
       const config = useRuntimeConfig();
       const apiBase = config.public.apiBase;
-      const token = useCookie('auth-token').value;
       
+      // Don't set Authorization header - let cookies be sent automatically
       const res = await fetch(`${apiBase}/branches/${branchId}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Do not set Content-Type for FormData
-        },
+        credentials: 'include', // Include cookies automatically
         body: formData
       });
       const data = await res.json();

@@ -183,8 +183,9 @@
                 v-model="form.class_id" 
                 @change="onClassChange" 
                 :class="fieldClass"
+                :disabled="academicsLoading"
               >
-                <option value="">Select Class</option>
+                <option value="">{{ academicsLoading ? 'Loading classes...' : (activeClasses.length === 0 ? 'No classes found' : 'Select Class') }}</option>
                 <option v-for="cls in activeClasses" :key="cls.id" :value="cls.id">
                   {{ cls.name }}
                 </option>
@@ -192,7 +193,9 @@
             </template>
           </FormField>
           
+          <!-- Section Selection - Only if class/stream has sections -->
           <FormField 
+            v-if="hasSections"
             id="section_id"
             label="Section"
             :error-message="getFieldError('section_id')"
@@ -205,13 +208,37 @@
                 :disabled="!form.class_id || sectionsLoading" 
                 @change="onSectionChange"
               >
-                <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSections.length === 0 ? 'No sections found' : 'Select Section') }}</option>
-                <option v-for="section in activeSections" :key="section.id" :value="section.id">
+                <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSectionsFiltered.length === 0 ? 'No sections found' : 'Select Section') }}</option>
+                <option v-for="section in activeSectionsFiltered" :key="section.id" :value="section.id">
                   {{ section.name }}
                 </option>
               </select>
             </template>
-                    </FormField>
+          </FormField>
+          
+          <!-- Stream Selection - Only if class has streams -->
+          <FormField 
+            v-if="hasStreams"
+            id="stream_id"
+            label="Stream"
+            required
+            :error-message="getFieldError('stream_id')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <select 
+                :id="id"
+                v-model="form.stream_id" 
+                :class="fieldClass"
+                :disabled="!form.class_id || streamsLoading" 
+                @change="onStreamChange"
+              >
+                <option value="">{{ streamsLoading ? 'Loading streams...' : (activeStreams.length === 0 ? 'No streams found' : 'Select Stream') }}</option>
+                <option v-for="stream in activeStreams" :key="stream.id" :value="stream.id">
+                  {{ stream.name }} ({{ stream.code }})
+                </option>
+              </select>
+            </template>
+          </FormField>
           <div>
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Category
@@ -247,16 +274,6 @@
               </svg>
               {{ getFieldError('admission_type') }}
             </div>
-          </div>
-          <div>
-            <label for="stream_selection" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream Selection</label>
-            <select id="stream_selection" v-model="form.student.admission_sought_in" class="input-field">
-              <option value="">Select Stream</option>
-              <option value="arts">Arts</option>
-              <option value="commerce">Commerce</option>
-              <option value="science">Science</option>
-            </select>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For Junior College students</p>
           </div>
         </div>
       </div>
@@ -790,6 +807,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
+import { fetchStreamsAPI } from '~/api/streams';
 import { useToast } from '~/composables/useToast';
 import { apiClient } from '~/utils/api';
 import { useRoute, useRouter } from 'vue-router';
@@ -822,6 +840,36 @@ const router = useRouter();
 // Auth context
 const { user } = useAuth();
 const userRole = computed(() => user.value?.role);
+
+// Check if selected class has streams
+const hasStreams = computed(() => {
+  if (!form.class_id) return false;
+  return activeStreams.value.length > 0;
+});
+
+// Check if selected class/stream has sections
+const hasSections = computed(() => {
+  if (!form.class_id) return false;
+  return activeSectionsFiltered.value.length > 0;
+});
+
+// Active streams for the selected class
+const activeStreams = computed(() => {
+  if (!form.class_id) return [];
+  return streams.value.filter(stream => stream.class_id === form.class_id && stream.is_active !== false);
+});
+
+// Active sections filtered by stream (if stream is selected)
+const activeSectionsFiltered = computed(() => {
+  let filteredSections = activeSections.value;
+  
+  // If a stream is selected, filter sections by stream
+  if (form.stream_id) {
+    filteredSections = filteredSections.filter(section => section.stream_id === form.stream_id);
+  }
+  
+  return filteredSections;
+});
 
 // Academic data
 const {
@@ -867,12 +915,16 @@ const {
 // Form state
 const loading = ref(false);
 const sectionsLoading = ref(false);
+const streamsLoading = ref(false);
 const loadingSchools = ref(false);
 const loadingBranches = ref(false);
 const showToast = ref(false);
 const toastMessage = ref('');
 const toastType = ref('success');
 const userBranch = ref(null);
+
+// Streams data
+const streams = ref([]);
 
 // Form data
 const form = reactive({
@@ -886,6 +938,7 @@ const form = reactive({
   roll_number: '',
   admission_date: new Date().toISOString().split('T')[0],
   class_id: '',
+  stream_id: '',
   section_id: '',
   category: '',
   admission_type: '',
@@ -893,6 +946,7 @@ const form = reactive({
   // Temporary fields for mapping names to IDs in edit mode
   _temp_class_name: '',
   _temp_section_name: '',
+  _temp_stream_name: '',
   _temp_academic_year_name: '',
 
   // Student details
@@ -912,7 +966,6 @@ const form = reactive({
     address: '',
     profile_picture: null,
     aadhaar_number: '',
-    admission_sought_in: '',
     previous_exam_details: [],
   },
 
@@ -983,6 +1036,15 @@ watch(() => props.initialData, async (newData) => {
       console.log('🔍 Set temp class name:', newData.current_class);
     }
     
+    // Handle stream_id mapping
+    if (newData.stream_id) {
+      form.stream_id = newData.stream_id;
+      console.log('🔍 Set stream_id directly from API field:', newData.stream_id);
+    } else if (newData.stream) {
+      form._temp_stream_name = newData.stream;
+      console.log('🔍 Set temp stream name:', newData.stream);
+    }
+    
     if (newData.section_id) {
       form.section_id = newData.section_id;
       console.log('🔍 Set section_id directly from API field:', newData.section_id);
@@ -1028,7 +1090,7 @@ watch(() => props.initialData, async (newData) => {
     if (newData.state) form.student.state = newData.state;
     if (newData.address) form.student.address = newData.address;
     if (newData.aadhaar_number) form.student.aadhaar_number = newData.aadhaar_number;
-    if (newData.admission_sought_in) form.student.admission_sought_in = newData.admission_sought_in;
+    
     if (newData.previous_exam_details) {
       // Handle both string and array formats
       if (typeof newData.previous_exam_details === 'string') {
@@ -1100,7 +1162,7 @@ watch(() => props.initialData, async (newData) => {
         await loadAcademicData();
         
         // If we have temp names, map them to IDs
-        if (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name) {
+        if (form._temp_class_name || form._temp_section_name || form._temp_stream_name || form._temp_academic_year_name) {
           console.log('🔍 Initial data loaded, mapping names to IDs');
           await mapClassAndSectionNames();
         }
@@ -1188,13 +1250,19 @@ const onBranchChange = async () => {
   if (!isSettingFormValues.value) {
     form.class_id = '';
     form.section_id = '';
+    form.stream_id = '';
   }
   
   if (form.branch_id) {
     try {
       console.log('🔍 Loading academic data for branch:', form.branch_id);
       await loadAcademicData();
-      console.log('🔍 Academic data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length);
+      console.log('🔍 Academic data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length, 'Active Classes:', activeClasses.value?.length);
+      
+      // Debug: Log all classes to see what's available
+      console.log('🔍 All classes:', classes.value);
+      console.log('🔍 Active classes:', activeClasses.value);
+      
       if (academicYears.value && academicYears.value.length > 0) {
         const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
         if (currentYear) {
@@ -1202,6 +1270,7 @@ const onBranchChange = async () => {
           console.log('🔍 Set academic year:', form.academic_year_id);
         }
       }
+      
       // Only auto-select class if in edit mode
       if (classes.value && classes.value.length === 1 && props.isEditing) {
         form.class_id = classes.value[0].id;
@@ -1212,6 +1281,47 @@ const onBranchChange = async () => {
       console.error('❌ Error loading academic data:', error);
       showError('Failed to load academic data');
     }
+  } else {
+    // Clear classes when no branch is selected
+    classes.value = [];
+    sections.value = [];
+    streams.value = [];
+  }
+};
+
+// Load streams for the selected class
+const loadStreamsForClass = async (classId) => {
+  if (!classId) {
+    streams.value = [];
+    return;
+  }
+  
+  streamsLoading.value = true;
+  try {
+    const params = {
+      class_id: classId,
+      is_active: 'true'
+    };
+    
+    // Add role-based filters
+    if (userRole.value === 'super_admin') {
+      if (form.school_id) params.school_id = form.school_id;
+      if (form.branch_id) params.branch_id = form.branch_id;
+    } else if (userRole.value === 'school_admin') {
+      params.school_id = user.value?.school_id;
+      if (form.branch_id) params.branch_id = form.branch_id;
+    } else if (userRole.value === 'branch_admin') {
+      params.school_id = user.value?.school_id;
+      params.branch_id = user.value?.branch_id;
+    }
+    
+    const response = await fetchStreamsAPI(params);
+    streams.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    streams.value = [];
+  } finally {
+    streamsLoading.value = false;
   }
 };
 
@@ -1231,15 +1341,19 @@ const onClassChange = async (isAutoSelection = false) => {
     console.log('🔍 Marked class as user-changed');
   }
   
-  // Only clear section_id if this is a user change (not during initialization)
+  // Only clear section_id and stream_id if this is a user change (not during initialization)
   if (!isAutoSelection && !isSettingFormValues.value) {
     form.section_id = '';
+    form.stream_id = '';
     userChangedSection.value = false; // Reset section flag since class changed
   }
   
   if (form.class_id) {
     sectionsLoading.value = true;
     try {
+      // Load streams for higher classes
+      await loadStreamsForClass(form.class_id);
+      
       // Try loading sections with current context first
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
       console.log('🔍 Sections loaded:', sections.value?.length);
@@ -1250,10 +1364,16 @@ const onClassChange = async (isAutoSelection = false) => {
         console.log('🔍 Sections loaded (without branch):', sections.value?.length);
       }
       
+      // Filter sections by stream if stream is selected
+      if (form.stream_id && sections.value) {
+        sections.value = sections.value.filter(section => section.stream_id === form.stream_id);
+        console.log('🔍 Sections filtered by stream:', sections.value?.length);
+      }
+      
       // Only auto-select section if this is not during form initialization
-      if (sections.value && sections.value.length === 1 && !isSettingFormValues.value) {
-        form.section_id = sections.value[0].id;
-        console.log('🔍 Auto-selecting single section:', form.section_id);
+      if (activeSectionsFiltered.value && activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
+        form.section_id = activeSectionsFiltered.value[0].id;
+        console.log('🔍 Auto-selecting single filtered section:', form.section_id);
       }
     } catch (error) {
       console.error('❌ Error loading sections:', error);
@@ -1263,6 +1383,29 @@ const onClassChange = async (isAutoSelection = false) => {
     }
   } else {
     sections.value = [];
+    streams.value = [];
+  }
+};
+
+// Stream change handler
+const onStreamChange = async () => {
+  console.log('🔍 onStreamChange called with stream_id:', form.stream_id, 'isSettingFormValues:', isSettingFormValues.value);
+  // Only mark as user-changed if not setting form values
+  if (!isSettingFormValues.value) {
+    userChangedSection.value = true;
+    console.log('🔍 Marked stream as user-changed');
+  }
+  
+  // Clear section when stream changes
+  if (!isSettingFormValues.value) {
+    form.section_id = '';
+  }
+  
+  // If stream is selected and we have sections loaded, filter them by stream
+  if (form.stream_id && sections.value && sections.value.length > 0) {
+    console.log('🔍 Filtering sections by stream:', form.stream_id);
+    // The activeSections computed property will automatically filter by stream_id
+    console.log('🔍 Sections after stream filter:', activeSections.value.length);
   }
 };
 
@@ -1285,11 +1428,18 @@ const loadAcademicData = async () => {
     }
     console.log('🔍 loadAcademicData: Loading for school_id:', form.school_id, 'branch_id:', form.branch_id);
     academicsLoading.value = true;
-    await Promise.all([
+    
+    // Load academic years and classes in parallel
+    const [academicYearsResult, classesResult] = await Promise.all([
       fetchAcademicYears(form.school_id),
       fetchClasses(form.school_id, form.branch_id)
     ]);
-    console.log('🔍 loadAcademicData: Data loaded - Years:', academicYears.value?.length, 'Classes:', classes.value?.length);
+    
+    console.log('🔍 loadAcademicData: Academic years loaded:', academicYears.value?.length);
+    console.log('🔍 loadAcademicData: Classes loaded:', classes.value?.length);
+    console.log('🔍 loadAcademicData: Active classes:', activeClasses.value?.length);
+    
+    // Set current academic year if available
     if (academicYears.value?.length > 0) {
       const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
       if (currentYear) {
@@ -1297,6 +1447,7 @@ const loadAcademicData = async () => {
         console.log('🔍 loadAcademicData: Set academic year:', form.academic_year_id);
       }
     }
+    
     // Don't auto-select class in create mode - let user choose
     // Auto-selection only happens in edit mode through onBranchChange
   } catch (error) {
@@ -1423,6 +1574,12 @@ const handleSubmit = async () => {
   if (!form.class_id) {
     setFieldError('class_id', 'Class is required');
   }
+  
+  // Validate stream if class has streams
+  if (hasStreams.value && !form.stream_id) {
+    setFieldError('stream_id', 'Stream is required for this class');
+  }
+  
   // Section is now optional - no validation required
 
   
@@ -1485,6 +1642,7 @@ const handleSubmit = async () => {
       roll_number: form.roll_number,
       admission_date: form.admission_date,
       class_id: form.class_id,
+      stream_id: form.stream_id,
       section_id: form.section_id,
       category: form.category,
       admission_type: form.admission_type,
@@ -1671,6 +1829,7 @@ const resetForm = () => {
     admission_type: '',
     _temp_class_name: '',
     _temp_section_name: '',
+    _temp_stream_name: '',
     _temp_academic_year_name: '',
     student: {
       first_name: '',
@@ -1688,7 +1847,7 @@ const resetForm = () => {
       address: '',
       profile_picture: null,
       aadhaar_number: '',
-      admission_sought_in: '',
+
       previous_exam_details: [],
     },
     login: {
@@ -1771,10 +1930,10 @@ const maxMappingRetries = 3;
 
 // Watch for academic data changes to map names to IDs in edit mode (simplified)
 watch([() => classes.value, () => sections.value, () => academicYears.value], async () => {
-  if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && !isSettingFormValues.value && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
-    console.log('🔍 Academic data loaded, mapping names to IDs');
-    await mapClassAndSectionNames();
-  }
+      if (props.isEditing && !hasMappedNames.value && !isMappingNames.value && !isSettingFormValues.value && (form._temp_class_name || form._temp_section_name || form._temp_stream_name || form._temp_academic_year_name)) {
+      console.log('🔍 Academic data loaded, mapping names to IDs');
+      await mapClassAndSectionNames();
+    }
 }, { immediate: false });
 
 // Removed HACK watcher to prevent conflicts
@@ -1829,7 +1988,7 @@ const updateFormWithResponseData = async (data) => {
   if (data.state) form.student.state = data.state;
   if (data.address) form.student.address = data.address;
   if (data.aadhaar_number) form.student.aadhaar_number = data.aadhaar_number;
-  if (data.admission_sought_in) form.student.admission_sought_in = data.admission_sought_in;
+  
   if (data.previous_exam_details) {
     // Handle both string and array formats
     if (typeof data.previous_exam_details === 'string') {
@@ -1852,6 +2011,17 @@ const updateFormWithResponseData = async (data) => {
     );
     if (classRecord) {
       form.class_id = classRecord.id;
+    }
+  }
+  
+  // Map stream name to ID if it's a higher class
+  if (data.stream && streams.value.length > 0) {
+    const streamRecord = streams.value.find(stream => 
+      stream.name === data.stream || 
+      stream.code === data.stream
+    );
+    if (streamRecord) {
+      form.stream_id = streamRecord.id;
     }
   }
   
@@ -1967,13 +2137,35 @@ const mapClassAndSectionNames = async () => {
       form.class_id = classRecord.id;
       console.log('🔍 Set class_id to:', form.class_id);
       
-      // Load sections for this class
+      // Load streams and sections for this class
       try {
+        // Load streams for higher classes
+        await loadStreamsForClass(classRecord.id);
+        console.log('🔍 Loaded streams for class:', streams.value.length);
+        
         await loadSectionsByClass(classRecord.id, form.school_id, form.branch_id);
         console.log('🔍 Loaded sections for class:', sections.value.length);
         
-        // Wait a bit for sections to be fully loaded
+        // Wait a bit for data to be fully loaded
         await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Map stream name to stream_id if class has streams
+        if (hasStreams.value && form._temp_stream_name && streams.value.length > 0) {
+          console.log('🔍 Attempting to map stream name:', form._temp_stream_name);
+          const streamRecord = streams.value.find(stream => 
+            stream.name === form._temp_stream_name ||
+            stream.code === form._temp_stream_name
+          );
+          console.log('🔍 Found stream record:', streamRecord);
+          if (streamRecord) {
+            console.log('🔍 Setting stream_id to:', streamRecord.id);
+            form.stream_id = streamRecord.id;
+            console.log('🔍 Set stream_id to:', form.stream_id);
+          } else {
+            console.log('🔍 No matching stream found for:', form._temp_stream_name);
+            console.log('🔍 Available streams:', streams.value.map(s => s.name));
+          }
+        }
         
         // Now map section name to section_id after sections are loaded
         if (form._temp_section_name && sections.value.length > 0) {
@@ -1992,7 +2184,7 @@ const mapClassAndSectionNames = async () => {
           }
         }
       } catch (error) {
-        console.warn('Failed to load sections for class:', error);
+        console.warn('Failed to load streams/sections for class:', error);
       }
     } else {
       console.log('🔍 No matching class found for:', form._temp_class_name);
@@ -2164,9 +2356,9 @@ onMounted(async () => {
     }
     
     // If editing, map class and section names to IDs
-    if (props.isEditing && (form._temp_class_name || form._temp_section_name || form._temp_academic_year_name)) {
+    if (props.isEditing && (form._temp_class_name || form._temp_section_name || form._temp_stream_name || form._temp_academic_year_name)) {
       console.log('🔍 onMounted: Attempting to map names to IDs');
-      console.log('🔍 onMounted: Temp values - class:', form._temp_class_name, 'section:', form._temp_section_name, 'year:', form._temp_academic_year_name);
+      console.log('🔍 onMounted: Temp values - class:', form._temp_class_name, 'section:', form._temp_section_name, 'stream:', form._temp_stream_name, 'year:', form._temp_academic_year_name);
       
       // Wait a bit more to ensure all data is loaded
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -2180,7 +2372,7 @@ onMounted(async () => {
       
       // HACK: Final attempt after a longer delay
       setTimeout(async () => {
-        if (props.isEditing && !hasMappedNames.value && (form._temp_class_name || form._temp_section_name)) {
+        if (props.isEditing && !hasMappedNames.value && (form._temp_class_name || form._temp_section_name || form._temp_stream_name)) {
           console.log('🔍 HACK: Final attempt to map names after delay');
           hasMappedNames.value = false; // Reset flag
           isMappingNames.value = false; // Reset flag

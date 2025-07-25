@@ -205,6 +205,12 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Invoice Number</label>
                 <input v-model="paymentForm.invoice_number" type="text" placeholder="Enter invoice number" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                <!-- Month Information for Monthly Payments -->
+                <div v-if="selectedInvoiceForPayment && selectedInvoiceForPayment.payment_model === 'monthly' && selectedInvoiceForPayment.month && selectedInvoiceForPayment.year" class="mt-2">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    📅 Paying for: {{ getMonthName(selectedInvoiceForPayment.month) }} {{ selectedInvoiceForPayment.year }}
+                  </p>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount *</label>
@@ -285,16 +291,7 @@
                 </svg>
                 Print Receipt
               </button>
-              <!-- Download Button -->
-              <button
-                @click="downloadReceipt"
-                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors"
-              >
-                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download
-              </button>
+
               <!-- Close Button -->
               <button
                 @click="showReceiptModal = false"
@@ -512,7 +509,11 @@ const generateInvoices = async (formData) => {
     await fetchSummary();
   } catch (error) {
     console.error('Error generating invoices:', error);
-    showToast(error.message || 'Error generating invoices', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error generating invoices', 'error');
+    }
   } finally {
     isGenerating.value = false;
   }
@@ -549,7 +550,11 @@ const submitPayment = async () => {
     }
   } catch (error) {
     console.error('Error recording payment:', error);
-    showToast(error.message || 'Error recording payment', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error recording payment', 'error');
+    }
   } finally {
     isSubmittingPayment.value = false;
   }
@@ -593,6 +598,12 @@ const isMonthlyPayment = (invoice) => {
 };
 
 const onPaymentRecorded = async () => {
+  // Clear any filters that might be causing "no results" after payment
+  // This ensures the user can see the updated invoice status
+  Object.keys(filters).forEach(key => {
+    filters[key] = '';
+  });
+  
   await fetchInvoices();
   await fetchSummary();
 };
@@ -612,7 +623,11 @@ const generateReceipt = async (invoice) => {
     }
   } catch (error) {
     console.error('Error fetching receipt:', error);
-    showToast(error.message || 'Error fetching receipt', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error fetching receipt', 'error');
+    }
   }
 };
 
@@ -636,7 +651,9 @@ const viewReceipt = async (invoice) => {
 
 const viewCombinedReceipt = async (combinedInvoice) => {
   try {
-    const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+    // Use receipt_group_id instead of id for grouped receipts
+    const receiptGroupId = combinedInvoice.receipt_group_id || combinedInvoice.id;
+    const response = await apiClient.feeInvoices.getCombinedReceipt(receiptGroupId);
 
     if (response.data && response.data.receipt_html) {
       selectedReceipt.value = response.data;
@@ -646,7 +663,11 @@ const viewCombinedReceipt = async (combinedInvoice) => {
     }
   } catch (error) {
     console.error('Error fetching combined receipt:', error);
-    showToast('Error fetching combined receipt', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error fetching combined receipt', 'error');
+    }
   }
 };
 
@@ -766,21 +787,7 @@ const printReceipt = () => {
   }, 500);
 };
 
-// Download receipt as HTML file
-const downloadReceipt = () => {
-  if (!selectedReceipt.value) return;
 
-  const receiptHtml = selectedReceipt.value.receipt_html;
-  const receiptBlob = new Blob([receiptHtml], { type: 'text/html' });
-  const receiptUrl = URL.createObjectURL(receiptBlob);
-  const a = document.createElement('a');
-  a.href = receiptUrl;
-  a.download = `receipt_${selectedReceipt.value.receipt_number || Date.now()}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(receiptUrl);
-};
 
 const previousPage = () => {
   if (currentPage.value > 1) {
@@ -798,6 +805,14 @@ const nextPage = () => {
 
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
+};
+
+const getMonthName = (month) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[month - 1] || 'Unknown';
 };
 
 // Simplified academic data loading - only load when modal is opened

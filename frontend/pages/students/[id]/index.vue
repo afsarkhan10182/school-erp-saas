@@ -427,7 +427,7 @@ const fetchStudent = async () => {
       throw new Error('User not authenticated. Please log in.');
     }
     
-    console.log('Fetching student with ID:', studentId);
+
 
     
     const response = await apiClient.students.getById(studentId);

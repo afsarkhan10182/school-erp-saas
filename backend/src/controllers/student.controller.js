@@ -1,4 +1,4 @@
-const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section } = require('../models');
+const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section, Stream } = require('../models');
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
@@ -10,7 +10,6 @@ const { getCurrentAcademicYearForSchool } = require('../utils/academicYearUtils'
 
 // Utility function to handle ENUM validation errors
 const handleEnumValidationError = (error) => {
-  console.log('🔍 Handling ENUM validation error:', error.message);
   
   if (error.message && error.message.includes('enum_students_admission_sought_in')) {
     throw new ApiError(400, 'Please select a valid stream (Arts, Commerce, or Science) or leave it empty.');
@@ -32,8 +31,6 @@ const handleEnumValidationError = (error) => {
 const createStudent = async (req, res, next) => {
   try {
   
-    console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
-
     // Handle both FormData and JSON formats
     let studentData = {};
     let guardianData = {};
@@ -42,15 +39,12 @@ const createStudent = async (req, res, next) => {
       // Check if data is sent as FormData with JSON string
       if (req.body.studentData) {
         const parsedData = JSON.parse(req.body.studentData);
-        console.log('🔍 Parsed student data from FormData:', JSON.stringify(parsedData, null, 2));
         
         // Extract student data from nested structure
         if (parsedData.student && typeof parsedData.student === 'object') {
           studentData = { ...parsedData.student };
-          console.log('🔍 Extracted student data from FormData:', studentData);
         } else {
           studentData = { ...parsedData };
-          console.log('🔍 Using parsed data directly:', studentData);
         }
         
         // Extract guardian data
@@ -66,6 +60,7 @@ const createStudent = async (req, res, next) => {
         if (parsedData.class_id) studentData._class_id = parsedData.class_id;
         if (parsedData.section_id) studentData._section_id = parsedData.section_id;
         if (parsedData.academic_year_id) studentData._academic_year_id = parsedData.academic_year_id;
+        if (parsedData.stream_id) studentData._stream_id = parsedData.stream_id;
         
         if (studentData.mobile_no) studentData.phone = studentData.mobile_no;
         if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentData.admission_type = parsedData.admission_type;
@@ -73,11 +68,9 @@ const createStudent = async (req, res, next) => {
         // Direct nested object (already parsed)
         if (req.body.student && typeof req.body.student === 'object') {
           studentData = { ...req.body.student };
-          console.log('🔍 Extracted student data from direct object:', studentData);
-        } else {
+         } else {
           studentData = { ...req.body };
-          console.log('🔍 Using request body directly:', studentData);
-        }
+         }
         
         // Extract guardian data
         if (req.body.guardian && typeof req.body.guardian === 'object') {
@@ -92,12 +85,12 @@ const createStudent = async (req, res, next) => {
         if (req.body.class_id) studentData._class_id = req.body.class_id;
         if (req.body.section_id) studentData._section_id = req.body.section_id;
         if (req.body.academic_year_id) studentData._academic_year_id = req.body.academic_year_id;
+        if (req.body.stream_id) studentData._stream_id = req.body.stream_id;
       }
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
       // Fallback to flat structure
       studentData = { ...req.body };
-      console.log('🔍 Fallback to flat structure:', studentData);
     }
 
     // Handle file uploads
@@ -165,8 +158,7 @@ const createStudent = async (req, res, next) => {
           studentData.admission_class = classRecord.name;
           studentData.current_class = classRecord.name;
           studentData.class_id = studentData._class_id; // Set the actual class_id
-          console.log('🔍 Class name resolved:', classRecord.name);
-        }
+         }
       } catch (error) {
         console.error('❌ Error fetching class:', error);
       }
@@ -179,8 +171,7 @@ const createStudent = async (req, res, next) => {
         if (sectionRecord) {
           studentData.section = sectionRecord.name;
           studentData.section_id = studentData._section_id; // Set the actual section_id
-          console.log('🔍 Section name resolved:', sectionRecord.name);
-        }
+         }
       } catch (error) {
         console.error('❌ Error fetching section:', error);
       }
@@ -193,27 +184,37 @@ const createStudent = async (req, res, next) => {
         const yearRecord = await AcademicYear.findByPk(studentData._academic_year_id);
         if (yearRecord) {
           studentData.academic_year = yearRecord.name;
-          console.log('🔍 Academic year resolved from ID:', yearRecord.name);
-        }
+         }
       } catch (error) {
         console.error('❌ Error fetching academic year:', error);
       }
       delete studentData._academic_year_id;
+    }
+    
+    // Handle stream - get stream name from ID if provided
+    if (studentData._stream_id) {
+      try {
+        const streamRecord = await Stream.findByPk(studentData._stream_id);
+        if (streamRecord) {
+          studentData.stream = streamRecord.name;
+          studentData.stream_id = studentData._stream_id; // Set the actual stream_id
+         }
+      } catch (error) {
+        console.error('❌ Error fetching stream:', error);
+      }
+      delete studentData._stream_id;
     } else {
       // Fallback to current academic year if no ID provided
       try {
         const currentYear = await getCurrentAcademicYearForSchool(school_id);
         if (currentYear) {
           studentData.academic_year = currentYear.name;
-          console.log('🔍 Academic year fallback to current:', currentYear.name);
-        } else {
+          } else {
           // Last resort: use current year as string
           const currentYearString = new Date().getFullYear().toString();
           studentData.academic_year = `${currentYearString}-${parseInt(currentYearString) + 1}`;
-          console.log('🔍 Academic year last resort:', studentData.academic_year);
-        }
+         }
       } catch (error) {
-        console.error('❌ Error fetching current academic year:', error);
         // Last resort fallback
         const currentYearString = new Date().getFullYear().toString();
         studentData.academic_year = `${currentYearString}-${parseInt(currentYearString) + 1}`;
@@ -335,9 +336,21 @@ const getStudents = async (req, res, next) => {
     
     // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin can filter by school_id if provided, otherwise see all students
+      // Super admin must provide school_id to see students
       if (school_id) {
         whereClause.school_id = school_id;
+      } else {
+        // If no school_id provided, return empty result for security
+        return res.status(200).json({ 
+          success: true, 
+          data: [],
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: 0,
+            total_count: 0,
+            limit: parseInt(limit),
+          }
+        });
       }
     } else {
       // School admin and branch admin are restricted to their school
@@ -588,9 +601,9 @@ const updateStudent = async (req, res, next) => {
         if (updates.class_id) academicUpdates._class_id = updates.class_id;
         if (updates.section_id) academicUpdates._section_id = updates.section_id;
         if (updates.academic_year_id) academicUpdates._academic_year_id = updates.academic_year_id;
+        if (updates.stream_id) academicUpdates._stream_id = updates.stream_id;
         
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
-        if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentUpdates.admission_type = parsedData.admission_type;
         if ('admission_type' in updates) studentUpdates.admission_type = updates.admission_type;
       } else {
         // Flat data structure
@@ -674,6 +687,20 @@ const updateStudent = async (req, res, next) => {
         console.error('❌ Error fetching academic year:', error);
       }
       delete academicUpdates._academic_year_id;
+    }
+    
+    if (academicUpdates._stream_id) {
+      try {
+        const streamRecord = await Stream.findByPk(academicUpdates._stream_id);
+        if (streamRecord) {
+          academicUpdates.stream = streamRecord.name;
+          academicUpdates.stream_id = academicUpdates._stream_id; // Set the actual stream_id
+          console.log('🔍 Stream name resolved:', streamRecord.name);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching stream:', error);
+      }
+      delete academicUpdates._stream_id;
     }
 
     const updateData = {
@@ -938,9 +965,25 @@ const getStudentStats = async (req, res, next) => {
     
     // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin can filter by school_id if provided, otherwise see all students
+      // Super admin must provide school_id to see students
       if (school_id) {
         whereClause.school_id = school_id;
+      } else {
+        // If no school_id provided, return empty stats for security
+        return res.status(200).json({
+          success: true,
+          data: {
+            total: 0,
+            active: 0,
+            inactive: 0,
+            graduated: 0,
+            dropped: 0,
+            newThisMonth: 0,
+            classCount: 0,
+            class_distribution: [],
+            branch_distribution: [],
+          }
+        });
       }
     } else {
       // School admin and branch admin are restricted to their school
@@ -1069,9 +1112,21 @@ const getStudentReport = async (req, res, next) => {
     
     // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin can filter by school_id if provided, otherwise see all students
+      // Super admin must provide school_id to see students
       if (school_id) {
         whereClause.school_id = school_id;
+      } else {
+        // If no school_id provided, return empty report for security
+        return res.status(200).json({
+          success: true,
+          data: [],
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: 0,
+            total_count: 0,
+            limit: parseInt(limit),
+          }
+        });
       }
     } else {
       // School admin and branch admin are restricted to their school
@@ -1173,9 +1228,16 @@ const exportStudentReport = async (req, res, next) => {
     
     // Handle school_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin can filter by school_id if provided, otherwise see all students
+      // Super admin must provide school_id to see students
       if (school_id) {
         whereClause.school_id = school_id;
+      } else {
+        // If no school_id provided, return empty export for security
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: 'No data to export - school_id required for super admin',
+        });
       }
     } else {
       // School admin and branch admin are restricted to their school

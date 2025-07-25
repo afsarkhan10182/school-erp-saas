@@ -133,7 +133,6 @@ watch(() => props.modelValue, (newValue) => {
 
 const handleChange = (event) => {
   const value = event.target.value
-  console.log('🔍 EnhancedDropdown handleChange:', value)
   emit('update:modelValue', value)
   emit('change', value)
 }

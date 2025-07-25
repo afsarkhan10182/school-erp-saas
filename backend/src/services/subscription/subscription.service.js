@@ -203,6 +203,17 @@ class SubscriptionService {
     const transaction = await sequelize.transaction();
     
     try {
+      // Validate school code format
+      if (!schoolData.code || !/^[A-Z0-9]+$/.test(schoolData.code)) {
+        throw new ApiError(400, 'School code must contain only uppercase letters and numbers');
+      }
+      
+      // Check if school code already exists
+      const existingSchool = await School.findOne({ where: { code: schoolData.code } });
+      if (existingSchool) {
+        throw new ApiError(400, 'School code already exists');
+      }
+      
       // Validate subscription plan
       const plan = await SubscriptionPlan.findOne({
         where: { code: subscriptionData.plan_code, is_active: true },
@@ -210,6 +221,17 @@ class SubscriptionService {
       
       if (!plan) {
         throw new ApiError(400, 'Invalid subscription plan');
+      }
+      
+      // Validate admin email format and uniqueness
+      if (!subscriptionData.admin_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subscriptionData.admin_email)) {
+        throw new ApiError(400, 'Please provide a valid admin email address');
+      }
+      
+      // Check if admin email already exists
+      const existingUser = await User.findOne({ where: { email: subscriptionData.admin_email } });
+      if (existingUser) {
+        throw new ApiError(400, 'Admin email already exists');
       }
       
       // Handle file uploads
@@ -253,13 +275,17 @@ class SubscriptionService {
       
       // Create first branch (Main Branch/Head Office)
       const branchName = schoolData.branch_name || 'Main Branch';
-      const branchCode = `${school.code}-MB`;
+      
+      // Generate a clean branch code that meets alphanumeric requirements
+      // Remove any non-alphanumeric characters from school code and ensure it's uppercase
+      const cleanSchoolCode = school.code.replace(/[^A-Z0-9]/g, '').toUpperCase();
+      const branchCode = `${cleanSchoolCode}MB`;
       
       // Check if branch code already exists and make it unique if needed
       let finalBranchCode = branchCode;
       let counter = 1;
       while (await Branch.findOne({ where: { code: finalBranchCode } })) {
-        finalBranchCode = `${branchCode}-${counter}`;
+        finalBranchCode = `${cleanSchoolCode}MB${counter}`;
         counter++;
       }
       

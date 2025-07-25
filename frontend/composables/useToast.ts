@@ -26,7 +26,6 @@ export const useToast = () => {
   };
 
   const showError = (message: string, duration?: number) => {
-    console.log('useToast.showError called with message:', message);
     showToast(message, 'error', duration);
   };
 

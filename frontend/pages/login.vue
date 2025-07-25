@@ -48,7 +48,6 @@
             <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span class="text-white font-bold text-2xl">S</span>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
             <p class="text-white/70 text-sm">Sign in to your School ERP account</p>
           </div>
 
@@ -110,22 +109,9 @@
 
           <!-- Super Admin Login -->
           <div class="mt-6 pt-6 border-t border-white/20">
-            <p class="text-white/60 text-sm text-center mb-4">Quick Demo Access</p>
+            <p class="text-white/60 text-sm text-center mb-4"></p>
             <div class="flex gap-3">
-              <button 
-                type="button" 
-                @click="autofillSuperAdmin" 
-                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
-              >
-                Super Admin Demo
-              </button>
-              <button 
-                type="button" 
-                @click="autofillSchoolAdmin" 
-                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
-              >
-                School Admin Demo
-              </button>
+              © 2025 School ERP - Developed by DigitalFuzed
             </div>
           </div>
         </div>
@@ -155,15 +141,7 @@ const checkingAuth = ref(false); // Only show loading if we have cached data to 
 const router = useRouter();
 const { login } = useAuth();
 
-// Autofill functions
-function autofillSuperAdmin() {
-  form.email = 'admin@schoolexample.com';
-  form.password = 'admin123';
-}
-function autofillSchoolAdmin() {
-  form.email = 'admin@demoschool.com';
-  form.password = 'school123';
-}
+
 
 const isDark = ref(false);
 const toggleTheme = () => {
@@ -237,7 +215,6 @@ const checkExistingAuth = async () => {
         }
       } catch (error) {
         // Server check failed, show login form
-        console.log('Session check failed, proceeding to login');
       }
     }
   } finally {

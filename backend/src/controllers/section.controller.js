@@ -1,4 +1,4 @@
-const { Section, Class, School, Branch, User } = require('../models');
+const { Section, Class, School, Branch, User, Stream } = require('../models');
 const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -88,6 +88,13 @@ class SectionController {
       includeArray.push({
         model: Class,
         as: 'class',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
+      
+      includeArray.push({
+        model: Stream,
+        as: 'stream',
         attributes: ['id', 'name', 'code'],
         required: false,
       });
@@ -615,11 +622,9 @@ class SectionController {
         }
       }
 
-      console.log('🔍 Fetching sections with whereClause:', whereClause);
-
       const sections = await Section.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'capacity', 'current_strength'],
+        attributes: ['id', 'name', 'capacity', 'current_strength', 'stream_id'],
         include: [
           {
             model: Class,
@@ -634,9 +639,7 @@ class SectionController {
         ],
         order: [['name', 'ASC']],
       });
-
-      console.log('🔍 Found sections:', sections.length);
-
+      
       res.json({
         success: true,
         data: sections,

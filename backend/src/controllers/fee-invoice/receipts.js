@@ -404,27 +404,45 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
     // Calculate months being paid in this receipt
     let remainingMonths = 0;
     let totalMonths = 12;
+    let monthlyFeeAmount = 0;
     let monthsPaidInThisReceipt = 0;
+    let totalPaidMonthsAfterThisReceipt = 0;
     
     if (monthlyPayments.length > 0) {
       // Count the months being paid in THIS receipt
       monthsPaidInThisReceipt = monthlyPayments.length;
       
-      // Get the fee structure from the first monthly payment
+      // Get the fee structure from the first monthly payment to get total months and monthly fee
       const firstMonthlyPayment = monthlyPayments[0];
+      const feeStructure = firstMonthlyPayment.feeStructure;
+      totalMonths = feeStructure?.total_months || 12;
+      monthlyFeeAmount = parseFloat(feeStructure?.monthly_payment_amount || 0);
+      
       const { calculatePaidMonths } = require('../../services/receipt.service');
       
-      // Calculate total paid months across all fee structures for this student (including this receipt)
+      // Calculate total paid months across all fee structures for this student (INCLUDING current receipt)
       const totalPaidMonths = await calculatePaidMonths(
         student.id, 
         firstMonthlyPayment.fee_structure_id, 
         firstMonthlyPayment.academic_year,
-        monthlyPayments // Pass all monthly payments being made in this receipt
+        monthlyPayments // Pass current invoices to include them in calculation
       );
       
-      // Add the months being paid in this receipt to get the total
-      const totalPaidMonthsAfterThisReceipt = totalPaidMonths + monthsPaidInThisReceipt;
+      // Use the calculated total (no need to add manually)
+      totalPaidMonthsAfterThisReceipt = totalPaidMonths;
       remainingMonths = Math.max(0, totalMonths - totalPaidMonthsAfterThisReceipt);
+      
+      // Debug logging
+      console.log('🔍 Combined Receipt Calculation:', {
+        student_id: student.id,
+        fee_structure_id: firstMonthlyPayment.fee_structure_id,
+        total_months: totalMonths,
+        monthly_fee: monthlyFeeAmount,
+        total_paid_months: totalPaidMonths,
+        months_in_this_receipt: monthsPaidInThisReceipt,
+        remaining_months: remainingMonths,
+        remaining_balance: remainingMonths * monthlyFeeAmount
+      });
     }
     
     // Create receipt data
@@ -451,9 +469,9 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
         fee_type: inv.feeStructure?.feeType?.name
       })),
       remaining_months: remainingMonths,
-      remaining_balance: totalAmount - totalPaid,
+      remaining_balance: monthlyFeeAmount > 0 ? remainingMonths * monthlyFeeAmount : totalAmount - totalPaid,
       total_months: totalMonths,
-      months_paid: totalPaidMonthsAfterThisReceipt || monthsPaidInThisReceipt
+      months_paid: totalPaidMonthsAfterThisReceipt
     };
 
     // Generate HTML receipt
@@ -550,12 +568,9 @@ const generateCombinedReceiptHtml = (data, school) => {
           ` : ''}
         </div>
         
+        
         <div class="remaining-info" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
           <div class="remaining-title" style="font-weight: bold; margin-bottom: 10px; color: #000;">Monthly Payment Summary</div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #000;">Months Paid:</span>
-            <span style="color: #000;">${data.months_paid || 0} out of ${data.total_months || 12}</span>
-          </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span style="color: #000;">Remaining Months:</span>
             <span style="color: #000;">${data.remaining_months || 0} months</span>

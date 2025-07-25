@@ -114,8 +114,23 @@
               />
             </div>
 
-            <!-- Section Selection -->
-            <div>
+            <!-- Stream Selection - Only if class has streams -->
+            <div v-if="hasStreams">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Stream <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="form.stream_id"
+                :options="streamOptions"
+                :placeholder="form.class_id ? 'Select Stream' : 'Select Class First'"
+                :loading="streamsLoading"
+                :disabled="!form.class_id"
+                @update:model-value="onStreamChange"
+              />
+            </div>
+
+            <!-- Section Selection - Only if class/stream has sections -->
+            <div v-if="hasSections">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Section
               </label>
@@ -315,6 +330,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { apiClient } from '~/utils/api';
+import { fetchStreamsAPI } from '~/api/streams';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
@@ -343,6 +359,7 @@ const { showSuccess, showError, showWarning } = useToast();
 // Form state
 const loading = ref(false);
 const sectionsLoading = ref(false);
+const streamsLoading = ref(false);
 const isDragOver = ref(false);
 const selectedFile = ref(null);
 const fileInput = ref(null);
@@ -350,21 +367,33 @@ const showResults = ref(false);
 const importResults = ref({});
 const showDownloadDropdown = ref(false);
 
+// Streams data
+const streams = ref([]);
+
 // Form data
 const form = reactive({
   school_id: '',
   branch_id: '',
   class_id: '',
+  stream_id: '',
   section_id: '',
   academic_year_id: '', // Will be auto-populated with current academic year
 });
 
 // Computed properties
 const canSubmit = computed(() => {
+  const hasBasicFields = form.branch_id && form.class_id && selectedFile.value;
+  
   if (authStore.currentUser?.role === 'super_admin') {
-    return form.school_id && form.branch_id && form.class_id && selectedFile.value;
+    if (!form.school_id) return false;
   }
-  return form.branch_id && form.class_id && selectedFile.value;
+  
+  // Stream is required if class has streams
+  if (hasStreams.value && !form.stream_id) {
+    return false;
+  }
+  
+  return hasBasicFields;
 });
 
 const schoolOptions = computed(() => {
@@ -388,8 +417,45 @@ const classOptions = computed(() => {
   }));
 });
 
+// Check if selected class has streams
+const hasStreams = computed(() => {
+  if (!form.class_id) return false;
+  return activeStreams.value.length > 0;
+});
+
+// Check if selected class/stream has sections
+const hasSections = computed(() => {
+  if (!form.class_id) return false;
+  return activeSectionsFiltered.value.length > 0;
+});
+
+// Active streams for the selected class
+const activeStreams = computed(() => {
+  if (!form.class_id) return [];
+  return streams.value.filter(stream => stream.class_id === form.class_id && stream.is_active !== false);
+});
+
+// Active sections filtered by stream (if stream is selected)
+const activeSectionsFiltered = computed(() => {
+  let filteredSections = sections.value;
+  
+  // If a stream is selected, filter sections by stream
+  if (form.stream_id) {
+    filteredSections = filteredSections.filter(section => section.stream_id === form.stream_id);
+  }
+  
+  return filteredSections;
+});
+
+const streamOptions = computed(() => {
+  return activeStreams.value.map(stream => ({
+    value: stream.id,
+    label: `${stream.name} (${stream.code})`
+  }));
+});
+
 const sectionOptions = computed(() => {
-  return sections.value.map(section => ({
+  return activeSectionsFiltered.value.map(section => ({
     value: section.id,
     label: section.name
   }));
@@ -454,13 +520,55 @@ const onBranchChange = async () => {
   }
 };
 
+// Load streams for the selected class
+const loadStreamsForClass = async (classId) => {
+  if (!classId) {
+    streams.value = [];
+    return;
+  }
+  
+  streamsLoading.value = true;
+  try {
+    const params = {
+      class_id: classId,
+      is_active: 'true'
+    };
+    
+    // Add role-based filters
+    if (authStore.currentUser?.role === 'super_admin') {
+      if (form.school_id) params.school_id = form.school_id;
+      if (form.branch_id) params.branch_id = form.branch_id;
+    } else if (authStore.currentUser?.role === 'school_admin') {
+      params.school_id = authStore.currentUser?.school_id;
+      if (form.branch_id) params.branch_id = form.branch_id;
+    } else if (authStore.currentUser?.role === 'branch_admin') {
+      params.school_id = authStore.currentUser?.school_id;
+      params.branch_id = authStore.currentUser?.branch_id;
+    }
+    
+    const response = await fetchStreamsAPI(params);
+    streams.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    streams.value = [];
+  } finally {
+    streamsLoading.value = false;
+  }
+};
+
 const onClassChange = async () => {
+  form.stream_id = '';
   form.section_id = '';
+  streams.value = [];
   sections.value = [];
+  streamsLoading.value = true;
   sectionsLoading.value = true;
   
   if (form.class_id) {
     try {
+      // Load streams for the selected class
+      await loadStreamsForClass(form.class_id);
+      
       const schoolId = authStore.currentUser?.role === 'super_admin' ? form.school_id : authStore.currentUser?.school_id;
       
       await fetchSections(schoolId, form.branch_id, form.class_id);
@@ -475,13 +583,20 @@ const onClassChange = async () => {
         form.section_id = sections.value[0].id;
       }
     } catch (error) {
-      showError('Failed to load sections. Please try again.');
+      showError('Failed to load streams/sections. Please try again.');
     } finally {
+      streamsLoading.value = false;
       sectionsLoading.value = false;
     }
   } else {
+    streamsLoading.value = false;
     sectionsLoading.value = false;
   }
+};
+
+const onStreamChange = () => {
+  // Clear section when stream changes
+  form.section_id = '';
 };
 
 const onSectionChange = () => {
@@ -667,6 +782,7 @@ const handleSubmit = async () => {
     formData.append('csv_file', selectedFile.value);
     formData.append('branch_id', form.branch_id);
     formData.append('class_id', form.class_id);
+    formData.append('stream_id', form.stream_id);
     formData.append('section_id', form.section_id);
     formData.append('academic_year_id', form.academic_year_id);
 

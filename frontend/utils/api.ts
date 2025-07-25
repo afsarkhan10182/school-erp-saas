@@ -57,26 +57,30 @@ export function createApiInstance(): AxiosInstance {
         originalRequest._retry = true;
         
         try {
+          console.log('🔄 Attempting token refresh...');
           // Call refresh endpoint to get new tokens
           const refreshResponse = await api.post('/auth/refresh-token');
           
           if (refreshResponse.status === 200) {
+            console.log('✅ Token refresh successful, retrying original request');
             // Retry the original request with new tokens (cookies are automatically included)
             return api(originalRequest);
           }
         } catch (refreshError: any) {
           console.error('❌ Token refresh failed:', refreshError);
-        }
-        
-        // If refresh failed, logout and redirect (but only once)
-        if (import.meta.client) {
-          const authStore = useAuthStore();
-          // Only logout if not already on login page
-          if (window.location.pathname !== '/login') {
-            await authStore.logout();
-            await navigateTo('/login');
+          
+          // If refresh failed, logout and redirect (but only once)
+          if (import.meta.client) {
+            const authStore = useAuthStore();
+            // Only logout if not already on login page
+            if (window.location.pathname !== '/login') {
+              console.log('🚪 Redirecting to login due to failed token refresh');
+              await authStore.logout();
+              await navigateTo('/login');
+            }
           }
         }
+        
         return Promise.reject(new Error('Authentication required'));
       }
       
@@ -239,6 +243,46 @@ export const apiClient = {
     delete: async (id: string) => {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/branches/${id}`);
+      return response.data;
+    }
+  },
+
+  // Streams endpoints
+  streams: {
+    getAll: async (params?: { page?: number; limit?: number; search?: string; is_active?: string; class_id?: string; branch_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/streams', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/streams/${id}`);
+      return response.data;
+    },
+    
+    create: async (streamData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/streams', streamData);
+      return response.data;
+    },
+    
+    update: async (id: string, streamData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/streams/${id}`, streamData);
+      return response.data;
+    },
+    
+    delete: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.delete<ApiResponse<null>>(`/streams/${id}`);
+      return response.data;
+    },
+
+    // Get streams for dropdown/select
+    getForDropdown: async (params?: { school_id?: string; branch_id?: string; class_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/streams/dropdown', { params });
       return response.data;
     }
   },
@@ -557,9 +601,9 @@ export const apiClient = {
 
   // Dashboard endpoints
   dashboard: {
-    getStats: async () => {
+    getStats: async (params?: { branch_id?: string; new_students_days?: number }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/stats');
+      const response = await api.get<ApiResponse<any>>('/dashboard/stats', { params });
       return response.data;
     },
     
@@ -599,13 +643,13 @@ export const apiClient = {
       return response.data;
     },
 
-    getFeeTrendData: async () => {
+    getFeeTrendData: async (params?: { months?: number }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend');
+      const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend', { params });
       return response.data;
     },
 
-    getFeeCollectionSummary: async (params?: { academic_year?: string }) => {
+    getFeeCollectionSummary: async (params?: { academic_year?: string; branch_id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/dashboard/fee-collection-summary', { params });
       return response.data;

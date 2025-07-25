@@ -27,21 +27,11 @@ const loading = ref(false);
 const fetchStudentData = async () => {
   if (!studentId.value) return;
   
-  console.log('🔍 Fetching student data for ID:', studentId.value);
   loading.value = true;
   try {
     const response = await apiClient.students.getById(studentId.value);
-    console.log('🔍 API Response:', response);
     if (response.success) {
       studentData.value = response.data;
-      console.log('🔍 Set studentData to:', studentData.value);
-      console.log('🔍 Student class_id:', studentData.value.class_id);
-      console.log('🔍 Student section_id:', studentData.value.section_id);
-      console.log('🔍 Student class association:', studentData.value.class);
-      console.log('🔍 Student sectionInfo association:', studentData.value.sectionInfo);
-      console.log('🔍 Student current_class:', studentData.value.current_class);
-      console.log('🔍 Student section:', studentData.value.section);
-      console.log('🔍 Student academic year:', studentData.value.academic_year);
       
       // Ensure the data is properly structured for the form
       if (studentData.value) {
@@ -78,7 +68,7 @@ onMounted(() => {
 
 // Watch for changes in studentData
 watch(studentData, (newData) => {
-  console.log('🔍 studentData changed in edit page:', newData);
+  // Handle data changes if needed
 }, { deep: true });
 
 definePageMeta({

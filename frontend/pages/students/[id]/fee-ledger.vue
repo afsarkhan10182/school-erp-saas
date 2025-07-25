@@ -193,10 +193,15 @@
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-for="invoice in (ledgerData?.invoices || [])" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {{ invoice.invoice_number || 'N/A' }}
+                  <div>
+                    <div class="font-medium">{{ invoice.invoice_number || 'N/A' }}</div>
+                    <div v-if="invoice.is_grouped" class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ invoice.months_covered }} month(s): {{ invoice.month_names }}
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ invoice.feeStructure?.feeType?.name || 'Unknown' }}
+                  {{ invoice.fee_type || invoice.feeStructure?.feeType?.name || 'Unknown' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ formatDate(invoice.due_date) }}
@@ -224,7 +229,14 @@
                     Pay
                   </button>
                   <button
-                    v-if="(invoice.paid_amount || 0) > 0"
+                    v-if="(invoice.paid_amount || 0) > 0 && invoice.is_grouped"
+                    @click="viewCombinedReceipt(invoice)"
+                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                  >
+                    View Combined Receipt
+                  </button>
+                  <button
+                    v-else-if="(invoice.paid_amount || 0) > 0"
                     @click="showPaymentHistory(invoice)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
@@ -301,6 +313,15 @@
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Record Payment</h3>
           
           <form @submit.prevent="submitPayment">
+            <!-- Month Information for Monthly Payments -->
+            <div v-if="selectedInvoice && selectedInvoice.payment_model === 'monthly' && selectedInvoice.month && selectedInvoice.year" class="mb-4">
+              <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600 rounded-md">
+                <p class="text-sm text-blue-800 dark:text-blue-200">
+                  📅 Paying for: {{ getMonthName(selectedInvoice.month) }} {{ selectedInvoice.year }}
+                </p>
+              </div>
+            </div>
+            
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Amount</label>
               <input
@@ -605,13 +626,17 @@
                       {{ formatDate(receipt.payment_date) }}
                     </span>
                   </div>
-                  <div class="flex justify-between items-center">
+                  <div class="flex justify-between items-center mb-1">
                     <div class="text-sm font-semibold text-gray-900 dark:text-white">
                       ₹{{ formatCurrency(receipt.payment_amount) }}
                     </div>
                     <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
                       {{ formatPaymentMethod(receipt.payment_method) }}
                     </span>
+                  </div>
+                  <!-- Show grouped receipt info -->
+                  <div v-if="receipt.is_grouped" class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ receipt.months_covered }} month(s): {{ receipt.month_names }}
                   </div>
                 </div>
               </div>
@@ -656,16 +681,7 @@
                       </svg>
                       Print
                     </button>
-                    <!-- Download Button -->
-                    <button
-                      @click="downloadReceipt"
-                      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download
-                    </button>
+
                   </div>
                 </div>
                 
@@ -856,12 +872,64 @@ const showPaymentHistory = (invoice) => {
 // View receipt
 const viewReceipt = async (payment) => {
   isLoadingReceiptContent.value = true;
-  selectedPayment.value = payment;
   
-  // Small delay to show loading state for better UX
-  setTimeout(() => {
-    isLoadingReceiptContent.value = false;
-  }, 200);
+  try {
+    if (payment.is_grouped && payment.receipt_group_id) {
+      // For grouped receipts, fetch the combined receipt
+      const response = await apiClient.feeInvoices.getCombinedReceipt(payment.receipt_group_id);
+      if (response.data && response.data.receipt_html) {
+        selectedPayment.value = {
+          ...payment,
+          receipt_html: response.data.receipt_html
+        };
+      } else {
+        showError('No receipt found for this grouped payment');
+        return;
+      }
+    } else {
+      // For individual payments, use the existing receipt_html
+      selectedPayment.value = payment;
+    }
+  } catch (error) {
+    console.error('Error viewing receipt:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error viewing receipt');
+    }
+    return;
+  } finally {
+    // Small delay to show loading state for better UX
+    setTimeout(() => {
+      isLoadingReceiptContent.value = false;
+    }, 200);
+  }
+};
+
+// View combined receipt for grouped payments
+const viewCombinedReceipt = async (invoice) => {
+  try {
+    if (!invoice.receipt_group_id) {
+      showError('No receipt group ID found for this payment');
+      return;
+    }
+    
+    const response = await apiClient.feeInvoices.getCombinedReceipt(invoice.receipt_group_id);
+    
+    if (response.data && response.data.receipt_html) {
+      selectedReceipt.value = response.data;
+      showReceiptModal.value = true;
+    } else {
+      showError('No receipt found for this combined payment');
+    }
+  } catch (error) {
+    console.error('Error fetching combined receipt:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error fetching combined receipt');
+    }
+  }
 };
 
 // Fetch all receipts for student
@@ -870,8 +938,48 @@ const fetchAllReceipts = async () => {
   
   isLoadingReceipts.value = true;
   try {
-    const response = await apiClient.feeInvoices.getStudentPayments(studentId);
-    allReceipts.value = response.data.payments || [];
+    // Fetch both individual payments and grouped receipts
+    const [paymentsResponse, groupedResponse] = await Promise.allSettled([
+      apiClient.feeInvoices.getStudentPayments(studentId),
+      apiClient.feeInvoices.getGroupedReceipts({ student_id: studentId })
+    ]);
+    
+    const allReceiptsData = [];
+    
+    // Add individual payments
+    if (paymentsResponse.status === 'fulfilled' && paymentsResponse.value.data.payments) {
+      allReceiptsData.push(...paymentsResponse.value.data.payments.map(payment => ({
+        ...payment,
+        is_grouped: false,
+        receipt_type: 'individual'
+      })));
+    }
+    
+    // Add grouped receipts
+    if (groupedResponse.status === 'fulfilled' && groupedResponse.value.data.grouped_invoices) {
+      allReceiptsData.push(...groupedResponse.value.data.grouped_invoices.map(group => ({
+        id: group.receipt_group_id,
+        receipt_number: group.receipt_group_id,
+        payment_amount: group.total_paid,
+        payment_method: group.payment_method,
+        payment_date: group.payment_date,
+        receipt_html: null, // Will be fetched when viewing
+        is_grouped: true,
+        receipt_type: 'grouped',
+        receipt_group_id: group.receipt_group_id,
+        display_name: group.display_name,
+        months_covered: group.months_covered,
+        month_names: group.month_names,
+        total_amount: group.total_amount,
+        paid_amount: group.total_paid,
+        balance_amount: group.total_balance
+      })));
+    }
+    
+    // Sort by payment date (newest first)
+    allReceiptsData.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+    
+    allReceipts.value = allReceiptsData;
     
     // Auto-select the first receipt if available
     if (allReceipts.value.length > 0 && !selectedPayment.value) {
@@ -1013,21 +1121,7 @@ const printReceipt = () => {
   }, 500);
 };
 
-// Download receipt
-const downloadReceipt = () => {
-  if (!selectedPayment.value) return;
 
-  const receiptHtml = selectedPayment.value.receipt_html;
-  const receiptBlob = new Blob([receiptHtml], { type: 'text/html' });
-  const receiptUrl = URL.createObjectURL(receiptBlob);
-  const a = document.createElement('a');
-  a.href = receiptUrl;
-  a.download = `receipt_${selectedPayment.value.receipt_number}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(receiptUrl);
-};
 
 // Pagination
 const previousPage = () => {
@@ -1051,6 +1145,14 @@ const formatCurrency = (amount) => {
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-IN');
+};
+
+const getMonthName = (month) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[month - 1] || 'Unknown';
 };
 
 const formatPaymentMethod = (method) => {

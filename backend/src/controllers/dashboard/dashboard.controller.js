@@ -10,6 +10,8 @@ class DashboardController {
   static async getStats(req, res, next) {
     try {
       const user = req.user;
+      const { branch_id, new_students_days = 30 } = req.query;
+      console.log('🔍 Dashboard getStats called for user:', user.role, 'branch_id:', branch_id, 'new_students_days:', new_students_days);
       let stats = {};
 
       if (user.role === 'super_admin') {
@@ -31,43 +33,52 @@ class DashboardController {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
         
+        // Build where clause for school with optional branch filter
+        let schoolWhere = { school_id: user.school_id };
+        let branchWhere = { school_id: user.school_id };
+        
+        if (branch_id) {
+          schoolWhere.branch_id = branch_id;
+          branchWhere.id = branch_id;
+        }
+        
         const [totalStudents, totalBranches, newStudents, feeCollection, activeStudents, pendingFees, overdueFees] = await Promise.all([
-          Student.count({ where: { school_id: user.school_id } }),
-          Branch.count({ where: { school_id: user.school_id } }),
-          // Count new students in last 30 days
+          Student.count({ where: schoolWhere }),
+          Branch.count({ where: branchWhere }),
+          // Count new students in last N days
           Student.count({ 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               created_at: {
-                [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
               }
             } 
           }),
-          // Calculate fee collection for the school
+          // Calculate fee collection for the school/branch
           FeeInvoice.sum('paid_amount', { 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               status: 'paid'
             } 
           }),
           // Count active students (students with status 'active' or null)
           Student.count({ 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               status: { [Op.or]: ['active', null] }
             } 
           }),
           // Count pending invoices (sent status)
           FeeInvoice.count({ 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               status: 'sent'
             } 
           }),
           // Count overdue invoices
           FeeInvoice.count({ 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               status: 'overdue'
             } 
           })
@@ -76,12 +87,14 @@ class DashboardController {
         stats = {
           totalStudents,
           totalBranches,
-          newStudents, // New students in last 30 days
+          newStudents, // New students in last N days
+          newStudentsDays: parseInt(new_students_days),
           feeCollection: feeCollection || 0,
           activeStudents,
           pendingFees,
           overdueFees,
         };
+        console.log('✅ School admin stats calculated:', stats);
       } else if (user.role === 'branch_admin') {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
@@ -92,7 +105,7 @@ class DashboardController {
             where: { 
               branch_id: user.branch_id,
               created_at: {
-                [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
               }
             } 
           }),
@@ -129,6 +142,7 @@ class DashboardController {
         stats = {
           totalStudents,
           newStudents,
+          newStudentsDays: parseInt(new_students_days),
           feeCollection: feeCollection || 0,
           overdueFees,
           activeStudents,
@@ -409,6 +423,12 @@ class DashboardController {
       const labels = students.map(s => new Date(s.get('month')).toLocaleString('default', { month: 'short' }));
       const data = students.map(s => s.get('count'));
 
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
+
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
       logger.error('Error in DashboardController.getStudentsChartData:', error);
@@ -437,6 +457,12 @@ class DashboardController {
 
       const labels = fees.map(f => f.status);
       const data = fees.map(f => f.get('count'));
+
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
 
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
@@ -468,6 +494,12 @@ class DashboardController {
       const labels = students.map(s => s.current_class || 'Unknown');
       const data = students.map(s => s.get('count'));
 
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
+
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
       logger.error('Error in DashboardController.getStudentDistributionData:', error);
@@ -478,6 +510,7 @@ class DashboardController {
   static async getFeeTrendData(req, res, next) {
     try {
       const user = req.user;
+      const { months = 6 } = req.query;
       let where = {};
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
@@ -485,12 +518,12 @@ class DashboardController {
         where.branch_id = user.branch_id;
       }
 
-      // Get fee collection data for last 6 months
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      // Get fee collection data for last N months
+      const monthsAgo = new Date();
+      monthsAgo.setMonth(monthsAgo.getMonth() - parseInt(months));
       
       where.created_at = {
-        [Op.gte]: sixMonthsAgo
+        [Op.gte]: monthsAgo
       };
 
       const fees = await FeeInvoice.findAll({
@@ -499,12 +532,18 @@ class DashboardController {
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
           [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
         ],
-        group: ['month'],
-        order: [[Sequelize.col('month'), 'ASC']],
+        group: [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at'))],
+        order: [[Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'ASC']],
       });
 
       const labels = fees.map(f => new Date(f.get('month')).toLocaleString('default', { month: 'short' }));
       const data = fees.map(f => parseFloat(f.get('total_paid') || 0));
+
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
 
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
@@ -517,12 +556,22 @@ class DashboardController {
     try {
       const user = req.user;
       const { academic_year } = req.query;
+      console.log('🔍 Fee collection summary called for user:', user.role, 'academic_year:', academic_year);
       
-      // Default to current academic year if not provided
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1; // 1-12
-      const defaultAcademicYear = currentMonth >= 6 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
-      const targetAcademicYear = academic_year || defaultAcademicYear;
+      // Get current academic year from database if not provided
+      let targetAcademicYear = academic_year;
+      if (!targetAcademicYear) {
+        const { getCurrentAcademicYearForSchool } = require('../../utils/academicYearUtils');
+        const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
+        targetAcademicYear = currentAcademicYear ? currentAcademicYear.name : null;
+        
+        if (!targetAcademicYear) {
+          // Fallback to calculated academic year if no current year in database
+          const currentYear = new Date().getFullYear();
+          const currentMonth = new Date().getMonth() + 1; // 1-12
+          targetAcademicYear = currentMonth >= 6 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+        }
+      }
 
       let where = { academic_year: targetAcademicYear };
       let branchWhere = {};
@@ -533,6 +582,12 @@ class DashboardController {
       } else if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         branchWhere.school_id = user.school_id;
+        
+        // Add branch filter if provided
+        if (req.query.branch_id) {
+          where.branch_id = req.query.branch_id;
+          branchWhere.id = req.query.branch_id;
+        }
       } else if (user.role === 'branch_admin') {
         where.branch_id = user.branch_id;
         branchWhere.id = user.branch_id;

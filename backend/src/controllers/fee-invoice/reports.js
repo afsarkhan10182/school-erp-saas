@@ -150,6 +150,12 @@ const getFeeInvoiceReport = async (req, res, next) => {
       school_id: req.schoolId,
     };
 
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see invoices for their assigned branch
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     if (status) whereClause.status = status;
     if (from_date && to_date) {
       whereClause.created_at = {
@@ -199,6 +205,12 @@ const getFeeInvoiceReport = async (req, res, next) => {
     }
     if (class_name) includeClause[0].where.current_class = class_name;
     if (section) includeClause[0].where.section = section;
+    
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see students from their assigned branch
+      includeClause[0].where.branch_id = req.user.branch_id;
+    }
 
     const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
       where: whereClause,
@@ -238,6 +250,12 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     const whereClause = {
       school_id: req.schoolId,
     };
+
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see invoices for their assigned branch
+      whereClause.branch_id = req.user.branch_id;
+    }
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
@@ -281,6 +299,12 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     }
     if (class_name) includeClause[0].where.current_class = class_name;
     if (section) includeClause[0].where.section = section;
+    
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see students from their assigned branch
+      includeClause[0].where.branch_id = req.user.branch_id;
+    }
 
     const invoices = await FeeInvoice.findAll({
       where: whereClause,
@@ -361,14 +385,28 @@ const getFeeStats = async (req, res, next) => {
       school_id: req.schoolId,
     };
 
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see invoices for their assigned branch
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     if (academic_year) whereClause.academic_year = academic_year;
 
     const includeClause = [];
     if (class_name) {
+      const studentWhereClause = { current_class: class_name };
+      
+      // Handle student branch filtering based on user role
+      if (req.user.role === 'branch_admin') {
+        // Branch admin can only see students from their assigned branch
+        studentWhereClause.branch_id = req.user.branch_id;
+      }
+      
       includeClause.push({
         model: Student,
         as: 'student',
-        where: { current_class: class_name },
+        where: studentWhereClause,
         attributes: [],
       });
     }

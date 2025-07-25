@@ -686,10 +686,18 @@ const getGroupedInvoices = async (req, res, next) => {
       invoiceWhereClause.school_id = req.schoolId;
     }
 
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see invoices for their assigned branch
+      invoiceWhereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // Super admin and school admin can filter by specific branch if provided
+      invoiceWhereClause.branch_id = branch_id;
+    }
+
     if (academic_year) invoiceWhereClause.academic_year = academic_year;
     if (status) invoiceWhereClause.status = status;
     if (student_id) invoiceWhereClause.student_id = student_id;
-    if (branch_id) invoiceWhereClause.branch_id = branch_id;
     if (payment_model) invoiceWhereClause.payment_model = payment_model;
 
     const invoiceIncludeClause = [
@@ -730,7 +738,15 @@ const getGroupedInvoices = async (req, res, next) => {
       };
     }
     if (section) studentWhereClause.section = section;
-    if (branch_id) studentWhereClause.branch_id = branch_id;
+    
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see students from their assigned branch
+      studentWhereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // Super admin and school admin can filter by specific branch if provided
+      studentWhereClause.branch_id = branch_id;
+    }
 
     if (Object.keys(studentWhereClause).length > 0) {
       invoiceIncludeClause[0].where = studentWhereClause;

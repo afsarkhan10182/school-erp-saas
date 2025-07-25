@@ -311,7 +311,11 @@ const saveYear = async () => {
     closeForm()
     fetchAcademicYears()
   } catch (error) {
-    showToast(error.message || 'Error saving academic year', 'error')
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error')
+    } else {
+      showToast('Error saving academic year', 'error')
+    }
     console.error('Error saving academic year:', error)
   } finally {
     saving.value = false
@@ -372,7 +376,11 @@ const syncSchoolsToCurrentYear = async () => {
     showToast('All schools synced to current academic year successfully', 'success')
     fetchAcademicYears() // Refresh to get updated schools count
   } catch (error) {
-    showToast(error.message || 'Error syncing schools', 'error')
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error')
+    } else {
+      showToast('Error syncing schools', 'error')
+    }
     console.error('Error syncing schools:', error)
   } finally {
     syncing.value = false

@@ -13,7 +13,7 @@ const generateReceipt = async (paymentData, schoolData, studentData) => {
     // Calculate remaining months and balance for school branch
     let remainingMonths = 0;
     let remainingBalance = 0;
-    let totalMonths = 12;
+    let totalMonths = paymentData.total_months || 12;
     
     if (paymentData.payment_model === 'monthly') {
       // For monthly payments, calculate remaining months
@@ -359,10 +359,6 @@ const generateReceiptHtml = (data, schoolData) => {
           <div class="remaining-info">
             <div class="remaining-title">Monthly Payment Summary</div>
             <div class="info-row">
-              <span class="info-label">Months Paid:</span>
-              <span class="info-value">${data.months_paid || 0} out of ${data.total_months || 12}</span>
-            </div>
-            <div class="info-row">
               <span class="info-label">Remaining Months:</span>
               <span class="info-value">${data.remaining_months || 0} months</span>
             </div>
@@ -456,9 +452,20 @@ const generateMonthlyReceipt = async (monthlyPayment, schoolData, studentData, p
   try {
     // Calculate remaining months and balance
     const totalMonths = monthlyPayment.feeStructure?.total_months || 12;
-    const paidMonths = await calculatePaidMonths(monthlyPayment.student_id, monthlyPayment.fee_structure_id, monthlyPayment.academic_year);
+    const paidMonths = await calculatePaidMonths(monthlyPayment.student_id, monthlyPayment.fee_structure_id, monthlyPayment.academic_year, monthlyPayment);
     const remainingMonths = Math.max(0, totalMonths - paidMonths);
     const remainingBalance = remainingMonths * parseFloat(monthlyPayment.feeStructure?.monthly_payment_amount || 0);
+    
+    // Debug logging
+    console.log('🔍 Individual Receipt Calculation:', {
+      student_id: monthlyPayment.student_id,
+      fee_structure_id: monthlyPayment.fee_structure_id,
+      total_months: totalMonths,
+      monthly_fee: parseFloat(monthlyPayment.feeStructure?.monthly_payment_amount || 0),
+      total_paid_months: paidMonths,
+      remaining_months: remainingMonths,
+      remaining_balance: remainingBalance
+    });
     
     const paymentData = {
       receipt_number: monthlyPayment.receipt_number,
@@ -538,6 +545,17 @@ const calculatePaidMonths = async (studentId, feeStructureId, academicYear, curr
     
     const paidMonths = uniqueMonths.size;
     
+    // Debug logging
+    console.log('🔍 calculatePaidMonths:', {
+      student_id: studentId,
+      fee_structure_id: feeStructureId,
+      academic_year: academicYear,
+      paid_invoices_count: paidInvoices.length,
+      current_invoices: currentInvoices ? (Array.isArray(currentInvoices) ? currentInvoices.length : 1) : 0,
+      unique_months: Array.from(uniqueMonths),
+      total_paid_months: paidMonths
+    });
+    
     return paidMonths;
   } catch (error) {
     logger.error('Error calculating paid months:', error);
@@ -556,7 +574,7 @@ const generateInstallmentReceipt = async (invoice, paymentAmount, paymentMethod,
     let monthInfo = {};
     if (invoice.payment_model === 'monthly') {
       // For monthly payments, calculate remaining months and month details
-      const totalMonths = 12; // Academic year has 12 months
+      const totalMonths = invoice.feeStructure?.total_months || 12; // Get from fee structure
       const monthlyAmount = parseFloat(invoice.total_amount); // This is the monthly amount for monthly payments
       
       // Calculate actual paid months from database (including current payment)

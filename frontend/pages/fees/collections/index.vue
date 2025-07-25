@@ -77,7 +77,6 @@ const handleViewCollection = (collection) => {
 
 const handlePrintCollection = (collection) => {
   // Handle print functionality
-  console.log('Printing collection:', collection);
   showInfo(`Printing receipt for collection ${collection.receipt_number}`);
 };
 

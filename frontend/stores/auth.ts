@@ -61,8 +61,6 @@ export const useAuthStore = defineStore('auth', () => {
       return;
     }
     
-    console.log('🔧 Starting auth initialization...');
-    
     try {
       // Since we use HTTP-only cookies, we can't read the token directly
       // Instead, we check if we have user data in localStorage
@@ -71,7 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
       const savedSchool = localStorage.getItem('current-school');
 
       if (savedUser) {
-        console.log('🔧 Found cached user data, loading immediately');
         // Set user data immediately
         user.value = JSON.parse(savedUser);
         currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
@@ -94,34 +91,27 @@ export const useAuthStore = defineStore('auth', () => {
             ]);
             
             if (!isValid) {
-              console.log('❌ Background verification failed - performing silent logout');
               await silentLogout();
               
               // Redirect to login if not already there
               if (window.location.pathname !== '/login') {
                 await navigateTo('/login');
               }
-            } else {
-              console.log('✅ Background verification successful');
             }
           } catch (error) {
-            console.log('⚠️ Background verification timeout - keeping cached data');
             // Keep cached data for better UX
           }
         }, 1000);
       } else {
-        console.log('🔧 No cached user data - trying server check');
         // No cached data - try to check with server
         try {
           const isValid = await checkAuth();
           if (!isValid) {
-            console.log('❌ No valid session found');
             user.value = null;
             currentBranch.value = null;
             currentSchool.value = null;
           }
         } catch (error) {
-          console.log('❌ Server check failed:', error);
           user.value = null;
           currentBranch.value = null;
           currentSchool.value = null;
@@ -136,12 +126,6 @@ export const useAuthStore = defineStore('auth', () => {
       currentSchool.value = null;
       isInitializing.value = false;
     }
-    
-    console.log('🔧 Auth initialization complete:', {
-      isLoggedIn: isLoggedIn.value,
-      user: !!user.value,
-      isInitializing: isInitializing.value
-    });
   };
 
 
@@ -192,19 +176,8 @@ export const useAuthStore = defineStore('auth', () => {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        // Debug: Check if user is set
-        const accessToken = useCookie('accessToken').value;
-        console.log('🔐 Login successful:', { 
-          user: user.value, 
-          isLoggedIn: isLoggedIn.value,
-          token: !!accessToken,
-          tokenValue: accessToken ? accessToken.substring(0, 20) + '...' : null
-        });
-        
         // Ensure initialization is complete
         isInitializing.value = false;
-        
-        console.log('🔐 Login completed successfully, ready for navigation');
         
         return { success: true, user: userData };
       } else {
@@ -309,7 +282,6 @@ export const useAuthStore = defineStore('auth', () => {
         // User already logged out or token expired - continuing with local cleanup
       }
       // Even if the server logout fails, we should still clear local state
-      console.log('⚠️ Silent logout server call failed, continuing with local cleanup:', error.message);
     } finally {
       // Always clear all auth data regardless of server response
       user.value = null;
@@ -328,15 +300,12 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.removeItem('auth-action');
         }, 100);
       }
-      
-      console.log('🔇 Silent logout completed - auth state cleared');
     }
   };
 
   // Check authentication
   const checkAuth = async (): Promise<boolean> => {
     try {
-      console.log('🔍 Checking authentication...');
       const response = await apiClient.auth.me();
       if (response.success && response.data) {
         user.value = response.data;
@@ -346,10 +315,8 @@ export const useAuthStore = defineStore('auth', () => {
         if (import.meta.client) {
           localStorage.setItem('auth-user', JSON.stringify(response.data));
         }
-        console.log('✅ Authentication check successful, user data restored');
         return true;
       } else {
-        console.log('❌ Authentication check failed: response not successful or no data');
         return false;
       }
     } catch (error) {
@@ -407,14 +374,11 @@ export const useAuthStore = defineStore('auth', () => {
   const handleStorageChange = (event: StorageEvent) => {
     if (!event.key?.startsWith('auth-') && event.key !== 'auth-action') return;
     
-    console.log('🔄 Storage change detected:', event.key, event.newValue);
-    
     // Handle auth action events (login/logout from other tabs)
     if (event.key === 'auth-action') {
       const action = event.newValue;
       
       if (action === 'logout') {
-        console.log('🔄 Cross-tab logout detected');
         // Clear local state immediately without calling server logout
         user.value = null;
         currentBranch.value = null;
@@ -433,7 +397,6 @@ export const useAuthStore = defineStore('auth', () => {
           navigateTo('/login');
         }
       } else if (action === 'login') {
-        console.log('🔄 Cross-tab login detected, refreshing auth state');
         // Refresh auth state from localStorage
         const savedUser = localStorage.getItem('auth-user');
         const savedBranch = localStorage.getItem('current-branch');
@@ -463,7 +426,6 @@ export const useAuthStore = defineStore('auth', () => {
       if (event.newValue === null) {
         // User data was cleared in another tab
         if (user.value) {
-          console.log('🔄 User data cleared in another tab');
           user.value = null;
           currentBranch.value = null;
           currentSchool.value = null;
@@ -472,7 +434,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       } else if (event.newValue && !user.value) {
         // User data was set in another tab
-        console.log('🔄 User data set in another tab');
         const userData = JSON.parse(event.newValue);
         user.value = userData;
         lastAuthCheck.value = Date.now();

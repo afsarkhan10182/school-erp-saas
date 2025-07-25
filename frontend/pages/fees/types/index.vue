@@ -567,20 +567,13 @@ const checkMobile = () => {
 
 onMounted(async () => {
   if (isClient) {
-    console.log('[FeeTypes] Component mounted');
-    console.log('[FeeTypes] User data on mount:', user.value);
-    console.log('[FeeTypes] User role on mount:', user.value?.role);
-    console.log('[FeeTypes] User school_id on mount:', user.value?.school_id);
-    
     // Load schools for super admin on component mount
     if (user.value?.role === 'super_admin') {
-      console.log('[FeeTypes] Loading schools for super admin');
       await fetchSchools();
     }
     
     // Load branches for school admin on component mount
     if (user.value?.role === 'school_admin') {
-      console.log('[FeeTypes] Loading branches for school admin');
       await fetchBranchesForSchoolAdmin();
     }
     

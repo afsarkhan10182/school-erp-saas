@@ -284,6 +284,7 @@ const menuGroups = computed(() => {
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
+            { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
           ]
         }
       ]

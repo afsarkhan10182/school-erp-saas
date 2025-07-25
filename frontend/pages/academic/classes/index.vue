@@ -342,19 +342,14 @@ const fetchBranchesForCurrentSchool = async () => {
       return;
     }
     
-    console.log('Fetching branches for school:', schoolId);
     const response = await apiClient.branches.getBySchool(schoolId);
-    console.log('Branches response:', response);
     
     availableBranches.value = response.data?.branches || response.data?.items || [];
     
     // Auto-select the only branch for School Admin if there's only one
     if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
-      console.log('Auto-selected branch:', selectedBranchId.value);
     }
-    
-    console.log('Available branches after fetch:', availableBranches.value);
   } catch (error) {
     console.error('Error fetching branches for current school:', error);
     availableBranches.value = [];
@@ -406,8 +401,6 @@ const openCreateModal = () => {
 };
 
 const editClass = async (classItem) => {
-  console.log('🔍 Editing class:', classItem);
-  
   // Set editing mode first
   isEditing.value = true;
   editingId.value = classItem.id;
@@ -510,7 +503,6 @@ const saveClass = async () => {
     
     // Show success message
     if (import.meta.client) {
-      console.log('Dispatching success toast event');
       const event = new CustomEvent('show-toast', {
         detail: {
           message: `Class ${isEditing.value ? 'updated' : 'created'} successfully!`,
@@ -519,7 +511,6 @@ const saveClass = async () => {
         }
       });
       window.dispatchEvent(event);
-      console.log('Success toast event dispatched');
     }
   } catch (error) {
     console.error('Error saving class:', error);
@@ -609,7 +600,6 @@ onMounted(async () => {
   // Fetch branches for school admin
   if (authStore.user?.role === 'school_admin') {
     await fetchBranchesForCurrentSchool();
-    console.log('Branches fetched for school admin:', availableBranches.value);
   }
 });
 </script> 

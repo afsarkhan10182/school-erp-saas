@@ -2,17 +2,17 @@
   <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
       <div class="mt-3">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            Quick Fee Collection
-          </h3>
-          <button
-            @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X class="h-6 w-6" />
-          </button>
-        </div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              Quick Fee Collection
+            </h3>
+            <button
+              @click="$emit('close')"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="h-6 w-6" />
+            </button>
+          </div>
 
         <!-- Student Selection -->
         <div class="mb-6">
@@ -189,32 +189,10 @@
             </div>
           </div>
 
-          <!-- Payment Mode Selection -->
+          <!-- Payment Form -->
           <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <h5 class="font-medium text-gray-900 dark:text-white mb-3">Payment Mode</h5>
-            <div class="flex space-x-4 mb-4">
-              <label class="flex items-center">
-                <input
-                  type="radio"
-                  v-model="paymentMode"
-                  value="auto"
-                  class="mr-2"
-                />
-                <span class="text-sm">Auto Mode (Amount-based)</span>
-              </label>
-              <label class="flex items-center">
-                <input
-                  type="radio"
-                  v-model="paymentMode"
-                  value="manual"
-                  class="mr-2"
-                />
-                <span class="text-sm">Manual Mode (Select Months)</span>
-              </label>
-            </div>
-
-            <!-- Auto Mode Payment -->
-            <div v-if="paymentMode === 'auto'" class="space-y-4">
+            <h5 class="font-medium text-gray-900 dark:text-white mb-3">Record Payment</h5>
+            <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -271,81 +249,7 @@
               </div>
               
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                <p>💡 Auto Mode: Enter amount and system automatically calculates months covered. Picks earliest pending months first.</p>
-              </div>
-            </div>
-
-            <!-- Manual Mode Payment -->
-            <div v-if="paymentMode === 'manual'" class="space-y-4">
-              <!-- Month Selection -->
-              <div v-if="availableMonths.length > 0">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Select Months to Pay
-                </label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                  <label
-                    v-for="month in availableMonths"
-                    :key="month.month_key"
-                    class="flex items-center p-2 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                    :class="{ 'bg-blue-50 dark:bg-blue-900 border-blue-300': selectedMonths.includes(month.month_key) }"
-                  >
-                    <input
-                      type="checkbox"
-                      :value="month.month_key"
-                      v-model="selectedMonths"
-                      class="mr-2"
-                      @change="updateManualPaymentAmount"
-                    />
-                    <div class="flex-1">
-                      <div class="text-sm font-medium">{{ month.display_name }}</div>
-                      <div class="text-xs text-gray-500">₹{{ formatCurrency(month.balance_amount) }}</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Manual Payment Form -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Selected Amount
-                  </label>
-                  <input
-                    v-model="manualPaymentAmount"
-                    type="number"
-                    step="0.01"
-                    readonly
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="Select months first"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Payment Method
-                  </label>
-                  <select
-                    v-model="paymentForm.payment_method"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="upi">UPI</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cheque">Cheque</option>
-                  </select>
-                </div>
-                <div class="flex items-end">
-                  <button
-                    @click="recordManualPayment"
-                    :disabled="selectedMonths.length === 0 || isSubmitting"
-                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
-                  </button>
-                </div>
-              </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                <p>💡 Manual Mode: Select specific months to pay. System will validate payment amount matches selected months.</p>
+                <p>💡 System automatically picks earliest pending months first when you enter an amount.</p>
               </div>
             </div>
           </div>
@@ -359,17 +263,9 @@
             <div><strong>Payment Date:</strong> {{ formatDate(lastPaymentReceipt.payment_date) }}</div>
             <div><strong>Amount:</strong> ₹{{ formatCurrency(lastPaymentReceipt.amount) }}</div>
             <div><strong>Method:</strong> {{ lastPaymentReceipt.payment_method }}</div>
-            <div v-if="lastPaymentReceipt.months_covered"><strong>Months Covered:</strong> {{ lastPaymentReceipt.months_covered }}</div>
-            <div v-if="lastPaymentReceipt.month_names"><strong>Months:</strong> {{ lastPaymentReceipt.month_names }}</div>
+
           </div>
-          <div class="mt-3">
-            <button
-              @click="downloadReceipt"
-              class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-            >
-              Download Receipt
-            </button>
-          </div>
+
         </div>
 
         <!-- Loading State -->
@@ -404,12 +300,8 @@ const searchQuery = ref('');
 const searchResults = ref([]);
 const selectedStudent = ref(null);
 const studentDues = ref(null);
-const availableMonths = ref([]);
-const selectedMonths = ref([]);
-const manualPaymentAmount = ref(0);
 const isLoading = ref(false);
 const isSubmitting = ref(false);
-const paymentMode = ref('auto');
 const lastPaymentReceipt = ref(null);
 
 // Payment form
@@ -456,10 +348,7 @@ const selectStudent = async (student) => {
   searchResults.value = [];
   searchQuery.value = `${student.first_name} ${student.last_name}`;
   
-  await Promise.all([
-    loadStudentDues(student.id),
-    loadAvailableMonths(student.id)
-  ]);
+  await loadStudentDues(student.id);
 };
 
 // Load student dues
@@ -501,94 +390,7 @@ const loadStudentDues = async (studentId) => {
   }
 };
 
-// Load available months for manual selection
-const loadAvailableMonths = async (studentId) => {
-  try {
-    const response = await apiClient.feeInvoices.getAvailableMonths({
-      student_id: studentId
-    });
-    
-    availableMonths.value = response.data?.available_months || [];
-  } catch (error) {
-    console.error('Error loading available months:', error);
-    availableMonths.value = [];
-  }
-};
 
-// Update manual payment amount when months are selected
-const updateManualPaymentAmount = () => {
-  if (selectedMonths.value.length === 0) {
-    manualPaymentAmount.value = 0;
-    return;
-  }
-
-  const totalAmount = selectedMonths.value.reduce((total, monthKey) => {
-    const month = availableMonths.value.find(m => m.month_key === monthKey);
-    return total + (month?.amount || 0);
-  }, 0);
-
-  manualPaymentAmount.value = totalAmount;
-};
-
-// Record manual payment
-const recordManualPayment = async () => {
-  if (!selectedStudent.value || selectedMonths.value.length === 0) {
-    return;
-  }
-
-  isSubmitting.value = true;
-  try {
-    const response = await apiClient.feeInvoices.recordFlexibleInstallmentPayment({
-      student_id: selectedStudent.value.id,
-      payment_amount: manualPaymentAmount.value,
-      payment_method: paymentForm.value.payment_method,
-      payment_date: paymentForm.value.payment_date,
-      notes: paymentForm.value.notes,
-      payment_mode: 'manual',
-      selected_invoice_ids: selectedInvoiceIds.value
-    });
-    
-    // Reset form
-    selectedMonths.value = [];
-    manualPaymentAmount.value = 0;
-    
-    // Reload data
-    await Promise.all([
-      loadStudentDues(selectedStudent.value.id),
-      loadAvailableMonths(selectedStudent.value.id)
-    ]);
-    
-    // Emit success event
-    emit('payment-recorded');
-    
-    // Store receipt data
-    const data = response.data;
-    lastPaymentReceipt.value = {
-      receipt_number: data.receipt_group_id,
-      payment_date: data.applied_payments[0]?.payment_date || new Date(),
-      amount: data.total_payment_amount,
-      payment_method: paymentForm.value.payment_method,
-      months_covered: data.summary.months_covered,
-      month_names: data.summary.paid_months,
-      receipt_html: data.combined_receipt
-    };
-    
-    // Show success message
-    let message = `✅ Manual Payment Recorded Successfully!\n\n`;
-    message += `💰 Total Amount: ₹${data.total_payment_amount.toLocaleString()}\n`;
-    message += `📅 Months Paid: ${data.summary.paid_months}\n`;
-    message += `📊 Invoices Processed: ${data.invoices_processed}\n`;
-    message += `🧾 Receipt Group: ${data.receipt_group_id}`;
-    
-    showSuccess(message);
-    
-  } catch (error) {
-    console.error('Error recording manual payment:', error);
-    showError(error.message || 'Error recording payment');
-  } finally {
-    isSubmitting.value = false;
-  }
-};
 
 // Submit smart payment
 const submitPayment = async () => {
@@ -620,43 +422,29 @@ const submitPayment = async () => {
     // Emit success event
     emit('payment-recorded');
     
-    // Store receipt data
+    // Store receipt data (without months info)
     const data = response.data;
     lastPaymentReceipt.value = {
       receipt_number: data.receipt_group_id,
       payment_date: data.applied_payments[0]?.payment_date || new Date(),
       amount: data.total_payment_amount,
       payment_method: paymentForm.value.payment_method,
-      months_covered: data.summary.months_covered,
-      month_names: data.summary.paid_months,
       receipt_html: data.combined_receipt
     };
     
-    // Show success message
-    let message = `✅ Payment Recorded Successfully!\n\n`;
-    message += `💰 Amount Paid: ₹${data.total_payment_amount.toLocaleString()}\n`;
-    message += `📅 Months Covered: ${data.summary.months_covered}\n`;
-    message += `📊 Invoices Processed: ${data.invoices_processed}\n`;
+    // Show simple success message
+    showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
     
-    if (data.remaining_amount > 0) {
-      message += `⚠️ Remaining Amount: ₹${data.remaining_amount.toLocaleString()}\n`;
-    }
-    
-    message += `\n📊 Summary:\n`;
-    message += `• Remaining Invoices: ${data.summary.remaining_invoices}\n`;
-    message += `• Remaining Balance: ₹${data.summary.remaining_balance.toLocaleString()}\n`;
-    
-    if (data.summary.paid_months) {
-      message += `• Paid Months: ${data.summary.paid_months}\n`;
-    }
-    
-    message += `\n🧾 Receipt Group: ${data.receipt_group_id}`;
-    
-    showSuccess(message);
+    // Close modal on success
+    emit('close');
     
   } catch (error) {
     console.error('Error recording auto payment:', error);
-    showError(error.message || 'Error recording payment');
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error recording payment');
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -717,15 +505,7 @@ const getMonthName = (monthNumber) => {
   return months[monthNumber - 1];
 };
 
-// Download receipt function - just show toast, don't open new tab
-const downloadReceipt = () => {
-  if (!lastPaymentReceipt.value?.receipt_html) {
-    showError('Receipt not available for download');
-    return;
-  }
-  
-  showInfo('Receipt downloaded successfully!');
-};
+
 
 // Watch for show prop changes
 watch(() => props.show, (newValue) => {
@@ -735,16 +515,12 @@ watch(() => props.show, (newValue) => {
     searchResults.value = [];
     selectedStudent.value = null;
     studentDues.value = null;
-    availableMonths.value = [];
-    selectedMonths.value = [];
-    manualPaymentAmount.value = 0;
     paymentForm.value = {
       amount: '',
       payment_method: 'cash',
       payment_date: new Date().toISOString().split('T')[0],
       notes: ''
     };
-    paymentMode.value = 'auto';
     lastPaymentReceipt.value = null;
   }
 });
@@ -755,13 +531,6 @@ watch(searchQuery, () => {
 });
 
 // Computed properties
-const selectedInvoiceIds = computed(() => {
-  return selectedMonths.value.map(monthKey => {
-    const month = availableMonths.value.find(m => m.month_key === monthKey);
-    return month?.invoice_id;
-  }).filter(Boolean);
-});
-
 const groupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
   

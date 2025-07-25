@@ -5,27 +5,16 @@ export const useAuth = () => {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      console.log('🚀 Starting login process...');
       const result = await authStore.login(credentials);
       
       if (result.success) {
-        console.log('🚀 Login successful, checking auth state...');
-        
         // Wait a moment for auth state to be fully set
         await nextTick();
         
-        // Debug: Check auth state before navigation
-        console.log('🚀 About to navigate:', { 
-          isLoggedIn: authStore.isLoggedIn,
-          user: !!authStore.currentUser
-        });
-        
         // Force redirect to dashboard - use replace to prevent back navigation
-        console.log('🚀 Navigating to dashboard...');
         await navigateTo('/dashboard', { replace: true });
         return result;
       } else {
-        console.log('❌ Login failed:', result.error);
         return result;
       }
     } catch (error) {

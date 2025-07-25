@@ -499,8 +499,11 @@ const validateSchoolCode = () => {
     isSchoolCodeValid.value = false;
     return false;
   }
-  const codeRegex = /^[a-zA-Z0-9]{2,20}$/;
-  isSchoolCodeValid.value = codeRegex.test(code);
+  // Convert to uppercase and validate - backend requires uppercase letters and numbers only
+  const upperCode = code.toUpperCase();
+  form.value.schoolData.code = upperCode; // Auto-convert to uppercase
+  const codeRegex = /^[A-Z0-9]{2,20}$/;
+  isSchoolCodeValid.value = codeRegex.test(upperCode);
   return isSchoolCodeValid.value;
 };
 

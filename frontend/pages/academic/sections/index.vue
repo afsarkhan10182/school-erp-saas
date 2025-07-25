@@ -29,6 +29,7 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stream</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Capacity</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
@@ -42,6 +43,12 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ section.class?.name }} ({{ section.class?.code }})
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <span v-if="section.stream" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    {{ section.stream.name }} ({{ section.stream.code }})
+                  </span>
+                  <span v-else class="text-gray-400 dark:text-gray-500 text-xs">No Stream</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div class="flex items-center">
@@ -150,6 +157,26 @@
                 </select>
               </div>
 
+              <!-- Stream Selection - Only if class has streams -->
+              <div v-if="!isEditing && hasStreams" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream *</label>
+                <select
+                  v-model="selectedStreamId"
+                  required
+                  :disabled="!selectedClassId || loadingStreams"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  @change="onStreamChange"
+                >
+                  <option value="">{{ loadingStreams ? 'Loading streams...' : 'Select Stream' }}</option>
+                  <option v-for="stream in availableStreams" :key="stream.id" :value="stream.id">
+                    {{ stream.name }} ({{ stream.code }})
+                  </option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Stream is required for this class
+                </p>
+              </div>
+
               <!-- Branch and Class Information Display for Edit Mode -->
               <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Section Information</h4>
@@ -170,6 +197,12 @@
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Class</label>
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedClassName() }}
+                    </p>
+                  </div>
+                  <div v-if="hasStreams">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Stream</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedStreamName() }}
                     </p>
                   </div>
                 </div>
@@ -240,6 +273,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
+import { fetchStreamsAPI } from '~/api/streams';
 
 const sections = ref([]);
 const isLoading = ref(false);
@@ -261,6 +295,11 @@ const { schools, fetchSchools, loading: loadingSchools } = useSchools();
 const selectedSchoolId = ref('');
 const selectedBranchId = ref('');
 const selectedClassId = ref('');
+const selectedStreamId = ref('');
+
+// Streams data
+const streams = ref([]);
+const loadingStreams = ref(false);
 
 // Form data
 const form = reactive({
@@ -271,14 +310,20 @@ const form = reactive({
 
 // Computed property to check if form can be submitted
 const canSubmit = computed(() => {
+  const hasBasicFields = form.name && selectedClassId.value;
+  
   if (userRole.value === 'super_admin') {
-    return selectedSchoolId.value && selectedBranchId.value && selectedClassId.value && form.name;
+    if (!selectedSchoolId.value || !selectedBranchId.value) return false;
   } else if (userRole.value === 'school_admin') {
-    return selectedBranchId.value && selectedClassId.value && form.name;
-  } else {
-    // Branch admin - only needs class and section name
-    return selectedClassId.value && form.name;
+    if (!selectedBranchId.value) return false;
   }
+  
+  // For classes with streams, stream is required
+  if (hasStreams.value && !selectedStreamId.value) {
+    return false;
+  }
+  
+  return hasBasicFields;
 });
 
 // Helper functions to get school, branch, and class names
@@ -302,11 +347,28 @@ const getSelectedClassName = () => {
   return selectedClassId.value ? availableClasses.value.find(c => c.id === selectedClassId.value)?.name : 'N/A';
 };
 
+const getSelectedStreamName = () => {
+  return selectedStreamId.value ? streams.value.find(s => s.id === selectedStreamId.value)?.name : 'N/A';
+};
+
+// Check if selected class has streams
+const hasStreams = computed(() => {
+  if (!selectedClassId.value) return false;
+  return availableStreams.value.length > 0;
+});
+
+// Available streams for the selected class
+const availableStreams = computed(() => {
+  if (!selectedClassId.value) return [];
+  return streams.value.filter(stream => stream.class_id === selectedClassId.value);
+});
+
 const resetForm = () => {
   form.name = '';
   form.capacity = 30;
   form.is_active = true;
   selectedClassId.value = '';
+  selectedStreamId.value = '';
   if (userRole.value === 'super_admin') {
     selectedSchoolId.value = '';
     selectedBranchId.value = '';
@@ -332,9 +394,58 @@ const onBranchChange = async () => {
   }
 };
 
+// Load streams for the selected class
+const loadStreamsForClass = async (classId) => {
+  if (!classId) {
+    streams.value = [];
+    return;
+  }
+  
+  loadingStreams.value = true;
+  try {
+    const params = {
+      class_id: classId,
+      is_active: 'true'
+    };
+    
+    // Add role-based filters
+    if (userRole.value === 'super_admin') {
+      if (selectedSchoolId.value) params.school_id = selectedSchoolId.value;
+      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+    } else if (userRole.value === 'school_admin') {
+      params.school_id = authStore.user?.school_id;
+      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+    } else if (userRole.value === 'branch_admin') {
+      params.school_id = authStore.user?.school_id;
+      params.branch_id = authStore.user?.branch_id;
+    }
+    
+    const response = await fetchStreamsAPI(params);
+    streams.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    streams.value = [];
+  } finally {
+    loadingStreams.value = false;
+  }
+};
+
 // Class change handler
-const onClassChange = () => {
+const onClassChange = async () => {
   // Reset form when class changes (only in create mode)
+  if (!isEditing.value) {
+    form.name = '';
+    form.capacity = 30;
+    selectedStreamId.value = '';
+  }
+  
+  // Load streams for the selected class
+  await loadStreamsForClass(selectedClassId.value);
+};
+
+// Stream change handler
+const onStreamChange = () => {
+  // Reset form when stream changes (only in create mode)
   if (!isEditing.value) {
     form.name = '';
     form.capacity = 30;
@@ -393,8 +504,6 @@ const openCreateModal = async () => {
 };
 
 const editSection = async (section) => {
-  console.log('🔍 Editing section:', section);
-  
   isEditing.value = true;
   editingId.value = section.id;
   
@@ -417,6 +526,11 @@ const editSection = async (section) => {
   
   // Set form values
   selectedClassId.value = section.class_id;
+  selectedStreamId.value = section.stream_id || '';
+  
+  // Load streams for the section's class
+  await loadStreamsForClass(section.class_id);
+  
   form.name = section.name;
   form.capacity = section.capacity;
   form.is_active = section.is_active;
@@ -440,6 +554,11 @@ const saveSection = async () => {
       is_active: form.is_active,
       class_id: selectedClassId.value
     };
+
+    // Add stream_id if stream is selected
+    if (selectedStreamId.value) {
+      payload.stream_id = selectedStreamId.value;
+    }
 
     if (isEditing.value) {
       await apiClient.sections.update(editingId.value, payload);

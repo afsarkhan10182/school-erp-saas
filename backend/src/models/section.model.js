@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
 
@@ -52,6 +52,15 @@ const Section = sequelize.define('Section', {
       key: 'id',
     },
   },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
+      key: 'id',
+    },
+    comment: 'Links to stream for higher classes (11, 12). NULL for lower classes.',
+  },
   class_teacher_id: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -97,9 +106,11 @@ const Section = sequelize.define('Section', {
   timestamps: true,
   underscored: true,
   indexes: [
-    // Updated unique constraint: class_id + name (sections are unique within a class)
-    { fields: ['class_id', 'name'], unique: true },
+    // Sections are unique within a class OR within a stream
+    { fields: ['class_id', 'name'], unique: true, where: { stream_id: null } },
+    { fields: ['stream_id', 'name'], unique: true, where: { stream_id: { [Op.ne]: null } } },
     { fields: ['class_id'] },
+    { fields: ['stream_id'] },
     { fields: ['class_teacher_id'] },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
@@ -119,6 +130,12 @@ Section.associate = (models) => {
   Section.belongsTo(models.Class, {
     foreignKey: 'class_id',
     as: 'class',
+  });
+
+  // Section belongs to Stream (optional - for higher classes)
+  Section.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
   });
 
   // Section belongs to User (class_teacher)

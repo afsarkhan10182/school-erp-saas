@@ -148,6 +148,12 @@ const FeeStructure = sequelize.define('FeeStructure', {
     defaultValue: [],
     comment: 'Array of class names that this fee structure applies to'
   },
+  stream_ids: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of stream IDs that this fee structure applies to (for classes 11 & 12)'
+  },
   section: {
     type: DataTypes.STRING(10),
     allowNull: true,

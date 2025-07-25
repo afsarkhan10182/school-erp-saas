@@ -68,7 +68,7 @@
             <div class="flex justify-between items-center mb-1">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">School Code *</label>
               <span v-if="form.schoolData.code && !isSchoolCodeValid" class="text-xs text-red-600 dark:text-red-400">
-                Must be 2-20 alphanumeric characters
+                Must be 2-20 uppercase letters and numbers only
               </span>
             </div>
             <input 
@@ -79,7 +79,7 @@
                 'input-field', 
                 form.schoolData.code && !isSchoolCodeValid ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
               ]" 
-              placeholder="e.g., SCHOOL001" 
+              placeholder="e.g., TEST01 (uppercase letters and numbers only)" 
               @input="validateSchoolCode"
             />
           </div>
@@ -584,8 +584,11 @@ const validateSchoolCode = () => {
     isSchoolCodeValid.value = false;
     return false;
   }
-  const codeRegex = /^[a-zA-Z0-9]{2,20}$/;
-  isSchoolCodeValid.value = codeRegex.test(code);
+  // Convert to uppercase and validate - backend requires uppercase letters and numbers only
+  const upperCode = code.toUpperCase();
+  form.value.schoolData.code = upperCode; // Auto-convert to uppercase
+  const codeRegex = /^[A-Z0-9]{2,20}$/;
+  isSchoolCodeValid.value = codeRegex.test(upperCode);
   return isSchoolCodeValid.value;
 };
 

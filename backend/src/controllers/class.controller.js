@@ -559,8 +559,6 @@ class ClassController {
         whereClause.branch_id = req.user.branch_id;
       }
 
-      console.log('🔍 Fetching classes with whereClause:', whereClause);
-
       const classes = await Class.findAll({
         where: whereClause,
         attributes: ['id', 'name', 'code', 'numeric_value'],
@@ -573,8 +571,6 @@ class ClassController {
         ],
         order: [['sort_order', 'ASC'], ['name', 'ASC']],
       });
-
-      console.log('🔍 Found classes:', classes.length);
 
       res.json({
         success: true,

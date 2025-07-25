@@ -14,6 +14,7 @@ const feeInvoiceRoutes = require('./fee-invoice.routes');
 const academicYearRoutes = require('./academic-year.routes');
 const classRoutes = require('./class.routes');
 const sectionRoutes = require('./section.routes');
+const streamRoutes = require('./stream.routes');
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.use('/fee-invoices', feeInvoiceRoutes);
 router.use('/academic-years', academicYearRoutes);
 router.use('/classes', classRoutes);
 router.use('/sections', sectionRoutes);
+router.use('/streams', streamRoutes);
 
 module.exports = router;

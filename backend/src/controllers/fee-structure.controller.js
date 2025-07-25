@@ -64,6 +64,7 @@ const createFeeStructure = async (req, res, next) => {
       academic_year_id,
       class_id,
       applicable_classes,
+      stream_ids,
       section,
       fee_type_id,
       amount,
@@ -213,6 +214,7 @@ const createFeeStructure = async (req, res, next) => {
       academic_year: academicYear.name,
       class_name: classesToProcess[0].name, // Keep for backward compatibility
       applicable_classes: classesToProcess.map(c => c.name), // Store all class names
+      stream_ids: stream_ids || [], // Store stream IDs for higher classes
       section: section || null,
       fee_type_id,
       amount: calculatedAmount,
@@ -356,6 +358,7 @@ const updateFeeStructure = async (req, res, next) => {
       academic_year_id,
       class_id,
       applicable_classes,
+      stream_ids,
       section,
       fee_type_id,
       amount,
@@ -392,6 +395,7 @@ const updateFeeStructure = async (req, res, next) => {
       amount,
       is_active,
       section: section || null,
+      stream_ids: stream_ids || [],
       updated_by: req.user.id,
     };
 

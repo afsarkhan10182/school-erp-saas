@@ -274,18 +274,42 @@
                 </div>
               </div>
 
-              <!-- Section Dropdown -->
-              <div>
+              <!-- Stream Selection - Only when streams are available for selected classes -->
+              <div v-if="hasStreamsAvailable">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream (Optional)</label>
+                <select
+                  v-model="form.stream_ids"
+                  multiple
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option 
+                    v-for="stream in streams" 
+                    :key="stream.id" 
+                    :value="stream.id"
+                  >
+                    {{ stream.name }} ({{ stream.code }})
+                  </option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Select streams for the applicable classes. This allows different fees for different streams (e.g., Science IT vs Commerce General). Leave empty to apply to all streams.
+                </p>
+              </div>
+
+              <!-- Section Dropdown - Only when sections are available for selected classes -->
+              <div v-if="hasSectionsAvailable">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section (Optional)</label>
                 <select
                   v-model="form.section_id"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">All Sections (General)</option>
-                  <option v-for="section in sections" :key="section.id" :value="section.id">
+                  <option v-for="section in filteredSections" :key="section.id" :value="section.id">
                     {{ section.name }}
                   </option>
                 </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ hasStreamsAvailable && form.stream_ids.length > 0 ? 'Sections filtered by selected streams' : 'All available sections for selected classes' }}
+                </p>
               </div>
 
               <!-- Fee Type Dropdown -->
@@ -584,6 +608,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
+import { fetchStreamsAPI } from '~/api/streams';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // SSR-safe window check
@@ -616,11 +641,15 @@ const availableBranches = ref([]);
 // Multi-class selection
 const selectedClassToAdd = ref('');
 
+// Stream selection
+const streams = ref([]);
+
 const form = ref({
   academic_year_id: '',
   applicable_classes: [], // New field for multi-class selection
   class_id: '', // Keep for backward compatibility
   section_id: '',
+  stream_ids: [], // New field for multi-stream selection
   fee_type_id: '',
   amount: '',
   payment_model: '',
@@ -679,9 +708,33 @@ const amountCalculationNote = computed(() => {
   return '';
 });
 
+// Check if any selected classes have streams available
+const hasStreamsAvailable = computed(() => {
+  return streams.value.length > 0;
+});
+
+// Check if any selected classes have sections available
+const hasSectionsAvailable = computed(() => {
+  return sections.value.length > 0;
+});
+
 // Computed property for available classes for selection (exclude already selected)
 const availableClassesForSelection = computed(() => {
   return classes.value.filter(classItem => !form.value.applicable_classes.includes(classItem.name));
+});
+
+// Computed property for sections filtered by selected streams
+const filteredSections = computed(() => {
+  let filtered = sections.value;
+  
+  // If streams are selected, filter sections by streams
+  if (hasStreamsAvailable.value && form.value.stream_ids.length > 0) {
+    filtered = sections.value.filter(section => 
+      section.stream_id && form.value.stream_ids.includes(section.stream_id)
+    );
+  }
+  
+  return filtered;
 });
 
 // Flag to prevent watcher from running during form reset
@@ -694,6 +747,7 @@ const resetForm = () => {
     applicable_classes: [], // Reset for create
     class_id: '', // Reset for create
     section_id: '',
+    stream_ids: [], // Reset for create
     fee_type_id: '',
     amount: '', // Reset amount to empty
     payment_model: '', // No default - user must select
@@ -712,6 +766,8 @@ const resetForm = () => {
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
   selectedClassToAdd.value = '';
+  streams.value = [];
+  sections.value = [];
   
   // Set current academic year ID if available (only for create mode)
   if (!isEditing.value && academicYears.value && academicYears.value.length > 0) {
@@ -741,6 +797,91 @@ const removeClass = (className) => {
   const index = form.value.applicable_classes.indexOf(className);
   if (index > -1) {
     form.value.applicable_classes.splice(index, 1);
+  }
+};
+
+
+
+// Load streams for selected classes
+const loadStreamsForClasses = async () => {
+  if (form.value.applicable_classes.length === 0) {
+    streams.value = [];
+    return;
+  }
+  
+  try {
+    // Get current school and branch context
+    const currentSchoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+    const currentBranchId = selectedBranchId.value;
+    
+    if (!currentSchoolId || !currentBranchId) {
+      streams.value = [];
+      return;
+    }
+    
+    // Get all class IDs for the selected classes (only from current school/branch)
+    const classIds = [];
+    for (const className of form.value.applicable_classes) {
+      // Find class by name, but ensure it belongs to the current school/branch context
+      const classItem = classes.value.find(c => c.name === className);
+      if (classItem) {
+        // Double-check that this class belongs to the current branch
+        // (classes.value should already be filtered by school/branch from fetchClasses)
+        classIds.push(classItem.id);
+      }
+    }
+    
+    if (classIds.length === 0) {
+      streams.value = [];
+      return;
+    }
+    
+    // Fetch streams for each selected class with strict school-branch-class coupling
+    const allStreams = [];
+    for (const classId of classIds) {
+      const params = {
+        class_id: classId,
+        school_id: currentSchoolId,  // Always include school_id
+        branch_id: currentBranchId,  // Always include branch_id
+        is_active: 'true'
+      };
+      
+      const response = await fetchStreamsAPI(params);
+      if (response.data && response.data.length > 0) {
+        allStreams.push(...response.data);
+      }
+    }
+    
+    // Remove duplicates based on stream ID
+    streams.value = allStreams.filter((stream, index, self) => 
+      index === self.findIndex(s => s.id === stream.id)
+    );
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    streams.value = [];
+  }
+};
+
+// Load sections for selected classes
+const loadSectionsForClasses = async () => {
+  if (form.value.applicable_classes.length === 0) {
+    sections.value = [];
+    return;
+  }
+  
+  try {
+    const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+    const branchId = selectedBranchId.value;
+    
+    // Load sections for all selected classes
+    for (const className of form.value.applicable_classes) {
+      const classItem = classes.value.find(c => c.name === className);
+      if (classItem) {
+        await loadSectionsByClass(classItem.id, schoolId, branchId);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading sections for classes:', error);
   }
 };
 // Handle payment model change
@@ -925,6 +1066,7 @@ const onBranchChange = async () => {
   form.value.class_id = ''; // Clear class_id for backward compatibility
   form.value.section_id = '';
   sections.value = []; // Clear sections
+  streams.value = []; // Clear streams
   
   // Reload classes for the selected branch
   if (selectedBranchId.value) {
@@ -1111,12 +1253,19 @@ const editFeeStructure = async (structure) => {
     }
   }
   
+  // Handle streams if they exist
+  let streamIds = [];
+  if (structure.stream_ids && Array.isArray(structure.stream_ids) && structure.stream_ids.length > 0) {
+    streamIds = structure.stream_ids;
+  }
+  
   // Set form values
   form.value = {
     academic_year_id: academicYearId,
     applicable_classes: applicableClasses, // Set for edit
     class_id: '', // Keep empty for edit mode since we use applicable_classes
     section_id: sectionId || '',
+    stream_ids: streamIds, // Set stream IDs
     fee_type_id: structure.fee_type_id,
     amount: structure.amount,
     payment_model: structure.payment_model || 'monthly',
@@ -1220,6 +1369,7 @@ const saveFeeStructure = async () => {
       ...form.value,
       amount: calculatedAmount, // Use the calculated amount
       applicable_classes: form.value.applicable_classes, // Send applicable classes array
+      stream_ids: form.value.stream_ids, // Send stream IDs array
       section: sectionName, // Send section name instead of section_id
       school_id: user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
       branch_id: selectedBranchId.value || user.value?.branch_id
@@ -1365,6 +1515,16 @@ watch(sections, (newSections) => {
     }
   }
 }, { immediate: true });
+
+// Watch for applicable_classes changes to load streams and sections
+watch(() => form.value.applicable_classes, async (newClasses) => {
+  if (!isResettingForm.value) {
+    await Promise.all([
+      loadStreamsForClasses(),
+      loadSectionsForClasses()
+    ]);
+  }
+}, { deep: true });
 
 // Handle window resize
 let resizeObserver;

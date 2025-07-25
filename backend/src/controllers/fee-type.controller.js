@@ -83,9 +83,9 @@ const getFeeTypes = async (req, res, next) => {
       is_active: true,
     };
 
-    // Add branch filter if branch context is set and not super admin
-    if (req.branchId && req.user.role !== 'super_admin') {
-      whereClause.branch_id = req.branchId;
+    // Add branch filter for branch_admin and when branch context is set
+    if (req.user.role === 'branch_admin' || (req.branchId && req.user.role !== 'super_admin')) {
+      whereClause.branch_id = req.branchId || req.user.branch_id;
     }
 
     const feeTypes = await FeeType.findAll({

@@ -88,6 +88,12 @@ const getAcademicYearMonths = (startingMonth, academicYear) => {
  * @returns {string} Month name
  */
 const getMonthName = (month) => {
+  // Validate input
+  if (!month || typeof month !== 'number' || month < 1 || month > 12) {
+    console.warn(`Invalid month number: ${month}. Returning 'Unknown'.`);
+    return 'Unknown';
+  }
+  
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -123,14 +129,41 @@ const isCurrentAcademicMonth = (month, year, startingMonth) => {
  * @returns {Object|null} Earliest pending month or null if all paid
  */
 const getEarliestPendingMonth = (invoices, startingMonth) => {
+  // Validate inputs
+  if (!Array.isArray(invoices)) {
+    throw new Error('Invoices must be an array');
+  }
+  
+  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
+    throw new Error('Starting month must be a valid number between 1 and 12');
+  }
+  
   // Filter monthly invoices and sort by academic month sequence
   const monthlyInvoices = invoices
-    .filter(inv => inv.payment_model === 'monthly')
+    .filter(inv => {
+      // Ensure invoice has required properties
+      if (!inv || typeof inv !== 'object') return false;
+      
+      // Check if it's a monthly payment
+      const isMonthly = inv.payment_model === 'monthly' || 
+                       (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
+      
+      // Ensure month and year are valid numbers
+      const hasValidMonth = inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
+      const hasValidYear = inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
+      
+      return isMonthly && hasValidMonth && hasValidYear;
+    })
     .sort((a, b) => {
-      // Sort by academic month sequence
-      const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
-      const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
-      return aAcademicMonth - bAcademicMonth;
+      try {
+        // Sort by academic month sequence
+        const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
+        const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
+        return aAcademicMonth - bAcademicMonth;
+      } catch (error) {
+        console.error('Error sorting invoices:', error);
+        return 0;
+      }
     });
   
   // Find the first unpaid invoice
@@ -150,6 +183,19 @@ const getEarliestPendingMonth = (invoices, startingMonth) => {
  * @returns {number} Academic month number (1-12)
  */
 const getAcademicMonthNumber = (month, year, startingMonth) => {
+  // Validate inputs
+  if (!month || typeof month !== 'number' || month < 1 || month > 12) {
+    throw new Error(`Invalid month: ${month}. Month must be a number between 1 and 12.`);
+  }
+  
+  if (!year || typeof year !== 'number' || year < 2000 || year > 2100) {
+    throw new Error(`Invalid year: ${year}. Year must be a number between 2000 and 2100.`);
+  }
+  
+  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
+    throw new Error(`Invalid starting month: ${startingMonth}. Starting month must be a number between 1 and 12.`);
+  }
+  
   // This is a simplified calculation - in practice you'd need the academic year context
   // For now, assuming the month is within the current academic year
   if (month >= startingMonth) {
@@ -169,7 +215,7 @@ const getAcademicMonthNumber = (month, year, startingMonth) => {
 const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) => {
   // Get all monthly invoices sorted by academic month
   const monthlyInvoices = allInvoices
-    .filter(inv => inv.payment_model === 'monthly')
+    .filter(inv => inv.payment_model === 'monthly' || (inv.feeStructure && inv.feeStructure.payment_model === 'monthly'))
     .sort((a, b) => {
       const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
       const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
@@ -257,12 +303,39 @@ const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) =
  * @returns {Array} Array of available months for payment
  */
 const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
+  // Validate inputs
+  if (!Array.isArray(invoices)) {
+    throw new Error('Invoices must be an array');
+  }
+  
+  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
+    throw new Error('Starting month must be a valid number between 1 and 12');
+  }
+  
   const monthlyInvoices = invoices
-    .filter(inv => inv.payment_model === 'monthly')
+    .filter(inv => {
+      // Ensure invoice has required properties
+      if (!inv || typeof inv !== 'object') return false;
+      
+      // Check if it's a monthly payment
+      const isMonthly = inv.payment_model === 'monthly' || 
+                       (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
+      
+      // Ensure month and year are valid numbers
+      const hasValidMonth = inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
+      const hasValidYear = inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
+      
+      return isMonthly && hasValidMonth && hasValidYear;
+    })
     .sort((a, b) => {
-      const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
-      const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
-      return aAcademicMonth - bAcademicMonth;
+      try {
+        const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
+        const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
+        return aAcademicMonth - bAcademicMonth;
+      } catch (error) {
+        console.error('Error sorting invoices:', error);
+        return 0;
+      }
     });
   
   const availableMonths = [];

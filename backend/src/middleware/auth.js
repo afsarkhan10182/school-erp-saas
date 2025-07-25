@@ -126,6 +126,12 @@ const requireRole = (...roles) => {
       
       if (!roles.includes(req.user.role)) {
         logger.warn(`requireRole: User role ${req.user.role} not in allowed roles: ${roles.join(', ')}`);
+        console.log('🚫 requireRole: Access denied for user:', {
+          userRole: req.user.role,
+          allowedRoles: roles,
+          userId: req.user.id,
+          userEmail: req.user.email
+        });
         return next(
           new ApiError(
             403,

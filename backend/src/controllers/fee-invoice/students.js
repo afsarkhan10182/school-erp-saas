@@ -25,13 +25,17 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
     invoiceFilter.academic_year = academic_year;
   }
 
+  // Add payment model filter if specified
+  if (payment_model) {
+    invoiceFilter.payment_model = payment_model;
+  }
+
   const includeClause = [];
   
   if (includeFeeStructure) {
     includeClause.push({
       model: FeeStructure,
       as: 'feeStructure',
-      ...(payment_model && { where: { payment_model } }),
       include: [
         {
           model: FeeType,
@@ -261,8 +265,8 @@ const getStudentFeeLedger = async (req, res, next) => {
       invoiceFilter.academic_year = academic_year;
     }
 
-    // Get invoices with pagination
-    const { count, rows: invoices } = await FeeInvoice.findAndCountAll({
+    // Get all invoices first (without pagination to handle grouping)
+    const allInvoices = await FeeInvoice.findAll({
       where: invoiceFilter,
       include: [
         {
@@ -282,36 +286,103 @@ const getStudentFeeLedger = async (req, res, next) => {
         },
       ],
       order: [['created_at', 'DESC']],
-      limit: parseInt(limit),
-      offset: offset,
     });
 
-    // Calculate summary
-    const totalInvoices = await FeeInvoice.count({
-      where: invoiceFilter,
+    // Separate monthly payments from regular invoices
+    const monthlyPayments = allInvoices.filter(invoice => 
+      invoice.feeStructure?.payment_model === 'monthly'
+    );
+    
+    const regularInvoices = allInvoices.filter(invoice => 
+      invoice.feeStructure?.payment_model !== 'monthly'
+    );
+
+    // Group monthly payments by receipt_group_id for paid/partial_paid invoices
+    const groupedMonthlyPayments = [];
+    const ungroupedMonthlyPayments = [];
+    
+    // Group invoices that have receipt_group_id (paid/partial_paid)
+    const groupedInvoices = {};
+    monthlyPayments.forEach(invoice => {
+      if (invoice.receipt_group_id && ['paid', 'partial_paid'].includes(invoice.status)) {
+        if (!groupedInvoices[invoice.receipt_group_id]) {
+          groupedInvoices[invoice.receipt_group_id] = {
+            receipt_group_id: invoice.receipt_group_id,
+            invoices: [],
+            total_amount: 0,
+            total_paid: 0,
+            total_balance: 0,
+            payment_date: invoice.last_payment_date,
+            payment_method: invoice.payment_method,
+            transaction_id: invoice.transaction_id,
+            status: invoice.status,
+          };
+        }
+        groupedInvoices[invoice.receipt_group_id].invoices.push(invoice);
+        groupedInvoices[invoice.receipt_group_id].total_amount += parseFloat(invoice.total_amount || 0);
+        groupedInvoices[invoice.receipt_group_id].total_paid += parseFloat(invoice.paid_amount || 0);
+        groupedInvoices[invoice.receipt_group_id].total_balance += parseFloat(invoice.balance_amount || 0);
+      } else {
+        ungroupedMonthlyPayments.push(invoice);
+      }
     });
 
-    const paidInvoices = await FeeInvoice.count({
-      where: { ...invoiceFilter, status: 'paid' },
+    // Convert grouped invoices to array format with enhanced info
+    Object.values(groupedInvoices).forEach(group => {
+      const months = group.invoices.map(inv => inv.month).sort((a, b) => a - b);
+      const years = [...new Set(group.invoices.map(inv => inv.year))];
+      
+      groupedMonthlyPayments.push({
+        id: group.receipt_group_id, // Use receipt_group_id as ID for grouping
+        receipt_group_id: group.receipt_group_id,
+        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
+        class_name: group.invoices[0]?.class_name,
+        section: group.invoices[0]?.section,
+        total_amount: group.total_amount,
+        paid_amount: group.total_paid,
+        balance_amount: group.total_balance,
+        due_date: group.invoices[0]?.due_date,
+        status: group.total_balance <= 0 ? 'paid' : 'partial_paid',
+        academic_year: group.invoices[0]?.academic_year,
+        month: months[0], // First month in group
+        year: years[0],
+        months_covered: group.invoices.length,
+        month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
+        month_names: group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', '),
+        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
+        payment_date: group.payment_date,
+        payment_method: group.payment_method,
+        transaction_id: group.transaction_id,
+        payment_model: 'monthly',
+        feeStructure: group.invoices[0]?.feeStructure,
+        is_grouped: true,
+        payments: group.invoices[0]?.payments || []
+      });
     });
 
-    const overdueInvoices = await FeeInvoice.count({
-      where: { ...invoiceFilter, status: 'overdue' },
-    });
+    // Combine all invoices: grouped payments + ungrouped monthly + regular invoices
+    const allCombinedInvoices = [
+      ...groupedMonthlyPayments,
+      ...ungroupedMonthlyPayments,
+      ...regularInvoices
+    ];
 
-    const amountStats = await FeeInvoice.findAll({
-      where: invoiceFilter,
-      attributes: [
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
-      ],
-      raw: true,
-    });
+    // Apply pagination to combined results
+    const totalCount = allCombinedInvoices.length;
+    const paginatedInvoices = allCombinedInvoices.slice(offset, offset + parseInt(limit));
 
-    const stats = amountStats[0] || {};
+    // Calculate summary based on combined invoices
+    const totalInvoices = allCombinedInvoices.length;
+    const paidInvoices = allCombinedInvoices.filter(inv => inv.status === 'paid').length;
+    const overdueInvoices = allCombinedInvoices.filter(inv => inv.status === 'overdue').length;
 
-    const totalPages = Math.ceil(count / parseInt(limit));
+    // Calculate amount stats from combined invoices
+    const totalAmount = allCombinedInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+    const totalPaid = allCombinedInvoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0);
+    const totalBalance = allCombinedInvoices.reduce((sum, inv) => sum + parseFloat(inv.balance_amount || 0), 0);
+
+    const totalPages = Math.ceil(totalCount / parseInt(limit));
 
     return res.status(200).json({
       success: true,
@@ -328,38 +399,68 @@ const getStudentFeeLedger = async (req, res, next) => {
           total_invoices: totalInvoices,
           paid_invoices: paidInvoices,
           overdue_invoices: overdueInvoices,
-          total_amount: parseFloat(stats.total_amount || 0),
-          total_paid: parseFloat(stats.total_paid || 0),
-          total_balance: parseFloat(stats.total_balance || 0),
-          collection_rate: stats.total_amount ? ((stats.total_paid / stats.total_amount) * 100).toFixed(2) : 0,
+          total_amount: totalAmount,
+          total_paid: totalPaid,
+          total_balance: totalBalance,
+          collection_rate: totalAmount > 0 ? ((totalPaid / totalAmount) * 100).toFixed(2) : 0,
         },
-        invoices: invoices.map(invoice => ({
-          id: invoice.id,
-          invoice_number: invoice.invoice_number,
-          fee_type: invoice.feeStructure?.feeType?.name || 'Unknown',
-          class_name: invoice.class_name,
-          section: invoice.section,
-          total_amount: parseFloat(invoice.total_amount || 0),
-          paid_amount: parseFloat(invoice.paid_amount || 0),
-          balance_amount: parseFloat(invoice.balance_amount || 0),
-          due_date: invoice.due_date,
-          status: invoice.status,
-          academic_year: invoice.academic_year,
-          created_at: invoice.created_at,
-          payments: invoice.payments?.map(payment => ({
-            id: payment.id,
-            payment_number: payment.payment_number,
-            receipt_number: payment.receipt_number,
-            payment_amount: parseFloat(payment.payment_amount || 0),
-            payment_method: payment.payment_method,
-            payment_date: payment.payment_date,
-            created_at: payment.created_at,
-          })) || [],
-        })),
+        invoices: paginatedInvoices.map(invoice => {
+          // Handle grouped payments differently
+          if (invoice.is_grouped) {
+            return {
+              id: invoice.id,
+              invoice_number: invoice.invoice_number,
+              fee_type: invoice.fee_type,
+              class_name: invoice.class_name,
+              section: invoice.section,
+              total_amount: invoice.total_amount,
+              paid_amount: invoice.paid_amount,
+              balance_amount: invoice.balance_amount,
+              due_date: invoice.due_date,
+              status: invoice.status,
+              academic_year: invoice.academic_year,
+              created_at: invoice.payment_date || invoice.created_at,
+              payment_model: invoice.payment_model,
+              is_grouped: true,
+              receipt_group_id: invoice.receipt_group_id,
+              months_covered: invoice.months_covered,
+              month_names: invoice.month_names,
+              display_name: invoice.display_name,
+              payments: invoice.payments || [],
+            };
+          } else {
+            // Regular invoice
+            return {
+              id: invoice.id,
+              invoice_number: invoice.invoice_number,
+              fee_type: invoice.feeStructure?.feeType?.name || 'Unknown',
+              class_name: invoice.class_name,
+              section: invoice.section,
+              total_amount: parseFloat(invoice.total_amount || 0),
+              paid_amount: parseFloat(invoice.paid_amount || 0),
+              balance_amount: parseFloat(invoice.balance_amount || 0),
+              due_date: invoice.due_date,
+              status: invoice.status,
+              academic_year: invoice.academic_year,
+              created_at: invoice.created_at,
+              payment_model: invoice.feeStructure?.payment_model || 'installment',
+              is_grouped: false,
+              payments: invoice.payments?.map(payment => ({
+                id: payment.id,
+                payment_number: payment.payment_number,
+                receipt_number: payment.receipt_number,
+                payment_amount: parseFloat(payment.payment_amount || 0),
+                payment_method: payment.payment_method,
+                payment_date: payment.payment_date,
+                created_at: payment.created_at,
+              })) || [],
+            };
+          }
+        }),
         pagination: {
           current_page: parseInt(page),
           total_pages: totalPages,
-          total_count: count,
+          total_count: totalCount,
           limit: parseInt(limit),
         },
       },
@@ -676,16 +777,44 @@ const getAvailableMonths = async (req, res, next) => {
     const startingMonth = school.starting_month || 6; // Default to June
 
     // Get monthly payment invoices using shared utility
-    const monthlyInvoices = await getStudentInvoices(student_id, req.schoolId, { 
-      academic_year, 
-      payment_model: 'monthly' 
-    });
+    let monthlyInvoices = [];
+    try {
+      monthlyInvoices = await getStudentInvoices(student_id, req.schoolId, { 
+        academic_year, 
+        payment_model: 'monthly' 
+      });
+    } catch (error) {
+      logger.error('Error fetching student invoices:', error);
+      throw new ApiError(500, 'Error fetching student invoices');
+    }
 
     // Get available payment months (enforcing sequence rules)
-    const availablePaymentInvoices = getAvailablePaymentMonths(monthlyInvoices, startingMonth, 12);
+    let availablePaymentInvoices = [];
+    let earliestPending = null;
     
-    // Get earliest pending month for reference
-    const earliestPending = getEarliestPendingMonth(monthlyInvoices, startingMonth);
+    try {
+      // Filter out invoices with missing month/year data
+      const validMonthlyInvoices = monthlyInvoices.filter(invoice => {
+        return invoice.month && invoice.year && 
+               typeof invoice.month === 'number' && 
+               typeof invoice.year === 'number' &&
+               invoice.month >= 1 && invoice.month <= 12 &&
+               invoice.year >= 2000 && invoice.year <= 2100;
+      });
+      
+      if (validMonthlyInvoices.length === 0) {
+        logger.info(`No valid monthly invoices found for student ${student_id}`);
+        availablePaymentInvoices = [];
+        earliestPending = null;
+      } else {
+        availablePaymentInvoices = getAvailablePaymentMonths(validMonthlyInvoices, startingMonth, 12);
+        earliestPending = getEarliestPendingMonth(validMonthlyInvoices, startingMonth);
+      }
+    } catch (error) {
+      logger.error('Error calculating available payment months:', error);
+      logger.error('Monthly invoices data:', JSON.stringify(monthlyInvoices, null, 2));
+      throw new ApiError(500, 'Error calculating available payment months');
+    }
 
     // Group by month and calculate totals
     const monthGroups = {};
@@ -718,22 +847,29 @@ const getAvailableMonths = async (req, res, next) => {
     });
 
     // Convert to array and format
-    const availableMonths = Object.values(monthGroups).map(group => ({
-      month: group.month,
-      year: group.year,
-      month_key: group.month_key,
-      display_name: `${getMonthName(group.month)} ${group.year}`,
-      total_amount: group.total_amount,
-      paid_amount: group.paid_amount,
-      balance_amount: group.balance_amount,
-      fee_types: Array.from(group.fee_types),
-      invoice_count: group.invoices.length,
-      status: group.balance_amount <= 0 ? 'paid' : group.paid_amount > 0 ? 'partial_paid' : 'pending',
-      due_date: group.invoices[0]?.due_date,
-      invoice_ids: group.invoices.map(inv => inv.id),
-      is_earliest_pending: group.is_earliest_pending,
-      can_pay: group.balance_amount > 0, // Can only pay if there's a balance
-    }));
+    const availableMonths = Object.values(monthGroups).map(group => {
+      try {
+        return {
+          month: group.month,
+          year: group.year,
+          month_key: group.month_key,
+          display_name: `${getMonthName(group.month)} ${group.year}`,
+          total_amount: group.total_amount,
+          paid_amount: group.paid_amount,
+          balance_amount: group.balance_amount,
+          fee_types: Array.from(group.fee_types),
+          invoice_count: group.invoices.length,
+          status: group.balance_amount <= 0 ? 'paid' : group.paid_amount > 0 ? 'partial_paid' : 'pending',
+          due_date: group.invoices[0]?.due_date,
+          invoice_ids: group.invoices.map(inv => inv.id),
+          is_earliest_pending: group.is_earliest_pending,
+          can_pay: group.balance_amount > 0, // Can only pay if there's a balance
+        };
+      } catch (error) {
+        logger.error('Error formatting month group:', error, group);
+        return null;
+      }
+    }).filter(Boolean); // Remove any null entries
 
     return res.status(200).json({
       success: true,

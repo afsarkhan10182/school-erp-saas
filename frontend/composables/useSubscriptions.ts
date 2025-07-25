@@ -135,14 +135,20 @@ export function useSubscriptions() {
     error.value = '';
     try {
       const response = await apiClient.subscriptions.createSchoolWithSubscription(formData);
+      
       if (!response.success) {
-        error.value = response.message || 'Failed to create school with subscription.';
-        return null;
+        // Create an error object that mimics axios error structure
+        const apiError = new Error(response.message || 'Failed to create school with subscription.');
+        (apiError as any).response = {
+          data: response,
+          status: 400
+        };
+        throw apiError;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || 'Network error.';
-      return null;
+      // Let the component handle the error details
+      throw e;
     } finally {
       loading.value = false;
     }

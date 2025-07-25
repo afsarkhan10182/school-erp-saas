@@ -505,7 +505,6 @@ const onSchoolChange = async () => {
 };
 
 const onBranchChange = async () => {
-  console.log('🔍 onBranchChange called with branch_id:', selectedBranch.value);
   selectedClass.value = '';
   selectedSection.value = '';
   classes.value = [];
@@ -517,9 +516,7 @@ const onBranchChange = async () => {
     classesLoading.value = true;
     try {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
-      console.log('🔍 Fetching classes for school_id:', schoolId, 'branch_id:', selectedBranch.value);
       await fetchClasses(schoolId, selectedBranch.value);
-      console.log('🔍 Classes loaded:', classes.value.length);
     } catch (error) {
       console.error('❌ Error loading classes:', error);
     } finally {
@@ -552,15 +549,6 @@ const onAcademicYearChange = () => {
 };
 
 const applyFilters = async () => {
-  console.log('🔍 Applying filters:', {
-    canApplyFilters: canApplyFilters.value,
-    selectedSchool: selectedSchool.value,
-    selectedBranch: selectedBranch.value,
-    selectedClass: selectedClass.value,
-    selectedSection: selectedSection.value,
-    academicYear: filters.academic_year
-  });
-  
   if (canApplyFilters.value) {
     await fetchStudents();
   }
@@ -619,28 +607,18 @@ const fetchStudents = async () => {
       params.section_id = selectedSection.value;
     }
 
-    console.log('🔍 Fetching students with params:', params);
-
     const response = await apiClient.students.getAll(params);
-    console.log('🔍 Students response:', response);
-    console.log('🔍 Response data type:', typeof response.data);
-    console.log('🔍 Response data is array:', Array.isArray(response.data));
-    console.log('🔍 Response data:', response.data);
     
     if (response.success) {
       if (response.data && Array.isArray(response.data)) {
         students.value = response.data;
-        console.log('🔍 Set students from direct array:', students.value.length);
       } else if (response.data && response.data.items) {
         students.value = response.data.items;
-        console.log('🔍 Set students from paginated response:', students.value.length);
       } else {
         students.value = [];
-        console.log('🔍 No valid data found, set empty array');
       }
     } else {
       students.value = [];
-      console.log('🔍 Response not successful, set empty array');
     }
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -701,7 +679,6 @@ onMounted(async () => {
 
 // Watch for branch changes
 watch(selectedBranch, (newBranch, oldBranch) => {
-  console.log('🔍 Branch watcher triggered:', oldBranch, '->', newBranch);
   if (newBranch !== oldBranch && newBranch) {
     onBranchChange();
   }
