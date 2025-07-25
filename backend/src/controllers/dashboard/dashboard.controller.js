@@ -443,6 +443,7 @@ class DashboardController {
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
@@ -478,6 +479,7 @@ class DashboardController {
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
@@ -515,6 +517,7 @@ class DashboardController {
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
@@ -573,8 +576,13 @@ class DashboardController {
         }
       }
 
-      let where = { academic_year: targetAcademicYear };
+      let where = {};
       let branchWhere = {};
+      
+      // Only filter by academic year if explicitly provided
+      if (targetAcademicYear) {
+        where.academic_year = targetAcademicYear;
+      }
 
       if (user.role === 'super_admin') {
         // Super admin can see all schools
@@ -589,6 +597,7 @@ class DashboardController {
           branchWhere.id = req.query.branch_id;
         }
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
         branchWhere.id = user.branch_id;
       } else {
@@ -596,9 +605,14 @@ class DashboardController {
       }
 
       // Get total collected and pending amounts
+      console.log('🔍 Dashboard query where clause:', JSON.stringify(where, null, 2));
+      
       const [totalCollected, totalPending] = await Promise.all([
         FeeInvoice.sum('paid_amount', { 
-          where: { ...where, status: 'paid' } 
+          where: { 
+            ...where, 
+            status: { [Op.in]: ['paid', 'partial_paid'] } 
+          } 
         }),
         FeeInvoice.sum('balance_amount', { 
           where: { 
@@ -607,6 +621,21 @@ class DashboardController {
           } 
         })
       ]);
+      
+      console.log('💰 Dashboard calculation results:');
+      console.log('   - Total Collected (paid invoices):', totalCollected);
+      console.log('   - Total Pending (balance_amount):', totalPending);
+      
+      // Also get all invoices for debugging
+      const allInvoices = await FeeInvoice.findAll({
+        where,
+        attributes: ['id', 'invoice_number', 'total_amount', 'paid_amount', 'balance_amount', 'status', 'academic_year'],
+        raw: true
+      });
+      console.log('📋 All invoices found:', allInvoices.length);
+      allInvoices.forEach(inv => {
+        console.log(`   - ${inv.invoice_number}: paid=${inv.paid_amount}, balance=${inv.balance_amount}, status=${inv.status}`);
+      });
 
       // Get branch-wise breakdown for school admin and super admin
       let branchBreakdown = [];

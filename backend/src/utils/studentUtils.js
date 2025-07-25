@@ -11,33 +11,41 @@ const sanitizeEnumFields = (data) => {
   const sanitized = { ...data };
 
   // Gender field sanitization
-  if (sanitized.gender) {
+  if (sanitized.gender && sanitized.gender.trim() !== '') {
     const gender = sanitized.gender.toLowerCase();
     if (['male', 'female', 'other'].includes(gender)) {
       sanitized.gender = gender;
     } else {
       throw new Error(`Invalid gender value: ${sanitized.gender}`);
     }
+  } else if (sanitized.gender === '' || sanitized.gender === null || sanitized.gender === undefined) {
+    throw new Error('Gender is required');
   }
 
   // Category field sanitization
-  if (sanitized.category) {
+  if (sanitized.category && sanitized.category.trim() !== '') {
     const category = sanitized.category.toLowerCase();
     if (['general', 'obc', 'sc', 'st', 'other'].includes(category)) {
       sanitized.category = category;
     } else {
       throw new Error(`Invalid category value: ${sanitized.category}`);
     }
+  } else {
+    // If category is empty, null, or undefined, set it to default value
+    sanitized.category = 'general';
   }
 
   // Status field sanitization
-  if (sanitized.status) {
+  if (sanitized.status && sanitized.status.trim() !== '') {
     const status = sanitized.status.toLowerCase();
     if (['active', 'inactive', 'transferred', 'graduated', 'dropped'].includes(status)) {
       sanitized.status = status;
     } else {
       throw new Error(`Invalid status value: ${sanitized.status}`);
     }
+  } else {
+    // If status is empty, null, or undefined, set it to default value
+    sanitized.status = 'active';
   }
 
   // Admission sought in field sanitization (for junior college)

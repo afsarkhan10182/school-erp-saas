@@ -283,8 +283,8 @@ const menuGroups = computed(() => {
               { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
-            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
+            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users }
           ]
         }
       ]
@@ -342,7 +342,9 @@ const menuGroups = computed(() => {
       id: 'settings',
       title: 'Settings',
       items: [
-        { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
+      ...(!isBranchAdmin.value ? [
+                { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
+              ] : []),      
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
         // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
       ]

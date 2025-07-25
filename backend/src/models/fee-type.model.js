@@ -94,8 +94,9 @@ const FeeType = sequelize.define('FeeType', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'code'], unique: true },
+    { fields: ['school_id', 'branch_id', 'code'], unique: true },
     { fields: ['school_id'] },
+    { fields: ['branch_id'] },
     { fields: ['category'] },
     { fields: ['is_active'] },
   ],

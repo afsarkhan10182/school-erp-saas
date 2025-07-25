@@ -12,6 +12,12 @@ const getFeeCollectionSummary = async (req, res, next) => {
       school_id: req.schoolId,
     };
 
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see invoices for their assigned branch
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     if (academic_year) whereClause.academic_year = academic_year;
     if (start_date && end_date) {
       whereClause.created_at = {
@@ -21,10 +27,18 @@ const getFeeCollectionSummary = async (req, res, next) => {
 
     const includeClause = [];
     if (class_name) {
+      const studentWhereClause = { current_class: class_name };
+      
+      // Handle student branch filtering based on user role
+      if (req.user.role === 'branch_admin') {
+        // Branch admin can only see students from their assigned branch
+        studentWhereClause.branch_id = req.user.branch_id;
+      }
+      
       includeClause.push({
         model: Student,
         as: 'student',
-        where: { current_class: class_name },
+        where: studentWhereClause,
         attributes: [],
       });
     }

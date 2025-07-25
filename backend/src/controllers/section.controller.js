@@ -243,7 +243,7 @@ class SectionController {
         });
       }
 
-      const { name, capacity, current_strength, is_active = true, class_id, class_teacher_id } = req.body;
+      const { name, capacity, current_strength, is_active = true, class_id, stream_id, class_teacher_id } = req.body;
 
       // Determine school_id and branch_id based on user role
       let school_id, branch_id;
@@ -327,15 +327,47 @@ class SectionController {
         });
       }
 
-      // Check if section name already exists for this class
+      // Validate stream_id if class has streams enabled
+      if (classItem.has_stream) {
+        if (!stream_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Stream is required for this class. Please select a stream.',
+          });
+        }
+
+        // Check if stream exists and belongs to the class
+        const stream = await Stream.findByPk(stream_id);
+        if (!stream || stream.class_id !== class_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid stream selected. Please choose a valid stream for this class.',
+          });
+        }
+      } else {
+        // If class doesn't have streams, stream_id should be null
+        if (stream_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'This class does not have streams. Please remove stream selection.',
+          });
+        }
+      }
+
+      // Check if section name already exists for this class, branch, and stream
       const existingSection = await Section.findOne({
-        where: { class_id, name },
+        where: { 
+          class_id, 
+          branch_id, 
+          stream_id: req.body.stream_id || null, 
+          name: name.trim() 
+        },
       });
 
       if (existingSection) {
         return res.status(400).json({
           success: false,
-          message: 'Section name already exists for this class',
+          message: 'Section name already exists for this class and stream in this branch',
         });
       }
 
@@ -358,12 +390,13 @@ class SectionController {
 
       // Create section
       const section = await Section.create({
-        name,
+        name: name.trim(),
         capacity: capacity || 30,
         current_strength: current_strength || 0,
         is_active,
         sort_order: nextSortOrder,
         class_id,
+        stream_id: req.body.stream_id || null,
         class_teacher_id,
         school_id,
         branch_id,
@@ -408,6 +441,15 @@ class SectionController {
       });
     } catch (error) {
       logger.error('Error in SectionController.createSection:', error);
+      
+      // Handle unique constraint violations specifically
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Section name already exists for this class and stream in this branch',
+        });
+      }
+      
       next(error);
     }
   }
@@ -460,11 +502,13 @@ class SectionController {
         });
       }
 
-      // Check if updated name conflicts with existing section in the same class
+      // Check if updated name conflicts with existing section in the same class, branch, and stream
       if (name && name !== section.name) {
         const existingSection = await Section.findOne({
           where: { 
             class_id: section.class_id,
+            branch_id: section.branch_id,
+            stream_id: section.stream_id,
             name,
             id: { [Op.ne]: id }
           },
@@ -473,7 +517,7 @@ class SectionController {
         if (existingSection) {
           return res.status(400).json({
             success: false,
-            message: 'Section name already exists for this class',
+            message: 'Section name already exists for this class and stream in this branch',
           });
         }
       }
@@ -543,6 +587,15 @@ class SectionController {
       });
     } catch (error) {
       logger.error('Error in SectionController.updateSection:', error);
+      
+      // Handle unique constraint violations specifically
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Section name already exists for this class and stream in this branch',
+        });
+      }
+      
       next(error);
     }
   }

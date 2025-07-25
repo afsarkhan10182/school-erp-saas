@@ -1,4 +1,4 @@
-const { Class, School, Branch, User, Section } = require('../models');
+const { Class, School, Branch, User, Section, Stream } = require('../models');
 const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -106,6 +106,13 @@ class ClassController {
         attributes: ['id', 'name', 'capacity', 'current_strength'],
         required: false,
       });
+      
+      includeArray.push({
+        model: Stream,
+        as: 'streams',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
 
       const { count, rows } = await Class.findAndCountAll({
         where: whereClause,
@@ -170,6 +177,11 @@ class ClassController {
             as: 'sections',
             attributes: ['id', 'name', 'capacity', 'current_strength'],
           },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
+          },
         ],
       });
 
@@ -218,7 +230,7 @@ class ClassController {
         });
       }
 
-      const { name, code, numeric_value, description, capacity, sort_order, is_active = true, branch_id } = req.body;
+      const { name, code, numeric_value, description, capacity, sort_order, is_active = true, has_stream = false, branch_id } = req.body;
 
       // Determine school_id and branch_id based on user role
       let school_id, final_branch_id;
@@ -310,6 +322,7 @@ class ClassController {
         capacity: capacity || 30,
         sort_order: sort_order || 0,
         is_active,
+        has_stream,
         school_id,
         branch_id: final_branch_id,
         created_by: req.user.id,
@@ -332,6 +345,11 @@ class ClassController {
             model: User,
             as: 'createdBy',
             attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
           },
         ],
       });
@@ -360,7 +378,7 @@ class ClassController {
       }
 
       const { id } = req.params;
-      const { name, code, numeric_value, description, capacity, sort_order, is_active } = req.body;
+      const { name, code, numeric_value, description, capacity, sort_order, is_active, has_stream } = req.body;
 
       const classItem = await Class.findByPk(id);
       if (!classItem) {
@@ -433,6 +451,7 @@ class ClassController {
         capacity: capacity !== undefined ? capacity : classItem.capacity,
         sort_order: sort_order !== undefined ? sort_order : classItem.sort_order,
         is_active: is_active !== undefined ? is_active : classItem.is_active,
+        has_stream: has_stream !== undefined ? has_stream : classItem.has_stream,
         updated_by: req.user.id,
       });
 
@@ -464,6 +483,11 @@ class ClassController {
             as: 'sections',
             attributes: ['id', 'name', 'capacity', 'current_strength'],
           },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
+          },
         ],
       });
 
@@ -488,6 +512,10 @@ class ClassController {
           {
             model: Section,
             as: 'sections',
+          },
+          {
+            model: Stream,
+            as: 'streams',
           },
         ],
       });
@@ -520,6 +548,14 @@ class ClassController {
         return res.status(400).json({
           success: false,
           message: 'Cannot delete class with existing sections. Please delete sections first.',
+        });
+      }
+
+      // Check if class has streams
+      if (classItem.streams && classItem.streams.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete class with existing streams. Please delete streams first.',
         });
       }
 

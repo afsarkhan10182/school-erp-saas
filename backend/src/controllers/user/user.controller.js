@@ -87,6 +87,15 @@ class UserController {
       });
     } catch (error) {
       logger.error('Error in UserController.createUser:', error);
+      
+      // Handle unique constraint violations specifically
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this email already exists in this branch',
+        });
+      }
+      
       next(error);
     }
   }

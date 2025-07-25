@@ -574,6 +574,12 @@ const getCollections = async (req, res, next) => {
       school_id: req.schoolId,
     };
 
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see collections for their assigned branch
+      whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    }
+
     // Add search filter
     if (search) {
       whereClause['$student.first_name$'] = { [Op.iLike]: `%${search}%` };

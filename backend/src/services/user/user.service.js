@@ -18,13 +18,17 @@ class UserService {
         logger.info('Auto-generated password for user:', userData.email);
       }
       
-      // Check if user already exists
+      // Check if user already exists within the same school and branch
       const existingUser = await User.findOne({
-        where: { email: userData.email }
+        where: { 
+          email: userData.email,
+          school_id: userData.school_id,
+          branch_id: userData.branch_id
+        }
       });
 
       if (existingUser) {
-        throw new ApiError(400, 'User with this email already exists');
+        throw new ApiError(400, 'User with this email already exists in this branch');
       }
 
       const user = await User.create(userData);

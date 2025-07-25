@@ -334,7 +334,7 @@ const getStudents = async (req, res, next) => {
     // Build where clause for Student table
     const whereClause = {};
     
-    // Handle school_id filtering based on user role
+    // Handle school_id and branch_id filtering based on user role
     if (req.user.role === 'super_admin') {
       // Super admin must provide school_id to see students
       if (school_id) {
@@ -352,8 +352,15 @@ const getStudents = async (req, res, next) => {
           }
         });
       }
+    } else if (req.user.role === 'school_admin') {
+      // School admin is restricted to their school
+      whereClause.school_id = req.schoolId;
+    } else if (req.user.role === 'branch_admin') {
+      // Branch admin is restricted to their specific branch
+      whereClause.school_id = req.schoolId;
+      whereClause.branch_id = req.user.branch_id;
     } else {
-      // School admin and branch admin are restricted to their school
+      // Default fallback for other roles
       whereClause.school_id = req.schoolId;
     }
 
@@ -878,6 +885,11 @@ const getStudentsByClass = async (req, res, next) => {
       status,
     };
 
+    // Add branch filtering for branch_admin
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     // Handle fee structure ID - fetch students from all applicable classes
     if (fee_structure_id) {
       const feeStructure = await FeeStructure.findByPk(fee_structure_id);
@@ -963,7 +975,7 @@ const getStudentStats = async (req, res, next) => {
 
     const whereClause = {};
     
-    // Handle school_id filtering based on user role
+    // Handle school_id and branch_id filtering based on user role
     if (req.user.role === 'super_admin') {
       // Super admin must provide school_id to see students
       if (school_id) {
@@ -985,8 +997,15 @@ const getStudentStats = async (req, res, next) => {
           }
         });
       }
+    } else if (req.user.role === 'school_admin') {
+      // School admin is restricted to their school
+      whereClause.school_id = req.schoolId;
+    } else if (req.user.role === 'branch_admin') {
+      // Branch admin is restricted to their specific branch
+      whereClause.school_id = req.schoolId;
+      whereClause.branch_id = req.user.branch_id;
     } else {
-      // School admin and branch admin are restricted to their school
+      // Default fallback for other roles
       whereClause.school_id = req.schoolId;
     }
 

@@ -106,9 +106,8 @@ const Section = sequelize.define('Section', {
   timestamps: true,
   underscored: true,
   indexes: [
-    // Sections are unique within a class OR within a stream
-    { fields: ['class_id', 'name'], unique: true, where: { stream_id: null } },
-    { fields: ['stream_id', 'name'], unique: true, where: { stream_id: { [Op.ne]: null } } },
+    // Note: Unique constraint is handled at database level with COALESCE for NULL stream_id values
+    // The actual constraint: CREATE UNIQUE INDEX ON sections (class_id, branch_id, COALESCE(stream_id, '00000000-0000-0000-0000-000000000000'), name)
     { fields: ['class_id'] },
     { fields: ['stream_id'] },
     { fields: ['class_teacher_id'] },

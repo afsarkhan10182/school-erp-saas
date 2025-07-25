@@ -39,15 +39,15 @@ router.use(verifyToken);
 router.use(setSchoolContext);
 
 // POST endpoint to generate invoices for students (admin only)
-router.post('/generate', requireRole('super_admin', 'school_admin', 'accountant'), generateInvoices);
+router.post('/generate', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), generateInvoices);
 
 
 
 // POST endpoint for smart payment allocation (amount-based with receipt grouping)
-router.post('/smart-payment', requireRole('super_admin', 'school_admin', 'accountant'), recordSmartPayment);
+router.post('/smart-payment', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), recordSmartPayment);
 
 // POST endpoint for flexible installment payment (Branch 2 - Installment model)
-router.post('/flexible-installment', requireRole('super_admin', 'school_admin', 'accountant'), recordFlexibleInstallmentPayment);
+router.post('/flexible-installment', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), recordFlexibleInstallmentPayment);
 
 
 
@@ -87,7 +87,7 @@ router.get('/stats', requireRole('super_admin', 'school_admin', 'branch_admin', 
 router.get('/report', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReport);
 
 // GET endpoint to export fee invoices report
-router.get('/export', requireRole('super_admin', 'school_admin', 'accountant'), exportFeeInvoicesReport);
+router.get('/export', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), exportFeeInvoicesReport);
 
 // GET endpoint to retrieve collections (payments)
 router.get('/collections', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getCollections);
@@ -96,7 +96,7 @@ router.get('/collections', requireRole('super_admin', 'school_admin', 'branch_ad
 router.get('/:id', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoiceById);
 
 // PUT endpoint to update an invoice (admin only)
-router.put('/:id', requireRole('super_admin', 'school_admin', 'accountant'), updateInvoice);
+router.put('/:id', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), updateInvoice);
 
 // POST endpoint to record payment for an invoice
 router.post('/:id/payment', requireRole('super_admin', 'school_admin', 'accountant'), recordPayment);

@@ -383,15 +383,22 @@ const filters = reactive({
 
 // Use existing data from composables - no need to redeclare
 
+// Role-based computed properties
+const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
+const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
+
 // Check if any filters are applied (for debugging purposes)
 const hasAppliedFilters = computed(() => {
   return Object.values(filters).some(value => value !== '');
 });
 
-// Auto-set branch filter based on user role (but don't auto-apply filters)
+// Auto-set branch filter based on user role
 const setDefaultBranchFilter = () => {
-  // Don't auto-set any filters - let user choose
-  // This prevents heavy API calls on page load
+  if (authStore.currentUser?.role === 'branch_admin') {
+    // Branch admin should be restricted to their branch
+    filters.branch_id = authStore.currentUser.branch_id;
+  }
 };
 
 
@@ -1004,6 +1011,9 @@ const loadAcademicData = async () => {
 
 onMounted(async () => {
   try {
+    // Set default branch filter based on user role
+    setDefaultBranchFilter();
+    
     // Load academic data first
     await loadAcademicData();
     

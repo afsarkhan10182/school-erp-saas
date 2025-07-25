@@ -47,6 +47,7 @@
           
           <!-- Branch Selector -->
           <EnhancedDropdown
+            v-if="!isBranchAdmin"
             v-model="selectedBranch"
             :options="branchOptions"
             label="Branch"
@@ -58,6 +59,16 @@
             @change="onBranchChange"
             :class="isSuperAdmin ? 'md:col-span-1' : 'md:col-span-2'"
           />
+          
+          <!-- Branch Display for Branch Admin -->
+          <div v-if="isBranchAdmin" class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Branch
+            </label>
+            <div class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100">
+              {{ authStore.currentUser?.branch_name || 'Your Branch' }}
+            </div>
+          </div>
           
           <!-- Class Selector (Optional) -->
           <EnhancedDropdown
@@ -406,6 +417,7 @@ const hasAppliedFilters = ref(false);
 // Role-based state
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
 const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
 
 // Selection state
 const selectedSchool = ref('');
@@ -417,8 +429,14 @@ const canApplyFilters = computed(() => {
   if (isSuperAdmin.value) {
     // Super Admin needs school and branch selection
     return selectedSchool.value && selectedBranch.value;
-  } else {
+  } else if (isSchoolAdmin.value) {
     // School Admin needs branch selection
+    return selectedBranch.value;
+  } else if (isBranchAdmin.value) {
+    // Branch Admin can apply filters immediately (branch is auto-selected)
+    return true;
+  } else {
+    // Default fallback
     return selectedBranch.value;
   }
 });
@@ -668,6 +686,11 @@ onMounted(async () => {
   // Load branches for School Admin
   if (isSchoolAdmin.value) {
     await fetchBranches(authStore.currentUser?.school_id);
+  }
+  
+  // Auto-set branch for Branch Admin
+  if (isBranchAdmin.value) {
+    selectedBranch.value = authStore.currentUser?.branch_id;
   }
   
   // Load academic years for all users

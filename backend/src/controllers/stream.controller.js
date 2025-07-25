@@ -218,7 +218,7 @@ class StreamController {
         });
       }
 
-      // Check if class exists and is a higher class (11, 12)
+      // Check if class exists and has streams enabled
       const classInstance = await Class.findByPk(class_id);
       if (!classInstance) {
         return res.status(400).json({
@@ -227,8 +227,15 @@ class StreamController {
         });
       }
 
-      // Allow streams for any class - let user decide which classes need streams
-      logger.debug(`Creating stream for class: ${classInstance.name} (${classInstance.code})`);
+      // Check if class has streams enabled
+      if (!classInstance.has_stream) {
+        return res.status(400).json({
+          success: false,
+          message: 'This class does not have streams enabled. Please enable streams for this class first.',
+        });
+      }
+
+      logger.debug(`Creating stream for class: ${classInstance.name} (${classInstance.code}) - has_stream: ${classInstance.has_stream}`);
 
       // Set school_id and branch_id based on user role
       let school_id, branch_id;

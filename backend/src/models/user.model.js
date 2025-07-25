@@ -142,7 +142,8 @@ const User = sequelize.define('User', {
   paranoid: true, // Enable soft deletes
   deletedAt: 'deleted_at', // Custom field name for soft delete
   indexes: [
-    { fields: ['email'], unique: true },
+    // Note: Unique constraint is handled at database level with school_id + branch_id + email
+    // The actual constraint: CREATE UNIQUE INDEX users_school_branch_email_unique ON users (school_id, branch_id, email)
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['role'] },

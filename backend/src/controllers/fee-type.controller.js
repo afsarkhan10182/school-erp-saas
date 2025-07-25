@@ -26,19 +26,18 @@ const createFeeType = async (req, res, next) => {
       throw new ApiError(400, 'School context is required');
     }
 
-    // Check if fee type already exists within the school context (only active ones)
+    // Check if fee type already exists within the school+branch context (only active ones)
     const existingFeeType = await FeeType.findOne({
       where: {
         code,
         school_id: schoolId,
+        branch_id: branchId,
         is_active: true, // Only check active fee types
-        // Only check branch_id if it's provided
-        ...(branchId && { branch_id: branchId }),
       },
     });
 
     if (existingFeeType) {
-      throw new ApiError(400, 'Fee type with this code already exists in this school/branch.');
+      throw new ApiError(400, 'Fee type with this code already exists in this branch.');
     }
 
     // Check if there's a soft-deleted fee type with the same code
@@ -46,9 +45,8 @@ const createFeeType = async (req, res, next) => {
       where: {
         code,
         school_id: schoolId,
+        branch_id: branchId,
         is_active: false, // Check for soft-deleted fee types
-        // Only check branch_id if it's provided
-        ...(branchId && { branch_id: branchId }),
       },
     });
 
@@ -164,22 +162,21 @@ const updateFeeType = async (req, res, next) => {
       throw new ApiError(404, 'Fee type not found.');
     }
 
-    // Check if code is being updated and if it already exists (only active ones)
-    if (code && code !== feeType.code) {
-      const existingFeeType = await FeeType.findOne({
-        where: {
-          code: code,
-          school_id: schoolId,
-          is_active: true, // Only check active fee types
-          // Only check branch_id if it's provided
-          ...(branchId && { branch_id: branchId }),
-        },
-      });
+          // Check if code is being updated and if it already exists (only active ones)
+      if (code && code !== feeType.code) {
+        const existingFeeType = await FeeType.findOne({
+          where: {
+            code: code,
+            school_id: schoolId,
+            branch_id: branchId,
+            is_active: true, // Only check active fee types
+          },
+        });
 
-      if (existingFeeType) {
-        throw new ApiError(400, 'Fee type with this code already exists in this school/branch.');
+        if (existingFeeType) {
+          throw new ApiError(400, 'Fee type with this code already exists in this branch.');
+        }
       }
-    }
 
     await feeType.update({
       name,

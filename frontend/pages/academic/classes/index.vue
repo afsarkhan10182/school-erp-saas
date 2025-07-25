@@ -30,6 +30,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Streams</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sections</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -49,6 +50,14 @@
                     <span class="font-medium">{{ classItem.branch?.name }}</span>
                     <span v-if="classItem.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ classItem.branch.code }})</span>
                   </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <span v-if="classItem.has_stream" class="text-blue-600 dark:text-blue-400 font-medium">
+                    {{ classItem.streams?.length || 0 }} streams
+                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400">
+                    No streams
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ classItem.sections?.length || 0 }} sections
@@ -212,7 +221,7 @@
                 ></textarea>
               </div>
 
-              <div class="mb-6">
+              <div class="mb-4">
                 <label class="flex items-center">
                   <input
                     v-model="form.is_active"
@@ -221,6 +230,20 @@
                   />
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
                 </label>
+              </div>
+
+              <div class="mb-6">
+                <label class="flex items-center">
+                  <input
+                    v-model="form.has_stream"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">This class has streams</span>
+                </label>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Enable this for classes that have different streams (e.g., Class 11, 12 with Science, Commerce, Arts)
+                </p>
               </div>
 
               <div class="flex justify-end space-x-3">
@@ -277,7 +300,8 @@ const form = reactive({
   name: '',
   code: '',
   description: '',
-  is_active: true
+  is_active: true,
+  has_stream: false
 });
 
 const resetForm = () => {
@@ -285,6 +309,7 @@ const resetForm = () => {
   form.code = '';
   form.description = '';
   form.is_active = true;
+  form.has_stream = false;
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
 };
@@ -426,6 +451,7 @@ const editClass = async (classItem) => {
   form.code = classItem.code;
   form.description = classItem.description || '';
   form.is_active = classItem.is_active;
+  form.has_stream = classItem.has_stream || false;
   
   showModal.value = true;
 };
@@ -444,7 +470,8 @@ const saveClass = async () => {
       name: form.name,
       code: form.code,
       description: form.description,
-      is_active: form.is_active
+      is_active: form.is_active,
+      has_stream: form.has_stream
     };
 
     // Add school_id and branch_id for super admin when creating a new class
