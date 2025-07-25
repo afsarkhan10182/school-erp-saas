@@ -42,8 +42,8 @@ module.exports = {
     await queryInterface.bulkInsert('fee_structures', [
       {
         id: '550e8400-e29b-41d4-a716-446655440016',
-        name: 'Class VI Tuition Fee 2024-25',
-        academic_year: '2024-25',
+        name: 'Class VI Tuition Fee 2024-2025',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'A',
         fee_type_id: '550e8400-e29b-41d4-a716-446655440014',
@@ -64,8 +64,8 @@ module.exports = {
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440017',
-        name: 'Class VI Transport Fee 2024-25',
-        academic_year: '2024-25',
+        name: 'Class VI Transport Fee 2024-2025',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'A',
         fee_type_id: '550e8400-e29b-41d4-a716-446655440015',

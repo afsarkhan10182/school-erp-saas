@@ -656,6 +656,12 @@ export const apiClient = {
       const url = queryString ? `/academic-years/current?${queryString}` : '/academic-years/current';
       const response = await api.get<ApiResponse<any>>(url);
       return response.data;
+    },
+    
+    syncSchools: async () => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/academic-years/sync-schools');
+      return response.data;
     }
   },
 
@@ -894,6 +900,12 @@ export const apiClient = {
       return response.data;
     },
     
+    getSchoolWithSubscription: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/subscriptions/schools/${id}`);
+      return response.data;
+    },
+    
     getPlans: async (params?: { page?: number; limit?: number; is_active?: boolean }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/subscriptions/plans', { params });
@@ -971,6 +983,25 @@ export const apiClient = {
     reactivateSchool: async (schoolId: string) => {
       const api = createApiInstance();
       const response = await api.patch<ApiResponse<any>>(`/schools/${schoolId}/reactivate`);
+      return response.data;
+    },
+    
+    // Renewal Requests
+    getRenewalRequests: async (params?: { page?: number; limit?: number; status?: string; school_id?: string; request_type?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/renewal-requests', { params });
+      return response.data;
+    },
+    
+    createRenewalRequest: async (requestData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/subscriptions/renewal-requests', requestData);
+      return response.data;
+    },
+    
+    reviewRenewalRequest: async (requestId: string, reviewData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/subscriptions/renewal-requests/${requestId}/review`, reviewData);
       return response.data;
     }
   }

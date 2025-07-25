@@ -101,7 +101,7 @@ module.exports = {
         section: 'A',
         class_id: '550e8400-e29b-41d4-a716-446655440009', // Class VI
         section_id: '550e8400-e29b-41d4-a716-446655440011', // Section A
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         status: 'active',
         photo: null,
         documents: JSON.stringify({
@@ -151,7 +151,7 @@ module.exports = {
         section: 'B',
         class_id: '550e8400-e29b-41d4-a716-446655440009', // Class VI
         section_id: '550e8400-e29b-41d4-a716-446655440012', // Section B
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         status: 'active',
         photo: null,
         documents: JSON.stringify({

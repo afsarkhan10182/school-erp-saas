@@ -379,7 +379,10 @@ const onBranchChange = async () => {
 const fetchClasses = async () => {
   isLoading.value = true;
   try {
-    const params = {};
+    const params = {
+      sort_by: 'sort_order',
+      sort_order: 'ASC'
+    };
     
     // Add branch filter if selected
     if (selectedBranchId.value) {

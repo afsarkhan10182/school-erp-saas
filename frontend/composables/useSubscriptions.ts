@@ -31,6 +31,26 @@ export function useSubscriptions() {
     }
   };
 
+  // Get single school with subscription details
+  const getSchoolWithSubscription = async (id: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getSchoolWithSubscription(id);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch school.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Get all subscription plans
   const fetchPlans = async (params = {}) => {
     loading.value = true;
@@ -245,6 +265,66 @@ export function useSubscriptions() {
     }
   };
 
+  // Get renewal requests (for super admin)
+  const fetchRenewalRequests = async (params = {}) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getRenewalRequests(params);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch renewal requests.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Create renewal request (for school admins)
+  const createRenewalRequest = async (requestData: any) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.createRenewalRequest(requestData);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to create renewal request.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Review renewal request (for super admin)
+  const reviewRenewalRequest = async (requestId: string, reviewData: any) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.reviewRenewalRequest(requestId, reviewData);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to review renewal request.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     schools,
     plans,
@@ -252,6 +332,7 @@ export function useSubscriptions() {
     loading,
     error,
     fetchSchoolsWithSubscriptions,
+    getSchoolWithSubscription,
     fetchPlans,
     createPlan,
     updatePlan,
@@ -262,6 +343,9 @@ export function useSubscriptions() {
     createManualTransaction,
     fetchSubscriptionStats,
     suspendSchool,
-    reactivateSchool
+    reactivateSchool,
+    fetchRenewalRequests,
+    createRenewalRequest,
+    reviewRenewalRequest
   };
 } 

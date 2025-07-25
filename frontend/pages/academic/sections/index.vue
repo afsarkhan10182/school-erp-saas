@@ -344,7 +344,10 @@ const onClassChange = () => {
 const fetchSections = async () => {
   isLoading.value = true;
   try {
-    const params = {};
+    const params = {
+      sort_by: 'sort_order',
+      sort_order: 'ASC'
+    };
     
     // Add role-based filters
     if (userRole.value === 'super_admin') {

@@ -139,7 +139,7 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year</label>
               <select v-model="filters.academic_year" @change="fetchLedger" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 <option value="">All Years</option>
-                <option value="2024-25">2024-25</option>
+                <option value="2024-2025">2024-2025</option>
                 <option value="2023-24">2023-24</option>
               </select>
             </div>

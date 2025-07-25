@@ -84,7 +84,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin can access branches
 const user = authStore.user;
@@ -125,18 +125,9 @@ const onFileChange = (field, event) => {
 
 const fetchBranch = async () => {
   try {
-    const token = useCookie('auth-token').value;
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const res = await fetch(`${apiBase}/branches/${branchId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await res.json();
-    if (data.success) {
-      branch.value = data.data.branch || data.data;
+    const branchData = await getBranchById(branchId);
+    if (branchData) {
+      branch.value = branchData;
       
       // Map basic fields
       Object.assign(form.value, {
@@ -157,7 +148,8 @@ const fetchBranch = async () => {
       loaded.value = true;
     }
   } catch (e) {
-    // error handled by composable
+    console.error('Error fetching branch:', e);
+    error.value = 'Failed to load branch details';
   }
 };
 
@@ -176,37 +168,20 @@ const handleSubmit = async () => {
   if (fileInputs.value.text_logo) formData.append('text_logo', fileInputs.value.text_logo);
   if (fileInputs.value.printing_logo) formData.append('printing_logo', fileInputs.value.printing_logo);
   if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
+  
   try {
-    const token = useCookie('auth-token').value;
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const res = await fetch(`${apiBase}/branches/${branchId}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`
-        // Do not set Content-Type for FormData
-      },
-      body: formData
-    });
-    const data = await res.json();
-    if (data.success) {
-      // Show success toast and redirect
-      if (typeof window !== 'undefined') {
-        const event = new CustomEvent('show-toast', {
-          detail: {
-            message: 'Branch updated successfully!',
-            type: 'success'
-          }
-        });
-        window.dispatchEvent(event);
-      }
+    const result = await updateBranch(branchId, formData);
+    if (result) {
+      success.value = true;
+      showSuccess('Branch updated successfully!');
       // Redirect to list page
       setTimeout(() => {
         router.push('/branches');
       }, 1000);
     }
   } catch (e) {
-    // error handled by composable
+    console.error('Error updating branch:', e);
+    error.value = 'Failed to update branch';
   }
 };
 

@@ -15,7 +15,7 @@ router.use(verifyToken);
 // Super Admin routes (can manage all branches)
 router.post(
   '/',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   uploadFields([
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
@@ -35,7 +35,7 @@ router.get(
 // Branch Admin routes (can view their own branch) - Must come before /:id
 router.get(
   '/my-branch',
-  authorize('branch_admin'),
+  authorize(['branch_admin']),
   BranchController.getMyBranch
 );
 
@@ -54,7 +54,7 @@ router.get(
 
 router.put(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   uploadFields([
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
@@ -67,7 +67,7 @@ router.put(
 
 router.delete(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   BranchController.deleteBranch
 );
 

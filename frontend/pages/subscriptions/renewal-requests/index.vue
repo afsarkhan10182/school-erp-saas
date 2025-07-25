@@ -238,7 +238,7 @@ import { AlertCircle, FileText } from 'lucide-vue-next';
 
 // Page meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   layout: 'default'
 });
 
@@ -265,9 +265,6 @@ const reviewAction = ref('');
 
 // Filters
 const filters = ref({
-  status: '',
-  request_type: '',
-  school_id: '',
   page: 1,
   limit: 10
 });
@@ -303,14 +300,21 @@ const loadRequests = async () => {
   error.value = '';
   
   try {
-    const queryString = new URLSearchParams(filters.value).toString();
-    const response = await $fetch(`/api/subscriptions/renewal-requests?${queryString}`);
+    // Filter out empty values to avoid sending empty query parameters
+    const cleanFilters = { ...filters.value };
+    Object.keys(cleanFilters).forEach(key => {
+      if (cleanFilters[key] === '' || cleanFilters[key] === null || cleanFilters[key] === undefined) {
+        delete cleanFilters[key];
+      }
+    });
     
-    if (response.success) {
-      requests.value = response.data.requests;
-      pagination.value = response.data.pagination;
+    const response = await fetchRenewalRequests(cleanFilters);
+    
+    if (response) {
+      requests.value = response.requests;
+      pagination.value = response.pagination;
     } else {
-      throw new Error(response.message || 'Failed to load renewal requests');
+      throw new Error('Failed to load renewal requests');
     }
   } catch (err) {
     console.error('Error loading renewal requests:', err);
@@ -323,8 +327,8 @@ const loadRequests = async () => {
 
 const loadSchools = async () => {
   try {
-    const response = await $fetch('/api/subscriptions/schools?limit=100');
-    if (response.success) {
+    const response = await fetchSchoolsWithSubscriptions({ limit: 100 });
+    if (response && response.data) {
       schools.value = response.data.schools;
     }
   } catch (err) {
@@ -334,9 +338,6 @@ const loadSchools = async () => {
 
 const clearFilters = () => {
   filters.value = {
-    status: '',
-    request_type: '',
-    school_id: '',
     page: 1,
     limit: 10
   };
@@ -361,22 +362,21 @@ const submitReview = async () => {
   submitting.value = true;
   
   try {
-    const response = await $fetch(`/api/subscriptions/renewal-requests/${selectedRequest.value.id}/review`, {
-      method: 'PUT',
-      body: {
-        status: reviewAction.value.toLowerCase() === 'approve' ? 'approved' : 'rejected',
-        admin_response: reviewForm.value.admin_response
-      }
-    });
+    const reviewData = {
+      status: reviewAction.value.toLowerCase() === 'approve' ? 'approved' : 'rejected',
+      admin_response: reviewForm.value.admin_response
+    };
     
-    if (response.success) {
+    const response = await reviewRenewalRequest(selectedRequest.value.id, reviewData);
+    
+    if (response) {
       showSuccess(`Request ${reviewAction.value.toLowerCase()}d successfully`);
       showReviewModal.value = false;
       selectedRequest.value = null;
       reviewForm.value.admin_response = '';
       await loadRequests(); // Reload to show updated status
     } else {
-      showError(response.message || `Failed to ${reviewAction.value.toLowerCase()} request`);
+      showError(`Failed to ${reviewAction.value.toLowerCase()} request`);
     }
   } catch (err) {
     console.error('Error reviewing request:', err);

@@ -179,7 +179,7 @@ class RoleManager {
    * Check if a user can access a specific school
    */
   static canAccessSchool(userRole, userSchoolId, targetSchoolId) {
-    if (!userRole || !userSchoolId || !targetSchoolId) {
+    if (!userRole || !targetSchoolId) {
       return false;
     }
 
@@ -188,8 +188,14 @@ class RoleManager {
       return false;
     }
 
+    // Super admin can access all schools
     if (scope.school_access === 'all') {
       return true;
+    }
+
+    // For other roles, userSchoolId is required and must match targetSchoolId
+    if (!userSchoolId) {
+      return false;
     }
 
     return userSchoolId === targetSchoolId;
@@ -199,7 +205,7 @@ class RoleManager {
    * Check if a user can access a specific branch
    */
   static canAccessBranch(userRole, userSchoolId, userBranchId, targetSchoolId, targetBranchId) {
-    if (!userRole || !userSchoolId || !targetSchoolId) {
+    if (!userRole || !targetSchoolId) {
       return false;
     }
 
@@ -213,7 +219,11 @@ class RoleManager {
       return true;
     }
 
-    // Must have school access first
+    // For other roles, userSchoolId is required and must have school access first
+    if (!userSchoolId) {
+      return false;
+    }
+
     if (!this.canAccessSchool(userRole, userSchoolId, targetSchoolId)) {
       return false;
     }

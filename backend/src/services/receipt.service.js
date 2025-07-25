@@ -426,7 +426,7 @@ const generateConsolidatedReceipt = async (monthlyPaymentDetails, schoolData, st
       payment_date: paymentDate || new Date(),
       remaining_balance: totalRemainingBalance,
       fee_type_name: 'Tuition Fees (Multiple Months)',
-      academic_year: monthlyPaymentDetails[0]?.monthlyPayment.academic_year || '2025-26',
+              academic_year: monthlyPaymentDetails[0]?.monthlyPayment.academic_year || '2025-2026',
       payment_model: 'enhanced',
       monthly_payments: monthlyPaymentDetails.map(detail => ({
         month: detail.monthlyPayment.month,

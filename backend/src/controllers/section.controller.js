@@ -26,7 +26,11 @@ class SectionController {
       const {
         page = 1,
         limit = 10,
-        sort_by = 'name',
+        search = '',
+        is_active = '',
+        class_id = '',
+        branch_id = '',
+        sort_by = 'sort_order',
         sort_order = 'ASC',
       } = req.query;
 
@@ -52,6 +56,29 @@ class SectionController {
           success: false,
           message: 'Access denied',
         });
+      }
+
+      // Add search filter
+      if (search) {
+        whereClause[Op.or] = [
+          { name: { [Op.iLike]: `%${search}%` } },
+          { code: { [Op.iLike]: `%${search}%` } },
+        ];
+      }
+
+      // Add is_active filter
+      if (is_active !== '') {
+        whereClause.is_active = is_active === 'true';
+      }
+
+      // Add class_id filter
+      if (class_id) {
+        whereClause.class_id = class_id;
+      }
+
+      // Add branch_id filter
+      if (branch_id) {
+        whereClause.branch_id = branch_id;
       }
 
       // Build include array with safe associations
@@ -96,7 +123,10 @@ class SectionController {
       const { count, rows } = await Section.findAndCountAll({
         where: whereClause,
         include: includeArray,
-        order: [[sort_by, sort_order.toUpperCase()]],
+        order: [
+          [sort_by, sort_order.toUpperCase()],
+          ['name', 'ASC'] // Secondary sort for consistency
+        ],
         limit: parseInt(limit),
         offset,
       });
@@ -302,6 +332,12 @@ class SectionController {
         });
       }
 
+      // Calculate the next sort_order for this class
+      const maxSortOrder = await Section.max('sort_order', {
+        where: { class_id }
+      });
+      const nextSortOrder = (maxSortOrder || 0) + 1;
+
       // Validate class teacher if provided
       if (class_teacher_id) {
         const teacher = await User.findByPk(class_teacher_id);
@@ -319,6 +355,7 @@ class SectionController {
         capacity: capacity || 30,
         current_strength: current_strength || 0,
         is_active,
+        sort_order: nextSortOrder,
         class_id,
         class_teacher_id,
         school_id,
@@ -381,7 +418,7 @@ class SectionController {
       }
 
       const { id } = req.params;
-      const { name, capacity, current_strength, is_active, class_teacher_id } = req.body;
+      const { name, capacity, current_strength, is_active, class_teacher_id, sort_order } = req.body;
 
       const section = await Section.findByPk(id, {
         include: [
@@ -451,6 +488,7 @@ class SectionController {
         capacity: capacity !== undefined ? capacity : section.capacity,
         current_strength: current_strength !== undefined ? current_strength : section.current_strength,
         is_active: is_active !== undefined ? is_active : section.is_active,
+        sort_order: sort_order !== undefined ? sort_order : section.sort_order,
         class_teacher_id: class_teacher_id !== undefined ? class_teacher_id : section.class_teacher_id,
         updated_by: req.user.id,
       });

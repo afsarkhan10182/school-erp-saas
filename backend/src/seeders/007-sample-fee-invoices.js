@@ -16,7 +16,7 @@ module.exports = {
         invoice_number: 'INV-2024-001',
         student_id: '550e8400-e29b-41d4-a716-446655440020', // Arjun Gupta
         fee_structure_id: '550e8400-e29b-41d4-a716-446655440016', // Class VI Tuition Fee
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'A',
         fee_type_name: 'Tuition Fee',
@@ -58,7 +58,7 @@ module.exports = {
         invoice_number: 'INV-2024-002',
         student_id: '550e8400-e29b-41d4-a716-446655440021', // Rahul Pandey
         fee_structure_id: '550e8400-e29b-41d4-a716-446655440016', // Class VI Tuition Fee
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'B',
         fee_type_name: 'Tuition Fee',
@@ -105,7 +105,7 @@ module.exports = {
         invoice_number: 'MONTHLY-2025-06-001',
         student_id: '550e8400-e29b-41d4-a716-446655440020', // Arjun Gupta
         fee_structure_id: '550e8400-e29b-41d4-a716-446655440016', // Class VI Tuition Fee
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'A',
         fee_type_name: 'Tuition Fee',
@@ -149,7 +149,7 @@ module.exports = {
         invoice_number: 'MONTHLY-2025-06-002',
         student_id: '550e8400-e29b-41d4-a716-446655440021', // Rahul Pandey
         fee_structure_id: '550e8400-e29b-41d4-a716-446655440016', // Class VI Tuition Fee
-        academic_year: '2024-25',
+        academic_year: '2024-2025',
         class_name: 'Class VI',
         section: 'B',
         fee_type_name: 'Tuition Fee',

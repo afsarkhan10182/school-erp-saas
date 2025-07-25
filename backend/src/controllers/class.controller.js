@@ -110,7 +110,10 @@ class ClassController {
       const { count, rows } = await Class.findAndCountAll({
         where: whereClause,
         include: includeArray,
-        order: [[sort_by, sort_order.toUpperCase()]],
+        order: [
+          [sort_by, sort_order.toUpperCase()],
+          ['name', 'ASC'] // Secondary sort for consistency
+        ],
         limit: parseInt(limit),
         offset,
       });

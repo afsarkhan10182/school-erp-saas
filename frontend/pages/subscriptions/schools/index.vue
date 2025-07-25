@@ -18,16 +18,14 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
           <input
-            v-model="filters.search"
             type="text"
             placeholder="Search schools..."
             class="input-field w-full"
-            @input="debouncedSearch"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-          <select v-model="filters.status" class="input-field w-full" @change="loadSchools">
+          <select class="input-field w-full">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="trial">Trial</option>
@@ -37,7 +35,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
-          <select v-model="filters.subscription_plan" class="input-field w-full" @change="loadSchools">
+          <select class="input-field w-full">
             <option value="">All Plans</option>
             <option v-for="plan in plans" :key="plan.code" :value="plan.code">
               {{ plan.name }}
@@ -45,7 +43,7 @@
           </select>
         </div>
         <div class="flex items-end">
-          <button @click="loadSchools" class="btn-secondary w-full">
+          <button class="btn-secondary w-full">
             <Search class="w-4 h-4 mr-2" />
             Filter
           </button>
@@ -201,13 +199,7 @@
       </div>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="pagination && pagination.pages > 1" class="mt-6">
-      <Pagination
-        :pagination="pagination"
-        @page-changed="handlePageChange"
-      />
-    </div>
+
   </div>
 </template>
 
@@ -226,7 +218,7 @@ import {
 
 // Page meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   layout: 'default'
 });
 
@@ -240,14 +232,15 @@ if (user?.role !== 'super_admin') {
   await navigateTo('/dashboard');
 }
 
-const { schools, loading, error, fetchSchoolsWithSubscriptions, suspendSchool, reactivateSchool, plans, pagination, filters, loadSchools, handlePageChange, debouncedSearch } = useSubscriptions();
+const { schools, loading, error, fetchSchoolsWithSubscriptions, suspendSchool, reactivateSchool, plans } = useSubscriptions();
 
 // Load plans for filter dropdown
 const loadPlans = async () => {
   try {
     const result = await apiClient.subscriptions.getPlans();
-    // Assuming plans.value is managed by useSubscriptions, so we don't need to reassign here
-    // plans.value = result.data.plans || []; 
+    if (result.success) {
+      plans.value = result.data.plans || [];
+    }
   } catch (err) {
     console.error('Failed to load plans:', err);
   }
@@ -261,7 +254,7 @@ const formatDate = (dateString) => {
 
 // Initialize
 onMounted(async () => {
-  await Promise.all([loadSchools(), loadPlans()]);
+  await Promise.all([fetchSchoolsWithSubscriptions(), loadPlans()]);
 });
 </script>
 

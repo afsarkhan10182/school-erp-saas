@@ -36,6 +36,14 @@ const Section = sequelize.define('Section', {
     allowNull: false,
     defaultValue: true,
   },
+  sort_order: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: { args: [0], msg: 'Sort order cannot be negative' },
+    },
+  },
   class_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -96,6 +104,7 @@ const Section = sequelize.define('Section', {
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['is_active'] },
+    { fields: ['sort_order'] },
   ],
   hooks: {
     afterCreate: async (section) => {

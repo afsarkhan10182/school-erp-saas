@@ -295,7 +295,7 @@ import { Check, AlertCircle } from 'lucide-vue-next';
 
 // Page meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   layout: 'default'
 });
 
@@ -310,7 +310,7 @@ if (user?.role !== 'super_admin') {
 }
 
 const route = useRoute();
-const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans } = useSubscriptions();
+const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans, fetchRenewalRequests, createRenewalRequest } = useSubscriptions();
 const { showSuccess, showError: toastError } = useToast();
 
 // Reactive data
@@ -421,17 +421,11 @@ const loadData = async () => {
       transactions.value = transactionsResponse.data.transactions;
     }
     
-    // Load renewal requests with proper API base URL
+    // Load renewal requests using composable
     try {
-      const config = useRuntimeConfig();
-      const apiBase = config.public.apiBase;
-      const requestsResponse = await $fetch(`${apiBase}/subscriptions/school/renewal-requests`, {
-        headers: {
-          'Authorization': `Bearer ${useCookie('auth-token').value}`,
-        }
-      });
-      if (requestsResponse.success) {
-        renewalRequests.value = requestsResponse.data.requests;
+      const requestsResponse = await fetchRenewalRequests({ school_id: schoolId });
+      if (requestsResponse) {
+        renewalRequests.value = requestsResponse.requests;
       }
     } catch (e) {
       console.warn('Could not load renewal requests:', e);
@@ -456,18 +450,9 @@ const submitRenewalRequest = async () => {
   submitting.value = true;
   
   try {
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const response = await $fetch(`${apiBase}/subscriptions/renewal-requests`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${useCookie('auth-token').value}`,
-        'Content-Type': 'application/json',
-      },
-      body: renewalForm.value,
-    });
+    const response = await createRenewalRequest(renewalForm.value);
     
-    if (response.success) {
+    if (response) {
       showSuccess('Renewal request submitted successfully');
       showRenewalModal.value = false;
       renewalForm.value = {
@@ -478,7 +463,7 @@ const submitRenewalRequest = async () => {
       };
       await loadData(); // Reload data to show new request
     } else {
-      toastError(response.message || 'Failed to submit renewal request');
+      toastError('Failed to submit renewal request');
     }
   } catch (err) {
     console.error('Error submitting renewal request:', err);

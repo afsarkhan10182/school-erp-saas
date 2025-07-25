@@ -154,6 +154,15 @@ const School = sequelize.define('School', {
     allowNull: false,
     defaultValue: 1,
   },
+  current_academic_year_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'academic_years',
+      key: 'id',
+    },
+    comment: 'Reference to the current global academic year for this school'
+  },
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
@@ -190,6 +199,7 @@ const School = sequelize.define('School', {
     { fields: ['status'] },
     { fields: ['subscription_plan'] },
     { fields: ['is_active'] },
+    { fields: ['current_academic_year_id'] },
   ],
   hooks: {
     beforeCreate: async (school) => {
@@ -227,6 +237,12 @@ School.associate = (models) => {
   School.hasMany(models.Transaction, {
     foreignKey: 'school_id',
     as: 'transactions',
+  });
+
+  // School belongs to AcademicYear (current academic year)
+  School.belongsTo(models.AcademicYear, {
+    foreignKey: 'current_academic_year_id',
+    as: 'currentAcademicYear',
   });
 
   // School belongs to User (created_by)

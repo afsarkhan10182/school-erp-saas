@@ -126,6 +126,36 @@ class SubscriptionController {
     }
   }
 
+  // Get single school with subscription
+  static async getSchoolWithSubscription(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can access subscription data',
+        });
+      }
+
+      const { id } = req.params;
+      const school = await SubscriptionService.getSchoolWithSubscription(id);
+      
+      if (!school) {
+        return res.status(404).json({
+          success: false,
+          message: 'School not found',
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: school,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getSchoolWithSubscription:', error);
+      next(error);
+    }
+  }
+
   // Create school with subscription
   static async createSchoolWithSubscription(req, res, next) {
     try {

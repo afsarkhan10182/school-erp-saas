@@ -279,8 +279,8 @@ const menuGroups = computed(() => {
           icon: BookOpen,
           children: [
             // Academic Years - only for super admin and school admin
-            ...(isSuperAdmin.value || isSchoolAdmin.value ? [
-              // { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
+            ...(isSuperAdmin.value ? [
+              { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },

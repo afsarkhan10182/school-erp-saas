@@ -5,6 +5,8 @@ const { logger } = require('../utils/logger');
 const { sequelize } = require('../config/database');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
+const { sanitizeEnumFields } = require('../utils/studentUtils');
+const { getCurrentAcademicYearForSchool } = require('../utils/academicYearUtils');
 
 // Utility function to handle ENUM validation errors
 const handleEnumValidationError = (error) => {
@@ -24,56 +26,6 @@ const handleEnumValidationError = (error) => {
   }
   // Re-throw other errors
   throw error;
-};
-
-// Utility function to sanitize ENUM fields and numeric fields
-const sanitizeEnumFields = (data) => {
-  console.log('🔍 Before sanitizing ENUM fields:', {
-    admission_sought_in: data.admission_sought_in,
-    gender: data.gender,
-    category: data.category,
-    status: data.status
-  });
-  
-  // Handle empty string for ENUM fields - convert to null
-  if (data.admission_sought_in === '' || data.admission_sought_in === undefined) {
-    data.admission_sought_in = null;
-  }
-  
-  if (data.gender === '' || data.gender === undefined) {
-    data.gender = null;
-  }
-  
-  if (data.category === '' || data.category === undefined || data.category === null) {
-    data.category = 'general'; // Default to general when category is not provided
-  }
-  
-  if (data.status === '' || data.status === undefined) {
-    data.status = 'active'; // Default status
-  }
-  
-  console.log('🔍 After sanitizing ENUM fields:', {
-    admission_sought_in: data.admission_sought_in,
-    gender: data.gender,
-    category: data.category,
-    status: data.status
-  });
-  
-  // Sanitize numeric fields - convert empty strings to null
-  if (data.income !== undefined && data.income === '') {
-    data.income = null;
-  }
-  if (data.father_income !== undefined && data.father_income === '') {
-    data.father_income = null;
-  }
-  if (data.mother_income !== undefined && data.mother_income === '') {
-    data.mother_income = null;
-  }
-  if (data.guardian_income !== undefined && data.guardian_income === '') {
-    data.guardian_income = null;
-  }
-  
-  return data;
 };
 
 // Create a new student
@@ -250,21 +202,21 @@ const createStudent = async (req, res, next) => {
     } else {
       // Fallback to current academic year if no ID provided
       try {
-        const currentYear = await AcademicYear.findOne({ where: { is_current: true } });
+        const currentYear = await getCurrentAcademicYearForSchool(school_id);
         if (currentYear) {
           studentData.academic_year = currentYear.name;
           console.log('🔍 Academic year fallback to current:', currentYear.name);
         } else {
           // Last resort: use current year as string
           const currentYearString = new Date().getFullYear().toString();
-          studentData.academic_year = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
+          studentData.academic_year = `${currentYearString}-${parseInt(currentYearString) + 1}`;
           console.log('🔍 Academic year last resort:', studentData.academic_year);
         }
       } catch (error) {
         console.error('❌ Error fetching current academic year:', error);
         // Last resort fallback
         const currentYearString = new Date().getFullYear().toString();
-        studentData.academic_year = `${currentYearString}-${(parseInt(currentYearString) + 1).toString().slice(-2)}`;
+        studentData.academic_year = `${currentYearString}-${parseInt(currentYearString) + 1}`;
       }
     }
 
@@ -1368,7 +1320,7 @@ const bulkImportStudents = async (req, res, next) => {
     // Fallback to current academic year if no ID provided or ID not found
     if (!academicYearName) {
       try {
-        const currentYear = await AcademicYear.findOne({ where: { is_current: true } });
+        const currentYear = await getCurrentAcademicYearForSchool(school_id);
         if (currentYear) {
           academicYearName = currentYear.name;
           console.log('🔍 Bulk import: Academic year fallback to current:', academicYearName);

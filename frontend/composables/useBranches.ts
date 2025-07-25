@@ -115,6 +115,59 @@ export function useBranches() {
     }
   };
 
+  // Get branch by ID
+  const getBranchById = async (branchId: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.branches.getById(branchId);
+      if (!response.success) {
+        error.value = response.message || 'Failed to fetch branch.';
+        return null;
+      }
+      return response.data;
+    } catch (e) {
+      console.error('Error fetching branch:', e);
+      error.value = 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Update a branch (with file upload support)
+  const updateBranch = async (branchId: string, formData: FormData) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      // For FormData, we need to use direct fetch since axios doesn't handle it well
+      const config = useRuntimeConfig();
+      const apiBase = config.public.apiBase;
+      const token = useCookie('auth-token').value;
+      
+      const res = await fetch(`${apiBase}/branches/${branchId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Do not set Content-Type for FormData
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.success) {
+        error.value = data.message || 'Failed to update branch.';
+        return null;
+      }
+      return data.data;
+    } catch (e) {
+      console.error('Error updating branch:', e);
+      error.value = 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Delete a branch
   const deleteBranch = async (branchId: string) => {
     loading.value = true;
@@ -142,6 +195,8 @@ export function useBranches() {
     fetchBranches,
     fetchAllBranches,
     createBranch,
+    getBranchById,
+    updateBranch,
     deleteBranch
   };
 } 

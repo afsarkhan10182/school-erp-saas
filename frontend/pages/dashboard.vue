@@ -108,14 +108,14 @@
           <!-- Fee Collection Summary Widget -->
           <section class="card">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold">📊 Fee Collection Summary ({{ feeCollectionSummary.academic_year || '2024-25' }})</h2>
+              <h2 class="text-xl font-semibold">📊 Fee Collection Summary ({{ feeCollectionSummary.academic_year || '2024-2025' }})</h2>
               <div class="flex items-center space-x-2">
                 <select 
                   v-model="selectedAcademicYear" 
                   @change="fetchFeeCollectionSummary"
                   class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
-                  <option value="2024-25">2024-25</option>
+                  <option value="2024-2025">2024-2025</option>
                   <option value="2023-24">2023-24</option>
                   <option value="2022-23">2022-23</option>
                 </select>
@@ -293,7 +293,7 @@ const schoolStats = ref({});
 const recentActivities = ref([]);
 const feeCollectionSummary = ref({});
 const loadingFeeSummary = ref(false);
-const selectedAcademicYear = ref('2024-25');
+const selectedAcademicYear = ref('2024-2025');
 const recentAdmissions = ref([]);
 const overdueFees = ref([]);
 

@@ -3,10 +3,56 @@
  * Handles calculations for academic year months, payment sequences, and validation
  */
 
+const { AcademicYear } = require('../models');
+const { logger } = require('./logger');
+
+/**
+ * Get the current academic year for a school
+ * @param {string} schoolId - School ID (optional)
+ * @returns {Promise<Object|null>} Current academic year object or null
+ */
+const getCurrentAcademicYearForSchool = async (schoolId = null) => {
+  try {
+    if (schoolId) {
+      // First try to get the school's linked academic year
+      const { School } = require('../models');
+      const school = await School.findByPk(schoolId, {
+        include: [{
+          model: AcademicYear,
+          as: 'currentAcademicYear',
+          where: { is_current: true },
+          required: false
+        }]
+      });
+      
+      if (school?.currentAcademicYear) {
+        logger.info(`Found school-specific current academic year: ${school.currentAcademicYear.name}`);
+        return school.currentAcademicYear;
+      }
+    }
+    
+    // Fallback to global current academic year
+    const globalCurrentYear = await AcademicYear.findOne({
+      where: { is_current: true }
+    });
+    
+    if (globalCurrentYear) {
+      logger.info(`Using global current academic year: ${globalCurrentYear.name}`);
+      return globalCurrentYear;
+    }
+    
+    logger.warn('No current academic year found globally');
+    return null;
+  } catch (error) {
+    logger.error('Error getting current academic year for school:', error);
+    return null;
+  }
+};
+
 /**
  * Get the academic year months based on starting month
  * @param {number} startingMonth - Month when academic year starts (1-12)
- * @param {string} academicYear - Academic year (e.g., "2025-26")
+ * @param {string} academicYear - Academic year (e.g., "2025-2026")
  * @returns {Array} Array of month objects with month, year, and display info
  */
 const getAcademicYearMonths = (startingMonth, academicYear) => {
@@ -241,12 +287,53 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
   return availableMonths;
 };
 
+/**
+ * Sync all schools to the current global academic year
+ * @returns {Promise<Object>} Result with updated count
+ */
+const syncSchoolsToCurrentAcademicYear = async () => {
+  try {
+    const { School, AcademicYear } = require('../models');
+    
+    // Get the current global academic year
+    const currentYear = await AcademicYear.findOne({
+      where: { is_current: true }
+    });
+    
+    if (!currentYear) {
+      throw new Error('No current global academic year found');
+    }
+    
+    // Update all schools to link to the current academic year
+    const [updatedCount] = await School.update(
+      { current_academic_year_id: currentYear.id },
+      { 
+        where: { 
+          current_academic_year_id: { [require('sequelize').Op.ne]: currentYear.id } 
+        } 
+      }
+    );
+    
+    logger.info(`Synced ${updatedCount} schools to current academic year: ${currentYear.name}`);
+    
+    return {
+      success: true,
+      updated_count: updatedCount,
+      academic_year: currentYear.name
+    };
+  } catch (error) {
+    logger.error('Error syncing schools to current academic year:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getAcademicYearMonths,
   getMonthName,
   isCurrentAcademicMonth,
-  getEarliestPendingMonth,
   getAcademicMonthNumber,
   validatePaymentSequence,
-  getAvailablePaymentMonths
+  getAvailablePaymentMonths,
+  getCurrentAcademicYearForSchool,
+  syncSchoolsToCurrentAcademicYear
 }; 

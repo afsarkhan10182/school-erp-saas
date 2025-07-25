@@ -320,7 +320,7 @@ import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
 // Meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   title: 'Multiple Import',
 });
 

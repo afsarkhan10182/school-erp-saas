@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
-const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest } = require('../../models');
+const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const bcrypt = require('bcryptjs');
@@ -117,21 +117,16 @@ class SubscriptionService {
 
   // Get schools with subscription details
   static async getSchoolsWithSubscriptions(params = {}) {
-    const { page = 1, limit = 10, search, status, subscription_plan, id } = params;
+    const { page = 1, limit = 10, search, status, subscription_plan } = params;
     const offset = (page - 1) * limit;
     
     const whereClause = {};
     
-    // If ID is provided, filter by specific school ID
-    if (id) {
-      whereClause.id = id;
-    }
-    
     if (search) {
-      whereClause[sequelize.Op.or] = [
-        { name: { [sequelize.Op.iLike]: `%${search}%` } },
-        { code: { [sequelize.Op.iLike]: `%${search}%` } },
-        { email: { [sequelize.Op.iLike]: `%${search}%` } },
+      whereClause[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { code: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
       ];
     }
     
@@ -151,63 +146,24 @@ class SubscriptionService {
       include: [
         {
           model: User,
-          as: 'createdBy',
-          attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
-        },
-        {
-          model: User,
           as: 'users',
           where: { role: 'school_admin' },
           attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
           required: false,
         },
-        {
-          model: Transaction,
-          as: 'transactions',
-          attributes: ['id', 'transaction_id', 'amount', 'currency', 'payment_method', 'payment_status', 'transaction_status', 'notes', 'created_at'],
-          order: [['created_at', 'DESC']],
-          limit: 1, // Get only the latest transaction
-          required: false,
-        },
       ],
     });
     
-    // Get subscription plans for reference
-    const plans = await SubscriptionPlan.findAll({
-      where: { is_active: true },
-      attributes: ['id', 'name', 'code', 'price', 'billing_cycle'],
-    });
-    
-    const planMap = plans.reduce((acc, plan) => {
-      acc[plan.code] = plan;
-      return acc;
-    }, {});
-    
-    // Enhance school data with plan details and latest payment info
-    const schoolsWithPlanDetails = rows.map(school => {
-      const plan = planMap[school.subscription_plan];
+    // Transform the data to match frontend expectations
+    const transformedSchools = rows.map(school => {
       const schoolData = school.toJSON();
-      const latestTransaction = schoolData.transactions?.[0] || null;
-      
-      return {
-        ...schoolData,
-        plan_details: plan || null,
-        admin_user: schoolData.users?.[0] || schoolData.createdBy,
-        latest_payment: latestTransaction ? {
-          transaction_id: latestTransaction.transaction_id,
-          amount: latestTransaction.amount,
-          currency: latestTransaction.currency,
-          payment_method: latestTransaction.payment_method,
-          payment_status: latestTransaction.payment_status,
-          transaction_status: latestTransaction.transaction_status,
-          notes: latestTransaction.notes,
-          payment_date: latestTransaction.created_at,
-        } : null,
-      };
+      schoolData.admin_user = schoolData.users?.[0] || null;
+      schoolData.plan_details = schoolData.subscriptionPlan || null;
+      return schoolData;
     });
-    
+
     return {
-      schools: schoolsWithPlanDetails,
+      schools: transformedSchools,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -215,6 +171,31 @@ class SubscriptionService {
         pages: Math.ceil(count / limit),
       },
     };
+  }
+
+  // Get single school with subscription
+  static async getSchoolWithSubscription(schoolId) {
+    const school = await School.findByPk(schoolId, {
+      include: [
+        {
+          model: User,
+          as: 'users',
+          where: { role: 'school_admin' },
+          attributes: ['id', 'first_name', 'last_name', 'email', 'phone', 'role'],
+          required: false,
+        },
+      ],
+    });
+    
+    if (!school) {
+      return null;
+    }
+    
+    // Transform the data to match the expected format
+    const schoolData = school.toJSON();
+    schoolData.admin_user = schoolData.users?.[0] || null;
+    
+    return schoolData;
   }
 
   // Create school with subscription
@@ -268,6 +249,52 @@ class SubscriptionService {
       
       const school = await School.create(schoolCreateData, { transaction });
       
+      logger.info(`Created school: ${school.name} (${school.id})`);
+      
+      // Create first branch (Main Branch/Head Office)
+      const branchName = schoolData.branch_name || 'Main Branch';
+      const branchCode = `${school.code}-MB`;
+      
+      // Check if branch code already exists and make it unique if needed
+      let finalBranchCode = branchCode;
+      let counter = 1;
+      while (await Branch.findOne({ where: { code: finalBranchCode } })) {
+        finalBranchCode = `${branchCode}-${counter}`;
+        counter++;
+      }
+      
+      const branch = await Branch.create({
+        name: branchName,
+        code: finalBranchCode,
+        school_id: school.id,
+        address: schoolData.address || '',
+        city: schoolData.city || '',
+        state: schoolData.state || '',
+        country: schoolData.country || 'India',
+        postal_code: schoolData.postal_code || '',
+        phone: schoolData.phone || '',
+        email: schoolData.email || '',
+        is_active: true,
+        created_by: userId,
+        updated_by: userId,
+      }, { transaction });
+      
+      logger.info(`Created branch: ${branch.name} (${branch.id}) for school: ${school.name}`);
+      
+      // Link school to the current global academic year
+      const currentGlobalYear = await AcademicYear.findOne({ 
+        where: { is_current: true } 
+      });
+      
+      if (currentGlobalYear) {
+        await school.update({
+          current_academic_year_id: currentGlobalYear.id
+        }, { transaction });
+        logger.info(`Linked school ${school.name} to current global academic year: ${currentGlobalYear.name}`);
+      } else {
+        logger.warn(`No current global academic year found. School ${school.name} will not be linked to any academic year.`);
+      }
+      
       // Create school admin user
       const adminPassword = subscriptionData.admin_password || this.generatePassword();
       const adminUser = await User.create({
@@ -278,11 +305,14 @@ class SubscriptionService {
         password: adminPassword,
         role: 'school_admin',
         school_id: school.id,
+        branch_id: branch.id, // Assign to the first branch
         status: 'active',
         email_verified: true,
         created_by: userId,
         updated_by: userId,
       }, { transaction });
+      
+      logger.info(`Created admin user: ${adminUser.first_name} ${adminUser.last_name} (${adminUser.id}) for school: ${school.name}`);
       
       // Create transaction record if payment details provided
       if (subscriptionData.payment_amount) {
@@ -310,6 +340,8 @@ class SubscriptionService {
       
       return {
         school,
+        branch,
+        academic_year: currentGlobalYear, // Return the linked academic year
         admin_user: {
           ...adminUser.toJSON(),
           password: adminPassword, // Return password for display
@@ -606,7 +638,7 @@ class SubscriptionService {
 
   // Get renewal requests (for super admin)
   static async getRenewalRequests(params = {}) {
-    const { page = 1, limit = 10, status, school_id } = params;
+    const { page = 1, limit = 10, status, school_id, request_type } = params;
     const offset = (page - 1) * limit;
 
     const whereClause = {};
@@ -615,6 +647,9 @@ class SubscriptionService {
     }
     if (school_id) {
       whereClause.school_id = school_id;
+    }
+    if (request_type) {
+      whereClause.request_type = request_type;
     }
 
     const { count, rows } = await SubscriptionRenewalRequest.findAndCountAll({

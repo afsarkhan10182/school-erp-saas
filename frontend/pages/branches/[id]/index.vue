@@ -84,21 +84,13 @@ const branch = ref(null);
 
 const fetchBranch = async () => {
   try {
-    const token = useCookie('auth-token').value;
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const res = await fetch(`${apiBase}/branches/${branchId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await res.json();
-    if (data.success) {
-      branch.value = data.data.branch || data.data;
+    const branchData = await getBranchById(branchId);
+    if (branchData) {
+      branch.value = branchData;
     }
   } catch (e) {
-    // error handled by composable
+    console.error('Error fetching branch:', e);
+    error.value = 'Failed to load branch details';
   }
 };
 

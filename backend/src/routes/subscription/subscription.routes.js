@@ -16,6 +16,7 @@ router.delete('/plans/:id', authorize(['super_admin']), SubscriptionController.d
 
 // Schools with Subscriptions Routes (Super Admin Only)
 router.get('/schools', authorize(['super_admin']), SubscriptionController.getSchoolsWithSubscriptions);
+router.get('/schools/:id', authorize(['super_admin']), SubscriptionController.getSchoolWithSubscription);
 router.post('/schools', 
   authorize(['super_admin']), 
   upload.fields([

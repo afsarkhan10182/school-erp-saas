@@ -168,7 +168,7 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
  *         name: academic_year
  *         schema:
  *           type: string
- *           example: "2024-25"
+ *           example: "2024-2025"
  *         description: Academic year for the summary (optional, defaults to current)
  *     responses:
  *       200:

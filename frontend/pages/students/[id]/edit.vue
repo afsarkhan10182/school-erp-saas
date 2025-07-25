@@ -82,7 +82,7 @@ watch(studentData, (newData) => {
 }, { deep: true });
 
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   title: 'Edit Student',
 });
 </script> 

@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
@@ -285,11 +285,7 @@ const authStore = useAuthStore();
 const { showError } = useToast();
 
 // Access control - only Super Admin can access subscriptions
-const user = authStore.user;
-if (user?.role !== 'super_admin') {
-  showError('Access denied. Only Super Admin can manage subscriptions.');
-  await navigateTo('/dashboard');
-}
+const user = computed(() => authStore.user);
 
 const { schools, plans, loading, error, fetchSchoolsWithSubscriptions, fetchPlans, suspendSchool, reactivateSchool } = useSubscriptions();
 
@@ -429,7 +425,23 @@ const reactivateSchoolAction = async (schoolId) => {
   }
 };
 
+// Watch for user role changes and load data
+watch(
+  () => user.value?.role,
+  (role) => {
+    if (role === 'super_admin') {
+      fetchSchools();
+      fetchPlansData();
+    } else if (role && role !== 'super_admin') {
+      showError('Access denied. Only Super Admin can manage subscriptions.');
+      navigateTo('/dashboard');
+    }
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
+  // Initial load if user is already available
   if (user.value?.role === 'super_admin') {
     fetchSchools();
     fetchPlansData();

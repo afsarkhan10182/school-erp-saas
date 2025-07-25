@@ -401,9 +401,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useSchools } from '~/composables/useSchools';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
@@ -420,7 +421,11 @@ if (user?.role !== 'super_admin') {
 
 const route = useRoute();
 const router = useRouter();
-const { getSchoolById, updateSchoolSubscription, plans, fetchPlans, loading, error } = useSubscriptions();
+const { updateSchoolSubscription, getSchoolWithSubscription, plans, fetchPlans, loading: subscriptionLoading, error: subscriptionError } = useSubscriptions();
+
+// Combine loading and error states
+const loading = computed(() => subscriptionLoading.value);
+const error = computed(() => subscriptionError.value);
 
 const formError = ref('');
 const emailError = ref('');
@@ -481,6 +486,11 @@ const form = ref({
 const onFileChange = (field, event) => {
   fileInputs.value[field] = event.target.files[0];
 };
+
+// Load school data on mount
+onMounted(() => {
+  loadSchool();
+});
 
 // School code validation
 const validateSchoolCode = () => {
@@ -620,8 +630,8 @@ const loadSchool = async () => {
     // Fetch plans
     await fetchPlans({ is_active: true });
     
-    // Fetch school details
-    const school = await getSchoolById(route.params.id);
+    // Fetch school details with subscription data
+    const school = await getSchoolWithSubscription(route.params.id);
     if (!school) throw new Error('School not found');
     
     // Populate form

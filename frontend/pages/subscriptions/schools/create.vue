@@ -4,6 +4,27 @@
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Add New School</h1>
       <p class="text-gray-600 dark:text-gray-400 mt-1">Create a new school with subscription plan and admin user</p>
+      <div class="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">What happens when you create a school?</h3>
+            <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+              <ul class="list-disc list-inside space-y-1">
+                <li>A new school record is created in the schools table</li>
+                <li>A first branch is automatically created (e.g., "Main Branch" or your specified name)</li>
+                <li>A default academic year is created based on your starting month setting</li>
+                <li>A school admin user is created with the credentials you provide</li>
+                <li>Additional branches can be added later via the Branches section</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -96,6 +117,36 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
             <input v-model="form.schoolData.currency_symbol" readonly type="text" class="input-field" placeholder="e.g. ₹, $" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Starting Month</label>
+            <select v-model="form.schoolData.starting_month" class="input-field">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June (Default)</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              This determines when the academic year starts and how payment months are calculated
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Type</label>
+            <select v-model="form.schoolData.academic_year_start" class="input-field">
+              <option value="academic">Academic Year (Custom starting month)</option>
+              <option value="calendar">Calendar Year (January-December)</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Academic: June-May or custom starting month, Calendar: January-December
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Logo</label>
@@ -408,7 +459,13 @@ const form = ref({
     website: '',
     branch_name: '',
     currency: 'INR',
-    currency_symbol: '₹'
+    currency_symbol: '₹',
+    starting_month: 6,
+    academic_year_start: 'academic',
+    timezone: 'Asia/Kolkata',
+    locale: 'en-IN',
+    date_format: 'DD/MM/YYYY',
+    time_format: '12h'
   },
   subscriptionData: {
     plan_code: '',
@@ -629,7 +686,7 @@ const handleSubmit = async () => {
     const result = await createSchoolWithSubscription(formData);
     if (result) {
       createdSchool.value = result;
-      showToastNotification('School created successfully!', 'success');
+      showToastNotification(`School "${result.school.name}" created successfully with branch "${result.branch.name}" and academic year "${result.academic_year.name}"!`, 'success');
       // Reset form after successful creation
       setTimeout(() => {
         try {
@@ -651,6 +708,8 @@ const handleSubmit = async () => {
               branch_name: '',
               currency: 'INR',
               currency_symbol: '₹',
+              starting_month: 6,
+              academic_year_start: 'academic',
               timezone: 'Asia/Kolkata',
               locale: 'en-IN',
               date_format: 'DD/MM/YYYY',
