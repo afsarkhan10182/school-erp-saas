@@ -20,7 +20,7 @@ router.use(setSchoolContext);
 router.use(setBranchContext);
 
 // POST endpoint to create a new fee type (admin only)
-router.post('/', requireRole('super_admin', 'school_admin'), createFeeType);
+router.post('/', requireRole('super_admin', 'school_admin', 'branch_admin'), createFeeType);
 
 // GET endpoint to retrieve all fee types
 router.get('/', getFeeTypes);
@@ -29,12 +29,12 @@ router.get('/', getFeeTypes);
 router.get('/:id', getFeeTypeById);
 
 // PUT endpoint to update a fee type (admin only)
-router.put('/:id', requireRole('super_admin', 'school_admin'), updateFeeType);
+router.put('/:id', requireRole('super_admin', 'school_admin', 'branch_admin'), updateFeeType);
 
 // DELETE endpoint to delete a fee type (admin only)
-router.delete('/:id', requireRole('super_admin', 'school_admin'), deleteFeeType);
+router.delete('/:id', requireRole('super_admin', 'school_admin', 'branch_admin'), deleteFeeType);
 
 // PATCH endpoint to restore a soft-deleted fee type (admin only)
-router.patch('/:id/restore', requireRole('super_admin', 'school_admin'), restoreFeeType);
+router.patch('/:id/restore', requireRole('super_admin', 'school_admin', 'branch_admin'), restoreFeeType);
 
 module.exports = router;

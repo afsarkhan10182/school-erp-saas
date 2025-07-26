@@ -257,7 +257,7 @@ const getPaymentModelIcon = (invoice) => {
 
 const getStudentName = (invoice) => {
   if (invoice.student) {
-    return `${invoice.student.first_name} ${invoice.student.last_name}`;
+    return `${invoice.student.first_name} ${invoice.student.last_name ? invoice.student.last_name : ''}`;
   }
   return 'N/A';
 };
