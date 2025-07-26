@@ -135,17 +135,7 @@
               
               <!-- Fee Collection Chart -->
               <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
-                <canvas ref="feesChart" v-if="!loadingFeeSummary"></canvas>
-                <div v-else class="flex items-center justify-center h-full">
-                  <div class="text-center">
-                    <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                      <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Loading chart...</p>
-                  </div>
-                </div>
+                <canvas ref="feesChart"></canvas>
               </div>
               
               <!-- Additional Stats -->
@@ -582,7 +572,6 @@ const fetchDashboardData = async () => {
     loading.value = true;
     
     // Fetch stats and activities in parallel
-    console.log('🔍 Fetching dashboard data with branch_id:', selectedBranch.value);
     const [statsResponse, activitiesResponse] = await Promise.allSettled([
       apiClient.dashboard.getStats({ 
         branch_id: selectedBranch.value,
@@ -635,81 +624,99 @@ const fetchDashboardData = async () => {
     });
 
     // Create charts with available data
-    if (studentsData) {
-      createCharts(studentsData, null, null, null);
-    }
-    if (studentDistributionData) {
-      createCharts(null, null, studentDistributionData, null);
-    }
-    if (feeTrendData) {
-      createCharts(null, null, null, feeTrendData);
-    }
+    createCharts(studentsData, feesData, studentDistributionData, feeTrendData);
 
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
     loading.value = false;
   }
 };
 
-// Fetch fee collection summary
-const fetchFeeCollectionSummary = async () => {
-  if (!selectedAcademicYear.value) {
-    feeCollectionSummary.value = {};
-    return;
-  }
-  
-  loadingFeeSummary.value = true;
-  try {
-    const params = { 
-      academic_year: selectedAcademicYear.value 
-    };
-    
-    // Add branch filter if selected
-    if (selectedBranch.value) {
-      params.branch_id = selectedBranch.value;
+// Create fee collection chart
+const createFeeChart = (data = null) => {
+  // Wait for next tick to ensure DOM is ready
+  nextTick(() => {
+    if (!feesChart.value) {
+      console.warn('Fee chart canvas not found');
+      return;
     }
     
-    const response = await apiClient.dashboard.getFeeCollectionSummary(params);
-    console.log('💰 Fee collection summary response:', response);
-    if (response.success) {
-      console.log('✅ Fee collection summary loaded:', response.data);
-      feeCollectionSummary.value = response.data;
-      
-      // Create fee chart with the summary data
-      await nextTick();
-      if (feesChart.value) {
-        const chartData = {
-          labels: ['Paid', 'Pending', 'Overdue'],
-          data: [
-            feeCollectionSummary.value.total_collected || 0,
-            feeCollectionSummary.value.total_pending || 0,
-            feeCollectionSummary.value.overdue_invoices || 0
-          ]
-        };
-        
-        // Create only the fees chart
-        if (feesChartInstance) {
-          feesChartInstance.destroy();
+    // Destroy existing chart instance
+    if (feesChartInstance) {
+      feesChartInstance.destroy();
+      feesChartInstance = null;
+    }
+    
+    const chartData = data || {
+      labels: ['Paid', 'Pending', 'Overdue'],
+      data: [
+        feeCollectionSummary.value.total_collected || 0,
+        feeCollectionSummary.value.total_pending || 0,
+        feeCollectionSummary.value.overdue_invoices || 0
+      ]
+    };
+    
+    // Check if all data is zero and show "No Data" message
+    const hasData = chartData.data.some(value => value > 0);
+    
+    try {
+      feesChartInstance = new Chart(feesChart.value.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: hasData ? chartData.labels : ['No Data'],
+          datasets: [{
+            data: hasData ? chartData.data : [1],
+            backgroundColor: hasData ? [
+              'rgba(16, 185, 129, 0.8)',
+              'rgba(245, 158, 11, 0.8)',
+              'rgba(239, 68, 68, 0.8)'
+            ] : ['rgba(156, 163, 175, 0.3)'],
+            borderColor: hasData ? [
+              'rgb(16, 185, 129)',
+              'rgb(245, 158, 11)',
+              'rgb(239, 68, 68)'
+            ] : ['rgb(156, 163, 175)'],
+            borderWidth: 2,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#6B7280',
+                padding: 20,
+                usePointStyle: true
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  if (!hasData) return 'No data available';
+                  const label = context.label || '';
+                  const value = context.parsed;
+                  return `${label}: ₹${value.toLocaleString('en-IN')}`;
+                }
+              }
+            }
+          }
         }
-        
+      });
+    } catch (error) {
+      console.error('Error creating fee chart:', error);
+      // Fallback: create a simple "No Data" chart
+      try {
         feesChartInstance = new Chart(feesChart.value.getContext('2d'), {
           type: 'doughnut',
           data: {
-            labels: chartData.labels,
+            labels: ['No Data'],
             datasets: [{
-              data: chartData.data,
-              backgroundColor: [
-                'rgba(16, 185, 129, 0.8)',
-                'rgba(245, 158, 11, 0.8)',
-                'rgba(239, 68, 68, 0.8)'
-              ],
-              borderColor: [
-                'rgb(16, 185, 129)',
-                'rgb(245, 158, 11)',
-                'rgb(239, 68, 68)'
-              ],
-              borderWidth: 2,
-              hoverOffset: 4
+              data: [1],
+              backgroundColor: ['rgba(156, 163, 175, 0.3)'],
+              borderColor: ['rgb(156, 163, 175)'],
+              borderWidth: 2
             }]
           },
           options: {
@@ -727,11 +734,45 @@ const fetchFeeCollectionSummary = async () => {
             }
           }
         });
+      } catch (fallbackError) {
+        console.error('Error creating fallback chart:', fallbackError);
       }
     }
-  } catch (error) {
-    console.error('Error fetching fee collection summary:', error);
+  });
+};
+
+// Fetch fee collection summary
+const fetchFeeCollectionSummary = async () => {
+  if (!selectedAcademicYear.value) {
     feeCollectionSummary.value = {};
+    createFeeChart();
+    return;
+  }
+  
+  loadingFeeSummary.value = true;
+  try {
+    const params = { 
+      academic_year: selectedAcademicYear.value 
+    };
+    
+    // Add branch filter if selected
+    if (selectedBranch.value) {
+      params.branch_id = selectedBranch.value;
+    }
+    
+    const response = await apiClient.dashboard.getFeeCollectionSummary(params);
+    if (response.success) {
+      feeCollectionSummary.value = response.data;
+      
+      // Create fee chart with the summary data
+      createFeeChart();
+    } else {
+      feeCollectionSummary.value = {};
+      createFeeChart();
+    }
+  } catch (error) {
+    feeCollectionSummary.value = {};
+    createFeeChart();
   } finally {
     loadingFeeSummary.value = false;
   }
@@ -753,7 +794,7 @@ const initializeAcademicYear = async () => {
       selectedAcademicYear.value = academicYears.value[0].name;
     }
   } catch (error) {
-    console.error('Error initializing academic year:', error);
+    // Error initializing academic year
   } finally {
     loadingAcademicYears.value = false;
   }
@@ -767,7 +808,7 @@ const initializeBranches = async () => {
       await fetchBranches(schoolId);
     }
   } catch (error) {
-    console.error('Error initializing branches:', error);
+    // Error initializing branches
   }
 };
 
@@ -778,11 +819,15 @@ watch(selectedAcademicYear, (newValue) => {
   }
 });
 
+// Watch for changes in fee collection summary data
+watch(feeCollectionSummary, () => {
+  createFeeChart();
+}, { deep: true });
+
 // Handle branch change
 const onBranchChange = async (event) => {
   const branchId = event.target.value;
   selectedBranch.value = branchId;
-  console.log('🔍 Branch changed to:', branchId);
   // Refresh dashboard data with new branch filter
   await fetchDashboardData();
   // Refresh fee collection summary with new branch filter
@@ -807,10 +852,15 @@ onUnmounted(() => {
   }
 });
 
-onMounted(() => {
-  fetchDashboardData();
-  initializeAcademicYear();
-  initializeBranches();
+onMounted(async () => {
+  await fetchDashboardData();
+  await initializeAcademicYear();
+  await initializeBranches();
+  
+  // Initialize fee chart after component is mounted
+  setTimeout(() => {
+    createFeeChart();
+  }, 100);
 });
 </script>
 

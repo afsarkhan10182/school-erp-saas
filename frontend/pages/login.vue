@@ -18,28 +18,31 @@
     </div>
 
     <!-- Theme toggle -->
-    <button
-      @click="toggleTheme"
-      class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300"
-      :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-    >
-      <Sun v-if="isDark" class="w-5 h-5 text-yellow-300" />
-      <Moon v-else class="w-5 h-5 text-white" />
-    </button>
+    <ClientOnly>
+      <button
+        @click="toggleTheme"
+        class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300"
+        :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <Sun v-if="isDark" class="w-5 h-5 text-yellow-300" />
+        <Moon v-else class="w-5 h-5 text-white" />
+      </button>
+    </ClientOnly>
 
-    <!-- Loading Screen -->
-    <div v-if="checkingAuth" class="min-h-screen flex items-center justify-center p-4 relative z-10">
-      <div class="text-center">
-        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <span class="text-white font-bold text-2xl">S</span>
+    <ClientOnly>
+      <div v-if="checkingAuth" class="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <!-- Loading Screen -->
+        <div class="text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span class="text-white font-bold text-2xl">S</span>
+          </div>
+          <div class="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p class="text-white/70 text-sm">Checking authentication...</p>
         </div>
-        <div class="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-white/70 text-sm">Checking authentication...</p>
       </div>
-    </div>
 
-    <!-- Login Container -->
-    <div v-else class="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div v-else class="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <!-- Login Container -->
       <div class="w-full max-w-md">
         <!-- Glassmorphic card -->
         <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8">
@@ -116,7 +119,8 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ClientOnly>
   </div>
 </template>
 
@@ -144,14 +148,9 @@ const { login } = useAuth();
 
 
 const isDark = ref(false);
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  
-  // Use Nuxt's useCookie for theme persistence
-  const themeCookie = useCookie('theme');
-  themeCookie.value = isDark.value ? 'dark' : 'light';
-  
-  // Apply theme using Nuxt's useHead
+
+// Apply theme using Nuxt's useHead - called once outside toggle
+const applyTheme = () => {
   useHead({
     htmlAttrs: {
       class: isDark.value ? 'dark' : ''
@@ -159,12 +158,19 @@ const toggleTheme = () => {
   });
 };
 
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  
+  // Use Nuxt's useCookie for theme persistence
+  const themeCookie = useCookie('theme');
+  themeCookie.value = isDark.value ? 'dark' : 'light';
+  
+  // Apply theme
+  applyTheme();
+};
+
 // Check authentication on component mount
 const checkExistingAuth = async () => {
-  if (!import.meta.client) {
-    return;
-  }
-
   const authStore = useAuthStore();
   
   // First, check if we have any cached data or if user is already logged in
@@ -223,23 +229,17 @@ const checkExistingAuth = async () => {
   }
 };
 
-// Run auth check immediately
-if (import.meta.client) {
-  checkExistingAuth();
-}
-
-// Use Nuxt 3's onMounted lifecycle hook for theme setup only
+// Use Nuxt 3's onMounted lifecycle hook for theme setup and auth check
 onMounted(() => {
   // Set theme using Nuxt's useCookie for better SSR handling
   const themeCookie = useCookie('theme', { default: () => 'dark' });
   isDark.value = themeCookie.value === 'dark';
   
-  // Apply theme using Nuxt's useHead for better SSR
-  useHead({
-    htmlAttrs: {
-      class: isDark.value ? 'dark' : ''
-    }
-  });
+  // Apply theme
+  applyTheme();
+  
+  // Run auth check after component is mounted
+  checkExistingAuth();
 });
 
 const handleLogin = async () => {

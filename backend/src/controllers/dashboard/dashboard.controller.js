@@ -462,25 +462,44 @@ class DashboardController {
         where.branch_id = user.branch_id;
       }
 
+      // Get amounts by status instead of counts
       const fees = await FeeInvoice.findAll({
         where,
         attributes: [
           'status',
-          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+          [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
+          [Sequelize.fn('sum', Sequelize.col('balance_amount')), 'total_pending'],
         ],
         group: ['status'],
       });
 
-      const labels = fees.map(f => f.status);
-      const data = fees.map(f => f.get('count'));
+      // Process the data to create proper chart labels and data
+      const chartData = {
+        labels: ['Paid', 'Pending', 'Overdue'],
+        data: [0, 0, 0] // Initialize with zeros
+      };
+
+      fees.forEach(fee => {
+        const status = fee.status;
+        const paidAmount = parseFloat(fee.get('total_paid') || 0);
+        const pendingAmount = parseFloat(fee.get('total_pending') || 0);
+
+        if (status === 'paid') {
+          chartData.data[0] += paidAmount; // Paid
+        } else if (status === 'sent' || status === 'partial_paid') {
+          chartData.data[1] += pendingAmount; // Pending
+        } else if (status === 'overdue') {
+          chartData.data[2] += pendingAmount; // Overdue
+        }
+      });
 
       // If no data, provide default structure
-      if (labels.length === 0) {
-        labels.push('No Data');
-        data.push(0);
+      if (chartData.data.every(amount => amount === 0)) {
+        chartData.labels = ['No Data'];
+        chartData.data = [0];
       }
 
-      res.json({ success: true, data: { labels, data } });
+      res.json({ success: true, data: chartData });
     } catch (error) {
       logger.error('Error in DashboardController.getFeesChartData:', error);
       next(error);

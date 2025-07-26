@@ -844,8 +844,9 @@ const userRole = computed(() => user.value?.role);
 // Check if selected class has streams enabled
 const hasStreams = computed(() => {
   if (!form.class_id) return false;
-  const selectedClass = activeClasses.value.find(cls => cls.id === form.class_id);
-  return selectedClass?.has_stream === true;
+  const hasStreamsResult = activeStreamsForClass.value.length > 0;
+  console.log('🔍 hasStreams computed - class_id:', form.class_id, 'activeStreamsForClass.length:', activeStreamsForClass.value.length, 'result:', hasStreamsResult);
+  return hasStreamsResult;
 });
 
 // Check if selected class/stream has sections
@@ -859,7 +860,20 @@ const hasSections = computed(() => {
 // Active streams filtered for the selected class
 const activeStreamsForClass = computed(() => {
   if (!form.class_id) return [];
-  return activeStreams.value.filter(stream => stream.class_id === form.class_id);
+  console.log('🔍 activeStreamsForClass computed - class_id:', form.class_id, 'all streams:', activeStreams.value.length);
+  console.log('🔍 All streams before filtering:', activeStreams.value.map(s => ({ id: s.id, name: s.name, code: s.code, class_id: s.class_id, class: s.class })));
+  
+  const filteredStreams = activeStreams.value.filter(stream => {
+    // Check both direct class_id and nested class.id
+    const streamClassId = stream.class_id || stream.class?.id;
+    const matches = streamClassId === form.class_id && stream.is_active !== false;
+    console.log('🔍 Stream filtering - stream:', stream.name, 'streamClassId:', streamClassId, 'form.class_id:', form.class_id, 'matches:', matches);
+    return matches;
+  });
+  
+  console.log('🔍 filtered streams:', filteredStreams.length);
+  console.log('🔍 filtered streams:', filteredStreams.map(s => ({ id: s.id, name: s.name, code: s.code, class_id: s.class_id, class: s.class })));
+  return filteredStreams;
 });
 
 // Active sections filtered by stream (if stream is selected)
@@ -1042,10 +1056,24 @@ watch(() => props.initialData, async (newData) => {
       console.log('🔍 Set temp class name:', newData.current_class);
     }
     
+    // Debug: Log the full student data structure to see what's available
+    console.log('🔍 Full student data structure:', {
+      class_id: newData.class_id,
+      class: newData.class,
+      stream_id: newData.stream_id,
+      stream: newData.stream,
+      section_id: newData.section_id,
+      section: newData.section,
+      sectionInfo: newData.sectionInfo
+    });
+    
     // Handle stream_id mapping
     if (newData.stream_id) {
       form.stream_id = newData.stream_id;
       console.log('🔍 Set stream_id directly from API field:', newData.stream_id);
+    } else if (newData.stream && newData.stream.id) {
+      form.stream_id = newData.stream.id;
+      console.log('🔍 Set stream_id from stream association:', newData.stream.id);
     } else if (newData.stream) {
       form._temp_stream_name = newData.stream;
       console.log('🔍 Set temp stream name:', newData.stream);
@@ -1065,6 +1093,11 @@ watch(() => props.initialData, async (newData) => {
     // If we have class_id but no temp names, we need to load sections for the dropdown
     if (form.class_id && !form._temp_class_name && !form._temp_section_name) {
       console.log('🔍 Class ID set directly, will load sections after academic data is loaded');
+    }
+    
+    // If we have class_id and stream_id but no temp names, we need to load streams for the dropdown
+    if (form.class_id && form.stream_id && !form._temp_class_name && !form._temp_stream_name) {
+      console.log('🔍 Class ID and stream_id set directly, will load streams after academic data is loaded');
     }
     
     if (newData.academic_year) {
@@ -1175,6 +1208,12 @@ watch(() => props.initialData, async (newData) => {
         // If we have class_id directly, always load sections for dropdown
         else if (form.class_id) {
           console.log('🔍 Class ID set directly, loading sections for dropdown');
+          
+          // Always load streams for the class to show dropdown (even if student doesn't have stream_id)
+          console.log('🔍 Loading streams for class to show dropdown');
+          await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
+          console.log('🔍 Streams loaded for dropdown:', streams.value.length);
+          
           await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
           console.log('🔍 Sections loaded for dropdown:', sections.value.length);
           
@@ -1324,20 +1363,11 @@ const onClassChange = async (isAutoSelection = false) => {
     sectionsLoading.value = true;
     streamsLoading.value = true;
     try {
-      // Check if the selected class has streams enabled
-      const selectedClass = activeClasses.value.find(cls => cls.id === form.class_id);
-      const classHasStreams = selectedClass?.has_stream === true;
-      
-      console.log('🔍 Selected class has streams:', classHasStreams);
-      
-      if (classHasStreams) {
-        // Load streams for this class
-        await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
-        console.log('🔍 Streams loaded:', streams.value?.length);
-      } else {
-        // Clear streams if class doesn't have streams
-        streams.value = [];
-      }
+      // Always load streams for the selected class
+      console.log('🔍 Loading streams for class:', form.class_id, 'school:', form.school_id, 'branch:', form.branch_id);
+      await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Streams loaded:', streams.value?.length);
+      console.log('🔍 All streams data:', streams.value);
       
       // Load sections for this class
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
@@ -1349,8 +1379,8 @@ const onClassChange = async (isAutoSelection = false) => {
         console.log('🔍 Sections loaded (without branch):', sections.value?.length);
       }
       
-      // Only auto-select section if this is not during form initialization and class has no streams
-      if (!classHasStreams && activeSectionsFiltered.value && activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
+      // Auto-select section if only one section is available and no streams
+      if (activeStreamsForClass.value.length === 0 && activeSectionsFiltered.value && activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
         form.section_id = activeSectionsFiltered.value[0].id;
         console.log('🔍 Auto-selecting single section for class without streams:', form.section_id);
       }
@@ -2040,12 +2070,14 @@ const mapClassAndSectionNames = async () => {
   if (!props.isEditing || hasMappedNames.value || isMappingNames.value) return;
   
   console.log('🔍 Starting name mapping...');
-  console.log('🔍 Current class_id:', form.class_id);
-  console.log('🔍 Current section_id:', form.section_id);
-  console.log('🔍 Current academic_year_id:', form.academic_year_id);
-  console.log('🔍 Temp class name:', form._temp_class_name);
-  console.log('🔍 Temp section name:', form._temp_section_name);
-  console.log('🔍 Temp academic year name:', form._temp_academic_year_name);
+      console.log('🔍 Current class_id:', form.class_id);
+    console.log('🔍 Current stream_id:', form.stream_id);
+    console.log('🔍 Current section_id:', form.section_id);
+    console.log('🔍 Current academic_year_id:', form.academic_year_id);
+    console.log('🔍 Temp class name:', form._temp_class_name);
+    console.log('🔍 Temp stream name:', form._temp_stream_name);
+    console.log('🔍 Temp section name:', form._temp_section_name);
+    console.log('🔍 Temp academic year name:', form._temp_academic_year_name);
   console.log('🔍 Available classes:', classes.value.length);
   console.log('🔍 Available sections:', sections.value.length);
   console.log('🔍 Available academic years:', academicYears.value.length);
@@ -2055,6 +2087,11 @@ const mapClassAndSectionNames = async () => {
     console.log('🔍 Class and section IDs already set directly from API, loading sections for dropdown');
     // Load sections for the class to populate the dropdown
     try {
+      // Always load streams for the class to show dropdown (even if student doesn't have stream_id)
+      console.log('🔍 Loading streams for class to show dropdown');
+      await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Streams loaded for dropdown:', streams.value.length);
+      
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
       console.log('🔍 Sections loaded for dropdown:', sections.value.length);
       hasMappedNames.value = true;
@@ -2070,6 +2107,11 @@ const mapClassAndSectionNames = async () => {
   if (form.class_id && !form.section_id && !form._temp_class_name && !form._temp_section_name) {
     console.log('🔍 Class ID set but no section ID, loading sections for dropdown');
     try {
+      // Always load streams for the class to show dropdown (even if student doesn't have stream_id)
+      console.log('🔍 Loading streams for class to show dropdown');
+      await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
+      console.log('🔍 Streams loaded for dropdown:', streams.value.length);
+      
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
       console.log('🔍 Sections loaded for dropdown:', sections.value.length);
       hasMappedNames.value = true;
@@ -2349,8 +2391,9 @@ onMounted(async () => {
     
     // If editing, map class and section names to IDs
     if (props.isEditing && (form._temp_class_name || form._temp_section_name || form._temp_stream_name || form._temp_academic_year_name)) {
-      console.log('🔍 onMounted: Attempting to map names to IDs');
-      console.log('🔍 onMounted: Temp values - class:', form._temp_class_name, 'section:', form._temp_section_name, 'stream:', form._temp_stream_name, 'year:', form._temp_academic_year_name);
+          console.log('🔍 onMounted: Attempting to map names to IDs');
+    console.log('🔍 onMounted: Temp values - class:', form._temp_class_name, 'section:', form._temp_section_name, 'stream:', form._temp_stream_name, 'year:', form._temp_academic_year_name);
+    console.log('🔍 onMounted: Direct IDs - class_id:', form.class_id, 'stream_id:', form.stream_id, 'section_id:', form.section_id);
       
       // Wait a bit more to ensure all data is loaded
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -2385,4 +2428,6 @@ onMounted(async () => {
     showError('Failed to load initial data');
   }
 });
+
+// Remove the problematic watcher - it was interfering with normal flow
 </script> 

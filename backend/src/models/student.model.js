@@ -164,6 +164,14 @@ const Student = sequelize.define('Student', {
       key: 'id',
     },
   },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
+      key: 'id',
+    },
+  },
   section_id: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -357,6 +365,12 @@ Student.associate = (models) => {
   Student.belongsTo(models.Class, {
     foreignKey: 'class_id',
     as: 'class',
+  });
+
+  // Student belongs to Stream
+  Student.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
   });
 
   // Student belongs to Section

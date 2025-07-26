@@ -126,28 +126,71 @@
       <!-- Pagination -->
       <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 rounded-b-lg">
         <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            @click="previousPage"
-            :disabled="currentPage === 1"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <button
-            @click="nextPage"
-            :disabled="currentPage >= totalPages"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-          >
-            Next
-          </button>
+          <div class="flex items-center space-x-2">
+            <button
+              @click="previousPage"
+              :disabled="currentPage === 1"
+              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span class="text-sm text-gray-700 dark:text-gray-300">
+              Page {{ currentPage }} of {{ totalPages }}
+            </span>
+            <button
+              @click="nextPage"
+              :disabled="currentPage >= totalPages"
+              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
+          <div class="flex items-center space-x-4">
             <p class="text-sm text-gray-700 dark:text-gray-300">
-              Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+              <span v-if="totalItems > 0">
+                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+              </span>
+              <span v-else>
+                No results found
+              </span>
             </p>
+            
+            <div class="flex items-center space-x-2">
+              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+              <select 
+                v-model="pageSize" 
+                @change="onPageSizeChange"
+                class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
+            </div>
           </div>
-          <div>
+          
+          <div class="flex items-center space-x-2">
+            <div v-if="totalPages > 1" class="flex items-center space-x-1">
+              <button
+                v-for="pageNum in getVisiblePages()"
+                :key="pageNum"
+                @click="goToPage(pageNum)"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded-md',
+                  pageNum === currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+                :disabled="pageNum === '...'"
+              >
+                {{ pageNum }}
+              </button>
+            </div>
+            
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
               <button
                 @click="previousPage"
@@ -535,7 +578,6 @@ const fetchInvoices = async () => {
     totalPages.value = response.data?.pagination?.total_pages || 0;
     
   } catch (error) {
-    console.error('Error fetching grouped invoices:', error);
     showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
@@ -567,7 +609,6 @@ const fetchSummary = async () => {
     };
     
   } catch (error) {
-    console.error('Error fetching summary:', error);
     // Set default values
     summary.value = {
       totalInvoices: 0,
@@ -612,7 +653,6 @@ const generateInvoices = async (formData) => {
     await fetchInvoices();
     await fetchSummary();
   } catch (error) {
-    console.error('Error generating invoices:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showToast(error.response.data.message, 'error');
     } else {
@@ -653,7 +693,6 @@ const submitPayment = async () => {
       showReceiptModal.value = true;
     }
   } catch (error) {
-    console.error('Error recording payment:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showToast(error.response.data.message, 'error');
     } else {
@@ -757,7 +796,6 @@ const viewReceipt = async (invoice) => {
       showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
-    console.error('Error fetching receipt:', error);
     showToast('Error fetching receipt', 'error');
   }
 };
@@ -777,7 +815,6 @@ const viewPaymentReceipt = (paymentItem) => {
     showMultiplePaymentsModal.value = false;
     showReceiptModal.value = true;
   } catch (error) {
-    console.error('Error viewing payment receipt:', error);
     showToast('Error viewing payment receipt', 'error');
   }
 };
@@ -795,7 +832,6 @@ const viewCombinedReceipt = async (combinedInvoice) => {
       showToast('No receipt found for this combined invoice', 'error');
     }
   } catch (error) {
-    console.error('Error fetching combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showToast(error.response.data.message, 'error');
     } else {
@@ -936,6 +972,58 @@ const nextPage = () => {
   }
 };
 
+const goToPage = (page) => {
+  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+    currentPage.value = page;
+    fetchInvoices();
+  }
+};
+
+const onPageSizeChange = async () => {
+  if (import.meta.client) {
+    localStorage.setItem('invoicesPageSize', pageSize.value.toString());
+  }
+  
+  currentPage.value = 1;
+  await fetchInvoices();
+};
+
+const getVisiblePages = () => {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+  
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    } else if (current >= total - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+};
+
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
 };
@@ -970,7 +1058,7 @@ const loadAcademicDataForModal = async () => {
       fetchSchools()
     ]);
   } catch (error) {
-    console.error('Error loading academic data:', error);
+    // Error loading academic data
   }
 };
 
@@ -983,7 +1071,6 @@ const fetchMonthlyFeeStructures = async () => {
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
     monthlyFeeStructures.value = response.data.fee_structures || [];
   } catch (error) {
-    console.error('Error fetching monthly fee structures:', error);
     showToast('Error loading monthly fee structures', 'error');
     monthlyFeeStructures.value = [];
   }
@@ -994,9 +1081,7 @@ const fetchInstallmentFeeStructures = async () => {
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
     installmentFeeStructures.value = response.data.fee_structures || [];
   } catch (error) {
-    console.error('Error fetching installment fee structures:', error);
     showToast('Error loading installment fee structures', 'error');
-    installmentFeeStructures.value = [];
   }
 };
 
@@ -1008,7 +1093,7 @@ const fetchFeeStructuresForModal = async () => {
       fetchInstallmentFeeStructures()
     ]);
   } catch (error) {
-    console.error('Error fetching fee structures:', error);
+    // Error fetching fee structures
   }
 };
 
@@ -1149,6 +1234,14 @@ const loadAcademicData = async () => {
 
 onMounted(async () => {
   try {
+    // Load localStorage value on client-side
+    if (import.meta.client) {
+      const savedPageSize = localStorage.getItem('invoicesPageSize');
+      if (savedPageSize) {
+        pageSize.value = parseInt(savedPageSize);
+      }
+    }
+    
     // Set default branch filter based on user role
     setDefaultBranchFilter();
     
@@ -1159,7 +1252,6 @@ onMounted(async () => {
     await fetchInvoices();
     await fetchSummary();
   } catch (error) {
-    console.error('Error during component initialization:', error);
     showToast('Error initializing component', 'error');
   }
 });

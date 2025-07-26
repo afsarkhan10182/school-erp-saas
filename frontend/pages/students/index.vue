@@ -33,7 +33,6 @@
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
-          <!-- School Selector (Super Admin Only) -->
           <EnhancedDropdown
             v-if="isSuperAdmin"
             v-model="selectedSchool"
@@ -45,7 +44,6 @@
             @update:modelValue="onSchoolChange"
           />
           
-          <!-- Branch Selector -->
           <EnhancedDropdown
             v-if="!isBranchAdmin"
             v-model="selectedBranch"
@@ -60,7 +58,6 @@
             :class="isSuperAdmin ? 'md:col-span-1' : 'md:col-span-2'"
           />
           
-          <!-- Branch Display for Branch Admin -->
           <div v-if="isBranchAdmin" class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Branch
@@ -70,7 +67,6 @@
             </div>
           </div>
           
-          <!-- Class Selector (Optional) -->
           <EnhancedDropdown
             v-model="selectedClass"
             :options="classOptions"
@@ -82,7 +78,6 @@
             @update:modelValue="onClassChange"
           />
           
-          <!-- Section Selector (Optional) -->
           <EnhancedDropdown
             v-model="selectedSection"
             :options="sectionOptions"
@@ -94,7 +89,6 @@
             @update:modelValue="onSectionChange"
           />
           
-          <!-- Academic Year -->
           <EnhancedDropdown
             v-model="filters.academic_year"
             :options="academicYearOptions"
@@ -220,8 +214,10 @@
           </div>
         </div>
         
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <div v-if="!isLoading && students.length > 0" class="overflow-x-auto -mx-4 sm:mx-0">
+          <div class="inline-block min-w-full align-middle">
+            <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
@@ -368,6 +364,145 @@
               </tr>
             </tbody>
           </table>
+            </div>
+          </div>
+          
+          <!-- Loading State -->
+          <div v-if="isLoading" class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="ml-3 text-gray-600 dark:text-gray-400">Loading students...</span>
+          </div>
+          
+          <!-- No Results State -->
+          <div v-else-if="!isLoading && students.length === 0 && hasAppliedFilters" class="text-center py-12">
+            <div class="text-gray-500 dark:text-gray-400">
+              <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No students found</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Try adjusting your filters or search criteria.
+              </p>
+              <button
+                @click="resetFilters"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Reset Filters
+              </button>
+            </div>
+          </div>
+          
+          <!-- Initial State -->
+          <div v-else-if="!isLoading && students.length === 0 && !hasAppliedFilters" class="text-center py-12">
+            <div class="text-gray-500 dark:text-gray-400">
+              <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Select filters to view students</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {{ isSuperAdmin ? 'Choose a school and branch above, then click "Apply Filters" to view students.' : 'Choose a branch above, then click "Apply Filters" to view students.' }}
+              </p>
+              <button
+                v-if="canApplyFilters"
+                @click="applyFilters"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <Users class="-ml-1 mr-2 h-5 w-5" />
+                Apply Filters & View Students
+              </button>
+              <div v-else class="text-xs text-gray-400 mt-2">
+                {{ isSuperAdmin ? 'Please select both school and branch to continue' : 'Please select a branch to continue' }}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 rounded-b-lg">
+          <div v-if="totalItems > 0" class="flex-1 flex justify-between sm:hidden">
+            <div class="flex items-center space-x-2">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span class="text-sm text-gray-700 dark:text-gray-300">
+                Page {{ currentPage }} of {{ totalPages }}
+              </span>
+              <button
+                @click="nextPage"
+                :disabled="currentPage >= totalPages"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div class="flex items-center space-x-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                <span v-if="totalItems > 0">
+                  Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+                </span>
+                <span v-else>
+                  No results found
+                </span>
+              </p>
+              
+              <div v-if="totalItems > 0" class="flex items-center space-x-2">
+                <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+                <select 
+                  v-model="pageSize" 
+                  @change="onPageSizeChange"
+                  class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
+              </div>
+            </div>
+            
+            <div v-if="totalItems > 0" class="flex items-center space-x-2">
+              <div v-if="totalPages > 1" class="flex items-center space-x-1">
+                <button
+                  v-for="pageNum in getVisiblePages()"
+                  :key="pageNum"
+                  @click="goToPage(pageNum)"
+                  :class="[
+                    'px-3 py-1 text-sm font-medium rounded-md',
+                    pageNum === currentPage
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ]"
+                  :disabled="pageNum === '...'"
+                >
+                  {{ pageNum }}
+                </button>
+              </div>
+              
+              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <button
+                  @click="previousPage"
+                  :disabled="currentPage === 1"
+                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  @click="nextPage"
+                  :disabled="currentPage >= totalPages"
+                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -387,7 +522,6 @@ import {
   CheckCircle,
   UserPlus,
   GraduationCap,
-  ArrowLeft,
 } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
@@ -413,6 +547,14 @@ const isLoading = ref(false);
 const searchQuery = ref('');
 const stats = ref({});
 const hasAppliedFilters = ref(false);
+
+// Pagination state
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalItems = ref(0);
+const totalPages = ref(0);
+
+
 
 // Role-based state
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
@@ -536,7 +678,7 @@ const onBranchChange = async () => {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
       await fetchClasses(schoolId, selectedBranch.value);
     } catch (error) {
-      console.error('❌ Error loading classes:', error);
+      // Error loading classes
     } finally {
       classesLoading.value = false;
     }
@@ -562,10 +704,6 @@ const onSectionChange = () => {
   // No auto-fetch, just update the selection
 };
 
-const onAcademicYearChange = () => {
-  // No auto-fetch, just update the selection
-};
-
 const applyFilters = async () => {
   if (canApplyFilters.value) {
     await fetchStudents();
@@ -582,17 +720,20 @@ const resetFilters = () => {
   students.value = [];
   stats.value = {};
   hasAppliedFilters.value = false;
+  currentPage.value = 1;
+  pageSize.value = 10; // Reset to default page size
+  totalItems.value = 0;
+  totalPages.value = 0;
 };
 
-const fetchStudents = async () => {
+const fetchStudents = async (page = 1) => {
   isLoading.value = true;
   hasAppliedFilters.value = true;
   
   try {
-    // Always include default pagination parameters
     const params = {
-      page: 1,
-      limit: 10
+      page: page,
+      limit: pageSize.value
     };
 
     // Add search if present
@@ -628,19 +769,41 @@ const fetchStudents = async () => {
     const response = await apiClient.students.getAll(params);
     
     if (response.success) {
-      if (response.data && Array.isArray(response.data)) {
+      // Backend returns: { success: true, data: students[], pagination: {...} }
+      if (response.data && response.pagination) {
+        // Handle paginated response from backend
+        students.value = response.data || [];
+        currentPage.value = response.pagination.current_page || page;
+        pageSize.value = response.pagination.limit || pageSize.value;
+        totalItems.value = response.pagination.total_count || 0;
+        totalPages.value = response.pagination.total_pages || Math.ceil(totalItems.value / pageSize.value);
+        
+        // Reset to page 1 if no data and we're not on page 1
+        if (students.value.length === 0 && currentPage.value > 1) {
+          currentPage.value = 1;
+        }
+      } else if (response.data && Array.isArray(response.data)) {
+        // Handle array response (fallback)
         students.value = response.data;
-      } else if (response.data && response.data.items) {
-        students.value = response.data.items;
+        totalItems.value = response.data.length;
+        totalPages.value = Math.ceil(totalItems.value / pageSize.value);
       } else {
         students.value = [];
+        totalItems.value = 0;
+        totalPages.value = 0;
+        currentPage.value = 1;
       }
     } else {
       students.value = [];
+      totalItems.value = 0;
+      totalPages.value = 0;
+      currentPage.value = 1;
     }
-  } catch (error) {
-    console.error('Error fetching students:', error);
-    students.value = [];
+      } catch (error) {
+      students.value = [];
+      totalItems.value = 0;
+      totalPages.value = 0;
+      currentPage.value = 1;
   } finally {
     isLoading.value = false;
   }
@@ -652,6 +815,77 @@ const viewStudent = (id) => {
 
 const editStudent = (id) => {
   navigateTo(`/students/${id}/edit`);
+};
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchStudents(currentPage.value);
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    fetchStudents(currentPage.value);
+  }
+};
+
+const goToPage = (page) => {
+  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+    currentPage.value = page;
+    fetchStudents(page);
+  }
+};
+
+const onPageSizeChange = async () => {
+  if (import.meta.client) {
+    localStorage.setItem('studentsPageSize', pageSize.value.toString());
+  }
+  
+  currentPage.value = 1;
+  await fetchStudents(1);
+};
+
+const getVisiblePages = () => {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+  
+  if (total <= 7) {
+    // Show all pages if total is 7 or less
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Show first page, last page, current page, and pages around current
+    if (current <= 4) {
+      // Near the beginning
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    } else if (current >= total - 3) {
+      // Near the end
+      pages.push(1);
+      pages.push('...');
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      // In the middle
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
 };
 
 const getStatusClass = (status) => {
@@ -678,26 +912,34 @@ const getStatusText = (status) => {
 
 // Initialize data
 onMounted(async () => {
-  // Load schools for Super Admin
+  if (import.meta.client) {
+    const savedPageSize = localStorage.getItem('studentsPageSize');
+    if (savedPageSize) {
+      pageSize.value = parseInt(savedPageSize);
+    }
+  }
+  
   if (isSuperAdmin.value) {
     await fetchSchools();
   }
   
-  // Load branches for School Admin
   if (isSchoolAdmin.value) {
     await fetchBranches(authStore.currentUser?.school_id);
   }
   
-  // Auto-set branch for Branch Admin
   if (isBranchAdmin.value) {
     selectedBranch.value = authStore.currentUser?.branch_id;
   }
   
-  // Load academic years for all users
   await fetchAcademicYears(authStore.currentUser?.school_id);
   
-  // Auto-fetch students data on first load with default pagination
-  await fetchStudents();
+  if (isBranchAdmin.value) {
+    await fetchStudents(1);
+  } else if (isSchoolAdmin.value) {
+    await fetchStudents(1);
+  } else if (isSuperAdmin.value) {
+    await fetchStudents(1);
+  }
 });
 
 // Watch for branch changes
@@ -710,10 +952,12 @@ watch(selectedBranch, (newBranch, oldBranch) => {
 // Watch search query for auto-refresh only when filters are applied
 watch(searchQuery, () => {
   if (hasAppliedFilters.value) {
+    // Reset to first page when searching
+    currentPage.value = 1;
     // Debounced search when filters are already applied
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      fetchStudents();
+      fetchStudents(1);
     }, 300);
   }
 });

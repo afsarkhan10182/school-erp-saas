@@ -87,6 +87,20 @@ const createStudent = async (req, res, next) => {
         if (req.body.academic_year_id) studentData._academic_year_id = req.body.academic_year_id;
         if (req.body.stream_id) studentData._stream_id = req.body.stream_id;
       }
+      
+      // Ensure critical fields are properly extracted from nested structure
+      if (req.body.student && req.body.student.gender) {
+        studentData.gender = req.body.student.gender;
+      }
+      if (req.body.student && req.body.student.first_name) {
+        studentData.first_name = req.body.student.first_name;
+      }
+      if (req.body.student && req.body.student.last_name) {
+        studentData.last_name = req.body.student.last_name;
+      }
+      if (req.body.student && req.body.student.date_of_birth) {
+        studentData.date_of_birth = req.body.student.date_of_birth;
+      }
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
       // Fallback to flat structure
@@ -198,6 +212,8 @@ const createStudent = async (req, res, next) => {
         if (streamRecord) {
           studentData.stream = streamRecord.name;
           studentData.stream_id = studentData._stream_id; // Set the actual stream_id
+         } else {
+          console.log('❌ Stream not found with ID:', studentData._stream_id);
          }
       } catch (error) {
         console.error('❌ Error fetching stream:', error);
@@ -231,14 +247,55 @@ const createStudent = async (req, res, next) => {
 
     // Sanitize ENUM fields
     sanitizeEnumFields(finalStudentData);
-
-    console.log('🔍 Final student data for creation:', finalStudentData);
-
-    // Create student record
+    // Create student record within a transaction to prevent race conditions
     let student;
+    const transaction = await sequelize.transaction();
+    
     try {
-      student = await Student.create(finalStudentData);
+      // Re-check for duplicates within transaction to prevent race conditions
+      const existingStudentInTx = await Student.findOne({
+        where: {
+          admission_number: finalStudentData.admission_number,
+          school_id: school_id,
+        },
+        transaction
+      });
+
+      if (existingStudentInTx) {
+        await transaction.rollback();
+        throw new ApiError(400, 'Student with this admission number already exists.', {
+          errors: {
+            admission_number: 'Student with this admission number already exists.'
+          }
+        });
+      }
+
+      // Re-check for duplicate roll number within transaction
+      if (finalStudentData.roll_number && finalStudentData.class_id && finalStudentData.section_id) {
+        const existingRollNumberInTx = await Student.findOne({
+          where: {
+            roll_number: finalStudentData.roll_number,
+            branch_id: branch_id,
+            class_id: finalStudentData.class_id,
+            section_id: finalStudentData.section_id,
+          },
+          transaction
+        });
+
+        if (existingRollNumberInTx) {
+          await transaction.rollback();
+          throw new ApiError(400, `Roll number ${finalStudentData.roll_number} already exists in this class-section.`, {
+            errors: {
+              roll_number: `Roll number ${finalStudentData.roll_number} already exists in this class-section.`
+            }
+          });
+        }
+      }
+
+      // Create student within transaction
+      student = await Student.create(finalStudentData, { transaction });
     } catch (error) {
+      await transaction.rollback();
       // Handle ENUM validation errors specifically
       handleEnumValidationError(error);
     }
@@ -289,10 +346,27 @@ const createStudent = async (req, res, next) => {
         parentData.mother_name = guardianData.mother_name;
       }
 
-      // Sanitize parent data for numeric fields
-      sanitizeEnumFields(parentData);
+      // Note: Parent model doesn't have enum fields that need sanitization
+      // Removed sanitizeEnumFields(parentData) call
 
-      const parent = await Parent.create(parentData);
+      // Check if parent already exists with same phone number in same school/branch
+      let parent;
+      const existingParent = await Parent.findOne({
+        where: {
+          guardian_phone: parentData.guardian_phone,
+          school_id: school_id,
+          branch_id: branch_id,
+        },
+        transaction
+      });
+
+      if (existingParent) {
+        console.log(`🔍 Found existing parent with phone ${parentData.guardian_phone}, linking to existing parent`);
+        parent = existingParent;
+      } else {
+        console.log(`🔍 Creating new parent with phone ${parentData.guardian_phone}`);
+        parent = await Parent.create(parentData, { transaction });
+      }
 
       // Link student and parent
       await StudentParent.create({
@@ -303,8 +377,11 @@ const createStudent = async (req, res, next) => {
         is_primary: true,
         is_fee_payer: true,
         is_emergency_contact: true,
-      });
+      }, { transaction });
     }
+
+    // Commit the transaction
+    await transaction.commit();
 
     logger.info(`Student created: ${student.first_name} ${student.last_name} (${student.admission_number})`);
     return res.status(201).json({ success: true, data: student });
@@ -336,22 +413,11 @@ const getStudents = async (req, res, next) => {
     
     // Handle school_id and branch_id filtering based on user role
     if (req.user.role === 'super_admin') {
-      // Super admin must provide school_id to see students
+      // Super admin can see all students or filter by school_id
       if (school_id) {
         whereClause.school_id = school_id;
-      } else {
-        // If no school_id provided, return empty result for security
-        return res.status(200).json({ 
-          success: true, 
-          data: [],
-          pagination: {
-            current_page: parseInt(page),
-            total_pages: 0,
-            total_count: 0,
-            limit: parseInt(limit),
-          }
-        });
       }
+      // If no school_id provided, show all students (no whereClause.school_id restriction)
     } else if (req.user.role === 'school_admin') {
       // School admin is restricted to their school
       whereClause.school_id = req.schoolId;
@@ -424,6 +490,11 @@ const getStudents = async (req, res, next) => {
           attributes: ['id', 'name', 'code'],
         },
         {
+          model: Stream,
+          as: 'stream',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
           model: Section,
           as: 'sectionInfo',
           attributes: ['id', 'name'],
@@ -454,32 +525,13 @@ const getStudents = async (req, res, next) => {
 const getStudentById = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    // Debug logging
-    console.log('=== STUDENT CONTROLLER DEBUG ===');
-    console.log('User:', req.user);
-    console.log('SchoolId from middleware:', req.schoolId);
-    console.log('Student ID requested:', id);
-    console.log('User school_id:', req.user?.school_id);
-    console.log('User branch_id:', req.user?.branch_id);
-
     // First, try to find the student without school_id filter to see if it exists
     const studentWithoutFilter = await Student.findByPk(id);
-    console.log('Student without school filter:', studentWithoutFilter ? {
-      id: studentWithoutFilter.id,
-      name: `${studentWithoutFilter.first_name} ${studentWithoutFilter.last_name}`,
-      school_id: studentWithoutFilter.school_id,
-      branch_id: studentWithoutFilter.branch_id
-    } : 'Not found');
 
     // Check if schoolId is set
     if (!req.schoolId) {
-      console.log('ERROR: req.schoolId is undefined!');
-      console.log('User object:', req.user);
       throw new ApiError(500, 'School context not properly set');
     }
-
-    console.log('Looking for student with criteria:', { id, school_id: req.schoolId });
 
     const student = await Student.findOne({
       where: {
@@ -508,6 +560,11 @@ const getStudentById = async (req, res, next) => {
           attributes: ['id', 'name', 'code'],
         },
         {
+          model: Stream,
+          as: 'stream',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
           model: Section,
           as: 'sectionInfo',
           attributes: ['id', 'name'],
@@ -516,17 +573,9 @@ const getStudentById = async (req, res, next) => {
     });
 
     if (!student) {
-      console.log('Student not found with criteria:', { id, school_id: req.schoolId });
-      console.log('Available school_id for this student:', studentWithoutFilter?.school_id);
-      console.log('User school_id:', req.user?.school_id);
       throw new ApiError(404, 'Student not found');
     }
 
-    console.log('Student found:', student.id);
-    console.log('Student class_id:', student.class_id);
-    console.log('Student section_id:', student.section_id);
-    console.log('Student class association:', student.class ? { id: student.class.id, name: student.class.name } : 'null');
-    console.log('Student sectionInfo association:', student.sectionInfo ? { id: student.sectionInfo.id, name: student.sectionInfo.name } : 'null');
     return res.status(200).json({ success: true, data: student });
   } catch (error) {
     logger.error('Error fetching student:', error);
@@ -539,9 +588,6 @@ const updateStudent = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-
-    console.log('🔍 Update Student Request Body:', JSON.stringify(updates, null, 2));
-    console.log('📁 Files received:', req.files ? Object.keys(req.files) : 'No files');
 
     const student = await Student.findOne({
       where: {
@@ -558,25 +604,16 @@ const updateStudent = async (req, res, next) => {
     let studentUpdates = {};
     let academicUpdates = {};
     
-    console.log('🔍 Checking data structure...');
-    console.log('🔍 Has studentData field?', !!updates.studentData);
-    console.log('🔍 Has student field?', !!updates.student);
-    console.log('🔍 Student field type:', typeof updates.student);
-    console.log('🔍 Content-Type:', req.headers['content-type']);
-    
     try {
       // Check if data is sent as FormData with JSON string
       if (updates.studentData) {
         const parsedData = JSON.parse(updates.studentData);
-        console.log('🔍 Parsed student data from FormData:', JSON.stringify(parsedData, null, 2));
         
         // Extract student data from nested structure
         if (parsedData.student && typeof parsedData.student === 'object') {
           studentUpdates = { ...parsedData.student };
-          console.log('🔍 Extracted student data from FormData:', studentUpdates);
         } else {
           studentUpdates = { ...parsedData };
-          console.log('🔍 Using parsed data directly:', studentUpdates);
         }
         
         // Extract academic fields from main structure
@@ -585,19 +622,17 @@ const updateStudent = async (req, res, next) => {
         if (parsedData.category) academicUpdates.category = parsedData.category;
         if (parsedData.admission_number) academicUpdates.admission_number = parsedData.admission_number;
         
-        // Store class_id and section_id for later processing
+        // Store class_id, section_id, and stream_id for later processing
         if (parsedData.class_id) academicUpdates._class_id = parsedData.class_id;
         if (parsedData.section_id) academicUpdates._section_id = parsedData.section_id;
         if (parsedData.academic_year_id) academicUpdates._academic_year_id = parsedData.academic_year_id;
+        if (parsedData.stream_id) academicUpdates._stream_id = parsedData.stream_id;
         
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
         if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData) studentUpdates.admission_type = parsedData.admission_type;
       } else if (updates.student && typeof updates.student === 'object') {
         // Direct nested object (already parsed) - this is the current case
         studentUpdates = { ...updates.student };
-        console.log('🔍 Extracted student data from direct object:', studentUpdates);
-        console.log('🔍 First name from student object:', studentUpdates.first_name);
-        
         // Extract academic fields from main structure
         if (updates.roll_number) studentUpdates.roll_number = updates.roll_number;
         if (updates.admission_date) academicUpdates.admission_date = updates.admission_date;
@@ -634,16 +669,6 @@ const updateStudent = async (req, res, next) => {
     delete studentUpdates.created_at;
     delete studentUpdates.updated_at;
     delete studentUpdates.created_by;
-
-    console.log('🔍 Final student updates:', studentUpdates);
-    console.log('🔍 Academic updates:', academicUpdates);
-    console.log('🔍 First name being updated:', studentUpdates.first_name);
-    console.log('🔍 Last name being updated:', studentUpdates.last_name);
-    console.log('🔍 Class ID being processed:', academicUpdates._class_id);
-    console.log('🔍 Section ID being processed:', academicUpdates._section_id);
-    console.log('🔍 Category being updated:', academicUpdates.category);
-    console.log('🔍 Register number being updated:', academicUpdates.admission_number);
-
     // Get class and section names from IDs if provided
     if (academicUpdates._class_id) {
       try {
@@ -1300,8 +1325,6 @@ const exportStudentReport = async (req, res, next) => {
 
 // Bulk import students from CSV
 const bulkImportStudents = async (req, res, next) => {
-  const transaction = await sequelize.transaction();
-  
   try {
     if (!req.file) {
       throw new ApiError(400, 'CSV file is required');
@@ -1394,7 +1417,7 @@ const bulkImportStudents = async (req, res, next) => {
       const academicYearRecord = await AcademicYear.findByPk(academic_year_id);
       if (academicYearRecord) {
         academicYearName = academicYearRecord.name;
-        console.log('🔍 Bulk import: Academic year from ID:', academicYearName);
+
       }
     }
     
@@ -1426,13 +1449,14 @@ const bulkImportStudents = async (req, res, next) => {
       errors: []
     };
 
-    // Process each row
+    // Process each row with individual transactions
     for (let i = 0; i < dataRows.length; i++) {
       const rowData = dataRows[i];
       if (!rowData || Object.keys(rowData).length === 0) continue;
 
+      const rowTransaction = await sequelize.transaction();
+      
       try {
-
         // Map category ID to category name
         const categoryMapping = {
           '1': 'general',
@@ -1447,8 +1471,8 @@ const bulkImportStudents = async (req, res, next) => {
 
         // Validate and transform data
         const studentData = {
-          first_name: rowData.FirstName,
-          last_name: rowData.LastName || null, // Now optional
+          first_name: rowData.FirstName ? rowData.FirstName.substring(0, 50) : null,
+          last_name: rowData.LastName ? rowData.LastName.substring(0, 50) : null, // Now optional
           gender: rowData.Gender?.toLowerCase(),
           date_of_birth: rowData.Birthday,
           admission_date: rowData.AdmissionDate,
@@ -1460,7 +1484,7 @@ const bulkImportStudents = async (req, res, next) => {
           caste: rowData.Caste || null,                     // Always mapped
           aadhaar_number: rowData.AadhaarNumber || null,    // Always mapped
           address: rowData.Address || null,                 // Always mapped
-          phone: rowData.Phone || null,
+          phone: rowData.Phone ? rowData.Phone.substring(0, 20) : null,
           city: rowData.City || null,
           state: rowData.State || null,
           present_address: rowData.PresentAddress || null,
@@ -1469,11 +1493,18 @@ const bulkImportStudents = async (req, res, next) => {
           email: rowData.StudentEmail || null,
           // Junior college specific fields
           admission_sought_in: rowData.Stream?.toLowerCase() || null, // arts, commerce, science
-          previous_exam_details: rowData.PreviousExams ? JSON.parse(rowData.PreviousExams) : [],
+          previous_exam_details: (() => {
+            try {
+              return rowData.PreviousExams ? JSON.parse(rowData.PreviousExams) : [];
+            } catch (parseError) {
+              return [];
+            }
+          })(),
           school_id,
           branch_id,
           class_id,
           section_id: section_id || null,
+          stream_id: req.body.stream_id || null, // Add stream_id from request body
           admission_class: classRecord.name,
           current_class: classRecord.name,
           section: sectionRecord ? sectionRecord.name : null,
@@ -1498,6 +1529,17 @@ const bulkImportStudents = async (req, res, next) => {
 
         if (missingStudentFields.length > 0) {
           throw new Error(`Missing required student fields: ${missingStudentFields.join(', ')}`);
+        }
+
+        // Validate field lengths
+        if (rowData.FirstName && rowData.FirstName.length > 50) {
+          throw new Error(`First name too long (${rowData.FirstName.length} chars, max 50): ${rowData.FirstName.substring(0, 30)}...`);
+        }
+        if (rowData.LastName && rowData.LastName.length > 50) {
+          throw new Error(`Last name too long (${rowData.LastName.length} chars, max 50): ${rowData.LastName.substring(0, 30)}...`);
+        }
+        if (rowData.Phone && rowData.Phone.length > 20) {
+          throw new Error(`Phone number too long (${rowData.Phone.length} chars, max 20): ${rowData.Phone}`);
         }
 
         // Validate guardian required fields with strict checking
@@ -1528,6 +1570,7 @@ const bulkImportStudents = async (req, res, next) => {
             admission_number: studentData.admission_number,
             school_id: school_id,
           },
+          transaction: rowTransaction
         });
 
         if (existingStudent) {
@@ -1549,6 +1592,7 @@ const bulkImportStudents = async (req, res, next) => {
           
           const existingRollNumber = await Student.findOne({
             where: rollNumberWhere,
+            transaction: rowTransaction
           });
 
           if (existingRollNumber) {
@@ -1558,13 +1602,13 @@ const bulkImportStudents = async (req, res, next) => {
         }
 
         // Create student
-        const student = await Student.create(studentData, { transaction });
+        const student = await Student.create(studentData, { transaction: rowTransaction });
         // Create guardian/parent (required fields already validated)
         {
           const guardianData = {
-            guardian_name: rowData.GuardianName,
-            guardian_phone: rowData.GuardianMobileNo,
-            guardian_email: rowData.GuardianEmail,
+            guardian_name: rowData.GuardianName ? rowData.GuardianName.substring(0, 100) : null,
+            guardian_phone: rowData.GuardianMobileNo ? rowData.GuardianMobileNo.substring(0, 20) : null,
+            guardian_email: rowData.GuardianEmail || null,
             guardian_relation: rowData.GuardianRelation || 'guardian',
             guardian_occupation: rowData.GuardianOccupation || null,
             guardian_income: rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null, // Always mapped, allow null
@@ -1585,16 +1629,16 @@ const bulkImportStudents = async (req, res, next) => {
 
           // Set father or mother information based on relation
           if (guardianData.guardian_relation === 'father') {
-            guardianData.father_name = rowData.GuardianName;
-            guardianData.father_phone = rowData.GuardianMobileNo;
-            guardianData.father_email = rowData.GuardianEmail;
+            guardianData.father_name = rowData.GuardianName ? rowData.GuardianName.substring(0, 100) : null;
+            guardianData.father_phone = rowData.GuardianMobileNo ? rowData.GuardianMobileNo.substring(0, 20) : null;
+            guardianData.father_email = rowData.GuardianEmail || null;
             guardianData.father_occupation = rowData.GuardianOccupation || null;
             guardianData.father_qualification = rowData.GuardianEducation || null;
             guardianData.father_income = rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null;
           } else if (guardianData.guardian_relation === 'mother') {
-            guardianData.mother_name = rowData.GuardianName;
-            guardianData.mother_phone = rowData.GuardianMobileNo;
-            guardianData.mother_email = rowData.GuardianEmail;
+            guardianData.mother_name = rowData.GuardianName ? rowData.GuardianName.substring(0, 100) : null;
+            guardianData.mother_phone = rowData.GuardianMobileNo ? rowData.GuardianMobileNo.substring(0, 20) : null;
+            guardianData.mother_email = rowData.GuardianEmail || null;
             guardianData.mother_occupation = rowData.GuardianOccupation || null;
             guardianData.mother_qualification = rowData.GuardianEducation || null;
             guardianData.mother_income = rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null;
@@ -1602,13 +1646,28 @@ const bulkImportStudents = async (req, res, next) => {
 
           // Set both father and mother names if provided separately
           if (rowData.FatherName) {
-            guardianData.father_name = rowData.FatherName;
+            guardianData.father_name = rowData.FatherName.substring(0, 100);
           }
           if (rowData.MotherName) {
-            guardianData.mother_name = rowData.MotherName;
+            guardianData.mother_name = rowData.MotherName.substring(0, 100);
           }
 
-          const guardian = await Parent.create(guardianData, { transaction });
+          // Check if parent already exists with same phone number in same school/branch
+          let guardian;
+          const existingParent = await Parent.findOne({
+            where: {
+              guardian_phone: guardianData.guardian_phone,
+              school_id: school_id,
+              branch_id: branch_id,
+            },
+            transaction: rowTransaction
+          });
+
+          if (existingParent) {
+            guardian = existingParent;
+          } else {
+            guardian = await Parent.create(guardianData, { transaction: rowTransaction });
+          }
 
 
 
@@ -1619,11 +1678,20 @@ const bulkImportStudents = async (req, res, next) => {
             relationship: guardianData.guardian_relation,
             is_primary: true,
             is_emergency_contact: true,
-          }, { transaction });
+          }, { transaction: rowTransaction });
         }
 
+        // Commit the row transaction
+        await rowTransaction.commit();
         results.successful++;
       } catch (error) {
+        // Rollback the row transaction
+        try {
+          await rowTransaction.rollback();
+        } catch (rollbackError) {
+          // Ignore rollback errors
+        }
+        
         results.failed++;
         results.errors.push({
           row: i + 1, // +1 because of 0-based index
@@ -1633,8 +1701,6 @@ const bulkImportStudents = async (req, res, next) => {
       }
     }
 
-    await transaction.commit();
-
     res.status(200).json({
       success: true,
       data: results,
@@ -1642,11 +1708,6 @@ const bulkImportStudents = async (req, res, next) => {
     });
 
   } catch (error) {
-    try {
-      await transaction.rollback();
-    } catch (rollbackError) {
-      logger.error('Error rolling back transaction:', rollbackError);
-    }
     logger.error('Error in bulk import:', error);
     return next(error);
   }
