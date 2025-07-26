@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+  <div class="overflow-hidden">
     <div class="px-4 py-5 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Fee Invoices & Payments</h3>
     </div>

@@ -9,10 +9,9 @@
   
   <!-- Sidebar -->
   <div 
-:class="[
+    :class="[
       'sidebar-container fixed inset-y-0 left-0 z-[9999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
-      isMobile ? (open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full') : (open ? 'w-64' : 'w-16'),
-      isMobile ? 'md:w-16 md:translate-x-0' : '',
+      sidebarClasses,
       'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
   >
@@ -38,7 +37,20 @@
 
     <!-- Scrollable Navigation -->
     <div class="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-      <nav class="px-2 py-4 space-y-2">
+      <!-- SSR-safe skeleton for initial load -->
+      <template v-if="!isHydrated">
+        <div class="px-2 py-4 space-y-2">
+          <div class="animate-pulse">
+            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+          </div>
+        </div>
+      </template>
+      
+      <!-- Actual navigation content -->
+      <nav v-else class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
           <NuxtLink 
@@ -149,6 +161,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
+import { useHydrationState } from '~/composables/useHydration';
+import { useMobileDetection } from '~/composables/useMobileDetection';
 import { 
   Home, 
   School, 
@@ -188,9 +202,13 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle']);
 
+// Use centralized composables
+const { isHydrated } = useHydrationState();
+const { isMobile } = useMobileDetection();
+
 // Function to save sidebar state
 const saveSidebarState = (isOpen) => {
-  if (typeof window !== 'undefined') {
+  if (import.meta.client) {
     localStorage.setItem('sidebarOpen', isOpen.toString());
   }
 };
@@ -397,16 +415,27 @@ const logout = async () => {
   await navigateTo('/login');
 };
 
-// Mobile detection
-const isMobile = ref(false);
 let mql;
 
+// Computed sidebar classes to avoid hydration issues
+const sidebarClasses = computed(() => {
+  // On server, always render in a consistent collapsed state
+  if (import.meta.server) {
+    return 'w-16 translate-x-0'; // Stable collapsed state for SSR
+  }
+  
+  // On client, apply dynamic classes
+  if (isMobile.value) {
+    return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full';
+  } else {
+    return props.open ? 'w-64' : 'w-16';
+  }
+});
+
 const checkMobile = () => {
-  if (window) {
+  if (import.meta.client) {
     const newIsMobile = window.innerWidth < 768;
     if (newIsMobile !== isMobile.value) {
-      isMobile.value = newIsMobile;
-      
       // On desktop (non-mobile), always keep the menu open
       // On mobile, always close it initially
       emit('toggle', !newIsMobile);
@@ -422,9 +451,11 @@ const checkMobile = () => {
 };
 
 onMounted(() => {
-  checkMobile();
-  mql = window.matchMedia('(max-width: 767px)');
-  mql.addEventListener('change', checkMobile);
+  if (import.meta.client) {
+    checkMobile();
+    mql = window.matchMedia('(max-width: 767px)');
+    mql.addEventListener('change', checkMobile);
+  }
 });
 
 onUnmounted(() => {

@@ -1,15 +1,35 @@
 <template>
   <div v-if="shouldRender" class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
     <!-- Sidebar (only if logged in and user loaded) -->
-    <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
+    <ClientOnly>
+      <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
+    </ClientOnly>
 
     <!-- Main content -->
-    <div :key="`main-${isLoggedIn}-${sidebarOpen}`" :class="mainContentClasses" class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-0">
+    <div 
+      :key="`main-${isLoggedIn}-${sidebarOpen}`" 
+      :class="mainContentClasses" 
+      class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-0"
+    >
       <!-- Header (only if logged in) -->
-      <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
+      <ClientOnly>
+        <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
+      </ClientOnly>
+      
       <!-- Page content -->
       <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900 z-0">
-        <slot />
+        <!-- Hydration-safe loading state -->
+        <template v-if="!isHydrated">
+          <!-- SSR-safe skeleton -->
+          <div class="animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+          </div>
+        </template>
+        <template v-else>
+          <slot />
+        </template>
       </main>
     </div>
     
@@ -26,18 +46,22 @@ import Header from '~/components/Header.vue';
 import Toast from '~/components/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
+import { useHydrationState } from '~/composables/useHydration';
+import { useMobileDetection } from '~/composables/useMobileDetection';
 
-const sidebarOpen = ref(window?.innerWidth >= 768);
+// Use centralized composables
+const { isHydrated } = useHydrationState();
+const { isMobile } = useMobileDetection();
+
+// Initialize sidebar state with a default that works for both server and client
+const sidebarOpen = ref(true); // Default to open for consistent SSR
 const router = useRouter();
 const route = useRoute();
 
-// Mobile detection
-const isMobile = ref(false);
 let mql;
 
 const checkMobile = () => {
   if (import.meta.client) {
-    isMobile.value = window.innerWidth < 768;
     // Auto-close sidebar on mobile, open on desktop
     sidebarOpen.value = !isMobile.value;
   }
@@ -57,6 +81,12 @@ const shouldRender = computed(() => {
 
 // Computed class for main content to avoid hydration issues
 const mainContentClasses = computed(() => {
+  // On server, render with stable collapsed margin to prevent shifting
+  if (import.meta.server) {
+    return 'ml-16'; // Stable collapsed state for SSR
+  }
+  
+  // On client, apply margin based on sidebar state
   if (!isLoggedIn.value || isMobile.value) {
     return '';
   }
@@ -122,6 +152,12 @@ onMounted(async () => {
     checkMobile();
     mql = window.matchMedia('(max-width: 767px)');
     mql.addEventListener('change', checkMobile);
+    
+    // Load sidebar state from localStorage
+    const savedSidebarState = localStorage.getItem('sidebarOpen');
+    if (savedSidebarState !== null) {
+      sidebarOpen.value = savedSidebarState === 'true';
+    }
   }
 
   // Initialize branch context if user is logged in
@@ -156,5 +192,15 @@ onUnmounted(() => {
     min-height: 100vh;
     overflow-x: hidden;
   }
+}
+
+/* Prevent content shifting during hydration */
+.main-content {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+/* Disable transitions until hydrated to prevent flash */
+.main-content:not(.hydrated) {
+  transition: none;
 }
 </style> 

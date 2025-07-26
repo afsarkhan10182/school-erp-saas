@@ -53,6 +53,28 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = null;
   };
 
+  // Refresh auth state from storage (for cross-tab sync)
+  const refreshFromStorage = () => {
+    if (import.meta.client) {
+      const savedUser = localStorage.getItem('auth-user');
+      const savedBranch = localStorage.getItem('current-branch');
+      const savedSchool = localStorage.getItem('current-school');
+      
+      if (savedUser) {
+        user.value = JSON.parse(savedUser);
+        currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
+        currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
+        lastAuthCheck.value = Date.now();
+      } else {
+        // No user data in storage, clear local state
+        user.value = null;
+        currentBranch.value = null;
+        currentSchool.value = null;
+        lastAuthCheck.value = 0;
+      }
+    }
+  };
+
   // Initialize from localStorage - HTTP-only cookies cannot be read by JavaScript
   const initializeAuth = async () => {
     // Check if we're in browser environment
@@ -73,7 +95,6 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = JSON.parse(savedUser);
         currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
         currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
-        isInitializing.value = false;
         
         // Background verification with server (non-blocking)
         setTimeout(async () => {
@@ -115,8 +136,6 @@ export const useAuthStore = defineStore('auth', () => {
           user.value = null;
           currentBranch.value = null;
           currentSchool.value = null;
-        } finally {
-          isInitializing.value = false;
         }
       }
     } catch (error) {
@@ -124,11 +143,11 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null;
       currentBranch.value = null;
       currentSchool.value = null;
+    } finally {
+      // Set initialization to false immediately for better hydration consistency
       isInitializing.value = false;
     }
   };
-
-
 
   // Login
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> => {
@@ -398,20 +417,11 @@ export const useAuthStore = defineStore('auth', () => {
         }
       } else if (action === 'login') {
         // Refresh auth state from localStorage
-        const savedUser = localStorage.getItem('auth-user');
-        const savedBranch = localStorage.getItem('current-branch');
-        const savedSchool = localStorage.getItem('current-school');
+        refreshFromStorage();
         
-        if (savedUser) {
-          user.value = JSON.parse(savedUser);
-          currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
-          currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
-          lastAuthCheck.value = Date.now();
-          
-          // Navigate to dashboard if on login page
-          if (window.location.pathname === '/login') {
-            navigateTo('/dashboard');
-          }
+        // Navigate to dashboard if on login page
+        if (window.location.pathname === '/login') {
+          navigateTo('/dashboard');
         }
       }
       
@@ -489,6 +499,7 @@ export const useAuthStore = defineStore('auth', () => {
     invalidateAuthCache,
     initializeAuth,
     clearAuthData,
+    refreshFromStorage,
     cleanup,
   };
 }); 

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 relative z-0">
+  <div class="bg-gray-50 dark:bg-gray-900 relative z-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
@@ -110,43 +110,91 @@
         @clear-filters="clearFilters"
       />
 
-      <!-- Invoices Table Component -->
-      <InvoiceTable
-        :invoices="invoices"
-        :is-loading="isLoading"
-        @view-invoice="viewInvoice"
-        @record-payment="recordPayment"
-        @generate-receipt="generateReceipt"
-        @view-receipt="viewReceipt"
-        @view-combined-receipt="viewCombinedReceipt"
-      />
-      
-
-      
-      <!-- Pagination -->
-      <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 rounded-b-lg">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <div class="flex items-center space-x-2">
-            <button
-              @click="previousPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              Page {{ currentPage }} of {{ totalPages }}
-            </span>
-            <button
-              @click="nextPage"
-              :disabled="currentPage >= totalPages"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
+      <!-- Invoices Table Component with Pagination -->
+      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+        <InvoiceTable
+          :invoices="invoices"
+          :is-loading="isLoading"
+          @view-invoice="viewInvoice"
+          @record-payment="recordPayment"
+          @generate-receipt="generateReceipt"
+          @view-receipt="viewReceipt"
+          @view-combined-receipt="viewCombinedReceipt"
+        />
+        
+        <!-- Pagination -->
+        <div v-if="totalItems > 0" class="px-4 py-4 flex flex-col space-y-4 border-t border-gray-200 dark:border-gray-700 md:px-6 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <!-- Mobile Pagination -->
+          <div class="flex flex-col space-y-3 md:hidden">
+            <!-- Results Info -->
+            <div class="text-center">
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+              </p>
+            </div>
+            
+            <!-- Page Size Selector -->
+            <div class="flex items-center justify-center space-x-2">
+              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+              <select 
+                v-model="pageSize" 
+                @change="onPageSizeChange"
+                class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="flex items-center justify-between">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="flex-1 mr-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              <span class="text-sm font-medium text-gray-900 dark:text-white px-4 py-2">
+                {{ currentPage }} / {{ totalPages }}
+              </span>
+              <button
+                @click="nextPage"
+                :disabled="currentPage >= totalPages"
+                class="flex-1 ml-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Page Numbers (if multiple pages) -->
+            <div v-if="totalPages > 1" class="flex items-center justify-center space-x-1">
+              <button
+                v-for="pageNum in getVisiblePages()"
+                :key="pageNum"
+                @click="goToPage(pageNum)"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
+                  pageNum === currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ]"
+                :disabled="pageNum === '...'"
+              >
+                {{ pageNum }}
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
           <div class="flex items-center space-x-4">
             <p class="text-sm text-gray-700 dark:text-gray-300">
               <span v-if="totalItems > 0">
@@ -157,7 +205,7 @@
               </span>
             </p>
             
-            <div class="flex items-center space-x-2">
+            <div v-if="totalItems > 0" class="flex items-center space-x-2">
               <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
               <select 
                 v-model="pageSize" 
@@ -173,7 +221,7 @@
             </div>
           </div>
           
-          <div class="flex items-center space-x-2">
+          <div v-if="totalItems > 0" class="flex items-center space-x-2">
             <div v-if="totalPages > 1" class="flex items-center space-x-1">
               <button
                 v-for="pageNum in getVisiblePages()"
@@ -211,6 +259,7 @@
         </div>
       </div>
     </div>
+  </div>
 
     <!-- Quick Collect Modal -->
     <QuickCollectFeeModal

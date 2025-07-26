@@ -228,6 +228,11 @@ const shouldShowBranchFilter = computed(() => {
   }
   
   // Branch admin should not see branch filter (they're fixed to one branch)
+  if (authStore.isBranchAdmin) {
+    return false;
+  }
+  
+  // Default: don't show for other roles
   return false;
 });
 

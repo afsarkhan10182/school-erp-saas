@@ -52,8 +52,8 @@
             <p class="text-2xl font-bold">{{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}</p>
           </div>
 
-          <!-- Branch Filter - Only show if multiple branches exist -->
-          <div v-if="branches.length > 1" class="md:col-span-2 lg:col-span-2">
+          <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
+          <div v-if="shouldShowBranchFilter" class="md:col-span-2 lg:col-span-2">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
@@ -66,7 +66,7 @@
                   <option value="">All Branches</option>
                   <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
                   <option v-else-if="branches.length === 0" value="" disabled>No branches available</option>
-                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                     {{ branch.name }}
                   </option>
                 </select>
@@ -811,6 +811,47 @@ const initializeBranches = async () => {
     // Error initializing branches
   }
 };
+
+// Computed property to determine if branch filter should be shown
+const shouldShowBranchFilter = computed(() => {
+  // Super admin can always see branch filter
+  if (authStore.isSuperAdmin) {
+    return true;
+  }
+  
+  // School admin can see branch filter only if they have multiple branches
+  if (authStore.isSchoolAdmin) {
+    return branches.value.length > 1;
+  }
+  
+  // Branch admin should not see branch filter (they're fixed to one branch)
+  if (authStore.isBranchAdmin) {
+    return false;
+  }
+  
+  // Default: don't show for other roles
+  return false;
+});
+
+// Computed property to get available branches for the filter
+const availableBranches = computed(() => {
+  // Super admin sees all branches
+  if (authStore.isSuperAdmin) {
+    return branches.value;
+  }
+  
+  // School admin sees only their school's branches
+  if (authStore.isSchoolAdmin) {
+    return branches.value.filter(branch => branch.school_id === authStore.currentUser?.school_id);
+  }
+  
+  // Branch admin sees only their branch (but filter shouldn't be shown anyway)
+  if (authStore.isBranchAdmin) {
+    return branches.value.filter(branch => branch.id === authStore.currentUser?.branch_id);
+  }
+  
+  return [];
+});
 
 // Watch for changes in selected academic year
 watch(selectedAcademicYear, (newValue) => {
