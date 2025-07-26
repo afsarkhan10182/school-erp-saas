@@ -98,10 +98,26 @@ const School = sequelize.define('School', {
   time_format: {
     type: DataTypes.ENUM('12h', '24h'),
     allowNull: false,
-    defaultValue: '12h',
+    defaultValue: '24h',
+  },
+  starting_month: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 6, // June (default for most Indian schools)
+    validate: {
+      min: { args: [1], msg: 'Starting month must be between 1 and 12' },
+      max: { args: [12], msg: 'Starting month must be between 1 and 12' },
+    },
+    comment: 'Month when academic year starts (1=January, 6=June, etc.)'
+  },
+  academic_year_start: {
+    type: DataTypes.ENUM('calendar', 'academic'),
+    allowNull: false,
+    defaultValue: 'academic',
+    comment: 'calendar: Jan-Dec, academic: June-May or custom starting month'
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive', 'suspended', 'trial'),
+    type: DataTypes.ENUM('trial', 'active', 'expired', 'lifetime', 'suspended'),
     allowNull: false,
     defaultValue: 'trial',
   },
@@ -137,6 +153,15 @@ const School = sequelize.define('School', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 1,
+  },
+  current_academic_year_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'academic_years',
+      key: 'id',
+    },
+    comment: 'Reference to the current global academic year for this school'
   },
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
@@ -174,6 +199,7 @@ const School = sequelize.define('School', {
     { fields: ['status'] },
     { fields: ['subscription_plan'] },
     { fields: ['is_active'] },
+    { fields: ['current_academic_year_id'] },
   ],
   hooks: {
     beforeCreate: async (school) => {
@@ -211,6 +237,12 @@ School.associate = (models) => {
   School.hasMany(models.Transaction, {
     foreignKey: 'school_id',
     as: 'transactions',
+  });
+
+  // School belongs to AcademicYear (current academic year)
+  School.belongsTo(models.AcademicYear, {
+    foreignKey: 'current_academic_year_id',
+    as: 'currentAcademicYear',
   });
 
   // School belongs to User (created_by)

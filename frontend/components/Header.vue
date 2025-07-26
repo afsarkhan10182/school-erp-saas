@@ -78,7 +78,7 @@ const {
 
 const userInitials = computed(() => {
   if (!props.user) return '';
-  return `${props.user.first_name?.charAt(0) || ''}${props.user.last_name?.charAt(0) || ''}`.toUpperCase();
+  return `${(props.user.first_name || '').charAt(0)}${(props.user.last_name || '').charAt(0)}`.toUpperCase();
 });
 
 const userName = computed(() => {
@@ -140,24 +140,28 @@ const isDark = ref(false);
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
+  if (import.meta.client) {
+    if (isDark.value) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   }
 };
 
 onMounted(() => {
-  // Check for saved theme preference, default to dark
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  isDark.value = savedTheme === 'dark';
-  // Apply theme on mount
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
+  if (import.meta.client) {
+    // Check for saved theme preference, default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    isDark.value = savedTheme === 'dark';
+    // Apply theme on mount
+    if (isDark.value) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }
 });
 </script> 

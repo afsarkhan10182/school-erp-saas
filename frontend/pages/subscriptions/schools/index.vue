@@ -18,16 +18,14 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
           <input
-            v-model="filters.search"
             type="text"
             placeholder="Search schools..."
             class="input-field w-full"
-            @input="debouncedSearch"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-          <select v-model="filters.status" class="input-field w-full" @change="loadSchools">
+          <select class="input-field w-full">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="trial">Trial</option>
@@ -37,7 +35,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
-          <select v-model="filters.subscription_plan" class="input-field w-full" @change="loadSchools">
+          <select class="input-field w-full">
             <option value="">All Plans</option>
             <option v-for="plan in plans" :key="plan.code" :value="plan.code">
               {{ plan.name }}
@@ -45,7 +43,7 @@
           </select>
         </div>
         <div class="flex items-end">
-          <button @click="loadSchools" class="btn-secondary w-full">
+          <button class="btn-secondary w-full">
             <Search class="w-4 h-4 mr-2" />
             Filter
           </button>
@@ -201,19 +199,15 @@
       </div>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="pagination && pagination.pages > 1" class="mt-6">
-      <Pagination
-        :pagination="pagination"
-        @page-changed="handlePageChange"
-      />
-    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { apiClient } from '~/utils/api';
+import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { 
   Plus, 
@@ -224,70 +218,32 @@ import {
 
 // Page meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   layout: 'default'
 });
 
-// No need to destructure from composable since we're using apiClient directly
+const authStore = useAuthStore();
 const { showError } = useToast();
 
-// Reactive data
-const schools = ref([]);
-const plans = ref([]);
-const loading = ref(true);
-const error = ref('');
-const pagination = ref(null);
+// Access control - only Super Admin can access schools subscription management
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage school subscriptions.');
+  await navigateTo('/dashboard');
+}
 
-// Filters
-const filters = ref({
-  search: '',
-  status: '',
-  subscription_plan: '',
-  page: 1,
-  limit: 10
-});
-
-// Debounced search
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    filters.value.page = 1;
-    loadSchools();
-  }, 500);
-};
-
-// Load schools
-const loadSchools = async () => {
-  loading.value = true;
-  error.value = '';
-  
-  try {
-    const result = await apiClient.subscriptions.getSchoolsWithSubscriptions(filters.value);
-    schools.value = result.data.schools || [];
-    pagination.value = result.data.pagination || null;
-  } catch (err) {
-    error.value = 'Failed to load schools. Please try again.';
-    showError('Failed to load schools');
-  } finally {
-    loading.value = false;
-  }
-};
+const { schools, loading, error, fetchSchoolsWithSubscriptions, suspendSchool, reactivateSchool, plans } = useSubscriptions();
 
 // Load plans for filter dropdown
 const loadPlans = async () => {
   try {
     const result = await apiClient.subscriptions.getPlans();
-    plans.value = result.data.plans || [];
+    if (result.success) {
+      plans.value = result.data.plans || [];
+    }
   } catch (err) {
     console.error('Failed to load plans:', err);
   }
-};
-
-// Handle pagination
-const handlePageChange = (page) => {
-  filters.value.page = page;
-  loadSchools();
 };
 
 // Format date
@@ -298,7 +254,7 @@ const formatDate = (dateString) => {
 
 // Initialize
 onMounted(async () => {
-  await Promise.all([loadSchools(), loadPlans()]);
+  await Promise.all([fetchSchoolsWithSubscriptions(), loadPlans()]);
 });
 </script>
 

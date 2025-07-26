@@ -5,7 +5,7 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage academic classes and their configurations</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage academic classes for each branch</p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -29,8 +29,9 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Streams</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sections</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -44,10 +45,22 @@
                   {{ classItem.code }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ classItem.sections?.length || 0 }} sections
+                  <div v-if="classItem.branch" class="flex items-center">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="font-medium">{{ classItem.branch?.name }}</span>
+                    <span v-if="classItem.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ classItem.branch.code }})</span>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ classItem.student_count || 0 }} students
+                  <span v-if="classItem.has_stream" class="text-blue-600 dark:text-blue-400 font-medium">
+                    {{ classItem.streams?.length || 0 }} streams
+                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400">
+                    No streams
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {{ classItem.sections?.length || 0 }} sections
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
@@ -87,7 +100,7 @@
       </div>
 
       <!-- Create/Edit Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
           <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -97,7 +110,7 @@
             <form @submit.prevent="saveClass">
               <!-- School Selector for Super Admin -->
               <div v-if="authStore.user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School Context</h4>
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School & Branch</h4>
                 <div class="space-y-3">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
@@ -113,43 +126,47 @@
                       </option>
                     </select>
                   </div>
-                  <div v-if="selectedSchoolId && availableBranches.length > 1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch (Optional)</label>
+                  <div v-if="selectedSchoolId">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
                     <select
                       v-model="selectedBranchId"
+                      required
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="">All branches</option>
+                      <option value="">Select a branch</option>
                       <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                         {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
                       </option>
                     </select>
                   </div>
-                  <div v-if="!selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
-                    ⚠️ Please select a school before creating the class
+                  <div v-if="!selectedSchoolId || !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                    ⚠️ Please select both school and branch before creating the class
                   </div>
                 </div>
               </div>
 
-              <!-- Branch Selector for School Admin and Branch Admin -->
-              <div v-if="(authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin') && !isEditing && availableBranches.length > 1" class="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-green-900 dark:text-green-100 mb-3">🏢 Select Branch Context</h4>
-                <div class="space-y-3">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch (Optional)</label>
+              <!-- Branch Selector for School Admin -->
+              <div v-if="authStore.user?.role === 'school_admin' && !isEditing && availableBranches.length > 1" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
                     <select
                       v-model="selectedBranchId"
+                      required
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="">All branches (school-wide class)</option>
+                      <option value="">Select a branch</option>
                       <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                         {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
                       </option>
                     </select>
-                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">
-                      💡 Leave empty to create a school-wide class, or select a specific branch
-                    </p>
-                  </div>
+              </div>
+
+              <!-- Branch Information Display for School Admin with Single Branch -->
+              <div v-if="authStore.user?.role === 'school_admin' && !isEditing && availableBranches.length === 1" class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">📍 Branch Information</h4>
+                <div class="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>{{ availableBranches[0].name }}</strong>
+                  <span v-if="availableBranches[0].code" class="text-blue-600 dark:text-blue-300"> ({{ availableBranches[0].code }})</span>
+                  <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1">This is your only branch - automatically selected</span>
                 </div>
               </div>
 
@@ -166,7 +183,7 @@
                   <div>
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Branch</label>
                     <p class="text-sm text-gray-900 dark:text-white">
-                      {{ getSelectedBranchName() || 'School-wide class (no specific branch)' }}
+                      {{ getSelectedBranchName() }}
                     </p>
                   </div>
                 </div>
@@ -179,7 +196,7 @@
                   type="text"
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., 1st, 2nd, 3rd"
+                  placeholder="e.g., Class 1, Class 2, Class 3"
                 />
               </div>
 
@@ -190,7 +207,7 @@
                   type="text"
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., 1ST, 2ND, 3RD"
+                  placeholder="e.g., C1, C2, C3"
                 />
               </div>
 
@@ -204,7 +221,7 @@
                 ></textarea>
               </div>
 
-              <div class="mb-6">
+              <div class="mb-4">
                 <label class="flex items-center">
                   <input
                     v-model="form.is_active"
@@ -213,6 +230,20 @@
                   />
                   <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
                 </label>
+              </div>
+
+              <div class="mb-6">
+                <label class="flex items-center">
+                  <input
+                    v-model="form.has_stream"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">This class has streams</span>
+                </label>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Enable this for classes that have different streams (e.g., Class 11, 12 with Science, Commerce, Arts)
+                </p>
               </div>
 
               <div class="flex justify-end space-x-3">
@@ -245,6 +276,9 @@ import { apiClient } from '~/utils/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
+import { useToast } from '~/composables/useToast';
+
+const { showError, showWarning } = useToast();
 
 const classes = ref([]);
 const isLoading = ref(false);
@@ -266,7 +300,8 @@ const form = reactive({
   name: '',
   code: '',
   description: '',
-  is_active: true
+  is_active: true,
+  has_stream: false
 });
 
 const resetForm = () => {
@@ -274,6 +309,7 @@ const resetForm = () => {
   form.code = '';
   form.description = '';
   form.is_active = true;
+  form.has_stream = false;
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
 };
@@ -286,7 +322,7 @@ const getSelectedSchoolName = () => {
 };
 
 const getSelectedBranchName = () => {
-  if (!selectedBranchId.value) return null;
+  if (!selectedBranchId.value) return 'Not selected';
   const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
   return branch ? `${branch.name} ${branch.code ? `(${branch.code})` : ''}` : 'Unknown branch';
 };
@@ -297,7 +333,6 @@ const fetchSchools = async () => {
   
   try {
     const response = await apiClient.schools.getAll();
-
     availableSchools.value = response.data?.schools || [];
   } catch (error) {
     console.error('Error fetching schools:', error);
@@ -313,8 +348,7 @@ const fetchBranchesForSchool = async (schoolId) => {
   }
   
   try {
-    const response = await apiClient.branches.getAll(schoolId);
-
+    const response = await apiClient.branches.getBySchool(schoolId);
     availableBranches.value = response.data?.branches || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
@@ -328,10 +362,19 @@ const fetchBranchesForCurrentSchool = async () => {
   
   try {
     const schoolId = authStore.user?.school_id;
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.error('No school_id found for user:', authStore.user);
+      return;
+    }
     
-    const response = await apiClient.branches.getAll(schoolId);
-    availableBranches.value = response.data?.branches || [];
+    const response = await apiClient.branches.getBySchool(schoolId);
+    
+    availableBranches.value = response.data?.branches || response.data?.items || [];
+    
+    // Auto-select the only branch for School Admin if there's only one
+    if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
+      selectedBranchId.value = availableBranches.value[0].id;
+    }
   } catch (error) {
     console.error('Error fetching branches for current school:', error);
     availableBranches.value = [];
@@ -348,10 +391,25 @@ const onSchoolChange = async () => {
   }
 };
 
+// Handle branch selection change
+const onBranchChange = async () => {
+  await fetchClasses();
+};
+
 const fetchClasses = async () => {
   isLoading.value = true;
   try {
-    const response = await apiClient.classes.getAll();
+    const params = {
+      sort_by: 'sort_order',
+      sort_order: 'ASC'
+    };
+    
+    // Add branch filter if selected
+    if (selectedBranchId.value) {
+      params.branch_id = selectedBranchId.value;
+    }
+    
+    const response = await apiClient.classes.getAll(params);
     classes.value = response.data || [];
   } catch (error) {
     console.error('Error fetching classes:', error);
@@ -368,8 +426,6 @@ const openCreateModal = () => {
 };
 
 const editClass = async (classItem) => {
-  console.log('🔍 Editing class:', classItem);
-  
   // Set editing mode first
   isEditing.value = true;
   editingId.value = classItem.id;
@@ -388,13 +444,14 @@ const editClass = async (classItem) => {
   }
   
   // Set branch context for all roles
-  selectedBranchId.value = classItem.branch_id || '';
+  selectedBranchId.value = classItem.branch_id;
   
   // Set form values
   form.name = classItem.name;
   form.code = classItem.code;
   form.description = classItem.description || '';
   form.is_active = classItem.is_active;
+  form.has_stream = classItem.has_stream || false;
   
   showModal.value = true;
 };
@@ -413,30 +470,54 @@ const saveClass = async () => {
       name: form.name,
       code: form.code,
       description: form.description,
-      is_active: form.is_active
+      is_active: form.is_active,
+      has_stream: form.has_stream
     };
 
-    // Add school_id for super admin when creating a new class
+    // Add school_id and branch_id for super admin when creating a new class
     if (!isEditing.value && authStore.user?.role === 'super_admin') {
-      if (!selectedSchoolId.value) {
-        alert('Please select a school first to create the class');
+      if (!selectedSchoolId.value || !selectedBranchId.value) {
+        showWarning('Please select both school and branch first to create the class');
         return;
       }
       
       payload.school_id = selectedSchoolId.value;
+      payload.branch_id = selectedBranchId.value;
+    }
+
+    // Add branch_id for school admin when creating a new class
+    if (!isEditing.value && authStore.user?.role === 'school_admin') {
+      // For School Admin, branch_id is always required
+      if (availableBranches.length > 1 && !selectedBranchId.value) {
+        showWarning('Please select a branch first to create the class');
+        return;
+      }
       
-      // Add branch_id if selected
       if (selectedBranchId.value) {
         payload.branch_id = selectedBranchId.value;
+      } else if (availableBranches.length === 1) {
+        // Auto-select the only branch
+        payload.branch_id = availableBranches[0].id;
+      } else {
+        // Fallback: try to get branch from user context
+        const branchContext = getBranchContext();
+        console.log('Branch context:', branchContext);
+        console.log('Available branches:', availableBranches.value);
+        console.log('Selected branch ID:', selectedBranchId.value);
+        
+        if (branchContext?.branchId) {
+          payload.branch_id = branchContext.branchId;
+        } else if (authStore.user?.branch_id) {
+          // Use user's assigned branch as last resort
+          payload.branch_id = authStore.user.branch_id;
+        } else {
+          showError('Unable to determine branch. Please refresh the page and try again.');
+          return;
+        }
       }
     }
 
-    // Add branch_id for school admin and branch admin when creating a new class
-    if (!isEditing.value && (authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin')) {
-      if (selectedBranchId.value) {
-        payload.branch_id = selectedBranchId.value;
-      }
-    }
+    // Branch admin doesn't need to specify branch_id - it's automatically their branch
 
     if (isEditing.value) {
       await apiClient.classes.update(editingId.value, payload);
@@ -448,11 +529,12 @@ const saveClass = async () => {
     await fetchClasses();
     
     // Show success message
-    if (typeof window !== 'undefined') {
+    if (import.meta.client) {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: `Class ${isEditing.value ? 'updated' : 'created'} successfully!`,
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -464,7 +546,8 @@ const saveClass = async () => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Error saving class. Please try again.',
-          type: 'error'
+          type: 'error',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -477,7 +560,6 @@ const saveClass = async () => {
 const toggleStatus = async (classItem) => {
   try {
     await apiClient.classes.update(classItem.id, {
-      ...classItem,
       is_active: !classItem.is_active
     });
     await fetchClasses();
@@ -487,7 +569,8 @@ const toggleStatus = async (classItem) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: `Class ${classItem.is_active ? 'deactivated' : 'activated'} successfully!`,
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -511,7 +594,8 @@ const deleteClass = async (id) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Class deleted successfully!',
-          type: 'success'
+          type: 'success',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -523,7 +607,8 @@ const deleteClass = async (id) => {
       const event = new CustomEvent('show-toast', {
         detail: {
           message: 'Error deleting class. Please try again.',
-          type: 'error'
+          type: 'error',
+          duration: 5000
         }
       });
       window.dispatchEvent(event);
@@ -531,7 +616,7 @@ const deleteClass = async (id) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchClasses();
   
   // Fetch schools for super admin
@@ -539,9 +624,9 @@ onMounted(() => {
     fetchSchools();
   }
   
-  // Fetch branches for school admin and branch admin
-  if (authStore.user?.role === 'school_admin' || authStore.user?.role === 'branch_admin') {
-    fetchBranchesForCurrentSchool();
+  // Fetch branches for school admin
+  if (authStore.user?.role === 'school_admin') {
+    await fetchBranchesForCurrentSchool();
   }
 });
 </script> 

@@ -8,6 +8,7 @@ const {
   updateBranchValidator,
 } = require('../../validations/branch.validation');
 const { uploadFields } = require('../../middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -15,7 +16,10 @@ router.use(verifyToken);
 // Super Admin routes (can manage all branches)
 router.post(
   '/',
-  authorize('super_admin'),
+  authorize(['super_admin']),
+  checkSubscriptionStatus,
+  validateModuleAccess('settings'),
+  validateSubscriptionLimits,
   uploadFields([
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
@@ -32,15 +36,29 @@ router.get(
   BranchController.getAllBranches
 );
 
+// Branch Admin routes (can view their own branch) - Must come before /:id
+router.get(
+  '/my-branch',
+  authorize(['branch_admin']),
+  BranchController.getMyBranch
+);
+
+// School Admin routes (can manage branches in their school) - Must come before /:id
+router.get(
+  '/school/:schoolId',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  BranchController.getBranchesBySchool
+);
+
 router.get(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
   BranchController.getBranchById
 );
 
 router.put(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   uploadFields([
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
@@ -53,22 +71,8 @@ router.put(
 
 router.delete(
   '/:id',
-  authorize('super_admin'),
+  authorize(['super_admin']),
   BranchController.deleteBranch
-);
-
-// School Admin routes (can manage branches in their school)
-router.get(
-  '/school/:schoolId',
-  authorize(['super_admin', 'school_admin']),
-  BranchController.getBranchesBySchool
-);
-
-// Branch Admin routes (can view their own branch)
-router.get(
-  '/my-branch',
-  authorize('branch_admin'),
-  BranchController.getMyBranch
 );
 
 module.exports = router; 

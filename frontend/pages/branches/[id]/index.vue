@@ -64,29 +64,33 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useBranches } from '~/composables/useBranches';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access branches
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage branches.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const branchId = route.params.id;
-const { loading, error } = useBranches();
+const { loading, error, getBranchById } = useBranches();
 const branch = ref(null);
 
 const fetchBranch = async () => {
   try {
-    const token = useCookie('auth-token').value;
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const res = await fetch(`${apiBase}/branches/${branchId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await res.json();
-    if (data.success) {
-      branch.value = data.data.branch || data.data;
+    const branchData = await getBranchById(branchId);
+    if (branchData) {
+      branch.value = branchData;
     }
   } catch (e) {
-    // error handled by composable
+    console.error('Error fetching branch:', e);
+    error.value = 'Failed to load branch details';
   }
 };
 

@@ -1,9 +1,10 @@
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
-const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest } = require('../../models');
+const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const bcrypt = require('bcryptjs');
+const { ModuleConfig } = require('../../utils/moduleConfig');
 
 class SubscriptionService {
   // Get all subscription plans
@@ -87,10 +88,18 @@ class SubscriptionService {
       throw new ApiError(404, 'Subscription plan not found');
     }
     
+    // Store old modules for comparison
+    const oldModules = plan.modules;
+    
     await plan.update({
       ...planData,
       updated_by: userId,
     });
+    
+    // If modules changed, sync all schools using this plan
+    if (planData.modules && JSON.stringify(oldModules) !== JSON.stringify(planData.modules)) {
+      await this.syncSchoolsWithPlan(plan.code);
+    }
     
     return plan;
   }
@@ -117,21 +126,16 @@ class SubscriptionService {
 
   // Get schools with subscription details
   static async getSchoolsWithSubscriptions(params = {}) {
-    const { page = 1, limit = 10, search, status, subscription_plan, id } = params;
+    const { page = 1, limit = 10, search, status, subscription_plan } = params;
     const offset = (page - 1) * limit;
     
     const whereClause = {};
     
-    // If ID is provided, filter by specific school ID
-    if (id) {
-      whereClause.id = id;
-    }
-    
     if (search) {
-      whereClause[sequelize.Op.or] = [
-        { name: { [sequelize.Op.iLike]: `%${search}%` } },
-        { code: { [sequelize.Op.iLike]: `%${search}%` } },
-        { email: { [sequelize.Op.iLike]: `%${search}%` } },
+      whereClause[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { code: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
       ];
     }
     
@@ -151,63 +155,24 @@ class SubscriptionService {
       include: [
         {
           model: User,
-          as: 'createdBy',
-          attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
-        },
-        {
-          model: User,
           as: 'users',
           where: { role: 'school_admin' },
           attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
           required: false,
         },
-        {
-          model: Transaction,
-          as: 'transactions',
-          attributes: ['id', 'transaction_id', 'amount', 'currency', 'payment_method', 'payment_status', 'transaction_status', 'notes', 'created_at'],
-          order: [['created_at', 'DESC']],
-          limit: 1, // Get only the latest transaction
-          required: false,
-        },
       ],
     });
     
-    // Get subscription plans for reference
-    const plans = await SubscriptionPlan.findAll({
-      where: { is_active: true },
-      attributes: ['id', 'name', 'code', 'price', 'billing_cycle'],
-    });
-    
-    const planMap = plans.reduce((acc, plan) => {
-      acc[plan.code] = plan;
-      return acc;
-    }, {});
-    
-    // Enhance school data with plan details and latest payment info
-    const schoolsWithPlanDetails = rows.map(school => {
-      const plan = planMap[school.subscription_plan];
+    // Transform the data to match frontend expectations
+    const transformedSchools = rows.map(school => {
       const schoolData = school.toJSON();
-      const latestTransaction = schoolData.transactions?.[0] || null;
-      
-      return {
-        ...schoolData,
-        plan_details: plan || null,
-        admin_user: schoolData.users?.[0] || schoolData.createdBy,
-        latest_payment: latestTransaction ? {
-          transaction_id: latestTransaction.transaction_id,
-          amount: latestTransaction.amount,
-          currency: latestTransaction.currency,
-          payment_method: latestTransaction.payment_method,
-          payment_status: latestTransaction.payment_status,
-          transaction_status: latestTransaction.transaction_status,
-          notes: latestTransaction.notes,
-          payment_date: latestTransaction.created_at,
-        } : null,
-      };
+      schoolData.admin_user = schoolData.users?.[0] || null;
+      schoolData.plan_details = schoolData.subscriptionPlan || null;
+      return schoolData;
     });
-    
+
     return {
-      schools: schoolsWithPlanDetails,
+      schools: transformedSchools,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -217,11 +182,47 @@ class SubscriptionService {
     };
   }
 
+  // Get single school with subscription
+  static async getSchoolWithSubscription(schoolId) {
+    const school = await School.findByPk(schoolId, {
+      include: [
+        {
+          model: User,
+          as: 'users',
+          where: { role: 'school_admin' },
+          attributes: ['id', 'first_name', 'last_name', 'email', 'phone', 'role'],
+          required: false,
+        },
+      ],
+    });
+    
+    if (!school) {
+      return null;
+    }
+    
+    // Transform the data to match the expected format
+    const schoolData = school.toJSON();
+    schoolData.admin_user = schoolData.users?.[0] || null;
+    
+    return schoolData;
+  }
+
   // Create school with subscription
   static async createSchoolWithSubscription(schoolData, subscriptionData, userId, uploadedFiles = {}) {
     const transaction = await sequelize.transaction();
     
     try {
+      // Validate school code format
+      if (!schoolData.code || !/^[A-Z0-9]+$/.test(schoolData.code)) {
+        throw new ApiError(400, 'School code must contain only uppercase letters and numbers');
+      }
+      
+      // Check if school code already exists
+      const existingSchool = await School.findOne({ where: { code: schoolData.code } });
+      if (existingSchool) {
+        throw new ApiError(400, 'School code already exists');
+      }
+      
       // Validate subscription plan
       const plan = await SubscriptionPlan.findOne({
         where: { code: subscriptionData.plan_code, is_active: true },
@@ -229,6 +230,17 @@ class SubscriptionService {
       
       if (!plan) {
         throw new ApiError(400, 'Invalid subscription plan');
+      }
+      
+      // Validate admin email format and uniqueness
+      if (!subscriptionData.admin_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subscriptionData.admin_email)) {
+        throw new ApiError(400, 'Please provide a valid admin email address');
+      }
+      
+      // Check if admin email already exists
+      const existingUser = await User.findOne({ where: { email: subscriptionData.admin_email } });
+      if (existingUser) {
+        throw new ApiError(400, 'Admin email already exists');
       }
       
       // Handle file uploads
@@ -246,27 +258,83 @@ class SubscriptionService {
         fileData.report_card_design = uploadedFiles.report_card_design.filename;
       }
       
+      // Calculate start and end dates based on billing cycle
+      const startDate = subscriptionData.start_date ? new Date(subscriptionData.start_date) : new Date();
+      const endDate = this.calculateEndDate(startDate, plan.billing_cycle, subscriptionData.trial_days);
+      
+      // Calculate school status based on plan and dates
+      const schoolStatus = this.calculateSchoolStatus(plan.code, startDate, endDate);
+      
       // Create school
       const schoolCreateData = {
         ...schoolData,
         ...fileData,
         subscription_plan: plan.code,
-        subscription_start_date: subscriptionData.start_date || new Date(),
+        subscription_start_date: startDate,
+        subscription_end_date: endDate,
         max_students: plan.max_students,
         max_staff: plan.max_staff,
         max_branches: plan.max_branches,
         modules: plan.modules,
-        status: subscriptionData.status || 'trial',
+        status: schoolStatus,
         created_by: userId,
         updated_by: userId,
       };
       
-      // Only add end_date if it's valid
-      if (subscriptionData.end_date && subscriptionData.end_date !== '' && !subscriptionData.end_date.includes('Invalid')) {
-        schoolCreateData.subscription_end_date = subscriptionData.end_date;
+      const school = await School.create(schoolCreateData, { transaction });
+      
+      logger.info(`Created school: ${school.name} (${school.id})`);
+      
+      // Create first branch (Main Branch/Head Office)
+      const branchName = schoolData.branch_name || 'Main Branch';
+      
+      // Generate a clean branch code that meets alphanumeric requirements
+      // Remove any non-alphanumeric characters from school code and ensure it's uppercase
+      const cleanSchoolCode = school.code.replace(/[^A-Z0-9]/g, '').toUpperCase();
+      const branchCode = `${cleanSchoolCode}MB`;
+      
+      // Check if branch code already exists and make it unique if needed
+      let finalBranchCode = branchCode;
+      let counter = 1;
+      while (await Branch.findOne({ where: { code: finalBranchCode } })) {
+        finalBranchCode = `${cleanSchoolCode}MB${counter}`;
+        counter++;
       }
       
-      const school = await School.create(schoolCreateData, { transaction });
+      const branch = await Branch.create({
+        name: branchName,
+        code: finalBranchCode,
+        school_id: school.id,
+        address: schoolData.address || '',
+        city: schoolData.city || '',
+        state: schoolData.state || '',
+        country: schoolData.country || 'India',
+        postal_code: schoolData.postal_code || '',
+        phone: schoolData.phone || '',
+        email: schoolData.email || '',
+        currency: schoolData.currency || 'INR',
+        currency_symbol: schoolData.currency_symbol || '₹',
+        is_main_branch: true,
+        is_active: true,
+        created_by: userId,
+        updated_by: userId,
+      }, { transaction });
+      
+      logger.info(`Created branch: ${branch.name} (${branch.id}) for school: ${school.name}`);
+      
+      // Link school to the current global academic year
+      const currentGlobalYear = await AcademicYear.findOne({ 
+        where: { is_current: true } 
+      });
+      
+      if (currentGlobalYear) {
+        await school.update({
+          current_academic_year_id: currentGlobalYear.id
+        }, { transaction });
+        logger.info(`Linked school ${school.name} to current global academic year: ${currentGlobalYear.name}`);
+      } else {
+        logger.warn(`No current global academic year found. School ${school.name} will not be linked to any academic year.`);
+      }
       
       // Create school admin user
       const adminPassword = subscriptionData.admin_password || this.generatePassword();
@@ -278,11 +346,14 @@ class SubscriptionService {
         password: adminPassword,
         role: 'school_admin',
         school_id: school.id,
+        branch_id: branch.id, // Assign to the first branch
         status: 'active',
         email_verified: true,
         created_by: userId,
         updated_by: userId,
       }, { transaction });
+      
+      logger.info(`Created admin user: ${adminUser.first_name} ${adminUser.last_name} (${adminUser.id}) for school: ${school.name}`);
       
       // Create transaction record if payment details provided
       if (subscriptionData.payment_amount) {
@@ -310,6 +381,8 @@ class SubscriptionService {
       
       return {
         school,
+        branch,
+        academic_year: currentGlobalYear, // Return the linked academic year
         admin_user: {
           ...adminUser.toJSON(),
           password: adminPassword, // Return password for display
@@ -324,7 +397,6 @@ class SubscriptionService {
 
   // Update school subscription
   static async updateSchoolSubscription(schoolId, data, userId, uploadedFiles = {}) {
-    const { schoolData, subscriptionData } = data;
     const transaction = await sequelize.transaction();
     
     try {
@@ -333,9 +405,12 @@ class SubscriptionService {
         throw new ApiError(404, 'School not found');
       }
       
-      // Validate new subscription plan if provided
+      // Extract school and subscription data from the nested structure
+      const { schoolData, subscriptionData } = data;
+      
+      // If plan is being changed, validate the new plan
       let plan = null;
-      if (subscriptionData.plan_code) {
+      if (subscriptionData.plan_code && subscriptionData.plan_code !== school.subscription_plan) {
         plan = await SubscriptionPlan.findOne({
           where: { code: subscriptionData.plan_code, is_active: true },
         });
@@ -345,115 +420,58 @@ class SubscriptionService {
         }
       }
       
-      // Update school subscription details
+      // Handle file uploads
+      const fileData = {};
+      if (uploadedFiles.system_logo) {
+        fileData.system_logo = uploadedFiles.system_logo.filename;
+      }
+      if (uploadedFiles.text_logo) {
+        fileData.text_logo = uploadedFiles.text_logo.filename;
+      }
+      if (uploadedFiles.printing_logo) {
+        fileData.printing_logo = uploadedFiles.printing_logo.filename;
+      }
+      if (uploadedFiles.report_card_design) {
+        fileData.report_card_design = uploadedFiles.report_card_design.filename;
+      }
+      
+      // Calculate new dates and status if plan is changing
+      let startDate = school.subscription_start_date;
+      let endDate = school.subscription_end_date;
+      let schoolStatus = school.status;
+      
+      if (plan) {
+        startDate = subscriptionData.start_date ? new Date(subscriptionData.start_date) : new Date();
+        endDate = this.calculateEndDate(startDate, plan.billing_cycle, subscriptionData.trial_days);
+        schoolStatus = this.calculateSchoolStatus(plan.code, startDate, endDate);
+      }
+      
+      // Update school data - combine school data and subscription data
       const updateData = {
+        ...schoolData,
+        ...fileData,
         updated_by: userId,
       };
       
+      // Only update subscription-related fields if plan is changing
       if (plan) {
         updateData.subscription_plan = plan.code;
+        updateData.subscription_start_date = startDate;
+        updateData.subscription_end_date = endDate;
         updateData.max_students = plan.max_students;
         updateData.max_staff = plan.max_staff;
         updateData.max_branches = plan.max_branches;
         updateData.modules = plan.modules;
-      }
-      
-      if (subscriptionData.start_date) {
-        updateData.subscription_start_date = subscriptionData.start_date;
-      }
-      
-      if (subscriptionData.end_date) {
-        updateData.subscription_end_date = subscriptionData.end_date;
-      }
-      
-      if (subscriptionData.status) {
-        updateData.status = subscriptionData.status;
-      }
-      
-      // Handle file uploads
-      if (uploadedFiles.system_logo) {
-        updateData.system_logo = uploadedFiles.system_logo.filename;
-      }
-      if (uploadedFiles.text_logo) {
-        updateData.text_logo = uploadedFiles.text_logo.filename;
-      }
-      if (uploadedFiles.printing_logo) {
-        updateData.printing_logo = uploadedFiles.printing_logo.filename;
-      }
-      if (uploadedFiles.report_card_design) {
-        updateData.report_card_design = uploadedFiles.report_card_design.filename;
-      }
-      
-      // Update basic school data
-      if (schoolData) {
-        Object.assign(updateData, schoolData);
-      }
-      
-      // Handle admin user updates if provided
-      if (subscriptionData.admin_email || subscriptionData.admin_first_name) {
-        const adminUser = await User.findOne({
-          where: { school_id: schoolId, role: 'school_admin' }
-        });
-        
-        if (adminUser) {
-          const adminUpdateData = {
-            updated_by: userId
-          };
-
-          if (subscriptionData.admin_first_name) adminUpdateData.first_name = subscriptionData.admin_first_name;
-          if (subscriptionData.admin_last_name) adminUpdateData.last_name = subscriptionData.admin_last_name;
-          if (subscriptionData.admin_email) adminUpdateData.email = subscriptionData.admin_email;
-          if (subscriptionData.admin_phone) adminUpdateData.phone = subscriptionData.admin_phone;
-          
-          // Handle password update if provided
-          if (subscriptionData.admin_password) {
-            adminUpdateData.password = subscriptionData.admin_password; // Let User model hook handle hashing
-          }
-          
-          await adminUser.update(adminUpdateData, { transaction });
-        }
+        updateData.status = schoolStatus;
       }
       
       await school.update(updateData, { transaction });
       
-      // Create transaction record if payment details provided
-      if (subscriptionData.payment_amount && plan) {
-        const transactionId = `TXN${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        await Transaction.create({
-          transaction_id: transactionId,
-          school_id: school.id,
-          subscription_plan_id: plan.id,
-          amount: subscriptionData.payment_amount,
-          currency: subscriptionData.payment_currency || 'INR',
-          payment_method: subscriptionData.payment_method || 'offline_cash',
-          payment_status: 'completed',
-          transaction_status: 'success',
-          billing_cycle: plan.billing_cycle,
-          subscription_start_date: school.subscription_start_date,
-          subscription_end_date: school.subscription_end_date,
-          description: `Subscription upgrade for ${school.name}`,
-          is_manual: true,
-          created_by: userId,
-          updated_by: userId,
-        }, { transaction });
-      }
+      logger.info(`Updated school subscription: ${school.name} (${school.id}) - Plan: ${plan ? plan.code : 'No change'}`);
       
       await transaction.commit();
       
-      return {
-        school: await School.findByPk(schoolId, {
-          include: [
-            {
-              model: User,
-              as: 'users',
-              where: { role: 'school_admin' },
-              attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
-              required: false,
-            },
-          ],
-        }),
-        plan_details: plan,
-      };
+      return school;
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -533,21 +551,51 @@ class SubscriptionService {
       throw new ApiError(404, 'School not found');
     }
     
+    // Check if it's a lifetime plan (no end date or billing_cycle is lifetime)
+    const isLifetime = !school.subscription_end_date || school.subscription_end_date === null;
+    
+    if (isLifetime) {
+      return { 
+        status: 'lifetime', 
+        message: 'Lifetime subscription - no expiration',
+        days_remaining: null,
+        is_lifetime: true
+      };
+    }
+    
     const now = new Date();
     const endDate = new Date(school.subscription_end_date);
     
-    if (school.subscription_end_date && now > endDate) {
+    if (now > endDate) {
       await school.update({ status: 'expired' });
-      return { status: 'expired', message: 'Subscription has expired' };
+      return { 
+        status: 'expired', 
+        message: 'Subscription has expired',
+        days_remaining: 0,
+        is_lifetime: false
+      };
     }
+    
+    // Calculate days remaining
+    const timeDiff = endDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
     
     // Check if subscription expires within 30 days
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    if (school.subscription_end_date && endDate <= thirtyDaysFromNow) {
-      return { status: 'expiring_soon', message: 'Subscription expires soon' };
+    if (daysRemaining <= 30) {
+      return { 
+        status: 'expiring_soon', 
+        message: `Subscription expires in ${daysRemaining} days`,
+        days_remaining: daysRemaining,
+        is_lifetime: false
+      };
     }
     
-    return { status: 'active', message: 'Subscription is active' };
+    return { 
+      status: 'active', 
+      message: 'Subscription is active',
+      days_remaining: daysRemaining,
+      is_lifetime: false
+    };
   }
 
   // Create subscription renewal request
@@ -606,7 +654,7 @@ class SubscriptionService {
 
   // Get renewal requests (for super admin)
   static async getRenewalRequests(params = {}) {
-    const { page = 1, limit = 10, status, school_id } = params;
+    const { page = 1, limit = 10, status, school_id, request_type } = params;
     const offset = (page - 1) * limit;
 
     const whereClause = {};
@@ -615,6 +663,9 @@ class SubscriptionService {
     }
     if (school_id) {
       whereClause.school_id = school_id;
+    }
+    if (request_type) {
+      whereClause.request_type = request_type;
     }
 
     const { count, rows } = await SubscriptionRenewalRequest.findAndCountAll({
@@ -786,55 +837,369 @@ class SubscriptionService {
     }
   }
 
-  // Get subscription statistics
+  // Get subscription stats
   static async getSubscriptionStats() {
-    const [
-      totalSchools,
-      activeSchools,
-      trialSchools,
-      expiredSchools,
-      suspendedSchools,
-      totalRevenue,
-      monthlyRevenue,
-      yearlyRevenue,
-      pendingRequests,
-    ] = await Promise.all([
-      School.count(),
-      School.count({ where: { status: 'active' } }),
-      School.count({ where: { status: 'trial' } }),
-      School.count({ where: { status: 'expired' } }),
-      School.count({ where: { status: 'suspended' } }),
-      Transaction.sum('amount', { where: { payment_status: 'completed' } }),
-      Transaction.sum('amount', {
+    try {
+      const totalSchools = await School.count();
+      const activeSchools = await School.count({ where: { status: 'active' } });
+      const trialSchools = await School.count({ where: { subscription_plan: 'TRIAL' } });
+      const expiredSchools = await School.count({
         where: {
-          payment_status: 'completed',
-          created_at: {
-            [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        },
-      }),
-      Transaction.sum('amount', {
-        where: {
-          payment_status: 'completed',
-          created_at: {
-            [Op.gte]: new Date(new Date().getFullYear(), 0, 1),
-          },
-        },
-      }),
-      SubscriptionRenewalRequest.count({ where: { status: 'pending' } }),
-    ]);
+          subscription_end_date: { [Op.lt]: new Date() }
+        }
+      });
 
-    return {
-      totalSchools,
-      activeSchools,
-      trialSchools,
-      expiredSchools,
-      suspendedSchools,
-      totalRevenue: totalRevenue || 0,
-      monthlyRevenue: monthlyRevenue || 0,
-      yearlyRevenue: yearlyRevenue || 0,
-      pendingRequests,
-    };
+      const planStats = await School.findAll({
+        attributes: [
+          'subscription_plan',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['subscription_plan'],
+        raw: true
+      });
+
+      return {
+        total_schools: totalSchools,
+        active_schools: activeSchools,
+        trial_schools: trialSchools,
+        expired_schools: expiredSchools,
+        plan_distribution: planStats
+      };
+    } catch (error) {
+      logger.error('Error getting subscription stats:', error);
+      throw error;
+    }
+  }
+
+  // Check school's current usage against subscription limits
+  static async checkSchoolUsage(schoolId) {
+    try {
+      const school = await School.findByPk(schoolId);
+      if (!school) {
+        throw new ApiError(404, 'School not found');
+      }
+
+      // First try to get plan from database
+      let plan = null;
+      if (school.subscription_plan) {
+        plan = await SubscriptionPlan.findOne({
+          where: { code: school.subscription_plan, is_active: true }
+        });
+      }
+
+      // If not found in database, fall back to ModuleConfig
+      if (!plan) {
+        plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+      }
+
+      if (!plan) {
+        throw new ApiError(400, 'Invalid subscription plan');
+      }
+
+      // Get current usage
+      const studentCount = await Student.count({ 
+        where: { 
+          school_id: schoolId,
+          status: { [Op.ne]: 'deleted' }
+        } 
+      });
+
+      const userCount = await User.count({ 
+        where: { 
+          school_id: schoolId,
+          status: 'active',
+          role: { [Op.notIn]: ['super_admin', 'school_admin'] }
+        } 
+      });
+
+      const branchCount = await Branch.count({ 
+        where: { 
+          school_id: schoolId,
+          status: 'active'
+        } 
+      });
+
+      // Use plan limits from database or fallback to ModuleConfig
+      const maxStudents = plan.max_students || plan.maxStudents || 50;
+      const maxStaff = plan.max_staff || plan.maxStaff || 10;
+      const maxBranches = plan.max_branches || plan.maxBranches || 1;
+
+      // Calculate usage percentages
+      const studentUsage = maxStudents === -1 ? 0 : (studentCount / maxStudents) * 100;
+      const userUsage = maxStaff === -1 ? 0 : (userCount / maxStaff) * 100;
+      const branchUsage = maxBranches === -1 ? 0 : (branchCount / maxBranches) * 100;
+
+      // Check if any limits are exceeded
+      const limitsExceeded = {
+        students: maxStudents !== -1 && studentCount >= maxStudents,
+        users: maxStaff !== -1 && userCount >= maxStaff,
+        branches: maxBranches !== -1 && branchCount >= maxBranches
+      };
+
+      // Get upgrade suggestions
+      const upgradeSuggestions = this.getUpgradeSuggestions(school.subscription_plan, {
+        students: studentCount,
+        users: userCount,
+        branches: branchCount
+      });
+
+      return {
+        current_plan: school.subscription_plan,
+        plan_details: {
+          name: plan.name,
+          description: plan.description,
+          max_students: maxStudents,
+          max_staff: maxStaff,
+          max_branches: maxBranches,
+          modules: plan.modules || [],
+          price: plan.price,
+          billing_cycle: plan.billing_cycle
+        },
+        current_usage: {
+          students: studentCount,
+          users: userCount,
+          branches: branchCount
+        },
+        usage_percentages: {
+          students: Math.round(studentUsage),
+          users: Math.round(userUsage),
+          branches: Math.round(branchUsage)
+        },
+        limits_exceeded: limitsExceeded,
+        upgrade_suggestions: upgradeSuggestions,
+        subscription_status: await this.checkAndUpdateSubscriptionStatus(schoolId)
+      };
+    } catch (error) {
+      logger.error('Error checking school usage:', error);
+      throw error;
+    }
+  }
+
+  // Get upgrade suggestions based on current usage
+  static getUpgradeSuggestions(currentPlan, usage) {
+    const plans = ModuleConfig.getAllSubscriptionPlans();
+    const suggestions = [];
+
+    Object.entries(plans).forEach(([planKey, plan]) => {
+      if (planKey === currentPlan.toUpperCase()) {
+        return; // Skip current plan
+      }
+
+      let reason = '';
+      const reasons = [];
+
+      // Check if this plan would solve any current limitations
+      if (plan.max_students !== -1 && usage.students >= plan.max_students) {
+        reasons.push(`Supports ${plan.max_students} students (you have ${usage.students})`);
+      }
+      if (plan.max_staff !== -1 && usage.users >= plan.max_staff) {
+        reasons.push(`Supports ${plan.max_staff} staff (you have ${usage.users})`);
+      }
+      if (plan.max_branches !== -1 && usage.branches >= plan.max_branches) {
+        reasons.push(`Supports ${plan.max_branches} branches (you have ${usage.branches})`);
+      }
+
+      // Check for additional modules
+      const currentModules = ModuleConfig.getModulesForPlan(currentPlan);
+      const additionalModules = plan.modules.filter(module => !currentModules.includes(module));
+      if (additionalModules.length > 0) {
+        reasons.push(`Includes additional modules: ${additionalModules.join(', ')}`);
+      }
+
+      if (reasons.length > 0) {
+        suggestions.push({
+          plan_key: planKey,
+          plan_name: plan.name,
+          price: plan.price,
+          reasons: reasons,
+          is_recommended: plan.price > plans[currentPlan.toUpperCase()]?.price || 0
+        });
+      }
+    });
+
+    // Sort by recommendation (higher price plans first)
+    suggestions.sort((a, b) => b.is_recommended - a.is_recommended);
+
+    return suggestions;
+  }
+
+  // Check and update subscription status for all schools
+  static async checkAndUpdateAllSubscriptionStatuses() {
+    try {
+      const schools = await School.findAll({
+        where: {
+          status: ['trial', 'active'],
+          subscription_end_date: {
+            [Op.lt]: new Date() // Less than current date
+          }
+        }
+      });
+
+      let updatedCount = 0;
+      for (const school of schools) {
+        const newStatus = this.calculateSchoolStatus(
+          school.subscription_plan,
+          school.subscription_start_date,
+          school.subscription_end_date
+        );
+        
+        if (newStatus !== school.status) {
+          await school.update({ status: newStatus });
+          updatedCount++;
+          logger.info(`Updated school ${school.name} status from ${school.status} to ${newStatus}`);
+        }
+      }
+
+      return {
+        totalChecked: schools.length,
+        updatedCount,
+        message: `Updated ${updatedCount} out of ${schools.length} schools`
+      };
+    } catch (error) {
+      logger.error('Error checking subscription statuses:', error);
+      throw error;
+    }
+  }
+
+  // Calculate end date based on billing cycle and trial days
+  static calculateEndDate(startDate, billingCycle, trialDays = 0) {
+    if (billingCycle === 'lifetime') {
+      return null; // Lifetime plans have no end date
+    }
+    
+    const endDate = new Date(startDate);
+    
+    if (billingCycle === 'monthly') {
+      endDate.setMonth(endDate.getMonth() + 1);
+    } else if (billingCycle === 'yearly') {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    }
+    
+    // If it's a trial plan, add trial days
+    if (trialDays > 0) {
+      endDate.setDate(endDate.getDate() + trialDays);
+    }
+    
+    return endDate;
+  }
+
+  // Calculate school status based on plan and dates
+  static calculateSchoolStatus(planCode, startDate, endDate) {
+    if (planCode === 'LIFETIME') {
+      return 'lifetime';
+    }
+    
+    const now = new Date();
+    
+    if (planCode === 'TRIAL') {
+      return 'trial';
+    }
+    
+    if (endDate && endDate < now) {
+      return 'expired';
+    }
+    
+    return 'active';
+  }
+
+  // Sync all schools using a specific plan with the plan's current modules and limits
+  static async syncSchoolsWithPlan(planCode) {
+    try {
+      logger.info(`Starting sync of schools using plan: ${planCode}`);
+      
+      const plan = await SubscriptionPlan.findOne({
+        where: { code: planCode, is_active: true }
+      });
+      
+      if (!plan) {
+        logger.error(`Plan ${planCode} not found or inactive`);
+        return;
+      }
+      
+      const schools = await School.findAll({
+        where: { subscription_plan: planCode }
+      });
+      
+      logger.info(`Found ${schools.length} schools using plan ${planCode}`);
+      
+      let updatedCount = 0;
+      
+      for (const school of schools) {
+        const currentModules = school.modules || [];
+        const planModules = plan.modules || [];
+        
+        // Check if modules or limits need updating
+        const modulesChanged = currentModules.length !== planModules.length ||
+          !currentModules.every(module => planModules.includes(module)) ||
+          !planModules.every(module => currentModules.includes(module));
+        
+        const limitsChanged = school.max_students !== plan.max_students ||
+          school.max_staff !== plan.max_staff ||
+          school.max_branches !== plan.max_branches;
+        
+        if (modulesChanged || limitsChanged) {
+          logger.info(`Updating school ${school.name} (${school.id}) with plan ${planCode} changes`);
+          
+          await school.update({
+            modules: planModules,
+            max_students: plan.max_students,
+            max_staff: plan.max_staff,
+            max_branches: plan.max_branches
+          });
+          
+          updatedCount++;
+        }
+      }
+      
+      logger.info(`Sync completed for plan ${planCode}. Updated ${updatedCount} out of ${schools.length} schools.`);
+      
+      return {
+        planCode,
+        totalSchools: schools.length,
+        updatedCount,
+        message: `Updated ${updatedCount} out of ${schools.length} schools using plan ${planCode}`
+      };
+      
+    } catch (error) {
+      logger.error(`Error syncing schools with plan ${planCode}:`, error);
+      throw error;
+    }
+  }
+
+  // Sync all schools with their respective plans
+  static async syncAllSchoolsWithPlans() {
+    try {
+      logger.info('Starting sync of all schools with their plans...');
+      
+      const plans = await SubscriptionPlan.findAll({
+        where: { is_active: true }
+      });
+      
+      const results = [];
+      
+      for (const plan of plans) {
+        const result = await this.syncSchoolsWithPlan(plan.code);
+        if (result) {
+          results.push(result);
+        }
+      }
+      
+      const totalUpdated = results.reduce((sum, result) => sum + result.updatedCount, 0);
+      const totalSchools = results.reduce((sum, result) => sum + result.totalSchools, 0);
+      
+      logger.info(`Global sync completed. Updated ${totalUpdated} out of ${totalSchools} schools across all plans.`);
+      
+      return {
+        results,
+        totalUpdated,
+        totalSchools,
+        message: `Updated ${totalUpdated} out of ${totalSchools} schools across all plans`
+      };
+      
+    } catch (error) {
+      logger.error('Error syncing all schools with plans:', error);
+      throw error;
+    }
   }
 }
 

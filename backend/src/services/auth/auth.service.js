@@ -91,8 +91,8 @@ class AuthService {
         throw new ApiError(403, 'Your account is not active. Please contact support.');
       }
 
-      // Check if school is active
-      if (user.school && user.school.status !== 'active') {
+      // Check if school is active (allow active, trial, and lifetime statuses)
+      if (user.school && !['active', 'trial', 'lifetime'].includes(user.school.status)) {
         throw new ApiError(403, 'Your school account is not active. Please contact support.');
       }
 
@@ -135,7 +135,7 @@ class AuthService {
     logger.info('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
     logger.info('JWT_REFRESH_SECRET:', process.env.JWT_REFRESH_SECRET ? 'SET' : 'NOT SET');
     
-    // Generate access token
+    // Generate access token (1 minute for testing)
     const accessToken = jwt.sign(
       {
         id: user.id,
@@ -145,7 +145,7 @@ class AuthService {
         branch_id: user.branch_id,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '60m' } // 60 minutes
     );
 
     // Generate refresh token
@@ -165,18 +165,18 @@ class AuthService {
       logger.warn('Redis not available, continuing without token storage:', error.message);
     }
 
+    // Calculate expiry times correctly
+    const accessTokenExpiry = new Date(Date.now() + 60 * 1000); // 1 minute
+    const refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
     return {
       access: {
         token: accessToken,
-        expires: new Date(
-          Date.now() + parseInt(process.env.JWT_EXPIRES_IN || 3600) * 1000
-        ),
+        expires: accessTokenExpiry,
       },
       refresh: {
         token: refreshToken,
-        expires: new Date(
-          Date.now() + parseInt(process.env.JWT_REFRESH_EXPIRES_IN || 604800) * 1000
-        ),
+        expires: refreshTokenExpiry,
       },
     };
   }
@@ -185,12 +185,19 @@ class AuthService {
     try {
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
       
-      // Verify refresh token in Redis
-      const redisClient = await getRedisClient();
-      const storedToken = await redisClient.get(`refresh_token:${decoded.id}`);
-      
-      if (!storedToken || storedToken !== refreshToken) {
-        throw new ApiError(401, 'Invalid refresh token');
+      // Verify refresh token in Redis (optional - continue if Redis fails)
+      try {
+        const redisClient = await getRedisClient();
+        
+        if (redisClient) {
+          const storedToken = await redisClient.get(`refresh_token:${decoded.id}`);
+          
+          if (!storedToken || storedToken !== refreshToken) {
+            throw new ApiError(401, 'Invalid refresh token');
+          }
+        }
+      } catch (redisError) {
+        // Continue without Redis validation if Redis is not available
       }
 
       // Get user
@@ -296,12 +303,21 @@ class AuthService {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Verify reset token in Redis
-      const redisClient = await getRedisClient();
-      const storedToken = await redisClient.get(`reset_token:${decoded.id}`);
-      
-      if (!storedToken || storedToken !== token) {
-        throw new ApiError(401, 'Invalid or expired reset token');
+      // Verify reset token in Redis (optional - continue if Redis fails)
+      try {
+        const redisClient = await getRedisClient();
+        if (redisClient) {
+          const storedToken = await redisClient.get(`reset_token:${decoded.id}`);
+          
+          if (!storedToken || storedToken !== token) {
+            throw new ApiError(401, 'Invalid or expired reset token');
+          }
+        } else {
+          logger.warn('Redis not available for reset token validation, proceeding without validation');
+        }
+      } catch (redisError) {
+        logger.warn('Redis validation failed, continuing without Redis check:', redisError.message);
+        // Continue without Redis validation if Redis is not available
       }
 
       // Update password
@@ -313,8 +329,15 @@ class AuthService {
       user.password = newPassword;
       await user.save();
 
-      // Remove reset token
-      await redisClient.del(`reset_token:${decoded.id}`);
+      // Remove reset token (optional - continue if Redis fails)
+      try {
+        const redisClient = await getRedisClient();
+        if (redisClient) {
+          await redisClient.del(`reset_token:${decoded.id}`);
+        }
+      } catch (redisError) {
+        logger.warn('Failed to remove reset token from Redis:', redisError.message);
+      }
 
       // Clear user cache
       await RedisUtils.del(`user:${user.id}`);

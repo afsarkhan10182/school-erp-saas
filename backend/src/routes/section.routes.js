@@ -16,7 +16,7 @@ const router = express.Router();
 // Middleware to ensure authentication
 router.use(verifyToken);
 
-// GET /api/sections - Get all sections with filtering and pagination
+// GET /api/sections - Get all sections with role-based access control
 router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin']), getAllSections);
 
 // GET /api/sections/dropdown - Get all sections for dropdown

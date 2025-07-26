@@ -154,8 +154,11 @@
                     <div>Start: {{ formatDate(school.subscription_start_date) }}</div>
                     <div>End: {{ formatDate(school.subscription_end_date) }}</div>
                   </div>
-                  <div v-if="getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                  <div v-if="getDaysRemaining(school.subscription_end_date) !== null && getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 dark:text-orange-400 font-medium">
                     {{ getDaysRemaining(school.subscription_end_date) }} days remaining
+                  </div>
+                  <div v-else-if="getDaysRemaining(school.subscription_end_date) === null" class="text-xs text-green-600 dark:text-green-400 font-medium">
+                    Lifetime Plan
                   </div>
                 </td>
 
@@ -275,11 +278,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 
-const { user, isAuthenticated } = useAuth();
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscriptions
+const user = computed(() => authStore.user);
+
 const { schools, plans, loading, error, fetchSchoolsWithSubscriptions, fetchPlans, suspendSchool, reactivateSchool } = useSubscriptions();
 
 const filters = ref({
@@ -380,7 +390,7 @@ const formatDate = (dateString) => {
 
 // Get days remaining
 const getDaysRemaining = (dateString) => {
-  if (!dateString) return 0;
+  if (!dateString) return null; // Return null for lifetime plans
   const endDate = new Date(dateString);
   const today = new Date();
   const diffTime = endDate - today;
@@ -418,7 +428,23 @@ const reactivateSchoolAction = async (schoolId) => {
   }
 };
 
+// Watch for user role changes and load data
+watch(
+  () => user.value?.role,
+  (role) => {
+    if (role === 'super_admin') {
+      fetchSchools();
+      fetchPlansData();
+    } else if (role && role !== 'super_admin') {
+      showError('Access denied. Only Super Admin can manage subscriptions.');
+      navigateTo('/dashboard');
+    }
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
+  // Initial load if user is already available
   if (user.value?.role === 'super_admin') {
     fetchSchools();
     fetchPlansData();

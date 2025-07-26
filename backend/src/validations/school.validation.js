@@ -33,12 +33,16 @@ const createSchoolValidator = [
     .withMessage('Address must not exceed 200 characters'),
   
   body('city')
-    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('City is required')
     .isLength({ max: 50 })
     .withMessage('City must not exceed 50 characters'),
   
   body('state')
-    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('State is required')
     .isLength({ max: 50 })
     .withMessage('State must not exceed 50 characters'),
   
@@ -57,6 +61,16 @@ const createSchoolValidator = [
     .isURL()
     .withMessage('Please provide a valid website URL'),
   
+  body('currency')
+    .optional()
+    .isLength({ max: 10 })
+    .withMessage('Currency must not exceed 10 characters'),
+  
+  body('currency_symbol')
+    .optional()
+    .isLength({ max: 5 })
+    .withMessage('Currency symbol must not exceed 5 characters'),
+  
   body('timezone')
     .optional()
     .isLength({ max: 50 })
@@ -64,7 +78,7 @@ const createSchoolValidator = [
   
   body('subscription_plan')
     .optional()
-    .isIn(['trial', 'basic', 'premium', 'enterprise'])
+    .isIn(['trial', 'basic', 'premium', 'enterprise', 'lifetime'])
     .withMessage('Invalid subscription plan'),
   
   body('max_students')
@@ -143,6 +157,16 @@ const updateSchoolValidator = [
     .isURL()
     .withMessage('Please provide a valid website URL'),
   
+  body('currency')
+    .optional()
+    .isLength({ max: 10 })
+    .withMessage('Currency must not exceed 10 characters'),
+  
+  body('currency_symbol')
+    .optional()
+    .isLength({ max: 5 })
+    .withMessage('Currency symbol must not exceed 5 characters'),
+  
   body('timezone')
     .optional()
     .isLength({ max: 50 })
@@ -150,7 +174,7 @@ const updateSchoolValidator = [
   
   body('subscription_plan')
     .optional()
-    .isIn(['trial', 'basic', 'premium', 'enterprise'])
+    .isIn(['trial', 'basic', 'premium', 'enterprise', 'lifetime'])
     .withMessage('Invalid subscription plan'),
   
   body('max_students')

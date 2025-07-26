@@ -1,569 +1,659 @@
 <template>
-  <div class="min-h-screen">
-    <div class="container mx-auto py-8 px-4">
-      <h1 class="text-2xl font-bold mb-4">Sections Management</h1>
-      
-      <!-- Filters Section -->
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
-        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filters</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Class Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by Class</label>
-            <select
-              v-model="filters.class_id"
-              @change="fetchSections"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All Classes</option>
-              <option v-for="classItem in activeClasses" :key="classItem.id" :value="classItem.id">
-                {{ classItem.name }} {{ classItem.code ? `(${classItem.code})` : '' }}
-              </option>
-            </select>
-          </div>
-          
-          <!-- Search Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Sections</label>
-            <input
-              v-model="filters.search"
-              @input="debouncedSearch"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              type="text"
-              placeholder="Search sections..."
-            />
-          </div>
-          
-          <!-- Status Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-            <select
-              v-model="filters.is_active"
-              @change="fetchSections"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="sm:flex sm:items-center sm:justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Section Management</h1>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage academic sections for each class and branch</p>
         </div>
-      </div>
-      
-      <div class="flex justify-between mb-6">
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          Showing {{ sections.length }} sections
-          <span v-if="filters.class_id">
-            for {{ getSelectedClassName() }}
-          </span>
-        </div>
-        <div class="flex gap-2">
-          <button
-            @click="clearFilters"
-            class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-          >
-            Clear Filters
-          </button>
+        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
             @click="openCreateModal"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            Add New Section
+            <Plus class="-ml-1 mr-2 h-5 w-5" />
+            Add Section
           </button>
         </div>
       </div>
-      
-      <section-table 
-        :sections="sections" 
-        @edit="editSection"
-        @delete="deleteSection"
-      />
 
-      <pagination
-        v-if="pagination.total > pagination.limit"
-        :pagination="pagination"
-        @page-changed="fetchSections"
-      />
-
-      <modal v-if="showModal" @close="closeModal">
-        <template #header>
-          <h3 class="text-lg font-semibold">{{ isEditing ? 'Edit Section' : 'Create Section' }}</h3>
-        </template>
-        <template #body>
-          <form @submit.prevent="isEditing ? updateSection() : createSection()">
-            <!-- Validation Errors Display -->
-            <div v-if="validationErrors && Object.keys(validationErrors).length > 0" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-              <h4 class="text-red-800 text-sm font-medium mb-2">Please fix the following errors:</h4>
-              <ul class="text-red-700 text-sm list-disc list-inside space-y-1">
-                <li v-for="(error, field) in validationErrors" :key="field">
-                  <span class="font-medium">{{ getFieldLabel(field) }}:</span> {{ error }}
-                </li>
-              </ul>
-            </div>
-
-            <!-- School Selector for Super Admin -->
-            <div v-if="authStore.user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-blue-900 mb-3">📍 Select School Context</h4>
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">School *</label>
-                  <select
-                    v-model="selectedSchoolId"
-                    required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    :class="{'border-red-500': validationErrors?.school_id}"
-                    @change="onSchoolChange"
+      <!-- Sections List -->
+      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-5 sm:px-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Academic Sections</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stream</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Capacity</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr v-for="section in sections" :key="section.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  {{ section.name }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {{ section.class?.name }} ({{ section.class?.code }})
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <span v-if="section.stream" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    {{ section.stream.name }} ({{ section.stream.code }})
+                  </span>
+                  <span v-else class="text-gray-400 dark:text-gray-500 text-xs">No Stream</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <div class="flex items-center">
+                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span class="font-medium">{{ section.branch?.name }}</span>
+                    <span v-if="section.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ section.branch.code }})</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {{ section.capacity }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': section.is_active,
+                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': !section.is_active,
+                    }"
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                   >
-                    <option value="">Select a school first</option>
-                    <option v-for="school in availableSchools" :key="school.id" :value="school.id">
-                      {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
-                    </option>
-                  </select>
-                </div>
-                <div v-if="selectedSchoolId && availableBranches.length > 1">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Branch (Optional)</label>
-                  <select
-                    v-model="selectedBranchId"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    @change="onBranchChange"
+                    {{ section.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button
+                    @click="editSection(section)"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
                   >
-                    <option value="">All branches</option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
-                    </option>
-                  </select>
-                </div>
-                <div v-if="!selectedSchoolId" class="text-xs text-blue-600">
-                  ⚠️ Please select a school before creating the section
+                    Edit
+                  </button>
+                  <button
+                    @click="toggleStatus(section)"
+                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
+                  >
+                    {{ section.is_active ? 'Deactivate' : 'Activate' }}
+                  </button>
+                  <button
+                    @click="deleteSection(section.id)"
+                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Create/Edit Modal -->
+      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+          <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              {{ isEditing ? 'Edit Section' : 'Create New Section' }}
+            </h3>
+            
+            <form @submit.prevent="saveSection">
+              <!-- School Selection (Super Admin Only) - Create Mode Only -->
+              <div v-if="userRole === 'super_admin' && !isEditing" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                <select
+                  v-model="selectedSchoolId"
+                  @change="onSchoolChange"
+                  required
+                  :disabled="loadingSchools"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">{{ loadingSchools ? 'Loading schools...' : 'Select School' }}</option>
+                  <option v-for="school in schools" :key="school.id" :value="school.id">
+                    {{ school.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Branch Selection (Super Admin & School Admin) - Create Mode Only -->
+              <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                <select
+                  v-model="selectedBranchId"
+                  @change="onBranchChange"
+                  required
+                  :disabled="!selectedSchoolId || loadingBranches"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">{{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}</option>
+                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                    {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Class Selection - Create Mode Only -->
+              <div v-if="!isEditing" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
+                <select
+                  v-model="selectedClassId"
+                  required
+                  :disabled="!selectedBranchId || loadingClasses"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  @change="onClassChange"
+                >
+                  <option value="">{{ loadingClasses ? 'Loading classes...' : 'Select Class' }}</option>
+                  <option v-for="classItem in availableClasses" :key="classItem.id" :value="classItem.id">
+                    {{ classItem.name }} ({{ classItem.code }})
+                  </option>
+                </select>
+              </div>
+
+              <!-- Stream Selection - Only if class has streams -->
+              <div v-if="!isEditing && hasStreams" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream *</label>
+                <select
+                  v-model="selectedStreamId"
+                  required
+                  :disabled="!selectedClassId || loadingStreams"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  @change="onStreamChange"
+                >
+                  <option value="">{{ loadingStreams ? 'Loading streams...' : 'Select Stream' }}</option>
+                  <option v-for="stream in availableStreams" :key="stream.id" :value="stream.id">
+                    {{ stream.name }} ({{ stream.code }})
+                  </option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Stream is required for this class
+                </p>
+              </div>
+
+              <!-- Branch and Class Information Display for Edit Mode -->
+              <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Section Information</h4>
+                <div class="space-y-2">
+                  <div v-if="userRole === 'super_admin'">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">School</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedSchoolName() }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Branch</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedBranchName() }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Class</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedClassName() }}
+                    </p>
+                  </div>
+                  <div v-if="hasStreams">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Stream</label>
+                    <p class="text-sm text-gray-900 dark:text-white">
+                      {{ getSelectedStreamName() }}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Class Selection -->
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm mb-2" for="class">Class *</label>
-              <select
-                id="class"
-                v-model="form.class_id"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                :class="{'border-red-500': validationErrors?.class_id}"
-                required
-                :disabled="authStore.user?.role === 'super_admin' && !selectedSchoolId"
-              >
-                <option value="">{{ authStore.user?.role === 'super_admin' && !selectedSchoolId ? 'Select school first' : 'Select a class' }}</option>
-                <option v-for="classItem in activeClasses" :key="classItem.id" :value="classItem.id">
-                  {{ classItem.name }} {{ classItem.code ? `(${classItem.code})` : '' }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Section Name -->
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm mb-2" for="name">Section Name *</label>
-              <input
-                id="name"
-                v-model="form.name"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                :class="{'border-red-500': validationErrors?.name}"
-                type="text"
-                required
-                maxlength="10"
-                placeholder="e.g., A, B, Alpha, etc."
-                @blur="validateSectionName"
-              />
-              <p v-if="validationErrors?.name" class="text-red-500 text-xs mt-1">{{ validationErrors.name }}</p>
-            </div>
-
-            <!-- Capacity -->
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm mb-2" for="capacity">Capacity *</label>
-              <input
-                id="capacity"
-                v-model.number="form.capacity"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                :class="{'border-red-500': validationErrors?.capacity}"
-                type="number"
-                min="1"
-                max="200"
-                required
-                @blur="validateCapacity"
-              />
-              <p v-if="validationErrors?.capacity" class="text-red-500 text-xs mt-1">{{ validationErrors.capacity }}</p>
-            </div>
-
-            <!-- Active Status -->
-            <div class="mb-4" v-if="isEditing">
-              <label class="flex items-center">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section Name *</label>
                 <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  v-model="form.name"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="e.g., A, B, C"
                 />
-                <span class="ml-2 text-sm text-gray-700">Active</span>
-              </label>
-            </div>
-          </form>
-        </template>
-        <template #footer>
-          <button
-            @click="closeModal"
-            class="px-4 py-2 bg-gray-300 text-gray-900 rounded hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-          <button
-            @click="isEditing ? updateSection() : createSection()"
-            :disabled="submitting"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {{ submitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }} Section
-          </button>
-        </template>
-      </modal>
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Capacity</label>
+                <input
+                  v-model="form.capacity"
+                  type="number"
+                  min="1"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="30"
+                />
+              </div>
+
+              <div class="mb-6">
+                <label class="flex items-center">
+                  <input
+                    v-model="form.is_active"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+              </div>
+
+              <div class="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  @click="closeModal"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  :disabled="isSubmitting || !canSubmit"
+                  class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { fetchSectionsAPI, createSectionAPI, updateSectionAPI, deleteSectionAPI, getSectionByIdAPI } from '~/api/sections';
-import SectionTable from '~/components/SectionTable.vue';
-import Pagination from '~/components/Pagination.vue';
-import Modal from '~/components/Modal.vue';
-import { useAuthStore } from '~/stores/auth';
-import { useBranchContext } from '~/composables/useBranchContext';
-import { useAcademics } from '~/composables/useAcademics';
-import { useToast } from '~/composables/useToast';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { apiClient } from '~/utils/api';
+import { Plus } from 'lucide-vue-next';
+import { useAuthStore } from '~/stores/auth';
+import { useAcademics } from '~/composables/useAcademics';
+import { useBranches } from '~/composables/useBranches';
+import { useSchools } from '~/composables/useSchools';
+import { fetchStreamsAPI } from '~/api/streams';
 
 const sections = ref([]);
-const pagination = reactive({ page: 1, limit: 10, total: 0, currentClassId: '' });
-const filters = reactive({ search: '', class_id: '', is_active: '' });
+const isLoading = ref(false);
 const showModal = ref(false);
 const isEditing = ref(false);
+const isSubmitting = ref(false);
 const editingId = ref(null);
-const submitting = ref(false);
-const validationErrors = ref({});
 
+// Auth and user context
 const authStore = useAuthStore();
-const { getBranchContext } = useBranchContext();
-const { fetchClasses, activeClasses, loading: academicsLoading } = useAcademics();
-const { showSuccess, showError } = useToast();
+const userRole = computed(() => authStore.user?.role);
 
-// School/Branch selection for super admin
+// Composables
+const { classes: availableClasses, fetchClasses, loading: loadingClasses } = useAcademics();
+const { branches, fetchBranches, loading: loadingBranches } = useBranches();
+const { schools, fetchSchools, loading: loadingSchools } = useSchools();
+
+// Selection state
 const selectedSchoolId = ref('');
 const selectedBranchId = ref('');
-const availableSchools = ref([]);
-const availableBranches = ref([]);
+const selectedClassId = ref('');
+const selectedStreamId = ref('');
 
+// Streams data
+const streams = ref([]);
+const loadingStreams = ref(false);
+
+// Form data
 const form = reactive({
   name: '',
   capacity: 30,
-  class_id: '',
-  is_active: true,
+  is_active: true
 });
 
-const openCreateModal = () => {
+// Computed property to check if form can be submitted
+const canSubmit = computed(() => {
+  const hasBasicFields = form.name && selectedClassId.value;
+  
+  if (userRole.value === 'super_admin') {
+    if (!selectedSchoolId.value || !selectedBranchId.value) return false;
+  } else if (userRole.value === 'school_admin') {
+    if (!selectedBranchId.value) return false;
+  }
+  
+  // For classes with streams, stream is required
+  if (hasStreams.value && !selectedStreamId.value) {
+    return false;
+  }
+  
+  return hasBasicFields;
+});
+
+// Helper functions to get school, branch, and class names
+const getSelectedSchoolName = () => {
+  if (userRole.value === 'super_admin') {
+    return selectedSchoolId.value ? schools.value.find(s => s.id === selectedSchoolId.value)?.name : 'N/A';
+  } else {
+    return authStore.user?.school_id ? schools.value.find(s => s.id === authStore.user?.school_id)?.name : 'N/A';
+  }
+};
+
+const getSelectedBranchName = () => {
+  if (userRole.value === 'super_admin') {
+    return selectedBranchId.value ? branches.value.find(b => b.id === selectedBranchId.value)?.name : 'N/A';
+  } else {
+    return selectedBranchId.value ? branches.value.find(b => b.id === selectedBranchId.value)?.name : 'N/A';
+  }
+};
+
+const getSelectedClassName = () => {
+  return selectedClassId.value ? availableClasses.value.find(c => c.id === selectedClassId.value)?.name : 'N/A';
+};
+
+const getSelectedStreamName = () => {
+  return selectedStreamId.value ? streams.value.find(s => s.id === selectedStreamId.value)?.name : 'N/A';
+};
+
+// Check if selected class has streams
+const hasStreams = computed(() => {
+  if (!selectedClassId.value) return false;
+  return availableStreams.value.length > 0;
+});
+
+// Available streams for the selected class
+const availableStreams = computed(() => {
+  if (!selectedClassId.value) return [];
+  return streams.value.filter(stream => stream.class_id === selectedClassId.value);
+});
+
+const resetForm = () => {
+  form.name = '';
+  form.capacity = 30;
+  form.is_active = true;
+  selectedClassId.value = '';
+  selectedStreamId.value = '';
+  if (userRole.value === 'super_admin') {
+    selectedSchoolId.value = '';
+    selectedBranchId.value = '';
+  } else if (userRole.value === 'school_admin') {
+    selectedBranchId.value = '';
+  }
+};
+
+// School change handler (Super Admin only)
+const onSchoolChange = async () => {
+  selectedBranchId.value = '';
+  selectedClassId.value = '';
+  if (selectedSchoolId.value) {
+    await fetchBranches(selectedSchoolId.value);
+  }
+};
+
+// Branch change handler (Super Admin & School Admin)
+const onBranchChange = async () => {
+  selectedClassId.value = '';
+  if (selectedBranchId.value) {
+    await fetchClasses(selectedSchoolId.value || authStore.user?.school_id, selectedBranchId.value);
+  }
+};
+
+// Load streams for the selected class
+const loadStreamsForClass = async (classId) => {
+  if (!classId) {
+    streams.value = [];
+    return;
+  }
+  
+  loadingStreams.value = true;
+  try {
+    const params = {
+      class_id: classId,
+      is_active: 'true'
+    };
+    
+    // Add role-based filters
+    if (userRole.value === 'super_admin') {
+      if (selectedSchoolId.value) params.school_id = selectedSchoolId.value;
+      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+    } else if (userRole.value === 'school_admin') {
+      params.school_id = authStore.user?.school_id;
+      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+    } else if (userRole.value === 'branch_admin') {
+      params.school_id = authStore.user?.school_id;
+      params.branch_id = authStore.user?.branch_id;
+    }
+    
+    const response = await fetchStreamsAPI(params);
+    streams.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    streams.value = [];
+  } finally {
+    loadingStreams.value = false;
+  }
+};
+
+// Class change handler
+const onClassChange = async () => {
+  // Reset form when class changes (only in create mode)
+  if (!isEditing.value) {
+    form.name = '';
+    form.capacity = 30;
+    selectedStreamId.value = '';
+  }
+  
+  // Load streams for the selected class
+  await loadStreamsForClass(selectedClassId.value);
+};
+
+// Stream change handler
+const onStreamChange = () => {
+  // Reset form when stream changes (only in create mode)
+  if (!isEditing.value) {
+    form.name = '';
+    form.capacity = 30;
+  }
+};
+
+const fetchSections = async () => {
+  isLoading.value = true;
+  try {
+    const params = {
+      sort_by: 'sort_order',
+      sort_order: 'ASC'
+    };
+    
+    // Add role-based filters
+    if (userRole.value === 'super_admin') {
+      // Super admin can see all sections
+    } else if (userRole.value === 'school_admin') {
+      // School admin sees only their school's sections
+      params.school_id = authStore.user?.school_id;
+    } else if (userRole.value === 'branch_admin') {
+      // Branch admin sees only their branch's sections
+      params.branch_id = authStore.user?.branch_id;
+    }
+    
+    const response = await apiClient.sections.getAll(params);
+    sections.value = response.data || [];
+  } catch (error) {
+    console.error('Error fetching sections:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
+  editingId.value = null;
+  
+  // Initialize based on user role
+  if (userRole.value === 'super_admin') {
+    // Load schools for super admin
+    await fetchSchools();
+  } else if (userRole.value === 'school_admin') {
+    // Set school and load branches for school admin
+    selectedSchoolId.value = authStore.user?.school_id;
+    await fetchBranches(authStore.user?.school_id);
+  } else if (userRole.value === 'branch_admin') {
+    // Set school and branch for branch admin, load classes
+    selectedSchoolId.value = authStore.user?.school_id;
+    selectedBranchId.value = authStore.user?.branch_id;
+    await fetchClasses(authStore.user?.school_id, authStore.user?.branch_id);
+  }
+  
+  showModal.value = true;
+};
+
+const editSection = async (section) => {
+  isEditing.value = true;
+  editingId.value = section.id;
+  
+  // Set context based on section data
+  if (userRole.value === 'super_admin') {
+    selectedSchoolId.value = section.branch?.school_id;
+    await fetchBranches(section.branch?.school_id);
+    selectedBranchId.value = section.branch_id;
+  } else if (userRole.value === 'school_admin') {
+    selectedSchoolId.value = authStore.user?.school_id;
+    await fetchBranches(authStore.user?.school_id);
+    selectedBranchId.value = section.branch_id;
+  } else {
+    selectedSchoolId.value = authStore.user?.school_id;
+    selectedBranchId.value = authStore.user?.branch_id;
+  }
+  
+  // Load classes for the branch
+  await fetchClasses(selectedSchoolId.value, selectedBranchId.value);
+  
+  // Set form values
+  selectedClassId.value = section.class_id;
+  selectedStreamId.value = section.stream_id || '';
+  
+  // Load streams for the section's class
+  await loadStreamsForClass(section.class_id);
+  
+  form.name = section.name;
+  form.capacity = section.capacity;
+  form.is_active = section.is_active;
+  
   showModal.value = true;
 };
 
 const closeModal = () => {
   showModal.value = false;
-  validationErrors.value = {};
+  resetForm();
+  editingId.value = null;
+  isEditing.value = false;
 };
 
-const resetForm = () => {
-  form.name = '';
-  form.capacity = 30;
-  form.class_id = '';
-  form.is_active = true;
-  selectedSchoolId.value = '';
-  selectedBranchId.value = '';
-  validationErrors.value = {};
-};
-
-// Field label mapping for better error display
-const getFieldLabel = (field) => {
-  const labels = {
-    name: 'Section Name',
-    capacity: 'Capacity',
-    class_id: 'Class',
-    school_id: 'School',
-    branch_id: 'Branch'
-  };
-  return labels[field] || field;
-};
-
-// Frontend validation functions
-const validateSectionName = () => {
-  if (!form.name || form.name.trim() === '') {
-    validationErrors.value.name = 'Section name is required';
-    return false;
-  }
-  if (form.name.length > 10) {
-    validationErrors.value.name = 'Section name must be 10 characters or less';
-    return false;
-  }
-  if (!/^[A-Za-z0-9\s\-]+$/.test(form.name)) {
-    validationErrors.value.name = 'Section name can only contain letters, numbers, spaces, and hyphens';
-    return false;
-  }
-  delete validationErrors.value.name;
-  return true;
-};
-
-const validateCapacity = () => {
-  const capacity = Number(form.capacity);
-  if (!capacity || capacity < 1 || capacity > 200) {
-    validationErrors.value.capacity = 'Capacity must be between 1 and 200';
-    return false;
-  }
-  delete validationErrors.value.capacity;
-  return true;
-};
-
-const validateForm = () => {
-  const isNameValid = validateSectionName();
-  const isCapacityValid = validateCapacity();
-  const isClassValid = !!form.class_id;
-  
-  if (!isClassValid) {
-    validationErrors.value.class_id = 'Please select a class';
-  } else {
-    delete validationErrors.value.class_id;
-  }
-  
-  return isNameValid && isCapacityValid && isClassValid;
-};
-
-// Fetch schools for super admin
-const fetchSchools = async () => {
-  if (authStore.user?.role !== 'super_admin') return;
-  
+const saveSection = async () => {
+  isSubmitting.value = true;
   try {
-    const response = await apiClient.schools.getAll();
-    availableSchools.value = response.data?.schools || [];
-  } catch (error) {
-    console.error('Error fetching schools:', error);
-    availableSchools.value = [];
-    showError('Failed to fetch schools');
-  }
-};
+    const payload = {
+      name: form.name,
+      capacity: form.capacity,
+      is_active: form.is_active,
+      class_id: selectedClassId.value
+    };
 
-// Fetch branches when school is selected
-const fetchBranchesForSchool = async (schoolId) => {
-  if (!schoolId) {
-    availableBranches.value = [];
-    return;
-  }
-  
-  try {
-    const response = await apiClient.branches.getAll(schoolId);
-    availableBranches.value = response.data?.branches || [];
-  } catch (error) {
-    console.error('Error fetching branches:', error);
-    availableBranches.value = [];
-    showError('Failed to fetch branches');
-  }
-};
-
-// Handle school selection change  
-const onSchoolChange = async () => {
-  selectedBranchId.value = '';
-  form.class_id = '';
-  if (selectedSchoolId.value) {
-    await fetchBranchesForSchool(selectedSchoolId.value);
-    await fetchClassesForSchool();
-  } else {
-    availableBranches.value = [];
-  }
-};
-
-// Handle branch selection change
-const onBranchChange = async () => {
-  form.class_id = '';
-  await fetchClassesForSchool();
-};
-
-// Fetch classes for the selected school/branch
-const fetchClassesForSchool = async () => {
-  if (!selectedSchoolId.value) return;
-  
-  try {
-    await fetchClasses(selectedSchoolId.value, selectedBranchId.value || undefined);
-  } catch (error) {
-    console.error('Error fetching classes:', error);
-    showError('Failed to fetch classes');
-  }
-};
-
-const fetchSections = async () => {
-  try {
-    // Reset pagination to first page when filters change
-    if (filters.class_id !== pagination.currentClassId) {
-      pagination.page = 1;
-      pagination.currentClassId = filters.class_id;
+    // Add stream_id if stream is selected
+    if (selectedStreamId.value) {
+      payload.stream_id = selectedStreamId.value;
     }
-    
-    const response = await fetchSectionsAPI(filters, pagination);
-    sections.value = response.data;
-    pagination.total = response.pagination.total;
-  } catch (error) {
-    console.error('Error fetching sections:', error);
-    showError('Failed to fetch sections');
-  }
-};
 
-const createSection = async () => {
-  if (!validateForm()) {
-    showError('Please fix validation errors before submitting');
-    return;
-  }
-
-  submitting.value = true;
-  try {
-    const payload = { ...form };
-    
-    // Add school_id for super admin when creating a new section
-    if (authStore.user?.role === 'super_admin') {
-      if (!selectedSchoolId.value) {
-        showError('Please select a school first to create the section');
-        return;
-      }
-      
-      if (!form.class_id) {
-        showError('Please select a class for the section');
-        return;
-      }
-      
-      payload.school_id = selectedSchoolId.value;
-      
-      // Add branch_id if selected
-      if (selectedBranchId.value) {
-        payload.branch_id = selectedBranchId.value;
-      }
-    }
-    
-    await createSectionAPI(payload);
-    closeModal();
-    
-    // Auto-filter to show the newly created section's class
-    if (form.class_id) {
-      filters.class_id = form.class_id;
-    }
-    
-    fetchSections();
-    showSuccess('Section created successfully');
-  } catch (error) {
-    console.error('Error creating section:', error);
-    if (error.response?.data?.errors) {
-      validationErrors.value = error.response.data.errors;
+    if (isEditing.value) {
+      await apiClient.sections.update(editingId.value, payload);
     } else {
-      showError(error.response?.data?.message || 'Error creating section');
+      await apiClient.sections.create(payload);
+    }
+
+    closeModal();
+    await fetchSections();
+    
+    // Show success message
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: `Section ${isEditing.value ? 'updated' : 'created'} successfully!`,
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+    }
+  } catch (error) {
+    console.error('Error saving section:', error);
+    // Show error message
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: 'Error saving section. Please try again.',
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
     }
   } finally {
-    submitting.value = false;
+    isSubmitting.value = false;
   }
 };
 
-const editSection = async (section) => {
+const toggleStatus = async (section) => {
   try {
-    // Fetch full section details
-    const response = await getSectionByIdAPI(section.id);
-    const sectionData = response.data;
+    await apiClient.sections.update(section.id, {
+      is_active: !section.is_active
+    });
+    await fetchSections();
     
-    // Populate form with section data
-    form.name = sectionData.name;
-    form.capacity = sectionData.capacity;
-    form.class_id = sectionData.class_id;
-    form.is_active = sectionData.is_active;
-    
-    isEditing.value = true;
-    editingId.value = section.id;
-    showModal.value = true;
-    validationErrors.value = {};
-  } catch (error) {
-    console.error('Error fetching section details:', error);
-    showError('Failed to load section details');
-  }
-};
-
-const updateSection = async () => {
-  if (!validateForm()) {
-    showError('Please fix validation errors before submitting');
-    return;
-  }
-
-  submitting.value = true;
-  try {
-    await updateSectionAPI(editingId.value, form);
-    closeModal();
-    fetchSections();
-    showSuccess('Section updated successfully');
-  } catch (error) {
-    console.error('Error updating section:', error);
-    if (error.response?.data?.errors) {
-      validationErrors.value = error.response.data.errors;
-    } else {
-      showError(error.response?.data?.message || 'Error updating section');
+    // Show success message
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: `Section ${section.is_active ? 'deactivated' : 'activated'} successfully!`,
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
     }
-  } finally {
-    submitting.value = false;
+  } catch (error) {
+    console.error('Error toggling section status:', error);
   }
 };
 
-const deleteSection = async (section) => {
-  if (!confirm(`Are you sure you want to delete section "${section.name}"?`)) {
+const deleteSection = async (id) => {
+  if (!confirm('Are you sure you want to delete this section? This action cannot be undone.')) {
     return;
   }
-
+  
   try {
-    await deleteSectionAPI(section.id);
-    fetchSections();
-    showSuccess('Section deleted successfully');
+    await apiClient.sections.delete(id);
+    await fetchSections();
+    
+    // Show success message
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: 'Section deleted successfully!',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+    }
   } catch (error) {
     console.error('Error deleting section:', error);
-    showError(error.response?.data?.message || 'Error deleting section');
+    // Show error message
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('show-toast', {
+        detail: {
+          message: 'Error deleting section. Please try again.',
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+    }
   }
-};
-
-const getSelectedClassName = () => {
-  const selectedClass = activeClasses.value.find(c => c.id === filters.class_id);
-  return selectedClass ? `${selectedClass.name} ${selectedClass.code ? `(${selectedClass.code})` : ''}` : 'N/A';
-};
-
-const clearFilters = () => {
-  filters.search = '';
-  filters.class_id = '';
-  filters.is_active = '';
-  pagination.page = 1;
-  fetchSections();
-};
-
-// Debounced search to avoid too many API calls
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    pagination.page = 1;
-    fetchSections();
-  }, 300);
 };
 
 onMounted(() => {
   fetchSections();
-  
-  // Fetch schools for super admin
-  if (authStore.user?.role === 'super_admin') {
-    fetchSchools();
-  }
-  
-  // Fetch classes for current user context
-  if (authStore.user?.role !== 'super_admin') {
-    fetchClasses();
-  }
 });
 </script>
 

@@ -6,24 +6,26 @@ const { robustMiddleware, safeMiddleware } = require('./robust');
 
 const verifyToken = async (req, res, next) => {
   try {
-    console.log(`[DEBUG] verifyToken - req._debugReqId:`, req._debugReqId);
-    logger.debug('Auth middleware - Request headers:', req.headers);
-    logger.debug('Auth middleware - Request cookies:', req.cookies);
     
-    // Get token from header or cookies
+    // Get token from cookies or header (prioritize new accessToken cookie)
     let token;
     
-    // 1. Check Authorization header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    // 1. Check accessToken cookie (new secure cookie)
+    if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+      logger.debug('Found token in accessToken cookie');
+    }
+    // 2. Check Authorization header (backward compatibility)
+    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
       logger.debug('Found token in Authorization header');
     } 
-    // 2. Check auth-token cookie (frontend default)
+    // 3. Check auth-token cookie (frontend legacy)
     else if (req.cookies?.['auth-token']) {
       token = req.cookies['auth-token'];
       logger.debug('Found token in auth-token cookie');
     }
-    // 3. Check token cookie (backend default)
+    // 4. Check token cookie (backend legacy)
     else if (req.cookies?.token) {
       token = req.cookies.token;
       logger.debug('Found token in token cookie');
@@ -63,7 +65,6 @@ const verifyToken = async (req, res, next) => {
 
     // Add user to request object
     req.user = decoded;
-    console.log('[DEBUG] verifyToken - req._debugReqId:', req._debugReqId, 'req.user:', req.user);
     logger.debug('Token verification successful - User:', {
       id: decoded.id,
       role: decoded.role,
@@ -82,31 +83,16 @@ const verifyToken = async (req, res, next) => {
 const authorize = (roles) => {
   return (req, res, next) => {
     try {
-      console.log('=== AUTHORIZE MIDDLEWARE DEBUG ===');
-      console.log('authorize middleware - roles parameter:', roles);
-      console.log('authorize middleware - roles type:', typeof roles);
-      console.log('authorize middleware - roles length:', Array.isArray(roles) ? roles.length : 'not an array');
-      console.log('authorize middleware - user object:', req.user);
-      console.log('authorize middleware - user role:', req.user?.role);
-      console.log('authorize middleware - user role type:', typeof req.user?.role);
-      console.log('authorize middleware - request URL:', req.url);
-      console.log('authorize middleware - request method:', req.method);
-      
       if (!req.user) {
-        console.log('authorize: No user found in request');
         return next(new ApiError(401, 'Authentication required'));
       }
       
       // Ensure roles is an array
       const rolesArray = Array.isArray(roles) ? roles : [roles];
-      console.log('authorize middleware - rolesArray:', rolesArray);
       
       const isAuthorized = rolesArray.includes(req.user.role);
-      console.log('authorize middleware - includes check result:', isAuthorized);
-      console.log('authorize middleware - rolesArray.includes check:', rolesArray.includes(req.user.role));
       
       if (!isAuthorized) {
-        console.log(`authorize: User role "${req.user.role}" not in allowed roles: [${rolesArray.join(', ')}]`);
         return next(
           new ApiError(
             403,
@@ -115,12 +101,11 @@ const authorize = (roles) => {
         );
       }
       
-      console.log('authorize: User authorized successfully');
       next();
-    } catch (error) {
-      console.error('Authorization middleware error:', error);
-      next(new ApiError(403, 'Authorization failed'));
-    }
+          } catch (error) {
+        logger.error('Authorization middleware error:', error);
+        next(new ApiError(403, 'Authorization failed'));
+      }
   };
 };
 
@@ -141,6 +126,12 @@ const requireRole = (...roles) => {
       
       if (!roles.includes(req.user.role)) {
         logger.warn(`requireRole: User role ${req.user.role} not in allowed roles: ${roles.join(', ')}`);
+        console.log('🚫 requireRole: Access denied for user:', {
+          userRole: req.user.role,
+          allowedRoles: roles,
+          userId: req.user.id,
+          userEmail: req.user.email
+        });
         return next(
           new ApiError(
             403,
@@ -159,28 +150,14 @@ const requireRole = (...roles) => {
 // School context middleware
 const setSchoolContext = (req, res, next) => {
   try {
-    console.log(`[DEBUG] setSchoolContext - req._debugReqId:`, req._debugReqId, 'req.user:', req.user);
-    console.log('=== SET SCHOOL CONTEXT DEBUG ===');
-    console.log('User object:', req.user);
-    console.log('User role:', req.user?.role);
-    console.log('User school_id:', req.user?.school_id);
-    console.log('User branch_id:', req.user?.branch_id);
-    console.log('Request URL:', req.url);
-    console.log('Request method:', req.method);
-    console.log('Query school_id:', req.query?.school_id);
-    console.log('Params school_id:', req.params?.school_id);
-    console.log('Body school_id:', req.body?.school_id);
-    
     // Check if user is properly authenticated
     if (!req.user) {
-      console.log('setSchoolContext: No user found in request');
       logger.warn('setSchoolContext: No user found in request');
       return next(new ApiError(401, 'Authentication required'));
     }
     
-    // Additional defensive check
-    if (!req.user.school_id) {
-      console.log('setSchoolContext: No school_id found for user in token:', req.user);
+    // Additional defensive check - but allow super_admin to proceed without school_id
+    if (!req.user.school_id && req.user.role !== 'super_admin') {
       logger.warn('setSchoolContext: No school_id found for user in token:', req.user);
       return next(new ApiError(403, 'School context setup failed: User not associated with a school'));
     }
@@ -198,35 +175,23 @@ const setSchoolContext = (req, res, next) => {
       // Super admin can specify school_id via query, params, or body
       req.schoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
       
-      // If no schoolId is provided for super admin, it's an error
+      // If no schoolId is provided for super admin, allow access to all schools
       if (!req.schoolId) {
-        console.log('setSchoolContext: Super admin - No school_id provided in request');
-        logger.warn('setSchoolContext: Super admin - No school_id provided in request');
-        return next(new ApiError(403, 'School ID is required for super admin requests'));
+        logger.debug('setSchoolContext: Super admin - No school_id provided, allowing access to all schools');
+        req.schoolId = null; // This will be handled in the controller
+        return next();
       }
-      console.log('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       logger.debug('setSchoolContext: Super admin - schoolId set to:', req.schoolId);
       return next();
     }
     
     // For other roles, they can only access their assigned school
     req.schoolId = req.user.school_id;
-    console.log('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
     logger.debug('setSchoolContext: User role (' + req.user.role + ') - schoolId set to:', req.schoolId);
-    
-    // Additional debug logging for fee invoice routes
-    if (req.url.includes('/fee-invoices') || req.url.includes('/fees')) {
-      console.log('setSchoolContext: Fee invoice route detected - schoolId:', req.schoolId);
-      logger.debug('setSchoolContext: Fee invoice route detected - schoolId:', req.schoolId);
-    }
     
     // Optional: If a school_id is provided in query/params for non-super-admin, validate it matches user's school_id
     const requestSchoolId = req.query?.school_id || req.params?.school_id || req.body?.school_id;
     if (requestSchoolId && requestSchoolId !== req.schoolId) {
-      console.log('setSchoolContext: User trying to access data outside their school context', {
-        userSchoolId: req.schoolId,
-        requestSchoolId: requestSchoolId
-      });
       logger.warn('setSchoolContext: User trying to access data outside their school context', {
         userSchoolId: req.schoolId,
         requestSchoolId: requestSchoolId
@@ -236,7 +201,6 @@ const setSchoolContext = (req, res, next) => {
     
     return next();
   } catch (error) {
-    console.error('setSchoolContext middleware error:', error);
     logger.error('setSchoolContext middleware error:', error);
     next(new ApiError(403, 'School context setup failed'));
   }

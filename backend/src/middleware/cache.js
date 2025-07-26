@@ -65,8 +65,13 @@ const cacheMiddleware = (ttl = 300, prefix = 'cache') => {
         };
         
         // Use set with EX option for newer Redis client (non-blocking)
-        redisClient.set(cacheKey, JSON.stringify(responseToCache), { EX: ttl })
-          .catch(err => logger.error('Cache storage error:', err));
+        // Wrap in try-catch to prevent Redis errors from breaking the response
+        try {
+          redisClient.set(cacheKey, JSON.stringify(responseToCache), { EX: ttl })
+            .catch(err => logger.error('Cache storage error:', err));
+        } catch (redisError) {
+          logger.warn('Redis not available for caching response:', redisError.message);
+        }
         
         // Send the response
         return originalSend.call(this, data);
@@ -106,7 +111,7 @@ const clearCache = async (pattern = 'cache:*') => {
       logger.info(`Cleared ${keys.length} cache entries for pattern: ${pattern}`);
     }
   } catch (error) {
-    logger.error('Error clearing cache:', error);
+    logger.warn('Redis cache clearing failed, continuing without cache clearing:', error.message);
     // Don't throw - cache clearing should not break the application
   }
 };

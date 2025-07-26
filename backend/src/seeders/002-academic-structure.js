@@ -6,8 +6,8 @@ module.exports = {
     await queryInterface.bulkInsert('academic_years', [
       {
         id: '550e8400-e29b-41d4-a716-446655440004',
-        name: '2024-25',
-        code: '2024-25',
+        name: '2024-2025',
+        code: '2024-2025',
         start_date: '2024-04-01',
         end_date: '2025-03-31',
         is_current: true,
@@ -18,8 +18,8 @@ module.exports = {
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440005',
-        name: '2025-26',
-        code: '2025-26',
+        name: '2025-2026',
+        code: '2025-2026',
         start_date: '2025-04-01',
         end_date: '2026-03-31',
         is_current: false,

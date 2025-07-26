@@ -42,6 +42,12 @@ const Class = sequelize.define('Class', {
       min: { args: [1], msg: 'Capacity must be at least 1' },
     },
   },
+  has_stream: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Indicates if this class has streams (e.g., Class 11, 12)',
+  },
   sort_order: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -62,7 +68,7 @@ const Class = sequelize.define('Class', {
   },
   branch_id: {
     type: DataTypes.UUID,
-    allowNull: true,
+    allowNull: false, // Changed from true to false - classes must always have a branch
     references: {
       model: 'branches',
       key: 'id',
@@ -89,15 +95,18 @@ const Class = sequelize.define('Class', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'code'], unique: true },
+    // Updated unique constraints: school_id + branch_id + name/code (allows same name/code across branches)
+    { fields: ['school_id', 'branch_id', 'name'], unique: true },
+    { fields: ['school_id', 'branch_id', 'code'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['is_active'] },
     { fields: ['sort_order'] },
+    { fields: ['has_stream'] },
   ],
   hooks: {
     afterCreate: async (classInstance) => {
-      logger.info(`New class created: ${classInstance.name} (${classInstance.code})`);
+      logger.info(`New class created: ${classInstance.name} (${classInstance.code}) for branch ${classInstance.branch_id} - has_stream: ${classInstance.has_stream}`);
     },
   },
 });
@@ -132,6 +141,12 @@ Class.associate = (models) => {
   Class.hasMany(models.Section, {
     foreignKey: 'class_id',
     as: 'sections',
+  });
+
+  // Class has many Streams
+  Class.hasMany(models.Stream, {
+    foreignKey: 'class_id',
+    as: 'streams',
   });
 };
 

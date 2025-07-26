@@ -1,33 +1,27 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-    <div class="flex-1 flex justify-between sm:hidden">
-      <button
-        @click="previousPage"
-        :disabled="pagination.page === 1"
-        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-      >
-        Previous
-      </button>
-      <button
-        @click="nextPage"
-        :disabled="pagination.page >= totalPages"
-        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-      >
-        Next
-      </button>
-    </div>
-    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-      <div>
-        <p class="text-sm text-gray-700 dark:text-gray-300">
-          Showing 
-          <span class="font-medium">{{ (pagination.page - 1) * pagination.limit + 1 }}</span> 
-          to 
-          <span class="font-medium">{{ Math.min(pagination.page * pagination.limit, pagination.total) }}</span> 
-          of 
-          <span class="font-medium">{{ pagination.total }}</span> 
-          results
-        </p>
+  <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm sm:px-6">
+    <div class="flex-1 flex justify-center sm:hidden">
+      <div class="flex items-center space-x-2">
+        <button
+          @click="previousPage"
+          :disabled="pagination.page === 1"
+          class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+        >
+          Previous
+        </button>
+        <span class="text-sm text-gray-700 dark:text-gray-300">
+          Page {{ pagination.page }} of {{ totalPages }}
+        </span>
+        <button
+          @click="nextPage"
+          :disabled="pagination.page >= totalPages"
+          class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+        >
+          Next
+        </button>
       </div>
+    </div>
+    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
       <div>
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
           <button
@@ -90,7 +84,17 @@ const props = defineProps({
 
 const emit = defineEmits(['page-changed']);
 
-const totalPages = computed(() => Math.ceil(props.pagination.total / props.pagination.limit));
+const totalPages = computed(() => {
+  const total = Math.ceil(props.pagination.total / props.pagination.limit);
+  console.log('🔢 Total pages calculation:', {
+    total: props.pagination.total,
+    limit: props.pagination.limit,
+    calculated: total,
+    currentPage: props.pagination.page,
+    paginationObject: props.pagination
+  });
+  return total;
+});
 
 const visiblePages = computed(() => {
   const current = props.pagination.page;
@@ -135,6 +139,11 @@ const previousPage = () => {
 };
 
 const nextPage = () => {
+  console.log('➡️ Next page clicked:', {
+    currentPage: props.pagination.page,
+    totalPages: totalPages.value,
+    canGoNext: props.pagination.page < totalPages.value
+  });
   if (props.pagination.page < totalPages.value) {
     emit('page-changed', props.pagination.page + 1);
   }

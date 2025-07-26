@@ -288,21 +288,30 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuth } from '~/composables/useAuth';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Check, AlertCircle } from 'lucide-vue-next';
 
 // Page meta
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   layout: 'default'
 });
 
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription details
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can view subscription details.');
+  await navigateTo('/dashboard');
+}
+
 const route = useRoute();
-const { user } = useAuth();
-const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans } = useSubscriptions();
-const { showSuccess, showError } = useToast();
+const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans, fetchRenewalRequests, createRenewalRequest } = useSubscriptions();
+const { showSuccess, showError: toastError } = useToast();
 
 // Reactive data
 const loading = ref(true);
@@ -412,17 +421,11 @@ const loadData = async () => {
       transactions.value = transactionsResponse.data.transactions;
     }
     
-    // Load renewal requests with proper API base URL
+    // Load renewal requests using composable
     try {
-      const config = useRuntimeConfig();
-      const apiBase = config.public.apiBase;
-      const requestsResponse = await $fetch(`${apiBase}/subscriptions/school/renewal-requests`, {
-        headers: {
-          'Authorization': `Bearer ${useCookie('auth-token').value}`,
-        }
-      });
-      if (requestsResponse.success) {
-        renewalRequests.value = requestsResponse.data.requests;
+      const requestsResponse = await fetchRenewalRequests({ school_id: schoolId });
+      if (requestsResponse) {
+        renewalRequests.value = requestsResponse.requests;
       }
     } catch (e) {
       console.warn('Could not load renewal requests:', e);
@@ -437,7 +440,7 @@ const loadData = async () => {
   } catch (err) {
     console.error('Error loading data:', err);
     error.value = 'Failed to load subscription details';
-    showError('Failed to load subscription details');
+    toastError('Failed to load subscription details');
   } finally {
     loading.value = false;
   }
@@ -447,18 +450,9 @@ const submitRenewalRequest = async () => {
   submitting.value = true;
   
   try {
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const response = await $fetch(`${apiBase}/subscriptions/renewal-requests`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${useCookie('auth-token').value}`,
-        'Content-Type': 'application/json',
-      },
-      body: renewalForm.value,
-    });
+    const response = await createRenewalRequest(renewalForm.value);
     
-    if (response.success) {
+    if (response) {
       showSuccess('Renewal request submitted successfully');
       showRenewalModal.value = false;
       renewalForm.value = {
@@ -469,11 +463,11 @@ const submitRenewalRequest = async () => {
       };
       await loadData(); // Reload data to show new request
     } else {
-      showError(response.message || 'Failed to submit renewal request');
+      toastError('Failed to submit renewal request');
     }
   } catch (err) {
     console.error('Error submitting renewal request:', err);
-    showError('Failed to submit renewal request');
+    toastError('Failed to submit renewal request');
   } finally {
     submitting.value = false;
   }

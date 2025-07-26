@@ -294,7 +294,7 @@ const regenerateIdCard = async (studentId) => {
       admission_number: 'ADM2024001',
       current_class: 'Class X',
       section: 'A',
-      academic_year: '2024-25',
+      academic_year: '2024-2025',
       roll_number: '15',
       date_of_birth: '2008-05-15',
       blood_group: 'O+',

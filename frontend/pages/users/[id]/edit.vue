@@ -7,25 +7,98 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">First Name *</label>
-          <input v-model="form.firstName" type="text" required class="input-field" />
+          <input 
+            v-model="form.first_name" 
+            type="text" 
+            required 
+            :class="[
+              'input-field',
+              fieldErrors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+            ]"
+            @input="clearFieldError('first_name')"
+          />
+          <div v-if="fieldErrors.first_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.first_name }}
+          </div>
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Last Name *</label>
-          <input v-model="form.lastName" type="text" required class="input-field" />
+          <input 
+            v-model="form.last_name" 
+            type="text" 
+            required 
+            :class="[
+              'input-field',
+              fieldErrors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+            ]"
+            @input="clearFieldError('last_name')"
+          />
+          <div v-if="fieldErrors.last_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.last_name }}
+          </div>
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email *</label>
-          <input v-model="form.email" type="email" required class="input-field" />
+          <input 
+            v-model="form.email" 
+            type="email" 
+            required 
+            :class="[
+              'input-field',
+              fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+            ]"
+            @input="clearFieldError('email')"
+          />
+          <div v-if="fieldErrors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.email }}
+          </div>
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-          <input v-model="form.phone" type="text" class="input-field" />
+          <input 
+            v-model="form.phone" 
+            type="tel" 
+            :class="[
+              'input-field',
+              fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+            ]"
+            placeholder="Enter phone number"
+            @input="handlePhoneInput"
+            @blur="validatePhone"
+          />
+          <div v-if="fieldErrors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.phone }}
+          </div>
+          </div>
+        <div>
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
+          <PasswordInput
+            v-model="form.password"
+            placeholder="Leave blank to keep current password"
+            :error="!!fieldErrors.password"
+            @input="clearFieldError('password')"
+          />
+          <div v-if="fieldErrors.password" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.password }}
+          </div>
+          <div v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Leave blank to keep current password
+          </div>
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role *</label>
-          <select v-model="form.role" required class="input-field">
-            <option value="super_admin">Super Admin</option>
-            <option value="school_admin">School Admin</option>
+          <select 
+            v-model="form.role" 
+            required 
+            :class="[
+              'input-field',
+              fieldErrors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+            ]"
+            :disabled="isSchoolAdmin"
+            @change="clearFieldError('role')"
+          >
+            <option value="super_admin" v-if="!isSchoolAdmin">Super Admin</option>
+            <option value="school_admin" v-if="!isSchoolAdmin">School Admin</option>
             <option value="branch_admin">Branch Admin</option>
             <option value="teacher">Teacher</option>
             <option value="accountant">Accountant</option>
@@ -37,11 +110,29 @@
             <option value="alumni">Alumni</option>
             <option value="transport_manager">Transport Manager</option>
           </select>
+          <div v-if="fieldErrors.role" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ fieldErrors.role }}
+          </div>
+          <p v-if="isSchoolAdmin" class="text-sm text-gray-500 mt-1">Role cannot be changed by School Admin</p>
         </div>
       </div>
       <div class="flex justify-end gap-3">
         <NuxtLink to="/users" class="btn-secondary">Cancel</NuxtLink>
-        <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? 'Saving...' : 'Save Changes' }}</button>
+        <button 
+          type="submit" 
+          class="btn-primary" 
+          :disabled="saving"
+          :class="{ 'opacity-50 cursor-not-allowed': saving }"
+        >
+          <span v-if="saving">
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Saving...
+          </span>
+          <span v-else>Save Changes</span>
+        </button>
       </div>
       <div v-if="success" class="text-green-600 dark:text-green-400 mt-4">User updated successfully!</div>
     </form>
@@ -49,22 +140,44 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import apiClient from '~/utils/api';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+import { apiClient } from '~/utils/api';
+import PasswordInput from '~/components/PasswordInput.vue';
+
+const authStore = useAuthStore();
+const { showError, showSuccess } = useToast();
+
+// Access control - only Super Admin and School Admin can access user management
+const user = authStore.user;
+if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
+  showError('Access denied. Only Super Admin and School Admin can manage users.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const router = useRouter();
+
 const loading = ref(true);
 const error = ref('');
 const saving = ref(false);
 const success = ref(false);
+const fieldErrors = ref({});
+
 const form = ref({
-  firstName: '',
-  lastName: '',
+  first_name: '',
+  last_name: '',
   email: '',
   phone: '',
-  role: ''
+  role: '',
+  password: ''
+});
+
+// Check if current user is School Admin
+const isSchoolAdmin = computed(() => {
+  return authStore.user?.role === 'school_admin';
 });
 
 const fetchUser = async () => {
@@ -73,30 +186,115 @@ const fetchUser = async () => {
   try {
     const res = await apiClient.users.getById(route.params.id);
     if (res.success) {
-      Object.assign(form.value, res.data);
+      // Map backend field names to form fields
+      form.value = {
+        first_name: res.data.first_name || '',
+        last_name: res.data.last_name || '',
+        email: res.data.email || '',
+        phone: res.data.phone || '',
+        role: res.data.role || ''
+      };
     } else {
       error.value = res.message || 'Failed to load user.';
     }
   } catch (e) {
+    console.error('Error fetching user:', e);
     error.value = 'Failed to load user.';
   } finally {
     loading.value = false;
   }
 };
 
+const handlePhoneInput = (event) => {
+  // Allow digits, spaces, dashes, plus sign, and parentheses
+  const value = event.target.value;
+  const cleaned = value.replace(/[^\d\s\-\(\)\+]/g, '');
+  form.value.phone = cleaned;
+  clearFieldError('phone');
+};
+
+const validatePhone = () => {
+  const phone = form.value.phone;
+  if (phone && phone.trim() !== '') {
+    // Remove all non-digit characters for validation
+    const digitsOnly = phone.replace(/[^\d]/g, '');
+    if (digitsOnly.length !== 10) {
+      fieldErrors.value.phone = 'Mobile number must be 10 digits';
+      return false;
+    }
+    // Check if it starts with a valid Indian mobile pattern (6, 7, 8, 9)
+    const phoneRegex = /^[\+]?[6-9][\d\s\-\(\)]{9,15}$/;
+    if (!phoneRegex.test(phone)) {
+      fieldErrors.value.phone = 'Please provide a valid Indian mobile number';
+      return false;
+    }
+  }
+  return true;
+};
+
+const clearFieldError = (field) => {
+  if (fieldErrors.value[field]) {
+    delete fieldErrors.value[field];
+  }
+};
+
 const handleSubmit = async () => {
   saving.value = true;
   success.value = false;
+  error.value = '';
+  fieldErrors.value = {};
+  
   try {
-    const res = await apiClient.users.update(route.params.id, form.value);
+    // Validate phone number
+    if (!validatePhone()) {
+      saving.value = false;
+      return;
+    }
+    
+    // Prepare update data - only include fields that can be updated
+    const updateData = {
+      first_name: form.value.first_name,
+      last_name: form.value.last_name,
+      email: form.value.email,
+      phone: form.value.phone
+    };
+    
+    // Only include role if user is not School Admin
+    if (!isSchoolAdmin.value) {
+      updateData.role = form.value.role;
+    }
+    
+    // Only include password if provided
+    if (form.value.password) {
+      updateData.password = form.value.password;
+    }
+    
+    const res = await apiClient.users.update(route.params.id, updateData);
     if (res.success) {
       success.value = true;
-      setTimeout(() => router.push('/users'), 1000);
+      showSuccess('User updated successfully!');
+      setTimeout(() => router.push('/users?refresh=true'), 1000);
     } else {
       error.value = res.message || 'Failed to update user.';
     }
   } catch (e) {
-    error.value = 'Failed to update user.';
+    console.error('Error updating user:', e);
+    
+    // Handle validation errors from backend
+    if (e.response?.data?.errors) {
+      Object.keys(e.response.data.errors).forEach(field => {
+        fieldErrors.value[field] = e.response.data.errors[field];
+      });
+      showError('Please fix the validation errors');
+    } else if (e.response?.data?.fieldErrors) {
+      e.response.data.fieldErrors.forEach(fieldError => {
+        fieldErrors.value[fieldError.field] = fieldError.message;
+      });
+      showError('Please fix the validation errors');
+    } else {
+      error.value = e.response?.data?.message || 'Failed to update user.';
+      showError(error.value);
+    }
   } finally {
     saving.value = false;
   }
@@ -110,7 +308,7 @@ onMounted(fetchUser);
   @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;

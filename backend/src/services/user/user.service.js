@@ -4,20 +4,31 @@ const { User, School, Branch } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const RedisUtils = require('../../utils/redis-utils');
+const { RoleManager, ROLES } = require('../../utils/roleManager');
 
 class UserService {
   static async createUser(userData) {
     try {
-      // Debug: Log the data being passed to User.create
-      logger.info('UserService.createUser - Data being passed to User.create:', JSON.stringify(userData, null, 2));
+      let generatedPassword = null;
       
-      // Check if user already exists
+      // Auto-generate password if not provided
+      if (!userData.password || userData.password.trim() === '') {
+        generatedPassword = UserService.generateRandomPassword();
+        userData.password = generatedPassword;
+        logger.info('Auto-generated password for user:', userData.email);
+      }
+      
+      // Check if user already exists within the same school and branch
       const existingUser = await User.findOne({
-        where: { email: userData.email }
+        where: { 
+          email: userData.email,
+          school_id: userData.school_id,
+          branch_id: userData.branch_id
+        }
       });
 
       if (existingUser) {
-        throw new ApiError(400, 'User with this email already exists');
+        throw new ApiError(400, 'User with this email already exists in this branch');
       }
 
       const user = await User.create(userData);
@@ -29,8 +40,20 @@ class UserService {
         await RedisUtils.del(`school:${user.school_id}`);
         await RedisUtils.del('cache:schools:list');
       }
+      
+      // Clear all user list caches to ensure new users appear
+      const keys = await RedisUtils.keys('users:list:*');
+      if (keys && keys.length > 0) {
+        await RedisUtils.del(...keys);
+      }
 
-      return user;
+      // Return the user data along with the generated password if it was auto-generated
+      const userResponse = user.toJSON();
+      if (generatedPassword) {
+        userResponse.generatedPassword = generatedPassword;
+      }
+      
+      return userResponse;
     } catch (error) {
       logger.error('Error in UserService.createUser:', error);
       throw error;
@@ -71,8 +94,9 @@ class UserService {
       if (role) {
         where.role = role;
       } else if (school_id) {
-        // If filtering by school, exclude super admins by default
-        where.role = { [Op.ne]: 'super_admin' };
+        // If filtering by school (School Admin view), exclude super_admin and school_admin users
+        // But include branch_admin users
+        where.role = { [Op.notIn]: ['super_admin', 'school_admin'] };
       }
 
       // Apply status filter
@@ -159,8 +183,8 @@ class UserService {
         throw new ApiError(404, 'User not found');
       }
 
-      // Access control
-      if (currentUser.role === 'school_admin' && currentUser.school_id !== user.school_id) {
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessUser(currentUser, user)) {
         throw new ApiError(403, 'Access denied');
       }
 
@@ -181,8 +205,8 @@ class UserService {
         throw new ApiError(404, 'User not found');
       }
 
-      // Access control
-      if (currentUser.role === 'school_admin' && currentUser.school_id !== user.school_id) {
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessUser(currentUser, user)) {
         throw new ApiError(403, 'Access denied');
       }
 
@@ -191,6 +215,25 @@ class UserService {
       // Clear related caches
       await RedisUtils.del(`user:${id}`);
       await RedisUtils.del('cache:users:list');
+      
+      // Clear all user list caches to ensure updated users appear
+      const keys = await RedisUtils.keys('users:list:*');
+      if (keys && keys.length > 0) {
+        await RedisUtils.del(...keys);
+      }
+      
+      // Clear school-specific user caches
+      const schoolKeys = await RedisUtils.keys('users:school:*');
+      if (schoolKeys && schoolKeys.length > 0) {
+        await RedisUtils.del(...schoolKeys);
+      }
+      
+      // Clear branch-specific user caches
+      const branchKeys = await RedisUtils.keys('users:branch:*');
+      if (branchKeys && branchKeys.length > 0) {
+        await RedisUtils.del(...branchKeys);
+      }
+      
       if (user.school_id) {
         await RedisUtils.del(`school:${user.school_id}`);
         await RedisUtils.del('cache:schools:list');
@@ -210,8 +253,8 @@ class UserService {
         throw new ApiError(404, 'User not found');
       }
 
-      // Access control
-      if (currentUser.role === 'school_admin' && currentUser.school_id !== user.school_id) {
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessUser(currentUser, user)) {
         throw new ApiError(403, 'Access denied');
       }
 
@@ -220,6 +263,25 @@ class UserService {
       // Clear related caches
       await RedisUtils.del(`user:${id}`);
       await RedisUtils.del('cache:users:list');
+      
+      // Clear all user list caches to ensure deleted users are removed
+      const keys = await RedisUtils.keys('users:list:*');
+      if (keys && keys.length > 0) {
+        await RedisUtils.del(...keys);
+      }
+      
+      // Clear school-specific user caches
+      const schoolKeys = await RedisUtils.keys('users:school:*');
+      if (schoolKeys && schoolKeys.length > 0) {
+        await RedisUtils.del(...schoolKeys);
+      }
+      
+      // Clear branch-specific user caches
+      const branchKeys = await RedisUtils.keys('users:branch:*');
+      if (branchKeys && branchKeys.length > 0) {
+        await RedisUtils.del(...branchKeys);
+      }
+      
       if (user.school_id) {
         await RedisUtils.del(`school:${user.school_id}`);
         await RedisUtils.del('cache:schools:list');
@@ -383,6 +445,30 @@ class UserService {
       logger.error('Error in UserService.changePassword:', error);
       throw error;
     }
+  }
+
+  // Generate a random password that meets validation requirements
+  static generateRandomPassword() {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*';
+    
+    // Ensure at least one character from each required category
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill the rest with random characters
+    const allChars = lowercase + uppercase + numbers + symbols;
+    for (let i = 4; i < 10; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
   }
 }
 

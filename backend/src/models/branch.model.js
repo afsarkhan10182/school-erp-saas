@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
+const { ModuleConfig } = require('../utils/moduleConfig');
 
 const Branch = sequelize.define('Branch', {
   id: {
@@ -33,8 +34,9 @@ const Branch = sequelize.define('Branch', {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
     validate: {
+      notEmpty: { msg: 'Email is required' },
       isEmail: { msg: 'Please provide a valid email' },
     },
   },
@@ -48,11 +50,17 @@ const Branch = sequelize.define('Branch', {
   },
   city: {
     type: DataTypes.STRING(50),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'City is required' },
+    },
   },
   state: {
     type: DataTypes.STRING(50),
-    allowNull: true,
+    allowNull: false,
+    validate: {
+      notEmpty: { msg: 'State is required' },
+    },
   },
   country: {
     type: DataTypes.STRING(50),
@@ -77,6 +85,16 @@ const Branch = sequelize.define('Branch', {
   principal_phone: {
     type: DataTypes.STRING(20),
     allowNull: true,
+  },
+  currency: {
+    type: DataTypes.STRING(3),
+    allowNull: false,
+    defaultValue: 'INR',
+  },
+  currency_symbol: {
+    type: DataTypes.STRING(5),
+    allowNull: false,
+    defaultValue: '₹',
   },
   is_main_branch: {
     type: DataTypes.BOOLEAN,
@@ -133,16 +151,67 @@ const Branch = sequelize.define('Branch', {
   ],
   hooks: {
     beforeCreate: async (branch) => {
+      // Check subscription limits
+      const School = require('./school.model');
+      const SubscriptionPlan = require('./subscription-plan.model');
+      const school = await School.findByPk(branch.school_id);
+      if (school) {
+        // First try to get plan from database
+        let plan = null;
+        if (school.subscription_plan) {
+          plan = await SubscriptionPlan.findOne({
+            where: { code: school.subscription_plan, is_active: true }
+          });
+        }
+
+        // If not found in database, fall back to ModuleConfig
+        if (!plan) {
+          plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+        }
+
+        if (plan) {
+          const maxBranches = plan.max_branches || plan.maxBranches || 1;
+          if (maxBranches !== -1) {
+            const Branch = require('./branch.model');
+            const branchCount = await Branch.count({ 
+              where: { 
+                school_id: branch.school_id,
+                status: 'active'
+              } 
+            });
+            
+            if (branchCount >= maxBranches) {
+              throw new Error(`Branch limit reached. Maximum ${maxBranches} branches allowed in your current plan. Please upgrade to add more branches.`);
+            }
+          }
+        }
+      }
+      
       // Initialize settings with default values
       if (!branch.settings) {
-        branch.settings = {
-          currency: 'INR',
-          currency_symbol: '₹',
-          system_logo: null,
-          text_logo: null,
-          printing_logo: null,
-          report_card_design: null
-        };
+        branch.settings = {};
+      }
+      
+      // Set currency and currency_symbol in settings if not already set
+      if (!branch.settings.currency) {
+        branch.settings.currency = branch.currency || 'INR';
+      }
+      if (!branch.settings.currency_symbol) {
+        branch.settings.currency_symbol = branch.currency_symbol || '₹';
+      }
+      
+      // Set other default settings if not present
+      if (!branch.settings.system_logo) {
+        branch.settings.system_logo = null;
+      }
+      if (!branch.settings.text_logo) {
+        branch.settings.text_logo = null;
+      }
+      if (!branch.settings.printing_logo) {
+        branch.settings.printing_logo = null;
+      }
+      if (!branch.settings.report_card_design) {
+        branch.settings.report_card_design = null;
       }
     },
     afterCreate: async (branch) => {
@@ -159,6 +228,7 @@ Branch.associate = (models) => {
   Branch.belongsTo(models.User, { foreignKey: 'created_by', as: 'createdBy' });
   Branch.belongsTo(models.User, { foreignKey: 'updated_by', as: 'updatedBy' });
   Branch.hasMany(models.User, { foreignKey: 'branch_id', as: 'users' });
+  Branch.hasMany(models.FeeInvoice, { foreignKey: 'branch_id', as: 'feeInvoices' });
 };
 
 module.exports = Branch;

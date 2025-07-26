@@ -18,17 +18,31 @@
     </div>
 
     <!-- Theme toggle -->
-    <button
-      @click="toggleTheme"
-      class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300"
-      :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-    >
-      <Sun v-if="isDark" class="w-5 h-5 text-yellow-300" />
-      <Moon v-else class="w-5 h-5 text-white" />
-    </button>
+    <ClientOnly>
+      <button
+        @click="toggleTheme"
+        class="fixed top-6 right-6 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all duration-300"
+        :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <Sun v-if="isDark" class="w-5 h-5 text-yellow-300" />
+        <Moon v-else class="w-5 h-5 text-white" />
+      </button>
+    </ClientOnly>
 
-    <!-- Login Container -->
-    <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
+    <ClientOnly>
+      <div v-if="checkingAuth" class="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <!-- Loading Screen -->
+        <div class="text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span class="text-white font-bold text-2xl">S</span>
+          </div>
+          <div class="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p class="text-white/70 text-sm">Checking authentication...</p>
+        </div>
+      </div>
+
+      <div v-else class="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <!-- Login Container -->
       <div class="w-full max-w-md">
         <!-- Glassmorphic card -->
         <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8">
@@ -37,7 +51,6 @@
             <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <span class="text-white font-bold text-2xl">S</span>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
             <p class="text-white/70 text-sm">Sign in to your School ERP account</p>
           </div>
 
@@ -99,34 +112,22 @@
 
           <!-- Super Admin Login -->
           <div class="mt-6 pt-6 border-t border-white/20">
-            <p class="text-white/60 text-sm text-center mb-4">Quick Demo Access</p>
+            <p class="text-white/60 text-sm text-center mb-4"></p>
             <div class="flex gap-3">
-              <button 
-                type="button" 
-                @click="autofillSuperAdmin" 
-                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
-              >
-                Super Admin Demo
-              </button>
-              <button 
-                type="button" 
-                @click="autofillSchoolAdmin" 
-                class="flex-1 py-2.5 px-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 text-sm font-medium"
-              >
-                School Admin Demo
-              </button>
+              © 2025 School ERP - Developed by DigitalFuzed
             </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ClientOnly>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
-import { useCookie } from 'nuxt/app';
 import { Mail, Lock, Sun, Moon } from 'lucide-vue-next';
+import { useAuthStore } from '~/stores/auth';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -140,37 +141,105 @@ const form = reactive({
 
 const error = ref('');
 const loading = ref(false);
+const checkingAuth = ref(false); // Only show loading if we have cached data to check
 const router = useRouter();
 const { login } = useAuth();
 
-// Autofill functions
-function autofillSuperAdmin() {
-  form.email = 'admin@schoolexample.com';
-  form.password = 'admin123';
-}
-function autofillSchoolAdmin() {
-  form.email = 'admin@demoschool.com';
-  form.password = 'school123';
-}
+
 
 const isDark = ref(false);
+
+// Apply theme using Nuxt's useHead - called once outside toggle
+const applyTheme = () => {
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
+};
+
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
+  
+  // Use Nuxt's useCookie for theme persistence
+  const themeCookie = useCookie('theme');
+  themeCookie.value = isDark.value ? 'dark' : 'light';
+  
+  // Apply theme
+  applyTheme();
+};
+
+// Check authentication on component mount
+const checkExistingAuth = async () => {
+  const authStore = useAuthStore();
+  
+  // First, check if we have any cached data or if user is already logged in
+  const savedUser = localStorage.getItem('auth-user');
+  const hasAuthData = authStore.isLoggedIn || authStore.currentUser || savedUser;
+  
+  // Only show "Checking authentication..." if we have data to check
+  if (!hasAuthData) {
+    // No auth data, show login form immediately (good for incognito/new users)
+    return;
+  }
+  
+  // We have cached data, show checking screen and verify
+  checkingAuth.value = true;
+  
+  // Wait for auth store to finish initializing
+  const waitForAuthInit = async () => {
+    if (authStore.isInitializing) {
+      await new Promise((resolve) => {
+        const checkInit = () => {
+          if (!authStore.isInitializing) {
+            resolve(true);
+          } else {
+            setTimeout(checkInit, 50);
+          }
+        };
+        checkInit();
+      });
+    }
+  };
+  
+  try {
+    await waitForAuthInit();
+    
+    // If user is already logged in, redirect immediately
+    if (authStore.isLoggedIn && authStore.currentUser) {
+      await navigateTo('/dashboard', { replace: true });
+      return;
+    }
+    
+    // We have cached user data, verify with server
+    if (savedUser) {
+      try {
+        const isValid = await authStore.checkAuth();
+        if (isValid) {
+          await navigateTo('/dashboard', { replace: true });
+          return;
+        }
+      } catch (error) {
+        // Server check failed, show login form
+      }
+    }
+  } finally {
+    // Show login form after checks are complete
+    checkingAuth.value = false;
   }
 };
 
+// Use Nuxt 3's onMounted lifecycle hook for theme setup and auth check
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  isDark.value = savedTheme === 'dark';
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-  }
+  // Set theme using Nuxt's useCookie for better SSR handling
+  const themeCookie = useCookie('theme', { default: () => 'dark' });
+  isDark.value = themeCookie.value === 'dark';
+  
+  // Apply theme
+  applyTheme();
+  
+  // Run auth check after component is mounted
+  checkExistingAuth();
 });
 
 const handleLogin = async () => {
@@ -179,10 +248,12 @@ const handleLogin = async () => {
 
   try {
     const result = await login({ email: form.email, password: form.password });
-    if (!result.success) {
+    if (result.success) {
+      // Login successful - let the useAuth composable handle navigation
+      // No need to navigate here as useAuth will do it
+    } else {
       error.value = result.error || 'Login failed';
     }
-    // If successful, the useAuth composable will handle the redirect
   } catch (err) {
     console.error('Login error:', err);
     error.value = 'Network error. Please check if the backend is running.';

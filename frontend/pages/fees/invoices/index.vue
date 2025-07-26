@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-gray-50 dark:bg-gray-900 relative z-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Invoices</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student fee invoices and payments</p>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Invoices & Payments</h1>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage student fee invoices and monthly payments</p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -99,222 +99,167 @@
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
-        <div class="px-4 py-5 sm:p-6">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year</label>
-              <div class="relative">
-                <select 
-                  v-model="filters.academic_year" 
-                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                >
-                  <option value="">All Years</option>
-                  <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                  </option>
-                </select>
-                <!-- Custom dropdown arrow -->
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg 
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Class</label>
-              <div class="relative">
-                <select 
-                  v-model="filters.class_name" 
-                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                >
-                  <option value="">All Classes</option>
-                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.name">
-                    {{ classItem.name }}
-                  </option>
-                </select>
-                <!-- Custom dropdown arrow -->
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg 
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <div class="relative">
-                <select 
-                  v-model="filters.status" 
-                  class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                >
-                  <option value="">All Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="sent">Sent</option>
-                  <option value="paid">Paid</option>
-                  <option value="partial_paid">Partial Paid</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <!-- Custom dropdown arrow -->
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg 
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-end">
-              <button
-                @click="fetchInvoices"
-                :disabled="isLoading"
-                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                <Search class="-ml-1 mr-2 h-4 w-4" />
-                {{ isLoading ? 'Loading...' : 'Filter' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Filters Component -->
+      <InvoiceFilters
+        :filters="filters"
+        :academic-years="academicYears"
+        :classes="classes"
+        :branches="branches"
+        :is-loading="isLoading"
+        @filter-change="onFilterChange"
+        @clear-filters="clearFilters"
+      />
 
-      <!-- Invoices Table -->
-      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-        <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Fee Invoices</h3>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Paid</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Due Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="isLoading" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Loading invoices...
-                </td>
-              </tr>
-              <tr v-else-if="invoices.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                  No invoices found
-                </td>
-              </tr>
-              <tr v-else v-for="invoice in invoices" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {{ invoice.invoice_number }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ invoice.student?.first_name }} {{ invoice.student?.last_name }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ invoice.student?.current_class }}{{ invoice.student?.section ? `-${invoice.student.section}` : '' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ formatCurrency(invoice.total_amount) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ formatCurrency(invoice.paid_amount) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ formatDate(invoice.due_date) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(invoice.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                    {{ getStatusText(invoice.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    @click="viewInvoice(invoice)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
-                  >
-                    View
-                  </button>
-                  <button
-                    v-if="invoice.status !== 'paid' && invoice.status !== 'cancelled'"
-                    @click="recordPayment(invoice)"
-                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                  >
-                    Pay
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <!-- Invoices Table Component with Pagination -->
+      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+        <InvoiceTable
+          :invoices="invoices"
+          :is-loading="isLoading"
+          @view-invoice="viewInvoice"
+          @record-payment="recordPayment"
+          @generate-receipt="generateReceipt"
+          @view-receipt="viewReceipt"
+          @view-combined-receipt="viewCombinedReceipt"
+        />
         
         <!-- Pagination -->
-        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <button
-              @click="previousPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              @click="nextPage"
-              :disabled="currentPage >= totalPages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
+        <div v-if="totalItems > 0" class="px-4 py-4 flex flex-col space-y-4 border-t border-gray-200 dark:border-gray-700 md:px-6 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <!-- Mobile Pagination -->
+          <div class="flex flex-col space-y-3 md:hidden">
+            <!-- Results Info -->
+            <div class="text-center">
               <p class="text-sm text-gray-700 dark:text-gray-300">
                 Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
               </p>
             </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
+            
+            <!-- Page Size Selector -->
+            <div class="flex items-center justify-center space-x-2">
+              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+              <select 
+                v-model="pageSize" 
+                @change="onPageSizeChange"
+                class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
             </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="flex items-center justify-between">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="flex-1 mr-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              <span class="text-sm font-medium text-gray-900 dark:text-white px-4 py-2">
+                {{ currentPage }} / {{ totalPages }}
+              </span>
+              <button
+                @click="nextPage"
+                :disabled="currentPage >= totalPages"
+                class="flex-1 ml-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Page Numbers (if multiple pages) -->
+            <div v-if="totalPages > 1" class="flex items-center justify-center space-x-1">
+              <button
+                v-for="pageNum in getVisiblePages()"
+                :key="pageNum"
+                @click="goToPage(pageNum)"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
+                  pageNum === currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ]"
+                :disabled="pageNum === '...'"
+              >
+                {{ pageNum }}
+              </button>
+            </div>
+          </div>
+        <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
+          <div class="flex items-center space-x-4">
+            <p class="text-sm text-gray-700 dark:text-gray-300">
+              <span v-if="totalItems > 0">
+                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+              </span>
+              <span v-else>
+                No results found
+              </span>
+            </p>
+            
+            <div v-if="totalItems > 0" class="flex items-center space-x-2">
+              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+              <select 
+                v-model="pageSize" 
+                @change="onPageSizeChange"
+                class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
+            </div>
+          </div>
+          
+          <div v-if="totalItems > 0" class="flex items-center space-x-2">
+            <div v-if="totalPages > 1" class="flex items-center space-x-1">
+              <button
+                v-for="pageNum in getVisiblePages()"
+                :key="pageNum"
+                @click="goToPage(pageNum)"
+                :class="[
+                  'px-3 py-1 text-sm font-medium rounded-md',
+                  pageNum === currentPage
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ]"
+                :disabled="pageNum === '...'"
+              >
+                {{ pageNum }}
+              </button>
+            </div>
+            
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                @click="nextPage"
+                :disabled="currentPage >= totalPages"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </nav>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
     <!-- Quick Collect Modal -->
     <QuickCollectFeeModal
@@ -324,126 +269,24 @@
     />
 
     <!-- Generate Invoices Modal -->
-    <div v-if="showGenerateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Generate Fee Invoices</h3>
-          <form @submit.prevent="generateInvoices">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year *</label>
-                <div class="relative">
-                  <select 
-                    v-model="generateForm.academic_year" 
-                    required
-                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                  >
-                    <option value="">Select Year</option>
-                    <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                      {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                    </option>
-                  </select>
-                  <!-- Custom dropdown arrow -->
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg 
-                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Class *</label>
-                <div class="relative">
-                  <select 
-                    v-model="generateForm.class_name" 
-                    required
-                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                  >
-                    <option value="">Select Class</option>
-                    <option v-for="classItem in classes" :key="classItem.id" :value="classItem.name">
-                      {{ classItem.name }}
-                    </option>
-                  </select>
-                  <!-- Custom dropdown arrow -->
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg 
-                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Section</label>
-                <div class="relative">
-                  <select 
-                    v-model="generateForm.section" 
-                    class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
-                  >
-                    <option value="">All Sections</option>
-                    <option v-for="section in sections" :key="section.id" :value="section.name">
-                      {{ section.name }}
-                    </option>
-                  </select>
-                  <!-- Custom dropdown arrow -->
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg 
-                      class="h-5 w-5 text-gray-400 dark:text-gray-500"
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Due Date 
-                  <span class="text-xs text-gray-500 dark:text-gray-400">(Optional - will auto-calculate if not set)</span>
-                </label>
-                <input 
-                  v-model="generateForm.due_date" 
-                  type="date" 
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :min="new Date().toISOString().split('T')[0]"
-                >
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Leave empty to use fee type default due date settings
-                </p>
-              </div>
-            </div>
-            <div class="mt-6 flex justify-end space-x-3">
-              <button
-                type="button"
-                @click="showGenerateModal = false"
-                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="isGenerating"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                {{ isGenerating ? 'Generating...' : 'Generate' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
+    <GenerateInvoicesModal
+      :show="showGenerateModal"
+      :schools="schools"
+      :branches="branches"
+      :academic-years="academicYears"
+      :classes="classes"
+      :sections="sections"
+      :monthly-fee-structures="allFeeStructures"
+      :is-generating="isGenerating"
+      :schools-loading="schoolsLoading"
+      :branches-loading="false"
+      @close="closeGenerateModal"
+      @generate="generateInvoices"
+      @school-change="onModalSchoolChange"
+      @branch-change="onModalBranchChange"
+      @class-change="onModalClassChange"
+    />
+    
     <!-- Payment Modal -->
     <div v-if="showPaymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
@@ -454,10 +297,22 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Invoice Number</label>
                 <input v-model="paymentForm.invoice_number" type="text" placeholder="Enter invoice number" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                <!-- Month Information for Monthly Payments -->
+                <div v-if="selectedInvoiceForPayment && selectedInvoiceForPayment.payment_model === 'monthly' && selectedInvoiceForPayment.month && selectedInvoiceForPayment.year" class="mt-2">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    📅 Paying for: {{ getMonthName(selectedInvoiceForPayment.month) }} {{ selectedInvoiceForPayment.year }}
+                  </p>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Amount *</label>
                 <input v-model="paymentForm.amount" type="number" step="0.01" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+                <!-- Monthly Payment Info -->
+                <div v-if="selectedInvoiceForPayment && selectedInvoiceForPayment.payment_model === 'monthly'" class="mt-2">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Monthly amount: ₹{{ formatCurrency(selectedInvoiceForPayment.total_amount) }}
+                  </p>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Method</label>
@@ -493,7 +348,7 @@
             <div class="mt-6 flex justify-end space-x-3">
               <button
                 type="button"
-                @click="showPaymentModal = false"
+                @click="closePaymentModal"
                 class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
@@ -510,11 +365,141 @@
         </div>
       </div>
     </div>
+
+    <!-- Receipt Modal -->
+    <div v-if="showReceiptModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
+            <div class="flex items-center space-x-2">
+              <!-- Print Button -->
+              <button
+                @click="printReceipt"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print Receipt
+              </button>
+
+              <!-- Close Button -->
+              <button
+                @click="showReceiptModal = false"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="selectedReceipt" v-html="selectedReceipt.receipt_html" class="receipt-container print-friendly"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multiple Payments Modal -->
+    <div v-if="showMultiplePaymentsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment History & Receipts</h3>
+            <button
+              @click="showMultiplePaymentsModal = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div v-if="selectedMultiplePayments" class="space-y-6">
+            <!-- Invoice Information -->
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 class="font-medium text-gray-900 dark:text-white mb-2">Invoice Details</h4>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Invoice:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedMultiplePayments.invoice.invoice_number }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Total Amount:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.total_amount) }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Paid Amount:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.paid_amount) }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Balance:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.balance_amount) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payments List -->
+            <div>
+              <h4 class="font-medium text-gray-900 dark:text-white mb-3">Payment History ({{ selectedMultiplePayments.total_payments }} payments)</h4>
+              <div class="space-y-3">
+                <div 
+                  v-for="(paymentItem, index) in selectedMultiplePayments.payments" 
+                  :key="paymentItem.payment.id"
+                  class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="flex items-center justify-between mb-2">
+                        <h5 class="font-medium text-gray-900 dark:text-white">
+                          Payment #{{ paymentItem.payment.payment_number }}
+                        </h5>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                          {{ formatDate(paymentItem.payment.payment_date) }}
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Amount:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(paymentItem.payment.payment_amount) }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Method:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white capitalize">{{ paymentItem.payment.payment_method }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Receipt:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ paymentItem.receipt.receipt_number }}</span>
+                        </div>
+                        <div>
+                          <button
+                            @click="viewPaymentReceipt(paymentItem)"
+                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          >
+                            <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Receipt
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import { 
   Plus, 
   CreditCard, 
@@ -522,12 +507,18 @@ import {
   CheckCircle, 
   AlertTriangle, 
   DollarSign,
-  Search
+  Search,
+  GraduationCap,
+  Calendar
 } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
+import { useAuthStore } from '~/stores/auth';
 import QuickCollectFeeModal from '~/components/QuickCollectFeeModal.vue';
+import InvoiceFilters from '~/components/InvoiceFilters.vue';
+import InvoiceTable from '~/components/InvoiceTable.vue';
+import GenerateInvoicesModal from '~/components/GenerateInvoicesModal.vue';
 
 // Composables
 const { showToast } = useToast();
@@ -541,42 +532,72 @@ const {
   fetchSections 
 } = useAcademics();
 
+// Import additional composables for the modal
+import { useSchools } from '~/composables/useSchools';
+
+const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
+
+// Auth store
+const authStore = useAuthStore();
+
 // State
 const invoices = ref([]);
 const summary = ref({});
 const isLoading = ref(false);
-const showGenerateModal = ref(false);
+const showGenerateModal = ref(false); // Ensure modal starts closed
 const showPaymentModal = ref(false);
 const isGenerating = ref(false);
 const isSubmittingPayment = ref(false);
 const showQuickCollectModal = ref(false);
+const showReceiptModal = ref(false);
+const selectedReceipt = ref(null);
+const selectedInvoiceForPayment = ref(null);
+const showMultiplePaymentsModal = ref(false);
+const selectedMultiplePayments = ref(null);
 
-// Pagination
+// Pagination - Set to exactly 10 records
 const currentPage = ref(1);
 const pageSize = ref(10);
 const totalItems = ref(0);
 const totalPages = ref(0);
 
-// Filters
+// Filters - Start with empty filters
 const filters = reactive({
+  payment_model: '',
+  branch_id: '',
   academic_year: '',
   class_name: '',
   status: '',
 });
 
-// Forms
-const generateForm = reactive({
-  academic_year: '',
-  class_name: '',
-  section: '',
-  due_date: '',
+// Use existing data from composables - no need to redeclare
+
+// Role-based computed properties
+const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
+const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
+
+// Check if any filters are applied (for debugging purposes)
+const hasAppliedFilters = computed(() => {
+  return Object.values(filters).some(value => value !== '');
 });
+
+// Auto-set branch filter based on user role
+const setDefaultBranchFilter = () => {
+  if (authStore.currentUser?.role === 'branch_admin') {
+    // Branch admin should be restricted to their branch
+    filters.branch_id = authStore.currentUser.branch_id;
+  }
+};
+
+
 
 const paymentForm = reactive({
   invoice_number: '',
   amount: '',
   payment_method: 'cash',
   notes: '',
+  monthly_payment_id: null, // New field for monthly payment ID
 });
 
 
@@ -585,62 +606,107 @@ const paymentForm = reactive({
 const fetchInvoices = async () => {
   isLoading.value = true;
   try {
+    // Build params object with all filters
     const params = {
       page: currentPage.value,
       limit: pageSize.value,
-      ...filters
     };
     
-    const response = await apiClient.feeInvoices.getAll(params);
-    invoices.value = response.data.invoices || [];
-    totalItems.value = response.data.pagination?.total_count || 0;
-    totalPages.value = response.data.pagination?.total_pages || 0;
+    // Add filters only if they have values
+    if (filters.payment_model) params.payment_model = filters.payment_model;
+    if (filters.branch_id) params.branch_id = filters.branch_id;
+    if (filters.academic_year) params.academic_year = filters.academic_year;
+    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.status) params.status = filters.status;
+    
+    // Use the new grouped API instead of getAll
+    const response = await apiClient.feeInvoices.getGrouped(params);
+    
+    invoices.value = response.data?.invoices || [];
+    totalItems.value = response.data?.pagination?.total_count || 0;
+    totalPages.value = response.data?.pagination?.total_pages || 0;
+    
   } catch (error) {
-    console.error('Error fetching invoices:', error);
     showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
   }
 };
 
+// Fetch summary data properly
 const fetchSummary = async () => {
   try {
-    const response = await apiClient.feeInvoices.getSummary();
-    const data = response.data || {};
+    // Use the dedicated summary endpoint instead of fetching all invoices
+    const params = {};
     
-    // Transform backend data structure to frontend expected structure
+    // Add current filters to summary
+    if (filters.payment_model) params.payment_model = filters.payment_model;
+    if (filters.branch_id) params.branch_id = filters.branch_id;
+    if (filters.academic_year) params.academic_year = filters.academic_year;
+    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.status) params.status = filters.status;
+    
+    const response = await apiClient.feeInvoices.getSummary(params);
+    
+    // Use the summary data directly from the API - backend returns different structure
+    const data = response.data;
     summary.value = {
-      totalInvoices: data.invoice_counts?.total || 0,
-      paidInvoices: data.invoice_counts?.paid || 0,
-      overdueInvoices: data.invoice_counts?.overdue || 0,
-      totalCollected: data.amounts?.total_paid || 0,
-      totalAmount: data.amounts?.total_amount || 0,
-      totalBalance: data.amounts?.total_balance || 0,
-      collectionPercentage: data.amounts?.collection_percentage || 0
+      totalInvoices: data?.invoice_counts?.total || 0,
+      paidInvoices: data?.invoice_counts?.paid || 0,
+      overdueInvoices: data?.invoice_counts?.overdue || 0,
+      totalCollected: data?.amounts?.total_paid || 0
     };
+    
   } catch (error) {
-    console.error('Error fetching summary:', error);
-    showToast('Error fetching summary', 'error');
+    // Set default values
+    summary.value = {
+      totalInvoices: 0,
+      paidInvoices: 0,
+      overdueInvoices: 0,
+      totalCollected: 0
+    };
   }
 };
 
-const generateInvoices = async () => {
+const closeGenerateModal = () => {
+  showGenerateModal.value = false;
+};
+
+const generateInvoices = async (formData) => {
+  // Validate form based on payment model
+  if (!formData.fee_structure_ids || formData.fee_structure_ids.length === 0) {
+    showToast('Please select at least one fee structure', 'error');
+    return;
+  }
+
+  if (formData.payment_model === 'monthly') {
+    if (!formData.months || formData.months.length === 0) {
+      showToast('Please select at least one month for monthly payments', 'error');
+      return;
+    }
+    if (!formData.year) {
+      showToast('Please select a year for monthly payments', 'error');
+      return;
+    }
+  } else if (formData.payment_model === 'installment') {
+    // Due date validation removed - it comes from fee structure
+  }
+
   isGenerating.value = true;
   try {
-    await apiClient.feeInvoices.generateInvoices(generateForm);
+    // Unified approach - use the same API for both monthly and installment payments
+    await apiClient.feeInvoices.generateInvoices(formData);
+    showToast('Invoices generated successfully!', 'success');
+    
     showGenerateModal.value = false;
     await fetchInvoices();
     await fetchSummary();
-    showToast('Invoices generated successfully!', 'success');
-    
-    // Reset form
-    generateForm.academic_year = '';
-    generateForm.class_name = '';
-    generateForm.section = '';
-    generateForm.due_date = '';
   } catch (error) {
-    console.error('Error generating invoices:', error);
-    showToast(error.message || 'Error generating invoices', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error generating invoices', 'error');
+    }
   } finally {
     isGenerating.value = false;
   }
@@ -649,31 +715,60 @@ const generateInvoices = async () => {
 const submitPayment = async () => {
   isSubmittingPayment.value = true;
   try {
-    // Find invoice by number
+    let response;
+    
+        // Find invoice by number for regular invoices
     const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
     if (!invoice) {
       showToast('Invoice not found!', 'error');
       return;
     }
     
-    await apiClient.feeInvoices.recordPayment(invoice.id, paymentForm);
-    showPaymentModal.value = false;
+    // Record payment for fee invoice (works for both installment and monthly)
+    response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+      payment_amount: paymentForm.amount,
+      payment_method: paymentForm.payment_method,
+      notes: paymentForm.notes
+    });
+    
+    closePaymentModal();
     await fetchInvoices();
     await fetchSummary();
     showToast('Payment recorded successfully!', 'success');
     
-    // Reset form
-    paymentForm.invoice_number = '';
-    paymentForm.amount = '';
-    paymentForm.payment_method = 'cash';
-    paymentForm.notes = '';
+    // Automatically show receipt after successful payment
+    if (response.data && response.data.receipt) {
+      selectedReceipt.value = response.data.receipt;
+      showReceiptModal.value = true;
+    }
   } catch (error) {
-    console.error('Error recording payment:', error);
-    showToast(error.message || 'Error recording payment', 'error');
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error recording payment', 'error');
+    }
   } finally {
     isSubmittingPayment.value = false;
   }
 };
+
+const onFilterChange = (newFilters) => {
+  Object.assign(filters, newFilters);
+  currentPage.value = 1; // Reset to first page when filters change
+  fetchInvoices();
+  fetchSummary(); // Also update summary when filters change
+};
+
+const clearFilters = () => {
+  Object.keys(filters).forEach(key => {
+    filters[key] = '';
+  });
+  currentPage.value = 1;
+  fetchInvoices();
+  fetchSummary(); // Also update summary when filters are cleared
+};
+
+
 
 const viewInvoice = (invoice) => {
   // Navigate to student fee ledger page for this invoice's student
@@ -681,15 +776,236 @@ const viewInvoice = (invoice) => {
 };
 
 const recordPayment = (invoice) => {
+  // Unified approach - works for both installment and monthly invoices
   paymentForm.invoice_number = invoice.invoice_number;
   paymentForm.amount = invoice.balance_amount;
+  selectedInvoiceForPayment.value = invoice; // Store the invoice for payment suggestions
   showPaymentModal.value = true;
 };
 
+// Helper function to determine if it's a monthly payment
+const isMonthlyPayment = (invoice) => {
+  // Simplified - only check payment_model field since we have unified approach
+  return invoice.payment_model === 'monthly';
+};
+
 const onPaymentRecorded = async () => {
+  // Clear any filters that might be causing "no results" after payment
+  // This ensures the user can see the updated invoice status
+  Object.keys(filters).forEach(key => {
+    filters[key] = '';
+  });
+  
   await fetchInvoices();
   await fetchSummary();
 };
+
+const generateReceipt = async (invoice) => {
+  try {
+    // For invoices that have payments but no receipt, we should view the existing receipt
+    // The "Generate Receipt" button should actually be "View Receipt" for paid invoices
+    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+    
+    if (response.data && response.data.receipt_html) {
+      // Show receipt modal - the receipt data is directly in response.data
+      selectedReceipt.value = response.data;
+      showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this invoice', 'error');
+    }
+  } catch (error) {
+    console.error('Error fetching receipt:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error fetching receipt', 'error');
+    }
+  }
+};
+
+const viewReceipt = async (invoice) => {
+  try {
+    // Unified approach - use feeInvoices API for both monthly and installment invoices
+    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+    
+    if (response.data) {
+      // Check if this is a multiple payments response
+      if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
+        // Show multiple payments modal
+        selectedMultiplePayments.value = response.data;
+        showMultiplePaymentsModal.value = true;
+      } else if (response.data.receipt_html) {
+        // Single receipt - show receipt modal
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this invoice', 'error');
+      }
+    } else {
+      showToast('No receipt found for this invoice', 'error');
+    }
+  } catch (error) {
+    showToast('Error fetching receipt', 'error');
+  }
+};
+
+const viewPaymentReceipt = (paymentItem) => {
+  try {
+    // Show the individual payment receipt
+    selectedReceipt.value = {
+      receipt_number: paymentItem.receipt.receipt_number,
+      receipt_html: paymentItem.receipt.receipt_html,
+      receipt_data: paymentItem.receipt.receipt_data,
+      payment: paymentItem.payment,
+      invoice: selectedMultiplePayments.value.invoice,
+    };
+    
+    // Close multiple payments modal and show receipt modal
+    showMultiplePaymentsModal.value = false;
+    showReceiptModal.value = true;
+  } catch (error) {
+    showToast('Error viewing payment receipt', 'error');
+  }
+};
+
+const viewCombinedReceipt = async (combinedInvoice) => {
+  try {
+    // Use receipt_group_id instead of id for grouped receipts
+    const receiptGroupId = combinedInvoice.receipt_group_id || combinedInvoice.id;
+    const response = await apiClient.feeInvoices.getCombinedReceipt(receiptGroupId);
+
+    if (response.data && response.data.receipt_html) {
+      selectedReceipt.value = response.data;
+      showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this combined invoice', 'error');
+    }
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.message) {
+      showToast(error.response.data.message, 'error');
+    } else {
+      showToast('Error fetching combined receipt', 'error');
+    }
+  }
+};
+
+const printReceipt = () => {
+  if (!selectedReceipt.value) return;
+  
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank');
+  const receiptHtml = selectedReceipt.value.receipt_html;
+  
+  // Add print-specific styles
+  const printStyles = `
+    <style>
+      @media print {
+        body { margin: 0; padding: 0; }
+        .receipt { 
+          width: 100% !important; 
+          max-width: none !important; 
+          margin: 0 !important; 
+          box-shadow: none !important; 
+          border: none !important; 
+        }
+        .header { 
+          background: #f8f9fa !important; 
+          color: #000 !important; 
+        }
+        .trust-name, .school-name, .school-type, .school-address { 
+          color: #000 !important; 
+        }
+        .receipt-title { 
+          color: #000 !important; 
+        }
+        .info-label, .info-value { 
+          color: #000 !important; 
+        }
+        .fee-table th, .fee-table td { 
+          color: #000 !important; 
+          border-color: #000 !important; 
+        }
+        .summary-section { 
+          background: #f8f9fa !important; 
+          color: #000 !important; 
+        }
+        .remaining-info { 
+          background: #fff3cd !important; 
+          color: #856404 !important; 
+        }
+        .signature-line { 
+          border-color: #000 !important; 
+        }
+      }
+      body { 
+        font-family: Arial, sans-serif; 
+        margin: 0; 
+        padding: 20px; 
+        background-color: #ffffff;
+        color: #000000;
+      }
+      .receipt {
+        width: 400px;
+        background: white;
+        border: 1px solid #ddd;
+        margin: 0 auto;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      .header {
+        text-align: center;
+        padding: 15px;
+        border-bottom: 2px solid #333;
+        background: #f8f9fa;
+        color: #000;
+      }
+      .trust-name, .school-name, .school-type, .school-address {
+        color: #000 !important;
+      }
+      .receipt-title {
+        color: #000 !important;
+      }
+      .info-label, .info-value {
+        color: #000 !important;
+      }
+      .fee-table th, .fee-table td {
+        color: #000 !important;
+        border-color: #000 !important;
+      }
+      .summary-section {
+        background: #f8f9fa !important;
+        color: #000 !important;
+      }
+      .remaining-info {
+        background: #fff3cd !important;
+        color: #856404 !important;
+      }
+    </style>
+  `;
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Receipt - Print</title>
+      ${printStyles}
+    </head>
+    <body>
+      ${receiptHtml}
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.focus();
+  
+  // Wait for content to load then print
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+};
+
+
 
 const previousPage = () => {
   if (currentPage.value > 1) {
@@ -705,76 +1021,311 @@ const nextPage = () => {
   }
 };
 
+const goToPage = (page) => {
+  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+    currentPage.value = page;
+    fetchInvoices();
+  }
+};
+
+const onPageSizeChange = async () => {
+  if (import.meta.client) {
+    localStorage.setItem('invoicesPageSize', pageSize.value.toString());
+  }
+  
+  currentPage.value = 1;
+  await fetchInvoices();
+};
+
+const getVisiblePages = () => {
+  const pages = [];
+  const total = totalPages.value;
+  const current = currentPage.value;
+  
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    } else if (current >= total - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+};
+
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
 };
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-IN');
+const getMonthName = (month) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[month - 1] || 'Unknown';
 };
 
-const getStatusClass = (status) => {
-  const classes = {
-    draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    partial_paid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-  };
-  return classes[status] || classes.draft;
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
-const getStatusText = (status) => {
-  const texts = {
-    draft: 'Draft',
-    sent: 'Sent',
-    paid: 'Paid',
-    partial_paid: 'Partial Paid',
-    overdue: 'Overdue',
-    cancelled: 'Cancelled',
-  };
-  return texts[status] || status;
-};
-
-// Load academic data
-const loadAcademicData = async () => {
+// Simplified academic data loading - only load when modal is opened
+const loadAcademicDataForModal = async () => {
   try {
+    // Only fetch when modal is opened
     await Promise.all([
       fetchAcademicYears(),
-      fetchClasses()
+      fetchClasses(),
+      fetchSchools()
     ]);
-    
-    // Set current academic year as default
-    if (academicYears.value.length > 0) {
-      const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
-      if (currentYear) {
-        filters.academic_year = currentYear.name;
-      }
-    }
   } catch (error) {
-    console.error('Error loading academic data:', error);
-    showToast('Error loading academic data', 'error');
+    // Error loading academic data
   }
 };
 
-// Watch for class changes to load sections
-watch(() => generateForm.class_name, async (newClass) => {
-  if (newClass) {
-    const selectedClass = classes.value.find(c => c.name === newClass);
-    if (selectedClass) {
-      await fetchSections(undefined, undefined, selectedClass.id);
+// Fetch monthly fee structures
+const monthlyFeeStructures = ref([]);
+const installmentFeeStructures = ref([]);
+
+const fetchMonthlyFeeStructures = async () => {
+  try {
+    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    monthlyFeeStructures.value = response.data.fee_structures || [];
+  } catch (error) {
+    showToast('Error loading monthly fee structures', 'error');
+    monthlyFeeStructures.value = [];
+  }
+};
+
+const fetchInstallmentFeeStructures = async () => {
+  try {
+    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    installmentFeeStructures.value = response.data.fee_structures || [];
+  } catch (error) {
+    showToast('Error loading installment fee structures', 'error');
+  }
+};
+
+// Simplified fee structures fetch - only when modal is opened
+const fetchFeeStructuresForModal = async () => {
+  try {
+    await Promise.all([
+      fetchMonthlyFeeStructures(),
+      fetchInstallmentFeeStructures()
+    ]);
+  } catch (error) {
+    // Error fetching fee structures
+  }
+};
+
+// Combined fee structures for the modal
+const allFeeStructures = computed(() => {
+  return [...monthlyFeeStructures.value, ...installmentFeeStructures.value];
+});
+
+// Modal event handlers for dynamic data loading
+const onModalSchoolChange = async (schoolId) => {
+  if (schoolId) {
+    // For super admin, filter branches by selected school
+    if (authStore.isSuperAdmin) {
+      await fetchBranches();
     }
-  } else {
-    sections.value = [];
+  }
+};
+
+const onModalBranchChange = async (branchId) => {
+  if (branchId) {
+    // Fetch classes for the selected branch
+    await fetchClasses();
+  }
+};
+
+const onModalClassChange = async (className) => {
+  if (className) {
+    const classItem = classes.value.find(c => c.name === className);
+    if (classItem) {
+      // Get the current branch ID from the modal form or user context
+      const branchId = authStore.currentUser?.branch_id;
+      await fetchSections(
+        authStore.currentUser?.school_id, 
+        branchId, 
+        classItem.id
+      );
+    }
+  }
+};
+
+// Branches state - will be populated when modal opens
+const branches = ref([]);
+
+// Debug logging for data loading
+watch([schools, branches, academicYears, classes, sections], ([newSchools, newBranches, newAcademicYears, newClasses, newSections]) => {
+  // console.log('🔍 Data updated:', {
+  //   schools: newSchools?.length || 0,
+  //   branches: newBranches?.length || 0,
+  //   academicYears: newAcademicYears?.length || 0,
+  //   classes: newClasses?.length || 0,
+  //   sections: newSections?.length || 0
+  // });
+});
+
+const fetchBranches = async () => {
+  try {
+    let response;
+    
+    if (authStore.isSuperAdmin) {
+      // Super admin can see all branches
+      response = await apiClient.branches.getAll();
+      branches.value = response.data?.branches || response.data || [];
+    } else if (authStore.isSchoolAdmin) {
+      // School admin sees only their school's branches
+      response = await apiClient.branches.getBySchool(authStore.currentUser?.school_id);
+      branches.value = response.data?.branches || response.data || [];
+    } else if (authStore.isBranchAdmin) {
+      // Branch admin sees only their branch
+      response = await apiClient.branches.getById(authStore.currentUser?.branch_id);
+      branches.value = response.data ? [response.data] : [];
+    } else {
+      // Default fallback
+      response = await apiClient.branches.getAll();
+      branches.value = response.data?.branches || response.data || [];
+    }
+    
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    showToast('Error fetching branches', 'error');
+    branches.value = [];
+  }
+};
+
+// Load academic data on page load
+const loadAcademicData = async () => {
+  try {
+    
+    // Get user context for API calls
+    const schoolId = authStore.currentUser?.school_id;
+    const branchId = authStore.currentUser?.branch_id;
+    
+    // Load academic years and classes for filters with individual error handling
+    const promises = [];
+    
+    // Academic years
+    promises.push(
+      fetchAcademicYears(schoolId).catch(error => {
+        console.error('Error fetching academic years:', error);
+        return null;
+      })
+    );
+    
+    // Classes
+    promises.push(
+      fetchClasses(schoolId, branchId).catch(error => {
+        console.error('Error fetching classes:', error);
+        return null;
+      })
+    );
+    
+    // Branches
+    promises.push(
+      fetchBranches().catch(error => {
+        console.error('Error fetching branches:', error);
+        return null;
+      })
+    );
+    
+    await Promise.all(promises);
+    
+    // Show warning if any data failed to load
+    if (academicYears.value.length === 0) {
+      console.warn('⚠️ No academic years loaded');
+    }
+    if (classes.value.length === 0) {
+      console.warn('⚠️ No classes loaded');
+    }
+    if (branches.value.length === 0) {
+      console.warn('⚠️ No branches loaded');
+    }
+    
+  } catch (error) {
+    console.error('Error loading academic data:', error);
+    showToast('Error loading filter data', 'error');
+  }
+};
+
+
+onMounted(async () => {
+  try {
+    // Load localStorage value on client-side
+    if (import.meta.client) {
+      const savedPageSize = localStorage.getItem('invoicesPageSize');
+      if (savedPageSize) {
+        pageSize.value = parseInt(savedPageSize);
+      }
+    }
+    
+    // Set default branch filter based on user role
+    setDefaultBranchFilter();
+    
+    // Load academic data first
+    await loadAcademicData();
+    
+    // Then fetch invoices and summary
+    await fetchInvoices();
+    await fetchSummary();
+  } catch (error) {
+    showToast('Error initializing component', 'error');
   }
 });
 
-onMounted(async () => {
-  await loadAcademicData();
-  await fetchInvoices();
-  await fetchSummary();
+// Watch for modal opening to load data
+watch(showGenerateModal, async (isOpen) => {
+  if (isOpen) {
+    // Load data only when modal is opened
+    await loadAcademicDataForModal();
+    await fetchBranches();
+    await fetchFeeStructuresForModal();
+    
+    // Add a small delay to ensure all data is loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 });
+
+const closePaymentModal = () => {
+  showPaymentModal.value = false;
+  paymentForm.invoice_number = '';
+  paymentForm.amount = '';
+  paymentForm.payment_method = 'cash';
+  paymentForm.notes = '';
+  selectedInvoiceForPayment.value = null;
+};
 </script>
 
 <style scoped>
@@ -782,5 +1333,73 @@ onMounted(async () => {
   Tailwind CSS styles are generated from utilities.
   Add custom styles here.
 ****************************************************/
+
+.receipt-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Dark mode improvements for receipt */
+.receipt-container :deep(.receipt) {
+  background: white !important;
+  color: #000 !important;
+}
+
+.receipt-container :deep(.header) {
+  background: #f8f9fa !important;
+  color: #000 !important;
+}
+
+.receipt-container :deep(.trust-name),
+.receipt-container :deep(.school-name),
+.receipt-container :deep(.school-type),
+.receipt-container :deep(.school-address) {
+  color: #000 !important;
+}
+
+.receipt-container :deep(.receipt-title) {
+  color: #000 !important;
+}
+
+.receipt-container :deep(.info-label),
+.receipt-container :deep(.info-value) {
+  color: #000 !important;
+}
+
+.receipt-container :deep(.fee-table th),
+.receipt-container :deep(.fee-table td) {
+  color: #000 !important;
+  border-color: #000 !important;
+}
+
+.receipt-container :deep(.summary-section) {
+  background: #f8f9fa !important;
+  color: #000 !important;
+}
+
+.receipt-container :deep(.remaining-info) {
+  background: #fff3cd !important;
+  color: #856404 !important;
+}
+
+.receipt-container :deep(.signature-line) {
+  border-color: #000 !important;
+}
+
+/* Print-friendly styles */
+@media print {
+  .receipt-container {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .receipt-container :deep(.receipt) {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
 </style>
 

@@ -312,7 +312,7 @@ class AcademicYearController {
         });
       }
 
-      // TODO: Add validation to check if academic year is referenced by any schools or admissions
+      // TODO: Add validation to check if academic year is referenced by any schools
       
       await academicYear.destroy();
 
@@ -371,6 +371,13 @@ class AcademicYearController {
     try {
       const currentYear = await AcademicYear.findOne({
         where: { is_current: true },
+        include: [
+          {
+            model: User,
+            as: 'createdBy',
+            attributes: ['id', 'first_name', 'last_name'],
+          },
+        ],
       });
 
       if (!currentYear) {
@@ -380,12 +387,46 @@ class AcademicYearController {
         });
       }
 
+      // Get count of schools linked to this academic year
+      const { School } = require('../models');
+      const schoolsCount = await School.count({
+        where: { current_academic_year_id: currentYear.id }
+      });
+
       res.json({
         success: true,
-        data: currentYear,
+        data: {
+          ...currentYear.toJSON(),
+          schools_count: schoolsCount
+        },
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.getCurrentAcademicYear:', error);
+      next(error);
+    }
+  }
+
+  // Sync all schools to current academic year (super admin only)
+  static async syncSchoolsToCurrentAcademicYear(req, res, next) {
+    try {
+      // Only super admin can sync schools to current academic year
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admin can sync schools to current academic year',
+        });
+      }
+
+      const { syncSchoolsToCurrentAcademicYear } = require('../utils/academicYearUtils');
+      const result = await syncSchoolsToCurrentAcademicYear();
+
+      res.json({
+        success: true,
+        message: `Successfully synced ${result.updated_count} schools to current academic year: ${result.academic_year}`,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error in AcademicYearController.syncSchoolsToCurrentAcademicYear:', error);
       next(error);
     }
   }

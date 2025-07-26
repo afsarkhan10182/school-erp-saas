@@ -83,6 +83,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription plans
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage subscription plans.');
+  await navigateTo('/dashboard');
+}
 
 const { plans, loading, error, fetchPlans, deletePlan } = useSubscriptions();
 const showDeleteModal = ref(false);

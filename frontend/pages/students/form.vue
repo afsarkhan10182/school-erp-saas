@@ -23,7 +23,7 @@ const studentId = computed(() => route.params.id || null);
 const pageTitle = computed(() => mode.value === 'edit' ? 'Edit Student' : 'Create Student');
 
 definePageMeta({
-  middleware: 'auth',
+  // Global auth middleware handles authentication
   title: pageTitle,
 });
 </script> 

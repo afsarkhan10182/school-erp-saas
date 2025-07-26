@@ -1,4 +1,4 @@
-const { Class, School, Branch, User, Section } = require('../models');
+const { Class, School, Branch, User, Section, Stream } = require('../models');
 const { logger } = require('../utils/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
@@ -106,11 +106,21 @@ class ClassController {
         attributes: ['id', 'name', 'capacity', 'current_strength'],
         required: false,
       });
+      
+      includeArray.push({
+        model: Stream,
+        as: 'streams',
+        attributes: ['id', 'name', 'code'],
+        required: false,
+      });
 
       const { count, rows } = await Class.findAndCountAll({
         where: whereClause,
         include: includeArray,
-        order: [[sort_by, sort_order.toUpperCase()]],
+        order: [
+          [sort_by, sort_order.toUpperCase()],
+          ['name', 'ASC'] // Secondary sort for consistency
+        ],
         limit: parseInt(limit),
         offset,
       });
@@ -167,6 +177,11 @@ class ClassController {
             as: 'sections',
             attributes: ['id', 'name', 'capacity', 'current_strength'],
           },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
+          },
         ],
       });
 
@@ -215,29 +230,40 @@ class ClassController {
         });
       }
 
-      const { name, code, numeric_value, description, capacity, sort_order, is_active = true, branch_id } = req.body;
+      const { name, code, numeric_value, description, capacity, sort_order, is_active = true, has_stream = false, branch_id } = req.body;
 
-      // Determine school_id based on user role
-      let school_id;
+      // Determine school_id and branch_id based on user role
+      let school_id, final_branch_id;
+      
       if (req.user.role === 'super_admin') {
         school_id = req.body.school_id;
+        final_branch_id = branch_id;
+        
         if (!school_id) {
           return res.status(400).json({
             success: false,
             message: 'School ID is required for super admin',
           });
         }
-      } else if (req.user.role === 'school_admin') {
-        school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        school_id = req.user.school_id;
-        // Branch admin can only create classes for their branch
-        if (branch_id && branch_id !== req.user.branch_id) {
-          return res.status(403).json({
+        if (!final_branch_id) {
+          return res.status(400).json({
             success: false,
-            message: 'Access denied: Cannot create class for other branches',
+            message: 'Branch ID is required for super admin',
           });
         }
+      } else if (req.user.role === 'school_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = branch_id;
+        
+        if (!final_branch_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Branch ID is required',
+          });
+        }
+      } else if (req.user.role === 'branch_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = req.user.branch_id; // Branch admin can only create for their branch
       } else {
         return res.status(403).json({
           success: false,
@@ -254,29 +280,37 @@ class ClassController {
         });
       }
 
-      // Check if branch exists (if branch_id is provided)
-      if (branch_id) {
-        const branch = await Branch.findByPk(branch_id);
-        if (!branch || branch.school_id !== school_id) {
-          return res.status(404).json({
-            success: false,
-            message: 'Branch not found or does not belong to the school',
-          });
-        }
+      // Check if branch exists and belongs to the school
+      const branch = await Branch.findByPk(final_branch_id);
+      if (!branch || branch.school_id !== school_id) {
+        return res.status(404).json({
+          success: false,
+          message: 'Branch not found or does not belong to the school',
+        });
       }
 
-      // Check if class code already exists for this school
-      if (code) {
-        const existingClass = await Class.findOne({
-          where: { school_id, code },
-        });
+      // Check if class name already exists for this school and branch
+      const existingClassByName = await Class.findOne({
+        where: { school_id, branch_id: final_branch_id, name },
+      });
 
-        if (existingClass) {
-          return res.status(400).json({
-            success: false,
-            message: 'Class code already exists for this school',
-          });
-        }
+      if (existingClassByName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class name already exists for this branch',
+        });
+      }
+
+      // Check if class code already exists for this school and branch
+      const existingClassByCode = await Class.findOne({
+        where: { school_id, branch_id: final_branch_id, code },
+      });
+
+      if (existingClassByCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class code already exists for this branch',
+        });
       }
 
       // Create class
@@ -288,8 +322,9 @@ class ClassController {
         capacity: capacity || 30,
         sort_order: sort_order || 0,
         is_active,
+        has_stream,
         school_id,
-        branch_id,
+        branch_id: final_branch_id,
         created_by: req.user.id,
       });
 
@@ -310,6 +345,11 @@ class ClassController {
             model: User,
             as: 'createdBy',
             attributes: ['id', 'first_name', 'last_name'],
+          },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
           },
         ],
       });
@@ -338,7 +378,7 @@ class ClassController {
       }
 
       const { id } = req.params;
-      const { name, code, numeric_value, description, capacity, sort_order, is_active } = req.body;
+      const { name, code, numeric_value, description, capacity, sort_order, is_active, has_stream } = req.body;
 
       const classItem = await Class.findByPk(id);
       if (!classItem) {
@@ -364,20 +404,40 @@ class ClassController {
         });
       }
 
-      // Check if updated code conflicts with existing class
-      if (code && code !== classItem.code) {
-        const existingClass = await Class.findOne({
+      // Check if updated name conflicts with existing class in the same branch
+      if (name && name !== classItem.name) {
+        const existingClassByName = await Class.findOne({
           where: { 
             school_id: classItem.school_id, 
+            branch_id: classItem.branch_id,
+            name,
+            id: { [Op.ne]: id }
+          },
+        });
+
+        if (existingClassByName) {
+          return res.status(400).json({
+            success: false,
+            message: 'Class name already exists for this branch',
+          });
+        }
+      }
+
+      // Check if updated code conflicts with existing class in the same branch
+      if (code && code !== classItem.code) {
+        const existingClassByCode = await Class.findOne({
+          where: { 
+            school_id: classItem.school_id, 
+            branch_id: classItem.branch_id,
             code,
             id: { [Op.ne]: id }
           },
         });
 
-        if (existingClass) {
+        if (existingClassByCode) {
           return res.status(400).json({
             success: false,
-            message: 'Class code already exists for this school',
+            message: 'Class code already exists for this branch',
           });
         }
       }
@@ -391,6 +451,7 @@ class ClassController {
         capacity: capacity !== undefined ? capacity : classItem.capacity,
         sort_order: sort_order !== undefined ? sort_order : classItem.sort_order,
         is_active: is_active !== undefined ? is_active : classItem.is_active,
+        has_stream: has_stream !== undefined ? has_stream : classItem.has_stream,
         updated_by: req.user.id,
       });
 
@@ -422,6 +483,11 @@ class ClassController {
             as: 'sections',
             attributes: ['id', 'name', 'capacity', 'current_strength'],
           },
+          {
+            model: Stream,
+            as: 'streams',
+            attributes: ['id', 'name', 'code'],
+          },
         ],
       });
 
@@ -446,6 +512,10 @@ class ClassController {
           {
             model: Section,
             as: 'sections',
+          },
+          {
+            model: Stream,
+            as: 'streams',
           },
         ],
       });
@@ -478,6 +548,14 @@ class ClassController {
         return res.status(400).json({
           success: false,
           message: 'Cannot delete class with existing sections. Please delete sections first.',
+        });
+      }
+
+      // Check if class has streams
+      if (classItem.streams && classItem.streams.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete class with existing streams. Please delete streams first.',
         });
       }
 
@@ -517,8 +595,6 @@ class ClassController {
         whereClause.branch_id = req.user.branch_id;
       }
 
-      console.log('🔍 Fetching classes with whereClause:', whereClause);
-
       const classes = await Class.findAll({
         where: whereClause,
         attributes: ['id', 'name', 'code', 'numeric_value'],
@@ -531,8 +607,6 @@ class ClassController {
         ],
         order: [['sort_order', 'ASC'], ['name', 'ASC']],
       });
-
-      console.log('🔍 Found classes:', classes.length);
 
       res.json({
         success: true,

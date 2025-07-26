@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
 
@@ -36,6 +36,14 @@ const Section = sequelize.define('Section', {
     allowNull: false,
     defaultValue: true,
   },
+  sort_order: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: { args: [0], msg: 'Sort order cannot be negative' },
+    },
+  },
   class_id: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -43,6 +51,15 @@ const Section = sequelize.define('Section', {
       model: 'classes',
       key: 'id',
     },
+  },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
+      key: 'id',
+    },
+    comment: 'Links to stream for higher classes (11, 12). NULL for lower classes.',
   },
   class_teacher_id: {
     type: DataTypes.UUID,
@@ -62,7 +79,7 @@ const Section = sequelize.define('Section', {
   },
   branch_id: {
     type: DataTypes.UUID,
-    allowNull: true,
+    allowNull: false, // Changed from true to false - sections must always have a branch
     references: {
       model: 'branches',
       key: 'id',
@@ -89,16 +106,19 @@ const Section = sequelize.define('Section', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['class_id', 'name'], unique: true },
+    // Note: Unique constraint is handled at database level with COALESCE for NULL stream_id values
+    // The actual constraint: CREATE UNIQUE INDEX ON sections (class_id, branch_id, COALESCE(stream_id, '00000000-0000-0000-0000-000000000000'), name)
     { fields: ['class_id'] },
+    { fields: ['stream_id'] },
     { fields: ['class_teacher_id'] },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['is_active'] },
+    { fields: ['sort_order'] },
   ],
   hooks: {
     afterCreate: async (section) => {
-      logger.info(`New section created: ${section.name} for class ${section.class_id}`);
+      logger.info(`New section created: ${section.name} for class ${section.class_id} in branch ${section.branch_id}`);
     },
   },
 });
@@ -109,6 +129,12 @@ Section.associate = (models) => {
   Section.belongsTo(models.Class, {
     foreignKey: 'class_id',
     as: 'class',
+  });
+
+  // Section belongs to Stream (optional - for higher classes)
+  Section.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
   });
 
   // Section belongs to User (class_teacher)

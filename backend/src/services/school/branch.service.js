@@ -2,6 +2,7 @@ const { Branch, School, User } = require('../../models');
 const { Op } = require('sequelize');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
+const { RoleManager, ROLES } = require('../../utils/roleManager');
 
 class BranchService {
   // Create a new branch
@@ -12,8 +13,6 @@ class BranchService {
       
       // Prepare settings object
       const settings = {
-        currency: currency || 'INR',
-        currency_symbol: currency_symbol || '₹',
         system_logo: system_logo ? `/uploads/${system_logo.filename}` : null,
         text_logo: text_logo ? `/uploads/${text_logo.filename}` : null,
         printing_logo: printing_logo ? `/uploads/${printing_logo.filename}` : null,
@@ -22,6 +21,8 @@ class BranchService {
 
       const branch = await Branch.create({
         ...basicData,
+        currency: currency || 'INR',
+        currency_symbol: currency_symbol || '₹',
         settings
       });
 
@@ -110,13 +111,8 @@ class BranchService {
         throw new ApiError(404, 'Branch not found');
       }
 
-      // Access control: School Admin can only access branches in their school
-      if (user.role === 'school_admin' && user.school_id !== branch.school_id) {
-        throw new ApiError(403, 'Access denied');
-      }
-
-      // Access control: Branch Admin can only access their own branch
-      if (user.role === 'branch_admin' && user.branch_id !== id) {
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessBranch(user.role, user.school_id, user.branch_id, branch.school_id, branch.id)) {
         throw new ApiError(403, 'Access denied');
       }
 
@@ -136,14 +132,9 @@ class BranchService {
         throw new ApiError(404, 'Branch not found');
       }
 
-      // Access control: School Admin can only update branches in their school
-      if (user.role === 'school_admin' && user.school_id !== branch.school_id) {
-        throw new ApiError(403, 'Access denied - You can only update branches in your school');
-      }
-
-      // Access control: Branch Admin can only update their own branch
-      if (user.role === 'branch_admin' && user.branch_id !== id) {
-        throw new ApiError(403, 'Access denied - You can only update your own branch');
+      // Use RoleManager for access control
+      if (!RoleManager.canAccessBranch(user.role, user.school_id, user.branch_id, branch.school_id, branch.id)) {
+        throw new ApiError(403, 'Access denied - You can only update branches you have access to');
       }
 
       // Handle file uploads and settings

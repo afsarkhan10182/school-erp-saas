@@ -2,17 +2,17 @@
   <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
       <div class="mt-3">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            Quick Fee Collection
-          </h3>
-          <button
-            @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X class="h-6 w-6" />
-          </button>
-        </div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              Quick Fee Collection
+            </h3>
+            <button
+              @click="$emit('close')"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="h-6 w-6" />
+            </button>
+          </div>
 
         <!-- Student Selection -->
         <div class="mb-6">
@@ -25,7 +25,7 @@
               type="text"
               placeholder="Search by name or admission number..."
               class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              @input="searchStudents"
+              @input="debouncedSearch"
             />
             <button
               @click="searchStudents"
@@ -52,7 +52,7 @@
         </div>
 
         <!-- Selected Student Dues -->
-        <div v-if="selectedStudent && studentDues" class="mb-6">
+        <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
           <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
             <h4 class="font-medium text-gray-900 dark:text-white mb-2">
               {{ selectedStudent.first_name }} {{ selectedStudent.last_name }}
@@ -60,26 +60,102 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span class="text-gray-500 dark:text-gray-400">Total Dues:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.total_dues) }}</div>
+                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary?.total_dues || 0) }}</div>
               </div>
               <div>
                 <span class="text-gray-500 dark:text-gray-400">Overdue:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.overdue_amount) }}</div>
+                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary?.overdue_amount || 0) }}</div>
               </div>
               <div>
                 <span class="text-gray-500 dark:text-gray-400">Invoices:</span>
-                <div class="font-medium">{{ studentDues.summary.invoice_count }}</div>
+                <div class="font-medium">{{ studentDues.summary?.invoice_count || 0 }}</div>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Overdue Count:</span>
-                <div class="font-medium text-red-600">{{ studentDues.summary.overdue_count }}</div>
+                <span class="text-gray-500 dark:text-gray-400">Monthly Payments:</span>
+                <div class="font-medium">{{ studentDues.summary?.monthly_payment_count || 0 }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monthly Payments List -->
+          <div v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0" class="space-y-3 mb-6">
+            <h5 class="font-medium text-gray-900 dark:text-white">Monthly Payments</h5>
+            
+            <!-- Grouped Payments (Paid/Partial Paid) -->
+            <div v-if="groupedPayments.length > 0" class="space-y-3">
+              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Recent Payments</h6>
+              <div
+                v-for="payment in groupedPayments"
+                :key="payment.id"
+                class="border border-green-200 dark:border-green-600 rounded-lg p-3 bg-green-50 dark:bg-green-900/20"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="font-medium text-green-800 dark:text-green-200">
+                      {{ payment.display_name || `${payment.feeStructure?.feeType?.name || 'Fee'} - Group Payment` }}
+                    </div>
+                    <div class="text-sm text-green-600 dark:text-green-300">
+                      {{ payment.months_covered }} month{{ payment.months_covered > 1 ? 's' : '' }} covered: {{ payment.month_names }}
+                    </div>
+                    <div class="text-sm">
+                      <span class="text-green-600 dark:text-green-300">Total Paid:</span>
+                      <span class="font-medium text-green-800 dark:text-green-200">₹{{ formatCurrency(payment.paid_amount) }}</span>
+                      <span class="text-green-600 dark:text-green-300 ml-2">Payment Date:</span>
+                      <span class="font-medium">{{ formatDate(payment.payment_date) }}</span>
+                    </div>
+                  </div>
+                  <div class="ml-4">
+                    <span
+                      :class="getMonthlyStatusClass(payment.status)"
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    >
+                      {{ getMonthlyStatusText(payment.status) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ungrouped Payments (Sent/Overdue) -->
+            <div v-if="ungroupedPayments.length > 0" class="space-y-3">
+              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Pending Payments</h6>
+              <div
+                v-for="payment in ungroupedPayments"
+                :key="payment.id"
+                class="border border-gray-200 dark:border-gray-600 rounded-lg p-3"
+              >
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="font-medium">{{ payment.feeStructure?.feeType?.name || 'Fee' }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ getMonthName(payment.month) }} {{ payment.year }} | 
+                      {{ payment.feeStructure?.name || 'Fee Structure' }}
+                    </div>
+                    <div class="text-sm">
+                      <span class="text-gray-500 dark:text-gray-400">Due:</span>
+                      <span class="font-medium">₹{{ formatCurrency(payment.total_amount) }}</span>
+                      <span class="text-gray-500 dark:text-gray-400 ml-2">Paid:</span>
+                      <span class="font-medium">₹{{ formatCurrency(payment.paid_amount) }}</span>
+                      <span class="text-gray-500 dark:text-gray-400 ml-2">Balance:</span>
+                      <span class="font-medium text-red-600">₹{{ formatCurrency(payment.balance_amount) }}</span>
+                    </div>
+                  </div>
+                  <div class="ml-4">
+                    <span
+                      :class="getMonthlyStatusClass(payment.status)"
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    >
+                      {{ getMonthlyStatusText(payment.status) }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Invoice List -->
-          <div class="space-y-3">
-            <h5 class="font-medium text-gray-900 dark:text-white">Pending Invoices</h5>
+          <div v-if="studentDues?.invoices && studentDues.invoices.length > 0" class="space-y-3 mb-6">
+            <h5 class="font-medium text-gray-900 dark:text-white">Installment Invoices</h5>
             <div
               v-for="invoice in studentDues.invoices"
               :key="invoice.id"
@@ -87,10 +163,10 @@
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
-                  <div class="font-medium">{{ invoice.feeStructure.feeType.name }}</div>
+                  <div class="font-medium">{{ invoice.feeStructure?.feeType?.name || 'Fee' }}</div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">
                     Due: {{ formatDate(invoice.due_date) }} | 
-                    {{ invoice.feeStructure.name }}
+                    {{ invoice.feeStructure?.name || 'Fee Structure' }}
                   </div>
                   <div class="text-sm">
                     <span class="text-gray-500 dark:text-gray-400">Total:</span>
@@ -113,57 +189,83 @@
             </div>
           </div>
 
-          <!-- Quick Payment -->
-          <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-            <h5 class="font-medium text-blue-900 dark:text-blue-100 mb-3">Quick Payment</h5>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Amount
-                </label>
-                <input
-                  v-model="paymentForm.amount"
-                  type="number"
-                  step="0.01"
-                  :max="studentDues.summary.total_dues"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter amount"
-                />
+          <!-- Payment Form -->
+          <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <h5 class="font-medium text-gray-900 dark:text-white mb-3">Record Payment</h5>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Payment Amount
+                  </label>
+                  <input
+                    v-model="paymentForm.amount"
+                    type="number"
+                    step="0.01"
+                    :max="studentDues.summary.total_dues"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    v-model="paymentForm.payment_method"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                </div>
+                <div class="flex items-end">
+                  <button
+                    @click="submitPayment"
+                    :disabled="!paymentForm.amount || paymentForm.amount <= 0 || isSubmitting || validationMessage.includes('⚠️')"
+                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  v-model="paymentForm.payment_method"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div class="flex items-end">
+              <div class="text-sm text-gray-600 dark:text-gray-400">
                 <button
-                  @click="recordPayment"
-                  :disabled="!paymentForm.amount || paymentForm.amount <= 0 || isSubmitting"
-                  class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="paymentForm.amount = studentDues.summary.total_dues"
+                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
+                  Pay Full Amount (₹{{ formatCurrency(studentDues.summary.total_dues) }})
                 </button>
               </div>
-            </div>
-            <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <button
-                @click="paymentForm.amount = studentDues.summary.total_dues"
-                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Pay Full Amount (₹{{ formatCurrency(studentDues.summary.total_dues) }})
-              </button>
+              <!-- Validation Message -->
+              <div v-if="validationMessage" class="text-sm p-2 rounded-md" :class="{
+                'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-600': validationMessage.includes('⚠️'),
+                'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-600': validationMessage.includes('✅')
+              }">
+                <p>{{ validationMessage }}</p>
+              </div>
+              
+              <div class="text-xs text-gray-500 dark:text-gray-400">
+                <p>💡 System automatically picks earliest pending months first when you enter an amount.</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Receipt Display -->
+        <div v-if="lastPaymentReceipt" class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600">
+          <h5 class="font-medium text-blue-900 dark:text-blue-100 mb-3">Payment Receipt</h5>
+          <div class="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <div><strong>Receipt Number:</strong> {{ lastPaymentReceipt.receipt_number }}</div>
+            <div><strong>Payment Date:</strong> {{ formatDate(lastPaymentReceipt.payment_date) }}</div>
+            <div><strong>Amount:</strong> ₹{{ formatCurrency(lastPaymentReceipt.amount) }}</div>
+            <div><strong>Method:</strong> {{ lastPaymentReceipt.payment_method }}</div>
+
+          </div>
+
         </div>
 
         <!-- Loading State -->
@@ -177,9 +279,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { X } from 'lucide-vue-next';
+import { ref, computed, watch } from 'vue';
+import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
+import { useToast } from '~/composables/useToast';
+
+const { showSuccess, showError, showInfo } = useToast();
 
 const props = defineProps({
   show: {
@@ -190,13 +295,16 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'payment-recorded']);
 
+// Reactive data
 const searchQuery = ref('');
 const searchResults = ref([]);
 const selectedStudent = ref(null);
 const studentDues = ref(null);
 const isLoading = ref(false);
 const isSubmitting = ref(false);
+const lastPaymentReceipt = ref(null);
 
+// Payment form
 const paymentForm = ref({
   amount: '',
   payment_method: 'cash',
@@ -204,7 +312,18 @@ const paymentForm = ref({
   notes: ''
 });
 
-// Search students
+// Debounced search
+let searchTimeout = null;
+const debouncedSearch = () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+  searchTimeout = setTimeout(() => {
+    searchStudents();
+  }, 300);
+};
+
+// Search students with debouncing
 const searchStudents = async () => {
   if (!searchQuery.value.trim()) {
     searchResults.value = [];
@@ -239,42 +358,93 @@ const loadStudentDues = async (studentId) => {
     const response = await apiClient.feeInvoices.getStudentDues({
       student_id: studentId
     });
-    studentDues.value = response.data;
+    
+    // Ensure we have a proper structure with fallbacks
+    studentDues.value = {
+      summary: {
+        total_dues: 0,
+        overdue_amount: 0,
+        invoice_count: 0,
+        monthly_payment_count: 0,
+        ...response.data?.summary
+      },
+      invoices: response.data?.invoices || [],
+      monthly_payments: response.data?.monthly_payments || []
+    };
+    
   } catch (error) {
     console.error('Error loading student dues:', error);
-    studentDues.value = null;
+    // Set default structure on error
+    studentDues.value = {
+      summary: {
+        total_dues: 0,
+        overdue_amount: 0,
+        invoice_count: 0,
+        monthly_payment_count: 0
+      },
+      invoices: [],
+      monthly_payments: []
+    };
   } finally {
     isLoading.value = false;
   }
 };
 
-// Record payment
-const recordPayment = async () => {
-  if (!selectedStudent.value || !studentDues.value) return;
+
+
+// Submit smart payment
+const submitPayment = async () => {
+  if (!selectedStudent.value || !paymentForm.value.amount) {
+    return;
+  }
 
   isSubmitting.value = true;
   try {
-    // Find the first unpaid invoice to record payment against
-    const unpaidInvoice = studentDues.value.invoices.find(inv => inv.balance_amount > 0);
+    const response = await apiClient.feeInvoices.recordSmartPayment({
+      student_id: selectedStudent.value.id,
+      payment_amount: parseFloat(paymentForm.value.amount),
+      payment_method: paymentForm.value.payment_method,
+      payment_date: paymentForm.value.payment_date,
+      notes: paymentForm.value.notes
+    });
     
-    if (!unpaidInvoice) {
-      alert('No unpaid invoices found');
-      return;
-    }
-
-    await apiClient.feeInvoices.recordPayment(unpaidInvoice.id, paymentForm.value);
+    // Reset form
+    paymentForm.value = {
+      amount: '',
+      payment_method: 'cash',
+      payment_date: new Date().toISOString().split('T')[0],
+      notes: ''
+    };
     
     // Reload student dues
     await loadStudentDues(selectedStudent.value.id);
     
-    // Reset payment form
-    paymentForm.value.amount = '';
-    
+    // Emit success event
     emit('payment-recorded');
-    alert('Payment recorded successfully!');
+    
+    // Store receipt data (without months info)
+    const data = response.data;
+    lastPaymentReceipt.value = {
+      receipt_number: data.receipt_group_id,
+      payment_date: data.applied_payments[0]?.payment_date || new Date(),
+      amount: data.total_payment_amount,
+      payment_method: paymentForm.value.payment_method,
+      receipt_html: data.combined_receipt
+    };
+    
+    // Show simple success message
+    showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
+    
+    // Close modal on success
+    emit('close');
+    
   } catch (error) {
-    console.error('Error recording payment:', error);
-    alert('Error recording payment. Please try again.');
+    console.error('Error recording auto payment:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error recording payment');
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -307,10 +477,40 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
+const getMonthlyStatusClass = (status) => {
+  const classes = {
+    pending: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    partial: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  };
+  return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+};
+
+const getMonthlyStatusText = (status) => {
+  const texts = {
+    pending: 'Pending',
+    partial: 'Partial Paid',
+    paid: 'Paid',
+    overdue: 'Overdue',
+  };
+  return texts[status] || status;
+};
+
+const getMonthName = (monthNumber) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[monthNumber - 1];
+};
+
+
+
 // Watch for show prop changes
-watch(() => props.show, (newVal) => {
-  if (!newVal) {
-    // Reset form when modal closes
+watch(() => props.show, (newValue) => {
+  if (newValue) {
+    // Reset form when modal opens
     searchQuery.value = '';
     searchResults.value = [];
     selectedStudent.value = null;
@@ -321,6 +521,55 @@ watch(() => props.show, (newVal) => {
       payment_date: new Date().toISOString().split('T')[0],
       notes: ''
     };
+    lastPaymentReceipt.value = null;
   }
+});
+
+// Watch for search query changes to trigger debounced search
+watch(searchQuery, () => {
+  debouncedSearch();
+});
+
+// Computed properties
+const groupedPayments = computed(() => {
+  if (!studentDues.value?.monthly_payments) return [];
+  
+  return studentDues.value.monthly_payments
+    .filter(payment => payment.status === 'paid' || payment.status === 'partial')
+    .slice(0, 3); // Show only last 3 payments
+});
+
+const ungroupedPayments = computed(() => {
+  if (!studentDues.value?.monthly_payments) return [];
+  return studentDues.value.monthly_payments.filter(payment => payment.is_grouped !== true);
+});
+
+const monthlyFeeAmount = computed(() => {
+  if (!studentDues.value?.monthly_payments) return 0;
+  const firstPendingPayment = ungroupedPayments.value[0];
+  return firstPendingPayment ? firstPendingPayment.total_amount : 0;
+});
+
+const validationMessage = computed(() => {
+  if (!paymentForm.value.amount || !studentDues.value?.summary) {
+    return '';
+  }
+
+  const amount = parseFloat(paymentForm.value.amount);
+  const totalDues = studentDues.value.summary.total_dues;
+  const monthlyFee = studentDues.value.summary.monthly_fee || 0;
+
+  if (amount > totalDues) {
+    return `⚠️ Amount exceeds total dues. Maximum amount: ₹${totalDues.toLocaleString()}`;
+  }
+
+  if (monthlyFee > 0) {
+    const monthsCovered = Math.floor(amount / monthlyFee);
+    if (monthsCovered > 0) {
+      return `✅ Amount covers ${monthsCovered} month${monthsCovered > 1 ? 's' : ''} at ₹${monthlyFee} each`;
+    }
+  }
+  
+  return '';
 });
 </script> 

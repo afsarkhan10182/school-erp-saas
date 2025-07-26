@@ -10,10 +10,9 @@ export function useBranches() {
   const fetchBranches = async (schoolId: string) => {
     loading.value = true;
     error.value = '';
-    console.log('[useBranches] Fetching branches for school:', schoolId);
     try {
-      const response = await apiClient.branches.getAll(schoolId);
-      console.log('[useBranches] API response:', response);
+      const response = await apiClient.branches.getBySchool(schoolId);
+      
       if (response.success) {
         // Handle different response structures
         const responseData = response.data as any;
@@ -29,15 +28,18 @@ export function useBranches() {
         } else {
           branches.value = [];
         }
-        console.log('[useBranches] Set branches array:', branches.value);
+        return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
+        console.error('❌ Branches API error:', response.message);
+        branches.value = [];
+        return [];
       }
-      return response;
     } catch (e) {
-      console.error('Error fetching branches:', e);
-      error.value = 'Network error.';
-      return { success: false, message: 'Network error.' };
+      console.error('❌ Error fetching branches:', e);
+      error.value = 'Network error while fetching branches.';
+      branches.value = [];
+      return [];
     } finally {
       loading.value = false;
     }
@@ -48,7 +50,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getAll(undefined, params);
+      const response = await apiClient.branches.getAll(params);
       if (response.success) {
         // Handle different response structures
         const responseData = response.data as any;
@@ -83,14 +85,11 @@ export function useBranches() {
       // For FormData, we need to use direct fetch since axios doesn't handle it well
       const config = useRuntimeConfig();
       const apiBase = config.public.apiBase;
-      const token = useCookie('auth-token').value;
       
+      // Don't set Authorization header - let cookies be sent automatically
       const res = await fetch(`${apiBase}/branches`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Do not set Content-Type for FormData
-        },
+        credentials: 'include', // Include cookies automatically
         body: formData
       });
       const data = await res.json();
@@ -101,6 +100,56 @@ export function useBranches() {
       return data.data;
     } catch (e) {
       console.error('Error creating branch:', e);
+      error.value = 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Get branch by ID
+  const getBranchById = async (branchId: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.branches.getById(branchId);
+      if (!response.success) {
+        error.value = response.message || 'Failed to fetch branch.';
+        return null;
+      }
+      return response.data;
+    } catch (e) {
+      console.error('Error fetching branch:', e);
+      error.value = 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Update a branch (with file upload support)
+  const updateBranch = async (branchId: string, formData: FormData) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      // For FormData, we need to use direct fetch since axios doesn't handle it well
+      const config = useRuntimeConfig();
+      const apiBase = config.public.apiBase;
+      
+      // Don't set Authorization header - let cookies be sent automatically
+      const res = await fetch(`${apiBase}/branches/${branchId}`, {
+        method: 'PUT',
+        credentials: 'include', // Include cookies automatically
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.success) {
+        error.value = data.message || 'Failed to update branch.';
+        return null;
+      }
+      return data.data;
+    } catch (e) {
+      console.error('Error updating branch:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -135,6 +184,8 @@ export function useBranches() {
     fetchBranches,
     fetchAllBranches,
     createBranch,
+    getBranchById,
+    updateBranch,
     deleteBranch
   };
 } 

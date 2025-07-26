@@ -31,6 +31,26 @@ export function useSubscriptions() {
     }
   };
 
+  // Get single school with subscription details
+  const getSchoolWithSubscription = async (id: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getSchoolWithSubscription(id);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch school.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Get all subscription plans
   const fetchPlans = async (params = {}) => {
     loading.value = true;
@@ -42,6 +62,26 @@ export function useSubscriptions() {
         return response;
       } else {
         error.value = response.message || 'Failed to fetch plans.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Get single subscription plan by ID
+  const getPlanById = async (id: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getPlanById(id);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch plan.';
         return null;
       }
     } catch (e: any) {
@@ -115,14 +155,20 @@ export function useSubscriptions() {
     error.value = '';
     try {
       const response = await apiClient.subscriptions.createSchoolWithSubscription(formData);
+      
       if (!response.success) {
-        error.value = response.message || 'Failed to create school with subscription.';
-        return null;
+        // Create an error object that mimics axios error structure
+        const apiError = new Error(response.message || 'Failed to create school with subscription.');
+        (apiError as any).response = {
+          data: response,
+          status: 400
+        };
+        throw apiError;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || 'Network error.';
-      return null;
+      // Let the component handle the error details
+      throw e;
     } finally {
       loading.value = false;
     }
@@ -245,6 +291,76 @@ export function useSubscriptions() {
     }
   };
 
+  // Get renewal requests (for super admin)
+  const fetchRenewalRequests = async (params = {}) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getRenewalRequests(params);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch renewal requests.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Create renewal request (for school admins)
+  const createRenewalRequest = async (requestData: any) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.createRenewalRequest(requestData);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to create renewal request.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Review renewal request (for super admin)
+  const reviewRenewalRequest = async (requestId: string, reviewData: any) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.reviewRenewalRequest(requestId, reviewData);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to review renewal request.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const checkAndUpdateAllStatuses = async () => {
+    try {
+      const response = await apiClient.subscriptions.checkAllStatuses();
+      return response.data;
+    } catch (error) {
+      console.error('Error checking subscription statuses:', error);
+      throw error;
+    }
+  };
+
   return {
     schools,
     plans,
@@ -252,7 +368,9 @@ export function useSubscriptions() {
     loading,
     error,
     fetchSchoolsWithSubscriptions,
+    getSchoolWithSubscription,
     fetchPlans,
+    getPlanById,
     createPlan,
     updatePlan,
     deletePlan,
@@ -262,6 +380,10 @@ export function useSubscriptions() {
     createManualTransaction,
     fetchSubscriptionStats,
     suspendSchool,
-    reactivateSchool
+    reactivateSchool,
+    fetchRenewalRequests,
+    createRenewalRequest,
+    reviewRenewalRequest,
+    checkAndUpdateAllStatuses
   };
 } 

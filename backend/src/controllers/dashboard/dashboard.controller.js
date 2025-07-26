@@ -1,4 +1,4 @@
-const { User, School, Branch, FeeInvoice, Admission, Student } = require('../../models');
+const { User, School, Branch, FeeInvoice, Student } = require('../../models');
 const { Sequelize } = require('../../config/database');
 const SchoolService = require('../../services/school/school.service');
 const BranchService = require('../../services/school/branch.service');
@@ -10,6 +10,8 @@ class DashboardController {
   static async getStats(req, res, next) {
     try {
       const user = req.user;
+      const { branch_id, new_students_days = 30 } = req.query;
+      console.log('🔍 Dashboard getStats called for user:', user.role, 'branch_id:', branch_id, 'new_students_days:', new_students_days);
       let stats = {};
 
       if (user.role === 'super_admin') {
@@ -31,23 +33,53 @@ class DashboardController {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
         
-        const [totalStudents, totalBranches, newAdmissions, feeCollection] = await Promise.all([
-          Student.count({ where: { school_id: user.school_id } }),
-          Branch.count({ where: { school_id: user.school_id } }),
-          // Count admissions in last 30 days
-          Admission.count({ 
+        // Build where clause for school with optional branch filter
+        let schoolWhere = { school_id: user.school_id };
+        let branchWhere = { school_id: user.school_id };
+        
+        if (branch_id) {
+          schoolWhere.branch_id = branch_id;
+          branchWhere.id = branch_id;
+        }
+        
+        const [totalStudents, totalBranches, newStudents, feeCollection, activeStudents, pendingFees, overdueFees] = await Promise.all([
+          Student.count({ where: schoolWhere }),
+          Branch.count({ where: branchWhere }),
+          // Count new students in last N days
+          Student.count({ 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               created_at: {
-                [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
               }
             } 
           }),
-          // Calculate fee collection for the school
+          // Calculate fee collection for the school/branch
           FeeInvoice.sum('paid_amount', { 
             where: { 
-              school_id: user.school_id,
+              ...schoolWhere,
               status: 'paid'
+            } 
+          }),
+          // Count active students (students with status 'active' or null)
+          Student.count({ 
+            where: { 
+              ...schoolWhere,
+              status: { [Op.or]: ['active', null] }
+            } 
+          }),
+          // Count pending invoices (sent status)
+          FeeInvoice.count({ 
+            where: { 
+              ...schoolWhere,
+              status: 'sent'
+            } 
+          }),
+          // Count overdue invoices
+          FeeInvoice.count({ 
+            where: { 
+              ...schoolWhere,
+              status: 'overdue'
             } 
           })
         ]);
@@ -55,16 +87,28 @@ class DashboardController {
         stats = {
           totalStudents,
           totalBranches,
-          newAdmissions,
+          newStudents, // New students in last N days
+          newStudentsDays: parseInt(new_students_days),
           feeCollection: feeCollection || 0,
+          activeStudents,
+          pendingFees,
+          overdueFees,
         };
+        console.log('✅ School admin stats calculated:', stats);
       } else if (user.role === 'branch_admin') {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
         
-        const [branchStudents, pendingAdmissions, branchCollection, overdueFees] = await Promise.all([
+        const [totalStudents, newStudents, feeCollection, overdueFees, activeStudents, pendingFees, totalInvoices, paidInvoices] = await Promise.all([
           Student.count({ where: { branch_id: user.branch_id } }),
-          Admission.count({ where: { branch_id: user.branch_id, status: 'pending' } }),
+          Student.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              created_at: {
+                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
+              }
+            } 
+          }),
           // Calculate fee collection for the branch
           FeeInvoice.sum('paid_amount', { 
             where: { 
@@ -78,14 +122,46 @@ class DashboardController {
               branch_id: user.branch_id,
               status: 'overdue'
             } 
+          }),
+          // Count active students
+          Student.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: { [Op.or]: ['active', null] }
+            } 
+          }),
+          // Count pending invoices (sent status)
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'sent'
+            } 
+          }),
+          // Count total invoices
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id
+            } 
+          }),
+          // Count paid invoices
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'paid'
+            } 
           })
         ]);
         
         stats = {
-          branchStudents,
-          pendingAdmissions,
-          branchCollection: branchCollection || 0,
+          totalStudents,
+          newStudents,
+          newStudentsDays: parseInt(new_students_days),
+          feeCollection: feeCollection || 0,
           overdueFees,
+          activeStudents,
+          pendingFees,
+          totalInvoices,
+          paidInvoices,
         };
       } else {
         // For other roles, return basic info
@@ -120,7 +196,10 @@ class DashboardController {
       const expiringTrials = await School.findAll({
         where: {
           status: 'trial',
-          subscription_end_date: { $lte: in7days, $gte: now }
+          subscription_end_date: { 
+            [Op.lte]: in7days, 
+            [Op.gte]: now 
+          }
         },
         attributes: ['id', 'name', 'email', 'subscription_end_date']
       });
@@ -188,33 +267,32 @@ class DashboardController {
 
       if (user.role === 'super_admin') {
         // Get recent activities across all schools - simplified without complex associations
-        const [recentAdmissions, recentPayments, recentUsers] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments, recentUsers] = await Promise.all([
+          Student.findAll({
             limit: Math.ceil(limit / 3),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at', 'school_id']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { status: 'paid' },
             limit: Math.ceil(limit / 3),
             order: [['last_payment_date', 'DESC']],
-            attributes: ['id', 'paid_amount', 'last_payment_date', 'school_id']
+            attributes: ['id', 'paid_amount', 'last_payment_date']
           }).catch(() => []),
           User.findAll({
             limit: Math.ceil(limit / 3),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at', 'school_id']
+            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at']
           }).catch(() => [])
         ]);
 
-        // Convert to activity format
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -231,21 +309,21 @@ class DashboardController {
         recentUsers.forEach(user => {
           activities.push({
             id: `user_${user.id}`,
-            type: 'user_registration',
-            title: 'New User Registration',
-            description: `${user.first_name || 'User'} ${user.last_name || ''} (${user.role || 'user'}) registered`,
+            type: 'user_created',
+            title: 'New User Created',
+            description: `${user.first_name} ${user.last_name} (${user.role})`,
             created_at: user.created_at ? new Date(user.created_at).toISOString() : null
           });
         });
 
       } else if (user.role === 'school_admin') {
         // Get recent activities for the school
-        const [recentAdmissions, recentPayments] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments] = await Promise.all([
+          Student.findAll({
             where: { school_id: user.school_id },
             limit: Math.ceil(limit / 2),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { 
@@ -258,13 +336,13 @@ class DashboardController {
           }).catch(() => [])
         ]);
 
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -280,12 +358,12 @@ class DashboardController {
 
       } else if (user.role === 'branch_admin') {
         // Get recent activities for the branch
-        const [recentAdmissions, recentPayments] = await Promise.all([
-          Admission.findAll({
+        const [recentStudents, recentPayments] = await Promise.all([
+          Student.findAll({
             where: { branch_id: user.branch_id },
             limit: Math.ceil(limit / 2),
             order: [['created_at', 'DESC']],
-            attributes: ['id', 'application_number', 'status', 'created_at']
+            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
           }).catch(() => []),
           FeeInvoice.findAll({
             where: { 
@@ -298,13 +376,13 @@ class DashboardController {
           }).catch(() => [])
         ]);
 
-        recentAdmissions.forEach(admission => {
+        recentStudents.forEach(student => {
           activities.push({
-            id: `admission_${admission.id}`,
-            type: 'student_admission',
-            title: 'New Student Admission',
-            description: `Application ${admission.application_number} (${admission.status})`,
-            created_at: admission.created_at ? new Date(admission.created_at).toISOString() : null
+            id: `student_${student.id}`,
+            type: 'student_created',
+            title: 'New Student Created',
+            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
+            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
           });
         });
 
@@ -337,7 +415,7 @@ class DashboardController {
     }
   }
 
-  static async getAdmissionsChartData(req, res, next) {
+  static async getStudentsChartData(req, res, next) {
     try {
       const user = req.user;
       let where = {};
@@ -347,7 +425,7 @@ class DashboardController {
         where.branch_id = user.branch_id;
       }
 
-      const admissions = await Admission.findAll({
+      const students = await Student.findAll({
         where,
         attributes: [
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
@@ -357,12 +435,18 @@ class DashboardController {
         order: [[Sequelize.col('month'), 'ASC']],
       });
 
-      const labels = admissions.map(a => new Date(a.get('month')).toLocaleString('default', { month: 'short' }));
-      const data = admissions.map(a => a.get('count'));
+      const labels = students.map(s => new Date(s.get('month')).toLocaleString('default', { month: 'short' }));
+      const data = students.map(s => s.get('count'));
+
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
 
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
-      logger.error('Error in DashboardController.getAdmissionsChartData:', error);
+      logger.error('Error in DashboardController.getStudentsChartData:', error);
       next(error);
     }
   }
@@ -374,22 +458,48 @@ class DashboardController {
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
+      // Get amounts by status instead of counts
       const fees = await FeeInvoice.findAll({
         where,
         attributes: [
           'status',
-          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+          [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
+          [Sequelize.fn('sum', Sequelize.col('balance_amount')), 'total_pending'],
         ],
         group: ['status'],
       });
 
-      const labels = fees.map(f => f.status);
-      const data = fees.map(f => f.get('count'));
+      // Process the data to create proper chart labels and data
+      const chartData = {
+        labels: ['Paid', 'Pending', 'Overdue'],
+        data: [0, 0, 0] // Initialize with zeros
+      };
 
-      res.json({ success: true, data: { labels, data } });
+      fees.forEach(fee => {
+        const status = fee.status;
+        const paidAmount = parseFloat(fee.get('total_paid') || 0);
+        const pendingAmount = parseFloat(fee.get('total_pending') || 0);
+
+        if (status === 'paid') {
+          chartData.data[0] += paidAmount; // Paid
+        } else if (status === 'sent' || status === 'partial_paid') {
+          chartData.data[1] += pendingAmount; // Pending
+        } else if (status === 'overdue') {
+          chartData.data[2] += pendingAmount; // Overdue
+        }
+      });
+
+      // If no data, provide default structure
+      if (chartData.data.every(amount => amount === 0)) {
+        chartData.labels = ['No Data'];
+        chartData.data = [0];
+      }
+
+      res.json({ success: true, data: chartData });
     } catch (error) {
       logger.error('Error in DashboardController.getFeesChartData:', error);
       next(error);
@@ -403,6 +513,7 @@ class DashboardController {
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
@@ -419,6 +530,12 @@ class DashboardController {
       const labels = students.map(s => s.current_class || 'Unknown');
       const data = students.map(s => s.get('count'));
 
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
+
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
       logger.error('Error in DashboardController.getStudentDistributionData:', error);
@@ -429,19 +546,21 @@ class DashboardController {
   static async getFeeTrendData(req, res, next) {
     try {
       const user = req.user;
+      const { months = 6 } = req.query;
       let where = {};
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
       } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
         where.branch_id = user.branch_id;
       }
 
-      // Get fee collection data for last 6 months
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      // Get fee collection data for last N months
+      const monthsAgo = new Date();
+      monthsAgo.setMonth(monthsAgo.getMonth() - parseInt(months));
       
       where.created_at = {
-        [Op.gte]: sixMonthsAgo
+        [Op.gte]: monthsAgo
       };
 
       const fees = await FeeInvoice.findAll({
@@ -450,16 +569,174 @@ class DashboardController {
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
           [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
         ],
-        group: ['month'],
-        order: [[Sequelize.col('month'), 'ASC']],
+        group: [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at'))],
+        order: [[Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'ASC']],
       });
 
       const labels = fees.map(f => new Date(f.get('month')).toLocaleString('default', { month: 'short' }));
       const data = fees.map(f => parseFloat(f.get('total_paid') || 0));
 
+      // If no data, provide default structure
+      if (labels.length === 0) {
+        labels.push('No Data');
+        data.push(0);
+      }
+
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
       logger.error('Error in DashboardController.getFeeTrendData:', error);
+      next(error);
+    }
+  }
+
+  static async getFeeCollectionSummary(req, res, next) {
+    try {
+      const user = req.user;
+      const { academic_year } = req.query;
+      console.log('🔍 Fee collection summary called for user:', user.role, 'academic_year:', academic_year);
+      
+      // Get current academic year from database if not provided
+      let targetAcademicYear = academic_year;
+      if (!targetAcademicYear) {
+        const { getCurrentAcademicYearForSchool } = require('../../utils/academicYearUtils');
+        const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
+        targetAcademicYear = currentAcademicYear ? currentAcademicYear.name : null;
+        
+        if (!targetAcademicYear) {
+          // Fallback to calculated academic year if no current year in database
+          const currentYear = new Date().getFullYear();
+          const currentMonth = new Date().getMonth() + 1; // 1-12
+          targetAcademicYear = currentMonth >= 6 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+        }
+      }
+
+      let where = {};
+      let branchWhere = {};
+      
+      // Only filter by academic year if explicitly provided
+      if (targetAcademicYear) {
+        where.academic_year = targetAcademicYear;
+      }
+
+      if (user.role === 'super_admin') {
+        // Super admin can see all schools
+        // No additional filters needed
+      } else if (user.role === 'school_admin') {
+        where.school_id = user.school_id;
+        branchWhere.school_id = user.school_id;
+        
+        // Add branch filter if provided
+        if (req.query.branch_id) {
+          where.branch_id = req.query.branch_id;
+          branchWhere.id = req.query.branch_id;
+        }
+      } else if (user.role === 'branch_admin') {
+        where.school_id = user.school_id;
+        where.branch_id = user.branch_id;
+        branchWhere.id = user.branch_id;
+      } else {
+        throw new ApiError(403, 'Access denied');
+      }
+
+      // Get total collected and pending amounts
+      console.log('🔍 Dashboard query where clause:', JSON.stringify(where, null, 2));
+      
+      const [totalCollected, totalPending] = await Promise.all([
+        FeeInvoice.sum('paid_amount', { 
+          where: { 
+            ...where, 
+            status: { [Op.in]: ['paid', 'partial_paid'] } 
+          } 
+        }),
+        FeeInvoice.sum('balance_amount', { 
+          where: { 
+            ...where, 
+            status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
+          } 
+        })
+      ]);
+      
+      console.log('💰 Dashboard calculation results:');
+      console.log('   - Total Collected (paid invoices):', totalCollected);
+      console.log('   - Total Pending (balance_amount):', totalPending);
+      
+      // Also get all invoices for debugging
+      const allInvoices = await FeeInvoice.findAll({
+        where,
+        attributes: ['id', 'invoice_number', 'total_amount', 'paid_amount', 'balance_amount', 'status', 'academic_year'],
+        raw: true
+      });
+      console.log('📋 All invoices found:', allInvoices.length);
+      allInvoices.forEach(inv => {
+        console.log(`   - ${inv.invoice_number}: paid=${inv.paid_amount}, balance=${inv.balance_amount}, status=${inv.status}`);
+      });
+
+      // Get branch-wise breakdown for school admin and super admin
+      let branchBreakdown = [];
+      if (user.role === 'school_admin' || user.role === 'super_admin') {
+        const branches = await Branch.findAll({
+          where: branchWhere,
+          attributes: ['id', 'name']
+        });
+
+        // Get fee data for each branch
+        const branchFeeData = await Promise.all(
+          branches.map(async (branch) => {
+            const branchWhereClause = { 
+              ...where, 
+              branch_id: branch.id 
+            };
+
+            const [collected, pending] = await Promise.all([
+              FeeInvoice.sum('paid_amount', { 
+                where: { ...branchWhereClause, status: 'paid' } 
+              }),
+              FeeInvoice.sum('balance_amount', { 
+                where: { 
+                  ...branchWhereClause, 
+                  status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
+                } 
+              })
+            ]);
+
+            return {
+              id: branch.id,
+              name: branch.name,
+              total_collected: parseFloat(collected || 0),
+              total_pending: parseFloat(pending || 0)
+            };
+          })
+        );
+
+        // Filter out branches with no fee data
+        branchBreakdown = branchFeeData.filter(branch => 
+          branch.total_collected > 0 || branch.total_pending > 0
+        );
+      }
+
+      // Get additional statistics
+      const [totalInvoices, paidInvoices, pendingInvoices, overdueInvoices] = await Promise.all([
+        FeeInvoice.count({ where }),
+        FeeInvoice.count({ where: { ...where, status: 'paid' } }),
+        FeeInvoice.count({ where: { ...where, status: { [Op.in]: ['sent', 'partial_paid'] } } }),
+        FeeInvoice.count({ where: { ...where, status: 'overdue' } })
+      ]);
+
+      const summary = {
+        academic_year: targetAcademicYear,
+        total_collected: parseFloat(totalCollected || 0),
+        total_pending: parseFloat(totalPending || 0),
+        total_invoices: totalInvoices,
+        paid_invoices: paidInvoices,
+        pending_invoices: pendingInvoices,
+        overdue_invoices: overdueInvoices,
+        collection_rate: totalInvoices > 0 ? ((paidInvoices / totalInvoices) * 100).toFixed(1) : 0,
+        branch_breakdown: branchBreakdown
+      };
+
+      res.json({ success: true, data: summary });
+    } catch (error) {
+      logger.error('Error in DashboardController.getFeeCollectionSummary:', error);
       next(error);
     }
   }

@@ -1,6 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
+const { ModuleConfig } = require('../utils/moduleConfig');
+const ApiError = require('../utils/ApiError');
 
 const Student = sequelize.define('Student', {
   id: {
@@ -28,14 +30,24 @@ const Student = sequelize.define('Student', {
   },
   last_name: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Last name is required' },
-    },
+    allowNull: true,
   },
   middle_name: {
     type: DataTypes.STRING(50),
     allowNull: true,
+  },
+  aadhaar_number: {
+    type: DataTypes.STRING(12),
+    allowNull: true,
+    validate: {
+      isAadhaarValid(value) {
+        if (value && value.trim() !== '') {
+          if (!/^\d{12}$/.test(value)) {
+            throw new Error('Aadhaar number must be exactly 12 digits');
+          }
+        }
+      },
+    },
   },
   date_of_birth: {
     type: DataTypes.DATEONLY,
@@ -67,6 +79,7 @@ const Student = sequelize.define('Student', {
   category: {
     type: DataTypes.ENUM('general', 'obc', 'sc', 'st', 'other'),
     allowNull: true,
+    defaultValue: 'general',
   },
   nationality: {
     type: DataTypes.STRING(50),
@@ -81,7 +94,14 @@ const Student = sequelize.define('Student', {
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
-      isEmail: { msg: 'Please provide a valid email' },
+      isEmailValid(value) {
+        if (value && value.trim() !== '') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            throw new Error('Please provide a valid email');
+          }
+        }
+      },
     },
   },
   phone: {
@@ -144,6 +164,14 @@ const Student = sequelize.define('Student', {
       key: 'id',
     },
   },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
+      key: 'id',
+    },
+  },
   section_id: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -154,13 +182,24 @@ const Student = sequelize.define('Student', {
   },
   academic_year: {
     type: DataTypes.STRING(10),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Academic year is required' },
-    },
+    allowNull: true,
+    // Removed defaultValue to prevent single year format (e.g., "2025")
+    // Academic year should always be in format "2025-2026" and set by controller logic
+  },
+  // Junior College specific fields
+  admission_sought_in: {
+    type: DataTypes.ENUM('arts', 'commerce', 'science'),
+    allowNull: true,
+    comment: 'Stream selection (Arts/Commerce/Science)'
+  },
+  previous_exam_details: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Previous exam details (SSC, FYJC, SYJC, etc.)'
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive', 'transferred', 'graduated', 'dropped'),
+    type: DataTypes.ENUM('active', 'inactive', 'transferred', 'graduated', 'dropped', 'deleted'),
     allowNull: false,
     defaultValue: 'active',
   },
@@ -227,8 +266,8 @@ const Student = sequelize.define('Student', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { fields: ['school_id', 'admission_number'], unique: true },
-    { fields: ['school_id', 'roll_number'], unique: true },
+    { fields: ['school_id', 'branch_id', 'admission_number'], unique: true },
+    { fields: ['school_id', 'branch_id', 'class_id', 'section_id', 'roll_number'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['status'] },
@@ -238,9 +277,45 @@ const Student = sequelize.define('Student', {
     { fields: ['class_id'] },
     { fields: ['section_id'] },
     { fields: ['class_id', 'section_id'] },
+    { fields: ['branch_id', 'class_id', 'section_id'] },
   ],
   hooks: {
     beforeCreate: async (student) => {
+      // Check subscription limits
+      const School = require('./school.model');
+      const SubscriptionPlan = require('./subscription-plan.model');
+      const school = await School.findByPk(student.school_id);
+      if (school) {
+        // First try to get plan from database
+        let plan = null;
+        if (school.subscription_plan) {
+          plan = await SubscriptionPlan.findOne({
+            where: { code: school.subscription_plan, is_active: true }
+          });
+        }
+
+        // If not found in database, fall back to ModuleConfig
+        if (!plan) {
+          plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+        }
+
+        if (plan) {
+          const maxStudents = plan.max_students || plan.maxStudents || 50;
+          if (maxStudents !== -1) {
+            const studentCount = await Student.count({ 
+              where: { 
+                school_id: student.school_id,
+                status: { [require('sequelize').Op.ne]: 'deleted' }
+              } 
+            });
+            
+            if (studentCount >= maxStudents) {
+              throw new Error(`Student limit reached. Maximum ${maxStudents} students allowed in your current plan. Please upgrade to add more students.`);
+            }
+          }
+        }
+      }
+      
       // Generate admission number if not provided
       if (!student.admission_number) {
         const year = new Date().getFullYear();
@@ -292,6 +367,12 @@ Student.associate = (models) => {
     as: 'class',
   });
 
+  // Student belongs to Stream
+  Student.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
+  });
+
   // Student belongs to Section
   Student.belongsTo(models.Section, {
     foreignKey: 'section_id',
@@ -313,11 +394,7 @@ Student.associate = (models) => {
   //   as: 'feeInvoices',
   // });
 
-  // Student has many Admissions
-  Student.hasMany(models.Admission, {
-    foreignKey: 'student_id',
-    as: 'admissions',
-  });
+
 };
 
 module.exports = Student;

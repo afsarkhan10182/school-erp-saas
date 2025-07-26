@@ -51,6 +51,15 @@
         </div>
       </div>
       <div>
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Modules Enabled *</label>
+        <div class="flex flex-wrap gap-2">
+          <label v-for="module in allModules" :key="module" class="inline-flex items-center text-gray-700 dark:text-gray-300">
+            <input type="checkbox" v-model="form.modules" :value="module" class="mr-1" />
+            {{ module }}
+          </label>
+        </div>
+      </div>
+      <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
         <textarea v-model="form.description" class="input-field" rows="2"></textarea>
       </div>
@@ -68,9 +77,21 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access subscription plans
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage subscription plans.');
+  await navigateTo('/dashboard');
+}
 
 const { createPlan, loading, error, plans, fetchPlans } = useSubscriptions();
 
@@ -79,6 +100,10 @@ onMounted(async () => {
   await fetchPlans();
 });
 const router = useRouter();
+
+const allModules = [
+  'students', 'fees', 'attendance', 'exams', 'library', 'transport', 'hr', 'reports', 'settings'
+];
 
 const form = ref({
   name: '',
@@ -89,7 +114,7 @@ const form = ref({
   max_students: 100,
   max_staff: 20,
   max_branches: 1,
-  modules: ['academics', 'attendance', 'fees'],
+  modules: ['students', 'fees', 'attendance'],
   description: '',
   is_active: true,
   sort_order: 1

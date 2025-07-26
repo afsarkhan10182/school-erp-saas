@@ -131,6 +131,33 @@ status: {
     allowNull: false,
     defaultValue: 1,
   },
+  payment_model: {
+    type: DataTypes.ENUM('installment', 'monthly'),
+    allowNull: false,
+    defaultValue: 'installment',
+    validate: {
+      isIn: {
+        args: [['installment', 'monthly']],
+        msg: 'Payment model must be either installment or monthly'
+      }
+    }
+  },
+  month: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: { args: [1], msg: 'Month must be between 1 and 12' },
+      max: { args: [12], msg: 'Month must be between 1 and 12' }
+    }
+  },
+  year: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: { args: [2000], msg: 'Year must be valid' },
+      max: { args: [2100], msg: 'Year must be valid' }
+    }
+  },
   is_late_fee_applied: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -143,6 +170,11 @@ status: {
   last_payment_date: {
     type: DataTypes.DATEONLY,
     allowNull: true,
+  },
+  receipt_group_id: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Groups multiple invoices under one receipt',
   },
   invoice_items: {
     type: DataTypes.JSONB,
@@ -256,6 +288,12 @@ FeeInvoice.associate = (models) => {
   FeeInvoice.belongsTo(models.User, {
     foreignKey: 'updated_by',
     as: 'updatedBy',
+  });
+
+  // FeeInvoice has many FeePayments
+  FeeInvoice.hasMany(models.FeePayment, {
+    foreignKey: 'invoice_id',
+    as: 'payments',
   });
 };
 

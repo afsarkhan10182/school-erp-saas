@@ -24,18 +24,28 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access school subscription details
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can view school subscription details.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
-const { fetchSchoolsWithSubscriptions } = useSubscriptions();
+const { getSchoolById, updateSchoolSubscription, loading, error } = useSubscriptions();
 const school = ref(null);
-const loading = ref(true);
-const error = ref('');
 
 onMounted(async () => {
   loading.value = true;
   error.value = '';
   try {
-    const result = await fetchSchoolsWithSubscriptions({ id: route.params.id });
+    const result = await getSchoolById({ id: route.params.id });
 
     school.value = result.data.schools?.[0] || null;
     if (!school.value) error.value = 'School not found.';

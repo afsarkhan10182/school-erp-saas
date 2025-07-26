@@ -9,7 +9,7 @@
       <select
         :id="id"
         :value="modelValue"
-        @change="$emit('update:modelValue', $event.target.value)"
+        @change="handleChange"
         :disabled="disabled"
         :class="[
           'appearance-none w-full px-4 py-3 pr-10 rounded-lg border transition-all duration-200 ease-in-out',
@@ -21,6 +21,7 @@
           'text-sm font-medium',
           error ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20' : ''
         ]"
+        :style="`background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27${isDark ? '%2394a3b8' : '%236b7280'}%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3e%3c/svg%3e'); background-position: right 12px center; background-repeat: no-repeat; background-size: 16px; padding-right: 40px;`"
       >
         <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
         <option 
@@ -117,10 +118,24 @@ const emit = defineEmits(['update:modelValue', 'change'])
 
 const isOpen = ref(false)
 
+// Check if dark mode is active
+const isDark = computed(() => {
+  if (import.meta.client) {
+    return document.documentElement.classList.contains('dark');
+  }
+  return false;
+});
+
 // Watch for changes to emit change event
 watch(() => props.modelValue, (newValue) => {
   emit('change', newValue)
 })
+
+const handleChange = (event) => {
+  const value = event.target.value
+  emit('update:modelValue', value)
+  emit('change', value)
+}
 </script>
 
 <style scoped>

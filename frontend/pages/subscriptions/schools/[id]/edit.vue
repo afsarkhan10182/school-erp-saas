@@ -100,6 +100,36 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Starting Month</label>
+            <select v-model="form.schoolData.starting_month" class="input-field">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June (Default)</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              This determines when the academic year starts and how payment months are calculated
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Type</label>
+            <select v-model="form.schoolData.academic_year_start" class="input-field">
+              <option value="academic">Academic Year (Custom starting month)</option>
+              <option value="calendar">Calendar Year (January-December)</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Academic: June-May or custom starting month, Calendar: January-December
+            </p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
             <input v-model="form.schoolData.currency_symbol" type="text" class="input-field" placeholder="e.g. ₹, $" />
           </div>
@@ -268,7 +298,7 @@
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-            <input v-model="form.subscriptionData.admin_phone" type="text" class="input-field" />
+            <input v-model="form.subscriptionData.admin_phone" type="text" class="input-field" @input="form.subscriptionData.admin_phone = form.subscriptionData.admin_phone.replace(/[^\d]/g, '')" />
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">New Password (optional)</label>
@@ -371,16 +401,32 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useSchools } from '~/composables/useSchools';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
+
+const authStore = useAuthStore();
+const { showError } = useToast();
+
+// Access control - only Super Admin can access school subscription management
+const user = authStore.user;
+if (user?.role !== 'super_admin') {
+  showError('Access denied. Only Super Admin can manage school subscriptions.');
+  await navigateTo('/dashboard');
+}
 
 const route = useRoute();
 const router = useRouter();
-const { plans, fetchPlans, fetchSchoolsWithSubscriptions, updateSchoolSubscription } = useSubscriptions();
+const { updateSchoolSubscription, getSchoolWithSubscription, plans, fetchPlans, loading: subscriptionLoading, error: subscriptionError } = useSubscriptions();
 
-const loading = ref(false);
-const error = ref('');
+// Combine loading and error states
+const loading = computed(() => subscriptionLoading.value);
+const error = computed(() => subscriptionError.value);
+
 const formError = ref('');
 const emailError = ref('');
 const adminEmailError = ref('');
@@ -411,7 +457,9 @@ const form = ref({
     postal_code: '',
     website: '',
     currency: 'INR',
-    currency_symbol: '₹'
+    currency_symbol: '₹',
+    starting_month: 6, // Default to June
+    academic_year_start: 'academic' // Default to Academic Year
   },
   subscriptionData: {
     plan_code: '',
@@ -439,6 +487,11 @@ const onFileChange = (field, event) => {
   fileInputs.value[field] = event.target.files[0];
 };
 
+// Load school data on mount
+onMounted(() => {
+  loadSchool();
+});
+
 // School code validation
 const validateSchoolCode = () => {
   const code = form.value.schoolData.code;
@@ -446,8 +499,11 @@ const validateSchoolCode = () => {
     isSchoolCodeValid.value = false;
     return false;
   }
-  const codeRegex = /^[a-zA-Z0-9]{2,20}$/;
-  isSchoolCodeValid.value = codeRegex.test(code);
+  // Convert to uppercase and validate - backend requires uppercase letters and numbers only
+  const upperCode = code.toUpperCase();
+  form.value.schoolData.code = upperCode; // Auto-convert to uppercase
+  const codeRegex = /^[A-Z0-9]{2,20}$/;
+  isSchoolCodeValid.value = codeRegex.test(upperCode);
   return isSchoolCodeValid.value;
 };
 
@@ -577,9 +633,8 @@ const loadSchool = async () => {
     // Fetch plans
     await fetchPlans({ is_active: true });
     
-    // Fetch school details
-    const schoolsData = await fetchSchoolsWithSubscriptions({ id: route.params.id });
-    const school = schoolsData?.data?.schools?.[0];
+    // Fetch school details with subscription data
+    const school = await getSchoolWithSubscription(route.params.id);
     if (!school) throw new Error('School not found');
     
     // Populate form
@@ -595,7 +650,9 @@ const loadSchool = async () => {
       postal_code: school.postal_code || '',
       website: school.website || '',
       currency: school.currency || 'INR',
-      currency_symbol: school.settings?.currency_symbol || '₹'
+      currency_symbol: school.settings?.currency_symbol || '₹',
+      starting_month: school.starting_month || 6, // Default to June
+      academic_year_start: school.academic_year_start || 'academic' // Default to Academic Year
     };
     
     form.value.subscriptionData = {

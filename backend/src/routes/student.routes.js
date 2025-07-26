@@ -8,17 +8,14 @@ const {
   getStudentStats,
   getStudentReport,
   exportStudentReport,
+  bulkImportStudents,
 } = require('../controllers/student.controller');
 const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
-const { uploadFields } = require('../middleware/upload');
+const { uploadFields, uploadSingle, uploadCSV } = require('../middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
 const router = express.Router();
 
-// Debug middleware to assign a unique request ID and log it
-router.use((req, res, next) => {
-  req._debugReqId = Math.random().toString(36).substring(2, 10);
-  console.log(`[DEBUG] Request ID: ${req._debugReqId} - URL: ${req.url}`);
-  next();
-});
+
 
 // Middleware to ensure authentication
 router.use(verifyToken);
@@ -29,24 +26,46 @@ router.use(setSchoolContext);
 // Middleware to ensure user has appropriate role
 router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']));
 
-// Debug endpoint to check user context
-router.get('/debug/user-info', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      user: req.user,
-      schoolId: req.schoolId,
-      branchId: req.branchId,
-      url: req.url,
-      method: req.method,
-      headers: req.headers,
-      cookies: req.cookies
-    }
-  });
-});
+// Middleware to check subscription status
+router.use(checkSubscriptionStatus);
+
+// Middleware to validate module access
+router.use(validateModuleAccess('students'));
 
 // POST endpoint to create a new student
-router.post('/', createStudent);
+router.post('/', 
+  validateSubscriptionLimits,
+  uploadFields([
+    { name: 'student_profile_picture', maxCount: 1 },
+    { name: 'guardian_picture', maxCount: 1 },
+  ]),
+  createStudent
+);
+
+// GET endpoint to download student import template
+router.get('/import-template', (req, res) => {
+  const path = require('path');
+  const { type = 'complete' } = req.query;
+  
+  let templatePath;
+  let filename;
+  
+  if (type === 'required') {
+    templatePath = path.join(__dirname, '../../templates/student-import-template-required.csv');
+    filename = 'Student-Import-Template-Required-Fields.csv';
+  } else {
+    templatePath = path.join(__dirname, '../../templates/student-import-template-complete.csv');
+    filename = 'Student-Import-Template-Complete-with-Sample-Data.csv';
+  }
+  
+  res.download(templatePath, filename);
+});
+
+// POST endpoint for bulk import students from CSV
+router.post('/bulk-import', 
+  uploadCSV('csv_file'),
+  bulkImportStudents
+);
 
 // GET endpoint to retrieve all students
 router.get('/', getStudents);

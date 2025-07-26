@@ -1,17 +1,35 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
-    <!-- Sidebar (only if logged in and user loaded, client-only) -->
-    <client-only>
+  <div v-if="shouldRender" class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
+    <!-- Sidebar (only if logged in and user loaded) -->
+    <ClientOnly>
       <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="sidebarOpen = !sidebarOpen" />
-    </client-only>
+    </ClientOnly>
 
     <!-- Main content -->
-    <div :class="isLoggedIn && !isMobile ? (sidebarOpen ? 'ml-64' : 'ml-16') : ''" class="flex-1 flex flex-col min-h-screen transition-all duration-300">
+    <div 
+      :key="`main-${isLoggedIn}-${sidebarOpen}`" 
+      :class="mainContentClasses" 
+      class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-0"
+    >
       <!-- Header (only if logged in) -->
-      <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
+      <ClientOnly>
+        <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleMobileSidebar" />
+      </ClientOnly>
+      
       <!-- Page content -->
-      <main class="p-6 flex-1 bg-gray-50 dark:bg-gray-900">
-        <slot />
+      <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900 z-0">
+        <!-- Hydration-safe loading state -->
+        <template v-if="!isHydrated">
+          <!-- SSR-safe skeleton -->
+          <div class="animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+          </div>
+        </template>
+        <template v-else>
+          <slot />
+        </template>
       </main>
     </div>
     
@@ -28,19 +46,25 @@ import Header from '~/components/Header.vue';
 import Toast from '~/components/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
+import { useHydrationState } from '~/composables/useHydration';
+import { useMobileDetection } from '~/composables/useMobileDetection';
 
-const sidebarOpen = ref(false);
+// Use centralized composables
+const { isHydrated } = useHydrationState();
+const { isMobile } = useMobileDetection();
+
+// Initialize sidebar state with a default that works for both server and client
+const sidebarOpen = ref(true); // Default to open for consistent SSR
 const router = useRouter();
 const route = useRoute();
 
-// Mobile detection
-const isMobile = ref(false);
 let mql;
 
 const checkMobile = () => {
-  isMobile.value = window.innerWidth < 768;
-  // Auto-close sidebar on mobile, open on desktop
-  sidebarOpen.value = !isMobile.value;
+  if (import.meta.client) {
+    // Auto-close sidebar on mobile, open on desktop
+    sidebarOpen.value = !isMobile.value;
+  }
 };
 
 const authStore = useAuthStore();
@@ -49,9 +73,29 @@ const { initializeBranchContext } = useBranchContext();
 const user = computed(() => authStore.currentUser);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
+// Don't render layout until auth is initialized (client-side only)
+const shouldRender = computed(() => {
+  if (import.meta.server) return true; // Always render on server
+  return !authStore.isInitializing;
+});
+
+// Computed class for main content to avoid hydration issues
+const mainContentClasses = computed(() => {
+  // On server, render with stable collapsed margin to prevent shifting
+  if (import.meta.server) {
+    return 'ml-16'; // Stable collapsed state for SSR
+  }
+  
+  // On client, apply margin based on sidebar state
+  if (!isLoggedIn.value || isMobile.value) {
+    return '';
+  }
+  return sidebarOpen.value ? 'ml-64' : 'ml-16';
+});
+
 const handleLogout = async () => {
   await authStore.logout();
-  await router.push('/login');
+  await navigateTo('/login');
 };
 
 const toggleMobileSidebar = () => {
@@ -65,7 +109,6 @@ const pageTitle = computed(() => {
   if (path.startsWith('/users')) return 'Users';
   if (path.startsWith('/branches')) return 'Branches';
   if (path.startsWith('/students')) return 'Students';
-  if (path.startsWith('/admissions')) return 'Admissions';
   if (path.startsWith('/fees')) return 'Fee Management';
   if (path.startsWith('/academic')) return 'Academic Management';
   if (path.startsWith('/reports')) return 'Reports';
@@ -79,27 +122,43 @@ const isDark = ref(false);
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
-  }
+  
+  // Use Nuxt's useCookie for theme persistence
+  const themeCookie = useCookie('theme');
+  themeCookie.value = isDark.value ? 'dark' : 'light';
+  
+  // Apply theme using Nuxt's useHead
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
 };
 
 onMounted(async () => {
-  // Check for saved theme preference or default to dark
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  isDark.value = savedTheme === 'dark';
-  if (isDark.value) {
-    document.documentElement.classList.add('dark');
-  }
+  // Check for saved theme preference using Nuxt's useCookie
+  const themeCookie = useCookie('theme', { default: () => 'dark' });
+  isDark.value = themeCookie.value === 'dark';
+  
+  // Apply theme using Nuxt's useHead
+  useHead({
+    htmlAttrs: {
+      class: isDark.value ? 'dark' : ''
+    }
+  });
 
-  // Initialize mobile detection
-  checkMobile();
-  mql = window.matchMedia('(max-width: 767px)');
-  mql.addEventListener('change', checkMobile);
+  // Initialize mobile detection (client-side only)
+  if (import.meta.client) {
+    checkMobile();
+    mql = window.matchMedia('(max-width: 767px)');
+    mql.addEventListener('change', checkMobile);
+    
+    // Load sidebar state from localStorage
+    const savedSidebarState = localStorage.getItem('sidebarOpen');
+    if (savedSidebarState !== null) {
+      sidebarOpen.value = savedSidebarState === 'true';
+    }
+  }
 
   // Initialize branch context if user is logged in
   if (authStore.isLoggedIn) {
@@ -114,11 +173,34 @@ onUnmounted(() => {
 
 <style scoped>
 @media (max-width: 768px) {
-  aside {
-    display: none;
-  }
   .ml-64, .ml-16 {
     margin-left: 0 !important;
   }
+  
+  /* Ensure content fills screen width on mobile */
+  .flex-1 {
+    width: 100%;
+  }
+  
+  /* Adjust padding for mobile */
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* Handle overflow properly */
+  .min-h-screen {
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Prevent content shifting during hydration */
+.main-content {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+/* Disable transitions until hydrated to prevent flash */
+.main-content:not(.hydrated) {
+  transition: none;
 }
 </style> 

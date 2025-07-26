@@ -11,10 +11,11 @@ const StudentParent = require('./student-parent.model');
 const FeeType = require('./fee-type.model');
 const FeeStructure = require('./fee-structure.model');
 const FeeInvoice = require('./fee-invoice.model');
+const FeePayment = require('./fee-payment.model');
 const AcademicYear = require('./academic-year.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
-const Admission = require('./admission.model');
+const Stream = require('./stream.model');
 
 // Initialize associations
 const models = {
@@ -30,10 +31,11 @@ const models = {
   FeeType,
   FeeStructure,
   FeeInvoice,
+  FeePayment,
   AcademicYear,
   Class,
   Section,
-  Admission,
+  Stream,
 };
 
 // Call associate function for each model if it exists
@@ -43,4 +45,7 @@ Object.keys(models).forEach(modelName => {
   }
 });
 
-module.exports = models;
+module.exports = {
+  sequelize,
+  ...models,
+};
