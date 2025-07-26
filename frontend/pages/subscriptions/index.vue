@@ -154,8 +154,11 @@
                     <div>Start: {{ formatDate(school.subscription_start_date) }}</div>
                     <div>End: {{ formatDate(school.subscription_end_date) }}</div>
                   </div>
-                  <div v-if="getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                  <div v-if="getDaysRemaining(school.subscription_end_date) !== null && getDaysRemaining(school.subscription_end_date) <= 30" class="text-xs text-orange-600 dark:text-orange-400 font-medium">
                     {{ getDaysRemaining(school.subscription_end_date) }} days remaining
+                  </div>
+                  <div v-else-if="getDaysRemaining(school.subscription_end_date) === null" class="text-xs text-green-600 dark:text-green-400 font-medium">
+                    Lifetime Plan
                   </div>
                 </td>
 
@@ -387,7 +390,7 @@ const formatDate = (dateString) => {
 
 // Get days remaining
 const getDaysRemaining = (dateString) => {
-  if (!dateString) return 0;
+  if (!dateString) return null; // Return null for lifetime plans
   const endDate = new Date(dateString);
   const today = new Date();
   const diffTime = endDate - today;

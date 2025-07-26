@@ -13,6 +13,7 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
     status = ['sent', 'partial_paid', 'overdue'],
     includeFeeStructure = true,
     includeStudent = false,
+    branchId = null, // Add branch filter option
   } = options;
 
   const invoiceFilter = {
@@ -20,6 +21,11 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
     school_id: schoolId,
     status: { [Op.in]: status },
   };
+
+  // Add branch filter if provided
+  if (branchId) {
+    invoiceFilter.branch_id = branchId;
+  }
 
   if (academic_year) {
     invoiceFilter.academic_year = academic_year;
@@ -82,7 +88,10 @@ const getStudentDues = async (req, res, next) => {
     }
 
     // Get unpaid invoices using shared utility
-    const invoices = await getStudentInvoices(student_id, req.schoolId, { academic_year });
+    const invoices = await getStudentInvoices(student_id, req.schoolId, { 
+      academic_year,
+      branchId: req.user.role === 'branch_admin' ? req.user.branch_id : null
+    });
 
     // Calculate totals
     const totalDues = invoices.reduce((sum, invoice) => sum + parseFloat(invoice.balance_amount || 0), 0);
@@ -229,7 +238,7 @@ const getStudentDues = async (req, res, next) => {
 // Get student fee ledger
 const getStudentFeeLedger = async (req, res, next) => {
   try {
-    const { student_id, academic_year, page = 1, limit = 50 } = req.query;
+    const { student_id, academic_year, status, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     if (!student_id) {
@@ -261,8 +270,17 @@ const getStudentFeeLedger = async (req, res, next) => {
       school_id: req.schoolId,
     };
 
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      invoiceFilter.branch_id = req.user.branch_id;
+    }
+
     if (academic_year) {
       invoiceFilter.academic_year = academic_year;
+    }
+
+    if (status) {
+      invoiceFilter.status = status;
     }
 
     // Get all invoices first (without pagination to handle grouping)
@@ -374,7 +392,7 @@ const getStudentFeeLedger = async (req, res, next) => {
 
     // Calculate summary based on combined invoices
     const totalInvoices = allCombinedInvoices.length;
-    const paidInvoices = allCombinedInvoices.filter(inv => inv.status === 'paid').length;
+    const paidInvoices = allCombinedInvoices.filter(inv => ['paid', 'partial_paid'].includes(inv.status)).length;
     const overdueInvoices = allCombinedInvoices.filter(inv => inv.status === 'overdue').length;
 
     // Calculate amount stats from combined invoices
@@ -492,13 +510,21 @@ const recordSmartPayment = async (req, res, next) => {
 
     // Validate payment amount for monthly payments
     if (payment_mode === 'auto') {
+      // Build where clause based on user role
+      const whereClause = {
+        student_id,
+        school_id: req.schoolId,
+        status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] },
+      };
+
+      // Add branch filter for branch admins
+      if (req.user.role === 'branch_admin') {
+        whereClause.branch_id = req.user.branch_id;
+      }
+
       // Get the first pending invoice to determine monthly fee amount
       const firstPendingInvoice = await FeeInvoice.findOne({
-        where: {
-          student_id,
-          school_id: req.schoolId,
-          status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] },
-        },
+        where: whereClause,
         include: [
           {
             model: FeeStructure,
@@ -540,7 +566,8 @@ const recordSmartPayment = async (req, res, next) => {
     // Get pending invoices using shared utility
     let pendingInvoices = await getStudentInvoices(student_id, req.schoolId, { 
       academic_year,
-      includeStudent: false
+      includeStudent: false,
+      branchId: req.user.role === 'branch_admin' ? req.user.branch_id : null
     });
 
     if (pendingInvoices.length === 0) {
@@ -924,7 +951,8 @@ const getGroupedStudentInvoices = async (req, res, next) => {
     const invoices = await getStudentInvoices(student_id, req.schoolId, { 
       academic_year,
       status: status ? [status] : undefined,
-      includeStudent: false
+      includeStudent: false,
+      branchId: req.user.role === 'branch_admin' ? req.user.branch_id : null
     });
 
     // Group invoices by receipt_group_id for paid/partial_paid invoices

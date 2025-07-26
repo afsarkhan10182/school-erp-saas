@@ -14,11 +14,19 @@ const generateReceiptForInvoice = async (req, res, next) => {
       throw new ApiError(400, 'Valid payment amount is required');
     }
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Student,
@@ -90,11 +98,19 @@ const getReceiptForInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Student,
@@ -104,7 +120,6 @@ const getReceiptForInvoice = async (req, res, next) => {
           model: FeePayment,
           as: 'payments',
           order: [['created_at', 'DESC']],
-          limit: 1,
         },
       ],
     });
@@ -117,72 +132,153 @@ const getReceiptForInvoice = async (req, res, next) => {
       throw new ApiError(404, 'No payments found for this invoice');
     }
 
-    const latestPayment = invoice.payments[0];
-
-    // If receipt_html is missing, regenerate it
-    let receiptHtml = latestPayment.receipt_html;
-    let receiptData = latestPayment.receipt_data;
-    
-    if (!receiptHtml) {
-      try {
-        // Get school data for receipt regeneration
-        const school = await School.findByPk(req.schoolId);
-        
-        // Regenerate receipt
-        const receipt = await generateInstallmentReceipt(
-          invoice,
-          latestPayment.payment_amount,
-          latestPayment.payment_method,
-          latestPayment.transaction_id,
-          school,
-          invoice.student
-        );
-        
-        receiptHtml = receipt.receipt_html;
-        receiptData = receipt.receipt_data;
-        
-        // Update the payment record with the regenerated receipt
-        await latestPayment.update({
-          receipt_html: receiptHtml,
-          receipt_data: receiptData
-        });
-        
-        logger.info(`Receipt regenerated for payment ${latestPayment.payment_number}`);
-      } catch (error) {
-        logger.error('Error regenerating receipt:', error);
-        // Continue with null receipt_html if regeneration fails
+    // If there's only one payment, return it directly
+    if (invoice.payments.length === 1) {
+      const payment = invoice.payments[0];
+      
+      // If receipt_html is missing, regenerate it
+      let receiptHtml = payment.receipt_html;
+      let receiptData = payment.receipt_data;
+      
+      if (!receiptHtml) {
+        try {
+          // Get school data for receipt regeneration
+          const school = await School.findByPk(req.schoolId);
+          
+          // Regenerate receipt
+          const receipt = await generateInstallmentReceipt(
+            invoice,
+            payment.payment_amount,
+            payment.payment_method,
+            payment.transaction_id,
+            school,
+            invoice.student
+          );
+          
+          receiptHtml = receipt.receipt_html;
+          receiptData = receipt.receipt_data;
+          
+          // Update the payment record with the regenerated receipt
+          await payment.update({
+            receipt_html: receiptHtml,
+            receipt_data: receiptData
+          });
+          
+          logger.info(`Receipt regenerated for payment ${payment.payment_number}`);
+        } catch (error) {
+          logger.error('Error regenerating receipt:', error);
+          // Continue with null receipt_html if regeneration fails
+        }
       }
-    }
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        receipt_number: latestPayment.receipt_number,
-        receipt_html: receiptHtml,
-        receipt_data: receiptData,
-        payment: {
-          id: latestPayment.id,
-          payment_number: latestPayment.payment_number,
-          payment_amount: latestPayment.payment_amount,
-          payment_method: latestPayment.payment_method,
-          payment_date: latestPayment.payment_date,
+      return res.status(200).json({
+        success: true,
+        data: {
+          receipt_number: payment.receipt_number,
+          receipt_html: receiptHtml,
+          receipt_data: receiptData,
+          payment: {
+            id: payment.id,
+            payment_number: payment.payment_number,
+            payment_amount: payment.payment_amount,
+            payment_method: payment.payment_method,
+            payment_date: payment.payment_date,
+          },
+          // Include invoice information for month details
+          invoice: {
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            payment_model: invoice.payment_model,
+            month: invoice.month,
+            year: invoice.year,
+            total_amount: invoice.total_amount,
+            paid_amount: invoice.paid_amount,
+            balance_amount: invoice.balance_amount,
+            academic_year: invoice.academic_year,
+            class_name: invoice.class_name,
+            section: invoice.section,
+          },
         },
-        // Include invoice information for month details
-        invoice: {
-          id: invoice.id,
-          invoice_number: invoice.invoice_number,
-          payment_model: invoice.payment_model,
-          month: invoice.month,
-          year: invoice.year,
-          total_amount: invoice.total_amount,
-          paid_amount: invoice.paid_amount,
-          balance_amount: invoice.balance_amount,
-          academic_year: invoice.academic_year,
-          class_name: invoice.class_name,
-          section: invoice.section,
+      });
+    } else {
+      // Multiple payments - return all payments with their receipts
+      const paymentsWithReceipts = [];
+      
+      for (const payment of invoice.payments) {
+        let receiptHtml = payment.receipt_html;
+        let receiptData = payment.receipt_data;
+        
+        // If receipt_html is missing, regenerate it
+        if (!receiptHtml) {
+          try {
+            // Get school data for receipt regeneration
+            const school = await School.findByPk(req.schoolId);
+            
+            // Regenerate receipt
+            const receipt = await generateInstallmentReceipt(
+              invoice,
+              payment.payment_amount,
+              payment.payment_method,
+              payment.transaction_id,
+              school,
+              invoice.student
+            );
+            
+            receiptHtml = receipt.receipt_html;
+            receiptData = receipt.receipt_data;
+            
+            // Update the payment record with the regenerated receipt
+            await payment.update({
+              receipt_html: receiptHtml,
+              receipt_data: receiptData
+            });
+            
+            logger.info(`Receipt regenerated for payment ${payment.payment_number}`);
+          } catch (error) {
+            logger.error('Error regenerating receipt:', error);
+            // Continue with null receipt_html if regeneration fails
+          }
+        }
+        
+        paymentsWithReceipts.push({
+          payment: {
+            id: payment.id,
+            payment_number: payment.payment_number,
+            payment_amount: payment.payment_amount,
+            payment_method: payment.payment_method,
+            payment_date: payment.payment_date,
+            created_at: payment.created_at,
+          },
+          receipt: {
+            receipt_number: payment.receipt_number,
+            receipt_html: receiptHtml,
+            receipt_data: receiptData,
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          invoice: {
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            payment_model: invoice.payment_model,
+            month: invoice.month,
+            year: invoice.year,
+            total_amount: invoice.total_amount,
+            paid_amount: invoice.paid_amount,
+            balance_amount: invoice.balance_amount,
+            academic_year: invoice.academic_year,
+            class_name: invoice.class_name,
+            section: invoice.section,
+          },
+          payments: paymentsWithReceipts,
+          total_payments: paymentsWithReceipts.length,
+          has_multiple_payments: true,
         },
-      },
-    });
+      });
+    }
   } catch (error) {
     logger.error('Error fetching receipt for invoice:', error);
     return next(error);
@@ -198,6 +294,11 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
     const whereClause = {
       school_id: req.schoolId,
     };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    }
 
     if (student_id) whereClause.student_id = student_id;
     if (academic_year) whereClause['$invoice.academic_year$'] = academic_year;
@@ -297,6 +398,11 @@ const getGroupedReceipts = async (req, res, next) => {
       },
     };
 
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    }
+
     if (student_id) whereClause.student_id = student_id;
 
     const includeClause = [
@@ -316,6 +422,11 @@ const getGroupedReceipts = async (req, res, next) => {
     // Add student filters
     if (class_name) includeClause[0].include[0].where.current_class = class_name;
     if (section) includeClause[0].include[0].where.section = section;
+    
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      includeClause[0].include[0].where.branch_id = req.user.branch_id;
+    }
 
     const payments = await FeePayment.findAll({
       where: whereClause,
@@ -609,12 +720,20 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
       throw new ApiError(400, 'Receipt group ID is required');
     }
 
+    // Build where clause based on user role
+    const whereClause = {
+      receipt_group_id: receiptGroupId,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     // Find all invoices with this receipt group ID
     const invoices = await FeeInvoice.findAll({
-      where: {
-        receipt_group_id: receiptGroupId,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Student,

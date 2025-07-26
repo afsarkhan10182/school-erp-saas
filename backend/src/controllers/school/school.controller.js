@@ -252,16 +252,50 @@ class SchoolController {
       throw new ApiError(400, 'Invalid modules provided');
     }
 
-    // If subscription plan is provided, get modules for that plan
+    // If subscription plan is provided, get plan details and update accordingly
     let updatedModules = modules;
-    if (subscription_plan) {
-      updatedModules = ModuleConfig.getModulesForPlan(subscription_plan);
+    let updateData = {};
+    
+    if (subscription_plan && subscription_plan !== school.subscription_plan) {
+      // Get the plan details from the database
+      const { SubscriptionPlan } = require('../../models');
+      const plan = await SubscriptionPlan.findOne({
+        where: { code: subscription_plan, is_active: true },
+      });
+      
+      if (!plan) {
+        throw new ApiError(400, 'Invalid subscription plan');
+      }
+      
+      // Update with plan details
+      updateData = {
+        subscription_plan: plan.code,
+        max_students: plan.max_students,
+        max_staff: plan.max_staff,
+        max_branches: plan.max_branches,
+        modules: plan.modules,
+        // Update status based on plan type
+        status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
+      };
+      
+      // If this is a new subscription, set start date
+      if (!school.subscription_start_date) {
+        updateData.subscription_start_date = new Date();
+        updateData.subscription_end_date = plan.billing_cycle === 'lifetime' ? null : 
+          new Date(Date.now() + (plan.billing_cycle === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      // Just update modules if no plan change
+      if (modules) {
+        updatedModules = modules;
+      } else if (subscription_plan) {
+        updatedModules = ModuleConfig.getModulesForPlan(subscription_plan);
+      }
+      
+      if (updatedModules) {
+        updateData.modules = updatedModules;
+      }
     }
-
-    // Update school
-    const updateData = {};
-    if (updatedModules) updateData.modules = updatedModules;
-    if (subscription_plan) updateData.subscription_plan = subscription_plan;
 
     const updatedSchool = await school.update(updateData);
     
@@ -352,16 +386,47 @@ class SchoolController {
     }
 
     const { ModuleConfig } = require('../../utils/moduleConfig');
+    const { SubscriptionPlan } = require('../../models');
     
-    // Validate requested plan
-    const plan = ModuleConfig.getSubscriptionPlan(requested_plan);
-    if (!plan) {
+    // First try to get requested plan from database
+    let requestedPlanDetails = null;
+    if (requested_plan) {
+      requestedPlanDetails = await SubscriptionPlan.findOne({
+        where: { code: requested_plan, is_active: true }
+      });
+    }
+
+    // If not found in database, fall back to ModuleConfig
+    if (!requestedPlanDetails) {
+      requestedPlanDetails = ModuleConfig.getSubscriptionPlan(requested_plan);
+    }
+
+    if (!requestedPlanDetails) {
       throw new ApiError(400, 'Invalid subscription plan');
     }
 
-    // Check if it's actually an upgrade
-    const currentPlan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
-    if (plan.price <= currentPlan.price) {
+    // Get current plan details
+    let currentPlanDetails = null;
+    if (school.subscription_plan) {
+      currentPlanDetails = await SubscriptionPlan.findOne({
+        where: { code: school.subscription_plan, is_active: true }
+      });
+    }
+
+    // If not found in database, fall back to ModuleConfig
+    if (!currentPlanDetails) {
+      currentPlanDetails = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+    }
+
+    if (!currentPlanDetails) {
+      throw new ApiError(400, 'Invalid current subscription plan');
+    }
+
+    // Check if it's actually an upgrade (compare prices)
+    const requestedPrice = requestedPlanDetails.price || 0;
+    const currentPrice = currentPlanDetails.price || 0;
+    
+    if (requestedPrice <= currentPrice) {
       throw new ApiError(400, 'Requested plan is not an upgrade');
     }
 

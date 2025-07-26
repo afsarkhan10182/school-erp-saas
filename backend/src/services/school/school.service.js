@@ -12,7 +12,7 @@ class SchoolService {
   static async createSchool(schoolData) {
     try {
       // Handle file uploads and settings
-      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, ...basicData } = schoolData;
+      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, ...basicData } = schoolData;
       
       // Prepare settings object
       const settings = {
@@ -23,8 +23,35 @@ class SchoolService {
         report_card_design: report_card_design ? `/uploads/${report_card_design.filename}` : null
       };
 
+      // If subscription plan is provided, validate and sync with plan
+      let planData = {};
+      if (subscription_plan) {
+        const { SubscriptionPlan } = require('../../models');
+        const plan = await SubscriptionPlan.findOne({
+          where: { code: subscription_plan, is_active: true }
+        });
+        
+        if (!plan) {
+          throw new ApiError(400, 'Invalid subscription plan');
+        }
+        
+        // Sync school data with plan
+        planData = {
+          subscription_plan: plan.code,
+          max_students: plan.max_students,
+          max_staff: plan.max_staff,
+          max_branches: plan.max_branches,
+          modules: plan.modules,
+          status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active',
+          subscription_start_date: new Date(),
+          subscription_end_date: plan.billing_cycle === 'lifetime' ? null : 
+            new Date(Date.now() + (plan.billing_cycle === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000)
+        };
+      }
+
       const school = await School.create({
         ...basicData,
+        ...planData,
         settings
       });
       
@@ -140,7 +167,7 @@ class SchoolService {
       }
 
       // Handle file uploads and settings
-      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, ...basicData } = updateData;
+      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, ...basicData } = updateData;
       
       // Update settings if new values are provided
       const currentSettings = school.settings || {};
@@ -153,8 +180,35 @@ class SchoolService {
         ...(report_card_design && { report_card_design: `/uploads/${report_card_design.filename}` })
       };
 
+      // If subscription plan is being changed, validate and sync with plan
+      let planData = {};
+      if (subscription_plan && subscription_plan !== school.subscription_plan) {
+        const { SubscriptionPlan } = require('../../models');
+        const plan = await SubscriptionPlan.findOne({
+          where: { code: subscription_plan, is_active: true }
+        });
+        
+        if (!plan) {
+          throw new ApiError(400, 'Invalid subscription plan');
+        }
+        
+        // Sync school data with plan
+        planData = {
+          subscription_plan: plan.code,
+          max_students: plan.max_students,
+          max_staff: plan.max_staff,
+          max_branches: plan.max_branches,
+          modules: plan.modules,
+          status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active',
+          subscription_start_date: new Date(),
+          subscription_end_date: plan.billing_cycle === 'lifetime' ? null : 
+            new Date(Date.now() + (plan.billing_cycle === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000)
+        };
+      }
+
       await school.update({
         ...basicData,
+        ...planData,
         settings: newSettings
       });
       

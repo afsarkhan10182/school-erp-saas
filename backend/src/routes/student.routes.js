@@ -12,6 +12,7 @@ const {
 } = require('../controllers/student.controller');
 const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
 const { uploadFields, uploadSingle, uploadCSV } = require('../middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
 const router = express.Router();
 
 
@@ -25,10 +26,15 @@ router.use(setSchoolContext);
 // Middleware to ensure user has appropriate role
 router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']));
 
+// Middleware to check subscription status
+router.use(checkSubscriptionStatus);
 
+// Middleware to validate module access
+router.use(validateModuleAccess('students'));
 
 // POST endpoint to create a new student
 router.post('/', 
+  validateSubscriptionLimits,
   uploadFields([
     { name: 'student_profile_picture', maxCount: 1 },
     { name: 'guardian_picture', maxCount: 1 },

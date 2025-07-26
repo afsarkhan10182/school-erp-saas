@@ -99,7 +99,7 @@ class DashboardController {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
         
-        const [totalStudents, newStudents, feeCollection, overdueFees, activeStudents, pendingFees] = await Promise.all([
+        const [totalStudents, newStudents, feeCollection, overdueFees, activeStudents, pendingFees, totalInvoices, paidInvoices] = await Promise.all([
           Student.count({ where: { branch_id: user.branch_id } }),
           Student.count({ 
             where: { 
@@ -136,6 +136,19 @@ class DashboardController {
               branch_id: user.branch_id,
               status: 'sent'
             } 
+          }),
+          // Count total invoices
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id
+            } 
+          }),
+          // Count paid invoices
+          FeeInvoice.count({ 
+            where: { 
+              branch_id: user.branch_id,
+              status: 'paid'
+            } 
           })
         ]);
         
@@ -147,6 +160,8 @@ class DashboardController {
           overdueFees,
           activeStudents,
           pendingFees,
+          totalInvoices,
+          paidInvoices,
         };
       } else {
         // For other roles, return basic info

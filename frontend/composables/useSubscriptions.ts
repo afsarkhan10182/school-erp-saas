@@ -72,6 +72,26 @@ export function useSubscriptions() {
     }
   };
 
+  // Get single subscription plan by ID
+  const getPlanById = async (id: string) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getPlanById(id);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch plan.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Create subscription plan
   const createPlan = async (planData: any) => {
     loading.value = true;
@@ -331,6 +351,16 @@ export function useSubscriptions() {
     }
   };
 
+  const checkAndUpdateAllStatuses = async () => {
+    try {
+      const response = await apiClient.subscriptions.checkAllStatuses();
+      return response.data;
+    } catch (error) {
+      console.error('Error checking subscription statuses:', error);
+      throw error;
+    }
+  };
+
   return {
     schools,
     plans,
@@ -340,6 +370,7 @@ export function useSubscriptions() {
     fetchSchoolsWithSubscriptions,
     getSchoolWithSubscription,
     fetchPlans,
+    getPlanById,
     createPlan,
     updatePlan,
     deletePlan,
@@ -352,6 +383,7 @@ export function useSubscriptions() {
     reactivateSchool,
     fetchRenewalRequests,
     createRenewalRequest,
-    reviewRenewalRequest
+    reviewRenewalRequest,
+    checkAndUpdateAllStatuses
   };
 } 

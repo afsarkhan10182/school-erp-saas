@@ -468,6 +468,29 @@ class SubscriptionController {
     }
   }
 
+  // Check and update all subscription statuses
+  static async checkAndUpdateAllStatuses(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can perform bulk status updates',
+        });
+      }
+
+      const result = await SubscriptionService.checkAndUpdateAllSubscriptionStatuses();
+      
+      res.json({
+        success: true,
+        message: 'Subscription statuses updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.checkAndUpdateAllStatuses:', error);
+      next(error);
+    }
+  }
+
   // Get subscription statistics
   static async getSubscriptionStats(req, res, next) {
     try {
@@ -486,6 +509,77 @@ class SubscriptionController {
       });
     } catch (error) {
       logger.error('Error in SubscriptionController.getSubscriptionStats:', error);
+      next(error);
+    }
+  }
+
+  // Check school usage against subscription limits
+  static async checkSchoolUsage(req, res, next) {
+    try {
+      const schoolId = req.user.role === 'super_admin' ? req.params.schoolId : req.user.school_id;
+      
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'School ID is required',
+        });
+      }
+
+      const usage = await SubscriptionService.checkSchoolUsage(schoolId);
+      
+      res.json({
+        success: true,
+        data: usage,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.checkSchoolUsage:', error);
+      next(error);
+    }
+  }
+
+  // Sync schools with a specific plan
+  static async syncSchoolsWithPlan(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can sync schools with plans',
+        });
+      }
+
+      const { planCode } = req.params;
+      const result = await SubscriptionService.syncSchoolsWithPlan(planCode);
+      
+      res.json({
+        success: true,
+        message: result.message,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.syncSchoolsWithPlan:', error);
+      next(error);
+    }
+  }
+
+  // Sync all schools with their plans
+  static async syncAllSchoolsWithPlans(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can sync all schools with plans',
+        });
+      }
+
+      const result = await SubscriptionService.syncAllSchoolsWithPlans();
+      
+      res.json({
+        success: true,
+        message: result.message,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.syncAllSchoolsWithPlans:', error);
       next(error);
     }
   }

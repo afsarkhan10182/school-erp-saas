@@ -1,6 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
+const { ModuleConfig } = require('../utils/moduleConfig');
+const ApiError = require('../utils/ApiError');
 
 const Student = sequelize.define('Student', {
   id: {
@@ -189,7 +191,7 @@ const Student = sequelize.define('Student', {
     comment: 'Previous exam details (SSC, FYJC, SYJC, etc.)'
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive', 'transferred', 'graduated', 'dropped'),
+    type: DataTypes.ENUM('active', 'inactive', 'transferred', 'graduated', 'dropped', 'deleted'),
     allowNull: false,
     defaultValue: 'active',
   },
@@ -271,6 +273,41 @@ const Student = sequelize.define('Student', {
   ],
   hooks: {
     beforeCreate: async (student) => {
+      // Check subscription limits
+      const School = require('./school.model');
+      const SubscriptionPlan = require('./subscription-plan.model');
+      const school = await School.findByPk(student.school_id);
+      if (school) {
+        // First try to get plan from database
+        let plan = null;
+        if (school.subscription_plan) {
+          plan = await SubscriptionPlan.findOne({
+            where: { code: school.subscription_plan, is_active: true }
+          });
+        }
+
+        // If not found in database, fall back to ModuleConfig
+        if (!plan) {
+          plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+        }
+
+        if (plan) {
+          const maxStudents = plan.max_students || plan.maxStudents || 50;
+          if (maxStudents !== -1) {
+            const studentCount = await Student.count({ 
+              where: { 
+                school_id: student.school_id,
+                status: { [require('sequelize').Op.ne]: 'deleted' }
+              } 
+            });
+            
+            if (studentCount >= maxStudents) {
+              throw new Error(`Student limit reached. Maximum ${maxStudents} students allowed in your current plan. Please upgrade to add more students.`);
+            }
+          }
+        }
+      }
+      
       // Generate admission number if not provided
       if (!student.admission_number) {
         const year = new Date().getFullYear();

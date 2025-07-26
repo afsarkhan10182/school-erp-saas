@@ -51,6 +51,15 @@
         </div>
       </div>
       <div>
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Modules Enabled *</label>
+        <div class="flex flex-wrap gap-2">
+          <label v-for="module in allModules" :key="module" class="inline-flex items-center text-gray-700 dark:text-gray-300">
+            <input type="checkbox" v-model="form.modules" :value="module" class="mr-1" />
+            {{ module }}
+          </label>
+        </div>
+      </div>
+      <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
         <textarea v-model="form.description" class="input-field" rows="2"></textarea>
       </div>
@@ -92,6 +101,10 @@ onMounted(async () => {
 });
 const router = useRouter();
 
+const allModules = [
+  'students', 'fees', 'attendance', 'exams', 'library', 'transport', 'hr', 'reports', 'settings'
+];
+
 const form = ref({
   name: '',
   code: '',
@@ -101,7 +114,7 @@ const form = ref({
   max_students: 100,
   max_staff: 20,
   max_branches: 1,
-  modules: ['academics', 'attendance', 'fees'],
+  modules: ['students', 'fees', 'attendance'],
   description: '',
   is_active: true,
   sort_order: 1

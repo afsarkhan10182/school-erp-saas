@@ -89,7 +89,18 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Branch <span class="text-red-500">*</span>
               </label>
+              <!-- Show read-only branch info for branch admin -->
+              <div v-if="authStore.currentUser?.role === 'branch_admin'" class="mt-1">
+                <div class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white">
+                  {{ userBranch?.name || 'Current Branch' }}
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Branch admin can only import students to their assigned branch
+                </p>
+              </div>
+              <!-- Show dropdown for other roles -->
               <EnhancedDropdown
+                v-else
                 v-model="form.branch_id"
                 :options="branchOptions"
                 :placeholder="authStore.currentUser?.role === 'super_admin' ? (form.school_id ? 'Select Branch' : 'Select School First') : 'Select Branch'"
@@ -366,6 +377,7 @@ const fileInput = ref(null);
 const showResults = ref(false);
 const importResults = ref({});
 const showDownloadDropdown = ref(false);
+const userBranch = ref(null);
 
 // Streams data
 const streams = ref([]);
@@ -780,7 +792,14 @@ const handleSubmit = async () => {
   try {
     const formData = new FormData();
     formData.append('csv_file', selectedFile.value);
-    formData.append('branch_id', form.branch_id);
+    
+    // Set branch_id based on user role
+    if (authStore.currentUser?.role === 'branch_admin') {
+      formData.append('branch_id', authStore.currentUser?.branch_id);
+    } else {
+      formData.append('branch_id', form.branch_id);
+    }
+    
     formData.append('class_id', form.class_id);
     formData.append('stream_id', form.stream_id);
     formData.append('section_id', form.section_id);
@@ -854,10 +873,17 @@ onMounted(async () => {
     // For school admin and branch admin, load branches directly
     await fetchBranches(authStore.currentUser?.school_id);
     
-    // Auto-select branch if there's only one
-    if (branches.value.length === 1) {
-      form.branch_id = branches.value[0].id;
+    if (authStore.currentUser?.role === 'branch_admin') {
+      // For branch admin, set their assigned branch
+      form.branch_id = authStore.currentUser?.branch_id;
+      userBranch.value = branches.value.find(b => b.id === authStore.currentUser?.branch_id);
       await onBranchChange();
+    } else {
+      // For school admin, auto-select branch if there's only one
+      if (branches.value.length === 1) {
+        form.branch_id = branches.value[0].id;
+        await onBranchChange();
+      }
     }
   }
 

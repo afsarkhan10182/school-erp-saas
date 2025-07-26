@@ -308,6 +308,101 @@
         </div>
       </div>
     </div>
+
+    <!-- Multiple Payments Modal -->
+    <div v-if="showMultiplePaymentsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment History & Receipts</h3>
+            <button
+              @click="showMultiplePaymentsModal = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div v-if="selectedMultiplePayments" class="space-y-6">
+            <!-- Invoice Information -->
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <h4 class="font-medium text-gray-900 dark:text-white mb-2">Invoice Details</h4>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Invoice:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedMultiplePayments.invoice.invoice_number }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Total Amount:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.total_amount) }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Paid Amount:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.paid_amount) }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Balance:</span>
+                  <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(selectedMultiplePayments.invoice.balance_amount) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payments List -->
+            <div>
+              <h4 class="font-medium text-gray-900 dark:text-white mb-3">Payment History ({{ selectedMultiplePayments.total_payments }} payments)</h4>
+              <div class="space-y-3">
+                <div 
+                  v-for="(paymentItem, index) in selectedMultiplePayments.payments" 
+                  :key="paymentItem.payment.id"
+                  class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="flex items-center justify-between mb-2">
+                        <h5 class="font-medium text-gray-900 dark:text-white">
+                          Payment #{{ paymentItem.payment.payment_number }}
+                        </h5>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                          {{ formatDate(paymentItem.payment.payment_date) }}
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Amount:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white">₹{{ formatCurrency(paymentItem.payment.payment_amount) }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Method:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white capitalize">{{ paymentItem.payment.payment_method }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">Receipt:</span>
+                          <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ paymentItem.receipt.receipt_number }}</span>
+                        </div>
+                        <div>
+                          <button
+                            @click="viewPaymentReceipt(paymentItem)"
+                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          >
+                            <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Receipt
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -365,6 +460,8 @@ const showQuickCollectModal = ref(false);
 const showReceiptModal = ref(false);
 const selectedReceipt = ref(null);
 const selectedInvoiceForPayment = ref(null);
+const showMultiplePaymentsModal = ref(false);
+const selectedMultiplePayments = ref(null);
 
 // Pagination - Set to exactly 10 records
 const currentPage = ref(1);
@@ -643,16 +740,45 @@ const viewReceipt = async (invoice) => {
     // Unified approach - use feeInvoices API for both monthly and installment invoices
     const response = await apiClient.feeInvoices.getReceipt(invoice.id);
     
-    if (response.data && response.data.receipt_html) {
-      // The receipt data is directly in response.data
-      selectedReceipt.value = response.data;
-      showReceiptModal.value = true;
+    if (response.data) {
+      // Check if this is a multiple payments response
+      if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
+        // Show multiple payments modal
+        selectedMultiplePayments.value = response.data;
+        showMultiplePaymentsModal.value = true;
+      } else if (response.data.receipt_html) {
+        // Single receipt - show receipt modal
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this invoice', 'error');
+      }
     } else {
       showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
     console.error('Error fetching receipt:', error);
     showToast('Error fetching receipt', 'error');
+  }
+};
+
+const viewPaymentReceipt = (paymentItem) => {
+  try {
+    // Show the individual payment receipt
+    selectedReceipt.value = {
+      receipt_number: paymentItem.receipt.receipt_number,
+      receipt_html: paymentItem.receipt.receipt_html,
+      receipt_data: paymentItem.receipt.receipt_data,
+      payment: paymentItem.payment,
+      invoice: selectedMultiplePayments.value.invoice,
+    };
+    
+    // Close multiple payments modal and show receipt modal
+    showMultiplePaymentsModal.value = false;
+    showReceiptModal.value = true;
+  } catch (error) {
+    console.error('Error viewing payment receipt:', error);
+    showToast('Error viewing payment receipt', 'error');
   }
 };
 
@@ -820,6 +946,18 @@ const getMonthName = (month) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   return months[month - 1] || 'Unknown';
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // Simplified academic data loading - only load when modal is opened

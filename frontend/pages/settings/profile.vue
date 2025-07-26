@@ -187,6 +187,11 @@
           </form>
         </div>
       </div>
+      <!-- TODO: END TO END SUBSCRIPTION LIMITS -->
+      <!-- Subscription Limits Section (School Admin Only) -->
+      <!-- <div v-if="authStore.isSchoolAdmin" class="mt-8">
+        <SubscriptionLimits />
+      </div> -->
     </div>
   </div>
 </template>
@@ -196,6 +201,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import apiClient from '~/utils/api';
 import PasswordInput from '~/components/PasswordInput.vue';
+import SubscriptionLimits from '~/components/SubscriptionLimits.vue';
 import { 
   User, 
   Upload, 

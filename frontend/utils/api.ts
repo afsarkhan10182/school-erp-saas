@@ -457,7 +457,7 @@ export const apiClient = {
       return response.data;
     },
 
-    getStudentLedger: async (params: { student_id: string; academic_year?: string; page?: number; limit?: number }) => {
+    getStudentLedger: async (params: { student_id: string; academic_year?: string; status?: string; page?: number; limit?: number }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/student-ledger', { params });
       return response.data;
@@ -540,7 +540,7 @@ export const apiClient = {
     
     getSummary: async (params?: { payment_model?: 'monthly' | 'installment'; academic_year?: string; status?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/invoices/summary', { params });
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params });
       return response.data;
     },
   },
@@ -1018,6 +1018,12 @@ export const apiClient = {
       return response.data;
     },
     
+    getUsage: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/usage');
+      return response.data;
+    },
+    
     suspendSchool: async (schoolId: string) => {
       const api = createApiInstance();
       const response = await api.patch<ApiResponse<any>>(`/schools/${schoolId}/suspend`);
@@ -1046,6 +1052,12 @@ export const apiClient = {
     reviewRenewalRequest: async (requestId: string, reviewData: any) => {
       const api = createApiInstance();
       const response = await api.put<ApiResponse<any>>(`/subscriptions/renewal-requests/${requestId}/review`, reviewData);
+      return response.data;
+    },
+    
+    checkAllStatuses: async () => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/subscriptions/check-all-statuses');
       return response.data;
     }
   }

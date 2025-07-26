@@ -257,7 +257,7 @@ import PasswordInput from '~/components/PasswordInput.vue';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin and School Admin can access user management
 const user = authStore.user;

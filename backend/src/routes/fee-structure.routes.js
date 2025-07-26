@@ -10,6 +10,7 @@ const {
   getFeeStructuresWithContext,
 } = require('../controllers/fee-structure.controller');
 const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('../middleware/auth');
+const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication
@@ -20,6 +21,10 @@ router.use(setSchoolContext);
 
 // Middleware to ensure branch context is set
 router.use(setBranchContext);
+
+// Middleware to check subscription status and validate module access
+router.use(checkSubscriptionStatus);
+router.use(validateModuleAccess('fees'));
 
 // POST endpoint to create a new fee structure (admin only)
 router.post('/', requireRole('super_admin', 'school_admin'), createFeeStructure);

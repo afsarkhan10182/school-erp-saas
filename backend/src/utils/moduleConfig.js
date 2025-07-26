@@ -120,6 +120,16 @@ const SUBSCRIPTION_PLANS = {
     price: 4999,
     duration_days: 365,
   },
+  LIFETIME: {
+    name: 'Lifetime',
+    description: 'Lifetime plan with unlimited access',
+    modules: Object.values(AVAILABLE_MODULES), // All modules
+    max_students: -1, // Unlimited
+    max_branches: -1, // Unlimited
+    max_staff: -1, // Unlimited
+    price: 4999,
+    duration_days: -1, // Lifetime
+  },
 };
 
 // Utility functions for academic year and payment month calculations

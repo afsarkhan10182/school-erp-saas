@@ -25,8 +25,8 @@
           <input v-model="form.code" type="text" required class="input-field" placeholder="e.g., MAIN, NORTH, SOUTH" />
         </div>
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
-          <input v-model="form.email" type="email" class="input-field" placeholder="Branch email (optional)" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email *</label>
+          <input v-model="form.email" type="email" required class="input-field" placeholder="Branch email" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Mobile No</label>
@@ -75,7 +75,7 @@
       <!-- Submit -->
       <div class="flex justify-end gap-3">
         <NuxtLink to="/branches" class="btn-secondary">Cancel</NuxtLink>
-        <button type="submit" class="btn-primary" :disabled="loading || !form.schoolId || schoolsLoading || schools.length === 0">
+        <button type="submit" class="btn-primary" :disabled="loading || !form.schoolId || !form.name || !form.code || !form.email || !form.currency || !form.currency_symbol || !form.city || !form.state || schoolsLoading || schools.length === 0">
           {{ loading ? 'Creating...' : 'Create Branch' }}
         </button>
       </div>
@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { useBranches } from '~/composables/useBranches';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useSchools } from '~/composables/useSchools';
@@ -165,7 +165,7 @@ const handleSubmit = async () => {
     setTimeout(() => {
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
       success.value = false;
-      window.location.href = '/branches';
+      navigateTo('/branches');
     }, 1500);
   }
 };

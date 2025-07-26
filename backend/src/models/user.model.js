@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../config/database');
 const { logger } = require('../utils/logger');
+const { ModuleConfig } = require('../utils/moduleConfig');
 
 const { ROLES } = require('../utils/roleManager');
 
@@ -151,6 +152,45 @@ const User = sequelize.define('User', {
   ],
   hooks: {
     beforeCreate: async (user) => {
+      // Check subscription limits for staff users
+      if (user.school_id && user.role !== 'super_admin' && user.role !== 'school_admin') {
+        const School = require('./school.model');
+        const SubscriptionPlan = require('./subscription-plan.model');
+        const school = await School.findByPk(user.school_id);
+        if (school) {
+          // First try to get plan from database
+          let plan = null;
+          if (school.subscription_plan) {
+            plan = await SubscriptionPlan.findOne({
+              where: { code: school.subscription_plan, is_active: true }
+            });
+          }
+
+          // If not found in database, fall back to ModuleConfig
+          if (!plan) {
+            plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+          }
+
+          if (plan) {
+            const maxStaff = plan.max_staff || plan.maxStaff || 10;
+            if (maxStaff !== -1) {
+              const User = require('./user.model');
+              const userCount = await User.count({ 
+                where: { 
+                  school_id: user.school_id,
+                  status: 'active',
+                  role: { [require('sequelize').Op.notIn]: ['super_admin', 'school_admin'] }
+                } 
+              });
+              
+              if (userCount >= maxStaff) {
+                throw new Error(`Staff limit reached. Maximum ${maxStaff} staff members allowed in your current plan. Please upgrade to add more staff.`);
+              }
+            }
+          }
+        }
+      }
+      
       if (user.password) {
         user.password = await bcrypt.hash(user.password, 12);
       }

@@ -30,6 +30,7 @@ const {
   getCollections
 } = require('../controllers/fee-invoice');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
+const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication
@@ -37,6 +38,10 @@ router.use(verifyToken);
 
 // Middleware to ensure school context is set
 router.use(setSchoolContext);
+
+// Middleware to check subscription status and validate module access
+router.use(checkSubscriptionStatus);
+router.use(validateModuleAccess('fees'));
 
 // POST endpoint to generate invoices for students (admin only)
 router.post('/generate', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), generateInvoices);
@@ -99,25 +104,25 @@ router.get('/:id', requireRole('super_admin', 'school_admin', 'branch_admin', 'a
 router.put('/:id', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), updateInvoice);
 
 // POST endpoint to record payment for an invoice
-router.post('/:id/payment', requireRole('super_admin', 'school_admin', 'accountant'), recordPayment);
+router.post('/:id/payment', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), recordPayment);
 
 // GET endpoint to get all payments for an invoice
 router.get('/:id/payments', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoicePayments);
 
 // POST endpoint to generate receipt for an invoice
-router.post('/:id/receipt', requireRole('super_admin', 'school_admin', 'accountant'), generateReceiptForInvoice);
+router.post('/:id/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), generateReceiptForInvoice);
 
 // GET endpoint to get receipt for an invoice
-router.get('/:id/receipt', requireRole('super_admin', 'school_admin', 'accountant'), getReceiptForInvoice);
+router.get('/:id/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptForInvoice);
 
 // PUT endpoint to cancel an invoice (admin only)
 router.put('/:id/cancel', requireRole('super_admin', 'school_admin'), cancelInvoice);
 
 // POST endpoint to apply late fees to an invoice (admin only)
-router.post('/:id/late-fees', requireRole('super_admin', 'school_admin', 'accountant'), applyLateFees);
+router.post('/:id/late-fees', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), applyLateFees);
 
 // POST endpoint to manually adjust invoice (admin only)
-router.post('/:id/adjust', requireRole('super_admin', 'school_admin'), adjustInvoice);
+router.post('/:id/adjust', requireRole('super_admin', 'school_admin', 'branch_admin'), adjustInvoice);
 
 // Payment-specific routes
 // GET endpoint to get a specific payment by ID

@@ -135,17 +135,25 @@
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
         <div class="px-4 py-5 sm:p-6">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Academic Year</label>
-              <select v-model="filters.academic_year" @change="fetchLedger" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <div class="relative">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
+              <select 
+                v-model="filters.academic_year" 
+                @change="fetchLedger" 
+                class="input-field"
+              >
                 <option value="">All Years</option>
                 <option value="2024-2025">2024-2025</option>
                 <option value="2023-24">2023-24</option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <select v-model="filters.status" @change="fetchLedger" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <div class="relative">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+              <select 
+                v-model="filters.status" 
+                @change="fetchLedger" 
+                class="input-field"
+              >
                 <option value="">All Status</option>
                 <option value="paid">Paid</option>
                 <option value="partial_paid">Partial Paid</option>
@@ -156,7 +164,7 @@
             <div class="flex items-end">
               <button
                 @click="fetchLedger"
-                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
               >
                 <Search class="-ml-1 mr-2 h-4 w-4" />
                 Filter
@@ -570,7 +578,7 @@
               <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
                 <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">Outstanding</div>
                 <div class="text-sm font-semibold text-amber-700 dark:text-amber-300">
-                  ₹{{ formatCurrency(student?.outstanding_balance || 0) }}
+                  ₹{{ formatCurrency(ledgerData?.summary?.total_balance || 0) }}
                 </div>
               </div>
               <!-- Close Button -->
@@ -616,11 +624,11 @@
                   :class="{
                     'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-900/20': selectedPayment?.id === receipt.id
                   }"
-                  @click="viewReceipt(receipt)"
+                  @click="viewReceiptFromList(receipt)"
                 >
                   <div class="flex justify-between items-start mb-2">
                     <div class="font-medium text-sm text-gray-900 dark:text-white truncate">
-                      {{ receipt.receipt_number }}
+                      {{ receipt.display_name }}
                     </div>
                     <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                       {{ formatDate(receipt.payment_date) }}
@@ -667,7 +675,7 @@
                       Receipt Details
                     </h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                      {{ selectedPayment.receipt_number }}
+                      {{ selectedPayment.receipt_number }} - {{ selectedPayment.display_name }}
                     </p>
                   </div>
                   <div class="flex items-center space-x-2">
@@ -772,6 +780,7 @@ const fetchLedger = async () => {
     const response = await apiClient.feeInvoices.getStudentLedger({
       student_id: studentId,
       academic_year: filters.value.academic_year,
+      status: filters.value.status,
       page: currentPage.value,
       limit: pageSize.value
     });
@@ -871,6 +880,7 @@ const showPaymentHistory = (invoice) => {
 
 // View receipt
 const viewReceipt = async (payment) => {
+  console.log('Viewing receipt for payment:', payment);
   isLoadingReceiptContent.value = true;
   
   try {
@@ -882,13 +892,63 @@ const viewReceipt = async (payment) => {
           ...payment,
           receipt_html: response.data.receipt_html
         };
+        console.log('Receipt loaded, showing modal. selectedPayment:', selectedPayment.value);
+        showReceiptModal.value = true;
       } else {
         showError('No receipt found for this grouped payment');
         return;
       }
     } else {
-      // For individual payments, use the existing receipt_html
-      selectedPayment.value = payment;
+      // For individual payments, try to get receipt from payment data first
+      if (payment.payments && payment.payments.length > 0) {
+        const firstPayment = payment.payments[0];
+        if (firstPayment.receipt_html) {
+          selectedPayment.value = {
+            ...payment,
+            receipt_html: firstPayment.receipt_html
+          };
+          showReceiptModal.value = true;
+        } else {
+          // Try to fetch receipt for the payment
+          try {
+            const response = await apiClient.feeInvoices.getPaymentReceipt(firstPayment.id);
+            if (response.data && response.data.receipt_html) {
+              selectedPayment.value = {
+                ...payment,
+                receipt_html: response.data.receipt_html
+              };
+              showReceiptModal.value = true;
+            } else {
+              showError('No receipt found for this payment');
+              return;
+            }
+          } catch (receiptError) {
+            console.error('Error fetching receipt for payment:', receiptError);
+            showError('Error fetching receipt for this payment');
+            return;
+          }
+        }
+      } else {
+        // If no payments array, this is likely a payment object from payment history
+        // Try to fetch receipt for this specific payment
+        try {
+          const response = await apiClient.feeInvoices.getPaymentReceipt(payment.id);
+          if (response.data && response.data.receipt_html) {
+            selectedPayment.value = {
+              ...payment,
+              receipt_html: response.data.receipt_html
+            };
+            showReceiptModal.value = true;
+          } else {
+            showError('No receipt found for this payment');
+            return;
+          }
+        } catch (receiptError) {
+          console.error('Error fetching receipt for payment:', receiptError);
+          showError('Error fetching receipt for this payment');
+          return;
+        }
+      }
     }
   } catch (error) {
     console.error('Error viewing receipt:', error);
@@ -898,6 +958,77 @@ const viewReceipt = async (payment) => {
       showError('Error viewing receipt');
     }
     return;
+  } finally {
+    // Small delay to show loading state for better UX
+    setTimeout(() => {
+      isLoadingReceiptContent.value = false;
+      // Show the receipt modal after loading is complete
+      if (selectedPayment.value && selectedPayment.value.receipt_html) {
+        showReceiptModal.value = true;
+      }
+    }, 200);
+  }
+};
+
+// View receipt from the "View All Receipts" modal
+const viewReceiptFromList = async (receipt) => {
+  console.log('Viewing receipt from list:', receipt);
+  isLoadingReceiptContent.value = true;
+  
+  try {
+    // Set the selected receipt
+    selectedPayment.value = receipt;
+    
+    // If receipt HTML is already available, use it
+    if (receipt.receipt_html) {
+      console.log('Receipt HTML already available');
+      return;
+    }
+    
+    // If this is a payment-specific receipt, fetch the payment receipt
+    if (receipt.payment_id) {
+      const response = await apiClient.feeInvoices.getPaymentReceipt(receipt.payment_id);
+      if (response.data && response.data.receipt_html) {
+        selectedPayment.value = {
+          ...receipt,
+          receipt_html: response.data.receipt_html
+        };
+        console.log('Payment receipt loaded successfully');
+      } else {
+        showError('No receipt found for this payment');
+      }
+    } else if (receipt.is_grouped && receipt.receipt_group_id) {
+      // For grouped receipts, fetch the combined receipt
+      const response = await apiClient.feeInvoices.getCombinedReceipt(receipt.receipt_group_id);
+      if (response.data && response.data.receipt_html) {
+        selectedPayment.value = {
+          ...receipt,
+          receipt_html: response.data.receipt_html
+        };
+        console.log('Grouped receipt loaded successfully');
+      } else {
+        showError('No receipt found for this grouped payment');
+      }
+    } else {
+      // For individual invoices, try to get receipt using the invoice ID
+      const response = await apiClient.feeInvoices.getReceipt(receipt.invoice_id || receipt.id);
+      if (response.data && response.data.receipt_html) {
+        selectedPayment.value = {
+          ...receipt,
+          receipt_html: response.data.receipt_html
+        };
+        console.log('Invoice receipt loaded successfully');
+      } else {
+        showError('No receipt found for this invoice');
+      }
+    }
+  } catch (error) {
+    console.error('Error viewing receipt from list:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error viewing receipt');
+    }
   } finally {
     // Small delay to show loading state for better UX
     setTimeout(() => {
@@ -936,49 +1067,89 @@ const viewCombinedReceipt = async (invoice) => {
 const fetchAllReceipts = async () => {
   if (!studentId) return;
   
+  console.log('Fetching all receipts for student:', studentId);
   isLoadingReceipts.value = true;
   try {
-    // Fetch both individual payments and grouped receipts
-    const [paymentsResponse, groupedResponse] = await Promise.allSettled([
-      apiClient.feeInvoices.getStudentPayments(studentId),
-      apiClient.feeInvoices.getGroupedReceipts({ student_id: studentId })
-    ]);
+    // Fetch student ledger which includes both individual and grouped receipts
+    const ledgerResponse = await apiClient.feeInvoices.getStudentLedger({ 
+      student_id: studentId,
+      academic_year: filters.value.academic_year || ''
+    });
     
     const allReceiptsData = [];
     
-    // Add individual payments
-    if (paymentsResponse.status === 'fulfilled' && paymentsResponse.value.data.payments) {
-      allReceiptsData.push(...paymentsResponse.value.data.payments.map(payment => ({
-        ...payment,
-        is_grouped: false,
-        receipt_type: 'individual'
-      })));
-    }
-    
-    // Add grouped receipts
-    if (groupedResponse.status === 'fulfilled' && groupedResponse.value.data.grouped_invoices) {
-      allReceiptsData.push(...groupedResponse.value.data.grouped_invoices.map(group => ({
-        id: group.receipt_group_id,
-        receipt_number: group.receipt_group_id,
-        payment_amount: group.total_paid,
-        payment_method: group.payment_method,
-        payment_date: group.payment_date,
-        receipt_html: null, // Will be fetched when viewing
-        is_grouped: true,
-        receipt_type: 'grouped',
-        receipt_group_id: group.receipt_group_id,
-        display_name: group.display_name,
-        months_covered: group.months_covered,
-        month_names: group.month_names,
-        total_amount: group.total_amount,
-        paid_amount: group.total_paid,
-        balance_amount: group.total_balance
-      })));
+    if (ledgerResponse.success && ledgerResponse.data) {
+      // Process all invoices from the API response
+      if (ledgerResponse.data.invoices) {
+        ledgerResponse.data.invoices.forEach(invoice => {
+          // Only show invoices that have been paid
+          if (invoice.paid_amount > 0) {
+            // Check if this invoice has multiple payments
+            if (invoice.payments && invoice.payments.length > 1) {
+              // Create separate receipt entries for each payment
+              invoice.payments.forEach((payment, index) => {
+                const receiptData = {
+                  id: `${invoice.id}-payment-${payment.id}`, // Unique ID for each payment
+                  invoice_id: invoice.id,
+                  payment_id: payment.id,
+                  receipt_number: payment.receipt_number || `RCP-${payment.id}`,
+                  payment_amount: parseFloat(payment.payment_amount || 0),
+                  payment_method: payment.payment_method || 'Cash',
+                  payment_date: payment.payment_date || payment.created_at,
+                  receipt_html: payment.receipt_html || null,
+                  is_grouped: false,
+                  receipt_type: 'individual',
+                  receipt_group_id: null,
+                  display_name: `${invoice.invoice_number} - Payment ${index + 1}`,
+                  months_covered: null,
+                  month_names: null,
+                  total_amount: parseFloat(invoice.total_amount || 0),
+                  paid_amount: parseFloat(invoice.paid_amount || 0),
+                  balance_amount: parseFloat(invoice.balance_amount || 0),
+                  status: invoice.status,
+                  payments: [payment], // Single payment
+                  invoice: invoice // Keep reference to original invoice
+                };
+                
+                allReceiptsData.push(receiptData);
+              });
+            } else {
+              // Single payment or grouped payment
+              const receiptData = {
+                id: invoice.id,
+                receipt_number: invoice.invoice_number,
+                payment_amount: invoice.paid_amount,
+                payment_method: invoice.payments && invoice.payments.length > 0 
+                  ? invoice.payments[0].payment_method 
+                  : 'Cash',
+                payment_date: invoice.payments && invoice.payments.length > 0 
+                  ? invoice.payments[0].payment_date 
+                  : invoice.due_date,
+                receipt_html: null, // Will be fetched when viewing
+                is_grouped: invoice.is_grouped || false,
+                receipt_type: invoice.is_grouped ? 'grouped' : 'individual',
+                receipt_group_id: invoice.receipt_group_id,
+                display_name: invoice.display_name || invoice.invoice_number,
+                months_covered: invoice.months_covered,
+                month_names: invoice.month_names,
+                total_amount: invoice.total_amount,
+                paid_amount: invoice.paid_amount,
+                balance_amount: invoice.balance_amount,
+                status: invoice.status,
+                payments: invoice.payments || []
+              };
+              
+              allReceiptsData.push(receiptData);
+            }
+          }
+        });
+      }
     }
     
     // Sort by payment date (newest first)
     allReceiptsData.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
     
+    console.log('All receipts data:', allReceiptsData);
     allReceipts.value = allReceiptsData;
     
     // Auto-select the first receipt if available
@@ -997,12 +1168,23 @@ const fetchAllReceipts = async () => {
   }
 };
 
-// Watch for modal opening to fetch receipts
+// Watch for modal opening to fetch receipts and ledger data
 watch(showAllReceiptsModal, (newValue) => {
   if (newValue) {
     fetchAllReceipts();
+    // Ensure ledger data is available for outstanding balance calculation
+    if (!ledgerData.value) {
+      fetchLedger();
+    }
   }
 });
+
+// Watch for filter changes to refresh receipts
+watch(filters, () => {
+  if (showAllReceiptsModal.value) {
+    fetchAllReceipts();
+  }
+}, { deep: true });
 
 // Print receipt
 const printReceipt = () => {

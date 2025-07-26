@@ -15,11 +15,20 @@ interface Class {
   code: string;
   numeric_value?: number;
   is_active?: boolean;
+  has_stream?: boolean; // Add has_stream field
   branch?: {
     id: string;
     name: string;
     code?: string;
   };
+}
+
+interface Stream {
+  id: string;
+  name: string;
+  code: string;
+  class_id: string;
+  is_active?: boolean;
 }
 
 interface Section {
@@ -44,6 +53,7 @@ interface Section {
 export function useAcademics() {
   const academicYears = ref<AcademicYear[]>([]);
   const classes = ref<Class[]>([]);
+  const streams = ref<Stream[]>([]);
   const sections = ref<Section[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -55,6 +65,10 @@ export function useAcademics() {
 
   const activeClasses = computed(() => 
     classes.value.filter(cls => cls.is_active !== false)
+  );
+
+  const activeStreams = computed(() => 
+    streams.value.filter(stream => stream.is_active !== false)
   );
 
   const activeSections = computed(() => 
@@ -102,6 +116,26 @@ export function useAcademics() {
     }
   };
 
+  const fetchStreams = async (schoolId?: string, branchId?: string, classId?: string) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const params: { school_id?: string; branch_id?: string; class_id?: string } = {};
+      if (schoolId) params.school_id = schoolId;
+      if (branchId) params.branch_id = branchId;
+      if (classId) params.class_id = classId;
+      
+      const response = await apiClient.streams.getForDropdown(params);
+      streams.value = response.data || [];
+    } catch (err) {
+      console.error('❌ useAcademics: Error fetching streams:', err);
+      error.value = 'Failed to fetch streams';
+      streams.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const fetchSections = async (schoolId?: string, branchId?: string, classId?: string) => {
     loading.value = true;
     error.value = null;
@@ -138,20 +172,28 @@ export function useAcademics() {
     return await fetchSections(schoolId, branchId, classId);
   };
 
+  const loadStreamsByClass = async (classId: string, schoolId?: string, branchId?: string) => {
+    return await fetchStreams(schoolId, branchId, classId);
+  };
+
   return {
     academicYears,
     classes,
+    streams,
     sections,
     loading,
     error,
     activeAcademicYears,
     activeClasses,
+    activeStreams,
     activeSections,
     currentAcademicYear,
     fetchAcademicYears,
     fetchClasses,
+    fetchStreams,
     fetchSections,
     getCurrentAcademicYear,
     loadSectionsByClass,
+    loadStreamsByClass,
   };
 } 

@@ -284,7 +284,7 @@ const { showError } = useToast();
 const dashboardConfig = {
   newStudentsDays: 30,
   feeTrendMonths: 6,
-  activitiesLimit: 10
+  activitiesLimit: 5
 };
 
 // Academic data

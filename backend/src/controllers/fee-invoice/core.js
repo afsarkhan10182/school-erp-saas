@@ -449,11 +449,19 @@ const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Student,
@@ -496,11 +504,19 @@ const updateInvoice = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
     });
 
     if (!invoice) {

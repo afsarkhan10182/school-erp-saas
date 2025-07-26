@@ -13,8 +13,6 @@ class BranchService {
       
       // Prepare settings object
       const settings = {
-        currency: currency || 'INR',
-        currency_symbol: currency_symbol || '₹',
         system_logo: system_logo ? `/uploads/${system_logo.filename}` : null,
         text_logo: text_logo ? `/uploads/${text_logo.filename}` : null,
         printing_logo: printing_logo ? `/uploads/${printing_logo.filename}` : null,
@@ -23,6 +21,8 @@ class BranchService {
 
       const branch = await Branch.create({
         ...basicData,
+        currency: currency || 'INR',
+        currency_symbol: currency_symbol || '₹',
         settings
       });
 

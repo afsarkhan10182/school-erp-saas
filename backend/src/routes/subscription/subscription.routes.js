@@ -45,6 +45,10 @@ router.post('/schools/:schoolId/transactions', authorize(['super_admin']), Subsc
 // Subscription Status Check (Super Admin Only)
 router.get('/schools/:schoolId/status', authorize(['super_admin']), SubscriptionController.checkSubscriptionStatus);
 
+// Check School Usage (Super Admin and School Admin)
+router.get('/schools/:schoolId/usage', authorize(['super_admin', 'school_admin']), SubscriptionController.checkSchoolUsage);
+router.get('/usage', authorize(['school_admin', 'branch_admin']), SubscriptionController.checkSchoolUsage);
+
 // Renewal Requests Routes
 // Create renewal request (School Admin Only)
 router.post('/renewal-requests', authorize(['school_admin', 'branch_admin']), SubscriptionController.createRenewalRequest);
@@ -60,5 +64,12 @@ router.put('/renewal-requests/:id/review', authorize(['super_admin']), Subscript
 
 // Subscription Statistics (Super Admin Only)
 router.get('/stats', authorize(['super_admin']), SubscriptionController.getSubscriptionStats);
+
+// Check and update all subscription statuses (Super Admin Only)
+router.post('/check-all-statuses', authorize(['super_admin']), SubscriptionController.checkAndUpdateAllStatuses);
+
+// Sync schools with plans (Super Admin Only)
+router.post('/sync-plan/:planCode', authorize(['super_admin']), SubscriptionController.syncSchoolsWithPlan);
+router.post('/sync-all-plans', authorize(['super_admin']), SubscriptionController.syncAllSchoolsWithPlans);
 
 module.exports = router; 

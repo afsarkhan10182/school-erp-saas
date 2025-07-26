@@ -60,7 +60,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
     allowNull: false,
     defaultValue: 100,
     validate: {
-      min: { args: [1], msg: 'Max students must be at least 1' },
+      min: { args: [-1], msg: 'Max students must be at least -1 (unlimited)' },
     },
   },
   max_staff: {
@@ -68,7 +68,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
     allowNull: false,
     defaultValue: 20,
     validate: {
-      min: { args: [1], msg: 'Max staff must be at least 1' },
+      min: { args: [-1], msg: 'Max staff must be at least -1 (unlimited)' },
     },
   },
   max_branches: {
@@ -76,7 +76,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
     allowNull: false,
     defaultValue: 1,
     validate: {
-      min: { args: [1], msg: 'Max branches must be at least 1' },
+      min: { args: [-1], msg: 'Max branches must be at least -1 (unlimited)' },
     },
   },
   modules: {

@@ -79,7 +79,6 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
@@ -95,11 +94,10 @@ if (user?.role !== 'super_admin') {
 }
 
 const route = useRoute();
-const router = useRouter();
 const { updatePlan, getPlanById, loading, error } = useSubscriptions();
 
 const allModules = [
-  'academics', 'attendance', 'fees', 'exams', 'library', 'hostel', 'transport', 'hr', 'accounting', 'alumni'
+  'students', 'fees', 'attendance', 'exams', 'library', 'transport', 'hr', 'reports', 'settings'
 ];
 
 const form = ref({
@@ -118,24 +116,15 @@ const form = ref({
 });
 const loaded = ref(false);
 
-// Load single plan by ID instead of fetching all plans
+// Load single plan by ID using the proper API client
 const loadPlan = async () => {
   try {
-    const token = useCookie('auth-token').value;
-    const config = useRuntimeConfig();
-    const apiBase = config.public.apiBase;
-    const res = await fetch(`${apiBase}/subscriptions/plans/${route.params.id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await res.json();
-    if (data.success) {
-      Object.assign(form.value, data.data.plan || data.data);
+    const result = await getPlanById(route.params.id);
+    if (result) {
+      Object.assign(form.value, result);
       loaded.value = true;
     } else {
-      error.value = data.message || 'Failed to load plan';
+      error.value = 'Failed to load plan';
     }
   } catch (e) {
     error.value = 'Network error';
@@ -157,7 +146,7 @@ const handleSubmit = async () => {
       window.dispatchEvent(event);
     }
     // Redirect to list page
-    router.push('/subscriptions/plans');
+    await navigateTo('/subscriptions/plans');
   }
 };
 

@@ -112,11 +112,11 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
-            <input v-model="form.schoolData.currency" readonly type="text" class="input-field" placeholder="e.g. INR, USD" />
+            <input v-model="form.schoolData.currency" type="text" class="input-field" placeholder="e.g. INR, USD" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
-            <input v-model="form.schoolData.currency_symbol" readonly type="text" class="input-field" placeholder="e.g. ₹, $" />
+            <input v-model="form.schoolData.currency_symbol" type="text" class="input-field" placeholder="e.g. ₹, $" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Starting Month</label>
@@ -147,6 +147,26 @@
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Academic: June-May or custom starting month, Calendar: January-December
             </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
+            <input
+              v-model="form.schoolData.city"
+              type="text"
+              required
+              class="input-field"
+              placeholder="Enter city"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State *</label>
+            <input
+              v-model="form.schoolData.state"
+              type="text"
+              required
+              class="input-field"
+              placeholder="Enter state"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Logo</label>
@@ -181,24 +201,6 @@
               class="input-field"
               placeholder="Enter school address"
             ></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
-            <input
-              v-model="form.schoolData.city"
-              type="text"
-              class="input-field"
-              placeholder="Enter city"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
-            <input
-              v-model="form.schoolData.state"
-              type="text"
-              class="input-field"
-              placeholder="Enter state"
-            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
@@ -245,7 +247,7 @@
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Status *</label>
-            <select v-model="form.subscriptionData.status" required class="input-field">
+            <select v-model="form.subscriptionData.status" required class="input-field" @change="handleStatusChange">
               <option value="trial">Trial</option>
               <option value="active">Active</option>
               <option value="lifetime">Lifetime</option>
@@ -260,9 +262,10 @@
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date *</label>
             <input v-model="form.subscriptionData.start_date" type="date" required class="input-field" @change="autoSetTrialEndDate" />
           </div>
-          <div v-if="form.subscriptionData.status !== 'lifetime'">
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date *</label>
-            <input v-model="form.subscriptionData.end_date" type="date" :required="form.subscriptionData.status !== 'trial'" class="input-field" />
+          <div v-if="form.subscriptionData.status !== 'lifetime' && selectedPlan?.billing_cycle !== 'lifetime'">
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
+            <input v-model="form.subscriptionData.end_date" type="date" :readonly="true" class="input-field bg-gray-100 dark:bg-gray-700" />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-calculated based on billing cycle</p>
           </div>
         </div>
 
@@ -431,7 +434,7 @@ import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showApiError } = useToast();
 
 // Access control - only Super Admin can access school subscription management
 const user = authStore.user;
@@ -603,6 +606,32 @@ const autoSetTrialEndDate = () => {
   }
 };
 
+// Handle status change to update end date
+const handleStatusChange = () => {
+  if (form.value.subscriptionData.status === 'trial') {
+    const startDate = new Date(form.value.subscriptionData.start_date);
+    const trialDays = form.value.subscriptionData.trial_days;
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + trialDays);
+    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'monthly') {
+    const startDate = new Date(form.value.subscriptionData.start_date);
+    const endDate = new Date(startDate);
+    endDate.setMonth(startDate.getMonth() + 1);
+    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'yearly') {
+    const startDate = new Date(form.value.subscriptionData.start_date);
+    const endDate = new Date(startDate);
+    endDate.setFullYear(startDate.getFullYear() + 1);
+    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'lifetime') {
+    const startDate = new Date(form.value.subscriptionData.start_date);
+    const endDate = new Date(startDate);
+    endDate.setFullYear(startDate.getFullYear() + 100); // Set to far future
+    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+  }
+};
+
 // Validate unique email (frontend only)
 const validateUniqueEmail = (type) => {
   const email = form.value.subscriptionData.admin_email;
@@ -757,7 +786,7 @@ const handleSubmit = async () => {
     }
   } catch (err) {
     console.error('Error creating school:', err);
-    showToastNotification(err?.message || 'Failed to create school', 'error');
+    showApiError(err, 'Failed to create school');
   }
 };
 

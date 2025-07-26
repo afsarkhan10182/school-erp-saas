@@ -193,29 +193,6 @@
             </template>
           </FormField>
           
-          <!-- Section Selection - Only if class/stream has sections -->
-          <FormField 
-            v-if="hasSections"
-            id="section_id"
-            label="Section"
-            :error-message="getFieldError('section_id')"
-          >
-            <template #default="{ id, class: fieldClass }">
-              <select 
-                :id="id"
-                v-model="form.section_id" 
-                :class="fieldClass"
-                :disabled="!form.class_id || sectionsLoading" 
-                @change="onSectionChange"
-              >
-                <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSectionsFiltered.length === 0 ? 'No sections found' : 'Select Section') }}</option>
-                <option v-for="section in activeSectionsFiltered" :key="section.id" :value="section.id">
-                  {{ section.name }}
-                </option>
-              </select>
-            </template>
-          </FormField>
-          
           <!-- Stream Selection - Only if class has streams -->
           <FormField 
             v-if="hasStreams"
@@ -232,9 +209,32 @@
                 :disabled="!form.class_id || streamsLoading" 
                 @change="onStreamChange"
               >
-                <option value="">{{ streamsLoading ? 'Loading streams...' : (activeStreams.length === 0 ? 'No streams found' : 'Select Stream') }}</option>
-                <option v-for="stream in activeStreams" :key="stream.id" :value="stream.id">
+                <option value="">{{ streamsLoading ? 'Loading streams...' : (activeStreamsForClass.length === 0 ? 'No streams found' : 'Select Stream') }}</option>
+                <option v-for="stream in activeStreamsForClass" :key="stream.id" :value="stream.id">
                   {{ stream.name }} ({{ stream.code }})
+                </option>
+              </select>
+            </template>
+          </FormField>
+          
+          <!-- Section Selection - Only if class/stream has sections -->
+          <FormField 
+            v-if="hasSections"
+            id="section_id"
+            :label="hasStreams ? 'Section (for selected stream)' : 'Section'"
+            :error-message="getFieldError('section_id')"
+          >
+            <template #default="{ id, class: fieldClass }">
+              <select 
+                :id="id"
+                v-model="form.section_id" 
+                :class="fieldClass"
+                :disabled="!form.class_id || sectionsLoading || (hasStreams && !form.stream_id)" 
+                @change="onSectionChange"
+              >
+                <option value="">{{ sectionsLoading ? 'Loading sections...' : (form.class_id && activeSectionsFiltered.length === 0 ? 'No sections found' : (hasStreams && !form.stream_id) ? 'Select stream first' : 'Select Section') }}</option>
+                <option v-for="section in activeSectionsFiltered" :key="section.id" :value="section.id">
+                  {{ section.name }}
                 </option>
               </select>
             </template>
@@ -841,10 +841,11 @@ const router = useRouter();
 const { user } = useAuth();
 const userRole = computed(() => user.value?.role);
 
-// Check if selected class has streams
+// Check if selected class has streams enabled
 const hasStreams = computed(() => {
   if (!form.class_id) return false;
-  return activeStreams.value.length > 0;
+  const selectedClass = activeClasses.value.find(cls => cls.id === form.class_id);
+  return selectedClass?.has_stream === true;
 });
 
 // Check if selected class/stream has sections
@@ -853,10 +854,12 @@ const hasSections = computed(() => {
   return activeSectionsFiltered.value.length > 0;
 });
 
-// Active streams for the selected class
-const activeStreams = computed(() => {
+// Active streams for the selected class - now handled by useAcademics composable
+
+// Active streams filtered for the selected class
+const activeStreamsForClass = computed(() => {
   if (!form.class_id) return [];
-  return streams.value.filter(stream => stream.class_id === form.class_id && stream.is_active !== false);
+  return activeStreams.value.filter(stream => stream.class_id === form.class_id);
 });
 
 // Active sections filtered by stream (if stream is selected)
@@ -875,15 +878,19 @@ const activeSectionsFiltered = computed(() => {
 const {
   academicYears,
   classes,
+  streams,
   sections,
   loading: academicsLoading,
   fetchAcademicYears,
   fetchClasses,
+  fetchStreams,
   fetchSections,
   loadSectionsByClass,
+  loadStreamsByClass,
   currentAcademicYear,
   activeAcademicYears,
   activeClasses,
+  activeStreams,
   activeSections,
 } = useAcademics();
 
@@ -923,8 +930,7 @@ const toastMessage = ref('');
 const toastType = ref('success');
 const userBranch = ref(null);
 
-// Streams data
-const streams = ref([]);
+// Streams data - now handled by useAcademics composable
 
 // Form data
 const form = reactive({
@@ -1289,41 +1295,7 @@ const onBranchChange = async () => {
   }
 };
 
-// Load streams for the selected class
-const loadStreamsForClass = async (classId) => {
-  if (!classId) {
-    streams.value = [];
-    return;
-  }
-  
-  streamsLoading.value = true;
-  try {
-    const params = {
-      class_id: classId,
-      is_active: 'true'
-    };
-    
-    // Add role-based filters
-    if (userRole.value === 'super_admin') {
-      if (form.school_id) params.school_id = form.school_id;
-      if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (userRole.value === 'school_admin') {
-      params.school_id = user.value?.school_id;
-      if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (userRole.value === 'branch_admin') {
-      params.school_id = user.value?.school_id;
-      params.branch_id = user.value?.branch_id;
-    }
-    
-    const response = await fetchStreamsAPI(params);
-    streams.value = response.data || [];
-  } catch (error) {
-    console.error('Error loading streams:', error);
-    streams.value = [];
-  } finally {
-    streamsLoading.value = false;
-  }
-};
+// Load streams for the selected class - now handled by useAcademics composable
 
 // Class change handler
 const onClassChange = async (isAutoSelection = false) => {
@@ -1341,7 +1313,7 @@ const onClassChange = async (isAutoSelection = false) => {
     console.log('🔍 Marked class as user-changed');
   }
   
-  // Only clear section_id and stream_id if this is a user change (not during initialization)
+  // Clear section_id and stream_id when class changes (not during initialization)
   if (!isAutoSelection && !isSettingFormValues.value) {
     form.section_id = '';
     form.stream_id = '';
@@ -1350,11 +1322,24 @@ const onClassChange = async (isAutoSelection = false) => {
   
   if (form.class_id) {
     sectionsLoading.value = true;
+    streamsLoading.value = true;
     try {
-      // Load streams for higher classes
-      await loadStreamsForClass(form.class_id);
+      // Check if the selected class has streams enabled
+      const selectedClass = activeClasses.value.find(cls => cls.id === form.class_id);
+      const classHasStreams = selectedClass?.has_stream === true;
       
-      // Try loading sections with current context first
+      console.log('🔍 Selected class has streams:', classHasStreams);
+      
+      if (classHasStreams) {
+        // Load streams for this class
+        await loadStreamsByClass(form.class_id, form.school_id, form.branch_id);
+        console.log('🔍 Streams loaded:', streams.value?.length);
+      } else {
+        // Clear streams if class doesn't have streams
+        streams.value = [];
+      }
+      
+      // Load sections for this class
       await loadSectionsByClass(form.class_id, form.school_id, form.branch_id);
       console.log('🔍 Sections loaded:', sections.value?.length);
       
@@ -1364,22 +1349,17 @@ const onClassChange = async (isAutoSelection = false) => {
         console.log('🔍 Sections loaded (without branch):', sections.value?.length);
       }
       
-      // Filter sections by stream if stream is selected
-      if (form.stream_id && sections.value) {
-        sections.value = sections.value.filter(section => section.stream_id === form.stream_id);
-        console.log('🔍 Sections filtered by stream:', sections.value?.length);
-      }
-      
-      // Only auto-select section if this is not during form initialization
-      if (activeSectionsFiltered.value && activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
+      // Only auto-select section if this is not during form initialization and class has no streams
+      if (!classHasStreams && activeSectionsFiltered.value && activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
         form.section_id = activeSectionsFiltered.value[0].id;
-        console.log('🔍 Auto-selecting single filtered section:', form.section_id);
+        console.log('🔍 Auto-selecting single section for class without streams:', form.section_id);
       }
     } catch (error) {
-      console.error('❌ Error loading sections:', error);
-      showError('Failed to load sections');
+      console.error('❌ Error loading academic data:', error);
+      showError('Failed to load academic data');
     } finally {
       sectionsLoading.value = false;
+      streamsLoading.value = false;
     }
   } else {
     sections.value = [];
@@ -1390,6 +1370,7 @@ const onClassChange = async (isAutoSelection = false) => {
 // Stream change handler
 const onStreamChange = async () => {
   console.log('🔍 onStreamChange called with stream_id:', form.stream_id, 'isSettingFormValues:', isSettingFormValues.value);
+  
   // Only mark as user-changed if not setting form values
   if (!isSettingFormValues.value) {
     userChangedSection.value = true;
@@ -1404,8 +1385,14 @@ const onStreamChange = async () => {
   // If stream is selected and we have sections loaded, filter them by stream
   if (form.stream_id && sections.value && sections.value.length > 0) {
     console.log('🔍 Filtering sections by stream:', form.stream_id);
-    // The activeSections computed property will automatically filter by stream_id
-    console.log('🔍 Sections after stream filter:', activeSections.value.length);
+    // The activeSectionsFiltered computed property will automatically filter by stream_id
+    console.log('🔍 Sections after stream filter:', activeSectionsFiltered.value.length);
+    
+    // Auto-select section if only one section is available for this stream
+    if (activeSectionsFiltered.value.length === 1 && !isSettingFormValues.value) {
+      form.section_id = activeSectionsFiltered.value[0].id;
+      console.log('🔍 Auto-selecting single section for stream:', form.section_id);
+    }
   }
 };
 
@@ -2139,9 +2126,14 @@ const mapClassAndSectionNames = async () => {
       
       // Load streams and sections for this class
       try {
-        // Load streams for higher classes
-        await loadStreamsForClass(classRecord.id);
-        console.log('🔍 Loaded streams for class:', streams.value.length);
+        // Check if class has streams and load them
+        const selectedClass = activeClasses.value.find(cls => cls.id === classRecord.id);
+        const classHasStreams = selectedClass?.has_stream === true;
+        
+        if (classHasStreams) {
+          await loadStreamsByClass(classRecord.id, form.school_id, form.branch_id);
+          console.log('🔍 Loaded streams for class:', streams.value.length);
+        }
         
         await loadSectionsByClass(classRecord.id, form.school_id, form.branch_id);
         console.log('🔍 Loaded sections for class:', sections.value.length);

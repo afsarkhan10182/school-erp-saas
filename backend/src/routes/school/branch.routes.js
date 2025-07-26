@@ -8,6 +8,7 @@ const {
   updateBranchValidator,
 } = require('../../validations/branch.validation');
 const { uploadFields } = require('../../middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -16,6 +17,9 @@ router.use(verifyToken);
 router.post(
   '/',
   authorize(['super_admin']),
+  checkSubscriptionStatus,
+  validateModuleAccess('settings'),
+  validateSubscriptionLimits,
   uploadFields([
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
@@ -42,7 +46,7 @@ router.get(
 // School Admin routes (can manage branches in their school) - Must come before /:id
 router.get(
   '/school/:schoolId',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
   BranchController.getBranchesBySchool
 );
 

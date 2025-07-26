@@ -167,11 +167,19 @@ const recordPayment = async (req, res, next) => {
       throw new ApiError(400, 'Valid payment amount is required');
     }
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: Student,
@@ -381,11 +389,19 @@ const getInvoicePayments = async (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    // Build where clause based on user role
+    const whereClause = {
+      id,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    }
+
     const invoice = await FeeInvoice.findOne({
-      where: {
-        id,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
     });
 
     if (!invoice) {
@@ -427,11 +443,22 @@ const getPaymentById = async (req, res, next) => {
   try {
     const { paymentId } = req.params;
 
+    // Build where clause based on user role
+    const whereClause = {
+      id: paymentId,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can access payments from their branch OR payments with null branch_id
+      whereClause.branch_id = {
+        [Op.or]: [req.user.branch_id, null]
+      };
+    }
+
     const payment = await FeePayment.findOne({
-      where: {
-        id: paymentId,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: FeeInvoice,
@@ -462,11 +489,22 @@ const getPaymentReceipt = async (req, res, next) => {
   try {
     const { paymentId } = req.params;
 
+    // Build where clause based on user role
+    const whereClause = {
+      id: paymentId,
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can access payments from their branch OR payments with null branch_id
+      whereClause.branch_id = {
+        [Op.or]: [req.user.branch_id, null]
+      };
+    }
+
     const payment = await FeePayment.findOne({
-      where: {
-        id: paymentId,
-        school_id: req.schoolId,
-      },
+      where: whereClause,
       include: [
         {
           model: FeeInvoice,
@@ -514,6 +552,11 @@ const getStudentPayments = async (req, res, next) => {
       student_id: studentId,
       school_id: req.schoolId,
     };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    }
 
     if (academic_year) {
       whereClause['$invoice.academic_year$'] = academic_year;

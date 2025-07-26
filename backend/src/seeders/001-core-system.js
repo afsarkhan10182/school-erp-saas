@@ -37,7 +37,7 @@ module.exports = {
         max_students: 50,
         max_staff: 10,
         max_branches: 1,
-        modules: ['academics', 'attendance', 'fees'],
+        modules: ['students', 'academics', 'attendance', 'fees'],
         features: JSON.stringify({
           basic_reporting: true,
           email_support: true,
@@ -62,7 +62,7 @@ module.exports = {
         max_students: 200,
         max_staff: 25,
         max_branches: 2,
-        modules: ['academics', 'attendance', 'fees', 'exams', 'library'],
+        modules: ['students', 'academics', 'attendance', 'fees', 'exams', 'library'],
         features: JSON.stringify({
           basic_reporting: true,
           email_support: true,
@@ -73,6 +73,34 @@ module.exports = {
         is_active: true,
         is_popular: true,
         sort_order: 2,
+        created_by: '550e8400-e29b-41d4-a716-446655440001',
+        created_at: new Date(),
+        updated_at: new Date()
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440004',
+        name: 'Lifetime Plan',
+        code: 'LIFETIME',
+        description: 'Lifetime plan with unlimited access',
+        price: 4999.00,
+        currency: 'INR',
+        billing_cycle: 'lifetime',
+        max_students: 5000,
+        max_staff: 100,
+        max_branches: 10,
+        modules: ['students', 'academics', 'attendance', 'fees', 'exams', 'library', 'transport', 'hr', 'reports', 'settings'],
+        features: JSON.stringify({
+          basic_reporting: true,
+          email_support: true,
+          mobile_app: true,
+          advanced_analytics: true,
+          sms_notifications: true,
+          priority_support: true,
+          custom_integrations: true
+        }),
+        is_active: true,
+        is_popular: false,
+        sort_order: 3,
         created_by: '550e8400-e29b-41d4-a716-446655440001',
         created_at: new Date(),
         updated_at: new Date()
