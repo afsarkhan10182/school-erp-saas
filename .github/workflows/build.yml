@@ -1,8 +1,13 @@
 name: Build & Push Docker Images
+
 on:
   push:
     branches:
       - release
+
+permissions:
+  contents: read
+  packages: write   # ✅ allow pushing to GHCR
 
 env:
   REGISTRY: ghcr.io
