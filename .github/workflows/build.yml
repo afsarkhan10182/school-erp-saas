@@ -1,104 +1,83 @@
-name: Build, Deploy & Cleanup (with Cache & Bandwidth Alert)
+name: Deploy Frontend & Backend
 
 on:
   push:
     branches:
       - release
 
-permissions:
-  contents: read
-  packages: write
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/school-erp-frontend
-  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/school-erp-backend
-
 jobs:
-  # ✅ Build, deploy & monitor →
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      # ✅ Checkout code
+      # ✅ Checkout repo
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ Login to GHCR
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      # =============================
+      # ✅ FRONTEND DEPLOY
+      # =============================
+      - name: Setup Node.js for frontend
+        uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
+          node-version: 20
 
-      # ✅ Build & Push frontend (with cache)
-      - name: Build & Push Frontend (cached)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ env.IMAGE_FRONTEND }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache
-          cache-to: type=registry,ref=${{ env.IMAGE_FRONTEND }}:cache,mode=max
+      - name: Install & build frontend
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
 
-      # ✅ Build & Push backend (with cache)
-      - name: Build & Push Backend (cached)
-        uses: docker/build-push-action@v6
+      - name: Upload frontend build to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ env.IMAGE_BACKEND }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache
-          cache-to: type=registry,ref=${{ env.IMAGE_BACKEND }}:cache,mode=max
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend/.output/"
+          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
 
-      # ✅ Deploy to VPS
-      - name: Deploy to VPS
+      # =============================
+      # ✅ BACKEND DEPLOY
+      # =============================
+      - name: Upload backend code to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "backend/"
+          target: "/home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com"
+
+      # ✅ Install backend dependencies only if package.json changed
+      - name: Install backend deps & restart services
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            echo "🚀 Pulling latest images on VPS..."
-            cd /root/school-erp
-            docker compose --env-file .env pull --quiet
-            docker compose --env-file .env up -d --force-recreate
+            echo "📦 Checking if backend package.json changed..."
+            cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+            if [ "$(md5sum package.json | awk '{print $1}')" != "$(md5sum node_modules/.package-md5 2>/dev/null | awk '{print $1}')" ]; then
+              echo "⚡ Installing backend deps..."
+              npm install --omit=dev
+              md5sum package.json > node_modules/.package-md5
+            else
+              echo "✅ No package.json change, skipping npm install"
+            fi
 
-      # ✅ Add Deployment Summary
-      - name: Add Deployment Summary
-        run: |
-          echo "## ✅ Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Frontend & Backend built with **layer caching**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Deployed to VPS" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_Layer caching reduces transfer size per deploy!_" >> $GITHUB_STEP_SUMMARY
+            echo "🔄 Restarting Node.js apps..."
+            pm2 reload all || true
 
-  cleanup:
-    runs-on: ubuntu-latest
-    needs: build-deploy
-    steps:
-      # ✅ Keep only 2 latest GHCR versions → avoid exceeding free 500MB
-      - name: Cleanup frontend images
-        uses: actions/delete-package-versions@v5
+      # ✅ Restart frontend Node.js SSR site
+      - name: Restart frontend Node.js site
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          package-name: school-erp-frontend
-          package-type: container
-          min-versions-to-keep: 2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup backend images
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: school-erp-backend
-          package-type: container
-          min-versions-to-keep: 2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "✅ Frontend deployed. Restarting Node.js site..."
+            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            pm2 reload all || true
