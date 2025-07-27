@@ -34,8 +34,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/.output/*"
+          source: "frontend/.output/."
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
+
 
       # =============================
       # ✅ BACKEND BUILD & DEPLOY
@@ -94,7 +95,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             echo "🔄 Restarting Nuxt frontend via PM2..."
-            sudo -u digitalfuzed-school pm2 reload school-frontend || sudo -u digitalfuzed-school pm2 start ~/htdocs/school.digitalfuzed.com/.output/server/index.mjs --name school-frontend
+            sudo -u digitalfuzed-school pm2 reload school-frontend || sudo -u digitalfuzed-school pm2 start ~/htdocs/school.digitalfuzed.com/server/index.mjs --name school-frontend
 
             echo "🔄 Restarting Node.js backend via PM2..."
             sudo -u digitalfuzed-schoolapi pm2 reload school-backend || sudo -u digitalfuzed-schoolapi pm2 start ~/htdocs/schoolapi.digitalfuzed.com/index.js --name school-backend
