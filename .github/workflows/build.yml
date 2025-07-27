@@ -71,50 +71,12 @@ jobs:
             docker compose --env-file .env pull --quiet
             docker compose --env-file .env up -d --force-recreate
 
-      # ✅ Check GHCR storage usage
-      - name: Check GHCR storage usage
-        run: |
-          echo "🔍 Checking GHCR storage usage..."
-          USED_MB=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/users/${{ github.repository_owner }}/packages?per_page=100 \
-            | jq '[.[].package_version[].metadata.container.size] | add / 1024 / 1024' )
-          echo "📦 GHCR Storage used: ${USED_MB:-0} MB"
-          echo "USED_MB=${USED_MB:-0}" >> $GITHUB_ENV
-
-      # ✅ Check monthly bandwidth usage for GHCR
-      - name: Check GHCR Bandwidth Usage
-        run: |
-          echo "🔍 Checking GHCR bandwidth usage..."
-          # Query package usage
-          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/users/${{ github.repository_owner }}/packages/container/school-erp-frontend/usage \
-            > usage.json || true
-
-          # Extract bandwidth (bytes) → MB
-          BW_BYTES=$(jq '.bandwidth_usage' usage.json 2>/dev/null || echo 0)
-          BW_MB=$(( BW_BYTES / 1024 / 1024 ))
-          echo "📡 GHCR Bandwidth used this month: ${BW_MB} MB / 1024 MB"
-          echo "BW_MB=${BW_MB}" >> $GITHUB_ENV
-
-          # Warn if >750MB
-          if [ "$BW_MB" -gt 750 ]; then
-            echo "⚠️ WARNING: Bandwidth usage above 750MB → Consider reducing deploys or cleanup rollback versions!"
-            echo "BANDWIDTH_WARNING=1" >> $GITHUB_ENV
-          else
-            echo "BANDWIDTH_WARNING=0" >> $GITHUB_ENV
-          fi
-
       # ✅ Add Deployment Summary
       - name: Add Deployment Summary
         run: |
           echo "## ✅ Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Frontend & Backend built with **layer caching**" >> $GITHUB_STEP_SUMMARY
           echo "✅ Deployed to VPS" >> $GITHUB_STEP_SUMMARY
-          echo "📦 GHCR Storage used: ${USED_MB:-0} MB / 500 MB free limit" >> $GITHUB_STEP_SUMMARY
-          echo "📡 GHCR Bandwidth used: ${BW_MB:-0} MB / 1 GB free limit" >> $GITHUB_STEP_SUMMARY
-          if [ "$BANDWIDTH_WARNING" -eq 1 ]; then
-            echo "⚠️ **Bandwidth above 750 MB! You may hit 1 GB limit soon!**" >> $GITHUB_STEP_SUMMARY
-          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "_Layer caching reduces transfer size per deploy!_" >> $GITHUB_STEP_SUMMARY
 
