@@ -15,17 +15,17 @@ jobs:
         uses: actions/checkout@v4
 
       # =============================
-      # ✅ FRONTEND DEPLOY
+      # ✅ FRONTEND BUILD & DEPLOY
       # =============================
       - name: Setup Node.js for frontend
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install & build frontend
+      - name: Install & build frontend (Nuxt SSR)
         working-directory: ./frontend
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Upload frontend build to VPS
@@ -38,59 +38,63 @@ jobs:
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
 
       # =============================
-      # ✅ BACKEND DEPLOY
+      # ✅ BACKEND BUILD & DEPLOY
       # =============================
-      
-      # ✅ Upload backend code to TEMP folder (doesn't touch live folder)
-      - name: Upload backend code to temp folder
+      - name: Setup Node.js for backend
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend deps on GitHub Actions
+        working-directory: ./backend
+        run: |
+          npm ci --omit=dev
+
+      - name: Package backend (prebuilt)
+        run: |
+          tar -czf backend.tar.gz -C backend .
+
+      - name: Upload backend package to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "backend/"
-          target: "/home/deploy-temp/backend"
+          source: "backend.tar.gz"
+          target: "/home/deploy-temp/"
 
-      # ✅ Sync from temp → live folder, excluding .env
-      - name: Sync backend to live folder (keep .env)
+      - name: Extract backend on VPS (keep .env safe)
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            rsync -av --delete --exclude='.env' /home/deploy-temp/backend/ /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com/
-
-
-      # ✅ Install backend dependencies only if package.json changed
-      - name: Install backend deps & restart services
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "📦 Checking if backend package.json changed..."
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
-            if [ "$(md5sum package.json | awk '{print $1}')" != "$(md5sum node_modules/.package-md5 2>/dev/null | awk '{print $1}')" ]; then
-              echo "⚡ Installing backend deps..."
-              npm install --omit=dev
-              md5sum package.json > node_modules/.package-md5
-            else
-              echo "✅ No package.json change, skipping npm install"
-            fi
+            # Backup existing .env
+            cp .env /tmp/backend_env_backup || true
 
-            echo "🔄 Restarting Node.js apps..."
-            pm2 reload all || true
+            # Extract new backend build
+            tar -xzf /home/deploy-temp/backend.tar.gz -C /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
 
-      # ✅ Restart frontend Node.js SSR site
-      - name: Restart frontend Node.js site
+            # Restore .env if it existed
+            mv /tmp/backend_env_backup .env || true
+
+            # Clean up
+            rm /home/deploy-temp/backend.tar.gz
+
+      # =============================
+      # ✅ RESTART BOTH VIA PM2
+      # =============================
+      - name: Restart frontend & backend with PM2
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            echo "✅ Frontend deployed. Restarting Node.js site..."
-            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            pm2 reload all || true
+            echo "🔄 Restarting Nuxt frontend via PM2..."
+            sudo -u digitalfuzed-school pm2 reload school-frontend || sudo -u digitalfuzed-school pm2 start ~/htdocs/school.digitalfuzed.com/.output/server/index.mjs --name school-frontend
+
+            echo "🔄 Restarting Node.js backend via PM2..."
+            sudo -u digitalfuzed-schoolapi pm2 reload school-backend || sudo -u digitalfuzed-schoolapi pm2 start ~/htdocs/schoolapi.digitalfuzed.com/index.js --name school-backend
