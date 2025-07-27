@@ -34,20 +34,33 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/.output/"
+          source: "frontend/.output/*"
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
 
       # =============================
       # ✅ BACKEND DEPLOY
       # =============================
-      - name: Upload backend code to VPS
+      
+      # ✅ Upload backend code to TEMP folder (doesn't touch live folder)
+      - name: Upload backend code to temp folder
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "backend/"
-          target: "/home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com"
+          target: "/home/deploy-temp/backend"
+
+      # ✅ Sync from temp → live folder, excluding .env
+      - name: Sync backend to live folder (keep .env)
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            rsync -av --delete --exclude='.env' /home/deploy-temp/backend/ /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com/
+
 
       # ✅ Install backend dependencies only if package.json changed
       - name: Install backend deps & restart services
