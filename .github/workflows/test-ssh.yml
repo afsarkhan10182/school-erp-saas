@@ -1,19 +1,20 @@
-name: Test SSH
+name: Test SSH Only
 
 on:
-  workflow_dispatch:  # run manually
+  workflow_dispatch:  # ✅ Run manually only
 
 jobs:
   ssh-test:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH into VPS
+      - name: Test SSH connection to VPS
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          debug: true
           script: |
-            echo "✅ Connected to VPS!"
-            hostname && uptime
-            docker ps
+            echo "✅ SSH Connected Successfully!"
+            hostname
+            uptime
