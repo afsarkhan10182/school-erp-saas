@@ -20,15 +20,8 @@ jobs:
       - name: Check changed files
         id: check_changes
         run: |
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > changed_files.txt
-          echo "Changed files:"
-          cat changed_files.txt
-
-          FRONTEND_CHANGED=$(grep '^frontend/' changed_files.txt || true)
-          BACKEND_CHANGED=$(grep '^backend/' changed_files.txt || true)
-
-          echo "frontend_changed=${FRONTEND_CHANGED:+true}" >> $GITHUB_OUTPUT
-          echo "backend_changed=${BACKEND_CHANGED:+true}" >> $GITHUB_OUTPUT
+         echo "frontend_changed=true" >> $GITHUB_OUTPUT
+         echo "backend_changed=true" >> $GITHUB_OUTPUT
 
       # =============================
       # ✅ FRONTEND BUILD & DEPLOY
