@@ -48,18 +48,45 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: digitalfuzed-school
-          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           source: "frontend/.output/."
-          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/"
+          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/frontend/.output/"
+
+      - name: Clean and prepare frontend directory
+        if: steps.check_changes.outputs.frontend_changed == 'true'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "🧹 CLEANING FRONTEND DIRECTORY"
+            echo "=============================="
+            
+            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            
+            # Remove existing .output directory to avoid conflicts
+            if [ -d "frontend/.output" ]; then
+              echo "🗑️ Removing existing frontend/.output directory..."
+              rm -rf frontend/.output
+              echo "✅ Existing .output directory removed"
+            fi
+            
+            # Create the directory structure
+            mkdir -p frontend/.output
+            echo "✅ Created frontend/.output directory"
+            
+            echo "🧹 CLEANUP COMPLETE"
+            echo "==================="
 
       - name: Debug frontend upload structure
         if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: digitalfuzed-school
-          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             echo "🔍 DEBUGGING FRONTEND UPLOAD STRUCTURE"
             echo "======================================"
@@ -92,15 +119,15 @@ jobs:
             
             echo ""
             echo "📁 Checking for Nuxt build files:"
-            if [ -f "server/index.mjs" ]; then
-              echo "✅ server/index.mjs found (Nuxt SSR)"
+            if [ -f "frontend/.output/server/index.mjs" ]; then
+              echo "✅ frontend/.output/server/index.mjs found (Nuxt SSR)"
             fi
-            if [ -d "public" ]; then
-              echo "✅ public directory found"
-              ls -la public/
+            if [ -d "frontend/.output/public" ]; then
+              echo "✅ frontend/.output/public directory found"
+              ls -la frontend/.output/public/
             fi
-            if [ -f "nitro.json" ]; then
-              echo "✅ nitro.json found"
+            if [ -f "frontend/.output/nitro.json" ]; then
+              echo "✅ frontend/.output/nitro.json found"
             fi
             
             echo ""
@@ -137,8 +164,8 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: digitalfuzed-schoolapi
-          key: ${{ secrets.BACKEND_SSH_KEY }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           source: "backend.tar.gz"
           target: "/home/digitalfuzed-schoolapi/deploy-temp/"
 
@@ -147,8 +174,8 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: digitalfuzed-schoolapi
-          key: ${{ secrets.BACKEND_SSH_KEY }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
 
@@ -203,13 +230,10 @@ jobs:
           script: |
             echo "🔄 Restarting frontend via PM2..."
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            
-            # Update PM2 to use the correct path
             pm2 stop school-frontend
             pm2 delete school-frontend
             pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
             pm2 save
-            
             echo "✅ PM2 updated to use frontend/.output/server/index.mjs"
 
       - name: Restart backend with PM2
@@ -224,3 +248,4 @@ jobs:
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
             pm2 reload school-backend
             pm2 save
+            echo "✅ Backend PM2 restarted successfully"
