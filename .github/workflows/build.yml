@@ -20,8 +20,15 @@ jobs:
       - name: Check changed files
         id: check_changes
         run: |
-         echo "frontend_changed=true" >> $GITHUB_OUTPUT
-         echo "backend_changed=true" >> $GITHUB_OUTPUT
+          # First deployment or workflow changes = full deploy
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '\.github/workflows/' > /dev/null; then
+            echo "frontend_changed=true" >> $GITHUB_OUTPUT
+            echo "backend_changed=true" >> $GITHUB_OUTPUT
+          else
+            # Check specific changes
+            git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^frontend/' > /dev/null && echo "frontend_changed=true" >> $GITHUB_OUTPUT || echo "frontend_changed=false" >> $GITHUB_OUTPUT
+            git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^backend/' > /dev/null && echo "backend_changed=true" >> $GITHUB_OUTPUT || echo "backend_changed=false" >> $GITHUB_OUTPUT
+          fi
 
       # =============================
       # ✅ FRONTEND BUILD & DEPLOY
@@ -91,53 +98,26 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
-
-            echo "📁 Current structure before deployment:"
-            ls -la
-
-            # Backup existing important files
-            cp .env /tmp/backend_env_backup 2>/dev/null || echo "No .env to backup"
-            cp -r uploads /tmp/uploads_backup 2>/dev/null || echo "No uploads to backup"
-            cp -r logs /tmp/logs_backup 2>/dev/null || echo "No logs to backup"
-
-            # Remove any existing backend folder to avoid nesting
-            rm -rf backend
-
-            # Extract backend contents directly to current directory
-            echo "📦 Extracting backend contents..."
+            
+            # Backup important files
+            cp .env /tmp/backend_env_backup 2>/dev/null || true
+            cp -r uploads /tmp/uploads_backup 2>/dev/null || true
+            cp -r logs /tmp/logs_backup 2>/dev/null || true
+            
+            # Extract and restore
             tar -xzf /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
-
-            # Restore important files
-            mv /tmp/backend_env_backup .env 2>/dev/null || echo "No .env to restore"
-            cp -r /tmp/uploads_backup/* uploads/ 2>/dev/null || echo "No uploads to restore"
-            cp -r /tmp/logs_backup/* logs/ 2>/dev/null || echo "No logs to restore"
-
+            mv /tmp/backend_env_backup .env 2>/dev/null || true
+            cp -r /tmp/uploads_backup/* uploads/ 2>/dev/null || true
+            cp -r /tmp/logs_backup/* logs/ 2>/dev/null || true
+            
+            # Setup directories and permissions
+            mkdir -p uploads/{documents,receipts,id-cards,logos} logs
+            chmod -R 755 uploads/ logs/
+            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/ logs/
+            
             # Cleanup
             rm -rf /tmp/uploads_backup /tmp/logs_backup
             rm /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
-
-            echo "✅ Ensuring exact directory structure with proper permissions..."
-            mkdir -p uploads/{documents,receipts,id-cards,logos}
-            mkdir -p logs
-            
-            # Set proper permissions for uploads and logs directories
-            chmod -R 755 uploads/
-            chmod -R 755 logs/
-            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/
-            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi logs/
-            
-            echo "✅ Directory permissions set:"
-            ls -la uploads/
-            ls -la logs/
-
-            echo "📁 Final structure after deployment:"
-            ls -la
-
-            echo "✅ Backend deploy complete with exact structure:"
-            echo "   /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com/"
-            echo "   ├── uploads/"
-            echo "   ├── logs/"
-            echo "   └── src/"
 
       # =============================
       # ✅ RESTART VIA PM2
@@ -152,13 +132,9 @@ jobs:
           key: ${{ secrets.FRONTEND_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            source ~/.bashrc
-            source ~/.nvm/nvm.sh
-            nvm use default
-            pm2 stop school-frontend
-            pm2 delete school-frontend
-            pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            pm2 save
+            source ~/.bashrc && source ~/.nvm/nvm.sh && nvm use default
+            pm2 stop school-frontend && pm2 delete school-frontend
+            pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com && pm2 save
 
       - name: Restart backend with PM2
         if: steps.check_changes.outputs.backend_changed == 'true'
@@ -169,14 +145,5 @@ jobs:
           key: ${{ secrets.BACKEND_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
-            source ~/.bashrc
-            source ~/.nvm/nvm.sh
-            nvm use default
-            
-            # Ensure uploads directory exists with proper permissions before restart
-            mkdir -p uploads/{documents,receipts,id-cards,logos}
-            chmod -R 755 uploads/
-            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/
-            
-            pm2 reload school-backend
-            pm2 save
+            source ~/.bashrc && source ~/.nvm/nvm.sh && nvm use default
+            pm2 reload school-backend && pm2 save
