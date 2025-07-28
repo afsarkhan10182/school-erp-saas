@@ -69,6 +69,7 @@ jobs:
       - name: Package backend (prebuilt)
         if: steps.check_changes.outputs.backend_changed == 'true'
         run: |
+          # Package backend contents directly (not the folder)
           tar -czf backend.tar.gz -C backend .
 
       - name: Upload backend package to VPS
@@ -81,38 +82,67 @@ jobs:
           source: "backend.tar.gz"
           target: "/home/deploy-temp/"
 
-      - name: Extract backend & set permissions on VPS
+      - name: Extract backend & set permissions on VPS (as root)
         if: steps.check_changes.outputs.backend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: root
+          key: ${{ secrets.VPS_ROOT_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
 
-            # Backup existing .env
-            cp .env /tmp/backend_env_backup || true
+            echo "📁 Current structure before deployment:"
+            ls -la
 
-            # Extract backend
-            tar -xzf /home/deploy-temp/backend.tar.gz -C .
+            # Backup existing important files
+            cp .env /tmp/backend_env_backup 2>/dev/null || echo "No .env to backup"
+            cp -r uploads /tmp/uploads_backup 2>/dev/null || echo "No uploads to backup"
+            cp -r logs /tmp/logs_backup 2>/dev/null || echo "No logs to backup"
 
-            # Restore .env
-            mv /tmp/backend_env_backup .env || true
+            # Remove any existing backend folder to avoid nesting
+            rm -rf backend
+
+            # Extract backend contents directly to current directory
+            echo "📦 Extracting backend contents..."
+            tar -xzf /home/deploy-temp/backend.tar.gz
+
+            # Restore important files
+            mv /tmp/backend_env_backup .env 2>/dev/null || echo "No .env to restore"
+            cp -r /tmp/uploads_backup/* uploads/ 2>/dev/null || echo "No uploads to restore"
+            cp -r /tmp/logs_backup/* logs/ 2>/dev/null || echo "No logs to restore"
 
             # Cleanup
+            rm -rf /tmp/uploads_backup /tmp/logs_backup
             rm /home/deploy-temp/backend.tar.gz
 
-            echo "✅ Ensuring directory structure..."
-            mkdir -p backend/uploads/{documents,receipts,id-cards,logos}
-            mkdir -p backend/logs
+            echo "✅ Ensuring exact directory structure..."
+            mkdir -p uploads/{documents,receipts,id-cards,logos}
+            mkdir -p logs
 
-            echo "✅ Fixing ownership & permissions..."
-            sudo chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi backend/uploads backend/logs
-            sudo chmod -R 755 backend/uploads
-            sudo chmod -R 755 backend/logs
+            echo "✅ Fixing ownership & permissions (as root)..."
+            # Set correct ownership for all files (no sudo needed as root)
+            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi .
+            
+            # Set proper permissions
+            find . -type d -exec chmod 755 {} \;
+            find . -type f -exec chmod 644 {} \;
+            
+            # Special permissions for uploads and logs
+            chmod -R 755 uploads
+            chmod -R 755 logs
+            
+            # Make index.js executable
+            chmod +x index.js
 
-            echo "✅ Backend deploy complete with permissions!"
+            echo "📁 Final structure after deployment:"
+            ls -la
+
+            echo "✅ Backend deploy complete with exact structure:"
+            echo "   /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com/"
+            echo "   ├── uploads/"
+            echo "   ├── logs/"
+            echo "   └── src/"
 
       # =============================
       # ✅ RESTART VIA PM2
@@ -135,8 +165,8 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: root
+          key: ${{ secrets.VPS_ROOT_SSH_KEY }}
           script: |
             echo "🔄 Restarting backend via PM2..."
             sudo -u digitalfuzed-schoolapi pm2 reload school-backend
