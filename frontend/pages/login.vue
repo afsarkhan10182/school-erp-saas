@@ -105,7 +105,7 @@
               <span v-if="!loading">Sign In</span>
               <span v-else class="flex items-center justify-center">
                 <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                Signing in...
+                Signing in....
               </span>
             </button>
           </form>

@@ -152,6 +152,9 @@ jobs:
           key: ${{ secrets.FRONTEND_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            source ~/.bashrc
+            source ~/.nvm/nvm.sh
+            nvm use default
             pm2 stop school-frontend
             pm2 delete school-frontend
             pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
@@ -165,18 +168,15 @@ jobs:
           username: digitalfuzed-schoolapi
           key: ${{ secrets.BACKEND_SSH_KEY }}
           script: |
-            echo "🔄 Restarting backend via PM2..."
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+            source ~/.bashrc
+            source ~/.nvm/nvm.sh
+            nvm use default
             
             # Ensure uploads directory exists with proper permissions before restart
-            echo "🔧 Ensuring uploads directory exists..."
             mkdir -p uploads/{documents,receipts,id-cards,logos}
             chmod -R 755 uploads/
             chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/
             
-            echo "📁 Uploads directory structure:"
-            ls -la uploads/
-            
             pm2 reload school-backend
             pm2 save
-            echo "✅ Backend PM2 restarted successfully"
