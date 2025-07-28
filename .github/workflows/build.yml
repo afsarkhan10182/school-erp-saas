@@ -78,11 +78,11 @@ jobs:
               ls -la frontend/
               
               echo ""
-              echo "🔄 Moving files from frontend/.output/ to root directory..."
+              echo "🔄 Files uploaded to frontend/.output/ directory"
               if [ -d "frontend/.output" ]; then
-                cp -r frontend/.output/* .
-                rm -rf frontend
-                echo "✅ Files moved to root directory"
+                echo "✅ Frontend files are ready in frontend/.output/"
+                echo "📁 Contents:"
+                ls -la frontend/.output/
               fi
             else
               echo "❌ frontend folder does NOT exist"
@@ -203,8 +203,14 @@ jobs:
           script: |
             echo "🔄 Restarting frontend via PM2..."
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            pm2 reload school-frontend
+            
+            # Update PM2 to use the correct path
+            pm2 stop school-frontend
+            pm2 delete school-frontend
+            pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
             pm2 save
+            
+            echo "✅ PM2 updated to use frontend/.output/server/index.mjs"
 
       - name: Restart backend with PM2
         if: steps.check_changes.outputs.backend_changed == 'true'

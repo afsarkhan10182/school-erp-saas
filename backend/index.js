@@ -4,6 +4,9 @@
 // Load environment variables
 require('dotenv').config();
 
+// Deployment verification log
+console.log('🚀 Backend deployed successfully! - ' + new Date().toISOString());
+
 // Start the server
 require('./src/server');
 
