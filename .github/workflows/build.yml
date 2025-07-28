@@ -39,36 +39,7 @@ jobs:
           NUXT_PUBLIC_API_BASE: https://schoolapi.digitalfuzed.com/api
         run: |
           npm ci
-          echo "🔍 Checking environment variables before build..."
-          node scripts/check-env.js
           npm run build
-
-      - name: Clean and prepare frontend directory
-        if: steps.check_changes.outputs.frontend_changed == 'true'
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "🧹 CLEANING FRONTEND DIRECTORY"
-            echo "=============================="
-            
-            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            
-            # Remove existing .output directory to avoid conflicts
-            if [ -d "frontend/.output" ]; then
-              echo "🗑️ Removing existing frontend/.output directory..."
-              rm -rf frontend/.output
-              echo "✅ Existing .output directory removed"
-            fi
-            
-            # Create the directory structure
-            mkdir -p frontend/.output
-            echo "✅ Created frontend/.output directory"
-            
-            echo "🧹 CLEANUP COMPLETE"
-            echo "==================="
 
       - name: Upload frontend build to VPS
         if: steps.check_changes.outputs.frontend_changed == 'true'
@@ -78,65 +49,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "frontend/.output/*"
-          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/frontend/.output/"
-
-      - name: Debug frontend upload structure
-        if: steps.check_changes.outputs.frontend_changed == 'true'
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "🔍 DEBUGGING FRONTEND UPLOAD STRUCTURE"
-            echo "======================================"
-            
-            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            
-            echo "📁 Current directory: $(pwd)"
-            echo "📁 Directory contents:"
-            ls -la
-            
-            echo ""
-            echo "📁 Checking if frontend folder exists:"
-            if [ -d "frontend" ]; then
-              echo "✅ frontend folder exists"
-              echo "📁 frontend folder contents:"
-              ls -la frontend/
-              
-              echo ""
-              echo "🔄 Files uploaded to frontend/.output/ directory"
-              if [ -d "frontend/.output" ]; then
-                echo "✅ Frontend files are ready in frontend/.output/"
-                echo "📁 Contents:"
-                ls -la frontend/.output/
-              fi
-            else
-              echo "❌ frontend folder does NOT exist"
-              echo "📁 Root directory files (these are the uploaded files):"
-              ls -la | grep -E "\.(js|css|html|json)$"
-            fi
-            
-            echo ""
-            echo "📁 Checking for Nuxt build files:"
-            if [ -f "frontend/.output/server/index.mjs" ]; then
-              echo "✅ frontend/.output/server/index.mjs found (Nuxt SSR)"
-            fi
-            if [ -d "frontend/.output/public" ]; then
-              echo "✅ frontend/.output/public directory found"
-              ls -la frontend/.output/public/
-            fi
-            if [ -f "frontend/.output/nitro.json" ]; then
-              echo "✅ frontend/.output/nitro.json found"
-            fi
-            
-            echo ""
-            echo "📁 Final directory structure:"
-            ls -la
-            
-            echo ""
-            echo "🔍 FRONTEND UPLOAD DEBUG COMPLETE"
-            echo "======================================"
+          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/"
 
       # =============================
       # ✅ BACKEND BUILD & DEPLOY
@@ -238,29 +151,11 @@ jobs:
           username: digitalfuzed-school
           key: ${{ secrets.FRONTEND_SSH_KEY }}
           script: |
-            echo "🔄 Restarting frontend via PM2..."
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
-            
-            # Clean up any nested structure
-            if [ -d "frontend/.output/frontend" ]; then
-              echo "🧹 Cleaning up nested frontend structure..."
-              rm -rf frontend/.output/frontend
-            fi
-            
-            # Verify the correct structure exists
-            if [ -f "frontend/.output/server/index.mjs" ]; then
-              echo "✅ Correct frontend structure found"
-            else
-              echo "❌ Frontend structure is incorrect. Checking available files:"
-              find frontend/.output -name "*.mjs" -o -name "index.*" 2>/dev/null || echo "No server files found"
-              exit 1
-            fi
-            
             pm2 stop school-frontend
             pm2 delete school-frontend
             pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
             pm2 save
-            echo "✅ PM2 updated to use frontend/.output/server/index.mjs"
 
       - name: Restart backend with PM2
         if: steps.check_changes.outputs.backend_changed == 'true'
