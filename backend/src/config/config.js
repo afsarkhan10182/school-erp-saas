@@ -25,7 +25,9 @@ const config = {
     refreshExpirationDays: process.env.JWT_REFRESH_EXPIRATION_DAYS || 7 // 7 days
   },
   cors: {
-    origin: [process.env.CORS_ORIGIN || 'http://localhost:3000'],
+    origin: process.env.CORS_ORIGIN ? 
+      process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()) : 
+      ['http://localhost:3000', 'https://school.digitalfuzed.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

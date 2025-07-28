@@ -146,6 +146,18 @@ jobs:
             echo "   ├── logs/"
             echo "   └── src/"
 
+            # Update .env with production CORS settings if it exists
+            if [ -f .env ]; then
+              echo "🔧 Updating CORS configuration for production..."
+              # Add or update CORS_ORIGIN in .env
+              if grep -q "CORS_ORIGIN" .env; then
+                sed -i 's|CORS_ORIGIN=.*|CORS_ORIGIN=https://school.digitalfuzed.com|' .env
+              else
+                echo "CORS_ORIGIN=https://school.digitalfuzed.com" >> .env
+              fi
+              echo "✅ CORS configuration updated"
+            fi
+
       # =============================
       # ✅ RESTART VIA PM2
       # =============================
