@@ -48,18 +48,18 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-school
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
           source: "frontend/.output/."
-          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
+          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/"
 
       - name: Debug frontend upload structure
         if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-school
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
           script: |
             echo "🔍 DEBUGGING FRONTEND UPLOAD STRUCTURE"
             echo "======================================"
@@ -76,6 +76,14 @@ jobs:
               echo "✅ frontend folder exists"
               echo "📁 frontend folder contents:"
               ls -la frontend/
+              
+              echo ""
+              echo "🔄 Moving files from frontend/.output/ to root directory..."
+              if [ -d "frontend/.output" ]; then
+                cp -r frontend/.output/* .
+                rm -rf frontend
+                echo "✅ Files moved to root directory"
+              fi
             else
               echo "❌ frontend folder does NOT exist"
               echo "📁 Root directory files (these are the uploaded files):"
@@ -91,9 +99,13 @@ jobs:
               echo "✅ public directory found"
               ls -la public/
             fi
-            if [ -d "nitro.json" ]; then
+            if [ -f "nitro.json" ]; then
               echo "✅ nitro.json found"
             fi
+            
+            echo ""
+            echo "📁 Final directory structure:"
+            ls -la
             
             echo ""
             echo "🔍 FRONTEND UPLOAD DEBUG COMPLETE"
@@ -125,18 +137,18 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-schoolapi
+          key: ${{ secrets.BACKEND_SSH_KEY }}
           source: "backend.tar.gz"
-          target: "/home/deploy-temp/"
+          target: "/home/digitalfuzed-schoolapi/deploy-temp/"
 
       - name: Extract backend & preserve .env on VPS
         if: steps.check_changes.outputs.backend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-schoolapi
+          key: ${{ secrets.BACKEND_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
 
@@ -153,7 +165,7 @@ jobs:
 
             # Extract backend contents directly to current directory
             echo "📦 Extracting backend contents..."
-            tar -xzf /home/deploy-temp/backend.tar.gz
+            tar -xzf /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
 
             # Restore important files
             mv /tmp/backend_env_backup .env 2>/dev/null || echo "No .env to restore"
@@ -162,7 +174,7 @@ jobs:
 
             # Cleanup
             rm -rf /tmp/uploads_backup /tmp/logs_backup
-            rm /home/deploy-temp/backend.tar.gz
+            rm /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
 
             echo "✅ Ensuring exact directory structure..."
             mkdir -p uploads/{documents,receipts,id-cards,logos}
@@ -186,8 +198,8 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-school
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
           script: |
             echo "🔄 Restarting frontend via PM2..."
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
@@ -199,8 +211,8 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          username: digitalfuzed-schoolapi
+          key: ${{ secrets.BACKEND_SSH_KEY }}
           script: |
             echo "🔄 Restarting backend via PM2..."
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
