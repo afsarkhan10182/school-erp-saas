@@ -10,7 +10,11 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = resolveUploadsPath('documents');
     if (!fs.existsSync(uploadDir)) {
+      try {
       fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (error) {
+      console.warn(`Warning: Could not create upload directory at ${uploadDir}:`, error.message);
+    }
     }
     cb(null, uploadDir);
   },

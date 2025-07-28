@@ -7,7 +7,11 @@ const { resolveBackendPath } = require('./pathHelper');
 // Create logs directory if it doesn't exist
 const logDir = resolveBackendPath('logs');
 if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
+  try {
+    fs.mkdirSync(logDir);
+  } catch (error) {
+    console.warn(`Warning: Could not create log directory at ${logDir}:`, error.message);
+  }
 }
 
 // Define log format with more details

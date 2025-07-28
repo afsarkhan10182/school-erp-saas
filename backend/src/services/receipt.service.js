@@ -64,7 +64,11 @@ const generateReceipt = async (paymentData, schoolData, studentData) => {
     const receiptDir = path.dirname(receiptPath);
     
     if (!fs.existsSync(receiptDir)) {
+      try {
       fs.mkdirSync(receiptDir, { recursive: true });
+    } catch (error) {
+      console.warn(`Warning: Could not create receipt directory at ${receiptDir}:`, error.message);
+    }
     }
     
     fs.writeFileSync(receiptPath, receiptHtml);

@@ -77,7 +77,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/.output/."
+          source: "frontend/.output/*"
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/frontend/.output/"
 
       - name: Debug frontend upload structure
@@ -203,9 +203,19 @@ jobs:
             rm -rf /tmp/uploads_backup /tmp/logs_backup
             rm /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
 
-            echo "✅ Ensuring exact directory structure..."
+            echo "✅ Ensuring exact directory structure with proper permissions..."
             mkdir -p uploads/{documents,receipts,id-cards,logos}
             mkdir -p logs
+            
+            # Set proper permissions for uploads and logs directories
+            chmod -R 755 uploads/
+            chmod -R 755 logs/
+            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/
+            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi logs/
+            
+            echo "✅ Directory permissions set:"
+            ls -la uploads/
+            ls -la logs/
 
             echo "📁 Final structure after deployment:"
             ls -la
@@ -230,6 +240,22 @@ jobs:
           script: |
             echo "🔄 Restarting frontend via PM2..."
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            
+            # Clean up any nested structure
+            if [ -d "frontend/.output/frontend" ]; then
+              echo "🧹 Cleaning up nested frontend structure..."
+              rm -rf frontend/.output/frontend
+            fi
+            
+            # Verify the correct structure exists
+            if [ -f "frontend/.output/server/index.mjs" ]; then
+              echo "✅ Correct frontend structure found"
+            else
+              echo "❌ Frontend structure is incorrect. Checking available files:"
+              find frontend/.output -name "*.mjs" -o -name "index.*" 2>/dev/null || echo "No server files found"
+              exit 1
+            fi
+            
             pm2 stop school-frontend
             pm2 delete school-frontend
             pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
@@ -246,6 +272,16 @@ jobs:
           script: |
             echo "🔄 Restarting backend via PM2..."
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+            
+            # Ensure uploads directory exists with proper permissions before restart
+            echo "🔧 Ensuring uploads directory exists..."
+            mkdir -p uploads/{documents,receipts,id-cards,logos}
+            chmod -R 755 uploads/
+            chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/
+            
+            echo "📁 Uploads directory structure:"
+            ls -la uploads/
+            
             pm2 reload school-backend
             pm2 save
             echo "✅ Backend PM2 restarted successfully"

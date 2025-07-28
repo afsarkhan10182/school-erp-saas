@@ -42,7 +42,11 @@ const generateStudentIdCard = async (studentData, schoolData) => {
     const idCardDir = path.dirname(idCardPath);
     
     if (!fs.existsSync(idCardDir)) {
+      try {
       fs.mkdirSync(idCardDir, { recursive: true });
+    } catch (error) {
+      console.warn(`Warning: Could not create ID card directory at ${idCardDir}:`, error.message);
+    }
     }
     
     fs.writeFileSync(idCardPath, idCardHtml);

@@ -10,8 +10,14 @@ const { resolveUploadsPath } = require('../utils/pathHelper');
 const uploadDir = config.uploads?.dir || './uploads';
 const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
 
-if (!fs.existsSync(resolvedUploadDir)) {
-  fs.mkdirSync(resolvedUploadDir, { recursive: true });
+// Safely create upload directory with error handling
+try {
+  if (!fs.existsSync(resolvedUploadDir)) {
+    fs.mkdirSync(resolvedUploadDir, { recursive: true });
+  }
+} catch (error) {
+  console.warn(`Warning: Could not create upload directory at ${resolvedUploadDir}:`, error.message);
+  console.warn('Upload functionality may not work properly. Please ensure the directory exists and has proper permissions.');
 }
 
 // Configure storage
