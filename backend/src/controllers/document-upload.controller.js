@@ -3,11 +3,12 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { logger } = require('../utils/logger');
+const { resolveUploadsPath } = require('../utils/pathHelper');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../../uploads/documents');
+    const uploadDir = resolveUploadsPath('documents');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

@@ -8,6 +8,7 @@ const { testConnection } = require('./config/database');
 const { connectRedis, isRedisEnabled } = require('./config/redis');
 const { logger } = require('./utils/logger');
 const routes = require('./routes');
+const config = require('./config/config');
 
 // Load environment variables
 require('dotenv').config();
@@ -86,7 +87,7 @@ class App {
     this.app.use(require('cookie-parser')());
 
     // Static files
-    this.app.use('/uploads', express.static('uploads'));
+    this.app.use('/uploads', express.static(config.uploads.dir));
   }
 
   initializeRoutes() {

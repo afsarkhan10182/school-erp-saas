@@ -10,25 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ✅ Checkout repo
+      # ✅ Checkout code
       - name: Checkout
         uses: actions/checkout@v4
+
+      # ✅ Detect file changes
+      - name: Check changed files
+        id: check_changes
+        run: |
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+
+          FRONTEND_CHANGED=$(grep '^frontend/' changed_files.txt || true)
+          BACKEND_CHANGED=$(grep '^backend/' changed_files.txt || true)
+
+          echo "frontend_changed=${FRONTEND_CHANGED:+true}" >> $GITHUB_OUTPUT
+          echo "backend_changed=${BACKEND_CHANGED:+true}" >> $GITHUB_OUTPUT
 
       # =============================
       # ✅ FRONTEND BUILD & DEPLOY
       # =============================
       - name: Setup Node.js for frontend
+        if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install & build frontend (Nuxt SSR)
+        if: steps.check_changes.outputs.frontend_changed == 'true'
         working-directory: ./frontend
         run: |
           npm ci
           npm run build
 
       - name: Upload frontend build to VPS
+        if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -37,25 +54,28 @@ jobs:
           source: "frontend/.output/."
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
 
-
       # =============================
       # ✅ BACKEND BUILD & DEPLOY
       # =============================
       - name: Setup Node.js for backend
+        if: steps.check_changes.outputs.backend_changed == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install backend deps on GitHub Actions
+        if: steps.check_changes.outputs.backend_changed == 'true'
         working-directory: ./backend
         run: |
           npm ci --omit=dev
 
       - name: Package backend (prebuilt)
+        if: steps.check_changes.outputs.backend_changed == 'true'
         run: |
           tar -czf backend.tar.gz -C backend .
 
       - name: Upload backend package to VPS
+        if: steps.check_changes.outputs.backend_changed == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -64,7 +84,8 @@ jobs:
           source: "backend.tar.gz"
           target: "/home/deploy-temp/"
 
-      - name: Extract backend on VPS (keep .env safe)
+      - name: Extract backend & set permissions on VPS
+        if: steps.check_changes.outputs.backend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -72,30 +93,54 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+
             # Backup existing .env
             cp .env /tmp/backend_env_backup || true
 
-            # Extract new backend build
-            tar -xzf /home/deploy-temp/backend.tar.gz -C /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+            # Extract backend
+            tar -xzf /home/deploy-temp/backend.tar.gz -C .
 
-            # Restore .env if it existed
+            # Restore .env
             mv /tmp/backend_env_backup .env || true
 
-            # Clean up
+            # Cleanup
             rm /home/deploy-temp/backend.tar.gz
 
+            echo "✅ Ensuring directory structure..."
+            mkdir -p backend/uploads/{documents,receipts,id-cards,logos}
+            mkdir -p backend/logs
+
+            echo "✅ Fixing ownership & permissions..."
+            sudo chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi backend/uploads backend/logs
+            sudo chmod -R 755 backend/uploads
+            sudo chmod -R 755 backend/logs
+
+            echo "✅ Backend deploy complete with permissions!"
+
       # =============================
-      # ✅ RESTART BOTH VIA PM2
+      # ✅ RESTART VIA PM2
       # =============================
-      - name: Restart frontend & backend with PM2
+
+      - name: Restart frontend with PM2
+        if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            echo "🔄 Restarting Nuxt frontend via PM2..."
-            sudo -u digitalfuzed-school pm2 reload school-frontend || sudo -u digitalfuzed-school pm2 start ~/htdocs/school.digitalfuzed.com/server/index.mjs --name school-frontend
+            echo "🔄 Restarting frontend via PM2..."
+            sudo -u digitalfuzed-school pm2 reload school-frontend
+            sudo -u digitalfuzed-school pm2 save
 
-            echo "🔄 Restarting Node.js backend via PM2..."
-            sudo -u digitalfuzed-schoolapi pm2 reload school-backend || sudo -u digitalfuzed-schoolapi pm2 start ~/htdocs/schoolapi.digitalfuzed.com/index.js --name school-backend
+      - name: Restart backend with PM2
+        if: steps.check_changes.outputs.backend_changed == 'true'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "🔄 Restarting backend via PM2..."
+            sudo -u digitalfuzed-schoolapi pm2 reload school-backend
+            sudo -u digitalfuzed-schoolapi pm2 save

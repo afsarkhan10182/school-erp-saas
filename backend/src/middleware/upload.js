@@ -4,17 +4,20 @@ const fs = require('fs');
 const config = require('../config/config');
 const ApiError = require('../utils/ApiError');
 const httpStatus = require('http-status');
+const { resolveUploadsPath } = require('../utils/pathHelper');
 
 // Ensure upload directory exists
 const uploadDir = config.uploads?.dir || './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
+
+if (!fs.existsSync(resolvedUploadDir)) {
+  fs.mkdirSync(resolvedUploadDir, { recursive: true });
 }
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, resolvedUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

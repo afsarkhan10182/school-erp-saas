@@ -5,7 +5,7 @@ import { useAuthStore } from '~/stores/auth';
 
 export function createApiInstance(): AxiosInstance {
   const config = useRuntimeConfig();
-  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
+  const apiBase = config.public?.apiBase;
 
   const api: AxiosInstance = axios.create({
     baseURL: apiBase,

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { logger } = require('../utils/logger');
-
+const { resolveUploadsPath } = require('../utils/pathHelper');
 /**
  * Generate professional receipt for fee payment (Enhanced for tuition fees focus)
  */
@@ -60,7 +60,7 @@ const generateReceipt = async (paymentData, schoolData, studentData) => {
     const receiptHtml = generateReceiptHtml(receiptData, schoolData);
     
     // Save receipt data (in real implementation, save to database)
-    const receiptPath = path.join(__dirname, '../../../uploads/receipts', `${receiptData.receipt_number}.html`);
+    const receiptPath = resolveUploadsPath('receipts', `${receiptData.receipt_number}.html`);
     const receiptDir = path.dirname(receiptPath);
     
     if (!fs.existsSync(receiptDir)) {

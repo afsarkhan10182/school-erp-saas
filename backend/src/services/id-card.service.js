@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { logger } = require('../utils/logger');
+const { resolveUploadsPath } = require('../utils/pathHelper');
 
 /**
  * Generate ID card for a student
@@ -37,7 +38,7 @@ const generateStudentIdCard = async (studentData, schoolData) => {
     const idCardHtml = generateIdCardHtml(idCardData);
     
     // Save ID card data (in real implementation, save to database)
-    const idCardPath = path.join(__dirname, '../../../uploads/id-cards', `${idCardData.id}.html`);
+    const idCardPath = resolveUploadsPath('id-cards', `${idCardData.id}.html`);
     const idCardDir = path.dirname(idCardPath);
     
     if (!fs.existsSync(idCardDir)) {

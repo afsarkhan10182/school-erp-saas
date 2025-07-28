@@ -37,6 +37,22 @@ const config = {
     port: process.env.REDIS_PORT || 6379,
     password: process.env.REDIS_PASSWORD || '',
   },
+  uploads: {
+    dir: process.env.UPLOADS_DIR || './uploads',
+    maxFileSize: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024, // 5MB
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'application/csv',
+    ]
+  },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
     toFile: process.env.LOG_TO_FILE === 'true',
