@@ -55,8 +55,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/.output"
+          source: "frontend/.output/"
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/"
+          strip_components: 1
 
       # =============================
       # ✅ BACKEND BUILD & DEPLOY
@@ -134,7 +135,7 @@ jobs:
             cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
             source ~/.bashrc && source ~/.nvm/nvm.sh && nvm use default
             pm2 stop school-frontend && pm2 delete school-frontend
-            pm2 start frontend/.output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            pm2 start .output/server/index.mjs --name school-frontend --cwd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
 
       - name: Restart backend with PM2
         if: steps.check_changes.outputs.backend_changed == 'true'
