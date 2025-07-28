@@ -53,6 +53,52 @@ jobs:
           source: "frontend/.output/."
           target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com"
 
+      - name: Debug frontend upload structure
+        if: steps.check_changes.outputs.frontend_changed == 'true'
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "🔍 DEBUGGING FRONTEND UPLOAD STRUCTURE"
+            echo "======================================"
+            
+            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            
+            echo "📁 Current directory: $(pwd)"
+            echo "📁 Directory contents:"
+            ls -la
+            
+            echo ""
+            echo "📁 Checking if frontend folder exists:"
+            if [ -d "frontend" ]; then
+              echo "✅ frontend folder exists"
+              echo "📁 frontend folder contents:"
+              ls -la frontend/
+            else
+              echo "❌ frontend folder does NOT exist"
+              echo "📁 Root directory files (these are the uploaded files):"
+              ls -la | grep -E "\.(js|css|html|json)$"
+            fi
+            
+            echo ""
+            echo "📁 Checking for Nuxt build files:"
+            if [ -f "server/index.mjs" ]; then
+              echo "✅ server/index.mjs found (Nuxt SSR)"
+            fi
+            if [ -d "public" ]; then
+              echo "✅ public directory found"
+              ls -la public/
+            fi
+            if [ -d "nitro.json" ]; then
+              echo "✅ nitro.json found"
+            fi
+            
+            echo ""
+            echo "🔍 FRONTEND UPLOAD DEBUG COMPLETE"
+            echo "======================================"
+
       # =============================
       # ✅ BACKEND BUILD & DEPLOY
       # =============================
@@ -84,7 +130,7 @@ jobs:
           source: "backend.tar.gz"
           target: "/home/deploy-temp/"
 
-      - name: Extract backend & set permissions on VPS (as root)
+      - name: Extract backend & preserve .env on VPS
         if: steps.check_changes.outputs.backend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -122,21 +168,6 @@ jobs:
             mkdir -p uploads/{documents,receipts,id-cards,logos}
             mkdir -p logs
 
-            echo "✅ Fixing ownership & permissions (using sudo)..."
-            # Set correct ownership for all files (using sudo)
-            sudo chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi .
-            
-            # Set proper permissions
-            sudo find . -type d -exec chmod 755 {} \;
-            sudo find . -type f -exec chmod 644 {} \;
-            
-            # Special permissions for uploads and logs
-            sudo chmod -R 755 uploads
-            sudo chmod -R 755 logs
-            
-            # Make index.js executable
-            sudo chmod +x index.js
-
             echo "📁 Final structure after deployment:"
             ls -la
 
@@ -145,18 +176,6 @@ jobs:
             echo "   ├── uploads/"
             echo "   ├── logs/"
             echo "   └── src/"
-
-            # Update .env with production CORS settings if it exists
-            if [ -f .env ]; then
-              echo "🔧 Updating CORS configuration for production..."
-              # Add or update CORS_ORIGIN in .env
-              if grep -q "CORS_ORIGIN" .env; then
-                sed -i 's|CORS_ORIGIN=.*|CORS_ORIGIN=https://school.digitalfuzed.com|' .env
-              else
-                echo "CORS_ORIGIN=https://school.digitalfuzed.com" >> .env
-              fi
-              echo "✅ CORS configuration updated"
-            fi
 
       # =============================
       # ✅ RESTART VIA PM2
@@ -171,8 +190,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             echo "🔄 Restarting frontend via PM2..."
-            sudo -u digitalfuzed-school pm2 reload school-frontend
-            sudo -u digitalfuzed-school pm2 save
+            cd /home/digitalfuzed-school/htdocs/school.digitalfuzed.com
+            pm2 reload school-frontend
+            pm2 save
 
       - name: Restart backend with PM2
         if: steps.check_changes.outputs.backend_changed == 'true'
@@ -183,5 +203,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             echo "🔄 Restarting backend via PM2..."
-            sudo -u digitalfuzed-schoolapi pm2 reload school-backend
-            sudo -u digitalfuzed-schoolapi pm2 save
+            cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
+            pm2 reload school-backend
+            pm2 save

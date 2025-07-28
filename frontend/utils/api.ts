@@ -7,12 +7,6 @@ export function createApiInstance(): AxiosInstance {
   const config = useRuntimeConfig();
   const apiBase = config.public?.apiBase;
 
-  // Debug: Log the API base URL being used
-  if (import.meta.client) {
-    console.log('🔍 API Base URL:', apiBase);
-    console.log('🔍 Runtime Config:', config.public);
-  }
-
   const api: AxiosInstance = axios.create({
     baseURL: apiBase,
     timeout: 10000,
