@@ -40,6 +40,8 @@ jobs:
       - name: Install & build frontend (Nuxt SSR)
         if: steps.check_changes.outputs.frontend_changed == 'true'
         working-directory: ./frontend
+        env:
+          NUXT_PUBLIC_API_BASE: https://schoolapi.digitalfuzed.com/api
         run: |
           npm ci
           npm run build
