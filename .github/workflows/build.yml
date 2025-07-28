@@ -43,16 +43,6 @@ jobs:
           node scripts/check-env.js
           npm run build
 
-      - name: Upload frontend build to VPS
-        if: steps.check_changes.outputs.frontend_changed == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/.output/."
-          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/frontend/.output/"
-
       - name: Clean and prepare frontend directory
         if: steps.check_changes.outputs.frontend_changed == 'true'
         uses: appleboy/ssh-action@v0.1.7
@@ -79,6 +69,16 @@ jobs:
             
             echo "🧹 CLEANUP COMPLETE"
             echo "==================="
+
+      - name: Upload frontend build to VPS
+        if: steps.check_changes.outputs.frontend_changed == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend/.output/."
+          target: "/home/digitalfuzed-school/htdocs/school.digitalfuzed.com/frontend/.output/"
 
       - name: Debug frontend upload structure
         if: steps.check_changes.outputs.frontend_changed == 'true'
