@@ -144,21 +144,29 @@ const createStudent = async (req, res, next) => {
       });
     }
 
-    // Check for duplicate roll number in the same class-section
+    // Check for duplicate roll number in the same class-section-stream combination
     if (studentData.roll_number && studentData._class_id && studentData._section_id) {
+      const rollNumberWhere = {
+        roll_number: studentData.roll_number,
+        branch_id: branch_id,
+        class_id: studentData._class_id,
+        section_id: studentData._section_id,
+      };
+      
+      // Include stream_id in the check if it's provided (only if not null/undefined)
+      if (studentData._stream_id && studentData._stream_id !== null && studentData._stream_id !== undefined) {
+        rollNumberWhere.stream_id = studentData._stream_id;
+      }
+      
       const existingRollNumber = await Student.findOne({
-        where: {
-          roll_number: studentData.roll_number,
-          branch_id: branch_id,
-          class_id: studentData._class_id,
-          section_id: studentData._section_id,
-        },
+        where: rollNumberWhere,
       });
 
       if (existingRollNumber) {
-        throw new ApiError(400, `Roll number ${studentData.roll_number} already exists in this class-section.`, {
+        const streamName = (studentData._stream_id && studentData._stream_id !== null && studentData._stream_id !== undefined) ? `-${studentData._stream_id}` : '';
+        throw new ApiError(400, `Roll number ${studentData.roll_number} already exists in this class-section${streamName}.`, {
           errors: {
-            roll_number: `Roll number ${studentData.roll_number} already exists in this class-section.`
+            roll_number: `Roll number ${studentData.roll_number} already exists in this class-section${streamName}.`
           }
         });
       }
@@ -749,20 +757,30 @@ const updateStudent = async (req, res, next) => {
     console.log('🔍 Admission class field in update data:', updateData.admission_class);
     console.log('🔍 Current class field in update data:', updateData.current_class);
 
-    // Check for duplicate roll number in the same class-section (only if roll number is being updated)
+    // Check for duplicate roll number in the same class-section-stream combination (only if roll number is being updated)
     if (updateData.roll_number && updateData.roll_number !== student.roll_number) {
+      const rollNumberWhere = {
+        roll_number: updateData.roll_number,
+        branch_id: student.branch_id,
+        class_id: updateData.class_id || student.class_id,
+        section_id: updateData.section_id || student.section_id,
+        id: { [Op.ne]: student.id }, // Exclude current student
+      };
+      
+      // Include stream_id in the check if it's being updated or if student has one (only if not null/undefined)
+      if (updateData.stream_id && updateData.stream_id !== null && updateData.stream_id !== undefined) {
+        rollNumberWhere.stream_id = updateData.stream_id;
+      } else if (student.stream_id && student.stream_id !== null && student.stream_id !== undefined) {
+        rollNumberWhere.stream_id = student.stream_id;
+      }
+      
       const existingRollNumber = await Student.findOne({
-        where: {
-          roll_number: updateData.roll_number,
-          branch_id: student.branch_id,
-          class_id: updateData.class_id || student.class_id,
-          section_id: updateData.section_id || student.section_id,
-          id: { [Op.ne]: student.id }, // Exclude current student
-        },
+        where: rollNumberWhere,
       });
 
       if (existingRollNumber) {
-        throw new ApiError(400, `Roll number ${updateData.roll_number} already exists in this class-section.`);
+        const streamName = (rollNumberWhere.stream_id && rollNumberWhere.stream_id !== null && rollNumberWhere.stream_id !== undefined) ? `-${rollNumberWhere.stream_id}` : '';
+        throw new ApiError(400, `Roll number ${updateData.roll_number} already exists in this class-section${streamName}.`);
       }
     }
 
@@ -1577,7 +1595,7 @@ const bulkImportStudents = async (req, res, next) => {
           throw new Error(`Student with admission number ${studentData.admission_number} already exists`);
         }
 
-        // Check for duplicate roll number in the same class-section
+        // Check for duplicate roll number in the same class-section-stream combination
         if (studentData.roll_number) {
           const rollNumberWhere = {
             roll_number: studentData.roll_number,
@@ -1590,6 +1608,11 @@ const bulkImportStudents = async (req, res, next) => {
             rollNumberWhere.section_id = section_id;
           }
           
+          // Include stream_id in the check if it's provided (only if not null/undefined)
+          if (req.body.stream_id && req.body.stream_id !== null && req.body.stream_id !== undefined) {
+            rollNumberWhere.stream_id = req.body.stream_id;
+          }
+          
           const existingRollNumber = await Student.findOne({
             where: rollNumberWhere,
             transaction: rowTransaction
@@ -1597,7 +1620,8 @@ const bulkImportStudents = async (req, res, next) => {
 
           if (existingRollNumber) {
             const sectionName = sectionRecord ? sectionRecord.name : 'No Section';
-            throw new Error(`Roll number ${studentData.roll_number} already exists in ${classRecord.name}-${sectionName}`);
+            const streamName = (req.body.stream_id && req.body.stream_id !== null && req.body.stream_id !== undefined) ? `-${req.body.stream_id}` : '';
+            throw new Error(`Roll number ${studentData.roll_number} already exists in ${classRecord.name}-${sectionName}${streamName}`);
           }
         }
 

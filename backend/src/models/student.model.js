@@ -267,7 +267,7 @@ const Student = sequelize.define('Student', {
   underscored: true,
   indexes: [
     { fields: ['school_id', 'branch_id', 'admission_number'], unique: true },
-    { fields: ['school_id', 'branch_id', 'class_id', 'section_id', 'roll_number'], unique: true },
+    { fields: ['school_id', 'branch_id', 'class_id', 'section_id', 'stream_id', 'roll_number'], unique: true },
     { fields: ['school_id'] },
     { fields: ['branch_id'] },
     { fields: ['status'] },

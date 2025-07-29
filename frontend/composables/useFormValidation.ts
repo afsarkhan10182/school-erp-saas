@@ -24,7 +24,7 @@ const ERROR_MESSAGE_MAP = {
   
   // Academic field errors
   'admission_number': 'Admission number is required and must be unique',
-  'roll_number': 'Roll number must be unique within the same class and section',
+  'roll_number': 'Roll number must be unique within the same class, section, and stream combination',
   'admission_date': 'Admission date is required',
   'class_id': 'Please select a class',
   'section_id': 'Please select a section',
