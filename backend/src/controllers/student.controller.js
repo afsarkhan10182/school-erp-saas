@@ -1609,7 +1609,7 @@ const bulkImportStudents = async (req, res, next) => {
             guardian_name: rowData.GuardianName ? rowData.GuardianName.substring(0, 100) : null,
             guardian_phone: rowData.GuardianMobileNo ? rowData.GuardianMobileNo.substring(0, 20) : null,
             guardian_email: rowData.GuardianEmail || null,
-            guardian_relation: rowData.GuardianRelation || 'guardian',
+            guardian_relation: rowData.GuardianRelation?.toLowerCase() || 'guardian',
             guardian_occupation: rowData.GuardianOccupation || null,
             guardian_income: rowData.GuardianIncome !== undefined ? rowData.GuardianIncome : null, // Always mapped, allow null
             guardian_education: rowData.GuardianEducation || null,                                 // Always mapped, allow null
