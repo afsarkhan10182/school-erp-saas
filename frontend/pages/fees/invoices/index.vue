@@ -266,6 +266,7 @@
       :show="showQuickCollectModal"
       @close="showQuickCollectModal = false"
       @payment-recorded="onPaymentRecorded"
+      @view-combined-receipt="viewCombinedReceipt"
     />
 
     <!-- Generate Invoices Modal -->

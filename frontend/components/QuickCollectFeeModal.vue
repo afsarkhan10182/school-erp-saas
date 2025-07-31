@@ -293,7 +293,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'payment-recorded']);
+const emit = defineEmits(['close', 'payment-recorded','view-combined-receipt']);
 
 // Reactive data
 const searchQuery = ref('');
@@ -437,6 +437,7 @@ const submitPayment = async () => {
     
     // Close modal on success
     emit('close');
+    emit('view-combined-receipt', data);
     
   } catch (error) {
     console.error('Error recording auto payment:', error);
