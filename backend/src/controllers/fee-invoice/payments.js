@@ -4,6 +4,7 @@ const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('../../services/receipt.service');
 const { validatePaymentSequence, getEarliestPendingMonth } = require('../../utils/academicYearUtils');
+const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 
 // Calculate late fees based on due date
 const calculateLateFees = async (invoice) => {
@@ -107,8 +108,18 @@ const generateReceipt = async (invoice, paymentAmount, paymentMethod, transactio
     logger.error('Error generating receipt:', error);
     
     // Fallback to simple receipt
+    // Generate receipt number using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (invoice.feeStructure?.class_name) {
+      classCode = getClassCode(invoice.feeStructure);
+    } else if (invoice.student?.current_class) {
+      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+    
     const receiptData = {
-      receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      receipt_number: generateUniqueInvoiceNumber(classCode),
       invoice_number: invoice.invoice_number,
       student_name: invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
       payment_amount: paymentAmount,

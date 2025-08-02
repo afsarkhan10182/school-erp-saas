@@ -3,12 +3,27 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { logger } = require('../utils/logger');
 const { resolveUploadsPath } = require('../utils/pathHelper');
+const { generateUniqueInvoiceNumber, getClassCode } = require('../controllers/fee-invoice/core');
 /**
  * Generate professional receipt for fee payment (Enhanced for tuition fees focus)
  */
 const generateReceipt = async (paymentData, schoolData, studentData) => {
   try {
-    const receiptNumber = paymentData.receipt_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate receipt number using the same pattern as invoices
+    let receiptNumber = paymentData.receipt_number;
+    if (!receiptNumber) {
+      // Get class code from fee structure if available
+      let classCode = 'GEN'; // Default fallback
+      if (paymentData.fee_structure) {
+        classCode = getClassCode(paymentData.fee_structure);
+      } else if (studentData.current_class) {
+        // Fallback: generate from class name
+        const cleanName = studentData.current_class.replace(/^Class\s+/i, '').trim();
+        classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+      }
+      receiptNumber = generateUniqueInvoiceNumber(classCode);
+    }
     
     // Calculate remaining months and balance for school branch
     let remainingMonths = 0;
@@ -417,8 +432,16 @@ const generateConsolidatedReceipt = async (monthlyPaymentDetails, schoolData, st
       `${monthNames[detail.monthlyPayment.month - 1]} ${detail.monthlyPayment.year}`
     ).join(', ');
 
+    // Generate receipt number using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (monthlyPaymentDetails[0]?.monthlyPayment?.feeStructure?.class_name) {
+      const cleanName = monthlyPaymentDetails[0].monthlyPayment.feeStructure.class_name.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+
     const paymentData = {
-      receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      receipt_number: generateUniqueInvoiceNumber(classCode),
       invoice_number: `ENHANCED-${Date.now()}`,
       payment_amount: totalPaymentAmount,
       payment_method: paymentMethod || 'cash',
@@ -616,8 +639,16 @@ const generateInstallmentReceipt = async (invoice, paymentAmount, paymentMethod,
       });
     }
     
+    // Generate receipt number using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (invoice.feeStructure?.class_name) {
+      const cleanName = invoice.feeStructure.class_name.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+
     const paymentData = {
-      receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      receipt_number: generateUniqueInvoiceNumber(classCode),
       invoice_number: invoice.invoice_number,
       payment_amount: paymentAmount,
       payment_method: paymentMethod,

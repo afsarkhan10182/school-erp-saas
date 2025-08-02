@@ -323,27 +323,6 @@ export const apiClient = {
   // Enhanced Fee Invoice endpoints with reports
   feeInvoices: {
     /**
-     * Get grouped invoices for better UI display
-     * Groups invoices by receipt_group_id for paid/partial_paid invoices
-     * @param params - Query parameters
-     */
-    getGrouped: async (params?: { 
-      page?: number; 
-      limit?: number; 
-      academic_year?: string; 
-      status?: string; 
-      student_id?: string;
-      payment_model?: 'monthly' | 'installment';
-      class_name?: string;
-      section?: string;
-      branch_id?: string;
-    }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/grouped', { params });
-      return response.data;
-    },
-
-    /**
      * Get combined receipt for grouped payments
      * @param receiptGroupId - The receipt group ID
      */
@@ -383,23 +362,22 @@ export const apiClient = {
       return response.data;
     },
     
-    getSummary: async (params?: { academic_year?: string; class?: string }) => {
+    getSummary: async (params?: { 
+      academic_year?: string; 
+      class_name?: string; 
+      status?: string; 
+      branch_id?: string; 
+      search?: string; 
+      section?: string; 
+      start_date?: string; 
+      end_date?: string; 
+    }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params });
       return response.data;
     },
 
-    getStats: async (params?: { academic_year?: string; class?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/stats', { params });
-      return response.data;
-    },
 
-    getMonthlyFeeStructures: async (params?: { payment_model?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-structures', { params: { ...params, payment_model: 'monthly' } });
-      return response.data;
-    },
     
     generateReceipt: async (id: string) => {
       const api = createApiInstance();
@@ -534,7 +512,7 @@ export const apiClient = {
       sort_order?: 'ASC' | 'DESC';
     }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/invoices', { params });
+      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/grouped', { params });
       return response.data;
     },
     

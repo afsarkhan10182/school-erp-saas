@@ -213,6 +213,7 @@ const createFeeStructure = async (req, res, next) => {
       name: `${feeType.name} - ${classNamesText}${sectionText} (${academicYear.name})`,
       academic_year: academicYear.name,
       class_name: classesToProcess[0].name, // Keep for backward compatibility
+      class_id: classesToProcess[0].id, // Add class_id for proper association
       applicable_classes: classesToProcess.map(c => c.name), // Store all class names
       stream_ids: stream_ids || [], // Store stream IDs for higher classes
       section: section || null,
@@ -438,7 +439,7 @@ const updateFeeStructure = async (req, res, next) => {
     }
 
     // If class_id is provided, get the class name
-    if (class_id) {
+    if (class_id && class_id.trim() !== '') {
       const classData = await Class.findOne({
         where: {
           id: class_id,
@@ -451,6 +452,7 @@ const updateFeeStructure = async (req, res, next) => {
       }
 
       updateData.class_name = classData.name;
+      updateData.class_id = class_id; // Add class_id for proper association
     }
 
     // Handle applicable_classes for multi-class fee structures
@@ -459,6 +461,20 @@ const updateFeeStructure = async (req, res, next) => {
         updateData.applicable_classes = applicable_classes;
         // For multi-class structures, set class_name to the first class for backward compatibility
         updateData.class_name = applicable_classes[0];
+        
+        // If class_id is not provided but we have applicable_classes, try to find the class_id
+        if ((!class_id || class_id.trim() === '') && applicable_classes.length === 1) {
+          const classData = await Class.findOne({
+            where: {
+              name: applicable_classes[0],
+              school_id: req.schoolId,
+            },
+          });
+          
+          if (classData) {
+            updateData.class_id = classData.id;
+          }
+        }
       } else {
         updateData.applicable_classes = [];
         updateData.class_name = null;

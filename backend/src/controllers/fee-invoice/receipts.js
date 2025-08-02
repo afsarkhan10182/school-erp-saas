@@ -3,6 +3,7 @@ const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('../../services/receipt.service');
+const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 
 // Generate receipt for a specific invoice
 const generateReceiptForInvoice = async (req, res, next) => {
@@ -501,8 +502,17 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       throw new Error('No invoices provided for combined receipt');
     }
 
-    // Generate receipt number
-    const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate receipt number using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (invoices[0]?.feeStructure?.class_name) {
+      classCode = getClassCode(invoices[0].feeStructure);
+    } else if (student.current_class) {
+      const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+    
+    const receiptNumber = generateUniqueInvoiceNumber(classCode);
     
     // Calculate totals
     const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);

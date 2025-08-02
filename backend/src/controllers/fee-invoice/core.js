@@ -1,8 +1,44 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../../models');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { getAcademicYearMonths, validatePaymentSequence } = require('../../utils/academicYearUtils');
 const { Op } = require('sequelize');
+
+// Generate unique invoice number with microsecond precision
+// Helper function to get class code from fee structure
+const getClassCode = (feeStructure) => {
+  // First try to get code from the associated Class model
+  if (feeStructure.class && feeStructure.class.code) {
+    return feeStructure.class.code;
+  }
+  
+  // Fallback to generating from class_name (for backward compatibility)
+  if (feeStructure.class_name) {
+    const cleanName = feeStructure.class_name.replace(/^Class\s+/i, '').trim();
+    const code = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return code.length >= 3 ? code : `${code}${'0'.repeat(3 - code.length)}`;
+  }
+  
+  // Default fallback
+  return 'GEN';
+};
+
+const generateUniqueInvoiceNumber = (classCode, installmentNumber = null) => {
+  const now = new Date();
+  const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const random = Math.floor(Math.random() * 1000000); // 6-digit random for uniqueness
+  
+  let invoiceNumber = `INV-${yyyymm}-${classCode}-${String(random).padStart(6, '0')}`;
+  
+  // Add installment number if provided
+  if (installmentNumber !== null) {
+    invoiceNumber += `-${installmentNumber}`;
+  }
+  
+  return invoiceNumber;
+};
+
+
 
 // Generate invoices for students based on fee structure
 const generateInvoices = async (req, res, next) => {
@@ -67,6 +103,11 @@ const generateInvoices = async (req, res, next) => {
         {
           model: FeeType,
           as: 'feeType',
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code'],
         },
       ],
     });
@@ -133,31 +174,29 @@ const generateInvoices = async (req, res, next) => {
       for (const student of students) {
         try {
           // Check if invoice already exists based on payment model
+          let hasExistingInvoices = false;
           let existingInvoice;
+          
           if (payment_model === 'monthly') {
-            // For monthly payments, check each month
-            for (const month of months) {
-              existingInvoice = await FeeInvoice.findOne({
-                where: {
-                  student_id: student.id,
-                  fee_structure_id: feeStructure.id,
-                  academic_year: feeStructure.academic_year,
-                  payment_model: 'monthly',
-                  month: month,
-                  year: year,
-                },
-              });
+            // For monthly payments, check if ANY month already has invoices for this student
+            existingInvoice = await FeeInvoice.findOne({
+              where: {
+                student_id: student.id,
+                fee_structure_id: feeStructure.id,
+                academic_year: feeStructure.academic_year,
+                payment_model: 'monthly',
+                year: year,
+              },
+            });
 
-              if (existingInvoice) {
-                errors.push(`Monthly invoice already exists for student ${student.first_name} ${student.last_name}, fee structure ${feeStructure.name}, month ${month}/${year}`);
-                continue;
-              }
+            if (existingInvoice) {
+              errors.push(`Monthly invoices already exist for student ${student.first_name} ${student.last_name}, fee structure ${feeStructure.name}, year ${year}`);
+              hasExistingInvoices = true;
             }
           } else {
             // For installment payments, check based on installment type
             if (feeStructure.installment_type === 'one_time') {
               // For one-time full fee, check if ANY invoice exists for this student in this academic year
-              // This ensures ONE invoice per student per academic year for one-time payments
               existingInvoice = await FeeInvoice.findOne({
                 where: {
                   student_id: student.id,
@@ -168,7 +207,7 @@ const generateInvoices = async (req, res, next) => {
 
               if (existingInvoice) {
                 errors.push(`One-time full fee invoice already exists for student ${student.first_name} ${student.last_name} for academic year ${feeStructure.academic_year}`);
-                continue;
+                hasExistingInvoices = true;
               }
             } else if (feeStructure.installment_type === 'multiple') {
               // For multiple installments, check if ALL installments already exist for this student
@@ -186,9 +225,14 @@ const generateInvoices = async (req, res, next) => {
 
               if (existingInvoices.length >= totalInstallments) {
                 errors.push(`All ${totalInstallments} installment invoices already exist for student ${student.first_name} ${student.last_name} for fee structure ${feeStructure.name}`);
-                continue;
+                hasExistingInvoices = true;
               }
             }
+          }
+
+          // Skip this student entirely if invoices already exist
+          if (hasExistingInvoices) {
+            continue;
           }
 
           // Generate invoices based on payment model
@@ -211,8 +255,8 @@ const generateInvoices = async (req, res, next) => {
               // Calculate due date for this month (using due_day from fee structure)
               let calculatedDueDate = new Date(academicMonth.year, academicMonth.month - 1, feeStructure.due_day || 10);
               
-              // Generate invoice number
-              const invoiceNumber = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+              // Generate unique invoice number
+              const invoiceNumber = generateUniqueInvoiceNumber(getClassCode(feeStructure));
               
               // Calculate amounts - use monthly_payment_amount for monthly payments
               const baseAmount = parseFloat(feeStructure.monthly_payment_amount) || parseFloat(feeStructure.amount) || 0;
@@ -289,8 +333,8 @@ const generateInvoices = async (req, res, next) => {
                 logger.info(`No due date found in fee structure ${feeStructure.name}, using default date: ${calculatedDueDate}`);
               }
 
-              // Generate invoice number
-              const invoiceNumber = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+              // Generate unique invoice number
+              const invoiceNumber = generateUniqueInvoiceNumber(getClassCode(feeStructure));
               
               // Calculate amounts - for one-time full fee, this is the TOTAL amount
               const baseAmount = parseFloat(feeStructure.amount) || 0;
@@ -377,8 +421,8 @@ const generateInvoices = async (req, res, next) => {
                   throw new ApiError(400, `Missing due date for installment ${i + 1} in fee structure ${feeStructure.name}.`);
                 }
 
-                // Generate invoice number for this installment
-                const invoiceNumber = `INV-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}-${i + 1}`;
+                // Generate unique invoice number for this installment
+                const invoiceNumber = generateUniqueInvoiceNumber(getClassCode(feeStructure), i + 1);
                 
                 // Create installment invoice
                 const invoice = await FeeInvoice.create({
@@ -841,7 +885,7 @@ const getGroupedInvoices = async (req, res, next) => {
       return {
         id: group.receipt_group_id,
         receipt_group_id: group.receipt_group_id,
-        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -856,7 +900,7 @@ const getGroupedInvoices = async (req, res, next) => {
         months_covered: group.invoices.length,
         month_range: monthRange,
         month_names: monthNames,
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -911,4 +955,6 @@ module.exports = {
   cancelInvoice,
   adjustInvoice,
   getGroupedInvoices,
+  generateUniqueInvoiceNumber,
+  getClassCode,
 }; 

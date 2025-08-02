@@ -6,7 +6,7 @@ const { Op } = require('sequelize');
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
-    const { academic_year, class_name, start_date, end_date } = req.query;
+    const { academic_year, class_name, start_date, end_date, status, branch_id, search, section } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -16,58 +16,80 @@ const getFeeCollectionSummary = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
       whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // If specific branch is selected
+      whereClause.branch_id = branch_id;
     }
 
     if (academic_year) whereClause.academic_year = academic_year;
+    if (status) whereClause.status = status;
     if (start_date && end_date) {
       whereClause.created_at = {
         [Op.between]: [new Date(start_date), new Date(end_date)],
       };
     }
 
-    const includeClause = [];
-    if (class_name) {
-      const studentWhereClause = { current_class: class_name };
+
+
+    // Build a subquery for student filtering
+    let studentSubquery = null;
+    if (search || class_name || section) {
+      const studentWhereClause = {};
+      if (search) {
+        studentWhereClause[Op.or] = [
+          { first_name: { [Op.iLike]: `%${search}%` } },
+          { last_name: { [Op.iLike]: `%${search}%` } },
+          { 
+            admission_number: { 
+              [Op.and]: [
+                { [Op.not]: null },
+                { [Op.iLike]: `%${search}%` }
+              ]
+            } 
+          },
+        ];
+      }
+      if (class_name) studentWhereClause.current_class = class_name;
+      if (section) studentWhereClause.section = section;
       
       // Handle student branch filtering based on user role
       if (req.user.role === 'branch_admin') {
-        // Branch admin can only see students from their assigned branch
         studentWhereClause.branch_id = req.user.branch_id;
       }
-      
-      includeClause.push({
+
+      studentSubquery = {
         model: Student,
         as: 'student',
         where: studentWhereClause,
         attributes: [],
-      });
+      };
     }
 
     // Get summary statistics
     const totalInvoices = await FeeInvoice.count({
       where: whereClause,
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const paidInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'paid' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const overdueInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'overdue' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const partialPaidInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'partial_paid' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
-    // Get amount statistics
+    // Get amount statistics - use separate query without include to avoid GROUP BY issues
     const amountStats = await FeeInvoice.findAll({
       where: whereClause,
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
       attributes: [
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
@@ -76,22 +98,16 @@ const getFeeCollectionSummary = async (req, res, next) => {
       raw: true,
     });
 
+    const totalAmount = parseFloat(amountStats[0]?.total_amount || 0);
+    const totalPaid = parseFloat(amountStats[0]?.total_paid || 0);
+    const totalBalance = parseFloat(amountStats[0]?.total_balance || 0);
+
     const summary = {
-      invoice_counts: {
-        total: totalInvoices,
-        paid: paidInvoices,
-        overdue: overdueInvoices,
-        partial_paid: partialPaidInvoices,
-        pending: totalInvoices - paidInvoices - overdueInvoices - partialPaidInvoices,
-      },
-      amounts: {
-        total_amount: parseFloat(amountStats[0]?.total_amount || 0),
-        total_paid: parseFloat(amountStats[0]?.total_paid || 0),
-        total_balance: parseFloat(amountStats[0]?.total_balance || 0),
-        collection_percentage: totalInvoices > 0 
-          ? ((paidInvoices / totalInvoices) * 100).toFixed(2)
-          : 0,
-      },
+      totalAmount,
+      totalCollected: totalPaid,
+      totalPending: totalBalance,
+      collectionRate: totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0,
+      totalInvoices
     };
 
     return res.status(200).json({ success: true, data: summary });
@@ -157,7 +173,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
       query: req.query
     });
 
-    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date } = req.query;
+    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
@@ -168,13 +184,26 @@ const getFeeInvoiceReport = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
       whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // If specific branch is selected
+      whereClause.branch_id = branch_id;
     }
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
-      whereClause.created_at = {
-        [Op.between]: [new Date(from_date), new Date(to_date)],
-      };
+      // Filter by both invoice_date and due_date to capture all relevant invoices
+      whereClause[Op.or] = [
+        {
+          invoice_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        },
+        {
+          due_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        }
+      ];
     }
 
     logger.debug('getFeeInvoiceReport: Query parameters', {

@@ -4,6 +4,9 @@ const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateCombinedReceipt } = require('./receipts');
 const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('../../utils/academicYearUtils');
+const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
+
+
 
 // Shared utility function to get student invoices
 const getStudentInvoices = async (studentId, schoolId, options = {}) => {
@@ -148,7 +151,7 @@ const getStudentDues = async (req, res, next) => {
       groupedMonthlyPayments.push({
         id: group.receipt_group_id, // Use receipt_group_id as ID for grouping
         receipt_group_id: group.receipt_group_id,
-        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: `INV-${group.receipt_group_id.slice(-8)}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -163,7 +166,7 @@ const getStudentDues = async (req, res, next) => {
         months_covered: group.invoices.length,
         month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
         month_names: group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', '),
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
+        display_name: `INV-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -353,7 +356,7 @@ const getStudentFeeLedger = async (req, res, next) => {
       groupedMonthlyPayments.push({
         id: group.receipt_group_id, // Use receipt_group_id as ID for grouping
         receipt_group_id: group.receipt_group_id,
-        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: `INV-${group.receipt_group_id.slice(-8)}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -368,7 +371,7 @@ const getStudentFeeLedger = async (req, res, next) => {
         months_covered: group.invoices.length,
         month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
         month_names: group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', '),
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
+        display_name: `INV-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -591,7 +594,21 @@ const recordSmartPayment = async (req, res, next) => {
     const processedInvoices = [];
 
     // Generate a common receipt group ID for this smart payment
-    const receiptGroupId = `RCP-GROUP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate receipt group ID using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (pendingInvoices[0]?.feeStructure?.class_name) {
+      classCode = getClassCode(pendingInvoices[0].feeStructure);
+    } else if (student.current_class) {
+      const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+    
+    // Generate year-month format like individual invoices
+    const now = new Date();
+    const yyyymm = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const random = Math.floor(Math.random() * 1000000); // 6-digit random for uniqueness
+    const receiptGroupId = `INV-GROUP-${yyyymm}-${classCode}-${String(random).padStart(6, '0')}`;
     
     // Enhanced allocation logic with monthly payment support
     // Calculate how many months can be covered by this payment
@@ -641,10 +658,20 @@ const recordSmartPayment = async (req, res, next) => {
       const newBalanceAmount = parseFloat(invoice.total_amount || 0) - newPaidAmount;
 
       try {
+        // Generate receipt number using the same pattern as invoices
+        let classCode = 'GEN'; // Default fallback
+        if (pendingInvoices[0]?.feeStructure?.class_name) {
+          classCode = getClassCode(pendingInvoices[0].feeStructure);
+        } else if (student.current_class) {
+          const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+          classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+        }
+
         // Create payment record for historical tracking
         const paymentData = {
           payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          receipt_number: generateUniqueInvoiceNumber(classCode),
           invoice_id: invoice.id,
           student_id: student.id,
           payment_amount: amountToApply,
@@ -1020,7 +1047,7 @@ const getGroupedStudentInvoices = async (req, res, next) => {
         month_range: monthRange,
         year: years[0],
         month_names: monthNames,
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
         status: group.total_balance <= 0 ? 'paid' : 'partial_paid',
       };
     });

@@ -1365,8 +1365,19 @@ const saveFeeStructure = async () => {
       sectionName = selectedSection?.name || null;
     }
 
+    // Set class_id if only one class is selected
+    let classId = '';
+    if (form.value.applicable_classes.length === 1) {
+      const selectedClassName = form.value.applicable_classes[0];
+      const selectedClass = classes.value.find(c => c.name === selectedClassName);
+      if (selectedClass) {
+        classId = selectedClass.id;
+      }
+    }
+
     const feeStructureData = {
       ...form.value,
+      class_id: classId, // Set the proper class_id when single class is selected
       amount: calculatedAmount, // Use the calculated amount
       applicable_classes: form.value.applicable_classes, // Send applicable classes array
       stream_ids: form.value.stream_ids, // Send stream IDs array

@@ -142,6 +142,21 @@
             
             <!-- Students list -->
             <div v-else>
+              <!-- Select All Checkbox -->
+              <div class="flex items-center mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+                <input 
+                  type="checkbox" 
+                  id="select-all-students" 
+                  :checked="isAllStudentsSelected"
+                  @change="toggleSelectAllStudents"
+                  class="mr-2"
+                />
+                <label for="select-all-students" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select All Students ({{ availableStudents.length }})
+                </label>
+              </div>
+              
+              <!-- Individual Student Checkboxes -->
               <div v-for="student in availableStudents" :key="student.id" class="flex items-center mb-2">
                 <input 
                   type="checkbox" 
@@ -471,6 +486,22 @@ const canSubmit = computed(() => {
   return baseRequirements;
 });
 
+// Select All Students functionality
+const isAllStudentsSelected = computed(() => {
+  return availableStudents.value.length > 0 && 
+         form.selected_student_ids.length === availableStudents.value.length;
+});
+
+const toggleSelectAllStudents = () => {
+  if (isAllStudentsSelected.value) {
+    // Unselect all
+    form.selected_student_ids = [];
+  } else {
+    // Select all
+    form.selected_student_ids = availableStudents.value.map(student => student.id);
+  }
+};
+
 // Helper functions
 const getBranchPlaceholder = () => {
   if (userRole.value === 'super_admin') {
@@ -605,8 +636,14 @@ const initializeComponent = async () => {
 watch(() => form.fee_structure_id, async (newStructure) => {
   if (newStructure && filteredMonthlyFeeStructures.value.length > 0) {
     const structure = filteredMonthlyFeeStructures.value.find(s => s.id === newStructure);
-    if (structure) {
-      form.months = Array.isArray(structure.months) ? structure.months : [];
+    if (structure && form.payment_model === 'monthly') {
+      // For monthly payments, select all 12 months by default if no specific months are set
+      if (Array.isArray(structure.months) && structure.months.length > 0) {
+        form.months = structure.months;
+      } else {
+        // Default to all 12 months for monthly payments
+        form.months = months.value.map(month => month.value);
+      }
     } else {
       form.months = [];
     }

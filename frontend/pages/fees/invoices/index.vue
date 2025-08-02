@@ -109,157 +109,101 @@
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
       />
-
+      
       <!-- Invoices Table Component with Pagination -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
         <InvoiceTable
           :invoices="invoices"
+          :grouped-invoices="paginatedGroupedInvoices"
+          :individual-invoices="[]"
+          :view-mode="'grouped'"
           :is-loading="isLoading"
+          :total-invoices="invoices.length"
           @view-invoice="viewInvoice"
           @record-payment="recordPayment"
           @generate-receipt="generateReceipt"
           @view-receipt="viewReceipt"
           @view-combined-receipt="viewCombinedReceipt"
         />
+      </div>
         
         <!-- Pagination -->
-        <div v-if="totalItems > 0" class="px-4 py-4 flex flex-col space-y-4 border-t border-gray-200 dark:border-gray-700 md:px-6 md:flex-row md:items-center md:justify-between md:space-y-0">
-          <!-- Mobile Pagination -->
-          <div class="flex flex-col space-y-3 md:hidden">
-            <!-- Results Info -->
-            <div class="text-center">
+        <div v-if="totalStudentGroups > 0" class="px-4 py-4 border-t border-gray-200 dark:border-gray-700 md:px-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+            <!-- Results Info and Page Size -->
+            <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
+                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalStudentGroups) }}</span> of <span class="font-medium">{{ totalStudentGroups }}</span> students
               </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                ({{ invoices.length }} invoices)
+              </p>
+              
+              <!-- Page Size Selector -->
+              <div class="flex items-center space-x-2">
+                <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
+                <select 
+                  v-model="pageSize" 
+                  @change="onPageSizeChange"
+                  class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span class="text-sm text-gray-700 dark:text-gray-300">students per page</span>
+              </div>
             </div>
             
-            <!-- Page Size Selector -->
-            <div class="flex items-center justify-center space-x-2">
-              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-              <select 
-                v-model="pageSize" 
-                @change="onPageSizeChange"
-                class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-            </div>
-            
-            <!-- Navigation Buttons -->
-            <div class="flex items-center justify-between">
+            <!-- Navigation -->
+            <div class="flex items-center justify-center sm:justify-end space-x-2">
+              <!-- Previous Button -->
               <button
                 @click="previousPage"
                 :disabled="currentPage === 1"
-                class="flex-1 mr-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
                 Previous
               </button>
-              <span class="text-sm font-medium text-gray-900 dark:text-white px-4 py-2">
-                {{ currentPage }} / {{ totalPages }}
-              </span>
+              
+              <!-- Page Numbers -->
+              <div v-if="totalPagesForGroups > 1" class="flex items-center space-x-1">
+                <button
+                  v-for="pageNum in getVisiblePages()"
+                  :key="pageNum"
+                  @click="goToPage(pageNum)"
+                  :class="[
+                    'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
+                    pageNum === currentPage
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ]"
+                  :disabled="pageNum === '...'"
+                >
+                  {{ pageNum }}
+                </button>
+              </div>
+              
+              <!-- Next Button -->
               <button
                 @click="nextPage"
-                :disabled="currentPage >= totalPages"
-                class="flex-1 ml-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                :disabled="currentPage >= totalPagesForGroups"
+                class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-            
-            <!-- Page Numbers (if multiple pages) -->
-            <div v-if="totalPages > 1" class="flex items-center justify-center space-x-1">
-              <button
-                v-for="pageNum in getVisiblePages()"
-                :key="pageNum"
-                @click="goToPage(pageNum)"
-                :class="[
-                  'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
-                  pageNum === currentPage
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                ]"
-                :disabled="pageNum === '...'"
-              >
-                {{ pageNum }}
-              </button>
-            </div>
-          </div>
-        <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
-          <div class="flex items-center space-x-4">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-              <span v-if="totalItems > 0">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-              </span>
-              <span v-else>
-                No results found
-              </span>
-            </p>
-            
-            <div v-if="totalItems > 0" class="flex items-center space-x-2">
-              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-              <select 
-                v-model="pageSize" 
-                @change="onPageSizeChange"
-                class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-            </div>
-          </div>
-          
-          <div v-if="totalItems > 0" class="flex items-center space-x-2">
-            <div v-if="totalPages > 1" class="flex items-center space-x-1">
-              <button
-                v-for="pageNum in getVisiblePages()"
-                :key="pageNum"
-                @click="goToPage(pageNum)"
-                :class="[
-                  'px-3 py-1 text-sm font-medium rounded-md',
-                  pageNum === currentPage
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                ]"
-                :disabled="pageNum === '...'"
-              >
-                {{ pageNum }}
-              </button>
-            </div>
-            
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                @click="nextPage"
-                :disabled="currentPage >= totalPages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </nav>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
     <!-- Quick Collect Modal -->
     <QuickCollectFeeModal
@@ -496,7 +440,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -559,8 +502,10 @@ const selectedMultiplePayments = ref(null);
 // Pagination - Set to exactly 10 records
 const currentPage = ref(1);
 const pageSize = ref(10);
-const totalItems = ref(0);
 const totalPages = ref(0);
+
+// View mode (only grouped)
+const viewMode = ref('grouped');
 
 // Filters - Start with empty filters
 const filters = reactive({
@@ -582,6 +527,106 @@ const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_adm
 const hasAppliedFilters = computed(() => {
   return Object.values(filters).some(value => value !== '');
 });
+
+// Computed properties for accordion grouping
+const groupedInvoices = computed(() => {
+  console.log('🔄 Computing groupedInvoices with:', invoices.value);
+  
+  if (!invoices.value || invoices.value.length === 0) {
+    console.log('❌ No invoices to group');
+    return [];
+  }
+
+
+
+  // Group invoices by student
+  const grouped = {};
+  
+  invoices.value.forEach(invoice => {
+    const studentId = invoice.student?.id || invoice.student_id;
+    
+
+    
+    const studentName = invoice.student?.first_name && invoice.student?.last_name 
+      ? `${invoice.student.first_name} ${invoice.student.last_name}`
+      : invoice.student?.first_name 
+        ? invoice.student.first_name
+        : invoice.student?.name || 'Unknown Student';
+    const admissionNumber = invoice.student?.admission_number || 'N/A';
+    const className = invoice.class_name || invoice.student?.current_class || 'N/A';
+    const studentPhoto = invoice.student?.photo_url || null;
+
+    if (!grouped[studentId]) {
+      grouped[studentId] = {
+        studentId,
+        studentName,
+        admissionNumber,
+        className,
+        studentPhoto,
+        invoices: [],
+        totalAmount: 0,
+        paidCount: 0,
+        pendingCount: 0,
+        overdueCount: 0
+      };
+    }
+
+    // Add invoice to student group
+    grouped[studentId].invoices.push(invoice);
+    
+    // Update totals
+    grouped[studentId].totalAmount += parseFloat(invoice.total_amount || 0);
+    
+    // Update status counts
+    if (invoice.status === 'paid') {
+      grouped[studentId].paidCount++;
+    } else if (invoice.status === 'overdue') {
+      grouped[studentId].overdueCount++;
+    } else {
+      grouped[studentId].pendingCount++;
+    }
+  });
+
+  // Convert to array and sort by student name
+  const result = Object.values(grouped).sort((a, b) => a.studentName.localeCompare(b.studentName));
+  console.log('✅ Grouped invoices result:', result);
+  return result;
+});
+
+// Paginated grouped results for display (frontend pagination by students)
+const paginatedGroupedInvoices = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  const result = groupedInvoices.value.slice(startIndex, endIndex);
+  
+  console.log('📄 Pagination Debug:', {
+    currentPage: currentPage.value,
+    pageSize: pageSize.value,
+    totalGroups: groupedInvoices.value.length,
+    startIndex,
+    endIndex,
+    resultLength: result.length,
+    totalPages: totalPagesForGroups.value,
+    allStudents: groupedInvoices.value.map(s => s.studentName),
+    paginatedStudents: result.map(s => s.studentName)
+  });
+  
+  return result;
+});
+
+// Total student groups for pagination
+const totalStudentGroups = computed(() => groupedInvoices.value.length);
+
+// Total pages for student groups
+const totalPagesForGroups = computed(() => {
+  const pages = Math.ceil(totalStudentGroups.value / pageSize.value);
+  console.log('📖 Total Pages for Groups:', pages, '(Groups:', totalStudentGroups.value, '/ PageSize:', pageSize.value, ')');
+  return pages;
+});
+
+
+
+
 
 // Auto-set branch filter based on user role
 const setDefaultBranchFilter = () => {
@@ -607,10 +652,9 @@ const paymentForm = reactive({
 const fetchInvoices = async () => {
   isLoading.value = true;
   try {
-    // Build params object with all filters
+    // Build params object with filters (no pagination - get all invoices)
     const params = {
-      page: currentPage.value,
-      limit: pageSize.value,
+      limit: 1000 // Set a high limit to get all invoices
     };
     
     // Add filters only if they have values
@@ -620,54 +664,58 @@ const fetchInvoices = async () => {
     if (filters.class_name) params.class_name = filters.class_name;
     if (filters.status) params.status = filters.status;
     
-    // Use the new grouped API instead of getAll
-    const response = await apiClient.feeInvoices.getGrouped(params);
+    console.log('🔍 Fetching all invoices with params:', params);
     
-    invoices.value = response.data?.invoices || [];
-    totalItems.value = response.data?.pagination?.total_count || 0;
-    totalPages.value = response.data?.pagination?.total_pages || 0;
+    // Use the existing invoices.getAll API - get all invoices without pagination
+    const response = await apiClient.invoices.getAll(params);
+    
+    console.log('📊 API Response:', response);
+    console.log('📋 Invoices data:', response.data);
+    console.log('📄 Invoices array:', response.data.invoices);
+    
+    // The API client returns response.data, so we access the data directly
+    invoices.value = response.data.invoices || [];
+    
+    console.log('✅ Assigned invoices:', invoices.value);
+    console.log('📊 Total invoices:', invoices.value.length);
+    
+    // Reset pagination to first page when new data is loaded
+    currentPage.value = 1;
+    
+    // Calculate summary from the actual invoice data
+    const totalInvoices = invoices.value.length;
+    
+    // Count paid invoices (including grouped invoices which are paid)
+    const paidInvoices = invoices.value.filter(inv => 
+      inv.status === 'paid' || inv.is_grouped
+    ).length;
+    
+    // Count overdue invoices
+    const overdueInvoices = invoices.value.filter(inv => inv.status === 'overdue').length;
+    
+    // Calculate total collected amount
+    const totalCollected = invoices.value.reduce((sum, inv) => {
+      return sum + parseFloat(inv.paid_amount || 0);
+    }, 0);
+    
+    summary.value = {
+      totalInvoices,
+      paidInvoices,
+      overdueInvoices,
+      totalCollected
+    };
+    
+    console.log('📈 Summary:', summary.value);
     
   } catch (error) {
+    console.error('❌ Error fetching invoices:', error);
     showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
   }
 };
 
-// Fetch summary data properly
-const fetchSummary = async () => {
-  try {
-    // Use the dedicated summary endpoint instead of fetching all invoices
-    const params = {};
-    
-    // Add current filters to summary
-    if (filters.payment_model) params.payment_model = filters.payment_model;
-    if (filters.branch_id) params.branch_id = filters.branch_id;
-    if (filters.academic_year) params.academic_year = filters.academic_year;
-    if (filters.class_name) params.class_name = filters.class_name;
-    if (filters.status) params.status = filters.status;
-    
-    const response = await apiClient.feeInvoices.getSummary(params);
-    
-    // Use the summary data directly from the API - backend returns different structure
-    const data = response.data;
-    summary.value = {
-      totalInvoices: data?.invoice_counts?.total || 0,
-      paidInvoices: data?.invoice_counts?.paid || 0,
-      overdueInvoices: data?.invoice_counts?.overdue || 0,
-      totalCollected: data?.amounts?.total_paid || 0
-    };
-    
-  } catch (error) {
-    // Set default values
-    summary.value = {
-      totalInvoices: 0,
-      paidInvoices: 0,
-      overdueInvoices: 0,
-      totalCollected: 0
-    };
-  }
-};
+
 
 const closeGenerateModal = () => {
   showGenerateModal.value = false;
@@ -696,15 +744,42 @@ const generateInvoices = async (formData) => {
   isGenerating.value = true;
   try {
     // Unified approach - use the same API for both monthly and installment payments
-    await apiClient.feeInvoices.generateInvoices(formData);
-    showToast('Invoices generated successfully!', 'success');
+    const response = await apiClient.feeInvoices.generateInvoices(formData);
+    
+    // Show detailed success information
+    const totalGenerated = response.data.total_generated || 0;
+    const errors = response.data.errors || [];
+    
+    if (errors.length > 0) {
+      showToast(`Partial success: Generated ${totalGenerated} invoices. ${errors.length} students had existing invoices.`, 'warning');
+    } else {
+      showToast(`Successfully generated ${totalGenerated} invoices!`, 'success');
+    }
     
     showGenerateModal.value = false;
     await fetchInvoices();
-    await fetchSummary();
   } catch (error) {
-    if (error.response && error.response.data && error.response.data.message) {
-      showToast(error.response.data.message, 'error');
+    if (error.response && error.response.data) {
+      const responseData = error.response.data;
+      
+      if (responseData.errors && responseData.errors.length > 0) {
+        // Show detailed error information
+        const totalErrors = responseData.errors.length;
+        const totalGenerated = responseData.total_generated || 0;
+        
+        if (totalGenerated > 0) {
+          showToast(`Partial success: Generated ${totalGenerated} invoices. ${totalErrors} students had existing invoices.`, 'warning');
+        } else {
+          showToast(`No invoices generated. ${totalErrors} students already have invoices for this period.`, 'error');
+        }
+        
+        // Log detailed errors for debugging
+        console.log('Invoice generation errors:', responseData.errors);
+      } else if (responseData.message) {
+        showToast(responseData.message, 'error');
+      } else {
+        showToast('Error generating invoices', 'error');
+      }
     } else {
       showToast('Error generating invoices', 'error');
     }
@@ -734,7 +809,6 @@ const submitPayment = async () => {
     
     closePaymentModal();
     await fetchInvoices();
-    await fetchSummary();
     showToast('Payment recorded successfully!', 'success');
     
     // Automatically show receipt after successful payment
@@ -757,7 +831,6 @@ const onFilterChange = (newFilters) => {
   Object.assign(filters, newFilters);
   currentPage.value = 1; // Reset to first page when filters change
   fetchInvoices();
-  fetchSummary(); // Also update summary when filters change
 };
 
 const clearFilters = () => {
@@ -766,11 +839,79 @@ const clearFilters = () => {
   });
   currentPage.value = 1;
   fetchInvoices();
-  fetchSummary(); // Also update summary when filters are cleared
+};
+
+// Update pagination methods for grouped students (frontend pagination)
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    // No need to fetch from backend - just update the page
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPagesForGroups.value) {
+    currentPage.value++;
+    // No need to fetch from backend - just update the page
+  }
+};
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPagesForGroups.value) {
+    currentPage.value = page;
+    // No need to fetch from backend - just update the page
+  }
+};
+
+const onPageSizeChange = () => {
+  currentPage.value = 1; // Reset to first page when page size changes
+  // No need to fetch from backend - just update the page size
 };
 
 
 
+const getVisiblePages = () => {
+  const pages = [];
+  const totalPagesValue = totalPagesForGroups.value;
+  const current = currentPage.value;
+  
+  if (totalPagesValue <= 7) {
+    // Show all pages if total is 7 or less
+    for (let i = 1; i <= totalPagesValue; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Show first page, last page, current page, and pages around current
+    if (current <= 4) {
+      // Near the beginning
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(totalPagesValue);
+    } else if (current >= totalPagesValue - 3) {
+      // Near the end
+      pages.push(1);
+      pages.push('...');
+      for (let i = totalPagesValue - 4; i <= totalPagesValue; i++) {
+        pages.push(i);
+      }
+    } else {
+      // In the middle
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(totalPagesValue);
+    }
+  }
+  
+  return pages;
+};
+
+// Add back the missing methods
 const viewInvoice = (invoice) => {
   // Navigate to student fee ledger page for this invoice's student
   navigateTo(`/students/${invoice.student_id}/fee-ledger`);
@@ -798,7 +939,6 @@ const onPaymentRecorded = async () => {
   });
   
   await fetchInvoices();
-  await fetchSummary();
 };
 
 const generateReceipt = async (invoice) => {
@@ -1006,76 +1146,120 @@ const printReceipt = () => {
   }, 500);
 };
 
+// Add missing methods referenced in template
+const getInvoiceNumber = (invoice) => {
+  return invoice.invoice_number || invoice.id;
+};
 
+const isGroupedPayment = (invoice) => {
+  return invoice.payment_model === 'installment';
+};
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchInvoices();
+const getMonthsCovered = (invoice) => {
+  if (invoice.months_covered) {
+    return invoice.months_covered;
+  }
+  return 'N/A';
+};
+
+const getPaymentModelClass = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+  } else if (isGroupedPayment(invoice)) {
+    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+  }
+  return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+};
+
+const getPaymentModelIcon = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return Calendar;
+  } else if (isGroupedPayment(invoice)) {
+    return GraduationCap;
+  }
+  return FileText;
+};
+
+const getPaymentModelText = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return 'Monthly';
+  } else if (isGroupedPayment(invoice)) {
+    return 'Installment';
+  }
+  return 'Single';
+};
+
+const getStudentName = (invoice) => {
+  if (invoice.student?.first_name && invoice.student?.last_name) {
+    return `${invoice.student.first_name} ${invoice.student.last_name}`;
+  }
+  return invoice.student?.name || 'Unknown Student';
+};
+
+const getBranchName = (invoice) => {
+  return invoice.student?.branch?.name || invoice.branch_name || 'N/A';
+};
+
+const getClassDisplay = (invoice) => {
+  return invoice.class_name || invoice.student?.current_class || 'N/A';
+};
+
+const getAmount = (invoice) => {
+  return parseFloat(invoice.total_amount || 0);
+};
+
+const getPaidAmount = (invoice) => {
+  return parseFloat(invoice.paid_amount || 0);
+};
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'paid':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'partial_paid':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    case 'overdue':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    case 'unpaid':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
 };
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchInvoices();
+const getStatusText = (status) => {
+  switch (status) {
+    case 'paid':
+      return 'Paid';
+    case 'partial_paid':
+      return 'Partial Paid';
+    case 'overdue':
+      return 'Overdue';
+    case 'unpaid':
+      return 'Unpaid';
+    default:
+      return 'Unknown';
   }
-};
-
-const goToPage = (page) => {
-  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
-    currentPage.value = page;
-    fetchInvoices();
-  }
-};
-
-const onPageSizeChange = async () => {
-  if (import.meta.client) {
-    localStorage.setItem('invoicesPageSize', pageSize.value.toString());
-  }
-  
-  currentPage.value = 1;
-  await fetchInvoices();
-};
-
-const getVisiblePages = () => {
-  const pages = [];
-  const total = totalPages.value;
-  const current = currentPage.value;
-  
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push('...');
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    }
-  }
-  
-  return pages;
 };
 
 const formatCurrency = (amount) => {
-  return parseFloat(amount || 0).toLocaleString('en-IN');
+  return parseFloat(amount || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const formatDate = (date) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-IN');
+};
+
+const getMonthLabel = (month) => {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return months[month - 1] || 'Unknown';
 };
 
 const getMonthName = (month) => {
@@ -1084,18 +1268,6 @@ const getMonthName = (month) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   return months[month - 1] || 'Unknown';
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 // Simplified academic data loading - only load when modal is opened
@@ -1230,7 +1402,6 @@ const fetchBranches = async () => {
 // Load academic data on page load
 const loadAcademicData = async () => {
   try {
-    
     // Get user context for API calls
     const schoolId = authStore.currentUser?.school_id;
     const branchId = authStore.currentUser?.branch_id;
@@ -1298,9 +1469,8 @@ onMounted(async () => {
     // Load academic data first
     await loadAcademicData();
     
-    // Then fetch invoices and summary
+    // Then fetch invoices (summary is included in the response)
     await fetchInvoices();
-    await fetchSummary();
   } catch (error) {
     showToast('Error initializing component', 'error');
   }
