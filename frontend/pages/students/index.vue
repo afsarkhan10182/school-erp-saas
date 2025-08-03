@@ -417,145 +417,21 @@
           </div>
           
           <!-- Pagination -->
-          <div v-if="totalItems > 0" class="px-4 py-4 flex flex-col space-y-4 border-t border-gray-200 dark:border-gray-700 md:px-6 md:flex-row md:items-center md:justify-between md:space-y-0">
-            <!-- Mobile Pagination -->
-            <div class="flex flex-col space-y-3 md:hidden">
-              <!-- Results Info -->
-              <div class="text-center">
-                <p class="text-sm text-gray-700 dark:text-gray-300">
-                  Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-                </p>
-              </div>
-              
-              <!-- Page Size Selector -->
-              <div class="flex items-center justify-center space-x-2">
-                <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-                <select 
-                  v-model="pageSize" 
-                  @change="onPageSizeChange"
-                  class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-              </div>
-              
-              <!-- Navigation Buttons -->
-              <div class="flex items-center justify-between">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="flex-1 mr-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Previous
-                </button>
-                <span class="text-sm font-medium text-gray-900 dark:text-white px-4 py-2">
-                  {{ currentPage }} / {{ totalPages }}
-                </span>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="flex-1 ml-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  Next
-                  <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-              
-              <!-- Page Numbers (if multiple pages) -->
-              <div v-if="totalPages > 1" class="flex items-center justify-center space-x-1">
-                <button
-                  v-for="pageNum in getVisiblePages()"
-                  :key="pageNum"
-                  @click="goToPage(pageNum)"
-                  :class="[
-                    'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
-                    pageNum === currentPage
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  ]"
-                  :disabled="pageNum === '...'"
-                >
-                  {{ pageNum }}
-                </button>
-              </div>
-            </div>
-                      <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
-            <div class="flex items-center space-x-4">
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                <span v-if="totalItems > 0">
-                  Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-                </span>
-                <span v-else>
-                  No results found
-                </span>
-              </p>
-              
-              <div v-if="totalItems > 0" class="flex items-center space-x-2">
-                <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-                <select 
-                  v-model="pageSize" 
-                  @change="onPageSizeChange"
-                  class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-              </div>
-            </div>
-            
-            <div v-if="totalItems > 0" class="flex items-center space-x-2">
-              <div v-if="totalPages > 1" class="flex items-center space-x-1">
-                <button
-                  v-for="pageNum in getVisiblePages()"
-                  :key="pageNum"
-                  @click="goToPage(pageNum)"
-                  :class="[
-                    'px-3 py-1 text-sm font-medium rounded-md',
-                    pageNum === currentPage
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  ]"
-                  :disabled="pageNum === '...'"
-                >
-                  {{ pageNum }}
-                </button>
-              </div>
-              
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
+          <Pagination 
+            v-if="totalItems > 0"
+            :pagination="{
+              page: currentPage,
+              limit: pageSize,
+              total: totalItems
+            }"
+            item-label="students"
+            @page-changed="goToPage"
+            @page-size-changed="onPageSizeChange"
+          />
         </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup>
@@ -565,6 +441,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
+import Pagination from '~/components/Pagination.vue';
 import {
   PlusIcon,
   Users,
@@ -601,7 +478,6 @@ const hasAppliedFilters = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const totalItems = ref(0);
-const totalPages = ref(0);
 
 
 
@@ -772,7 +648,6 @@ const resetFilters = () => {
   currentPage.value = 1;
   pageSize.value = 10; // Reset to default page size
   totalItems.value = 0;
-  totalPages.value = 0;
 };
 
 const fetchStudents = async (page = 1) => {
@@ -825,7 +700,7 @@ const fetchStudents = async (page = 1) => {
         currentPage.value = response.pagination.current_page || page;
         pageSize.value = response.pagination.limit || pageSize.value;
         totalItems.value = response.pagination.total_count || 0;
-        totalPages.value = response.pagination.total_pages || Math.ceil(totalItems.value / pageSize.value);
+
         
         // Reset to page 1 if no data and we're not on page 1
         if (students.value.length === 0 && currentPage.value > 1) {
@@ -835,23 +710,20 @@ const fetchStudents = async (page = 1) => {
         // Handle array response (fallback)
         students.value = response.data;
         totalItems.value = response.data.length;
-        totalPages.value = Math.ceil(totalItems.value / pageSize.value);
+
       } else {
         students.value = [];
         totalItems.value = 0;
-        totalPages.value = 0;
         currentPage.value = 1;
       }
     } else {
       students.value = [];
       totalItems.value = 0;
-      totalPages.value = 0;
       currentPage.value = 1;
     }
       } catch (error) {
       students.value = [];
       totalItems.value = 0;
-      totalPages.value = 0;
       currentPage.value = 1;
   } finally {
     isLoading.value = false;
@@ -866,28 +738,17 @@ const editStudent = (id) => {
   navigateTo(`/students/${id}/edit`);
 };
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchStudents(currentPage.value);
-  }
-};
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchStudents(currentPage.value);
-  }
-};
 
 const goToPage = (page) => {
-  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+  if (page >= 1 && page !== currentPage.value) {
     currentPage.value = page;
     fetchStudents(page);
   }
 };
 
-const onPageSizeChange = async () => {
+const onPageSizeChange = async (newPageSize) => {
+  pageSize.value = newPageSize;
   if (import.meta.client) {
     localStorage.setItem('studentsPageSize', pageSize.value.toString());
   }
@@ -896,46 +757,7 @@ const onPageSizeChange = async () => {
   await fetchStudents(1);
 };
 
-const getVisiblePages = () => {
-  const pages = [];
-  const total = totalPages.value;
-  const current = currentPage.value;
-  
-  if (total <= 7) {
-    // Show all pages if total is 7 or less
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Show first page, last page, current page, and pages around current
-    if (current <= 4) {
-      // Near the beginning
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    } else if (current >= total - 3) {
-      // Near the end
-      pages.push(1);
-      pages.push('...');
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      // In the middle
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    }
-  }
-  
-  return pages;
-};
+
 
 const getStatusClass = (status) => {
   const classes = {

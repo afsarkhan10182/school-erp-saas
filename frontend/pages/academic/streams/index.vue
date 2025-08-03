@@ -131,11 +131,15 @@
 
       <!-- Pagination -->
       <Pagination
-        v-if="pagination.totalPages > 1"
-        :current-page="pagination.page"
-        :total-pages="pagination.totalPages"
-        :total-items="pagination.total"
-        @page-change="handlePageChange"
+        v-if="pagination.total > 0"
+        :pagination="{
+          page: pagination.page,
+          limit: pagination.limit,
+          total: pagination.total
+        }"
+        item-label="streams"
+        @page-changed="handlePageChange"
+        @page-size-changed="onPageSizeChange"
       />
     </div>
 
@@ -289,6 +293,7 @@ import { useSchools } from '~/composables/useSchools'
 import { useBranches } from '~/composables/useBranches'
 import { useAcademics } from '~/composables/useAcademics'
 import { fetchStreamsAPI, createStreamAPI, updateStreamAPI, deleteStreamAPI } from '~/api/streams'
+import Pagination from '~/components/Pagination.vue'
 
 // Composables
 const { showToast } = useToast()
@@ -577,6 +582,10 @@ const handlePageChange = (page: number) => {
   loadStreams()
 }
 
+const onPageSizeChange = (limit: number) => {
+  pagination.limit = limit
+  loadStreams()
+}
 
 
 // Helper functions for edit mode display

@@ -263,49 +263,17 @@
         </div>
         
         <!-- Pagination -->
-        <div v-if="ledgerData.pagination.total_pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <button
-              @click="previousPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              @click="nextPage"
-              :disabled="currentPage >= ledgerData.pagination.total_pages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, ledgerData.pagination.total_count) }}</span> of <span class="font-medium">{{ ledgerData.pagination.total_count }}</span> results
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= ledgerData.pagination.total_pages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <Pagination 
+          v-if="ledgerData.pagination.total_pages > 1"
+          :pagination="{
+            page: currentPage,
+            limit: pageSize,
+            total: ledgerData.pagination.total_count
+          }"
+          item-label="invoices"
+          @page-changed="goToPage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
 
       <div v-else-if="ledgerData && ledgerData.invoices.length === 0" class="text-center py-8">
@@ -710,6 +678,7 @@ import { useRoute } from 'vue-router';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
@@ -1305,20 +1274,7 @@ const printReceipt = () => {
 
 
 
-// Pagination
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchLedger();
-  }
-};
 
-const nextPage = () => {
-  if (currentPage.value < ledgerData.value.pagination.total_pages) {
-    currentPage.value++;
-    fetchLedger();
-  }
-};
 
 // Utility functions
 const formatCurrency = (amount) => {
@@ -1390,6 +1346,19 @@ const getPaymentStatusText = (status) => {
     failed: 'Failed',
   };
   return texts[status] || status;
+};
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= ledgerData.value.pagination.total_pages) {
+    currentPage.value = page;
+    fetchLedger();
+  }
+};
+
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
+  currentPage.value = 1; // Reset to first page when page size changes
+  fetchLedger();
 };
 
 onMounted(() => {

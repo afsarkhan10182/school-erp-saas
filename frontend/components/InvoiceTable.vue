@@ -186,15 +186,6 @@
       </div>
     </div>
 
-
-
-    <!-- Footer Summary -->
-    <div v-if="!isLoading && groupedInvoices.length > 0" class="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 text-center">
-      <p class="text-sm text-gray-600 dark:text-gray-400">
-        Showing {{ groupedInvoices.length }} students ({{ totalInvoices }} total invoices)
-      </p>
-    </div>
-
     <!-- Loading State -->
     <div v-else-if="isLoading" class="px-6 py-12 text-center">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>

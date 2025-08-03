@@ -196,7 +196,7 @@
                 </div>
               </div>
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Enter student name, admission number, or roll number to search
+                Enter student name or admission number or roll number
               </p>
             </div>
             <div class="flex items-center">
@@ -419,81 +419,18 @@
         </div>
         
         <!-- Enhanced Pagination -->
-        <div v-if="groupedInvoices.length > 0 && totalStudentGroups > 0" class="bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-            <!-- Page Size Selector and Info -->
-            <div class="flex items-center space-x-4">
-              <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
-                <select 
-                  v-model="pageSize" 
-                  @change="onPageSizeChange"
-                  class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-                <span class="text-sm text-gray-700 dark:text-gray-300">students per page</span>
-              </div>
-            </div>
-            
-            <!-- Navigation -->
-            <div class="flex items-center justify-center sm:justify-end space-x-2">
-              <!-- Previous Button -->
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 1 || isLoading"
-                class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Previous
-              </button>
-              
-              <!-- Page Numbers -->
-              <div v-if="totalPagesForGroups > 1" class="flex items-center space-x-1">
-                <button
-                  v-for="pageNum in getVisiblePages()"
-                  :key="pageNum"
-                  @click="goToPage(pageNum)"
-                  :class="[
-                    'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
-                    pageNum === currentPage
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  ]"
-                  :disabled="pageNum === '...' || isLoading"
-                >
-                  {{ pageNum }}
-                </button>
-              </div>
-              
-              <!-- Next Button -->
-              <button
-                @click="nextPage"
-                :disabled="currentPage >= totalPagesForGroups || isLoading"
-                class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Page Info -->
-          <div class="mt-4 text-center sm:text-left">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-              Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalStudentGroups) }}</span> of <span class="font-medium">{{ totalStudentGroups }}</span> students ({{ invoices.length }} total invoices)
-            </p>
-          </div>
-        </div>
-        
-
+        <Pagination 
+          v-if="totalStudentGroups > 0"
+          :pagination="{
+            page: currentPage,
+            limit: pageSize,
+            total: totalStudentGroups
+          }"
+          item-label="students"
+          :additional-info="`${invoices.length} total invoices`"
+          @page-changed="goToPage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
     </div>
   </div>
@@ -509,6 +446,7 @@ import {
 import apiClient from '~/utils/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue';
 
 
 // Get auth store and toast
@@ -538,7 +476,7 @@ const summaryData = ref({
 const currentPage = ref(1);
 const pageSize = ref(10); // Changed back to 10 for student groups (showing 10 students per page)
 const totalItems = ref(0);
-const totalPages = ref(0);
+
 
 // Filters
 const filters = reactive({
@@ -819,7 +757,7 @@ const resetFilters = () => {
   // Clear the results when resetting filters
   invoices.value = [];
   totalItems.value = 0;
-  totalPages.value = 0;
+  
   // Clear summary data
   summaryData.value = {
     totalAmount: 0,
@@ -1638,7 +1576,7 @@ const printReport = () => {
       <div class="receipt-footer">
         <p><strong>Report Generated by:</strong> ${authStore.user?.name || 'System'}</p>
         <p><strong>Total Records:</strong> ${invoices.value.length}</p>
-        <p><strong>Page:</strong> ${currentPage.value} of ${totalPages.value}</p>
+        <p><strong>Page:</strong> ${currentPage.value}</p>
       </div>
     </body>
     </html>
@@ -1997,74 +1935,18 @@ const viewInvoice = (invoice) => {
 
 
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    // No need to fetch from backend - just update the page
-  }
-};
-
-const nextPage = () => {
-  if (currentPage.value < totalPagesForGroups.value) {
-    currentPage.value++;
-    // No need to fetch from backend - just update the page
-  }
-};
-
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPagesForGroups.value) {
     currentPage.value = page;
-    // No need to fetch from backend - just update the page
   }
 };
 
-const onPageSizeChange = () => {
-  // Ensure pageSize is a number
-  pageSize.value = parseInt(pageSize.value);
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
   currentPage.value = 1; // Reset to first page when page size changes
-  // No need to fetch from backend - just update the page size
 };
 
-const getVisiblePages = () => {
-  const pages = [];
-  const totalPagesValue = totalPagesForGroups.value;
-  const current = currentPage.value;
-  
-  if (totalPagesValue <= 7) {
-    // Show all pages if total is 7 or less
-    for (let i = 1; i <= totalPagesValue; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Show first page, last page, current page, and pages around current
-    if (current <= 4) {
-      // Near the beginning
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(totalPagesValue);
-    } else if (current >= totalPagesValue - 3) {
-      // Near the end
-      pages.push(1);
-      pages.push('...');
-      for (let i = totalPagesValue - 4; i <= totalPagesValue; i++) {
-        pages.push(i);
-      }
-    } else {
-      // In the middle
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(totalPagesValue);
-    }
-  }
-  
-  return pages;
-};
+
 
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');

@@ -175,28 +175,18 @@
           </div>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="pagination && pagination.pages > 1" class="mt-6 flex justify-center">
-          <nav class="flex items-center space-x-2">
-            <button 
-              @click="changePage(pagination.page - 1)"
-              :disabled="pagination.page <= 1"
-              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <span class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-              Page {{ pagination.page }} of {{ pagination.pages }}
-            </span>
-            <button 
-              @click="changePage(pagination.page + 1)"
-              :disabled="pagination.page >= pagination.pages"
-              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </nav>
-        </div>
+        <!-- Enhanced Pagination -->
+        <Pagination 
+          v-if="pagination && pagination.pages > 1"
+          :pagination="{
+            page: pagination.page,
+            limit: pagination.limit,
+            total: pagination.total
+          }"
+          item-label="requests"
+          @page-changed="changePage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
     </div>
 
@@ -235,6 +225,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { AlertCircle, FileText } from 'lucide-vue-next';
+import Pagination from '~/components/Pagination.vue';
 
 // Page meta
 definePageMeta({
@@ -346,6 +337,11 @@ const clearFilters = () => {
 
 const changePage = (page) => {
   filters.value.page = page;
+  loadRequests();
+};
+
+const onPageSizeChange = (limit) => {
+  filters.value.limit = limit;
   loadRequests();
 };
 

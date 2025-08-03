@@ -23,10 +23,12 @@
         @print="handlePrintCollection"
       />
 
-      <pagination
-        v-if="pagination.total > pagination.limit"
+      <Pagination
+        v-if="pagination.total > 0"
         :pagination="pagination"
+        item-label="collections"
         @page-changed="fetchCollections"
+        @page-size-changed="onPageSizeChange"
       />
     </div>
   </div>
@@ -78,6 +80,11 @@ const handleViewCollection = (collection) => {
 const handlePrintCollection = (collection) => {
   // Handle print functionality
   showInfo(`Printing receipt for collection ${collection.receipt_number}`);
+};
+
+const onPageSizeChange = (newLimit) => {
+  pagination.limit = newLimit;
+  fetchCollections();
 };
 
 onMounted(() => {
