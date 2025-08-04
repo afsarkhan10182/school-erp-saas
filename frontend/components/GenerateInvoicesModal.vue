@@ -684,11 +684,19 @@ const selectAllMonths = () => {
 
 const generateInvoices = () => {
   // Prepare form data based on payment model
+  // Note: Always passing student_ids when available enables batching support in the parent component
   const formData = { 
     payment_model: form.payment_model,
     fee_structure_ids: [form.fee_structure_id], // Send as array for invoice generation
-    student_ids: form.student_selection === 'specific' ? form.selected_student_ids : undefined,
   };
+  
+  // Always pass student_ids when available for batching support
+  if (form.student_selection === 'specific' && form.selected_student_ids.length > 0) {
+    formData.student_ids = form.selected_student_ids;
+  } else if (form.student_selection === 'all' && availableStudents.value.length > 0) {
+    // For "all students" selection, pass all available student IDs for batching
+    formData.student_ids = availableStudents.value.map(student => student.id);
+  }
   
   // Add payment model specific fields
   if (form.payment_model === 'monthly') {

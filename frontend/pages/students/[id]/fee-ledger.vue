@@ -582,7 +582,7 @@
 
     <!-- All Receipts Modal -->
     <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">All Receipts</h3>
@@ -601,7 +601,7 @@
             <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipts...</span>
           </div>
           
-          <div v-else-if="allReceipts.length > 0" class="flex h-96">
+          <div v-else-if="allReceipts.length > 0" class="flex h-[600px]">
             <!-- Receipt List Sidebar -->
             <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
               <div class="p-4">
@@ -656,7 +656,7 @@
                   <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipt...</span>
                 </div>
                 
-                <div v-else-if="selectedReceiptFromList" class="receipt-content max-h-80 overflow-y-auto">
+                <div v-else-if="selectedReceiptFromList" class="receipt-content max-h-[500px] overflow-y-auto">
                   <ReceiptViewer 
                     :receipt-data="selectedReceiptFromList" 
                     :school-data="schoolData"

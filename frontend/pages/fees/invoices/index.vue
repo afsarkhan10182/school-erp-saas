@@ -578,6 +578,13 @@ const closeGenerateModal = () => {
   showGenerateModal.value = false;
 };
 
+/**
+ * Generate invoices with automatic batching for large student sets
+ * - Processes students in batches of 50 for better performance
+ * - Shows progress updates during batch processing
+ * - Handles errors gracefully and continues with remaining batches
+ * - Falls back to single API call for small student sets (< 50)
+ */
 const generateInvoices = async (formData) => {
   // Validate form based on payment model
   if (!formData.fee_structure_ids || formData.fee_structure_ids.length === 0) {
@@ -600,17 +607,77 @@ const generateInvoices = async (formData) => {
 
   isGenerating.value = true;
   try {
-    // Unified approach - use the same API for both monthly and installment payments
-    const response = await apiClient.feeInvoices.generateInvoices(formData);
+    // Check if we have student_ids in formData for batching
+    const studentIds = formData.student_ids || [];
     
-    // Show detailed success information
-    const totalGenerated = response.data.total_generated || 0;
-    const errors = response.data.errors || [];
-    
-    if (errors.length > 0) {
-      showToast(`Partial success: Generated ${totalGenerated} invoices. ${errors.length} students had existing invoices.`, 'warning');
+    // If less than 50 students, use existing flow
+    if (studentIds.length < 50) {
+      const response = await apiClient.feeInvoices.generateInvoices(formData);
+      
+      // Show detailed success information
+      const totalGenerated = response.data.total_generated || 0;
+      const errors = response.data.errors || [];
+      
+      if (errors.length > 0) {
+        showToast(`Partial success: Generated ${totalGenerated} invoices. ${errors.length} students had existing invoices.`, 'warning');
+      } else {
+        showToast(`Successfully generated ${totalGenerated} invoices!`, 'success');
+      }
     } else {
-      showToast(`Successfully generated ${totalGenerated} invoices!`, 'success');
+      // Batch processing for 50+ students
+      const batchSize = 50;
+      let total = studentIds.length;
+      let completed = 0;
+      let totalGenerated = 0;
+      let totalErrors = [];
+
+      // Show initial message
+      showToast(`Starting invoice generation for ${total} students...`, 'info');
+
+      for (let i = 0; i < total; i += batchSize) {
+        const batch = studentIds.slice(i, i + batchSize);
+        
+        try {
+          // Create batch-specific form data
+          const batchFormData = {
+            ...formData,
+            student_ids: batch
+          };
+          
+          const response = await apiClient.feeInvoices.generateInvoices(batchFormData);
+          
+          completed += batch.length;
+          totalGenerated += response.data.total_generated || 0;
+          
+          // Collect errors from this batch
+          if (response.data.errors && response.data.errors.length > 0) {
+            totalErrors.push(...response.data.errors);
+          }
+          
+          // Show progress
+          showToast(`${completed} done out of ${total}`, 'info');
+          
+          // Small delay between batches to prevent overwhelming the server
+          if (i + batchSize < total) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (err) {
+          console.error('Batch failed:', err);
+          completed += batch.length; // Count as processed even if failed
+          
+          // Show more specific error message
+          const batchNumber = Math.floor(i / batchSize) + 1;
+          const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
+          showToast(`Error in invoice generation for ${batchNumber}: ${errorMessage}`, 'warning');
+        }
+      }
+
+      // Show final result
+      if (totalErrors.length > 0) {
+        showToast(`✅ Complete: Generated ${totalGenerated} invoices. ${totalErrors.length} students had existing invoices.`, 'warning');
+      } else {
+        showToast(`✅ Invoice generation complete: ${totalGenerated} invoices generated`, 'success');
+      }
     }
     
     showGenerateModal.value = false;
@@ -757,11 +824,6 @@ const viewInvoice = (invoice) => {
   // Handle both regular invoices and group invoices
   let studentId;
   
-  console.log('🔍 viewInvoice called with invoice:', invoice);
-  console.log('🔍 invoice.is_grouped:', invoice.is_grouped);
-  console.log('🔍 invoice.student:', invoice.student);
-  console.log('🔍 invoice.student_id:', invoice.student_id);
-  
   if (invoice.is_grouped) {
     // For group invoices, try to get student ID from multiple sources
     studentId = invoice.student?.id || invoice.student_id;
@@ -809,8 +871,6 @@ const isMonthlyPayment = (invoice) => {
 
 // Update local invoice data immediately after payment
 const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
-  console.log('🔄 Updating local invoice data:', { invoiceId, paymentAmount });
-  
   // Update in studentsData
   studentsData.value.forEach(student => {
     const allInvoices = [...(student.invoices || []), ...(student.grouped_invoices || []), ...(student.ungrouped_invoices || [])];
@@ -826,12 +886,6 @@ const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
       invoice.balance_amount = newBalanceAmount;
       invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial';
       
-      console.log('✅ Updated local invoice:', {
-        oldPaidAmount,
-        newPaidAmount,
-        newBalanceAmount,
-        newStatus: invoice.status
-      });
     }
   });
 };
@@ -897,17 +951,7 @@ const updateStudentDataAfterPayment = (studentId, updatedInvoiceData) => {
       student.pending_count = pendingCount;
       student.overdue_count = overdueCount;
       student.partial_count = partialCount;
-      
-      console.log('✅ Updated student summary:', {
-        oldTotalPaid,
-        newTotalPaid: student.paid_amount,
-        oldTotalBalance,
-        newTotalBalance: student.balance_amount,
-        paidCount: student.paid_count,
-        pendingCount: student.pending_count,
-        overdueCount: student.overdue_count,
-        partialCount: student.partial_count
-      });
+     
     } else {
       console.log('❌ Invoice not found in student data');
     }

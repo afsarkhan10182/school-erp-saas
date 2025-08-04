@@ -526,30 +526,6 @@ const summary = computed(() => {
   const frontendTotalCollected = invoices.value.reduce((sum, invoice) => sum + parseFloat(invoice.paid_amount || 0), 0);
   const frontendTotalPending = frontendTotalAmount - frontendTotalCollected;
   
-  console.log('📊 Summary computed property called:', result);
-  console.log('📊 SummaryData value:', summaryData.value);
-  console.log('📊 Invoices length:', invoices.value.length);
-  console.log('📊 Frontend vs Backend comparison:', {
-    backend: {
-      totalAmount: summaryData.value.totalAmount,
-      totalCollected: summaryData.value.totalCollected,
-      totalPending: summaryData.value.totalPending,
-      totalInvoices: summaryData.value.totalInvoices
-    },
-    frontend: {
-      totalAmount: frontendTotalAmount,
-      totalCollected: frontendTotalCollected,
-      totalPending: frontendTotalPending,
-      totalInvoices: invoices.value.length
-    },
-    discrepancy: {
-      totalAmount: Math.abs(summaryData.value.totalAmount - frontendTotalAmount),
-      totalCollected: Math.abs(summaryData.value.totalCollected - frontendTotalCollected),
-      totalPending: Math.abs(summaryData.value.totalPending - frontendTotalPending),
-      totalInvoices: Math.abs(summaryData.value.totalInvoices - invoices.value.length)
-    }
-  });
-  
   return result;
 });
 
@@ -672,18 +648,7 @@ const paginatedGroupedInvoices = computed(() => {
   const endIndex = startIndex + pageSizeNum;
   const result = groupedInvoices.value.slice(startIndex, endIndex);
   
-  console.log('📄 Pagination Debug:', {
-    currentPage: currentPage.value,
-    pageSize: pageSize.value,
-    pageSizeNum,
-    totalGroups: groupedInvoices.value.length,
-    startIndex,
-    endIndex,
-    resultLength: result.length,
-    totalPages: totalPagesForGroups.value,
-    allStudents: groupedInvoices.value.map(s => s.studentName),
-    paginatedStudents: result.map(s => s.studentName)
-  });
+
   
   // Debug: Check if pagination is working
   if (groupedInvoices.value.length > pageSizeNum && result.length === groupedInvoices.value.length) {
@@ -697,7 +662,6 @@ const paginatedGroupedInvoices = computed(() => {
 // Update pagination to work with student groups instead of individual invoices
 const totalStudentGroups = computed(() => {
   const count = groupedInvoices.value.length;
-  console.log('👥 Total Student Groups:', count);
   return count;
 });
 
@@ -718,17 +682,7 @@ const toggleStudent = (studentId) => {
 };
 
 const generateReport = async () => {
-  console.log('🚀 generateReport called');
-  console.log('🔍 Current filter state:', {
-    dateRange: filters.dateRange,
-    fromDate: filters.fromDate,
-    toDate: filters.toDate,
-    status: filters.status,
-    branch_id: filters.branch_id,
-    class_id: filters.class_id,
-    section_id: filters.section_id,
-    student_search: filters.student_search
-  });
+
   
   if (isLoading.value) {
     console.log('⚠️ Already loading, returning');
@@ -738,17 +692,11 @@ const generateReport = async () => {
   console.log('🔄 Setting loading state...');
   isLoading.value = true;
   try {
-    console.log('📊 Starting to fetch report and summary...');
     // Fetch both report data and summary data in parallel
     await Promise.all([
       fetchReport(),
       fetchReportSummary()
     ]);
-    console.log('✅ Report and summary fetched successfully');
-    console.log('🔍 Final state check:');
-    console.log('  - Invoices count:', invoices.value.length);
-    console.log('  - Summary data:', summaryData.value);
-    console.log('  - Summary computed:', summary.value);
   } catch (error) {
     console.error('❌ Error generating report:', error);
     showToast('Error generating report', 'error');
@@ -802,15 +750,6 @@ const handleDateRangeChange = () => {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-  
-  console.log('📅 Date calculation debug:', {
-    now: now.toISOString(),
-    today: today.toISOString(),
-    todayFormatted: formatDate(today),
-    currentYear: now.getFullYear(),
-    currentMonth: now.getMonth(),
-    currentDate: now.getDate()
-  });
   
   switch (filters.dateRange) {
     case 'today':
