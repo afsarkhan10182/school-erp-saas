@@ -61,6 +61,10 @@
             <span class="info-label">{{ isJuniorCollege ? 'Class' : 'Std. & Div.' }}:</span>
             <span class="info-value">{{ receiptData.class_name }}{{ receiptData.section ? ' - ' + receiptData.section : '' }}</span>
           </div>
+          <div v-if="receiptData.branch_name || receiptData.branch?.name" class="info-row">
+            <span class="info-label">Branch:</span>
+            <span class="info-value">{{ receiptData.branch_name || receiptData.branch?.name || 'N/A' }}</span>
+          </div>
           <div class="info-row">
             <span class="info-label">Roll No:</span>
             <span class="info-value">{{ receiptData.roll_number || 'N/A' }}</span>
@@ -75,15 +79,9 @@
             <span class="info-value">{{ receiptData.month_paid }}</span>
           </div>
           
-          <div v-if="isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 0" class="info-row">
-            <span class="info-label">Installment:</span>
-            <span class="info-value">{{ receiptData.invoices[0].installment_number || 1 }}/{{ receiptData.invoices[0].total_installments || 1 }}</span>
-          </div>
+
           
-          <div v-if="isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 1" class="info-row">
-            <span class="info-label">Installments Covered:</span>
-            <span class="info-value">{{ receiptData.invoices.length }} installments</span>
-          </div>
+
           
           <div v-if="isCombinedPayment && (receiptData.months_covered || (receiptData.invoices && receiptData.invoices.length > 0))" class="info-row">
             <span class="info-label">Months Covered:</span>
@@ -123,7 +121,6 @@
           <table v-else-if="isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 1" class="fee-table">
             <thead>
               <tr>
-                <th class="table-header">Installment</th>
                 <th class="table-header">Invoice No</th>
                 <th class="table-header">Due Date</th>
                 <th class="table-header">Amount (₹)</th>
@@ -131,7 +128,6 @@
             </thead>
             <tbody>
               <tr v-for="invoice in receiptData.invoices" :key="invoice.id">
-                <td>{{ invoice.installment_number }}/{{ invoice.total_installments }}</td>
                 <td>{{ invoice.invoice_number }}</td>
                 <td>{{ formatDate(invoice.due_date) }}</td>
                 <td>{{ formatCurrency(invoice.total_amount) }}</td>
@@ -378,10 +374,7 @@ const getParticularsDisplay = () => {
     return 'Multiple Months Payment'
   }
   if (isInstallmentPayment.value) {
-    if (props.receiptData.invoices && props.receiptData.invoices.length > 1) {
-      return `Installment Payment (${props.receiptData.invoices.length} installments)`
-    }
-    return `${getFeeTypeDisplay()} - Installment ${props.receiptData.installment_number || 1}`
+    return getFeeTypeDisplay()
   }
   if (isMonthlyPayment.value && props.receiptData.month_paid) {
     return `${getFeeTypeDisplay()} (${props.receiptData.month_paid})`

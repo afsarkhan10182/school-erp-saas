@@ -1174,6 +1174,7 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
     const {
       academic_year,
       class_name,
+      class_id,
       section,
       status,
       branch_id,
@@ -1199,7 +1200,14 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
       studentWhereClause.branch_id = branch_id;
     }
 
-    if (class_name) {
+    // Handle class filtering - support both class_name and class_id
+    if (class_id) {
+      // If class_id is provided, get the class name from the Class model
+      const classRecord = await Class.findByPk(class_id);
+      if (classRecord) {
+        studentWhereClause.current_class = classRecord.name;
+      }
+    } else if (class_name) {
       const classCode = class_name.replace(/^Class\s+/i, '').trim();
       studentWhereClause.current_class = {
         [Op.or]: [class_name, classCode]
@@ -1436,6 +1444,8 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
           monthRange = `${monthName} ${years[0]}`;
         }
         
+
+        
         return {
           id: group.receipt_group_id,
           receipt_group_id: group.receipt_group_id,
@@ -1473,6 +1483,7 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
       studentsData.forEach(student => {
         const studentInvoicesList = studentInvoices[student.student_id] || [];
         student.invoices = studentInvoicesList;
+        
         student.grouped_invoices = groupedArray.filter(group => group.student?.id === student.student_id);
         student.ungrouped_invoices = ungroupedInvoices.filter(inv => inv.student_id === student.student_id);
       });

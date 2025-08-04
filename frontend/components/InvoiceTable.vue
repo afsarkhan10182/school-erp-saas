@@ -193,7 +193,7 @@
 
                              <!-- View Button - Always show for all invoices -->
                              <button
-                              @click="viewInvoice(invoice)"
+                              @click="viewInvoice(invoice, studentGroup.studentId)"
                               class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               View
@@ -743,7 +743,19 @@ const getStudentName = (invoice) => {
 };
 
 const getBranchName = (invoice) => {
-  return invoice.branch?.name || 'N/A';
+  // For grouped invoices, check branch directly
+  if (invoice.branch?.name) {
+    return invoice.branch.name;
+  }
+  // For individual invoices, check student's branch
+  if (invoice.student?.branch?.name) {
+    return invoice.student.branch.name;
+  }
+  // Fallback to branch_name field
+  if (invoice.branch_name) {
+    return invoice.branch_name;
+  }
+  return 'N/A';
 };
 
 const getClassDisplay = (invoice) => {
@@ -775,8 +787,26 @@ const canGenerateReceipt = (invoice) => {
   return invoice.paid_amount > 0;
 };
 
-const viewInvoice = (invoice) => {
-  emit('view-invoice', invoice);
+const viewInvoice = (invoice, studentId = null) => {
+  console.log('🔍 InvoiceTable: viewInvoice called with invoice:', invoice);
+  console.log('🔍 InvoiceTable: invoice.student:', invoice.student);
+  console.log('🔍 InvoiceTable: invoice.student_id:', invoice.student_id);
+  console.log('🔍 InvoiceTable: studentId from context:', studentId);
+  
+  // If we have a studentId from context, use it; otherwise try to get it from the invoice
+  const finalStudentId = studentId || invoice.student?.id || invoice.student_id;
+  
+  if (finalStudentId) {
+    // Create a modified invoice object with the student ID
+    const invoiceWithStudentId = {
+      ...invoice,
+      student_id: finalStudentId,
+      student: invoice.student || { id: finalStudentId }
+    };
+    emit('view-invoice', invoiceWithStudentId);
+  } else {
+    emit('view-invoice', invoice);
+  }
 };
 
 const recordPayment = (invoice) => {

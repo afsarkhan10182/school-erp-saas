@@ -273,6 +273,18 @@ const getGroupedReceipts = async (req, res, next) => {
             model: Student,
             as: 'student',
             where: {},
+            include: [
+              {
+                model: Branch,
+                as: 'branch',
+                attributes: ['id', 'name', 'code'],
+              },
+            ],
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code'],
           },
         ],
       },
@@ -321,6 +333,7 @@ const getGroupedReceipts = async (req, res, next) => {
         class: payment.invoice.student.current_class,
         section: payment.invoice.student.section,
         invoice_number: payment.invoice.invoice_number,
+        branch_name: payment.invoice.branch?.name || payment.invoice.student?.branch?.name || 'N/A',
         created_at: payment.created_at,
       });
 
@@ -417,15 +430,25 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       });
     }
     
+    // Get branch information from the first invoice
+    const branch = invoices[0].branch;
+    
     // Create receipt data
     const receiptData = {
       receipt_number: receiptNumber,
       invoice_number: invoices.length === 1 ? invoices[0].invoice_number : invoices.map(inv => inv.invoice_number).join(', '),
-              student_name: getStudentFullName(student),
+      student_name: getStudentFullName(student),
       student_id: student.id,
       admission_number: student.admission_number,
       school_name: school.name,
       school_address: school.address,
+      branch_name: branch?.name || null,
+      branch_code: branch?.code || null,
+      branch: branch ? {
+        id: branch.id,
+        name: branch.name,
+        code: branch.code
+      } : null,
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: paymentMethod,
       transaction_id: transactionId,
@@ -615,6 +638,11 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
           ],
         },
         {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
+        {
           model: FeePayment,
           as: 'payments',
           where: {
@@ -645,12 +673,28 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
       }
     }
 
-    // If we have stored receipt data, use it (preserves historical state)
+    // If we have stored receipt data, use it but ensure branch information is included
     if (storedReceiptData) {
       logger.info(`Using stored receipt data for group ${receiptGroupId} - preserving historical state`);
+      
+      // Get branch information from the first invoice
+      const branch = invoices[0].branch;
+      
+      // Ensure branch information is included in the stored receipt data
+      const enhancedReceiptData = {
+        ...storedReceiptData,
+        branch_name: branch?.name || storedReceiptData.branch_name || null,
+        branch_code: branch?.code || storedReceiptData.branch_code || null,
+        branch: branch ? {
+          id: branch.id,
+          name: branch.name,
+          code: branch.code
+        } : storedReceiptData.branch || null,
+      };
+      
       return res.status(200).json({
         success: true,
-        data: storedReceiptData,
+        data: enhancedReceiptData,
       });
     }
 

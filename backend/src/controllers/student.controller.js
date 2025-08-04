@@ -1860,6 +1860,20 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
         return `${monthName} ${inv.year}`;
       }).join(', ');
       
+      // Get branch information from the first invoice that has branch data
+      let branchData = null;
+      for (const invoice of group.invoices) {
+        if (invoice.branch) {
+          branchData = invoice.branch;
+          break;
+        }
+      }
+      
+      // If no branch data found in invoices, use student's branch as fallback
+      if (!branchData && student.branch) {
+        branchData = student.branch;
+      }
+      
       return {
         id: group.receipt_group_id,
         receipt_group_id: group.receipt_group_id,
@@ -1882,6 +1896,7 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
         payment_model: group.invoices[0]?.payment_model,
+        branch: branchData,
         is_grouped: true
       };
     });

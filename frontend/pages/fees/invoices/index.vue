@@ -22,13 +22,6 @@
             <Plus class="-ml-1 mr-2 h-5 w-5" />
             Generate Invoices
           </button>
-          <button
-            @click="showPaymentModal = true"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <CreditCard class="-ml-1 mr-2 h-5 w-5" />
-            Record Payment
-          </button>
         </div>
       </div>
 
@@ -761,8 +754,43 @@ const goToPage = (page) => {
 
 // Add back the missing methods
 const viewInvoice = (invoice) => {
+  // Handle both regular invoices and group invoices
+  let studentId;
+  
+  console.log('🔍 viewInvoice called with invoice:', invoice);
+  console.log('🔍 invoice.is_grouped:', invoice.is_grouped);
+  console.log('🔍 invoice.student:', invoice.student);
+  console.log('🔍 invoice.student_id:', invoice.student_id);
+  
+  if (invoice.is_grouped) {
+    // For group invoices, try to get student ID from multiple sources
+    studentId = invoice.student?.id || invoice.student_id;
+    console.log('🔍 Group invoice - studentId from student object:', studentId);
+    
+    // If still not found, try to find the student from the parent data
+    if (!studentId && studentsData.value) {
+      // Look for a student that has this grouped invoice
+      const parentStudent = studentsData.value.find(student => 
+        student.grouped_invoices && student.grouped_invoices.some(group => group.id === invoice.id)
+      );
+      studentId = parentStudent?.student_id;
+      console.log('🔍 Group invoice - studentId from parent data:', studentId);
+    }
+  } else {
+    // For regular invoices, student ID is directly on the invoice
+    studentId = invoice.student_id;
+    console.log('🔍 Regular invoice - studentId from invoice:', studentId);
+  }
+  
+  if (!studentId) {
+    console.log('❌ No student ID found for invoice:', invoice);
+    showToast('Student information not available for this invoice', 'error');
+    return;
+  }
+  
+  console.log('✅ Navigating to student fee ledger for studentId:', studentId);
   // Navigate to student fee ledger page for this invoice's student
-  navigateTo(`/students/${invoice.student_id}/fee-ledger`);
+  navigateTo(`/students/${studentId}/fee-ledger`);
 };
 
 const recordPayment = (invoice) => {
@@ -1355,7 +1383,19 @@ const getStudentName = (invoice) => {
 };
 
 const getBranchName = (invoice) => {
-  return invoice.student?.branch?.name || invoice.branch_name || 'N/A';
+  // For grouped invoices, check branch directly
+  if (invoice.branch?.name) {
+    return invoice.branch.name;
+  }
+  // For individual invoices, check student's branch
+  if (invoice.student?.branch?.name) {
+    return invoice.student.branch.name;
+  }
+  // Fallback to branch_name field
+  if (invoice.branch_name) {
+    return invoice.branch_name;
+  }
+  return 'N/A';
 };
 
 const getClassDisplay = (invoice) => {
@@ -1693,13 +1733,16 @@ watch(pageSize, (newValue) => {
   if (typeof newValue === 'string') {
     pageSize.value = parseInt(newValue);
   }
-});
+}, { immediate: false }); // Don't trigger immediately on component mount
 
 const onPageSizeChange = (newPageSize) => {
   pageSize.value = newPageSize;
   localStorage.setItem('invoicesPageSize', pageSize.value);
   currentPage.value = 1; // Reset to first page when page size changes
-  fetchInvoices(); // Fetch with new page size
+  // Only fetch invoices if we're not in the initial loading state
+  if (!isLoading.value) {
+    fetchInvoices(); // Fetch with new page size
+  }
 };
 </script>
 

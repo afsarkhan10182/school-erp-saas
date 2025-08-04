@@ -1082,6 +1082,8 @@ const getGroupedInvoices = async (req, res, next) => {
       order: [['created_at', 'DESC']],
     });
 
+
+
     // Group invoices by receipt_group_id for paid/partial_paid invoices
     const groupedInvoices = {};
     const ungroupedInvoices = [];
@@ -1145,11 +1147,27 @@ const getGroupedInvoices = async (req, res, next) => {
         monthRange = `${monthName} ${years[0]}`;
       }
       
+      // Get branch information from the first invoice that has branch data
+      let branchData = null;
+      for (const invoice of group.invoices) {
+        if (invoice.branch) {
+          branchData = invoice.branch;
+          break;
+        }
+      }
+      
+      // If no branch data found in invoices, try to get from student's branch
+      if (!branchData && group.student?.branch) {
+        branchData = group.student.branch;
+      }
+      
+
+      
       return {
         id: group.receipt_group_id,
         receipt_group_id: group.receipt_group_id,
         invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
-        fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
+        fee_type: group.invoices[0]?.feeStructure?.feeType?.name || group.invoices[0]?.fee_type_name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
         total_amount: group.total_amount,
@@ -1169,7 +1187,7 @@ const getGroupedInvoices = async (req, res, next) => {
         transaction_id: group.transaction_id,
         payment_model: group.payment_model,
         student: group.student,
-        branch: group.branch,
+        branch: branchData,
         feeStructure: group.feeStructure,
         is_grouped: true
       };
