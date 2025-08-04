@@ -669,6 +669,17 @@ export const apiClient = {
       const response = await api.delete<ApiResponse<any>>(`/students/${id}`);
       return response.data;
     },
+
+    // Bulk import students from CSV
+    bulkImport: async (formData: FormData) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/students/bulk-import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    },
   },
 
 

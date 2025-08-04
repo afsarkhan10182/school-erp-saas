@@ -26,14 +26,58 @@
             <Printer class="-ml-1 mr-2 h-4 w-4" />
             Print Report
           </button>
-          <button
-            @click="downloadDetailedReport"
-            :disabled="isLoading || invoices.length === 0"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download class="-ml-1 mr-2 h-5 w-5" />
-            Download Excel
-          </button>
+          
+          <!-- Download As Dropdown -->
+          <div class="relative download-dropdown">
+            <button
+              @click="toggleDownloadDropdown"
+              :disabled="isLoading || invoices.length === 0"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download class="-ml-1 mr-2 h-4 w-4" />
+              Download As
+              <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div 
+              v-show="showDownloadDropdown"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
+              style="transform-origin: top right;"
+            >
+              <div class="py-1">
+                <button
+                  @click="downloadPDFReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  PDF
+                </button>
+                <button
+                  @click="downloadDetailedReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Excel
+                </button>
+                <button
+                  @click="downloadCSVReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  CSV
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -454,7 +498,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { 
   Download, 
   Search,
@@ -480,6 +524,7 @@ const schools = ref([]); // Add schools for super admin
 const isLoading = ref(false);
 const isInitializing = ref(true);
 const expandedStudents = ref([]); // Track which students are expanded
+const showDownloadDropdown = ref(false); // Track download dropdown state
 
 // Summary data from backend (for accurate totals)
 const summaryData = ref({
@@ -566,18 +611,6 @@ const groupedInvoices = computed(() => {
     const rollNumber = invoice.student?.roll_number || 'N/A';
     const className = invoice.student?.current_class || invoice.class_name || 'N/A';
     const studentPhoto = invoice.student?.photo;
-    
-    console.log(`📋 Invoice ${index + 1}:`, {
-      invoiceId: invoice.id,
-      studentId,
-      studentName,
-      admissionNumber,
-      className,
-      hasStudent: !!invoice.student,
-      studentData: invoice.student,
-      originalStudentId: invoice.student?.id,
-      originalStudentIdField: invoice.student_id
-    });
     
     if (!groups[studentId]) {
       groups[studentId] = {
@@ -1359,46 +1392,84 @@ const printReport = () => {
   // Create a new window for printing
   const printWindow = window.open('', '_blank', 'width=1200,height=800');
   
-  // Get the current date for the report header
-  const currentDate = new Date().toLocaleDateString('en-IN');
-  
-  // Get filter display values
-  const getBranchName = () => {
-    if (!filters.branch_id) return 'All Branches';
-    return branches.value.find(b => b.id === filters.branch_id)?.name || 'Unknown Branch';
-  };
-  
-  const getClassName = () => {
-    if (!filters.class_name) return 'All Classes';
-    return filters.class_name;
-  };
-  
-  const getSectionName = () => {
-    if (!filters.section_name) return 'All Sections';
-    return filters.section_name;
-  };
-  
-  const getFeeTypeName = () => {
-    if (!filters.fee_type) return 'All Fee Types';
-    return filters.fee_type;
-  };
-  
-  const getDateRangeText = () => {
-    if (filters.dateRange === 'custom') {
-      return `${filters.fromDate} to ${filters.toDate}`;
+  // Get current filter values for the report header
+  const getFilterText = () => {
+    const filterTexts = [];
+    
+    // Date range
+    if (filters.dateRange && filters.dateRange !== 'all_time') {
+      if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
+        filterTexts.push(`Date Range: ${formatDate(filters.fromDate)} to ${formatDate(filters.toDate)}`);
+      } else {
+        filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
+      }
     }
-    return filters.dateRange.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    
+    // School (for super admin)
+    if (filters.school_id && authStore.user?.role === 'super_admin') {
+      const school = schools.value.find(s => s.id === filters.school_id);
+      if (school) filterTexts.push(`School: ${school.name}`);
+    }
+    
+    // Branch
+    if (filters.branch_id) {
+      const branch = branches.value.find(b => b.id === filters.branch_id);
+      if (branch) filterTexts.push(`Branch: ${branch.name}`);
+    }
+    
+    // Class
+    if (filters.class_id) {
+      const classItem = classes.value.find(c => c.id === filters.class_id);
+      if (classItem) filterTexts.push(`Class: ${classItem.name}`);
+    }
+    
+    // Section
+    if (filters.section_id) {
+      const section = sections.value.find(s => s.id === filters.section_id);
+      if (section) filterTexts.push(`Section: ${section.name}`);
+    }
+    
+    // Stream
+    if (filters.stream_id) {
+      const stream = streams.value.find(s => s.id === filters.stream_id);
+      if (stream) filterTexts.push(`Stream: ${stream.name}`);
+    }
+    
+    // Status
+    if (filters.status && filters.status !== 'all') {
+      filterTexts.push(`Status: ${filters.status.toUpperCase()}`);
+    }
+    
+    // Payment method
+    if (filters.payment_method && filters.payment_method !== 'all') {
+      filterTexts.push(`Payment Method: ${filters.payment_method.toUpperCase()}`);
+    }
+    
+    // Student search
+    if (filters.student_search) {
+      filterTexts.push(`Student Search: ${filters.student_search}`);
+    }
+    
+    return filterTexts.length > 0 ? filterTexts.join(' | ') : 'All Records';
   };
   
-  // Create the print content following receipt structure
+  // Create the print content with improved styling and filter display
   const printContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <title>Fee Collection Report</title>
       <style>
+        @page {
+          size: A4;
+          margin: 1cm;
+        }
         @media print {
-          body { margin: 0; padding: 0; }
+          body { margin: 0; padding: 15px; }
+          .no-print { display: none; }
+          .summary-cards { page-break-inside: avoid; }
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
           .receipt-header { 
             background: #f8f9fa !important; 
             color: #000 !important; 
@@ -1454,6 +1525,7 @@ const printReport = () => {
           padding: 20px; 
           background-color: #ffffff;
           color: #000000;
+          line-height: 1.4;
         }
         .receipt-header {
           text-align: center;
@@ -1461,6 +1533,20 @@ const printReport = () => {
           border-bottom: 2px solid #333;
           background: #f8f9fa;
           color: #000;
+          margin-bottom: 20px;
+        }
+        .school-name {
+          font-size: 28px;
+          font-weight: bold;
+          margin-bottom: 8px;
+        }
+        .report-title {
+          font-size: 24px;
+          margin-bottom: 8px;
+        }
+        .report-date {
+          font-size: 16px;
+          color: #666;
         }
         .receipt-info {
           background: #f8f9fa;
@@ -1468,6 +1554,8 @@ const printReport = () => {
           padding: 15px;
           margin: 10px 0;
           border: 1px solid #ddd;
+          border-radius: 8px;
+          font-size: 14px;
         }
         .receipt-summary {
           background: #f8f9fa;
@@ -1475,11 +1563,35 @@ const printReport = () => {
           padding: 15px;
           margin: 10px 0;
           border: 1px solid #ddd;
+          border-radius: 8px;
+        }
+        .summary-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          gap: 20px;
+          margin-top: 15px;
+        }
+        .summary-item {
+          text-align: center;
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          background: #fff;
+        }
+        .summary-value {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 8px;
+        }
+        .summary-label {
+          font-size: 14px;
+          color: #666;
         }
         .receipt-table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 20px;
+          font-size: 12px;
         }
         .receipt-table th, .receipt-table td {
           border: 1px solid #000;
@@ -1495,6 +1607,10 @@ const printReport = () => {
         .amount-paid { color: #059669; font-weight: bold; }
         .amount-pending { color: #dc2626; font-weight: bold; }
         .amount-total { color: #000; font-weight: bold; }
+        .status-paid { color: #28a745; font-weight: bold; }
+        .status-partial { color: #ffc107; font-weight: bold; }
+        .status-unpaid { color: #dc3545; font-weight: bold; }
+        .status-overdue { color: #dc3545; font-weight: bold; }
         .receipt-footer {
           background: #f8f9fa;
           color: #000;
@@ -1502,46 +1618,40 @@ const printReport = () => {
           margin-top: 20px;
           border-top: 2px solid #333;
           text-align: center;
+          font-size: 12px;
         }
       </style>
     </head>
     <body>
       <div class="receipt-header">
-        <h1>Fee Collection Report</h1>
-        <p><strong>Generated on:</strong> ${currentDate}</p>
-        <p><strong>Report Period:</strong> ${getDateRangeText()}</p>
+        <div class="school-name">School ERP System</div>
+        <div class="report-title">Fee Collection Report</div>
+        <div class="report-date">Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}</div>
       </div>
       
       <div class="receipt-info">
-        <h3>Report Filters:</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div><strong>Branch:</strong> ${getBranchName()}</div>
-          <div><strong>Class:</strong> ${getClassName()}</div>
-          <div><strong>Section:</strong> ${getSectionName()}</div>
-          <div><strong>Fee Type:</strong> ${getFeeTypeName()}</div>
-          <div><strong>Payment Status:</strong> ${filters.status || 'All Status'}</div>
-          <div><strong>Payment Method:</strong> ${filters.payment_method || 'All Methods'}</div>
-        </div>
+        <h3 style="margin: 0 0 10px 0;">Applied Filters:</h3>
+        <div style="font-weight: 500;">${getFilterText()}</div>
       </div>
       
       <div class="receipt-summary">
-        <h3>Financial Summary:</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; margin-top: 15px;">
-          <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #000;">₹${formatCurrency(summary.value.totalAmount)}</div>
-            <div style="font-size: 14px; color: #666;">Total Amount</div>
+        <h3 style="margin: 0 0 15px 0;">Financial Summary:</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-value">₹${formatCurrency(summaryData.value.totalAmount)}</div>
+            <div class="summary-label">Total Amount</div>
           </div>
-          <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #059669;">₹${formatCurrency(summary.value.totalCollected)}</div>
-            <div style="font-size: 14px; color: #666;">Total Collected</div>
+          <div class="summary-item">
+            <div class="summary-value" style="color: #059669;">₹${formatCurrency(summaryData.value.totalCollected)}</div>
+            <div class="summary-label">Total Collected</div>
           </div>
-          <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #dc2626;">₹${formatCurrency(summary.value.totalPending)}</div>
-            <div style="font-size: 14px; color: #666;">Total Pending</div>
+          <div class="summary-item">
+            <div class="summary-value" style="color: #dc2626;">₹${formatCurrency(summaryData.value.totalPending)}</div>
+            <div class="summary-label">Total Pending</div>
           </div>
-          <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #2563eb;">${summary.value.collectionRate}%</div>
-            <div style="font-size: 14px; color: #666;">Collection Rate</div>
+          <div class="summary-item">
+            <div class="summary-value" style="color: #2563eb;">${summaryData.value.collectionRate}%</div>
+            <div class="summary-label">Collection Rate</div>
           </div>
         </div>
       </div>
@@ -1573,16 +1683,16 @@ const printReport = () => {
               <td class="amount-total">₹${formatCurrency(invoice.total_amount)}</td>
               <td class="amount-paid">₹${formatCurrency(invoice.paid_amount)}</td>
               <td class="amount-pending">₹${formatCurrency(invoice.balance_amount || 0)}</td>
-              <td>${getStatusText(invoice.status)}</td>
+              <td class="status-${invoice.status}">${getStatusText(invoice.status)}</td>
             </tr>
           `).join('')}
         </tbody>
         <tfoot>
           <tr>
             <td colspan="6" style="font-weight: bold;">Total:</td>
-            <td class="amount-total">₹${formatCurrency(summary.value.totalAmount)}</td>
-            <td class="amount-paid">₹${formatCurrency(summary.value.totalCollected)}</td>
-            <td class="amount-pending">₹${formatCurrency(summary.value.totalPending)}</td>
+            <td class="amount-total">₹${formatCurrency(summaryData.value.totalAmount)}</td>
+            <td class="amount-paid">₹${formatCurrency(summaryData.value.totalCollected)}</td>
+            <td class="amount-pending">₹${formatCurrency(summaryData.value.totalPending)}</td>
             <td></td>
           </tr>
         </tfoot>
@@ -1591,7 +1701,7 @@ const printReport = () => {
       <div class="receipt-footer">
         <p><strong>Report Generated by:</strong> ${authStore.user?.name || 'System'}</p>
         <p><strong>Total Records:</strong> ${invoices.value.length}</p>
-        <p><strong>Page:</strong> ${currentPage.value}</p>
+        <p><strong>Generated on:</strong> ${new Date().toLocaleString('en-IN')}</p>
       </div>
     </body>
     </html>
@@ -1609,6 +1719,9 @@ const printReport = () => {
 
 const downloadDetailedReport = async () => {
   try {
+    // Close dropdown first
+    closeDownloadDropdown();
+    
     console.log('📊 Starting Excel download with filters:', filters);
     
     // First, ensure we have the latest data by fetching both report and summary
@@ -1677,9 +1790,22 @@ const downloadDetailedReport = async () => {
     
     const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
     
+    console.log('📊 Export response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      dataType: typeof response.data,
+      dataSize: response.data ? response.data.size || response.data.length : 'N/A'
+    });
+    
     // Check if response is successful
     if (!response || !response.data) {
       throw new Error('No data received from server');
+    }
+    
+    // Check if response status indicates success
+    if (response.status !== 200) {
+      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
     }
     
     // Create blob and download
@@ -1703,34 +1829,199 @@ const downloadDetailedReport = async () => {
   }
 };
 
+const downloadCSVReport = async () => {
+  try {
+    // Close dropdown first
+    closeDownloadDropdown();
+    
+    console.log('📊 Starting CSV download with filters:', filters);
+    
+    // Check if we have any data to export
+    if (invoices.value.length === 0) {
+      console.log('📊 No invoices available, fetching data first...');
+      await Promise.all([
+        fetchReport(),
+        fetchReportSummary()
+      ]);
+      
+      if (invoices.value.length === 0) {
+        showToast('No data found for the selected filters', 'warning');
+        return;
+      }
+    }
+    
+    // First, ensure we have the latest data by fetching both report and summary
+    if (invoices.value.length === 0) {
+      console.log('📊 No data available, fetching report data first...');
+      await Promise.all([
+        fetchReport(),
+        fetchReportSummary()
+      ]);
+    }
+    
+    // Get current summary data
+    const currentSummary = summary.value;
+    
+    // Build query string from filters (using same logic as fetchReport)
+    const queryParams = new URLSearchParams();
+    
+    // Add basic filters
+    if (filters.student_search && filters.student_search.trim() !== '') {
+      queryParams.append('search', filters.student_search);
+    }
+    if (filters.status && filters.status.trim() !== '') {
+      queryParams.append('status', filters.status);
+    }
+    if (filters.branch_id && filters.branch_id.trim() !== '') {
+      queryParams.append('branch_id', filters.branch_id);
+    }
+    
+    // Add date parameters (using same logic as fetchReport)
+    if (filters.fromDate && filters.fromDate.trim() !== '') {
+      queryParams.append('from_date', filters.fromDate);
+    }
+    if (filters.toDate && filters.toDate.trim() !== '') {
+      queryParams.append('to_date', filters.toDate);
+    }
+    
+    // Add class name if selected
+    if (filters.class_id && filters.class_id !== '') {
+      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
+      if (selectedClass) {
+        queryParams.append('class_name', selectedClass.name);
+      }
+    }
+    
+    // Add section name if selected
+    if (filters.section_id && filters.section_id !== '') {
+      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
+      if (selectedSection) {
+        queryParams.append('section', selectedSection.name);
+      }
+    }
+    
+    // Add format parameter for CSV
+    queryParams.append('format', 'csv');
+    
+    console.log('📊 CSV download query params:', queryParams.toString());
+    
+    const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
+    
+    console.log('📊 CSV Export response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      dataType: typeof response.data,
+      dataSize: response.data ? response.data.size || response.data.length : 'N/A',
+      responseKeys: response.data ? Object.keys(response.data) : 'N/A'
+    });
+    
+    // Check if response is successful
+    if (!response || !response.data) {
+      throw new Error('No data received from server');
+    }
+    
+    // Check if response status indicates success
+    if (response.status !== 200) {
+      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
+    }
+    
+    // Additional check for empty data
+    if (response.data.size === 0 || response.data.length === 0) {
+      console.warn('⚠️ CSV response data is empty');
+      
+      // Try to get JSON response to see what's happening
+      try {
+        const jsonResponse = await apiClient.feeInvoices.exportReport(queryParams.toString().replace('format=csv', 'format=json'));
+        console.log('📊 JSON response for debugging:', jsonResponse);
+      } catch (jsonError) {
+        console.error('❌ JSON fallback also failed:', jsonError);
+      }
+      
+      showToast('No data found for the selected filters', 'warning');
+      return;
+    }
+    
+    // Create blob and download
+    const blob = new Blob([response.data], { 
+      type: 'text/csv;charset=utf-8;' 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fee-collection-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showToast('CSV report downloaded successfully', 'success');
+    console.log('✅ CSV download completed successfully');
+  } catch (error) {
+    console.error('❌ Error downloading CSV report:', error);
+    showToast('Error downloading CSV report', 'error');
+  }
+};
+
 const generatePDFContent = () => {
   // Get current filter values for the report header
   const getFilterText = () => {
     const filterTexts = [];
+    
+    // Date range
     if (filters.dateRange && filters.dateRange !== 'all_time') {
-      filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
+      if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
+        filterTexts.push(`Date Range: ${formatDate(filters.fromDate)} to ${formatDate(filters.toDate)}`);
+      } else {
+        filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
+      }
     }
-    if (filters.fromDate && filters.toDate) {
-      filterTexts.push(`From: ${formatDate(filters.fromDate)} To: ${formatDate(filters.toDate)}`);
+    
+    // School (for super admin)
+    if (filters.school_id && authStore.user?.role === 'super_admin') {
+      const school = schools.value.find(s => s.id === filters.school_id);
+      if (school) filterTexts.push(`School: ${school.name}`);
     }
+    
+    // Branch
     if (filters.branch_id) {
       const branch = branches.value.find(b => b.id === filters.branch_id);
       if (branch) filterTexts.push(`Branch: ${branch.name}`);
     }
+    
+    // Class
     if (filters.class_id) {
       const classItem = classes.value.find(c => c.id === filters.class_id);
       if (classItem) filterTexts.push(`Class: ${classItem.name}`);
     }
+    
+    // Section
     if (filters.section_id) {
       const section = sections.value.find(s => s.id === filters.section_id);
       if (section) filterTexts.push(`Section: ${section.name}`);
     }
+    
+    // Stream
+    if (filters.stream_id) {
+      const stream = streams.value.find(s => s.id === filters.stream_id);
+      if (stream) filterTexts.push(`Stream: ${stream.name}`);
+    }
+    
+    // Status
     if (filters.status && filters.status !== 'all') {
       filterTexts.push(`Status: ${filters.status.toUpperCase()}`);
     }
+    
+    // Payment method
+    if (filters.payment_method && filters.payment_method !== 'all') {
+      filterTexts.push(`Payment Method: ${filters.payment_method.toUpperCase()}`);
+    }
+    
+    // Student search
     if (filters.student_search) {
       filterTexts.push(`Student Search: ${filters.student_search}`);
     }
+    
     return filterTexts.length > 0 ? filterTexts.join(' | ') : 'All Records';
   };
 
@@ -1910,6 +2201,9 @@ const generatePDFContent = () => {
 
 const downloadPDFReport = async () => {
   try {
+    // Close dropdown first
+    closeDownloadDropdown();
+    
     // Generate PDF content
     const pdfContent = generatePDFContent();
     
@@ -1999,6 +2293,23 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
+// Dropdown functions
+const toggleDownloadDropdown = () => {
+  showDownloadDropdown.value = !showDownloadDropdown.value;
+};
+
+const closeDownloadDropdown = () => {
+  showDownloadDropdown.value = false;
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (event) => {
+  const dropdown = document.querySelector('.download-dropdown');
+  if (dropdown && !dropdown.contains(event.target)) {
+    closeDownloadDropdown();
+  }
+};
+
 // Remove automatic report generation - user must click "Apply Filters"
 
 // Watch pageSize to ensure it's always a number
@@ -2031,6 +2342,9 @@ onMounted(async () => {
     
     console.log('✅ Page initialization complete');
     
+    // Add click outside listener for dropdown
+    document.addEventListener('click', handleClickOutside);
+    
     // Don't load any data initially - user must click "Apply Filters"
     console.log('📊 No initial data loaded - waiting for user to apply filters');
     
@@ -2040,5 +2354,10 @@ onMounted(async () => {
   } finally {
     isInitializing.value = false;
   }
+});
+
+// Cleanup event listener on component unmount
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script> 
