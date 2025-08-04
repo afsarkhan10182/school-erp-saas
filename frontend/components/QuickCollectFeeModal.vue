@@ -43,7 +43,7 @@
               @click="selectStudent(student)"
               class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0"
             >
-              <div class="font-medium">{{ student.first_name }} {{ student.last_name }}</div>
+                              <div class="font-medium">{{ getStudentFullName(student) }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
                 {{ student.admission_number }} - {{ student.current_class }}{{ student.section ? `-${student.section}` : '' }}
               </div>
@@ -55,7 +55,7 @@
         <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
           <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
             <h4 class="font-medium text-gray-900 dark:text-white mb-2">
-              {{ selectedStudent.first_name }} {{ selectedStudent.last_name }}
+                              {{ getStudentFullName(selectedStudent) }}
             </h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
@@ -346,7 +346,7 @@ const searchStudents = async () => {
 const selectStudent = async (student) => {
   selectedStudent.value = student;
   searchResults.value = [];
-  searchQuery.value = `${student.first_name} ${student.last_name}`;
+          searchQuery.value = getStudentFullName(student);
   
   await loadStudentDues(student.id);
 };
@@ -496,6 +496,22 @@ const getMonthlyStatusText = (status) => {
     overdue: 'Overdue',
   };
   return texts[status] || status;
+};
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
 };
 
 const getMonthName = (monthNumber) => {

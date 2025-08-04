@@ -166,7 +166,7 @@
                   class="mr-2"
                 />
                 <label :for="student.id" class="text-sm text-gray-700 dark:text-gray-300">
-                  {{ student.first_name }} {{ student.last_name }} ({{ student.admission_number }})
+                  {{ getStudentFullName(student) }} ({{ student.admission_number }})
                 </label>
               </div>
             </div>
@@ -391,12 +391,21 @@ const filteredSchools = computed(() => {
 });
 
 const filteredMonthlyFeeStructures = computed(() => {
+  console.log('🔍 Props monthlyFeeStructures:', props.monthlyFeeStructures);
+  console.log('🔍 User context:', {
+    role: userRole.value,
+    branch: userBranch.value,
+    currentUser: authStore.currentUser
+  });
   return Array.isArray(props.monthlyFeeStructures) ? props.monthlyFeeStructures : [];
 });
 
 const availableFeeStructures = computed(() => {
+  console.log('🔍 Computing available fee structures for payment model:', form.payment_model);
+  console.log('🔍 Raw fee structures:', filteredMonthlyFeeStructures.value);
+  
   if (form.payment_model === 'monthly') {
-    return filteredMonthlyFeeStructures.value
+    const structures = filteredMonthlyFeeStructures.value
       .filter(structure => structure.payment_model === 'monthly')
       .map(structure => ({
         ...structure,
@@ -407,9 +416,13 @@ const availableFeeStructures = computed(() => {
         academic_year: structure.academic_year,
         amount: structure.amount,
         branch: structure.branch,
+        branch_id: structure.branch_id || structure.branch?.id, // Ensure branch_id is available
       }));
+    
+    console.log('📚 Monthly fee structures:', structures);
+    return structures;
   } else if (form.payment_model === 'installment') {
-    return filteredMonthlyFeeStructures.value
+    const structures = filteredMonthlyFeeStructures.value
       .filter(structure => structure.payment_model === 'installment')
       .map(structure => ({
         ...structure,
@@ -420,7 +433,11 @@ const availableFeeStructures = computed(() => {
         academic_year: structure.academic_year,
         amount: structure.amount,
         branch: structure.branch,
+        branch_id: structure.branch_id || structure.branch?.id, // Ensure branch_id is available
       }));
+    
+    console.log('📚 Installment fee structures:', structures);
+    return structures;
   }
   return [];
 });
@@ -451,43 +468,109 @@ const fetchStudents = async () => {
       return;
     }
     
-    // Use the getAll endpoint with appropriate filters to fetch students
-    // Handle both single class_name and applicable_classes array
+    console.log('🔍 Fetching students for fee structure:', selectedStructure);
+    
+    // Build params for student filtering
     const params = {
       branch_id: selectedStructure.branch_id,
-      section: selectedStructure.section,
       // Note: academic_year will be automatically used from the fee structure
     };
     
+    // Add section filter if available
+    if (selectedStructure.section && selectedStructure.section !== 'All Sections') {
+      params.section = selectedStructure.section;
+    }
+    
     // If fee structure has applicable_classes (array), we need to fetch students for each class
     if (selectedStructure.applicable_classes && selectedStructure.applicable_classes.length > 0) {
+      console.log('📚 Fee structure has applicable classes:', selectedStructure.applicable_classes);
       // Fetch students for all applicable classes
       const allStudents = [];
       
       for (const className of selectedStructure.applicable_classes) {
         try {
-          const classParams = { ...params, class_name: className };
+          // Find the class ID for the class name
+          const classItem = props.classes?.find(c => c.name === className);
+          const classId = classItem?.id;
+          
+          if (!classId) {
+            console.warn(`⚠️ No class ID found for class name: ${className}`);
+            continue;
+          }
+          
+          const classParams = { ...params, class_id: classId, limit: 1000 }; // Set high limit to get all students
+          console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) with params:`, classParams);
           const response = await apiClient.students.getAll(classParams);
-          if (response.data && response.data.length > 0) {
-            allStudents.push(...response.data);
+          console.log(`📊 API response for class ${className}:`, response);
+          
+          // Handle different response structures
+          let students = [];
+          if (response.data && Array.isArray(response.data)) {
+            students = response.data;
+          } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+            students = response.data.students;
+          } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+            students = response.data.items;
+          }
+          
+          if (students.length > 0) {
+            allStudents.push(...students);
+            console.log(`✅ Found ${students.length} students for class ${className}`);
+          } else {
+            console.log(`⚠️ No students found for class ${className}`);
           }
         } catch (error) {
-          console.error(`Error fetching students for class ${className}:`, error);
+          console.error(`❌ Error fetching students for class ${className}:`, error);
         }
       }
       
       availableStudents.value = allStudents;
-      console.log(`✅ Fetched ${allStudents.length} students from ${selectedStructure.applicable_classes.length} applicable classes`);
+      console.log(`✅ Total: Fetched ${allStudents.length} students from ${selectedStructure.applicable_classes.length} applicable classes`);
+      console.log('📊 Student details:', allStudents.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
     } else {
-      // Use single class_name
-      params.class_name = selectedStructure.class_name;
+      // Use single class_name - find the class ID
+      const classItem = props.classes?.find(c => c.name === selectedStructure.class_name);
+      const classId = classItem?.id;
+      
+      if (!classId) {
+        console.warn(`⚠️ No class ID found for class name: ${selectedStructure.class_name}`);
+        availableStudents.value = [];
+        return;
+      }
+      
+      params.class_id = classId;
+      params.limit = 1000; // Set high limit to get all students
+      console.log('📚 Fee structure has single class:', selectedStructure.class_name, '(ID:', classId, ')');
+      console.log('🔍 Fetching students with params:', params);
       const response = await apiClient.students.getAll(params);
-      availableStudents.value = response.data || [];
-      console.log(`✅ Fetched ${response.data?.length || 0} students for class: ${selectedStructure.class_name}`);
+      console.log('📊 API response for single class:', response);
+      
+      // Handle different response structures
+      let students = [];
+      if (response.data && Array.isArray(response.data)) {
+        students = response.data;
+      } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+        students = response.data.students;
+      } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+        students = response.data.items;
+      }
+      
+      availableStudents.value = students;
+      console.log(`✅ Fetched ${students.length} students for class: ${selectedStructure.class_name}`);
+      console.log('📊 Student details:', students.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
     }
     
+    // Log the final result
+    console.log('🎯 Final available students:', availableStudents.value.map(s => ({
+      id: s.id,
+      name: s.first_name + ' ' + s.last_name,
+      class: s.current_class,
+      section: s.section,
+      branch: s.branch?.name
+    })));
+    
   } catch (error) {
-    console.error('Error fetching students:', error);
+    console.error('❌ Error fetching students:', error);
     console.error('Selected fee structure:', selectedStructure);
     console.error('Params used:', params);
     availableStudents.value = [];
@@ -687,6 +770,22 @@ watch(() => props.show, async (show) => {
     await initializeComponent();
   }
 });
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
 
 // Initialize on mount
 onMounted(async () => {

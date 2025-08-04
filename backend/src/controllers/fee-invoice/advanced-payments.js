@@ -4,6 +4,22 @@ const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateUniqueInvoiceNumber, getClassCode } = require('../../controllers/fee-invoice/core');
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 // Get payment breakdown for an invoice
 const getBreakdown = async (req, res, next) => {
   try {
@@ -68,7 +84,7 @@ const getBreakdown = async (req, res, next) => {
       },
       student: {
         id: invoice.student.id,
-        name: `${invoice.student.first_name} ${invoice.student.last_name}`,
+        name: getStudentFullName(invoice.student),
         admission_number: invoice.student.admission_number,
         class: invoice.student.current_class,
         section: invoice.student.section,
@@ -217,7 +233,7 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       receipt_data: {
         receipt_number: receiptNumber,
         invoice_number: invoice.invoice_number,
-        student_name: `${invoice.student.first_name} ${invoice.student.last_name}`,
+        student_name: getStudentFullName(invoice.student),
         payment_amount: payment_amount,
         payment_method,
         transaction_id,

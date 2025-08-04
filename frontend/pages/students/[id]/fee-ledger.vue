@@ -32,7 +32,7 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-                {{ student.first_name }} {{ student.last_name }}
+                {{ getStudentFullName(student) }}
               </h3>
               <p class="text-sm text-gray-500 dark:text-gray-400">
                 Admission: {{ student.admission_number }}
@@ -1441,6 +1441,22 @@ const onPageSizeChange = (newPageSize) => {
   pageSize.value = newPageSize;
   currentPage.value = 1; // Reset to first page when page size changes
   fetchLedger();
+};
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
 };
 
 

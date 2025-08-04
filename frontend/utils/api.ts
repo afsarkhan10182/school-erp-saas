@@ -625,6 +625,7 @@ export const apiClient = {
       page?: number; 
       limit?: number; 
       class_name?: string; 
+      class_id?: string; 
       section?: string;
       branch_id?: string;
       search?: string;

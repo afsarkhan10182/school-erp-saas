@@ -286,13 +286,13 @@
                         class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center ring-2 ring-indigo-100 dark:ring-indigo-900"
                       >
                         <span class="text-sm font-bold text-white">
-                          {{ (student.first_name || '').charAt(0) }}{{ (student.last_name || '').charAt(0) }}
+                          {{ getStudentInitials(student) }}
                         </span>
                       </div>
                     </div>
                     <div class="ml-4">
                       <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                        {{ student.first_name || '' }} {{ student.last_name || '' }}
+                        {{ getStudentFullName(student) }}
                       </div>
                       <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -779,6 +779,39 @@ const getStatusText = (status) => {
     transferred: 'Transferred',
   };
   return texts[status] || status;
+};
+
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
+const getStudentInitials = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  const firstInitial = firstName.charAt(0).toUpperCase();
+  const lastInitial = lastName.charAt(0).toUpperCase();
+  
+  if (firstName && lastName) {
+    return `${firstInitial}${lastInitial}`;
+  } else if (firstName) {
+    return firstInitial;
+  } else if (lastName) {
+    return lastInitial;
+  } else {
+    return '?';
+  }
 };
 
 // Initialize data

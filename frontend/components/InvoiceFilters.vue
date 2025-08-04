@@ -72,12 +72,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Class</label>
           <div class="relative">
             <select 
-              v-model="localFilters.class_name" 
+              v-model="localFilters.class_id" 
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
             >
               <option value="">All Classes</option>
-              <option v-for="classItem in classes" :key="classItem.id" :value="classItem.name">
+              <option v-for="classItem in availableClasses" :key="classItem.id" :value="classItem.id">
                 {{ classItem.name }}
               </option>
             </select>
@@ -208,7 +208,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['filter-change', 'clear-filters']);
+const emit = defineEmits(['filter-change', 'clear-filters', 'branch-change']);
 
 // Auth store
 const authStore = useAuthStore();
@@ -253,11 +253,28 @@ const availableBranches = computed(() => {
   return [];
 });
 
+const availableClasses = computed(() => {
+  // If no branch is selected, show all classes
+  if (!localFilters.branch_id) {
+    return props.classes || [];
+  }
+  
+  // Filter classes by selected branch
+  return (props.classes || []).filter(classItem => {
+    // If class has branch info, filter by it
+    if (classItem.branch && classItem.branch.id) {
+      return classItem.branch.id === localFilters.branch_id;
+    }
+    // If no branch info on class, show it (fallback)
+    return true;
+  });
+});
+
 const localFilters = reactive({
   payment_model: '',
   branch_id: '',
   academic_year: '',
-  class_name: '',
+  class_id: '',
   status: '',
 });
 
@@ -267,6 +284,12 @@ watch(() => props.filters, (newFilters) => {
 }, { immediate: true, deep: true });
 
 const onFilterChange = () => {
+  // If branch changed, reset class filter and emit branch change event
+  if (localFilters.branch_id !== props.filters.branch_id) {
+    localFilters.class_id = '';
+    emit('branch-change', localFilters.branch_id);
+  }
+  
   emit('filter-change', { ...localFilters });
 };
 

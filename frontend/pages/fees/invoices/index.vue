@@ -108,6 +108,7 @@
         :is-loading="isLoading"
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
+        @branch-change="onBranchChange"
       />
       
       <!-- Invoices Table Component -->
@@ -440,7 +441,7 @@ const filters = reactive({
   payment_model: '',
   branch_id: '',
   academic_year: '',
-  class_name: '',
+  class_id: '',
   status: '',
 });
 
@@ -542,7 +543,7 @@ const fetchInvoices = async () => {
     if (filters.payment_model) params.payment_model = filters.payment_model;
     if (filters.branch_id) params.branch_id = filters.branch_id;
     if (filters.academic_year) params.academic_year = filters.academic_year;
-    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.class_id) params.class_id = filters.class_id;
     if (filters.status) params.status = filters.status;
     
     // Use the new student-based paginated endpoint
@@ -675,13 +676,33 @@ const submitPayment = async () => {
     
     closePaymentModal();
     
-    // Clear cached student details to force refresh
-    if (invoiceTableRef.value) {
-      invoiceTableRef.value.clearStudentDetails();
+    // Update the specific invoice data immediately without full refresh
+    if (response.data && response.data.updated_invoice) {
+      // Update the specific student's invoice data
+      if (invoiceTableRef.value) {
+        invoiceTableRef.value.updateInvoiceAfterPayment(
+          invoice.student_id, 
+          invoice.id, 
+          response.data.updated_invoice
+        );
+      }
+      
+      // Also update the main students data if available
+      updateStudentDataAfterPayment(invoice.student_id, response.data.updated_invoice);
     }
     
-    // Refresh the invoice table
-    await fetchInvoices();
+    // Update local data immediately based on payment amount
+    updateLocalInvoiceData(invoice.id, parseFloat(paymentForm.amount));
+    
+    // Refresh the specific student's details without closing accordion
+    if (invoiceTableRef.value && invoice.student_id) {
+      invoiceTableRef.value.forceRefreshStudentDetails(invoice.student_id);
+    }
+    
+    // Refresh the invoice table in background (non-blocking)
+    fetchInvoices().catch(error => {
+      console.error('Error refreshing invoices after payment:', error);
+    });
     
     showToast('Payment recorded successfully!', 'success');
     
@@ -705,6 +726,21 @@ const onFilterChange = (newFilters) => {
   Object.assign(filters, newFilters);
   currentPage.value = 1; // Reset to first page when filters change
   fetchInvoices(); // Fetch new data with filters
+};
+
+const onBranchChange = async (branchId) => {
+  // Reset class filter when branch changes
+  filters.class_id = '';
+  
+  // Refresh classes for the new branch
+  const schoolId = authStore.currentUser?.school_id;
+  if (branchId && branchId !== '') {
+    // Specific branch selected - fetch classes for that branch
+    await fetchClasses(schoolId, branchId);
+  } else {
+    // "All Branches" selected or no branch - fetch all classes
+    await fetchClasses(schoolId);
+  }
 };
 
 const clearFilters = () => {
@@ -741,6 +777,35 @@ const recordPayment = (invoice) => {
 const isMonthlyPayment = (invoice) => {
   // Simplified - only check payment_model field since we have unified approach
   return invoice.payment_model === 'monthly';
+};
+
+// Update local invoice data immediately after payment
+const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
+  console.log('🔄 Updating local invoice data:', { invoiceId, paymentAmount });
+  
+  // Update in studentsData
+  studentsData.value.forEach(student => {
+    const allInvoices = [...(student.invoices || []), ...(student.grouped_invoices || []), ...(student.ungrouped_invoices || [])];
+    const invoice = allInvoices.find(inv => inv && inv.id === invoiceId);
+    
+    if (invoice) {
+      console.log('✅ Found invoice in student data, updating locally');
+      const oldPaidAmount = invoice.paid_amount || 0;
+      const newPaidAmount = oldPaidAmount + paymentAmount;
+      const newBalanceAmount = Math.max(0, (invoice.total_amount || 0) - newPaidAmount);
+      
+      invoice.paid_amount = newPaidAmount;
+      invoice.balance_amount = newBalanceAmount;
+      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial';
+      
+      console.log('✅ Updated local invoice:', {
+        oldPaidAmount,
+        newPaidAmount,
+        newBalanceAmount,
+        newStatus: invoice.status
+      });
+    }
+  });
 };
 
 // Update main student data after payment to refresh summary instantly
@@ -824,11 +889,21 @@ const updateStudentDataAfterPayment = (studentId, updatedInvoiceData) => {
 };
 
 const onPaymentRecorded = async () => {
-  // Clear cached student details and refresh
+  // Refresh all expanded student details without closing accordions
   if (invoiceTableRef.value) {
-    invoiceTableRef.value.clearStudentDetails();
+    // Get all currently expanded students and refresh their details
+    const expandedStudents = invoiceTableRef.value.getExpandedStudents?.() || [];
+    
+    // Refresh each expanded student's details
+    for (const studentId of expandedStudents) {
+      await invoiceTableRef.value.forceRefreshStudentDetails(studentId);
+    }
   }
-  await fetchInvoices();
+  
+  // Refresh the invoice table in background (non-blocking)
+  fetchInvoices().catch(error => {
+    console.error('Error refreshing invoices after payment:', error);
+  });
 };
 
 const viewReceipt = async (invoice) => {
@@ -1373,9 +1448,13 @@ const installmentFeeStructures = ref([]);
 
 const fetchMonthlyFeeStructures = async () => {
   try {
+    console.log('🔍 Fetching monthly fee structures...');
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    console.log('📊 Monthly fee structures response:', response);
     monthlyFeeStructures.value = response.data.fee_structures || [];
+    console.log('✅ Loaded monthly fee structures:', monthlyFeeStructures.value.length);
   } catch (error) {
+    console.error('❌ Error loading monthly fee structures:', error);
     showToast('Error loading monthly fee structures', 'error');
     monthlyFeeStructures.value = [];
   }
@@ -1383,10 +1462,15 @@ const fetchMonthlyFeeStructures = async () => {
 
 const fetchInstallmentFeeStructures = async () => {
   try {
+    console.log('🔍 Fetching installment fee structures...');
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    console.log('📊 Installment fee structures response:', response);
     installmentFeeStructures.value = response.data.fee_structures || [];
+    console.log('✅ Loaded installment fee structures:', installmentFeeStructures.value.length);
   } catch (error) {
+    console.error('❌ Error loading installment fee structures:', error);
     showToast('Error loading installment fee structures', 'error');
+    installmentFeeStructures.value = [];
   }
 };
 
@@ -1487,7 +1571,6 @@ const loadAcademicData = async () => {
   try {
     // Get user context for API calls
     const schoolId = authStore.currentUser?.school_id;
-    const branchId = authStore.currentUser?.branch_id;
     
     // Load academic years and classes for filters with individual error handling
     const promises = [];
@@ -1500,9 +1583,9 @@ const loadAcademicData = async () => {
       })
     );
     
-    // Classes
+    // Classes - Load all classes initially, not filtered by branch
     promises.push(
-      fetchClasses(schoolId, branchId).catch(error => {
+      fetchClasses(schoolId).catch(error => {
         console.error('Error fetching classes:', error);
         return null;
       })
@@ -1567,11 +1650,11 @@ onMounted(async () => {
       }
     }
     
-    // Set default branch filter based on user role
-    setDefaultBranchFilter();
-    
-    // Load academic data first
+    // Load academic data first (including all classes)
     await loadAcademicData();
+    
+    // Set default branch filter based on user role AFTER classes are loaded
+    setDefaultBranchFilter();
     
     // Load school data for receipt viewer
     await loadSchoolData();

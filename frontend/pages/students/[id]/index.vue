@@ -63,7 +63,7 @@
                 <div v-if="student.photo" class="relative">
                   <img
                     :src="student.photo"
-                    :alt="`${student.first_name} ${student.last_name}`"
+                    :alt="getStudentFullName(student)"
                     class="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
                   />
                   <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 border-2 border-white dark:border-gray-700 rounded-full"></div>
@@ -73,7 +73,7 @@
                   class="w-24 h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
                 >
                   <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                    {{ (student.first_name || '').charAt(0) }}{{ (student.last_name || '').charAt(0) }}
+                                            {{ getStudentInitials(student) }}
                   </span>
                 </div>
               </div>
@@ -81,7 +81,7 @@
               <!-- Student Name and Basic Info -->
               <div class="flex-1">
                 <h2 class="text-2xl font-bold text-white">
-                  {{ student.first_name }} {{ student.middle_name ? student.middle_name + ' ' : '' }}{{ student.last_name }}
+                  {{ getStudentFullName(student) }}
                 </h2>
                 <div class="flex items-center space-x-4 mt-2 text-indigo-100">
                   <span class="flex items-center">
@@ -503,6 +503,41 @@ const getStatusText = (status) => {
     transferred: 'Transferred',
   };
   return texts[status] || status;
+};
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
+// Helper function to get student initials
+const getStudentInitials = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  const firstInitial = firstName.charAt(0).toUpperCase();
+  const lastInitial = lastName.charAt(0).toUpperCase();
+  
+  if (firstName && lastName) {
+    return `${firstInitial}${lastInitial}`;
+  } else if (firstName) {
+    return firstInitial;
+  } else if (lastName) {
+    return lastInitial;
+  } else {
+    return '?';
+  }
 };
 
 onMounted(() => {

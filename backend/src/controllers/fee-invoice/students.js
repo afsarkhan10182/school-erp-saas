@@ -6,6 +6,22 @@ const { generateCombinedReceipt } = require('./receipts');
 const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('../../utils/academicYearUtils');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 
 // Shared utility function to get student invoices
 const getStudentInvoices = async (studentId, schoolId, options = {}) => {
@@ -425,7 +441,7 @@ const getStudentFeeLedger = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           class: student.current_class,
           section: student.section,
@@ -847,7 +863,7 @@ const recordSmartPayment = async (req, res, next) => {
       message: 'Smart payment recorded successfully',
       data: {
         student_id,
-        student_name: `${student.first_name} ${student.last_name}`,
+        student_name: getStudentFullName(student),
         total_payment_amount: parseFloat(payment_amount),
         total_applied_amount: totalApplied,
         remaining_amount: remainingAmount,
@@ -1000,7 +1016,7 @@ const getAvailableMonths = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           class: student.current_class,
           section: student.section,
@@ -1130,7 +1146,7 @@ const getGroupedStudentInvoices = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           current_class: student.current_class,
           section: student.section,
@@ -1295,7 +1311,7 @@ const getStudentFeeInvoiceSummary = async (req, res, next) => {
 
       return {
         student_id: student.id,
-        student_name: `${student.first_name} ${student.last_name}`,
+        student_name: getStudentFullName(student),
         admission_number: student.admission_number,
         class_name: student.current_class,
         section: student.section,

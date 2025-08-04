@@ -5,6 +5,22 @@ const { getAcademicYearMonths, validatePaymentSequence } = require('../../utils/
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 // Generate unique invoice number with microsecond precision
 // Helper function to get class code from fee structure
 const getClassCode = (feeStructure) => {
@@ -215,9 +231,9 @@ const generateInvoices = async (req, res, next) => {
           const existingInvoicesForStudent = existingInvoicesMap.get(student.id) || [];
           
           if (existingInvoicesForStudent.length > 0) {
-            logger.info(`Student ${student.first_name} ${student.last_name || ''} already has ${existingInvoicesForStudent.length} invoices for fee structure ${feeStructure.name} in academic year ${feeStructure.academic_year}`);
+            logger.info(`Student ${getStudentFullName(student)} already has ${existingInvoicesForStudent.length} invoices for fee structure ${feeStructure.name} in academic year ${feeStructure.academic_year}`);
             errors.push({
-              student: `${student.first_name} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -239,7 +255,7 @@ const generateInvoices = async (req, res, next) => {
           // Validate required data before generating invoices
           if (!student.first_name) {
             errors.push({
-              student: `${student.first_name || 'Unknown'} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -255,7 +271,7 @@ const generateInvoices = async (req, res, next) => {
           
           if (!feeStructure.amount && !feeStructure.monthly_payment_amount) {
             errors.push({
-              student: `${student.first_name} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -271,7 +287,7 @@ const generateInvoices = async (req, res, next) => {
           
           if (!feeStructure.academic_year) {
             errors.push({
-              student: `${student.first_name} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -287,7 +303,7 @@ const generateInvoices = async (req, res, next) => {
           
           if (!feeStructure.class_name) {
             errors.push({
-              student: `${student.first_name} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -303,7 +319,7 @@ const generateInvoices = async (req, res, next) => {
           
           if (!feeStructure.fee_type_id) {
             errors.push({
-              student: `${student.first_name} ${student.last_name || ''}`,
+              student: getStudentFullName(student),
               student_id: student.id,
               fee_structure: feeStructure.name,
               fee_structure_id: feeStructure.id,
@@ -532,7 +548,7 @@ const generateInvoices = async (req, res, next) => {
           }
           
           errors.push({
-            student: `${student.first_name} ${student.last_name || ''}`,
+            student: getStudentFullName(student),
             student_id: student.id,
             fee_structure: feeStructure.name,
             fee_structure_id: feeStructure.id,

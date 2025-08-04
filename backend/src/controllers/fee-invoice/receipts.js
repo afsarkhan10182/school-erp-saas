@@ -5,6 +5,22 @@ const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('../../services/receipt.service');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 // Get receipt for a specific invoice
 const getReceiptForInvoice = async (req, res, next) => {
   try {
@@ -199,7 +215,7 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
       },
       student: {
         id: payment.invoice.student.id,
-        name: `${payment.invoice.student.first_name} ${payment.invoice.student.last_name || ''}`,
+        name: getStudentFullName(payment.invoice.student),
         admission_number: payment.invoice.student.admission_number,
         class: payment.invoice.student.current_class,
         section: payment.invoice.student.section,
@@ -300,7 +316,7 @@ const getGroupedReceipts = async (req, res, next) => {
         receipt_number: payment.receipt_number,
         payment_amount: parseFloat(payment.payment_amount || 0),
         payment_method: payment.payment_method,
-        student_name: `${payment.invoice.student.first_name} ${payment.invoice.student.last_name || ''}`,
+        student_name: getStudentFullName(payment.invoice.student),
         admission_number: payment.invoice.student.admission_number,
         class: payment.invoice.student.current_class,
         section: payment.invoice.student.section,
@@ -405,7 +421,7 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
     const receiptData = {
       receipt_number: receiptNumber,
       invoice_number: invoices.length === 1 ? invoices[0].invoice_number : invoices.map(inv => inv.invoice_number).join(', '),
-      student_name: `${student.first_name} ${student.last_name || ''}`,
+              student_name: getStudentFullName(student),
       student_id: student.id,
       admission_number: student.admission_number,
       school_name: school.name,

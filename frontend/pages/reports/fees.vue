@@ -55,7 +55,6 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
               <div class="relative group">
                 <select v-model="filters.dateRange" @change="handleDateRangeChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
-                  <option value="all_time">All Time</option>
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
                   <option value="week">This Week</option>
@@ -80,6 +79,21 @@
             <div v-if="filters.dateRange === 'custom'">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
               <input v-model="filters.toDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+            </div>
+            <!-- School dropdown for super admin -->
+            <div v-if="authStore.user?.role === 'super_admin'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
+              <div class="relative group">
+                <select v-model="filters.school_id" @change="onSchoolChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                  <option value="">All Schools</option>
+                  <option v-for="school in schools" :key="school.id" :value="school.id">{{ school.name }}</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
@@ -347,6 +361,9 @@
                   <span v-if="studentGroup.pendingCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                     {{ studentGroup.pendingCount }} Pending
                   </span>
+                  <span v-if="studentGroup.partialCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                    Partial Paid
+                  </span>
                   <span v-if="studentGroup.overdueCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                     {{ studentGroup.overdueCount }} Overdue
                   </span>
@@ -459,6 +476,7 @@ const classes = ref([]);
 const streams = ref([]);
 const branches = ref([]);
 const sections = ref([]);
+const schools = ref([]); // Add schools for super admin
 const isLoading = ref(false);
 const isInitializing = ref(true);
 const expandedStudents = ref([]); // Track which students are expanded
@@ -480,9 +498,10 @@ const totalItems = ref(0);
 
 // Filters
 const filters = reactive({
-  dateRange: 'all_time', // Changed to 'all_time' to show all results by default
+  dateRange: 'today', // Changed to 'today' as default since 'all_time' is removed
   fromDate: '',
   toDate: '',
+  school_id: '', // Add school_id for super admin
   branch_id: '',
   class_id: '',
   stream_id: '',
@@ -742,9 +761,10 @@ const generateReport = async () => {
 const resetFilters = () => {
   console.log('🔄 Resetting filters...');
   Object.assign(filters, {
-    dateRange: 'all_time', // Changed to 'all_time'
+    dateRange: 'today', // Changed to 'month' since 'all_time' is removed
     fromDate: '',
     toDate: '',
+    school_id: '', // Reset school_id for super admin
     branch_id: '',
     class_id: '',
     stream_id: '',
@@ -793,11 +813,6 @@ const handleDateRangeChange = () => {
   });
   
   switch (filters.dateRange) {
-    case 'all_time':
-      filters.fromDate = '';
-      filters.toDate = '';
-      console.log('📅 All time filter set:', { fromDate: filters.fromDate, toDate: filters.toDate });
-      break;
     case 'today':
       filters.fromDate = formatDate(today);
       filters.toDate = formatDate(today);
@@ -861,6 +876,22 @@ const handleDateRangeChange = () => {
   });
 };
 
+const onSchoolChange = async () => {
+  // Reset branch, class, and section when school changes
+  filters.branch_id = '';
+  filters.class_id = '';
+  filters.section_id = '';
+  
+  // Refetch branches for the selected school
+  await fetchBranches();
+  
+  // Refetch dependent data
+  await Promise.all([
+    fetchClasses(),
+    fetchSections()
+  ]);
+};
+
 const onBranchChange = async () => {
   // Reset class and section when branch changes
   filters.class_id = '';
@@ -902,6 +933,7 @@ const fetchReportSummary = async () => {
       // Map frontend filters to backend API parameters
       search: filters.student_search || undefined,
       status: filters.status || undefined,
+      school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
     };
     
@@ -1017,6 +1049,7 @@ const fetchReport = async () => {
       // Map frontend filters to backend API parameters
       search: filters.student_search || undefined,
       status: filters.status || undefined,
+      school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
     };
     
@@ -1157,6 +1190,38 @@ const fetchReport = async () => {
   }
 };
 
+const fetchSchools = async () => {
+  try {
+    // Only fetch schools for super admin
+    if (authStore.user?.role !== 'super_admin') {
+      schools.value = [];
+      return;
+    }
+    
+    const response = await apiClient.schools.getAll();
+    console.log('🏫 Schools API response:', response);
+    
+    // Handle different response structures
+    if (response.success) {
+      schools.value = response.data?.schools || response.data || [];
+    } else if (response.data?.items) {
+      schools.value = response.data.items;
+    } else if (response.data?.schools) {
+      schools.value = response.data.schools;
+    } else if (Array.isArray(response.data)) {
+      schools.value = response.data;
+    } else {
+      schools.value = [];
+    }
+    
+    console.log('🏫 Schools loaded:', schools.value.length, 'items:', schools.value);
+  } catch (error) {
+    console.error('❌ Error fetching schools:', error);
+    showToast('Error fetching schools', 'error');
+    schools.value = [];
+  }
+};
+
 const fetchBranches = async () => {
   try {
     const response = await apiClient.branches.getAll();
@@ -1180,31 +1245,36 @@ const fetchBranches = async () => {
     const user = authStore.user;
     console.log('👤 Current user:', user);
     
-    // Temporarily show all branches for debugging
-    branches.value = allBranches;
-    console.log('🔧 Temporarily showing all branches for debugging');
-    
-    // TODO: Re-enable role-based filtering once user object is properly loaded
-    /*
-    if (user && user.role !== 'super_admin') {
-      console.log('🔒 Non-super admin user, applying role-based filtering');
-      // For non-super admin users, filter branches based on their access
-      if (user.branch_id) {
-        console.log('🏢 User has branch_id:', user.branch_id);
-        branches.value = allBranches.filter(branch => branch.id === user.branch_id);
-      } else if (user.school_id) {
-        console.log('🏫 User has school_id:', user.school_id);
+    if (user && user.role) {
+      console.log('🔒 Applying role-based filtering for role:', user.role);
+      
+      if (user.role === 'super_admin') {
+        console.log('👑 Super admin user, filtering branches');
+        // Super admin can see all branches, but filter by selected school if specified
+        if (filters.school_id) {
+          console.log('🏫 Filtering branches by selected school:', filters.school_id);
+          branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
+        } else {
+          console.log('🏫 No school selected, showing all branches');
+          branches.value = allBranches;
+        }
+      } else if (user.role === 'school_admin') {
+        console.log('🏫 School admin user, filtering by school_id:', user.school_id);
+        // School admin can see all branches in their school
         branches.value = allBranches.filter(branch => branch.school_id === user.school_id);
+      } else if (user.role === 'branch_admin') {
+        console.log('🏢 Branch admin user, filtering by branch_id:', user.branch_id);
+        // Branch admin can only see their own branch
+        branches.value = allBranches.filter(branch => branch.id === user.branch_id);
       } else {
-        console.log('⚠️ User has no branch_id or school_id, showing no branches');
+        console.log('⚠️ Unknown user role, showing no branches');
         branches.value = [];
       }
     } else {
-      console.log('👑 Super admin user, showing all branches');
-      // Super admin can see all branches
+      console.log('⚠️ No user or role information, showing all branches as fallback');
+      // Fallback: show all branches if user info is not available
       branches.value = allBranches;
     }
-    */
     
     console.log('🌿 Final branches loaded:', branches.value.length, 'items:', branches.value);
   } catch (error) {
@@ -1217,6 +1287,9 @@ const fetchBranches = async () => {
 const fetchClasses = async () => {
   try {
     const params = {};
+    if (filters.school_id) {
+      params.school_id = filters.school_id;
+    }
     if (filters.branch_id) {
       params.branch_id = filters.branch_id;
     }
@@ -1280,6 +1353,9 @@ const fetchStreams = async () => {
 const fetchSections = async () => {
   try {
     const params = {};
+    if (filters.school_id) {
+      params.school_id = filters.school_id;
+    }
     if (filters.branch_id) {
       params.branch_id = filters.branch_id;
     }
@@ -2004,6 +2080,7 @@ onMounted(async () => {
     
     // Load all required data in parallel
     await Promise.all([
+      fetchSchools(),
       fetchBranches(),
       fetchClasses(),
       fetchStreams(),

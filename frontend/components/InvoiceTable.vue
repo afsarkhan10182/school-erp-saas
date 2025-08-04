@@ -4,10 +4,7 @@
     <div v-if="!isLoading && groupedInvoices.length > 0" class="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Fee Invoices & Payments</h3>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          {{ totalInvoices }} total invoices
-        </div>
-      </div>
+       </div>
     </div>
 
     <!-- Accordion Grouped Results -->
@@ -63,11 +60,18 @@
             
             <!-- Status Summary -->
             <div class="flex space-x-2">
+              <!-- Payment Success Indicator -->
+              <span v-if="paymentSuccessStates[studentGroup.studentId]" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 animate-pulse">
+                ✅ Payment Updated
+              </span>
               <span v-if="studentGroup.overdueCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                 {{ studentGroup.overdueCount }} Overdue
               </span>
               <span v-if="studentGroup.pendingCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                 {{ studentGroup.pendingCount }} Pending
+              </span>
+              <span v-if="studentGroup.partialCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                Partial Paid
               </span>
               <span v-if="studentGroup.paidCount > 0" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                 {{ studentGroup.paidCount }} Paid
@@ -100,29 +104,8 @@
             
             <!-- Invoice details content -->
             <div v-else-if="studentDetails[studentGroup.studentId] && studentDetails[studentGroup.studentId].summary" class="space-y-4">
-              <!-- Summary cards -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div class="text-xs text-gray-500 dark:text-gray-400">Total Amount</div>
-                  <div class="text-lg font-semibold text-gray-900 dark:text-white">₹{{ formatCurrency(studentDetails[studentGroup.studentId].summary?.total_amount) }}</div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div class="text-xs text-gray-500 dark:text-gray-400">Paid Amount</div>
-                  <div class="text-lg font-semibold text-green-600 dark:text-green-400">₹{{ formatCurrency(studentDetails[studentGroup.studentId].summary?.total_paid) }}</div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div class="text-xs text-gray-500 dark:text-gray-400">Balance</div>
-                  <div class="text-lg font-semibold text-red-600 dark:text-red-400">₹{{ formatCurrency(studentDetails[studentGroup.studentId].summary?.total_balance) }}</div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div class="text-xs text-gray-500 dark:text-gray-400">Total Invoices</div>
-                  <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ studentDetails[studentGroup.studentId].summary?.total_invoices }}</div>
-                </div>
-              </div>
-
               <!-- All Invoices Table (including grouped and individual) -->
               <div v-if="(studentDetails[studentGroup.studentId].ungrouped_invoices?.length > 0 || studentDetails[studentGroup.studentId].grouped_invoices?.length > 0)" class="space-y-3">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-white">All Invoices</h4>
                 <div class="overflow-x-auto">
                   <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
                     <thead class="bg-gray-100 dark:bg-gray-600">
@@ -144,22 +127,17 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                           <div class="flex items-center space-x-2">
                             <span>{{ getInvoiceNumber(invoice) }}</span>
-                            <!-- Show month for monthly invoices with icon -->
-                            <div v-if="invoice.payment_model === 'monthly' && invoice.month && invoice.year" class="flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400">
-                              <Calendar class="h-3 w-3" />
-                              <span>{{ getMonthName(invoice.month) }}</span>
+                            <!-- Show month for monthly invoices with styled badge -->
+                            <div v-if="invoice.payment_model === 'monthly' && invoice.month && invoice.year && !invoice.is_grouped" class="flex items-center space-x-1">
+                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {{ getMonthName(invoice.month) }}
+                              </span>
                             </div>
                             <!-- Show grouped indicator with tooltip only -->
                             <div v-if="invoice.is_grouped" class="flex items-center space-x-1 text-xs text-purple-600 dark:text-purple-400 cursor-help" :title="getGroupedInvoiceTooltip(invoice)">
-                              <CreditCard class="h-3 w-3" />
-                              <span>{{ invoice.months_covered || 'Multiple' }} months</span>
-                            </div>
-                            <!-- Show installment indicator -->
-                            <div v-else-if="invoice.payment_model === 'installment' && invoice.installment_number" class="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400">
-                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <span>Inst. {{ invoice.installment_number }}/{{ invoice.total_installments || 1 }}</span>
+                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {{ invoice.months_covered || 'Multiple' }} months
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -203,13 +181,6 @@
                         <!-- Actions -->
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                           <div class="flex space-x-2">
-                            <!-- View Button - Always show for all invoices -->
-                            <button
-                              @click="viewInvoice(invoice)"
-                              class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              View
-                            </button>
                             
                             <!-- Pay Now Button - Show for unpaid/partial invoices -->
                             <button
@@ -218,6 +189,14 @@
                               class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                             >
                               Pay Now
+                            </button>
+
+                             <!-- View Button - Always show for all invoices -->
+                             <button
+                              @click="viewInvoice(invoice)"
+                              class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              View
                             </button>
                             
                             <!-- View Receipt Button - Show for paid invoices -->
@@ -333,11 +312,26 @@ const clearStudentDetails = (studentId) => {
 
 // Update specific invoice data after payment
 const updateInvoiceAfterPayment = (studentId, invoiceId, updatedInvoiceData) => {
-  console.log('🔄 Updating invoice after payment:', { studentId, invoiceId, updatedInvoiceData });
+  // Show a brief loading state for the specific student
+  if (loadingDetails.value && !loadingDetails.value[studentId]) {
+    loadingDetails.value[studentId] = true;
+    
+    // Clear loading state after a short delay to show the update
+    setTimeout(() => {
+      if (loadingDetails.value) {
+        loadingDetails.value[studentId] = false;
+      }
+      
+      // Show success state briefly
+      paymentSuccessStates.value[studentId] = true;
+      setTimeout(() => {
+        paymentSuccessStates.value[studentId] = false;
+      }, 2000);
+    }, 500);
+  }
   
   // Add null checks to prevent unmounting errors
   if (!studentDetails.value || !studentDetails.value[studentId]) {
-    console.log('❌ Student details not found for studentId:', studentId);
     return;
   }
   
@@ -345,7 +339,6 @@ const updateInvoiceAfterPayment = (studentId, invoiceId, updatedInvoiceData) => 
   
   // Ensure studentData has the required properties
   if (!studentData.ungrouped_invoices || !studentData.grouped_invoices) {
-    console.log('❌ Student data missing required properties');
     return;
   }
   
@@ -357,71 +350,38 @@ const updateInvoiceAfterPayment = (studentId, invoiceId, updatedInvoiceData) => 
     total_amount: parseFloat(updatedInvoiceData.total_amount || 0)
   };
   
-  console.log('🔄 Normalized update data:', normalizedData);
-  
   // Update in ungrouped invoices
   const ungroupedIndex = studentData.ungrouped_invoices.findIndex(inv => inv && inv.id === invoiceId);
   if (ungroupedIndex !== -1) {
-    console.log('✅ Found invoice in ungrouped_invoices, updating...');
     // Use Vue's reactivity by updating properties directly
     const invoice = studentData.ungrouped_invoices[ungroupedIndex];
     if (invoice) {
-      const oldStatus = invoice.status;
-      const oldPaidAmount = invoice.paid_amount;
-      const oldBalanceAmount = invoice.balance_amount;
-      
       // Update the invoice with new data
       Object.assign(invoice, normalizedData);
-      
-      console.log('✅ Updated ungrouped invoice:', { 
-        oldStatus, 
-        newStatus: invoice.status, 
-        oldPaidAmount, 
-        newPaidAmount: invoice.paid_amount,
-        oldBalanceAmount,
-        newBalanceAmount: invoice.balance_amount
-      });
     }
   }
   
   // Update in grouped invoices
   const groupedIndex = studentData.grouped_invoices.findIndex(inv => inv && inv.id === invoiceId);
   if (groupedIndex !== -1) {
-    console.log('✅ Found invoice in grouped_invoices, updating...');
     // Use Vue's reactivity by updating properties directly
     const invoice = studentData.grouped_invoices[groupedIndex];
     if (invoice) {
-      const oldStatus = invoice.status;
-      const oldPaidAmount = invoice.paid_amount;
-      const oldBalanceAmount = invoice.balance_amount;
-      
       // Update the invoice with new data
       Object.assign(invoice, normalizedData);
-      
-      console.log('✅ Updated grouped invoice:', { 
-        oldStatus, 
-        newStatus: invoice.status, 
-        oldPaidAmount, 
-        newPaidAmount: invoice.paid_amount,
-        oldBalanceAmount,
-        newBalanceAmount: invoice.balance_amount
-      });
     }
   }
   
   // Recalculate summary reactively
   updateStudentSummary(studentData);
-  console.log('✅ Updated student summary');
   
   // Force Vue to re-render by triggering reactivity
   studentDetails.value = { ...studentDetails.value };
   
   // Also update the main grouped invoices list if this student is in the current view
-  console.log('🔄 Checking if student is in main grouped invoices...');
   const mainGroupedInvoices = props.groupedInvoices || [];
   const mainStudentIndex = mainGroupedInvoices.findIndex(student => student.studentId === studentId);
   if (mainStudentIndex !== -1) {
-    console.log('✅ Found student in main grouped invoices, updating summary...');
     const mainStudent = mainGroupedInvoices[mainStudentIndex];
     
     // Update the main student summary as well
@@ -489,6 +449,7 @@ const expandedStudents = ref([]);
 const studentDetails = ref({});
 const loadingDetails = ref({});
 const detailErrors = ref({});
+const paymentSuccessStates = ref({}); // Track payment success states
 
 // Accordion methods with lazy loading
 const toggleStudent = async (studentId) => {
@@ -571,6 +532,7 @@ defineExpose({
   clearStudentDetails,
   updateInvoiceAfterPayment,
   refreshStudentDetails: loadStudentDetails,
+  getExpandedStudents: () => expandedStudents.value || [],
   forceRefreshStudentDetails: async (studentId) => {
     // Force refresh by clearing cache and reloading
     if (studentDetails.value && studentDetails.value[studentId]) {
@@ -764,7 +726,18 @@ const getPaymentModelIcon = (invoice) => {
 
 const getStudentName = (invoice) => {
   if (invoice.student) {
-    return `${invoice.student.first_name} ${invoice.student.last_name ? invoice.student.last_name : ''}`;
+    const firstName = invoice.student.first_name || '';
+    const lastName = invoice.student.last_name || '';
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (lastName) {
+      return lastName;
+    } else {
+      return 'Unknown Student';
+    }
   }
   return 'N/A';
 };

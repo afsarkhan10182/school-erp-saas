@@ -1,4 +1,4 @@
-const { FeeStructure, FeeType, AcademicYear, Class } = require('../models');
+const { FeeStructure, FeeType, AcademicYear, Class, Branch } = require('../models');
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
@@ -296,6 +296,11 @@ const getFeeStructures = async (req, res, next) => {
           model: FeeType,
           as: 'feeType',
         },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
       ],
       order: [['academic_year', 'DESC'], ['class_name', 'ASC']],
     });
@@ -336,6 +341,11 @@ const getFeeStructureById = async (req, res, next) => {
         {
           model: FeeType,
           as: 'feeType',
+        },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
         },
       ],
     });

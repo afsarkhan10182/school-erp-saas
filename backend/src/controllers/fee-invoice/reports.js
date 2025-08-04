@@ -3,6 +3,22 @@ const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
@@ -358,7 +374,7 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     // Convert to export format
     const exportData = invoices.map(invoice => ({
       'Invoice Number': invoice.invoice_number,
-      'Student Name': invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
+              'Student Name': invoice.student ? getStudentFullName(invoice.student) : 'N/A',
       'Admission Number': invoice.student?.admission_number || 'N/A',
       'Class': invoice.student?.current_class || 'N/A',
       'Section': invoice.student?.section || 'N/A',
