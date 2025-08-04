@@ -1,9 +1,27 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../../models');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class, sequelize } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateCombinedReceipt } = require('./receipts');
 const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('../../utils/academicYearUtils');
+const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 
 // Shared utility function to get student invoices
 const getStudentInvoices = async (studentId, schoolId, options = {}) => {
@@ -46,6 +64,10 @@ const getStudentInvoices = async (studentId, schoolId, options = {}) => {
         {
           model: FeeType,
           as: 'feeType',
+        },
+        {
+          model: Class,
+          as: 'class',
         },
       ],
     });
@@ -148,7 +170,7 @@ const getStudentDues = async (req, res, next) => {
       groupedMonthlyPayments.push({
         id: group.receipt_group_id, // Use receipt_group_id as ID for grouping
         receipt_group_id: group.receipt_group_id,
-        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: `INV-${group.receipt_group_id.slice(-8)}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -162,8 +184,14 @@ const getStudentDues = async (req, res, next) => {
         year: years[0],
         months_covered: group.invoices.length,
         month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
-        month_names: group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', '),
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
+        month_names: group.invoices.map(inv => {
+          const monthName = getMonthName(inv.month);
+          return `${monthName} ${inv.year}`;
+        }).join(', '),
+        display_name: `INV-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => {
+          const monthName = getMonthName(inv.month);
+          return `${monthName} ${inv.year}`;
+        }).join(', ')} (₹${group.total_paid.toLocaleString()})`,
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -353,7 +381,7 @@ const getStudentFeeLedger = async (req, res, next) => {
       groupedMonthlyPayments.push({
         id: group.receipt_group_id, // Use receipt_group_id as ID for grouping
         receipt_group_id: group.receipt_group_id,
-        invoice_number: `RCP-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: `INV-${group.receipt_group_id.slice(-8)}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -367,8 +395,14 @@ const getStudentFeeLedger = async (req, res, next) => {
         year: years[0],
         months_covered: group.invoices.length,
         month_range: months.length > 1 ? `${months[0]} - ${months[months.length - 1]}` : months[0],
-        month_names: group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', '),
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => `${inv.month}/${inv.year}`).join(', ')} (₹${group.total_paid.toLocaleString()})`,
+        month_names: group.invoices.map(inv => {
+          const monthName = getMonthName(inv.month);
+          return `${monthName} ${inv.year}`;
+        }).join(', '),
+        display_name: `INV-${group.receipt_group_id.slice(-8)} → Paid for ${group.invoices.map(inv => {
+          const monthName = getMonthName(inv.month);
+          return `${monthName} ${inv.year}`;
+        }).join(', ')} (₹${group.total_paid.toLocaleString()})`,
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -407,7 +441,7 @@ const getStudentFeeLedger = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           class: student.current_class,
           section: student.section,
@@ -590,8 +624,42 @@ const recordSmartPayment = async (req, res, next) => {
     const errors = [];
     const processedInvoices = [];
 
-    // Generate a common receipt group ID for this smart payment
-    const receiptGroupId = `RCP-GROUP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a common receipt group ID for this smart payment using the same pattern as invoices
+    let classCode = 'GEN'; // Default fallback
+    if (pendingInvoices[0]?.feeStructure?.class_name) {
+      classCode = getClassCode(pendingInvoices[0].feeStructure);
+    } else if (student.current_class) {
+      const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+    
+    // Use generateUniqueInvoiceNumber to get the proper invoice number pattern
+    const tempGroupInvoice = await generateUniqueInvoiceNumber(classCode, {
+      student_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+      fee_structure_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+      academic_year: 'TEMP',
+      class_name: 'TEMP',
+      fee_type_name: 'TEMP',
+      due_date: new Date(),
+      amount: 0,
+      base_amount: 0,
+      discount_amount: 0,
+      tax_amount: 0,
+      total_amount: 0,
+      paid_amount: 0,
+      balance_amount: 0,
+      status: 'draft',
+      payment_status: 'pending',
+      installment_number: 1,
+      total_installments: 1,
+      payment_model: 'installment',
+      school_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+      created_by: null, // Use null instead of fake UUID
+    }, true); // Set receiptOnly to true to avoid creating database record
+    
+    // Convert the invoice number to a group receipt ID
+    const receiptGroupId = tempGroupInvoice.invoice_number.replace('INV-', 'INV-GROUP-');
     
     // Enhanced allocation logic with monthly payment support
     // Calculate how many months can be covered by this payment
@@ -641,10 +709,43 @@ const recordSmartPayment = async (req, res, next) => {
       const newBalanceAmount = parseFloat(invoice.total_amount || 0) - newPaidAmount;
 
       try {
+        // Generate receipt number using the same pattern as invoices
+        let classCode = 'GEN'; // Default fallback
+        if (pendingInvoices[0]?.feeStructure?.class_name) {
+          classCode = getClassCode(pendingInvoices[0].feeStructure);
+        } else if (student.current_class) {
+          const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+          classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+        }
+
         // Create payment record for historical tracking
+        const tempInvoice = await generateUniqueInvoiceNumber(classCode, {
+          student_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+          fee_structure_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+          academic_year: 'TEMP',
+          class_name: 'TEMP',
+          fee_type_name: 'TEMP',
+          due_date: new Date(),
+          amount: 0,
+          base_amount: 0,
+          discount_amount: 0,
+          tax_amount: 0,
+          total_amount: 0,
+          paid_amount: 0,
+          balance_amount: 0,
+          status: 'draft',
+          payment_status: 'pending',
+          installment_number: 1,
+          total_installments: 1,
+          payment_model: 'installment',
+          school_id: '00000000-0000-0000-0000-000000000000', // Temporary UUID
+          created_by: null, // Use null instead of fake UUID
+        }, true); // Set receiptOnly to true to avoid creating database record
+
         const paymentData = {
           payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          receipt_number: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          receipt_number: tempInvoice.invoice_number,
           invoice_id: invoice.id,
           student_id: student.id,
           payment_amount: amountToApply,
@@ -742,15 +843,27 @@ const recordSmartPayment = async (req, res, next) => {
       payment_method,
       transaction_id,
       school,
-      student
+      student,
+      receiptGroupId // Pass the receipt group ID to preserve historical state
     );
+
+    // Store receipt data in the first payment for future reference
+    if (appliedPayments.length > 0) {
+      const firstPaymentId = appliedPayments[0].payment_id;
+      const firstPayment = await FeePayment.findByPk(firstPaymentId);
+      if (firstPayment) {
+        // Always store the receipt data to ensure historical state is preserved
+        await firstPayment.update({ receipt_data: combinedReceipt.receipt_data });
+        logger.info(`Stored combined receipt data for group ${receiptGroupId} in payment ${firstPaymentId}`);
+      }
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Smart payment recorded successfully',
       data: {
         student_id,
-        student_name: `${student.first_name} ${student.last_name}`,
+        student_name: getStudentFullName(student),
         total_payment_amount: parseFloat(payment_amount),
         total_applied_amount: totalApplied,
         remaining_amount: remainingAmount,
@@ -903,7 +1016,7 @@ const getAvailableMonths = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           class: student.current_class,
           section: student.section,
@@ -1020,7 +1133,7 @@ const getGroupedStudentInvoices = async (req, res, next) => {
         month_range: monthRange,
         year: years[0],
         month_names: monthNames,
-        display_name: `RCP-${group.receipt_group_id.slice(-8)} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
         status: group.total_balance <= 0 ? 'paid' : 'partial_paid',
       };
     });
@@ -1033,7 +1146,7 @@ const getGroupedStudentInvoices = async (req, res, next) => {
       data: {
         student: {
           id: student.id,
-          name: `${student.first_name} ${student.last_name}`,
+          name: getStudentFullName(student),
           admission_number: student.admission_number,
           current_class: student.current_class,
           section: student.section,
@@ -1055,10 +1168,349 @@ const getGroupedStudentInvoices = async (req, res, next) => {
   }
 };
 
+// Get paginated student fee invoice summaries (optimized for performance)
+const getStudentFeeInvoiceSummary = async (req, res, next) => {
+  try {
+    const {
+      academic_year,
+      class_name,
+      class_id,
+      section,
+      status,
+      branch_id,
+      page = 1,
+      limit = 10,
+      payment_model,
+      search,
+    } = req.query;
+    
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build student filter
+    const studentWhereClause = {
+      school_id: req.schoolId,
+    };
+
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      // Branch admin can only see students from their assigned branch
+      studentWhereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // Super admin and school admin can filter by specific branch if provided
+      studentWhereClause.branch_id = branch_id;
+    }
+
+    // Handle class filtering - support both class_name and class_id
+    if (class_id) {
+      // If class_id is provided, get the class name from the Class model
+      const classRecord = await Class.findByPk(class_id);
+      if (classRecord) {
+        studentWhereClause.current_class = classRecord.name;
+      }
+    } else if (class_name) {
+      const classCode = class_name.replace(/^Class\s+/i, '').trim();
+      studentWhereClause.current_class = {
+        [Op.or]: [class_name, classCode]
+      };
+    }
+    if (section) studentWhereClause.section = section;
+
+    // Add search filter
+    if (search) {
+      studentWhereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    // Get paginated students
+    const { count: totalStudents, rows: students } = await Student.findAndCountAll({
+      where: studentWhereClause,
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
+      ],
+      order: [['first_name', 'ASC'], ['last_name', 'ASC']],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    if (students.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          current_page: parseInt(page),
+          total_pages: 0,
+          total_students: 0,
+          students: [],
+        },
+      });
+    }
+
+    // Get student IDs
+    const studentIds = students.map(student => student.id);
+
+    // Build invoice filter for summary calculations only
+    const invoiceWhereClause = {
+      student_id: { [Op.in]: studentIds },
+      school_id: req.schoolId,
+    };
+
+    // Apply filters only if they are provided and not empty
+    if (academic_year && academic_year.trim() !== '') {
+      invoiceWhereClause.academic_year = academic_year;
+    }
+    if (status && status.trim() !== '') {
+      invoiceWhereClause.status = status;
+    }
+    if (payment_model && payment_model.trim() !== '') {
+      invoiceWhereClause.payment_model = payment_model;
+    }
+
+    // Use Sequelize aggregation for fast summary calculations
+    const invoiceSummaries = await FeeInvoice.findAll({
+      where: invoiceWhereClause,
+      attributes: [
+        'student_id',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'total_invoices'],
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_amount'],
+        [sequelize.fn('SUM', sequelize.col('paid_amount')), 'paid_amount'],
+        [sequelize.fn('SUM', sequelize.col('balance_amount')), 'balance_amount'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'paid' THEN 1 END")), 'paid_count'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'sent' THEN 1 END")), 'pending_count'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'overdue' THEN 1 END")), 'overdue_count'],
+        [sequelize.fn('COUNT', sequelize.literal("CASE WHEN status = 'partial_paid' THEN 1 END")), 'partial_count'],
+      ],
+      group: ['student_id'],
+      raw: true,
+    });
+
+    // Create a map for quick lookup
+    const summaryMap = {};
+    invoiceSummaries.forEach(summary => {
+      summaryMap[summary.student_id] = {
+        total_invoices: parseInt(summary.total_invoices) || 0,
+        total_amount: parseFloat(summary.total_amount) || 0,
+        paid_amount: parseFloat(summary.paid_amount) || 0,
+        balance_amount: parseFloat(summary.balance_amount) || 0,
+        paid_count: parseInt(summary.paid_count) || 0,
+        pending_count: parseInt(summary.pending_count) || 0,
+        overdue_count: parseInt(summary.overdue_count) || 0,
+        partial_count: parseInt(summary.partial_count) || 0,
+      };
+    });
+
+    // Build response data with students and their summaries only
+    const studentsData = students.map(student => {
+      const summary = summaryMap[student.id] || {
+        total_invoices: 0,
+        total_amount: 0,
+        paid_amount: 0,
+        balance_amount: 0,
+        paid_count: 0,
+        pending_count: 0,
+        overdue_count: 0,
+        partial_count: 0,
+      };
+
+      return {
+        student_id: student.id,
+        student_name: getStudentFullName(student),
+        admission_number: student.admission_number,
+        class_name: student.current_class,
+        section: student.section,
+        branch: student.branch,
+        total_invoices: summary.total_invoices,
+        total_amount: summary.total_amount,
+        paid_amount: summary.paid_amount,
+        balance_amount: summary.balance_amount,
+        paid_count: summary.paid_count,
+        pending_count: summary.pending_count,
+        overdue_count: summary.overdue_count,
+        partial_count: summary.partial_count,
+        // Keep empty arrays for now - we'll populate them below
+        invoices: [],
+        grouped_invoices: [],
+        ungrouped_invoices: [],
+      };
+    });
+
+    // Now fetch detailed invoices for students who have them (only if needed)
+    const studentsWithInvoices = studentsData.filter(student => student.total_invoices > 0);
+    
+    if (studentsWithInvoices.length > 0) {
+      const studentIdsWithInvoices = studentsWithInvoices.map(student => student.student_id);
+      
+      // Fetch detailed invoices for students who have them
+      const detailedInvoices = await FeeInvoice.findAll({
+        where: {
+          student_id: { [Op.in]: studentIdsWithInvoices },
+          school_id: req.schoolId,
+        },
+        include: [
+          {
+            model: FeeStructure,
+            as: 'feeStructure',
+            include: [
+              {
+                model: FeeType,
+                as: 'feeType',
+              },
+            ],
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code'],
+          },
+        ],
+        order: [['created_at', 'DESC']],
+      });
+
+      // Group invoices by student
+      const studentInvoices = {};
+      detailedInvoices.forEach(invoice => {
+        const studentId = invoice.student_id;
+        if (!studentInvoices[studentId]) {
+          studentInvoices[studentId] = [];
+        }
+        studentInvoices[studentId].push(invoice);
+      });
+
+      // Group invoices by receipt_group_id for paid/partial_paid invoices
+      const groupedInvoices = {};
+      const ungroupedInvoices = [];
+
+      detailedInvoices.forEach(invoice => {
+        if (invoice.receipt_group_id && ['paid', 'partial_paid'].includes(invoice.status)) {
+          if (!groupedInvoices[invoice.receipt_group_id]) {
+            groupedInvoices[invoice.receipt_group_id] = {
+              receipt_group_id: invoice.receipt_group_id,
+              invoices: [],
+              total_amount: 0,
+              total_paid: 0,
+              total_balance: 0,
+              payment_date: invoice.last_payment_date,
+              payment_method: invoice.payment_method,
+              transaction_id: invoice.transaction_id,
+              status: invoice.status,
+              student: invoice.student,
+              branch: invoice.branch,
+              feeStructure: invoice.feeStructure,
+              payment_model: invoice.payment_model,
+            };
+          }
+          groupedInvoices[invoice.receipt_group_id].invoices.push(invoice);
+          groupedInvoices[invoice.receipt_group_id].total_amount += parseFloat(invoice.total_amount || 0);
+          groupedInvoices[invoice.receipt_group_id].total_paid += parseFloat(invoice.paid_amount || 0);
+          groupedInvoices[invoice.receipt_group_id].total_balance += parseFloat(invoice.balance_amount || 0);
+        } else {
+          ungroupedInvoices.push(invoice);
+        }
+      });
+
+      // Helper function to get month name
+      const getMonthName = (month) => {
+        const months = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        return months[month - 1] || month;
+      };
+
+      // Convert grouped invoices to array format with enhanced info
+      const groupedArray = Object.values(groupedInvoices).map(group => {
+        const months = group.invoices.map(inv => inv.month).sort((a, b) => a - b);
+        const years = [...new Set(group.invoices.map(inv => inv.year))];
+        
+        // Format month names with years
+        const monthNames = group.invoices.map(inv => {
+          const monthName = getMonthName(inv.month);
+          return `${monthName} ${inv.year}`;
+        }).join(', ');
+        
+        // Format month range with years
+        let monthRange = '';
+        if (months.length > 1) {
+          const startMonth = getMonthName(months[0]);
+          const endMonth = getMonthName(months[months.length - 1]);
+          monthRange = `${startMonth} ${years[0]} - ${endMonth} ${years[0]}`;
+        } else {
+          const monthName = getMonthName(months[0]);
+          monthRange = `${monthName} ${years[0]}`;
+        }
+        
+
+        
+        return {
+          id: group.receipt_group_id,
+          receipt_group_id: group.receipt_group_id,
+          invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
+          fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
+          class_name: group.invoices[0]?.class_name,
+          section: group.invoices[0]?.section,
+          total_amount: group.total_amount,
+          paid_amount: group.total_paid,
+          balance_amount: group.total_balance,
+          due_date: group.invoices[0]?.due_date,
+          status: group.total_balance <= 0 ? 'paid' : 'partial_paid',
+          academic_year: group.invoices[0]?.academic_year,
+          month: months[0],
+          year: years[0],
+          months_covered: group.invoices.length,
+          month_range: monthRange,
+          month_names: monthNames,
+          display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+          payment_date: group.payment_date,
+          payment_method: group.payment_method,
+          transaction_id: group.transaction_id,
+          payment_model: group.payment_model,
+          student: group.student,
+          branch: group.branch,
+          feeStructure: group.feeStructure,
+          is_grouped: true
+        };
+      });
+
+      // Sort by payment date (newest first)
+      groupedArray.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+
+      // Update students with their detailed invoices
+      studentsData.forEach(student => {
+        const studentInvoicesList = studentInvoices[student.student_id] || [];
+        student.invoices = studentInvoicesList;
+        
+        student.grouped_invoices = groupedArray.filter(group => group.student?.id === student.student_id);
+        student.ungrouped_invoices = ungroupedInvoices.filter(inv => inv.student_id === student.student_id);
+      });
+    }
+
+    const totalPages = Math.ceil(totalStudents / parseInt(limit));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        current_page: parseInt(page),
+        total_pages: totalPages,
+        total_students: totalStudents,
+        students: studentsData,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student fee invoice summary:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   getStudentDues,
   getStudentFeeLedger,
   recordSmartPayment,
   getAvailableMonths,
   getGroupedStudentInvoices,
+  getStudentFeeInvoiceSummary,
 }; 

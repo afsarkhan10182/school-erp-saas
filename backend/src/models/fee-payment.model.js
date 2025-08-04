@@ -82,19 +82,14 @@ const FeePayment = sequelize.define('FeePayment', {
     allowNull: false,
     defaultValue: 'completed',
   },
-  receipt_html: {
+  notes: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'Generated receipt HTML content',
   },
   receipt_data: {
     type: DataTypes.JSONB,
     allowNull: true,
-    comment: 'Receipt data for regeneration',
-  },
-  notes: {
-    type: DataTypes.TEXT,
-    allowNull: true,
+    comment: 'Receipt data snapshot at the time of payment',
   },
   school_id: {
     type: DataTypes.UUID,

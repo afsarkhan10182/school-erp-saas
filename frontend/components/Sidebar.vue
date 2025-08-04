@@ -330,12 +330,12 @@ const menuGroups = computed(() => {
   }
 
   // Reports & Analytics
-  if (isSuperAdmin.value) {
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'reports',
       title: 'Reports & Analytics',
       items: [
-        { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
+        // { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
         { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
       ]
     });

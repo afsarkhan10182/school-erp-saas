@@ -20,14 +20,18 @@ const {
   getReceiptForInvoice,
   getInvoicePayments,
   getPaymentById,
-  getPaymentReceipt,
   getStudentPayments,
   getGroupedReceipts,
   getAvailableMonths,
   getGroupedStudentInvoices,
   getGroupedInvoices,
   getCombinedReceiptByGroupId,
-  getCollections
+  getCollections,
+  // On-demand receipt endpoints
+  getReceiptData,
+  getCombinedReceiptData,
+  getInvoiceReceiptData,
+  getStudentFeeInvoiceSummary
 } = require('../controllers/fee-invoice');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
 const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
@@ -65,6 +69,9 @@ router.get('/available-months', requireRole('super_admin', 'school_admin', 'bran
 // GET endpoint to retrieve grouped student invoices for better UI display
 router.get('/grouped-student-invoices', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getGroupedStudentInvoices);
 
+// GET endpoint to retrieve paginated student fee invoice summaries (new performance-optimized endpoint)
+router.get('/student-fee-summary', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentFeeInvoiceSummary);
+
 // GET endpoint to retrieve grouped invoices for better UI display
 router.get('/grouped', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getGroupedInvoices);
 
@@ -97,6 +104,22 @@ router.get('/export', requireRole('super_admin', 'school_admin', 'branch_admin',
 // GET endpoint to retrieve collections (payments)
 router.get('/collections', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getCollections);
 
+// Payment-specific routes (MUST come before /:id routes to avoid conflicts)
+// GET endpoint to get a specific payment by ID
+router.get('/payment/:paymentId', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getPaymentById);
+
+// GET endpoint to get receipt data for a specific payment (on-demand - returns structured data)
+router.get('/payment/:paymentId/receipt-data', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptData);
+
+// GET endpoint to generate receipt data for a specific payment (on-demand - returns structured data)
+router.get('/payment/:paymentId/generate-receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptData);
+
+// POST endpoint to get combined receipt data for multiple payments (on-demand)
+router.post('/receipts/combined-data', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getCombinedReceiptData);
+
+
+
+// Invoice-specific routes
 // GET endpoint to retrieve a specific invoice by ID
 router.get('/:id', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoiceById);
 
@@ -108,9 +131,6 @@ router.post('/:id/payment', requireRole('super_admin', 'school_admin', 'branch_a
 
 // GET endpoint to get all payments for an invoice
 router.get('/:id/payments', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoicePayments);
-
-// POST endpoint to generate receipt for an invoice
-router.post('/:id/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), generateReceiptForInvoice);
 
 // GET endpoint to get receipt for an invoice
 router.get('/:id/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptForInvoice);
@@ -124,12 +144,11 @@ router.post('/:id/late-fees', requireRole('super_admin', 'school_admin', 'branch
 // POST endpoint to manually adjust invoice (admin only)
 router.post('/:id/adjust', requireRole('super_admin', 'school_admin', 'branch_admin'), adjustInvoice);
 
-// Payment-specific routes
-// GET endpoint to get a specific payment by ID
-router.get('/payment/:paymentId', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getPaymentById);
+// GET endpoint to get receipt data for an invoice (on-demand)
+router.get('/:id/receipt-data', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoiceReceiptData);
 
-// GET endpoint to get receipt for a specific payment
-router.get('/payment/:paymentId/receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getPaymentReceipt);
+// GET endpoint to generate receipt data for an invoice (on-demand)
+router.get('/:id/generate-receipt', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getInvoiceReceiptData);
 
 // GET endpoint to get all payments for a student
 router.get('/student/:studentId/payments', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentPayments);

@@ -142,6 +142,15 @@ const FeeStructure = sequelize.define('FeeStructure', {
       notEmpty: { msg: 'Class name is required' },
     },
   },
+  class_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'classes',
+      key: 'id',
+    },
+    comment: 'Reference to the Class model for proper class code lookup'
+  },
   applicable_classes: {
     type: DataTypes.JSONB,
     allowNull: true,
@@ -362,6 +371,12 @@ FeeStructure.associate = (models) => {
   FeeStructure.belongsTo(models.User, {
     foreignKey: 'updated_by',
     as: 'updatedBy',
+  });
+
+  // FeeStructure belongs to Class
+  FeeStructure.belongsTo(models.Class, {
+    foreignKey: 'class_id',
+    as: 'class',
   });
 };
 

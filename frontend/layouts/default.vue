@@ -7,7 +7,6 @@
 
     <!-- Main content -->
     <div 
-      :key="`main-${isLoggedIn}-${sidebarOpen}`" 
       :class="mainContentClasses" 
       class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300 z-0"
     >
@@ -55,7 +54,6 @@ const { isMobile } = useMobileDetection();
 
 // Initialize sidebar state with a default that works for both server and client
 const sidebarOpen = ref(true); // Default to open for consistent SSR
-const router = useRouter();
 const route = useRoute();
 
 let mql;

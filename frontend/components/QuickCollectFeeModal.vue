@@ -1,6 +1,6 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="$emit('close')">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
       <div class="mt-3">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">
@@ -15,18 +15,30 @@
           </div>
 
         <!-- Student Selection -->
-        <div class="mb-6">
+        <div class="mb-6 relative search-area">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Select Student
           </label>
           <div class="flex gap-4">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search by name or admission number..."
-              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              @input="debouncedSearch"
-            />
+            <div class="flex-1 relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search by name or admission number..."
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                @input="debouncedSearch"
+                @focus="searchStudents"
+              />
+              <!-- Clear button when student is selected -->
+              <button
+                v-if="selectedStudent"
+                @click="clearSelection"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                title="Clear selection"
+              >
+                <X class="h-4 w-4" />
+              </button>
+            </div>
             <button
               @click="searchStudents"
               class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
@@ -36,14 +48,14 @@
           </div>
 
           <!-- Student Results -->
-          <div v-if="searchResults.length > 0" class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md">
+          <div v-if="searchResults.length > 0" class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative">
             <div
               v-for="student in searchResults"
               :key="student.id"
               @click="selectStudent(student)"
               class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0"
             >
-              <div class="font-medium">{{ student.first_name }} {{ student.last_name }}</div>
+              <div class="font-medium">{{ getStudentFullName(student) }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
                 {{ student.admission_number }} - {{ student.current_class }}{{ student.section ? `-${student.section}` : '' }}
               </div>
@@ -55,7 +67,7 @@
         <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
           <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
             <h4 class="font-medium text-gray-900 dark:text-white mb-2">
-              {{ selectedStudent.first_name }} {{ selectedStudent.last_name }}
+                              {{ getStudentFullName(selectedStudent) }}
             </h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
@@ -279,7 +291,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
 import { useToast } from '~/composables/useToast';
@@ -337,16 +349,32 @@ const searchStudents = async () => {
     });
     searchResults.value = response.data || [];
   } catch (error) {
-    console.error('Error searching students:', error);
     searchResults.value = [];
   }
+};
+
+// Handle clicking outside search area
+const handleClickOutside = (event) => {
+  // Close search results when clicking outside the search area
+  if (!event.target.closest('.search-area')) {
+    searchResults.value = [];
+  }
+};
+
+// Clear student selection and allow new search
+const clearSelection = () => {
+  selectedStudent.value = null;
+  studentDues.value = null;
+  searchQuery.value = '';
+  searchResults.value = [];
+  lastPaymentReceipt.value = null;
 };
 
 // Select student and load dues
 const selectStudent = async (student) => {
   selectedStudent.value = student;
-  searchResults.value = [];
-  searchQuery.value = `${student.first_name} ${student.last_name}`;
+  searchResults.value = []; // Clear search results
+  searchQuery.value = getStudentFullName(student);
   
   await loadStudentDues(student.id);
 };
@@ -373,7 +401,6 @@ const loadStudentDues = async (studentId) => {
     };
     
   } catch (error) {
-    console.error('Error loading student dues:', error);
     // Set default structure on error
     studentDues.value = {
       summary: {
@@ -416,12 +443,6 @@ const submitPayment = async () => {
       notes: ''
     };
     
-    // Reload student dues
-    await loadStudentDues(selectedStudent.value.id);
-    
-    // Emit success event
-    emit('payment-recorded');
-    
     // Store receipt data (without months info)
     const data = response.data;
     lastPaymentReceipt.value = {
@@ -429,18 +450,23 @@ const submitPayment = async () => {
       payment_date: data.applied_payments[0]?.payment_date || new Date(),
       amount: data.total_payment_amount,
       payment_method: paymentForm.value.payment_method,
-      receipt_html: data.combined_receipt
+      receipt_data: data.combined_receipt.receipt_data
     };
     
     // Show simple success message
     showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
     
-    // Close modal on success
-    emit('close');
+    // Show receipt first, then close modal and update listing
     emit('view-combined-receipt', data);
     
+    // Close modal after showing receipt
+    setTimeout(() => {
+      emit('close');
+      // Emit payment recorded event to update listing after receipt is shown
+      emit('payment-recorded');
+    }, 100);
+    
   } catch (error) {
-    console.error('Error recording auto payment:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -498,6 +524,22 @@ const getMonthlyStatusText = (status) => {
   return texts[status] || status;
 };
 
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
 const getMonthName = (monthNumber) => {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -523,12 +565,25 @@ watch(() => props.show, (newValue) => {
       notes: ''
     };
     lastPaymentReceipt.value = null;
+    
+    // Add click outside listener
+    document.addEventListener('click', handleClickOutside);
+  } else {
+    // Remove click outside listener when modal closes
+    document.removeEventListener('click', handleClickOutside);
   }
 });
 
 // Watch for search query changes to trigger debounced search
 watch(searchQuery, () => {
-  debouncedSearch();
+  if (!searchQuery.value.trim()) {
+    searchResults.value = [];
+  } else {
+    // Only search if no student is currently selected or if the query is different from selected student
+    if (!selectedStudent.value || searchQuery.value !== getStudentFullName(selectedStudent.value)) {
+      debouncedSearch();
+    }
+  }
 });
 
 // Computed properties
@@ -572,5 +627,10 @@ const validationMessage = computed(() => {
   }
   
   return '';
+});
+
+// Cleanup event listeners on component unmount
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script> 

@@ -32,7 +32,7 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-                {{ student.first_name }} {{ student.last_name }}
+                {{ getStudentFullName(student) }}
               </h3>
               <p class="text-sm text-gray-500 dark:text-gray-400">
                 Admission: {{ student.admission_number }}
@@ -203,28 +203,68 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <div>
                     <div class="font-medium">{{ invoice.invoice_number || 'N/A' }}</div>
-                    <div v-if="invoice.is_grouped" class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ invoice.months_covered }} month(s): {{ invoice.month_names }}
+                    <div 
+                      v-if="invoice.is_grouped" 
+                      class="text-xs text-gray-500 dark:text-gray-400 cursor-help"
+                      :title="`Detailed months: ${invoice.month_names}`"
+                    >
+                      <span class="font-medium text-blue-600 dark:text-blue-400">{{ invoice.months_covered }} month(s)</span>
+                    </div>
+                    <div 
+                      v-else-if="invoice.payment_model === 'monthly' && invoice.month && invoice.year"
+                      class="text-xs text-gray-500 dark:text-gray-400 cursor-help"
+                      :title="`Monthly payment for ${getMonthName(invoice.month)} ${invoice.year}`"
+                    >
+                      {{ getMonthName(invoice.month) }} {{ invoice.year }}
                     </div>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ invoice.fee_type || invoice.feeStructure?.feeType?.name || 'Unknown' }}
+                  <span 
+                    class="cursor-help"
+                    :title="`Fee Type: ${invoice.fee_type || invoice.feeStructure?.feeType?.name || 'Unknown'}\nPayment Model: ${invoice.payment_model || 'installment'}\nAcademic Year: ${invoice.academic_year || 'N/A'}`"
+                  >
+                    {{ invoice.fee_type || invoice.feeStructure?.feeType?.name || 'Unknown' }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ formatDate(invoice.due_date) }}
+                  <span 
+                    class="cursor-help"
+                    :title="`Due Date: ${formatDate(invoice.due_date)}\nInvoice Date: ${formatDate(invoice.invoice_date)}\nDays Overdue: ${getDaysOverdue(invoice.due_date)}`"
+                  >
+                    {{ formatDate(invoice.due_date) }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ formatCurrency(invoice.total_amount) }}
+                  <span 
+                    class="cursor-help"
+                    :title="`Total Amount: ₹${formatCurrency(invoice.total_amount)}\nBase Amount: ₹${formatCurrency(invoice.base_amount || invoice.total_amount)}\nDiscount: ₹${formatCurrency(invoice.discount_amount || 0)}\nTax: ₹${formatCurrency(invoice.tax_amount || 0)}`"
+                  >
+                    ₹{{ formatCurrency(invoice.total_amount) }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ formatCurrency(invoice.paid_amount) }}
+                  <span 
+                    class="cursor-help"
+                    :title="`Paid Amount: ₹${formatCurrency(invoice.paid_amount)}\nPayment Percentage: ${invoice.total_amount ? Math.round((invoice.paid_amount / invoice.total_amount) * 100) : 0}%`"
+                  >
+                    ₹{{ formatCurrency(invoice.paid_amount) }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  ₹{{ formatCurrency(invoice.balance_amount) }}
+                  <span 
+                    class="cursor-help"
+                    :title="`Balance Amount: ₹${formatCurrency(invoice.balance_amount)}\nRemaining Percentage: ${invoice.total_amount ? Math.round((invoice.balance_amount / invoice.total_amount) * 100) : 0}%`"
+                  >
+                    ₹{{ formatCurrency(invoice.balance_amount) }}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(invoice.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  <span 
+                    :class="getStatusClass(invoice.status)" 
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-help"
+                    :title="`Status: ${getStatusText(invoice.status)}\nPayment Status: ${invoice.payment_status || 'pending'}\nLast Payment: ${invoice.last_payment_date ? formatDate(invoice.last_payment_date) : 'No payments yet'}`"
+                  >
                     {{ getStatusText(invoice.status) }}
                   </span>
                 </td>
@@ -263,49 +303,17 @@
         </div>
         
         <!-- Pagination -->
-        <div v-if="ledgerData.pagination.total_pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <button
-              @click="previousPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              @click="nextPage"
-              :disabled="currentPage >= ledgerData.pagination.total_pages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, ledgerData.pagination.total_count) }}</span> of <span class="font-medium">{{ ledgerData.pagination.total_count }}</span> results
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= ledgerData.pagination.total_pages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <Pagination 
+          v-if="ledgerData.pagination.total_pages > 1"
+          :pagination="{
+            page: currentPage,
+            limit: pageSize,
+            total: ledgerData.pagination.total_count
+          }"
+          item-label="invoices"
+          @page-changed="goToPage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
 
       <div v-else-if="ledgerData && ledgerData.invoices.length === 0" class="text-center py-8">
@@ -527,176 +535,148 @@
 
     <!-- Receipt Modal -->
     <div v-if="showReceiptModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-              Payment Receipt - {{ selectedPayment?.receipt_number }}
-            </h3>
-            <div class="flex items-center space-x-2">
-              <!-- Print Button -->
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
+            <div class="flex space-x-2">
               <button
                 @click="printReceipt"
-                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
                 Print Receipt
               </button>
-              <!-- Close Button -->
               <button
                 @click="showReceiptModal = false"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
-                <X class="h-6 w-6" />
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
-
-          <div v-if="selectedPayment" class="receipt-content print-friendly" v-html="selectedPayment.receipt_html"></div>
+          
+          <div v-if="isLoadingReceiptContent" class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipt...</span>
+          </div>
+          
+          <div v-else-if="selectedReceipt" class="receipt-content max-h-96 overflow-y-auto">
+            <ReceiptViewer 
+              :receipt-data="selectedReceipt" 
+              :school-data="schoolData"
+              @close="showReceiptModal = false"
+            />
+          </div>
+          
+          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+            No receipt data available
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- All Receipts Modal - Redesigned for Better UX -->
+    <!-- All Receipts Modal -->
     <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-5 mx-auto p-6 border w-full max-w-7xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
-          <!-- Header -->
-          <div class="flex justify-between items-center mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-                Payment History
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {{ student?.first_name }} {{ student?.last_name }} - {{ student?.admission_number }}
-              </p>
-            </div>
-            <div class="flex items-center space-x-3">
-              <!-- Outstanding Balance Badge -->
-              <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">Outstanding</div>
-                <div class="text-sm font-semibold text-amber-700 dark:text-amber-300">
-                  ₹{{ formatCurrency(ledgerData?.summary?.total_balance || 0) }}
-                </div>
-              </div>
-              <!-- Close Button -->
-              <button
-                @click="showAllReceiptsModal = false"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X class="h-5 w-5" />
-              </button>
-            </div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">All Receipts</h3>
+            <button
+              @click="showAllReceiptsModal = false"
+              class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
           
-          <!-- Loading State -->
-          <div v-if="isLoadingReceipts" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading payment history...</p>
+          <div v-if="isLoadingReceipts" class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipts...</span>
           </div>
           
-          <!-- Empty State -->
-          <div v-else-if="allReceipts.length === 0" class="text-center py-12">
-            <FileText class="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Payment History</h4>
-            <p class="text-gray-500 dark:text-gray-400">No receipts found for this student.</p>
-          </div>
-          
-          <!-- Receipts Content -->
-          <div v-else class="flex gap-6">
-            <!-- Receipt List Panel -->
-            <div class="w-1/3 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <div class="flex items-center justify-between mb-4">
-                <h4 class="font-medium text-gray-900 dark:text-white">Receipts ({{ allReceipts.length }})</h4>
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                  Total: ₹{{ formatCurrency(allReceipts.reduce((sum, r) => sum + parseFloat(r.payment_amount || 0), 0)) }}
-                </div>
-              </div>
-              
-              <!-- Receipt Cards -->
-              <div class="space-y-3 max-h-96 overflow-y-auto">
-                <div
-                  v-for="receipt in allReceipts"
-                  :key="receipt.id"
-                  class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-3 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600"
-                  :class="{
-                    'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-900/20': selectedPayment?.id === receipt.id
-                  }"
-                  @click="viewReceiptFromList(receipt)"
-                >
-                  <div class="flex justify-between items-start mb-2">
-                    <div class="font-medium text-sm text-gray-900 dark:text-white truncate">
-                      {{ receipt.display_name }}
-                    </div>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-                      {{ formatDate(receipt.payment_date) }}
-                    </span>
-                  </div>
-                  <div class="flex justify-between items-center mb-1">
-                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                      ₹{{ formatCurrency(receipt.payment_amount) }}
-                    </div>
-                    <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                      {{ formatPaymentMethod(receipt.payment_method) }}
-                    </span>
-                  </div>
-                  <!-- Show grouped receipt info -->
-                  <div v-if="receipt.is_grouped" class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ receipt.months_covered }} month(s): {{ receipt.month_names }}
+          <div v-else-if="allReceipts.length > 0" class="flex h-[600px]">
+            <!-- Receipt List Sidebar -->
+            <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+              <div class="p-4">
+                <h4 class="font-medium text-gray-900 dark:text-white mb-3">Receipts</h4>
+                <div class="space-y-2">
+                  <div 
+                    v-for="receipt in allReceipts" 
+                    :key="receipt.id" 
+                    @click="selectReceiptFromList(receipt)"
+                    :class="{
+                      'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-600': selectedReceiptFromList?.id === receipt.id,
+                      'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600': selectedReceiptFromList?.id !== receipt.id
+                    }"
+                    class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                                       <div class="font-medium text-gray-900 dark:text-white text-sm">{{ receipt.display_name }}</div>
+                   <div class="text-xs text-gray-500 dark:text-gray-400">
+                     {{ formatDate(receipt.payment_date) }} - ₹{{ formatCurrency(receipt.payment_amount) }}
+                   </div>
+                   <div v-if="receipt.months_covered && receipt.months_covered > 1" class="text-xs text-blue-600 dark:text-blue-400">
+                     {{ receipt.months_covered }} month(s): {{ receipt.month_names }}
+                   </div>
+                   <div v-else-if="receipt.month && receipt.year" class="text-xs text-blue-600 dark:text-blue-400">
+                     {{ getMonthName(receipt.month) }} {{ receipt.year }}
+                   </div>
+                   <div class="text-xs text-gray-500 dark:text-gray-400">
+                     {{ receipt.payment_model === 'monthly' ? 'Monthly' : 'Installment' }} - {{ receipt.fee_type }}
+                   </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <!-- Receipt Detail Panel -->
-            <div class="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
-              <div v-if="!selectedPayment" class="flex items-center justify-center h-96">
-                <div class="text-center">
-                  <FileText class="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Select a Receipt</h4>
-                  <p class="text-gray-500 dark:text-gray-400">Choose a receipt from the list to view its details</p>
-                </div>
-              </div>
-              
-              <div v-else-if="isLoadingReceiptContent" class="flex items-center justify-center h-96">
-                <div class="text-center">
-                  <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
-                  <p class="text-gray-500 dark:text-gray-400">Loading receipt...</p>
-                </div>
-              </div>
-              
-              <div v-else class="p-6">
-                <!-- Receipt Header -->
-                <div class="flex justify-between items-start mb-6">
-                  <div>
-                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
-                      Receipt Details
-                    </h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                      {{ selectedPayment.receipt_number }} - {{ selectedPayment.display_name }}
-                    </p>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <!-- Print Button -->
-                    <button
-                      @click="printReceipt"
-                      class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    >
-                      <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                      Print
-                    </button>
-
-                  </div>
+            <!-- Receipt Preview Area -->
+            <div class="w-2/3 p-4">
+              <div v-if="selectedReceiptFromList" class="h-full">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 class="font-medium text-gray-900 dark:text-white">Receipt Preview</h4>
+                  <button
+                    @click="printReceipt"
+                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print Receipt
+                  </button>
                 </div>
                 
-                <!-- Receipt Content -->
-                <div class="receipt-content print-friendly border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden" v-html="selectedPayment.receipt_html"></div>
+                <div v-if="isLoadingReceiptContent" class="flex justify-center items-center h-64">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipt...</span>
+                </div>
+                
+                <div v-else-if="selectedReceiptFromList" class="receipt-content max-h-[500px] overflow-y-auto">
+                  <ReceiptViewer 
+                    :receipt-data="selectedReceiptFromList" 
+                    :school-data="schoolData"
+                    @close="showAllReceiptsModal = false"
+                  />
+                </div>
+                
+                <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No receipt content available
+                </div>
+              </div>
+              
+              <div v-else class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400">
+                Select a receipt to preview
               </div>
             </div>
+          </div>
+          
+          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+            No receipts found for this student
           </div>
         </div>
       </div>
@@ -710,6 +690,8 @@ import { useRoute } from 'vue-router';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue';
+import ReceiptViewer from '~/components/ReceiptViewer.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
@@ -730,9 +712,12 @@ const selectedInvoice = ref(null);
 const paymentHistory = ref(null);
 const isLoadingPayments = ref(false);
 const selectedPayment = ref(null);
+const selectedReceipt = ref(null);
+const selectedReceiptFromList = ref(null);
 const allReceipts = ref([]);
 const isLoadingReceipts = ref(false);
 const isLoadingReceiptContent = ref(false);
+const schoolData = ref({});
 
 const filters = ref({
   academic_year: '',
@@ -758,6 +743,17 @@ const fetchStudent = async () => {
   try {
     const response = await apiClient.students.getById(studentId);
     student.value = response.data;
+    
+    // Also fetch school data for receipt display
+    if (response.data.school_id) {
+      try {
+        const schoolResponse = await apiClient.schools.getById(response.data.school_id);
+        schoolData.value = schoolResponse.data;
+      } catch (schoolError) {
+        console.error('Error fetching school data:', schoolError);
+        // Don't show error for school data, just use defaults
+      }
+    }
   } catch (error) {
     console.error('Error fetching student:', error);
     if (error.response && error.response.data && error.response.data.message) {
@@ -881,62 +877,40 @@ const showPaymentHistory = (invoice) => {
 // View receipt
 const viewReceipt = async (payment) => {
   console.log('Viewing receipt for payment:', payment);
+  console.log('Payment ID:', payment.id);
   isLoadingReceiptContent.value = true;
   
   try {
     if (payment.is_grouped && payment.receipt_group_id) {
-      // For grouped receipts, fetch the combined receipt
+      // For grouped receipts, generate combined receipt on-demand
       const response = await apiClient.feeInvoices.getCombinedReceipt(payment.receipt_group_id);
-      if (response.data && response.data.receipt_html) {
-        selectedPayment.value = {
-          ...payment,
-          receipt_html: response.data.receipt_html
+      if (response.data) {
+        // Merge the data properly, prioritizing the API response data
+        selectedReceipt.value = {
+          // Start with the API response data (this has the correct structure)
+          ...response.data,
+          // Then add any additional payment data that might be needed
+          ...payment
         };
-        console.log('Receipt loaded, showing modal. selectedPayment:', selectedPayment.value);
+        console.log('Receipt loaded, showing modal. selectedReceipt:', selectedReceipt.value);
         showReceiptModal.value = true;
       } else {
         showError('No receipt found for this grouped payment');
         return;
       }
     } else {
-      // For individual payments, try to get receipt from payment data first
+      // For individual payments, generate receipt on-demand
       if (payment.payments && payment.payments.length > 0) {
         const firstPayment = payment.payments[0];
-        if (firstPayment.receipt_html) {
-          selectedPayment.value = {
-            ...payment,
-            receipt_html: firstPayment.receipt_html
-          };
-          showReceiptModal.value = true;
-        } else {
-          // Try to fetch receipt for the payment
-          try {
-            const response = await apiClient.feeInvoices.getPaymentReceipt(firstPayment.id);
-            if (response.data && response.data.receipt_html) {
-              selectedPayment.value = {
-                ...payment,
-                receipt_html: response.data.receipt_html
-              };
-              showReceiptModal.value = true;
-            } else {
-              showError('No receipt found for this payment');
-              return;
-            }
-          } catch (receiptError) {
-            console.error('Error fetching receipt for payment:', receiptError);
-            showError('Error fetching receipt for this payment');
-            return;
-          }
-        }
-      } else {
-        // If no payments array, this is likely a payment object from payment history
-        // Try to fetch receipt for this specific payment
         try {
-          const response = await apiClient.feeInvoices.getPaymentReceipt(payment.id);
-          if (response.data && response.data.receipt_html) {
-            selectedPayment.value = {
-              ...payment,
-              receipt_html: response.data.receipt_html
+          const response = await apiClient.feeInvoices.generateReceipt(firstPayment.id);
+          if (response.data) {
+            // Merge the data properly, prioritizing the API response data
+            selectedReceipt.value = {
+              // Start with the API response data (this has the correct structure)
+              ...response.data,
+              // Then add any additional payment data that might be needed
+              ...payment
             };
             showReceiptModal.value = true;
           } else {
@@ -944,8 +918,38 @@ const viewReceipt = async (payment) => {
             return;
           }
         } catch (receiptError) {
-          console.error('Error fetching receipt for payment:', receiptError);
-          showError('Error fetching receipt for this payment');
+          console.error('Error generating receipt for payment:', receiptError);
+          showError('Error generating receipt for this payment');
+          return;
+        }
+      } else {
+        // If no payments array, this is likely a payment object from payment history
+        // Generate receipt for this specific payment
+        try {
+          const response = await apiClient.feeInvoices.generateReceipt(payment.id);
+          console.log('API Response:', response);
+          console.log('Response data:', response.data);
+          if (response.data) {
+            // Merge the data properly, prioritizing the API response data
+            selectedReceipt.value = {
+              // Start with the API response data (this has the correct structure)
+              ...response.data,
+              // Then add any additional payment data that might be needed
+              ...payment
+            };
+            console.log('Final selectedReceipt:', selectedReceipt.value);
+            console.log('Receipt data keys:', Object.keys(selectedReceipt.value));
+            console.log('Student name:', selectedReceipt.value.student_name);
+            console.log('Payment amount:', selectedReceipt.value.payment_amount);
+            console.log('Receipt number:', selectedReceipt.value.receipt_number);
+            showReceiptModal.value = true;
+          } else {
+            showError('No receipt found for this payment');
+            return;
+          }
+        } catch (receiptError) {
+          console.error('Error generating receipt for payment:', receiptError);
+          showError('Error generating receipt for this payment');
           return;
         }
       }
@@ -962,64 +966,109 @@ const viewReceipt = async (payment) => {
     // Small delay to show loading state for better UX
     setTimeout(() => {
       isLoadingReceiptContent.value = false;
-      // Show the receipt modal after loading is complete
-      if (selectedPayment.value && selectedPayment.value.receipt_html) {
-        showReceiptModal.value = true;
-      }
     }, 200);
   }
 };
 
-// View receipt from the "View All Receipts" modal
-const viewReceiptFromList = async (receipt) => {
-  console.log('Viewing receipt from list:', receipt);
+// Select receipt from list (for tab-like functionality)
+const selectReceiptFromList = async (receipt) => {
+  selectedReceiptFromList.value = receipt;
   isLoadingReceiptContent.value = true;
   
   try {
-    // Set the selected receipt
-    selectedPayment.value = receipt;
-    
-    // If receipt HTML is already available, use it
-    if (receipt.receipt_html) {
-      console.log('Receipt HTML already available');
-      return;
-    }
-    
-    // If this is a payment-specific receipt, fetch the payment receipt
-    if (receipt.payment_id) {
-      const response = await apiClient.feeInvoices.getPaymentReceipt(receipt.payment_id);
-      if (response.data && response.data.receipt_html) {
-        selectedPayment.value = {
-          ...receipt,
-          receipt_html: response.data.receipt_html
-        };
-        console.log('Payment receipt loaded successfully');
-      } else {
-        showError('No receipt found for this payment');
-      }
-    } else if (receipt.is_grouped && receipt.receipt_group_id) {
-      // For grouped receipts, fetch the combined receipt
+    if (receipt.is_grouped && receipt.receipt_group_id) {
+      // For grouped receipts, generate combined receipt data on-demand
       const response = await apiClient.feeInvoices.getCombinedReceipt(receipt.receipt_group_id);
-      if (response.data && response.data.receipt_html) {
-        selectedPayment.value = {
+      if (response.data) {
+        selectedReceiptFromList.value = {
           ...receipt,
-          receipt_html: response.data.receipt_html
+          ...response.data
         };
-        console.log('Grouped receipt loaded successfully');
       } else {
         showError('No receipt found for this grouped payment');
+        return;
       }
-    } else {
-      // For individual invoices, try to get receipt using the invoice ID
-      const response = await apiClient.feeInvoices.getReceipt(receipt.invoice_id || receipt.id);
-      if (response.data && response.data.receipt_html) {
-        selectedPayment.value = {
+    } else if (receipt.payment_id) {
+      // For individual payments, generate receipt data on-demand
+      const response = await apiClient.feeInvoices.generateReceipt(receipt.payment_id);
+      if (response.data) {
+        selectedReceiptFromList.value = {
           ...receipt,
-          receipt_html: response.data.receipt_html
+          ...response.data
         };
-        console.log('Invoice receipt loaded successfully');
+      } else {
+        showError('No receipt found for this payment');
+        return;
+      }
+    } else if (receipt.invoice_id || receipt.id) {
+      // For individual invoices, generate receipt data on-demand
+      const response = await apiClient.feeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
+      if (response.data) {
+        selectedReceiptFromList.value = {
+          ...receipt,
+          ...response.data
+        };
       } else {
         showError('No receipt found for this invoice');
+        return;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading receipt from list:', error);
+    if (error.response && error.response.data && error.response.data.message) {
+      showError(error.response.data.message);
+    } else {
+      showError('Error loading receipt');
+    }
+  } finally {
+    setTimeout(() => {
+      isLoadingReceiptContent.value = false;
+    }, 200);
+  }
+};
+
+// View receipt from list (for opening in separate modal)
+const viewReceiptFromList = async (receipt) => {
+  isLoadingReceiptContent.value = true;
+  try {
+    if (receipt.is_grouped && receipt.receipt_group_id) {
+      // For grouped receipts, generate combined receipt data on-demand
+      const response = await apiClient.feeInvoices.getCombinedReceipt(receipt.receipt_group_id);
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+        return;
+      } else {
+        showError('No receipt found for this grouped payment');
+        return;
+      }
+    } else if (receipt.payment_id) {
+      // For individual payments, generate receipt data on-demand
+      const response = await apiClient.feeInvoices.generateReceipt(receipt.payment_id);
+      if (response.data) {
+        selectedReceipt.value = {
+          ...receipt,
+          ...response.data
+        };
+        showReceiptModal.value = true;
+        return;
+      } else {
+        showError('No receipt found for this payment');
+        return;
+      }
+    } else if (receipt.invoice_id || receipt.id) {
+      // For individual invoices, generate receipt data on-demand
+      const response = await apiClient.feeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
+      if (response.data) {
+        selectedReceipt.value = {
+          ...receipt,
+          ...response.data
+        };
+        showReceiptModal.value = true;
+        return;
+      } else {
+        showError('No receipt found for this invoice');
+        return;
       }
     }
   } catch (error) {
@@ -1030,7 +1079,6 @@ const viewReceiptFromList = async (receipt) => {
       showError('Error viewing receipt');
     }
   } finally {
-    // Small delay to show loading state for better UX
     setTimeout(() => {
       isLoadingReceiptContent.value = false;
     }, 200);
@@ -1047,18 +1095,18 @@ const viewCombinedReceipt = async (invoice) => {
     
     const response = await apiClient.feeInvoices.getCombinedReceipt(invoice.receipt_group_id);
     
-    if (response.data && response.data.receipt_html) {
+    if (response.data) {
       selectedReceipt.value = response.data;
       showReceiptModal.value = true;
     } else {
       showError('No receipt found for this combined payment');
     }
   } catch (error) {
-    console.error('Error fetching combined receipt:', error);
+    console.error('Error generating combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
-      showError('Error fetching combined receipt');
+      showError('Error generating combined receipt');
     }
   }
 };
@@ -1096,19 +1144,31 @@ const fetchAllReceipts = async () => {
                   payment_amount: parseFloat(payment.payment_amount || 0),
                   payment_method: payment.payment_method || 'Cash',
                   payment_date: payment.payment_date || payment.created_at,
-                  receipt_html: payment.receipt_html || null,
+
                   is_grouped: false,
                   receipt_type: 'individual',
                   receipt_group_id: null,
                   display_name: `${invoice.invoice_number} - Payment ${index + 1}`,
-                  months_covered: null,
-                  month_names: null,
+                  months_covered: invoice.months_covered,
+                  month_names: invoice.month_names,
+                  month_range: invoice.month_range,
+                  month: invoice.month,
+                  year: invoice.year,
+                  payment_model: invoice.payment_model || invoice.feeStructure?.payment_model || 'installment',
                   total_amount: parseFloat(invoice.total_amount || 0),
                   paid_amount: parseFloat(invoice.paid_amount || 0),
                   balance_amount: parseFloat(invoice.balance_amount || 0),
                   status: invoice.status,
+                  academic_year: invoice.academic_year,
+                  due_date: invoice.due_date,
+                  invoice_date: invoice.invoice_date,
+                  fee_type: invoice.fee_type || invoice.feeStructure?.feeType?.name,
+                  class_name: invoice.class_name,
+                  section: invoice.section,
                   payments: [payment], // Single payment
-                  invoice: invoice // Keep reference to original invoice
+                  feeStructure: invoice.feeStructure,
+                  student: invoice.student,
+                  branch: invoice.branch
                 };
                 
                 allReceiptsData.push(receiptData);
@@ -1117,6 +1177,7 @@ const fetchAllReceipts = async () => {
               // Single payment or grouped payment
               const receiptData = {
                 id: invoice.id,
+                invoice_id: invoice.id,
                 receipt_number: invoice.invoice_number,
                 payment_amount: invoice.paid_amount,
                 payment_method: invoice.payments && invoice.payments.length > 0 
@@ -1125,18 +1186,31 @@ const fetchAllReceipts = async () => {
                 payment_date: invoice.payments && invoice.payments.length > 0 
                   ? invoice.payments[0].payment_date 
                   : invoice.due_date,
-                receipt_html: null, // Will be fetched when viewing
+
                 is_grouped: invoice.is_grouped || false,
                 receipt_type: invoice.is_grouped ? 'grouped' : 'individual',
                 receipt_group_id: invoice.receipt_group_id,
                 display_name: invoice.display_name || invoice.invoice_number,
                 months_covered: invoice.months_covered,
                 month_names: invoice.month_names,
+                month_range: invoice.month_range,
+                month: invoice.month,
+                year: invoice.year,
+                payment_model: invoice.payment_model || invoice.feeStructure?.payment_model || 'installment',
                 total_amount: invoice.total_amount,
                 paid_amount: invoice.paid_amount,
                 balance_amount: invoice.balance_amount,
                 status: invoice.status,
-                payments: invoice.payments || []
+                academic_year: invoice.academic_year,
+                due_date: invoice.due_date,
+                invoice_date: invoice.invoice_date,
+                fee_type: invoice.fee_type || invoice.feeStructure?.feeType?.name,
+                class_name: invoice.class_name,
+                section: invoice.section,
+                payments: invoice.payments || [],
+                feeStructure: invoice.feeStructure,
+                student: invoice.student,
+                branch: invoice.branch
               };
               
               allReceiptsData.push(receiptData);
@@ -1153,8 +1227,10 @@ const fetchAllReceipts = async () => {
     allReceipts.value = allReceiptsData;
     
     // Auto-select the first receipt if available
-    if (allReceipts.value.length > 0 && !selectedPayment.value) {
-      selectedPayment.value = allReceipts.value[0];
+    if (allReceipts.value.length > 0 && !selectedReceiptFromList.value) {
+      selectedReceiptFromList.value = allReceipts.value[0];
+      // Load the first receipt content
+      await selectReceiptFromList(allReceipts.value[0]);
     }
   } catch (error) {
     console.error('Error fetching receipts:', error);
@@ -1188,137 +1264,83 @@ watch(filters, () => {
 
 // Print receipt
 const printReceipt = () => {
-  if (!selectedPayment.value) return;
-  
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank');
-  const receiptHtml = selectedPayment.value.receipt_html;
-  
-  // Add print-specific styles
-  const printStyles = `
-    <style>
-      @media print {
-        body { margin: 0; padding: 0; }
-        .receipt { 
-          width: 100% !important; 
-          max-width: none !important; 
-          margin: 0 !important; 
-          box-shadow: none !important; 
-          border: none !important; 
+  if (selectedReceipt.value) {
+    const printWindow = window.open('', '_blank');
+    const receiptHtml = document.querySelector('.receipt-content').innerHTML;
+    
+    const printStyles = `
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 0; 
+          padding: 20px; 
+          background-color: #ffffff;
+          color: #000000;
         }
-        .header { 
-          background: #f8f9fa !important; 
-          color: #000 !important; 
+        .receipt {
+          width: 400px;
+          background: white;
+          border: 1px solid #ddd;
+          margin: 0 auto;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .trust-name, .school-name, .school-type, .school-address { 
-          color: #000 !important; 
+        .header {
+          text-align: center;
+          padding: 15px;
+          border-bottom: 2px solid #333;
+          background: #f8f9fa;
+          color: #000;
         }
-        .receipt-title { 
-          color: #000 !important; 
+        .trust-name, .school-name, .school-type, .school-address {
+          color: #000 !important;
         }
-        .info-label, .info-value { 
-          color: #000 !important; 
+        .receipt-title {
+          color: #000 !important;
         }
-        .fee-table th, .fee-table td { 
-          color: #000 !important; 
-          border-color: #000 !important; 
+        .info-label, .info-value {
+          color: #000 !important;
         }
-        .summary-section { 
-          background: #f8f9fa !important; 
-          color: #000 !important; 
+        .fee-table th, .fee-table td {
+          color: #000 !important;
+          border-color: #000 !important;
         }
-        .remaining-info { 
-          background: #fff3cd !important; 
-          color: #856404 !important; 
+        .summary-section {
+          background: #f8f9fa !important;
+          color: #000 !important;
         }
-        .signature-line { 
-          border-color: #000 !important; 
+        .remaining-info {
+          background: #fff3cd !important;
+          color: #856404 !important;
         }
-      }
-      body { 
-        font-family: Arial, sans-serif; 
-        margin: 0; 
-        padding: 20px; 
-        background-color: #ffffff;
-        color: #000000;
-      }
-      .receipt {
-        width: 400px;
-        background: white;
-        border: 1px solid #ddd;
-        margin: 0 auto;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-      .header {
-        text-align: center;
-        padding: 15px;
-        border-bottom: 2px solid #333;
-        background: #f8f9fa;
-        color: #000;
-      }
-      .trust-name, .school-name, .school-type, .school-address {
-        color: #000 !important;
-      }
-      .receipt-title {
-        color: #000 !important;
-      }
-      .info-label, .info-value {
-        color: #000 !important;
-      }
-      .fee-table th, .fee-table td {
-        color: #000 !important;
-        border-color: #000 !important;
-      }
-      .summary-section {
-        background: #f8f9fa !important;
-        color: #000 !important;
-      }
-      .remaining-info {
-        background: #fff3cd !important;
-        color: #856404 !important;
-      }
-    </style>
-  `;
-  
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Payment Receipt - Print</title>
-      ${printStyles}
-    </head>
-    <body>
-      ${receiptHtml}
-    </body>
-    </html>
-  `);
-  
-  printWindow.document.close();
-  printWindow.focus();
-  
-  // Wait for content to load then print
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 500);
-};
-
-
-
-// Pagination
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchLedger();
+      </style>
+    `;
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Receipt - Print</title>
+        ${printStyles}
+      </head>
+      <body>
+        ${receiptHtml}
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   }
 };
 
-const nextPage = () => {
-  if (currentPage.value < ledgerData.value.pagination.total_pages) {
-    currentPage.value++;
-    fetchLedger();
-  }
-};
+
+
+
 
 // Utility functions
 const formatCurrency = (amount) => {
@@ -1346,6 +1368,22 @@ const formatPaymentMethod = (method) => {
     cheque: 'Cheque',
   };
   return methods[method] || method;
+};
+
+const getDaysOverdue = (dueDate) => {
+  if (!dueDate) return 'N/A';
+  const due = new Date(dueDate);
+  const today = new Date();
+  const diffTime = today - due;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return `${Math.abs(diffDays)} days remaining`;
+  } else if (diffDays === 0) {
+    return 'Due today';
+  } else {
+    return `${diffDays} days overdue`;
+  }
 };
 
 const getStatusClass = (status) => {
@@ -1391,6 +1429,37 @@ const getPaymentStatusText = (status) => {
   };
   return texts[status] || status;
 };
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= ledgerData.value.pagination.total_pages) {
+    currentPage.value = page;
+    fetchLedger();
+  }
+};
+
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
+  currentPage.value = 1; // Reset to first page when page size changes
+  fetchLedger();
+};
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
+
+
 
 onMounted(() => {
   fetchStudent();
@@ -1445,6 +1514,8 @@ onMounted(() => {
 .receipt-content :deep(.signature-line) {
   border-color: #000 !important;
 }
+
+
 
 /* Print-friendly styles */
 @media print {

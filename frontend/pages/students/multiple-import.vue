@@ -59,10 +59,7 @@
             <li><strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion, Caste, FatherName, MotherName</li>
             <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
             <li>For "Gender" use: male, female, other</li>
-            <li>For "Category" use: 1=General, 2=OBC, 3=SC, 4=ST, 5=Other</li>
-            <li>For "Stream" use: science, commerce, arts (for junior college students)</li>
-            <li>For "PreviousExams" use valid JSON format as shown in the sample</li>
-          </ol>
+            </ol>
         </div>
       </div>
 

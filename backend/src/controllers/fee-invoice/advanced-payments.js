@@ -2,7 +2,23 @@ const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, 
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
-const { generateInstallmentReceipt } = require('../../services/receipt.service');
+const { generateUniqueInvoiceNumber, getClassCode } = require('../../controllers/fee-invoice/core');
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
 
 // Get payment breakdown for an invoice
 const getBreakdown = async (req, res, next) => {
@@ -68,7 +84,7 @@ const getBreakdown = async (req, res, next) => {
       },
       student: {
         id: invoice.student.id,
-        name: `${invoice.student.first_name} ${invoice.student.last_name}`,
+        name: getStudentFullName(invoice.student),
         admission_number: invoice.student.admission_number,
         class: invoice.student.current_class,
         section: invoice.student.section,
@@ -168,20 +184,45 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     // Get school data for receipt generation
     const school = await School.findByPk(req.schoolId);
 
-    // Generate receipt for this payment
-    const receipt = await generateInstallmentReceipt(
-      invoice,
-      payment_amount,
-      payment_method,
-      transaction_id,
-      school,
-      invoice.student
-    );
+    // Generate receipt number using the proper function
+    let classCode = 'GEN';
+    if (invoice.feeStructure?.class_name) {
+      classCode = getClassCode(invoice.feeStructure);
+    } else if (invoice.student.current_class) {
+      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
+
+    const tempReceipt = await generateUniqueInvoiceNumber(classCode, {
+      student_id: '00000000-0000-0000-0000-000000000000',
+      fee_structure_id: '00000000-0000-0000-0000-000000000000',
+      academic_year: 'TEMP',
+      class_name: 'TEMP',
+      fee_type_name: 'TEMP',
+      due_date: new Date(),
+      amount: 0,
+      base_amount: 0,
+      discount_amount: 0,
+      tax_amount: 0,
+      total_amount: 0,
+      paid_amount: 0,
+      balance_amount: 0,
+      status: 'draft',
+      payment_status: 'pending',
+      installment_number: 1,
+      total_installments: 1,
+      payment_model: 'installment',
+      school_id: '00000000-0000-0000-0000-000000000000',
+      created_by: null,
+    }, true);
+    
+    const receiptNumber = tempReceipt.invoice_number;
 
     // Create payment record
     const paymentData = {
       payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      receipt_number: receipt.receipt_number,
+      receipt_number: receiptNumber,
       invoice_id: invoice.id,
       student_id: invoice.student_id,
       payment_amount: parseFloat(payment_amount),
@@ -189,11 +230,10 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       payment_date: payment_date || new Date(),
       transaction_id,
       payment_status: 'completed',
-      receipt_html: receipt.receipt_html,
       receipt_data: {
-        receipt_number: receipt.receipt_number,
+        receipt_number: receiptNumber,
         invoice_number: invoice.invoice_number,
-        student_name: `${invoice.student.first_name} ${invoice.student.last_name}`,
+        student_name: getStudentFullName(invoice.student),
         payment_amount: payment_amount,
         payment_method,
         transaction_id,
@@ -240,7 +280,6 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
         installment_number: installment_number || 'Flexible',
         receipt: {
           receipt_number: payment.receipt_number,
-          receipt_html: payment.receipt_html,
         },
       },
     });
