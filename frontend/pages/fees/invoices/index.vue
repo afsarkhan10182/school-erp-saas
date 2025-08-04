@@ -113,15 +113,15 @@
       <!-- Invoices Table Component -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
         <InvoiceTable
+          ref="invoiceTableRef"
           :invoices="invoices"
           :grouped-invoices="paginatedGroupedInvoices"
-          :individual-invoices="[]"
-          :view-mode="'grouped'"
+          :view-mode="viewMode"
           :is-loading="isLoading"
           :total-invoices="invoices.length"
+          :current-filters="filters"
           @view-invoice="viewInvoice"
           @record-payment="recordPayment"
-          @generate-receipt="generateReceipt"
           @view-receipt="viewReceipt"
           @view-combined-receipt="viewCombinedReceipt"
         />
@@ -136,7 +136,7 @@
           total: totalStudentGroups
         }"
         item-label="students"
-        :additional-info="`${invoices.length} total invoices`"
+        :additional-info="`${summary.totalInvoices || 0} total invoices`"
         @page-changed="goToPage"
         @page-size-changed="onPageSizeChange"
       />
@@ -253,33 +253,18 @@
     <div v-if="showReceiptModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
-            <div class="flex items-center space-x-2">
-              <!-- Print Button -->
-              <button
-                @click="printReceipt"
-                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-              >
-                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Receipt
-              </button>
-
-              <!-- Close Button -->
-              <button
-                @click="showReceiptModal = false"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div v-if="isLoadingReceipt" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading receipt...</p>
           </div>
           
-          <div v-if="selectedReceipt" v-html="selectedReceipt.receipt_html" class="receipt-container print-friendly"></div>
+          <div v-else-if="selectedReceipt">
+            <ReceiptViewer 
+              :receipt-data="selectedReceipt" 
+              :school-data="schoolData"
+              @close="showReceiptModal = false"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -402,6 +387,7 @@ import InvoiceFilters from '~/components/InvoiceFilters.vue';
 import InvoiceTable from '~/components/InvoiceTable.vue';
 import GenerateInvoicesModal from '~/components/GenerateInvoicesModal.vue';
 import Pagination from '~/components/Pagination.vue';
+import ReceiptViewer from '~/components/ReceiptViewer.vue';
 
 // Composables
 const { showToast } = useToast();
@@ -425,6 +411,7 @@ const authStore = useAuthStore();
 
 // State
 const invoices = ref([]);
+const studentsData = ref([]); // New: Store student data directly from API
 const summary = ref({});
 const isLoading = ref(false);
 const showGenerateModal = ref(false); // Ensure modal starts closed
@@ -434,9 +421,12 @@ const isSubmittingPayment = ref(false);
 const showQuickCollectModal = ref(false);
 const showReceiptModal = ref(false);
 const selectedReceipt = ref(null);
+const isLoadingReceipt = ref(false);
 const selectedInvoiceForPayment = ref(null);
 const showMultiplePaymentsModal = ref(false);
 const selectedMultiplePayments = ref(null);
+const schoolData = ref({}); // Add school data for receipt viewer
+const invoiceTableRef = ref(null); // Ref for InvoiceTable component
 
 // Pagination
 const currentPage = ref(1);
@@ -468,97 +458,49 @@ const hasAppliedFilters = computed(() => {
 
 // Computed properties for accordion grouping
 const groupedInvoices = computed(() => {
-  console.log('🔄 Computing groupedInvoices with:', invoices.value);
+  console.log('🔄 Computing groupedInvoices with students:', studentsData.value);
   
-  if (!invoices.value || invoices.value.length === 0) {
-    console.log('❌ No invoices to group');
+  if (!studentsData.value || studentsData.value.length === 0) {
+    console.log('❌ No students to display');
     return [];
   }
 
+  // Transform student data to match the expected format for the accordion
+  const result = studentsData.value.map(student => ({
+    studentId: student.student_id,
+    studentName: student.student_name,
+    admissionNumber: student.admission_number,
+    className: student.class_name,
+    studentPhoto: null, // Not available in current response
+    // Use the detailed invoice data from the API response
+    invoices: [...student.invoices, ...student.grouped_invoices, ...student.ungrouped_invoices],
+    totalAmount: student.total_amount,
+    paidAmount: student.paid_amount,
+    balanceAmount: student.balance_amount,
+    paidCount: student.paid_count,
+    pendingCount: student.pending_count,
+    overdueCount: student.overdue_count,
+    partialCount: student.partial_count
+  }));
 
-
-  // Group invoices by student
-  const grouped = {};
-  
-  invoices.value.forEach(invoice => {
-    const studentId = invoice.student?.id || invoice.student_id;
-    
-
-    
-    const studentName = invoice.student?.first_name && invoice.student?.last_name 
-      ? `${invoice.student.first_name} ${invoice.student.last_name}`
-      : invoice.student?.first_name 
-        ? invoice.student.first_name
-        : invoice.student?.name || 'Unknown Student';
-    const admissionNumber = invoice.student?.admission_number || 'N/A';
-    const className = invoice.class_name || invoice.student?.current_class || 'N/A';
-    const studentPhoto = invoice.student?.photo_url || null;
-
-    if (!grouped[studentId]) {
-      grouped[studentId] = {
-        studentId,
-        studentName,
-        admissionNumber,
-        className,
-        studentPhoto,
-        invoices: [],
-        totalAmount: 0,
-        paidCount: 0,
-        pendingCount: 0,
-        overdueCount: 0
-      };
-    }
-
-    // Add invoice to student group
-    grouped[studentId].invoices.push(invoice);
-    
-    // Update totals
-    grouped[studentId].totalAmount += parseFloat(invoice.total_amount || 0);
-    
-    // Update status counts
-    if (invoice.status === 'paid') {
-      grouped[studentId].paidCount++;
-    } else if (invoice.status === 'overdue') {
-      grouped[studentId].overdueCount++;
-    } else {
-      grouped[studentId].pendingCount++;
-    }
-  });
-
-  // Convert to array and sort by student name
-  const result = Object.values(grouped).sort((a, b) => a.studentName.localeCompare(b.studentName));
-  console.log('✅ Grouped invoices result:', result);
+  console.log('✅ Grouped students result:', result);
   return result;
 });
 
 // Paginated grouped results for display (frontend pagination by students)
 const paginatedGroupedInvoices = computed(() => {
-  const startIndex = (currentPage.value - 1) * pageSize.value;
-  const endIndex = startIndex + pageSize.value;
-  const result = groupedInvoices.value.slice(startIndex, endIndex);
-  
-  console.log('📄 Pagination Debug:', {
-    currentPage: currentPage.value,
-    pageSize: pageSize.value,
-    totalGroups: groupedInvoices.value.length,
-    startIndex,
-    endIndex,
-    resultLength: result.length,
-    totalPages: totalPagesForGroups.value,
-    allStudents: groupedInvoices.value.map(s => s.studentName),
-    paginatedStudents: result.map(s => s.studentName)
-  });
-  
-  return result;
+  // Since we're now using backend pagination, we don't need frontend pagination
+  // The backend already returns the correct page of students
+  return groupedInvoices.value;
 });
 
-// Total student groups for pagination
-const totalStudentGroups = computed(() => groupedInvoices.value.length);
+// Total student groups for pagination - should come from API response
+const totalStudentGroups = ref(0);
 
 // Total pages for student groups
 const totalPagesForGroups = computed(() => {
   const pages = Math.ceil(totalStudentGroups.value / pageSize.value);
-  console.log('📖 Total Pages for Groups:', pages, '(Groups:', totalStudentGroups.value, '/ PageSize:', pageSize.value, ')');
+  console.log('📖 Total Pages for Groups:', pages, '(Total Students:', totalStudentGroups.value, '/ PageSize:', pageSize.value, ')');
   return pages;
 });
 
@@ -590,9 +532,10 @@ const paymentForm = reactive({
 const fetchInvoices = async () => {
   isLoading.value = true;
   try {
-    // Build params object with filters (no pagination - get all invoices)
+    // Build params object with filters for the new student-based endpoint
     const params = {
-      limit: 1000 // Set a high limit to get all invoices
+      page: currentPage.value,
+      limit: pageSize.value
     };
     
     // Add filters only if they have values
@@ -602,39 +545,24 @@ const fetchInvoices = async () => {
     if (filters.class_name) params.class_name = filters.class_name;
     if (filters.status) params.status = filters.status;
     
-    console.log('🔍 Fetching all invoices with params:', params);
+    // Use the new student-based paginated endpoint
+    const response = await apiClient.invoices.getStudentSummary(params);
     
-    // Use the existing invoices.getAll API - get all invoices without pagination
-    const response = await apiClient.invoices.getAll(params);
+    // Extract student data from the response
+    const studentsDataFromAPI = response.data.students || [];
     
-    console.log('📊 API Response:', response);
-    console.log('📋 Invoices data:', response.data);
-    console.log('📄 Invoices array:', response.data.invoices);
+    // Store student data directly
+    studentsData.value = studentsDataFromAPI;
     
-    // The API client returns response.data, so we access the data directly
-    invoices.value = response.data.invoices || [];
+    // Update pagination data
+    currentPage.value = response.data.current_page;
+    totalStudentGroups.value = response.data.total_students || 0;
     
-    console.log('✅ Assigned invoices:', invoices.value);
-    console.log('📊 Total invoices:', invoices.value.length);
-    
-    // Reset pagination to first page when new data is loaded
-    currentPage.value = 1;
-    
-    // Calculate summary from the actual invoice data
-    const totalInvoices = invoices.value.length;
-    
-    // Count paid invoices (including grouped invoices which are paid)
-    const paidInvoices = invoices.value.filter(inv => 
-      inv.status === 'paid' || inv.is_grouped
-    ).length;
-    
-    // Count overdue invoices
-    const overdueInvoices = invoices.value.filter(inv => inv.status === 'overdue').length;
-    
-    // Calculate total collected amount
-    const totalCollected = invoices.value.reduce((sum, inv) => {
-      return sum + parseFloat(inv.paid_amount || 0);
-    }, 0);
+    // Calculate summary from the aggregated student data (not from individual invoices)
+    const totalInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.total_invoices || 0), 0);
+    const paidInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.paid_count || 0), 0);
+    const overdueInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.overdue_count || 0), 0);
+    const totalCollected = studentsDataFromAPI.reduce((sum, student) => sum + parseFloat(student.paid_amount || 0), 0);
     
     summary.value = {
       totalInvoices,
@@ -643,10 +571,7 @@ const fetchInvoices = async () => {
       totalCollected
     };
     
-    console.log('📈 Summary:', summary.value);
-    
   } catch (error) {
-    console.error('❌ Error fetching invoices:', error);
     showToast('Error fetching invoices', 'error');
   } finally {
     isLoading.value = false;
@@ -728,25 +653,36 @@ const generateInvoices = async (formData) => {
 
 const submitPayment = async () => {
   isSubmittingPayment.value = true;
+  
   try {
     let response;
+    let invoice = selectedInvoiceForPayment.value;
     
-        // Find invoice by number for regular invoices
-    const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
-    if (!invoice) {
-      showToast('Invoice not found!', 'error');
+    // Check if we have a selected invoice from the accordion
+    if (invoice && invoice.invoice_number === paymentForm.invoice_number) {
+      // Record payment for fee invoice (works for both installment and monthly)
+      response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+        payment_amount: paymentForm.amount,
+        payment_method: paymentForm.payment_method,
+        notes: paymentForm.notes
+      });
+    } else {
+      // Manual invoice number entry - we need to fetch the invoice first
+      // This is a fallback for manual entry, but the preferred way is through the accordion
+      showToast('Please use the "Pay Now" button from the student accordion for better experience', 'warning');
       return;
     }
     
-    // Record payment for fee invoice (works for both installment and monthly)
-    response = await apiClient.feeInvoices.recordPayment(invoice.id, {
-      payment_amount: paymentForm.amount,
-      payment_method: paymentForm.payment_method,
-      notes: paymentForm.notes
-    });
-    
     closePaymentModal();
+    
+    // Clear cached student details to force refresh
+    if (invoiceTableRef.value) {
+      invoiceTableRef.value.clearStudentDetails();
+    }
+    
+    // Refresh the invoice table
     await fetchInvoices();
+    
     showToast('Payment recorded successfully!', 'success');
     
     // Automatically show receipt after successful payment
@@ -768,21 +704,22 @@ const submitPayment = async () => {
 const onFilterChange = (newFilters) => {
   Object.assign(filters, newFilters);
   currentPage.value = 1; // Reset to first page when filters change
-  fetchInvoices();
+  fetchInvoices(); // Fetch new data with filters
 };
 
 const clearFilters = () => {
   Object.keys(filters).forEach(key => {
     filters[key] = '';
   });
-  currentPage.value = 1;
-  fetchInvoices();
+  currentPage.value = 1; // Reset to first page when filters are cleared
+  fetchInvoices(); // Fetch new data without filters
 };
 
 // Pagination method
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPagesForGroups.value) {
     currentPage.value = page;
+    fetchInvoices(); // Fetch new page from backend
   }
 };
 
@@ -806,102 +743,197 @@ const isMonthlyPayment = (invoice) => {
   return invoice.payment_model === 'monthly';
 };
 
-const onPaymentRecorded = async () => {
-  // Clear any filters that might be causing "no results" after payment
-  // This ensures the user can see the updated invoice status
-  Object.keys(filters).forEach(key => {
-    filters[key] = '';
-  });
+// Update main student data after payment to refresh summary instantly
+const updateStudentDataAfterPayment = (studentId, updatedInvoiceData) => {
+  console.log('🔄 Parent: updateStudentDataAfterPayment called with:', { studentId, updatedInvoiceData });
   
-  await fetchInvoices();
-};
-
-const generateReceipt = async (invoice) => {
-  try {
-    // For invoices that have payments but no receipt, we should view the existing receipt
-    // The "Generate Receipt" button should actually be "View Receipt" for paid invoices
-    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+  const studentIndex = studentsData.value.findIndex(student => student.student_id === studentId);
+  if (studentIndex !== -1) {
+    const student = studentsData.value[studentIndex];
+    console.log('✅ Found student in main data:', student.student_name);
     
-    if (response.data && response.data.receipt_html) {
-      // Show receipt modal - the receipt data is directly in response.data
-      selectedReceipt.value = response.data;
-      showReceiptModal.value = true;
+    // Normalize the updated invoice data
+    const normalizedInvoiceData = {
+      ...updatedInvoiceData,
+      paid_amount: parseFloat(updatedInvoiceData.paid_amount || 0),
+      balance_amount: parseFloat(updatedInvoiceData.balance_amount || 0),
+      total_amount: parseFloat(updatedInvoiceData.total_amount || 0)
+    };
+    
+    // Update the specific invoice in the student's invoice arrays
+    const allInvoices = [...(student.invoices || []), ...(student.grouped_invoices || []), ...(student.ungrouped_invoices || [])];
+    const invoiceIndex = allInvoices.findIndex(inv => inv && inv.id === updatedInvoiceData.id);
+    
+    if (invoiceIndex !== -1) {
+      console.log('✅ Found invoice in student data, updating...');
+      
+      // Update the invoice data
+      const oldStatus = allInvoices[invoiceIndex].status;
+      const oldPaidAmount = allInvoices[invoiceIndex].paid_amount;
+      const oldBalanceAmount = allInvoices[invoiceIndex].balance_amount;
+      
+      Object.assign(allInvoices[invoiceIndex], normalizedInvoiceData);
+      
+      console.log('✅ Updated invoice in main data:', {
+        oldStatus,
+        newStatus: allInvoices[invoiceIndex].status,
+        oldPaidAmount,
+        newPaidAmount: allInvoices[invoiceIndex].paid_amount,
+        oldBalanceAmount,
+        newBalanceAmount: allInvoices[invoiceIndex].balance_amount
+      });
+      
+      // Recalculate student summary
+      const totalAmount = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+      const totalPaid = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0);
+      const totalBalance = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.balance_amount || 0), 0);
+      
+      const paidCount = allInvoices.filter(inv => inv && inv.status === 'paid').length;
+      const pendingCount = allInvoices.filter(inv => inv && inv.status === 'sent').length;
+      const overdueCount = allInvoices.filter(inv => inv && inv.status === 'overdue').length;
+      const partialCount = allInvoices.filter(inv => inv && inv.status === 'partial_paid').length;
+      
+      // Update student summary
+      const oldTotalPaid = student.paid_amount;
+      const oldTotalBalance = student.balance_amount;
+      
+      student.total_amount = totalAmount;
+      student.paid_amount = totalPaid;
+      student.balance_amount = totalBalance;
+      student.paid_count = paidCount;
+      student.pending_count = pendingCount;
+      student.overdue_count = overdueCount;
+      student.partial_count = partialCount;
+      
+      console.log('✅ Updated student summary:', {
+        oldTotalPaid,
+        newTotalPaid: student.paid_amount,
+        oldTotalBalance,
+        newTotalBalance: student.balance_amount,
+        paidCount: student.paid_count,
+        pendingCount: student.pending_count,
+        overdueCount: student.overdue_count,
+        partialCount: student.partial_count
+      });
     } else {
-      showToast('No receipt found for this invoice', 'error');
+      console.log('❌ Invoice not found in student data');
     }
-  } catch (error) {
-    console.error('Error fetching receipt:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      showToast(error.response.data.message, 'error');
-    } else {
-      showToast('Error fetching receipt', 'error');
-    }
+  } else {
+    console.log('❌ Student not found in main data');
   }
 };
 
+const onPaymentRecorded = async () => {
+  // Clear cached student details and refresh
+  if (invoiceTableRef.value) {
+    invoiceTableRef.value.clearStudentDetails();
+  }
+  await fetchInvoices();
+};
+
 const viewReceipt = async (invoice) => {
+  isLoadingReceipt.value = true;
   try {
-    // Unified approach - use feeInvoices API for both monthly and installment invoices
-    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+    const response = await apiClient.feeInvoices.getInvoiceReceiptData(invoice.id);
     
     if (response.data) {
-      // Check if this is a multiple payments response
-      if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
-        // Show multiple payments modal
-        selectedMultiplePayments.value = response.data;
-        showMultiplePaymentsModal.value = true;
-      } else if (response.data.receipt_html) {
-        // Single receipt - show receipt modal
+      // For installment payments with multiple payments, show combined receipt
+      if (invoice.payment_model === 'installment' && invoice.paid_amount > 0 && invoice.balance_amount > 0) {
+        // This is an installment payment with partial payments - show combined receipt
         selectedReceipt.value = response.data;
         showReceiptModal.value = true;
+      } else if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
+        // Show multiple payments modal for other payment types
+        selectedMultiplePayments.value = response.data;
+        showMultiplePaymentsModal.value = true;
       } else {
-        showToast('No receipt found for this invoice', 'error');
+        // Single receipt - show receipt modal with structured data
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
       }
     } else {
       showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
     showToast('Error fetching receipt', 'error');
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
-const viewPaymentReceipt = (paymentItem) => {
+const viewPaymentReceipt = async (paymentItem) => {
+  isLoadingReceipt.value = true;
   try {
-    // Show the individual payment receipt
-    selectedReceipt.value = {
-      receipt_number: paymentItem.receipt.receipt_number,
-      receipt_html: paymentItem.receipt.receipt_html,
-      receipt_data: paymentItem.receipt.receipt_data,
-      payment: paymentItem.payment,
-      invoice: selectedMultiplePayments.value.invoice,
-    };
-    
-    // Close multiple payments modal and show receipt modal
-    showMultiplePaymentsModal.value = false;
-    showReceiptModal.value = true;
+    const response = await apiClient.feeInvoices.getPaymentReceiptData(paymentItem.payment.id);
+    if (response.data) {
+      selectedReceipt.value = {
+        ...response.data,
+        payment: paymentItem.payment,
+        invoice: selectedMultiplePayments.value.invoice,
+      };
+      showMultiplePaymentsModal.value = false;
+      showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this payment', 'error');
+    }
   } catch (error) {
     showToast('Error viewing payment receipt', 'error');
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
 const viewCombinedReceipt = async (combinedInvoice) => {
+  isLoadingReceipt.value = true;
   try {
-    // Use receipt_group_id instead of id for grouped receipts
-    const receiptGroupId = combinedInvoice.receipt_group_id || combinedInvoice.id;
-    const response = await apiClient.feeInvoices.getCombinedReceipt(receiptGroupId);
-
-    if (response.data && response.data.receipt_html) {
-      selectedReceipt.value = response.data;
+    // Check if we already have receipt data from the payment response
+    if (combinedInvoice.combined_receipt) {
+      // Extract receipt data from the combined_receipt structure
+      const receiptData = combinedInvoice.combined_receipt.receipt_data || combinedInvoice.combined_receipt;
+      
+      // Use the receipt data directly from the payment response
+      selectedReceipt.value = {
+        ...receiptData,
+        receipt_number: combinedInvoice.receipt_group_id || combinedInvoice.id,
+        payment_date: combinedInvoice.applied_payments?.[0]?.payment_date || new Date(),
+        payment_amount: combinedInvoice.total_payment_amount,
+        payment_method: combinedInvoice.payment_method || 'cash'
+      };
       showReceiptModal.value = true;
+    } else if (combinedInvoice.receipt_group_id) {
+      // Fallback: fetch receipt data from API using receipt_group_id
+      console.log('🔍 Fetching receipt for group ID:', combinedInvoice.receipt_group_id)
+      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
+      console.log('🔍 API Response:', response)
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this combined invoice', 'error');
+      }
     } else {
-      showToast('No receipt found for this combined invoice', 'error');
+      // Last fallback: try with id
+      console.log('🔍 Fetching receipt for ID:', combinedInvoice.id)
+      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+      console.log('🔍 API Response:', response)
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this combined invoice', 'error');
+      }
     }
   } catch (error) {
+    console.error('Error viewing combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showToast(error.response.data.message, 'error');
     } else {
       showToast('Error fetching combined receipt', 'error');
     }
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
@@ -910,7 +942,7 @@ const printReceipt = () => {
   
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
-  const receiptHtml = selectedReceipt.value.receipt_html;
+  const receiptData = selectedReceipt.value.receipt_data || selectedReceipt.value;
   
   // Add print-specific styles
   const printStyles = `
@@ -996,6 +1028,182 @@ const printReceipt = () => {
         color: #856404 !important;
       }
     </style>
+  `;
+  
+  // Helper functions for formatting
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN');
+  };
+  
+  const formatCurrency = (amount) => {
+    if (!amount) return '0';
+    return parseFloat(amount).toLocaleString('en-IN');
+  };
+  
+  const getMonthName = (month) => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1] || 'Unknown';
+  };
+  
+  const isJuniorCollege = receiptData.class_name && receiptData.class_name.toLowerCase().includes('junior');
+  const schoolType = isJuniorCollege ? 'JUNIOR COLLEGE' : 'ENGLISH MEDIUM SCHOOL';
+  const isMonthlyPayment = receiptData.payment_model === 'monthly';
+  const isCombinedPayment = receiptData.payment_model === 'combined';
+  
+  // Helper function to parse paid months string
+  const parsePaidMonths = (paidMonthsString) => {
+    if (!paidMonthsString) return [];
+    return paidMonthsString.split(',').map(month => {
+      const [monthNum, year] = month.trim().split(' ');
+      return {
+        month: parseInt(monthNum),
+        year: parseInt(year),
+        monthName: getMonthName(parseInt(monthNum))
+      };
+    });
+  };
+
+  // Check if this is a smart payment response
+  const isSmartPayment = receiptData.summary && receiptData.receipt_group_id;
+  
+  // Parse paid months for smart payment
+  const paidMonths = isSmartPayment ? parsePaidMonths(receiptData.summary.paid_months) : [];
+  
+  // Generate HTML from structured data
+  const receiptHtml = `
+    <div class="receipt">
+      <div class="header">
+        <div class="trust-name" style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;">HAJI OMAR MOOSA EDUCATIONAL TRUST</div>
+        <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000; margin-bottom: 5px; text-transform: uppercase;">School Name</div>
+        <div class="school-type" style="font-size: 12px; color: #666; margin-bottom: 5px;">ENGLISH MEDIUM SCHOOL</div>
+        <div class="school-address" style="font-size: 11px; color: #666; margin-bottom: 10px;">27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.</div>
+      </div>
+      
+      <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; color: #000; margin: 15px 0; text-transform: uppercase;">
+        MULTIPLE MONTHS PAYMENT RECEIPT
+      </div>
+      
+      <div class="receipt-info" style="padding: 15px;">
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Invoice No:</span>
+          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.receipt_group_id : (receiptData.invoice_number || receiptData.receipt_number || 'N/A')}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Date:</span>
+          <span class="info-value" style="color: #000;">${formatDate(new Date())}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Name of the Pupil:</span>
+          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.student_name : (receiptData.student_name || 'N/A')}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Std. & Div.:</span>
+          <span class="info-value" style="color: #000;">C12</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Roll No:</span>
+          <span class="info-value" style="color: #000;">3246</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">G.R. No:</span>
+          <span class="info-value" style="color: #000;">3246</span>
+        </div>
+        
+        ${isSmartPayment && paidMonths.length > 0 ? `
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Months Covered:</span>
+          <span class="info-value" style="color: #000;">${paidMonths.map(m => `${m.monthName} ${m.year}`).join(', ')}</span>
+        </div>
+        ` : ''}
+        
+        ${isSmartPayment && paidMonths.length > 0 ? `
+        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Month</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Fee Type</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paidMonths.map(month => {
+              const amountPerMonth = receiptData.summary.total_applied_amount / receiptData.summary.months_covered;
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${month.monthName} ${month.year}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">TUITION FEES</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">₹${formatCurrency(amountPerMonth)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+        ` : `
+        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Particulars</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${receiptData.fee_type_name || 'Tuition Fees'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${formatCurrency(receiptData.payment_amount || 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+        `}
+        
+        <div class="summary-section" style="margin: 15px 0; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd;">
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Total Amount:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(isSmartPayment ? receiptData.summary.total_applied_amount : (receiptData.payment_amount || 0))}</span>
+          </div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Payment Method:</span>
+            <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.summary.payment_mode.toUpperCase() : (receiptData.payment_method || 'cash').toUpperCase()}</span>
+          </div>
+        </div>
+        
+        ${isSmartPayment ? `
+        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
+          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Monthly Payment Summary</div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Months:</span>
+            <span class="info-value" style="color: #000;">${receiptData.summary.remaining_invoices} months</span>
+          </div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Balance:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.summary.remaining_balance)}</span>
+          </div>
+        </div>
+        ` : `
+        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
+          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Outstanding Balance</div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Amount:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.remaining_balance || 0)}</span>
+          </div>
+        </div>
+        `}
+      </div>
+      
+      <div class="signature-section" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <div class="signature" style="text-align: center; font-size: 11px;">
+          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
+          ${isJuniorCollege ? 'Cashier Signature' : 'Receiver\'s Signature'}
+        </div>
+        <div class="signature" style="text-align: center; font-size: 11px;">
+          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
+          Date
+        </div>
+      </div>
+    </div>
   `;
   
   printWindow.document.write(`
@@ -1327,6 +1535,27 @@ const loadAcademicData = async () => {
   }
 };
 
+// Load school data for receipt viewer
+const loadSchoolData = async () => {
+  try {
+    const schoolId = authStore.currentUser?.school_id;
+    if (schoolId) {
+      const response = await apiClient.schools.getById(schoolId);
+      if (response.data) {
+        schoolData.value = response.data;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading school data:', error);
+    // Set default school data
+    schoolData.value = {
+      name: 'School',
+      trust_name: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      address: '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'
+    };
+  }
+};
+
 
 onMounted(async () => {
   try {
@@ -1343,6 +1572,9 @@ onMounted(async () => {
     
     // Load academic data first
     await loadAcademicData();
+    
+    // Load school data for receipt viewer
+    await loadSchoolData();
     
     // Then fetch invoices (summary is included in the response)
     await fetchInvoices();
@@ -1380,10 +1612,11 @@ watch(pageSize, (newValue) => {
   }
 });
 
-const onPageSizeChange = () => {
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
   localStorage.setItem('invoicesPageSize', pageSize.value);
   currentPage.value = 1; // Reset to first page when page size changes
-  fetchInvoices();
+  fetchInvoices(); // Fetch with new page size
 };
 </script>
 

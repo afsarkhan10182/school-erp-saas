@@ -100,13 +100,11 @@
             >
               <option value="">All Status</option>
               <option value="draft">Draft</option>
-              <option value="sent">Sent</option>
+              <option value="sent">Unpaid</option>
               <option value="paid">Paid</option>
               <option value="partial_paid">Partial Paid</option>
               <option value="overdue">Overdue</option>
               <option value="cancelled">Cancelled</option>
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,13 +302,11 @@ const getBranchName = (branchId) => {
 const getStatusLabel = (status) => {
   const labels = {
     draft: 'Draft',
-    sent: 'Sent',
+    sent: 'Unpaid', // 'sent' status represents unpaid invoices
     paid: 'Paid',
     partial_paid: 'Partial Paid',
     overdue: 'Overdue',
-    cancelled: 'Cancelled',
-    pending: 'Pending',
-    partial: 'Partial'
+    cancelled: 'Cancelled'
   };
   return labels[status] || status;
 };

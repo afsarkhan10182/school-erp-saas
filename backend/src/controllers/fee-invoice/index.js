@@ -29,11 +29,9 @@ module.exports = {
   // Payment operations
   calculateLateFees: payments.calculateLateFees,
   applyLateFees: payments.applyLateFees,
-  generateReceipt: payments.generateReceipt,
   recordPayment: payments.recordPayment,
   getInvoicePayments: payments.getInvoicePayments,
   getPaymentById: payments.getPaymentById,
-  getPaymentReceipt: payments.getPaymentReceipt,
   getStudentPayments: payments.getStudentPayments,
   getCollections: payments.getCollections,
 
@@ -50,12 +48,16 @@ module.exports = {
   recordSmartPayment: students.recordSmartPayment,
   getAvailableMonths: students.getAvailableMonths,
   getGroupedStudentInvoices: students.getGroupedStudentInvoices,
+  getStudentFeeInvoiceSummary: students.getStudentFeeInvoiceSummary,
 
   // Receipt operations
-  generateReceiptForInvoice: receipts.generateReceiptForInvoice,
-  getReceiptForInvoice: receipts.getReceiptForInvoice,
   getGroupedReceipts: receipts.getGroupedReceipts,
   getCombinedReceiptByGroupId: receipts.getCombinedReceiptByGroupId,
+  getReceiptForInvoice: receipts.getReceiptForInvoice,
+  // On-demand receipt functions
+  getReceiptData: receipts.getReceiptData,
+  getCombinedReceiptData: receipts.getCombinedReceiptData,
+  getInvoiceReceiptData: receipts.getInvoiceReceiptData,
 
   // Advanced payment operations
   getBreakdown: advancedPayments.getBreakdown,

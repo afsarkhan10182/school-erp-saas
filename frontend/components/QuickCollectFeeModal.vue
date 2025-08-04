@@ -416,12 +416,6 @@ const submitPayment = async () => {
       notes: ''
     };
     
-    // Reload student dues
-    await loadStudentDues(selectedStudent.value.id);
-    
-    // Emit success event
-    emit('payment-recorded');
-    
     // Store receipt data (without months info)
     const data = response.data;
     lastPaymentReceipt.value = {
@@ -429,15 +423,21 @@ const submitPayment = async () => {
       payment_date: data.applied_payments[0]?.payment_date || new Date(),
       amount: data.total_payment_amount,
       payment_method: paymentForm.value.payment_method,
-      receipt_html: data.combined_receipt
+      receipt_data: data.combined_receipt.receipt_data
     };
     
     // Show simple success message
     showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
     
-    // Close modal on success
-    emit('close');
+    // Show receipt first, then close modal and update listing
     emit('view-combined-receipt', data);
+    
+    // Close modal after showing receipt
+    setTimeout(() => {
+      emit('close');
+      // Emit payment recorded event to update listing after receipt is shown
+      emit('payment-recorded');
+    }, 100);
     
   } catch (error) {
     console.error('Error recording auto payment:', error);

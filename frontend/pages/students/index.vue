@@ -804,6 +804,11 @@ onMounted(async () => {
   
   await fetchAcademicYears(authStore.currentUser?.school_id);
   
+  // Load classes and sections for branch admin users
+  if (isBranchAdmin.value && selectedBranch.value) {
+    await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
+  }
+  
   if (isBranchAdmin.value) {
     await fetchStudents(1);
   } else if (isSchoolAdmin.value) {

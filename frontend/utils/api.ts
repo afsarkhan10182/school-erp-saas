@@ -377,14 +377,6 @@ export const apiClient = {
       return response.data;
     },
 
-
-    
-    generateReceipt: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>(`/fee-invoices/${id}/receipt`);
-      return response.data;
-    },
-    
     getReceipt: async (id: string) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>(`/fee-invoices/${id}/receipt`);
@@ -404,9 +396,38 @@ export const apiClient = {
       return response.data;
     },
 
-    getPaymentReceipt: async (paymentId: string) => {
+    // Generate receipt data for a specific payment (on-demand - returns structured data)
+    generateReceipt: async (paymentId: string) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/fee-invoices/payment/${paymentId}/receipt`);
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/payment/${paymentId}/generate-receipt`);
+      return response.data;
+    },
+
+
+
+    // Generate receipt data for an invoice (on-demand)
+    generateInvoiceReceipt: async (invoiceId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/${invoiceId}/generate-receipt`);
+      return response.data;
+    },
+
+    // Legacy endpoints (deprecated - use generate* endpoints instead)
+    getPaymentReceiptData: async (paymentId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/payment/${paymentId}/receipt-data`);
+      return response.data;
+    },
+
+    getCombinedReceiptData: async (paymentIds: string[]) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/fee-invoices/receipts/combined-data', { paymentIds });
+      return response.data;
+    },
+
+    getInvoiceReceiptData: async (invoiceId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/fee-invoices/${invoiceId}/receipt-data`);
       return response.data;
     },
 
@@ -510,9 +531,27 @@ export const apiClient = {
       branch_id?: string;
       sort_by?: string;
       sort_order?: 'ASC' | 'DESC';
+      all?: boolean; // Special parameter to get all invoices without pagination
     }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/fee-invoices/grouped', { params });
+      return response.data;
+    },
+    
+    // New endpoint for paginated student-based invoice summaries
+    getStudentSummary: async (params?: {
+      page?: number;
+      limit?: number;
+      academic_year?: string;
+      class_name?: string;
+      section?: string;
+      status?: string;
+      branch_id?: string;
+      payment_model?: 'monthly' | 'installment';
+      search?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/student-fee-summary', { params });
       return response.data;
     },
     
@@ -529,9 +568,16 @@ export const apiClient = {
 
   // Enhanced Fee Structure endpoints
   feeStructures: {
-    getAll: async (params?: any) => {
+    getAll: async (params?: { 
+      page?: number; 
+      limit?: number; 
+      academic_year?: string; 
+      class_id?: string;
+      fee_type_id?: string;
+      search?: string;
+    }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-structures', { params });
+      const response = await api.get<PaginatedResponse<any>>('/fee-structures', { params });
       return response.data;
     },
     
@@ -573,205 +619,18 @@ export const apiClient = {
     },
   },
 
-
-
-
-
-  // Dashboard endpoints
-  dashboard: {
-    getStats: async (params?: { branch_id?: string; new_students_days?: number }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/stats', { params });
-      return response.data;
-    },
-    
-    getOverviewReport: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/overview-report');
-      return response.data;
-    },
-    
-    getSchoolReport: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/school-report');
-      return response.data;
-    },
-
-    getRecentActivities: async (params?: { limit?: number }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/recent-activities', { params });
-      return response.data;
-    },
-
-    getStudentsChartData: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/students-chart');
-      return response.data;
-    },
-
-    getFeesChartData: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/fees-chart');
-      return response.data;
-    },
-
-    getStudentDistributionData: async () => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/student-distribution');
-      return response.data;
-    },
-
-    getFeeTrendData: async (params?: { months?: number }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend', { params });
-      return response.data;
-    },
-
-    getFeeCollectionSummary: async (params?: { academic_year?: string; branch_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/dashboard/fee-collection-summary', { params });
-      return response.data;
-    },
-  },
-
-  // Academic Year endpoints
-  academicYears: {
-    getAll: async (params?: { page?: number; limit?: number }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/academic-years', { params });
-      return response.data;
-    },
-    
-    getById: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/academic-years/${id}`);
-      return response.data;
-    },
-    
-    create: async (yearData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/academic-years', yearData);
-      return response.data;
-    },
-    
-    update: async (id: string, yearData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/academic-years/${id}`, yearData);
-      return response.data;
-    },
-    
-    delete: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.delete<ApiResponse<null>>(`/academic-years/${id}`);
-      return response.data;
-    },
-    
-    getDropdown: async (queryString?: string) => {
-      const api = createApiInstance();
-      const url = queryString ? `/academic-years/dropdown?${queryString}` : '/academic-years/dropdown';
-      const response = await api.get<ApiResponse<any>>(url);
-      return response.data;
-    },
-    
-    getCurrent: async (queryString?: string) => {
-      const api = createApiInstance();
-      const url = queryString ? `/academic-years/current?${queryString}` : '/academic-years/current';
-      const response = await api.get<ApiResponse<any>>(url);
-      return response.data;
-    },
-    
-    syncSchools: async () => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/academic-years/sync-schools');
-      return response.data;
-    }
-  },
-
-  // Class endpoints
-  classes: {
-    getAll: async (params?: { page?: number; limit?: number }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/classes', { params });
-      return response.data;
-    },
-    
-    getById: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/classes/${id}`);
-      return response.data;
-    },
-    
-    create: async (classData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/classes', classData);
-      return response.data;
-    },
-    
-    update: async (id: string, classData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/classes/${id}`, classData);
-      return response.data;
-    },
-    
-    delete: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.delete<ApiResponse<null>>(`/classes/${id}`);
-      return response.data;
-    },
-    
-    getDropdown: async (queryString?: string) => {
-      const api = createApiInstance();
-      const url = queryString ? `/classes/dropdown?${queryString}` : '/classes/dropdown';
-      const response = await api.get<ApiResponse<any>>(url);
-      return response.data;
-    }
-  },
-
-  // Section endpoints
-  sections: {
-    getAll: async (params?: { page?: number; limit?: number; class_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/sections', { params });
-      return response.data;
-    },
-    
-    getById: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>(`/sections/${id}`);
-      return response.data;
-    },
-    
-    create: async (sectionData: any) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/sections', sectionData);
-      return response.data;
-    },
-    
-    update: async (id: string, sectionData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/sections/${id}`, sectionData);
-      return response.data;
-    },
-    
-    delete: async (id: string) => {
-      const api = createApiInstance();
-      const response = await api.delete<ApiResponse<null>>(`/sections/${id}`);
-      return response.data;
-    },
-    
-    getDropdown: async (queryString?: string) => {
-      const api = createApiInstance();
-      const url = queryString ? `/sections/dropdown?${queryString}` : '/sections/dropdown';
-      const response = await api.get<ApiResponse<any>>(url);
-      return response.data;
-    }
-  },
-
-  // Enhanced Student endpoints with reports
+  // Student endpoints
   students: {
-    getAll: async (params?: { page?: number; limit?: number; class?: string; section?: string; status?: string; academic_year?: string; branch_id?: string; class_id?: string; section_id?: string; search?: string; school_id?: string }) => {
+    getAll: async (params?: { 
+      page?: number; 
+      limit?: number; 
+      class_name?: string; 
+      section?: string;
+      branch_id?: string;
+      search?: string;
+    }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/students', { params });
+      const response = await api.get<PaginatedResponse<any>>('/students', { params });
       return response.data;
     },
     
@@ -781,54 +640,26 @@ export const apiClient = {
       return response.data;
     },
     
-    create: async (studentData: any) => {
+    // New endpoint for student invoice breakdown (accordion details)
+    getInvoiceBreakdown: async (studentId: string, params?: {
+      academic_year?: string;
+      status?: string;
+      payment_model?: 'monthly' | 'installment';
+    }) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/students', studentData);
+      const response = await api.get<ApiResponse<any>>(`/students/${studentId}/invoice-breakdown`, { params });
       return response.data;
     },
     
-    createWithFormData: async (formData: FormData) => {
+    create: async (data: any) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/students', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await api.post<ApiResponse<any>>('/students', data);
       return response.data;
     },
     
-    bulkImport: async (formData: FormData) => {
+    update: async (id: string, data: any) => {
       const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/students/bulk-import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return response.data;
-    },
-    
-    downloadTemplate: async (type: 'required' | 'complete' = 'complete') => {
-      const api = createApiInstance();
-      const response = await api.get('/students/import-template', {
-        params: { type },
-        responseType: 'blob'
-      });
-      return response;
-    },
-    
-    update: async (id: string, studentData: any) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/students/${id}`, studentData);
-      return response.data;
-    },
-    
-    updateWithFormData: async (id: string, formData: FormData) => {
-      const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>(`/students/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await api.put<ApiResponse<any>>(`/students/${id}`, data);
       return response.data;
     },
     
@@ -837,31 +668,9 @@ export const apiClient = {
       const response = await api.delete<ApiResponse<any>>(`/students/${id}`);
       return response.data;
     },
-    
-    getByClass: async (params: { class_name?: string; class_names?: string; section?: string; academic_year?: string; branch_id?: string; status?: string; fee_structure_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/students/by-class', { params });
-      return response.data;
-    },
-    
-    getStats: async (params?: { academic_year?: string; school_id?: string; branch_id?: string; class_id?: string; section_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/students/stats', { params });
-      return response.data;
-    },
-    
-    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; class_name?: string; section_name?: string; status?: string; school_id?: string }) => {
-      const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/students/report', { params });
-      return response.data;
-    },
-    
-    exportReport: async (queryString: string) => {
-      const api = createApiInstance();
-      const response = await api.get(`/students/export?${queryString}`, { responseType: 'blob' });
-      return response;
-    }
   },
+
+
 
 
 
@@ -910,6 +719,192 @@ export const apiClient = {
     changePassword: async (passwordData: { currentPassword: string; newPassword: string }) => {
       const api = createApiInstance();
       const response = await api.put<ApiResponse<null>>('/users/change-password', passwordData);
+      return response.data;
+    }
+  },
+
+  // Academic Year endpoints
+  academicYears: {
+    getAll: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/academic-years', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/academic-years/${id}`);
+      return response.data;
+    },
+    
+    create: async (academicYearData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/academic-years', academicYearData);
+      return response.data;
+    },
+    
+    update: async (id: string, academicYearData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/academic-years/${id}`, academicYearData);
+      return response.data;
+    },
+    
+    delete: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.delete<ApiResponse<null>>(`/academic-years/${id}`);
+      return response.data;
+    },
+    
+    getDropdown: async (params?: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/academic-years/dropdown${params ? `?${params}` : ''}`);
+      return response.data;
+    },
+    
+    getCurrent: async (params?: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/academic-years/current${params ? `?${params}` : ''}`);
+      return response.data;
+    },
+    
+    setCurrent: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/academic-years/${id}/set-current`);
+      return response.data;
+    },
+    
+    syncSchools: async () => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/academic-years/sync-schools');
+      return response.data;
+    }
+  },
+
+  // Class endpoints
+  classes: {
+    getAll: async (params?: { page?: number; limit?: number; search?: string; is_active?: string; school_id?: string; branch_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/classes', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/classes/${id}`);
+      return response.data;
+    },
+    
+    create: async (classData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/classes', classData);
+      return response.data;
+    },
+    
+    update: async (id: string, classData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/classes/${id}`, classData);
+      return response.data;
+    },
+    
+    delete: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.delete<ApiResponse<null>>(`/classes/${id}`);
+      return response.data;
+    },
+    
+    getDropdown: async (params?: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/classes/dropdown${params ? `?${params}` : ''}`);
+      return response.data;
+    },
+    
+    getStats: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/classes/stats');
+      return response.data;
+    }
+  },
+
+  // Section endpoints
+  sections: {
+    getAll: async (params?: { page?: number; limit?: number; search?: string; is_active?: string; school_id?: string; branch_id?: string; class_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/sections', { params });
+      return response.data;
+    },
+    
+    getById: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/sections/${id}`);
+      return response.data;
+    },
+    
+    create: async (sectionData: any) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/sections', sectionData);
+      return response.data;
+    },
+    
+    update: async (id: string, sectionData: any) => {
+      const api = createApiInstance();
+      const response = await api.put<ApiResponse<any>>(`/sections/${id}`, sectionData);
+      return response.data;
+    },
+    
+    delete: async (id: string) => {
+      const api = createApiInstance();
+      const response = await api.delete<ApiResponse<null>>(`/sections/${id}`);
+      return response.data;
+    },
+    
+    getDropdown: async (params?: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/sections/dropdown${params ? `?${params}` : ''}`);
+      return response.data;
+    }
+  },
+
+  // Dashboard endpoints
+  dashboard: {
+    getStats: async (params?: { branch_id?: string; new_students_days?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/stats', { params });
+      return response.data;
+    },
+
+    getFeeCollectionSummary: async (params?: { academic_year?: string; branch_id?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fee-collection-summary', { params });
+      return response.data;
+    },
+
+    getRecentActivities: async (params?: { limit?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/recent-activities', { params });
+      return response.data;
+    },
+
+    getStudentsChartData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/students-chart');
+      return response.data;
+    },
+
+    getFeesChartData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fees-chart');
+      return response.data;
+    },
+
+    getStudentDistributionData: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/student-distribution');
+      return response.data;
+    },
+
+    getFeeTrendData: async (params?: { months?: number }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/dashboard/fee-trend', { params });
       return response.data;
     }
   },

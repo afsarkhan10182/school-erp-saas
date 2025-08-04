@@ -451,22 +451,45 @@ const fetchStudents = async () => {
       return;
     }
     
-    // Use the new fee_structure_id parameter to fetch students from all applicable classes
+    // Use the getAll endpoint with appropriate filters to fetch students
+    // Handle both single class_name and applicable_classes array
     const params = {
       branch_id: selectedStructure.branch_id,
-      fee_structure_id: form.fee_structure_id,
       section: selectedStructure.section,
-      status: 'active'
       // Note: academic_year will be automatically used from the fee structure
     };
     
-    const response = await apiClient.students.getByClass(params);
-    const allStudents = response.data || [];
-    
-    availableStudents.value = allStudents;
+    // If fee structure has applicable_classes (array), we need to fetch students for each class
+    if (selectedStructure.applicable_classes && selectedStructure.applicable_classes.length > 0) {
+      // Fetch students for all applicable classes
+      const allStudents = [];
+      
+      for (const className of selectedStructure.applicable_classes) {
+        try {
+          const classParams = { ...params, class_name: className };
+          const response = await apiClient.students.getAll(classParams);
+          if (response.data && response.data.length > 0) {
+            allStudents.push(...response.data);
+          }
+        } catch (error) {
+          console.error(`Error fetching students for class ${className}:`, error);
+        }
+      }
+      
+      availableStudents.value = allStudents;
+      console.log(`✅ Fetched ${allStudents.length} students from ${selectedStructure.applicable_classes.length} applicable classes`);
+    } else {
+      // Use single class_name
+      params.class_name = selectedStructure.class_name;
+      const response = await apiClient.students.getAll(params);
+      availableStudents.value = response.data || [];
+      console.log(`✅ Fetched ${response.data?.length || 0} students for class: ${selectedStructure.class_name}`);
+    }
     
   } catch (error) {
     console.error('Error fetching students:', error);
+    console.error('Selected fee structure:', selectedStructure);
+    console.error('Params used:', params);
     availableStudents.value = [];
     showToast('Error loading students', 'error');
   } finally {

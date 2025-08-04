@@ -2,7 +2,6 @@ const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, 
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
-const { generateInstallmentReceipt } = require('../../services/receipt.service');
 const { validatePaymentSequence, getEarliestPendingMonth } = require('../../utils/academicYearUtils');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 
@@ -79,79 +78,6 @@ const applyLateFees = async (req, res, next) => {
   } catch (error) {
     logger.error('Error applying late fees:', error);
     return next(error);
-  }
-};
-
-// Generate receipt after payment
-const generateReceipt = async (invoice, paymentAmount, paymentMethod, transactionId) => {
-  try {
-    const { School } = require('../../models');
-    
-    // Get school data
-    const school = await School.findByPk(invoice.school_id);
-    
-    // Get student data
-    const student = invoice.student || await Student.findByPk(invoice.student_id);
-    
-    // Generate professional receipt
-    const receipt = await generateInstallmentReceipt(
-      invoice, 
-      paymentAmount, 
-      paymentMethod, 
-      transactionId, 
-      school, 
-      student
-    );
-    
-    return receipt;
-  } catch (error) {
-    logger.error('Error generating receipt:', error);
-    
-    // Fallback to simple receipt
-    // Generate receipt number using the same pattern as invoices
-    let classCode = 'GEN'; // Default fallback
-    if (invoice.feeStructure?.class_name) {
-      classCode = getClassCode(invoice.feeStructure);
-    } else if (invoice.student?.current_class) {
-      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
-      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
-    }
-    
-    const receiptData = {
-      receipt_number: generateUniqueInvoiceNumber(classCode),
-      invoice_number: invoice.invoice_number,
-      student_name: invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
-      payment_amount: paymentAmount,
-      payment_method: paymentMethod,
-      transaction_id: transactionId,
-      payment_date: new Date(),
-      remaining_balance: parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount) - parseFloat(paymentAmount),
-      school_name: invoice.school ? invoice.school.name : 'School Name'
-    };
-    
-    const receiptHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
-        <h2 style="text-align: center; color: #333;">Payment Receipt</h2>
-        <hr>
-        <p><strong>Receipt No:</strong> ${receiptData.receipt_number}</p>
-        <p><strong>Invoice No:</strong> ${receiptData.invoice_number}</p>
-        <p><strong>Student:</strong> ${receiptData.student_name}</p>
-        <p><strong>Amount Paid:</strong> ₹${receiptData.payment_amount}</p>
-        <p><strong>Payment Method:</strong> ${receiptData.payment_method}</p>
-        <p><strong>Transaction ID:</strong> ${receiptData.transaction_id || 'N/A'}</p>
-        <p><strong>Payment Date:</strong> ${receiptData.payment_date.toLocaleDateString()}</p>
-        <p><strong>Remaining Balance:</strong> ₹${receiptData.remaining_balance}</p>
-        <hr>
-        <p style="text-align: center; font-size: 12px; color: #666;">Thank you for your payment!</p>
-      </div>
-    `;
-    
-    return {
-      receipt_number: receiptData.receipt_number,
-      receipt_html: receiptHtml,
-      receipt_data: receiptData
-    };
   }
 };
 
@@ -279,20 +205,45 @@ const recordPayment = async (req, res, next) => {
     // Get school data for receipt generation
     const school = await School.findByPk(req.schoolId);
 
-    // Generate receipt for this payment
-    const receipt = await generateInstallmentReceipt(
-      invoice, 
-      paymentAmount, 
-      payment_method, 
-      transaction_id, 
-      school, 
-      invoice.student
-    );
+    // Generate receipt number using the single source of truth
+    let classCode = 'GEN';
+    if (invoice.feeStructure?.class_name) {
+      classCode = getClassCode(invoice.feeStructure);
+    } else if (invoice.student.current_class) {
+      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
+      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    }
 
-    // Create payment record
+    const tempReceipt = await generateUniqueInvoiceNumber(classCode, {
+      student_id: '00000000-0000-0000-0000-000000000000',
+      fee_structure_id: '00000000-0000-0000-0000-000000000000',
+      academic_year: 'TEMP',
+      class_name: 'TEMP',
+      fee_type_name: 'TEMP',
+      due_date: new Date(),
+      amount: 0,
+      base_amount: 0,
+      discount_amount: 0,
+      tax_amount: 0,
+      total_amount: 0,
+      paid_amount: 0,
+      balance_amount: 0,
+      status: 'draft',
+      payment_status: 'pending',
+      installment_number: 1,
+      total_installments: 1,
+      payment_model: 'installment',
+      school_id: '00000000-0000-0000-0000-000000000000',
+      created_by: null,
+    }, true); // Set receiptOnly to true to avoid creating database record
+
+    const receiptNumber = tempReceipt.invoice_number;
+
+    // Create payment record with the generated receipt number
     const paymentData = {
       payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      receipt_number: receipt.receipt_number,
+      receipt_number: receiptNumber,
       invoice_id: invoice.id,
       student_id: invoice.student_id,
       payment_amount: parseFloat(paymentAmount),
@@ -303,31 +254,6 @@ const recordPayment = async (req, res, next) => {
       bank_name,
       reference_number,
       payment_status: 'completed',
-      receipt_html: receipt.receipt_html,
-      receipt_data: {
-        receipt_number: receipt.receipt_number,
-        invoice_number: invoice.invoice_number,
-        student_name: `${invoice.student.first_name} ${invoice.last_name}`,
-        payment_amount: paymentAmount,
-        payment_method,
-        transaction_id,
-        payment_date: payment_date || new Date(),
-        remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
-        school_name: school.name,
-        fee_type: invoice.fee_type_name,
-        class_name: invoice.class_name,
-        section: invoice.section,
-        // Add month information for monthly payments
-        payment_model: invoice.payment_model,
-        month: invoice.month,
-        year: invoice.year,
-        month_paid: invoice.month && invoice.year ? `${invoice.month}/${invoice.year}` : null,
-        monthly_amount: invoice.payment_model === 'monthly' ? parseFloat(invoice.total_amount) : null,
-        total_months: invoice.feeStructure?.total_months || 12,
-        months_paid: invoice.payment_model === 'monthly' ? Math.floor(newPaidAmount / parseFloat(invoice.total_amount)) : null,
-        remaining_months: invoice.payment_model === 'monthly' ? Math.max(0, (invoice.feeStructure?.total_months || 12) - Math.floor(newPaidAmount / parseFloat(invoice.total_amount))) : null,
-        total_yearly_amount: invoice.payment_model === 'monthly' ? parseFloat(invoice.total_amount) * (invoice.feeStructure?.total_months || 12) : null,
-      },
       notes,
       school_id: req.schoolId,
       branch_id: req.branchId,
@@ -336,7 +262,7 @@ const recordPayment = async (req, res, next) => {
 
     const payment = await FeePayment.create(paymentData);
 
-    // Update invoice with payment
+    // Update invoice with payment FIRST
     const updateData = {
       paid_amount: newPaidAmount,
       balance_amount: parseFloat(invoice.total_amount) - newPaidAmount,
@@ -366,6 +292,10 @@ const recordPayment = async (req, res, next) => {
     }
 
     await invoice.update(updateData);
+
+    // Generate receipt data AFTER invoice update to get correct remaining balance
+    const { generateReceiptData } = require('../../services/receipt.service');
+    const receiptData = await generateReceiptData(payment.id);
     
     logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`);
 
@@ -381,10 +311,7 @@ const recordPayment = async (req, res, next) => {
         new_paid_amount: newPaidAmount,
         remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
         status: invoice.status,
-        receipt: {
-          receipt_number: payment.receipt_number,
-          receipt_html: payment.receipt_html,
-        },
+        receipt: receiptData,
       },
     });
   } catch (error) {
@@ -534,15 +461,10 @@ const getPaymentReceipt = async (req, res, next) => {
       throw new ApiError(404, 'Payment not found');
     }
 
-    if (!payment.receipt_html) {
-      throw new ApiError(404, 'Receipt not found for this payment');
-    }
-
     return res.status(200).json({
       success: true,
       data: {
         receipt_number: payment.receipt_number,
-        receipt_html: payment.receipt_html,
         receipt_data: payment.receipt_data,
       },
     });
@@ -728,7 +650,6 @@ const getCollections = async (req, res, next) => {
 module.exports = {
   calculateLateFees,
   applyLateFees,
-  generateReceipt,
   recordPayment,
   getInvoicePayments,
   getPaymentById,
