@@ -1,4 +1,4 @@
-const { FeeStructure, FeeType, AcademicYear, Class, Branch } = require('../models');
+const { FeeStructure, FeeType, AcademicYear, Class, Branch, Stream } = require('../models');
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
@@ -13,7 +13,7 @@ const { logger } = require('../utils/logger');
  * @param {string} fee_type_id - Fee type ID
  * @param {string} school_id - School ID
  */
-const validateFeeStructure = async (branch_id, classNames, academic_year, new_payment_model, section, fee_type_id, school_id, excludeId = null) => {
+const validateFeeStructure = async (branch_id, classNames, academic_year, new_payment_model, section, fee_type_id, school_id, stream_ids = [], excludeId = null) => {
   // Check for existing fee structures for each class
   for (const className of classNames) {
     const whereClause = { 
@@ -34,22 +34,44 @@ const validateFeeStructure = async (branch_id, classNames, academic_year, new_pa
     }
 
     const existing = await FeeStructure.findOne({
-      where: whereClause
+      where: whereClause,
+      include: [
+        {
+          model: FeeType,
+          as: 'feeType',
+        },
+      ],
     });
 
     if (existing) {
-      // Check if it's the same fee type and section
-      if (existing.fee_type_id === fee_type_id && existing.section === (section || null)) {
-        // Same fee type and section - check payment model
+      // Check if it's the same fee type, section, and stream_ids
+      const sameFeeType = existing.fee_type_id === fee_type_id;
+      const sameSection = existing.section === (section || null);
+      
+      // Check if stream_ids overlap (if both have streams)
+      let sameStreams = false;
+      if (stream_ids && stream_ids.length > 0 && existing.stream_ids && existing.stream_ids.length > 0) {
+        // Check if there's any overlap in stream_ids
+        const existingStreams = existing.stream_ids;
+        const newStreams = stream_ids;
+        sameStreams = existingStreams.some(stream => newStreams.includes(stream));
+      } else if (!stream_ids || stream_ids.length === 0) {
+        // If new structure has no streams, check if existing has no streams
+        sameStreams = !existing.stream_ids || existing.stream_ids.length === 0;
+      }
+
+      if (sameFeeType && sameSection && sameStreams) {
+        // Same fee type, section, and streams - check payment model
         if (existing.payment_model !== new_payment_model) {
           throw new ApiError(
             400,
             `Class "${className}" already has a fee structure with "${existing.payment_model}" model for ${academic_year}. Cannot assign both monthly and installment models to the same class.`
           );
         } else {
+          const streamText = stream_ids && stream_ids.length > 0 ? ` (Streams: ${stream_ids.join(', ')})` : '';
           throw new ApiError(
             400,
-            `Fee structure for Class "${className}" with fee type "${existing.feeType?.name || 'Unknown'}" already exists for ${academic_year}.`
+            `Fee structure for Class "${className}" with fee type "${existing.feeType?.name || 'Unknown'}"${streamText} already exists for ${academic_year}.`
           );
         }
       }
@@ -177,6 +199,7 @@ const createFeeStructure = async (req, res, next) => {
       section,
       fee_type_id,
       req.schoolId,
+      stream_ids || [], // Pass stream_ids for validation
       null // No record to exclude for creation
     );
 
@@ -305,7 +328,33 @@ const getFeeStructures = async (req, res, next) => {
       order: [['academic_year', 'DESC'], ['class_name', 'ASC']],
     });
 
-    return res.status(200).json({ success: true, data: feeStructures });
+    // Fetch stream names for each fee structure
+    const feeStructuresWithStreams = await Promise.all(
+      feeStructures.map(async (structure) => {
+        const structureData = structure.toJSON();
+        
+        // If the structure has stream_ids, fetch the stream names
+        if (structureData.stream_ids && structureData.stream_ids.length > 0) {
+          const streams = await Stream.findAll({
+            where: {
+              id: { [Op.in]: structureData.stream_ids },
+              is_active: true
+            },
+            attributes: ['name'],
+            order: [['name', 'ASC']]
+          });
+          
+          // Create a comma-separated string of stream names for display
+          structureData.stream_names = streams.map(s => s.name).join(', ');
+        } else {
+          structureData.stream_names = '';
+        }
+        
+        return structureData;
+      })
+    );
+
+    return res.status(200).json({ success: true, data: feeStructuresWithStreams });
   } catch (error) {
     logger.error('Error fetching fee structures:', error);
     return next(error);

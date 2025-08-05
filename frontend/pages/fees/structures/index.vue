@@ -70,6 +70,9 @@
                       {{ structure.class_name || 'N/A' }}
                     </div>
                   </div>
+                  <div v-if="structure.stream_names" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {{ structure.stream_names }}
+                  </div>
                   <div v-if="structure.section" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Section: {{ structure.section }}
                   </div>
