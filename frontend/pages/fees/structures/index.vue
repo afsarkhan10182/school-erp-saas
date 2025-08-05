@@ -76,7 +76,6 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="structure.branch" class="flex items-center">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                     <span class="font-medium">{{ structure.branch.name }}</span>
                     <span v-if="structure.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ structure.branch.code }})</span>
                   </div>
@@ -1365,8 +1364,19 @@ const saveFeeStructure = async () => {
       sectionName = selectedSection?.name || null;
     }
 
+    // Set class_id if only one class is selected
+    let classId = '';
+    if (form.value.applicable_classes.length === 1) {
+      const selectedClassName = form.value.applicable_classes[0];
+      const selectedClass = classes.value.find(c => c.name === selectedClassName);
+      if (selectedClass) {
+        classId = selectedClass.id;
+      }
+    }
+
     const feeStructureData = {
       ...form.value,
+      class_id: classId, // Set the proper class_id when single class is selected
       amount: calculatedAmount, // Use the calculated amount
       applicable_classes: form.value.applicable_classes, // Send applicable classes array
       stream_ids: form.value.stream_ids, // Send stream IDs array

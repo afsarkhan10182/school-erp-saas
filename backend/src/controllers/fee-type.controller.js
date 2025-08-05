@@ -1,4 +1,4 @@
-const { FeeType } = require('../models');
+const { FeeType, Branch } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
 
@@ -88,6 +88,13 @@ const getFeeTypes = async (req, res, next) => {
 
     const feeTypes = await FeeType.findAll({
       where: whereClause,
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        }
+      ],
       order: [['name', 'ASC']],
     });
 
@@ -120,6 +127,13 @@ const getFeeTypeById = async (req, res, next) => {
 
     const feeType = await FeeType.findOne({
       where: whereClause,
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        }
+      ],
     });
 
     if (!feeType) {

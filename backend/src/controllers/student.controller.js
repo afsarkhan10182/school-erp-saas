@@ -1,4 +1,4 @@
-const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section, Stream } = require('../models');
+const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section, Stream, Branch } = require('../models');
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
@@ -1737,6 +1737,220 @@ const bulkImportStudents = async (req, res, next) => {
   }
 };
 
+// Get student invoice breakdown for accordion details
+const getStudentInvoiceBreakdown = async (req, res, next) => {
+  try {
+    const { id: studentId } = req.params;
+    const { academic_year, status, payment_model } = req.query;
+
+    // Get student
+    const student = await Student.findOne({
+      where: {
+        id: studentId,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
+      ],
+    });
+
+    if (!student) {
+      throw new ApiError(404, 'Student not found');
+    }
+
+    // Build invoice filter
+    const invoiceWhereClause = {
+      student_id: studentId,
+      school_id: req.schoolId,
+    };
+
+    if (academic_year && academic_year.trim() !== '') {
+      invoiceWhereClause.academic_year = academic_year;
+    }
+    if (status && status.trim() !== '') {
+      invoiceWhereClause.status = status;
+    }
+    if (payment_model && payment_model.trim() !== '') {
+      invoiceWhereClause.payment_model = payment_model;
+    }
+
+    // Get all invoices for this student
+    const invoices = await FeeInvoice.findAll({
+      where: invoiceWhereClause,
+      include: [
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
+      ],
+      order: [['created_at', 'DESC']],
+    });
+
+    // Group invoices by receipt_group_id for paid/partial_paid invoices
+    const groupedInvoices = {};
+    const ungroupedInvoices = [];
+
+    invoices.forEach(invoice => {
+      // Only group invoices that have a receipt_group_id AND are paid/partial_paid
+      if (invoice.receipt_group_id && ['paid', 'partial_paid'].includes(invoice.status)) {
+        if (!groupedInvoices[invoice.receipt_group_id]) {
+          groupedInvoices[invoice.receipt_group_id] = {
+            receipt_group_id: invoice.receipt_group_id,
+            invoices: [],
+            total_amount: 0,
+            total_paid: 0,
+            total_balance: 0,
+            payment_date: invoice.last_payment_date,
+            payment_method: invoice.payment_method,
+            transaction_id: invoice.transaction_id,
+            status: invoice.status,
+          };
+        }
+        groupedInvoices[invoice.receipt_group_id].invoices.push(invoice);
+        groupedInvoices[invoice.receipt_group_id].total_amount += parseFloat(invoice.total_amount || 0);
+        groupedInvoices[invoice.receipt_group_id].total_paid += parseFloat(invoice.paid_amount || 0);
+        groupedInvoices[invoice.receipt_group_id].total_balance += parseFloat(invoice.balance_amount || 0);
+      } else {
+        // All other invoices (including paid invoices without receipt_group_id) go to ungrouped
+        ungroupedInvoices.push(invoice);
+      }
+    });
+
+    // Debug logging to help identify issues
+    console.log('🔍 Invoice Breakdown Debug:', {
+      totalInvoices: invoices.length,
+      groupedInvoices: Object.keys(groupedInvoices).length,
+      ungroupedInvoices: ungroupedInvoices.length,
+      paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
+      paidInUngrouped: ungroupedInvoices.filter(inv => inv.status === 'paid').length,
+      paidInGrouped: Object.values(groupedInvoices).reduce((sum, group) => sum + group.invoices.filter(inv => inv.status === 'paid').length, 0)
+    });
+
+    // Helper function to get month name
+    const getMonthName = (month) => {
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return months[month - 1] || month;
+    };
+
+    // Convert grouped invoices to array format
+    const groupedArray = Object.values(groupedInvoices).map(group => {
+      const months = group.invoices.map(inv => inv.month).sort((a, b) => a - b);
+      const years = [...new Set(group.invoices.map(inv => inv.year))];
+      
+      const monthNames = group.invoices.map(inv => {
+        const monthName = getMonthName(inv.month);
+        return `${monthName} ${inv.year}`;
+      }).join(', ');
+      
+      // Get branch information from the first invoice that has branch data
+      let branchData = null;
+      for (const invoice of group.invoices) {
+        if (invoice.branch) {
+          branchData = invoice.branch;
+          break;
+        }
+      }
+      
+      // If no branch data found in invoices, use student's branch as fallback
+      if (!branchData && student.branch) {
+        branchData = student.branch;
+      }
+      
+      return {
+        id: group.receipt_group_id,
+        receipt_group_id: group.receipt_group_id,
+        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
+        fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
+        class_name: group.invoices[0]?.class_name,
+        section: group.invoices[0]?.section,
+        total_amount: group.total_amount,
+        paid_amount: group.total_paid,
+        balance_amount: group.total_balance,
+        due_date: group.invoices[0]?.due_date,
+        status: group.total_balance <= 0 ? 'paid' : 'partial_paid',
+        academic_year: group.invoices[0]?.academic_year,
+        month: months[0],
+        year: years[0],
+        months_covered: group.invoices.length,
+        month_names: monthNames,
+        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+        payment_date: group.payment_date,
+        payment_method: group.payment_method,
+        transaction_id: group.transaction_id,
+        payment_model: group.invoices[0]?.payment_model,
+        branch: branchData,
+        is_grouped: true
+      };
+    });
+
+    // Sort by payment date (newest first)
+    groupedArray.sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+
+    // Calculate paid count correctly - count individual invoices with status = 'paid'
+    const paidCount = invoices.filter(inv => inv.status === 'paid').length;
+    const pendingCount = invoices.filter(inv => inv.status === 'sent').length;
+    const overdueCount = invoices.filter(inv => inv.status === 'overdue').length;
+    const partialCount = invoices.filter(inv => inv.status === 'partial_paid').length;
+
+    // Add month information to ungrouped invoices for debugging
+    ungroupedInvoices.forEach(invoice => {
+      if (invoice.month && invoice.year) {
+        const monthName = getMonthName(invoice.month);
+        invoice.month_display = `${monthName} ${invoice.year}`;
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        student: {
+          id: student.id,
+          name: `${student.first_name} ${student.last_name}`,
+          admission_number: student.admission_number,
+          current_class: student.current_class,
+          section: student.section,
+          branch: student.branch,
+        },
+        grouped_invoices: groupedArray,
+        ungrouped_invoices: ungroupedInvoices,
+        summary: {
+          total_invoices: invoices.length,
+          total_grouped: groupedArray.length,
+          total_ungrouped: ungroupedInvoices.length,
+          total_amount: invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0),
+          total_paid: invoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0),
+          total_balance: invoices.reduce((sum, inv) => sum + parseFloat(inv.balance_amount || 0), 0),
+          paid_count: paidCount,
+          pending_count: pendingCount,
+          overdue_count: overdueCount,
+          partial_count: partialCount,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching student invoice breakdown:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   createStudent,
   getStudents,
@@ -1747,5 +1961,6 @@ module.exports = {
   getStudentReport,
   exportStudentReport,
   bulkImportStudents,
+  getStudentInvoiceBreakdown,
 };
 

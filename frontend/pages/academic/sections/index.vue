@@ -52,7 +52,6 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div class="flex items-center">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                     <span class="font-medium">{{ section.branch?.name }}</span>
                     <span v-if="section.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ section.branch.code }})</span>
                   </div>

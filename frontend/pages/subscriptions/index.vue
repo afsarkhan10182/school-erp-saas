@@ -215,63 +215,18 @@
           </NuxtLink>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="pagination && pagination.pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <button
-              @click="changePage(pagination.page - 1)"
-              :disabled="pagination.page <= 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              @click="changePage(pagination.page + 1)"
-              :disabled="pagination.page >= pagination.pages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (pagination.page - 1) * pagination.limit + 1 }}</span> to <span class="font-medium">{{ Math.min(pagination.page * pagination.limit, pagination.total) }}</span> of <span class="font-medium">{{ pagination.total }}</span> results
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="changePage(pagination.page - 1)"
-                  :disabled="pagination.page <= 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <button
-                  v-for="page in getPageNumbers()"
-                  :key="page"
-                  @click="changePage(page)"
-                  :class="[
-                    page === pagination.page
-                      ? 'z-10 bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                      : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
-                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                  ]"
-                >
-                  {{ page }}
-                </button>
-                <button
-                  @click="changePage(pagination.page + 1)"
-                  :disabled="pagination.page >= pagination.pages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <!-- Enhanced Pagination -->
+        <Pagination 
+          v-if="pagination && pagination.pages > 1"
+          :pagination="{
+            page: pagination.page,
+            limit: pagination.limit,
+            total: pagination.total
+          }"
+          item-label="schools"
+          @page-changed="changePage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
     </div>
   </div>
@@ -283,6 +238,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue';
 
 const authStore = useAuthStore();
 const { showError } = useToast();
@@ -327,7 +283,15 @@ const fetchPlansData = async () => {
 
 // Change page
 const changePage = (page) => {
-  filters.value.page = page;
+  if (pagination.value && page >= 1 && page <= pagination.value.pages) {
+    filters.value.page = page;
+    fetchSchools();
+  }
+};
+
+const onPageSizeChange = (newLimit) => {
+  filters.value.limit = newLimit;
+  filters.value.page = 1; // Reset to first page when page size changes
   fetchSchools();
 };
 

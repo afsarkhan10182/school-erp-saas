@@ -2,11 +2,28 @@ const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, 
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
+const XLSX = require('xlsx');
+
+// Helper function to get student full name
+const getStudentFullName = (student) => {
+  const firstName = student.first_name || '';
+  const lastName = student.last_name || '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  } else {
+    return 'Unknown Student';
+  }
+};
 
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
-    const { academic_year, class_name, start_date, end_date } = req.query;
+    const { academic_year, class_name, start_date, end_date, status, branch_id, search, section } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -16,58 +33,80 @@ const getFeeCollectionSummary = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
       whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // If specific branch is selected
+      whereClause.branch_id = branch_id;
     }
 
     if (academic_year) whereClause.academic_year = academic_year;
+    if (status) whereClause.status = status;
     if (start_date && end_date) {
       whereClause.created_at = {
         [Op.between]: [new Date(start_date), new Date(end_date)],
       };
     }
 
-    const includeClause = [];
-    if (class_name) {
-      const studentWhereClause = { current_class: class_name };
+
+
+    // Build a subquery for student filtering
+    let studentSubquery = null;
+    if (search || class_name || section) {
+      const studentWhereClause = {};
+      if (search) {
+        studentWhereClause[Op.or] = [
+          { first_name: { [Op.iLike]: `%${search}%` } },
+          { last_name: { [Op.iLike]: `%${search}%` } },
+          { 
+            admission_number: { 
+              [Op.and]: [
+                { [Op.not]: null },
+                { [Op.iLike]: `%${search}%` }
+              ]
+            } 
+          },
+        ];
+      }
+      if (class_name) studentWhereClause.current_class = class_name;
+      if (section) studentWhereClause.section = section;
       
       // Handle student branch filtering based on user role
       if (req.user.role === 'branch_admin') {
-        // Branch admin can only see students from their assigned branch
         studentWhereClause.branch_id = req.user.branch_id;
       }
-      
-      includeClause.push({
+
+      studentSubquery = {
         model: Student,
         as: 'student',
         where: studentWhereClause,
         attributes: [],
-      });
+      };
     }
 
     // Get summary statistics
     const totalInvoices = await FeeInvoice.count({
       where: whereClause,
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const paidInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'paid' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const overdueInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'overdue' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
     const partialPaidInvoices = await FeeInvoice.count({
       where: { ...whereClause, status: 'partial_paid' },
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
     });
 
-    // Get amount statistics
+    // Get amount statistics - use separate query without include to avoid GROUP BY issues
     const amountStats = await FeeInvoice.findAll({
       where: whereClause,
-      include: includeClause,
+      include: studentSubquery ? [studentSubquery] : [],
       attributes: [
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
         [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
@@ -76,22 +115,16 @@ const getFeeCollectionSummary = async (req, res, next) => {
       raw: true,
     });
 
+    const totalAmount = parseFloat(amountStats[0]?.total_amount || 0);
+    const totalPaid = parseFloat(amountStats[0]?.total_paid || 0);
+    const totalBalance = parseFloat(amountStats[0]?.total_balance || 0);
+
     const summary = {
-      invoice_counts: {
-        total: totalInvoices,
-        paid: paidInvoices,
-        overdue: overdueInvoices,
-        partial_paid: partialPaidInvoices,
-        pending: totalInvoices - paidInvoices - overdueInvoices - partialPaidInvoices,
-      },
-      amounts: {
-        total_amount: parseFloat(amountStats[0]?.total_amount || 0),
-        total_paid: parseFloat(amountStats[0]?.total_paid || 0),
-        total_balance: parseFloat(amountStats[0]?.total_balance || 0),
-        collection_percentage: totalInvoices > 0 
-          ? ((paidInvoices / totalInvoices) * 100).toFixed(2)
-          : 0,
-      },
+      totalAmount,
+      totalCollected: totalPaid,
+      totalPending: totalBalance,
+      collectionRate: totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0,
+      totalInvoices
     };
 
     return res.status(200).json({ success: true, data: summary });
@@ -157,7 +190,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
       query: req.query
     });
 
-    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date } = req.query;
+    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
@@ -168,13 +201,26 @@ const getFeeInvoiceReport = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
       whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // If specific branch is selected
+      whereClause.branch_id = branch_id;
     }
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
-      whereClause.created_at = {
-        [Op.between]: [new Date(from_date), new Date(to_date)],
-      };
+      // Filter by both invoice_date and due_date to capture all relevant invoices
+      whereClause[Op.or] = [
+        {
+          invoice_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        },
+        {
+          due_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        }
+      ];
     }
 
     logger.debug('getFeeInvoiceReport: Query parameters', {
@@ -259,7 +305,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
 // GET endpoint to export fee invoices report
 const exportFeeInvoicesReport = async (req, res, next) => {
   try {
-    const { format = 'csv', search, status, class_name, section, from_date, to_date } = req.query;
+    const { format = 'excel', search, status, class_name, section, from_date, to_date, branch_id } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -269,13 +315,26 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see invoices for their assigned branch
       whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      // If specific branch is selected
+      whereClause.branch_id = branch_id;
     }
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
-      whereClause.created_at = {
-        [Op.between]: [new Date(from_date), new Date(to_date)],
-      };
+      // Filter by both invoice_date and due_date to capture all relevant invoices
+      whereClause[Op.or] = [
+        {
+          invoice_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        },
+        {
+          due_date: {
+            [Op.between]: [new Date(from_date), new Date(to_date)],
+          }
+        }
+      ];
     }
 
     const includeClause = [
@@ -326,25 +385,416 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Convert to export format
+    // Convert to export format with enhanced data
     const exportData = invoices.map(invoice => ({
-      'Invoice Number': invoice.invoice_number,
-      'Student Name': invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : 'N/A',
+      'Invoice Number': invoice.invoice_number || invoice.id,
+      'Student Name': invoice.student ? getStudentFullName(invoice.student) : 'N/A',
       'Admission Number': invoice.student?.admission_number || 'N/A',
+      'Roll Number': invoice.student?.roll_number || 'N/A',
       'Class': invoice.student?.current_class || 'N/A',
       'Section': invoice.student?.section || 'N/A',
-      'Amount': invoice.amount,
-      'Paid Amount': invoice.paid_amount,
-      'Balance': invoice.balance_amount,
-      'Due Date': invoice.due_date,
-      'Status': invoice.status,
-      'Created At': invoice.created_at,
-      'Updated At': invoice.updated_at,
+      'Fee Type': invoice.feeStructure?.feeType?.name || 'N/A',
+      'Total Amount': parseFloat(invoice.total_amount || 0).toFixed(2),
+      'Paid Amount': parseFloat(invoice.paid_amount || 0).toFixed(2),
+      'Balance Amount': parseFloat(invoice.balance_amount || 0).toFixed(2),
+      'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-IN') : 'N/A',
+      'Status': invoice.status || 'N/A',
+      'Payment Method': invoice.payment_method || 'N/A',
+      'Created Date': invoice.created_at ? new Date(invoice.created_at).toLocaleDateString('en-IN') : 'N/A',
+      'Last Updated': invoice.updated_at ? new Date(invoice.updated_at).toLocaleDateString('en-IN') : 'N/A',
     }));
 
-    if (format === 'csv') {
-      // Generate CSV
+    // Debug logging
+    logger.info(`Export data prepared: ${exportData.length} records`);
+    if (exportData.length > 0) {
+      logger.info(`Sample export data:`, {
+        firstRecord: exportData[0],
+        headers: Object.keys(exportData[0]),
+        totalRecords: exportData.length
+      });
+    }
+
+    if (format === 'excel' || format === 'xlsx') {
+      try {
+        logger.info('Starting Excel generation...');
+        
+        // Check if XLSX library is properly loaded
+        if (!XLSX || !XLSX.utils) {
+          throw new Error('XLSX library not properly loaded');
+        }
+        
+        logger.info('XLSX library loaded successfully');
+        
+        // Calculate summary totals (same as CSV)
+        const summaryTotals = {
+          totalInvoices: exportData.length,
+          totalAmount: 0,
+          totalCollected: 0,
+          totalPending: 0,
+          paidInvoices: 0,
+          unpaidInvoices: 0,
+          partialInvoices: 0,
+          overdueInvoices: 0
+        };
+        
+        exportData.forEach(row => {
+          const totalAmount = parseFloat(row['Total Amount'] || 0);
+          const paidAmount = parseFloat(row['Paid Amount'] || 0);
+          const balanceAmount = parseFloat(row['Balance Amount'] || 0);
+          const status = row['Status'] || '';
+          
+          summaryTotals.totalAmount += totalAmount;
+          summaryTotals.totalCollected += paidAmount;
+          summaryTotals.totalPending += balanceAmount;
+          
+          switch (status.toLowerCase()) {
+            case 'paid':
+              summaryTotals.paidInvoices++;
+              break;
+            case 'unpaid':
+              summaryTotals.unpaidInvoices++;
+              break;
+            case 'partial_paid':
+              summaryTotals.partialInvoices++;
+              break;
+            case 'overdue':
+              summaryTotals.overdueInvoices++;
+              break;
+          }
+        });
+        
+        const collectionRate = summaryTotals.totalAmount > 0 
+          ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+          : '0.00';
+        
+        // Generate Excel file
+        const workbook = XLSX.utils.book_new();
+        logger.info('Workbook created successfully');
+        
+        // Create Summary worksheet
+        const summaryData = [
+          ['Fee Collection Report Summary'],
+          [''],
+          ['Report Information'],
+          ['Generated on', new Date().toLocaleDateString('en-IN') + ' at ' + new Date().toLocaleTimeString('en-IN')],
+          [''],
+          ['School Information'],
+        ];
+        
+        // Add school information
+        try {
+          const school = await School.findByPk(req.schoolId);
+          if (school) {
+            summaryData.push(['School', school.name]);
+          }
+        } catch (error) {
+          logger.warn('Could not fetch school information for Excel');
+        }
+        
+        // Add user information
+        if (req.user) {
+          summaryData.push(['Generated by', req.user.name || req.user.email || 'System']);
+          summaryData.push(['User Role', req.user.role || 'Unknown']);
+        }
+        
+        summaryData.push(['']);
+        summaryData.push(['Summary Totals']);
+        summaryData.push(['Total Invoices', summaryTotals.totalInvoices]);
+        summaryData.push(['Total Amount', `₹${summaryTotals.totalAmount.toFixed(2)}`]);
+        summaryData.push(['Total Collected', `₹${summaryTotals.totalCollected.toFixed(2)}`]);
+        summaryData.push(['Total Pending', `₹${summaryTotals.totalPending.toFixed(2)}`]);
+        summaryData.push(['Collection Rate', `${collectionRate}%`]);
+        
+        summaryData.push(['']);
+        summaryData.push(['Status Breakdown']);
+        summaryData.push(['Paid Invoices', summaryTotals.paidInvoices]);
+        summaryData.push(['Unpaid Invoices', summaryTotals.unpaidInvoices]);
+        summaryData.push(['Partial Paid Invoices', summaryTotals.partialInvoices]);
+        summaryData.push(['Overdue Invoices', summaryTotals.overdueInvoices]);
+        
+        summaryData.push(['']);
+        summaryData.push(['Applied Filters']);
+        if (from_date && to_date) summaryData.push(['Date Range', `${from_date} to ${to_date}`]);
+        if (branch_id) {
+          try {
+            const branch = await Branch.findByPk(branch_id);
+            summaryData.push(['Branch', branch ? branch.name : branch_id]);
+          } catch (error) {
+            summaryData.push(['Branch', branch_id]);
+          }
+        }
+        if (class_name) summaryData.push(['Class', class_name]);
+        if (section) summaryData.push(['Section', section]);
+        if (status) summaryData.push(['Status', status.toUpperCase()]);
+        if (search) summaryData.push(['Student Search', search]);
+        
+        const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
+        summaryWorksheet['!cols'] = [
+          { wch: 25 }, // Label column
+          { wch: 30 }  // Value column
+        ];
+        XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Summary');
+        
+        // Ensure we have data to export for detailed worksheet
+        if (!exportData || exportData.length === 0) {
+          logger.warn('No data to export, creating empty report with headers');
+          exportData = [{
+            'Invoice Number': 'No Data',
+            'Student Name': 'No Data',
+            'Admission Number': 'No Data',
+            'Roll Number': 'No Data',
+            'Class': 'No Data',
+            'Section': 'No Data',
+            'Fee Type': 'No Data',
+            'Total Amount': '0.00',
+            'Paid Amount': '0.00',
+            'Balance Amount': '0.00',
+            'Due Date': 'N/A',
+            'Status': 'No Data',
+            'Payment Method': 'No Data',
+            'Created Date': 'N/A',
+            'Last Updated': 'N/A',
+          }];
+        }
+        
+        logger.info(`Preparing detailed worksheet with ${exportData.length} records`);
+        
+        // Create detailed data worksheet
+        let detailedWorksheet;
+        try {
+          detailedWorksheet = XLSX.utils.json_to_sheet(exportData);
+          logger.info('Detailed worksheet created successfully using json_to_sheet');
+        } catch (worksheetError) {
+          logger.error('Error creating detailed worksheet with json_to_sheet:', worksheetError);
+          logger.info('Trying aoa_to_sheet as fallback...');
+          
+          // Fallback to aoa_to_sheet
+          const headers = Object.keys(exportData[0]);
+          const dataArray = [
+            headers,
+            ...exportData.map(row => headers.map(header => String(row[header] || '')))
+          ];
+          detailedWorksheet = XLSX.utils.aoa_to_sheet(dataArray);
+          logger.info('Detailed worksheet created successfully using aoa_to_sheet fallback');
+        }
+        
+        // Set column widths for better readability
+        const columnWidths = [
+          { wch: 15 }, // Invoice Number
+          { wch: 25 }, // Student Name
+          { wch: 15 }, // Admission Number
+          { wch: 12 }, // Roll Number
+          { wch: 10 }, // Class
+          { wch: 10 }, // Section
+          { wch: 20 }, // Fee Type
+          { wch: 12 }, // Total Amount
+          { wch: 12 }, // Paid Amount
+          { wch: 12 }, // Balance Amount
+          { wch: 12 }, // Due Date
+          { wch: 12 }, // Status
+          { wch: 15 }, // Payment Method
+          { wch: 12 }, // Created Date
+          { wch: 12 }, // Last Updated
+        ];
+        detailedWorksheet['!cols'] = columnWidths;
+        logger.info('Column widths set successfully');
+        
+        // Add detailed worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, detailedWorksheet, 'Detailed Data');
+        logger.info('Detailed worksheet added to workbook successfully');
+        
+        // Generate buffer with explicit options for better compatibility
+        logger.info('Generating Excel buffer...');
+        const excelBuffer = XLSX.write(workbook, { 
+          type: 'buffer', 
+          bookType: 'xlsx',
+          compression: true,
+          bookSST: false
+        });
+        
+        logger.info(`Excel export generated successfully: ${exportData.length} records, buffer size: ${excelBuffer.length} bytes`);
+        
+        // Set headers for better compatibility
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="fee-collection-report-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        res.setHeader('Content-Length', excelBuffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Pragma', 'no-cache');
+        
+        logger.info('Sending Excel file to client...');
+        res.send(excelBuffer);
+        logger.info('Excel file sent successfully');
+      } catch (excelError) {
+        logger.error('Error generating Excel file:', excelError);
+        logger.error('Error stack:', excelError.stack);
+        logger.error('Error details:', {
+          name: excelError.name,
+          message: excelError.message,
+          code: excelError.code
+        });
+        
+        // Fallback to CSV if Excel fails
+        logger.info('Falling back to CSV format due to Excel generation error');
+        try {
+          // Generate CSV with BOM for better compatibility
+          const csvHeaders = Object.keys(exportData[0] || {});
+          const csvRows = exportData.map(row => 
+            csvHeaders.map(header => {
+              const value = row[header];
+              // Handle null/undefined values and escape quotes
+              if (value === null || value === undefined) return '';
+              const stringValue = String(value);
+              return stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')
+                ? `"${stringValue.replace(/"/g, '""')}"`
+                : stringValue;
+            }).join(',')
+          );
+          
+          const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+          
+          // Add BOM for better compatibility with Google Sheets
+          const BOM = '\uFEFF';
+          const csvWithBOM = BOM + csvContent;
+          
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Content-Disposition', `attachment; filename="fee-invoices-report-${new Date().toISOString().split('T')[0]}.csv"`);
+          res.setHeader('Content-Length', Buffer.byteLength(csvWithBOM, 'utf8'));
+          res.send(csvWithBOM);
+          
+          logger.info('CSV fallback successful');
+        } catch (csvError) {
+          logger.error('CSV fallback also failed:', csvError);
+          res.status(500).json({
+            success: false,
+            message: 'Error generating both Excel and CSV files',
+            excelError: excelError.message,
+            csvError: csvError.message
+          });
+        }
+      }
+      
+    } else if (format === 'csv') {
+      logger.info('Starting CSV generation...');
+      
+      // Check if we have data to export
+      if (!exportData || exportData.length === 0) {
+        logger.warn('No data to export - exportData is empty');
+        res.status(404).json({
+          success: false,
+          message: 'No data found for the selected filters',
+          total_records: 0
+        });
+        return;
+      }
+      
+      // Calculate summary totals
+      const summaryTotals = {
+        totalInvoices: exportData.length,
+        totalAmount: 0,
+        totalCollected: 0,
+        totalPending: 0,
+        paidInvoices: 0,
+        unpaidInvoices: 0,
+        partialInvoices: 0,
+        overdueInvoices: 0
+      };
+      
+      exportData.forEach(row => {
+        const totalAmount = parseFloat(row['Total Amount'] || 0);
+        const paidAmount = parseFloat(row['Paid Amount'] || 0);
+        const balanceAmount = parseFloat(row['Balance Amount'] || 0);
+        const status = row['Status'] || '';
+        
+        summaryTotals.totalAmount += totalAmount;
+        summaryTotals.totalCollected += paidAmount;
+        summaryTotals.totalPending += balanceAmount;
+        
+        switch (status.toLowerCase()) {
+          case 'paid':
+            summaryTotals.paidInvoices++;
+            break;
+          case 'unpaid':
+            summaryTotals.unpaidInvoices++;
+            break;
+          case 'partial_paid':
+            summaryTotals.partialInvoices++;
+            break;
+          case 'overdue':
+            summaryTotals.overdueInvoices++;
+            break;
+        }
+      });
+      
+      const collectionRate = summaryTotals.totalAmount > 0 
+        ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+        : '0.00';
+      
+      // Generate CSV with summary information
+      const csvLines = [];
+      
+      // Add report header
+      csvLines.push('Fee Collection Report');
+      csvLines.push(`Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}`);
+      
+      // Add school information
+      try {
+        const school = await School.findByPk(req.schoolId);
+        if (school) {
+          csvLines.push(`School,${school.name}`);
+        }
+      } catch (error) {
+        logger.warn('Could not fetch school information for CSV');
+      }
+      
+      // Add user information
+      if (req.user) {
+        csvLines.push(`Generated by,${req.user.name || req.user.email || 'System'}`);
+        csvLines.push(`User Role,${req.user.role || 'Unknown'}`);
+      }
+      
+      csvLines.push(''); // Empty line
+      
+      // Add summary section
+      csvLines.push('SUMMARY TOTALS');
+      csvLines.push(`Total Invoices,${summaryTotals.totalInvoices}`);
+      csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+      csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+      csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
+      csvLines.push(`Collection Rate,${collectionRate}%`);
+      csvLines.push(''); // Empty line
+      
+      // Add status breakdown
+      csvLines.push('STATUS BREAKDOWN');
+      csvLines.push(`Paid Invoices,${summaryTotals.paidInvoices}`);
+      csvLines.push(`Unpaid Invoices,${summaryTotals.unpaidInvoices}`);
+      csvLines.push(`Partial Paid Invoices,${summaryTotals.partialInvoices}`);
+      csvLines.push(`Overdue Invoices,${summaryTotals.overdueInvoices}`);
+      csvLines.push(''); // Empty line
+      
+      // Add filter information
+      csvLines.push('APPLIED FILTERS');
+      if (from_date && to_date) csvLines.push(`Date Range,${from_date} to ${to_date}`);
+      if (branch_id) {
+        // Try to get branch name if possible
+        try {
+          const branch = await Branch.findByPk(branch_id);
+          csvLines.push(`Branch,${branch ? branch.name : branch_id}`);
+        } catch (error) {
+          csvLines.push(`Branch,${branch_id}`);
+        }
+      }
+      if (class_name) csvLines.push(`Class,${class_name}`);
+      if (section) csvLines.push(`Section,${section}`);
+      if (status) csvLines.push(`Status,${status.toUpperCase()}`);
+      if (search) csvLines.push(`Student Search,${search}`);
+      csvLines.push(''); // Empty line
+      
+      // Add detailed data headers
       const csvHeaders = Object.keys(exportData[0] || {});
+      csvLines.push('DETAILED INVOICE DATA');
+      csvLines.push(csvHeaders.join(','));
+      
+      // Add detailed data rows
       const csvRows = exportData.map(row => 
         csvHeaders.map(header => {
           const value = row[header];
@@ -357,11 +807,34 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         }).join(',')
       );
       
-      const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+      csvLines.push(...csvRows);
+      csvLines.push(''); // Empty line
       
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="fee-invoices-report-${new Date().toISOString().split('T')[0]}.csv"`);
-      res.send(csvContent);
+      // Add totals row
+      csvLines.push('TOTALS');
+      csvLines.push(`Total Records,${summaryTotals.totalInvoices}`);
+      csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+      csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+      csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
+      
+      const csvContent = csvLines.join('\n');
+      logger.info(`CSV content length: ${csvContent.length} characters`);
+      logger.info(`CSV rows generated: ${csvRows.length}`);
+      logger.info('Summary totals calculated:', summaryTotals);
+      
+      // Add BOM for better compatibility with Google Sheets
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+      
+      logger.info(`CSV with BOM length: ${csvWithBOM.length} characters`);
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="fee-collection-report-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Content-Length', Buffer.byteLength(csvWithBOM, 'utf8'));
+      
+      logger.info('Sending CSV file to client...');
+      res.send(csvWithBOM);
+      logger.info('CSV file sent successfully');
     } else if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="fee-invoices-report-${new Date().toISOString().split('T')[0]}.json"`);
@@ -374,7 +847,7 @@ const exportFeeInvoicesReport = async (req, res, next) => {
     } else {
       res.status(400).json({
         success: false,
-        message: 'Invalid export format. Supported formats: csv, json',
+        message: 'Invalid export format. Supported formats: excel, csv, json',
       });
     }
   } catch (error) {

@@ -9,6 +9,7 @@ const {
   getStudentReport,
   exportStudentReport,
   bulkImportStudents,
+  getStudentInvoiceBreakdown,
 } = require('../controllers/student.controller');
 const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
 const { uploadFields, uploadSingle, uploadCSV } = require('../middleware/upload');
@@ -84,6 +85,9 @@ router.get('/export', exportStudentReport);
 
 // GET endpoint to retrieve a specific student by ID
 router.get('/:id', getStudentById);
+
+// GET endpoint to retrieve student invoice breakdown (for accordion details)
+router.get('/:id/invoice-breakdown', getStudentInvoiceBreakdown);
 
 // PUT endpoint to update a student
 router.put('/:id', 

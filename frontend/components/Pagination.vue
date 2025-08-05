@@ -1,38 +1,107 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm sm:px-6">
-    <div class="flex-1 flex justify-center sm:hidden">
+  <div v-if="pagination.total > 0" class="bg-white dark:bg-gray-800 px-4 py-4 border-t border-gray-200 dark:border-gray-700 md:px-6">
+    <!-- Desktop Layout: All in one line -->
+    <div class="hidden sm:flex items-center justify-between">
+      <!-- Page Size Selector (Left) -->
       <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
+        <select 
+          v-model="localPageSize" 
+          @change="onPageSizeChange"
+          class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
+      </div>
+
+      <!-- Page Info (Center) -->
+      <div class="text-center">
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+          Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
+        </p>
+      </div>
+      
+      <!-- Pagination Navigation (Right) -->
+      <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
         <button
           @click="previousPage"
           :disabled="pagination.page === 1"
-          class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+          class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         >
           Previous
         </button>
-        <span class="text-sm text-gray-700 dark:text-gray-300">
-          Page {{ pagination.page }} of {{ totalPages }}
-        </span>
+        
+        <template v-for="page in visiblePages" :key="page">
+          <button
+            v-if="page !== '...'"
+            @click="goToPage(page)"
+            :class="[
+              page === pagination.page
+                ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900 dark:border-indigo-400 dark:text-indigo-300'
+                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700',
+              'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+            ]"
+          >
+            {{ page }}
+          </button>
+          <span
+            v-else
+            class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+          >
+            ...
+          </span>
+        </template>
+        
         <button
           @click="nextPage"
           :disabled="pagination.page >= totalPages"
-          class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+          class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         >
           Next
         </button>
-      </div>
+      </nav>
     </div>
-    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
-      <div>
+
+    <!-- Mobile Layout: Stacked vertically -->
+    <div class="sm:hidden space-y-4">
+      <!-- Page Size Selector -->
+      <div class="flex items-center justify-center">
+        <div class="flex items-center space-x-2">
+          <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
+          <select 
+            v-model="localPageSize" 
+            @change="onPageSizeChange"
+            class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
+        </div>
+      </div>
+
+      <!-- Page Info -->
+      <div class="text-center">
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+          Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
+        </p>
+      </div>
+      
+      <!-- Pagination Navigation -->
+      <div class="flex justify-center">
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
           <button
             @click="previousPage"
             :disabled="pagination.page === 1"
-            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+            class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
           >
-            <span class="sr-only">Previous</span>
-            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
+            Previous
           </button>
           
           <template v-for="page in visiblePages" :key="page">
@@ -43,14 +112,14 @@
                 page === pagination.page
                   ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900 dark:border-indigo-400 dark:text-indigo-300'
                   : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700',
-                'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                'relative inline-flex items-center px-3 py-2 border text-sm font-medium'
               ]"
             >
               {{ page }}
             </button>
             <span
               v-else
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+              class="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
             >
               ...
             </span>
@@ -59,12 +128,9 @@
           <button
             @click="nextPage"
             :disabled="pagination.page >= totalPages"
-            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+            class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
           >
-            <span class="sr-only">Next</span>
-            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
+            Next
           </button>
         </nav>
       </div>
@@ -73,27 +139,35 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   pagination: {
     type: Object,
     required: true
+  },
+  itemLabel: {
+    type: String,
+    default: 'items'
+  },
+  additionalInfo: {
+    type: String,
+    default: ''
   }
 });
 
-const emit = defineEmits(['page-changed']);
+const emit = defineEmits(['page-changed', 'page-size-changed']);
+
+// Local page size state
+const localPageSize = ref(props.pagination.limit || 10);
+
+// Watch for external page size changes
+watch(() => props.pagination.limit, (newLimit) => {
+  localPageSize.value = newLimit;
+});
 
 const totalPages = computed(() => {
-  const total = Math.ceil(props.pagination.total / props.pagination.limit);
-  console.log('🔢 Total pages calculation:', {
-    total: props.pagination.total,
-    limit: props.pagination.limit,
-    calculated: total,
-    currentPage: props.pagination.page,
-    paginationObject: props.pagination
-  });
-  return total;
+  return Math.ceil(props.pagination.total / localPageSize.value);
 });
 
 const visiblePages = computed(() => {
@@ -102,34 +176,30 @@ const visiblePages = computed(() => {
   const pages = [];
   
   if (total <= 7) {
+    // For small page counts, show all pages
     for (let i = 1; i <= total; i++) {
       pages.push(i);
     }
   } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push('...');
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
+    // For larger page counts, show: 1, 2, 3, 4, 5, ..., last
+    for (let i = 1; i <= 5; i++) {
+      pages.push(i);
+    }
+    if (total > 5) {
       pages.push('...');
       pages.push(total);
     }
   }
   
   return pages;
+});
+
+const startItem = computed(() => {
+  return (props.pagination.page - 1) * localPageSize.value + 1;
+});
+
+const endItem = computed(() => {
+  return Math.min(props.pagination.page * localPageSize.value, props.pagination.total);
 });
 
 const previousPage = () => {
@@ -139,11 +209,6 @@ const previousPage = () => {
 };
 
 const nextPage = () => {
-  console.log('➡️ Next page clicked:', {
-    currentPage: props.pagination.page,
-    totalPages: totalPages.value,
-    canGoNext: props.pagination.page < totalPages.value
-  });
   if (props.pagination.page < totalPages.value) {
     emit('page-changed', props.pagination.page + 1);
   }
@@ -153,5 +218,9 @@ const goToPage = (page) => {
   if (page !== props.pagination.page) {
     emit('page-changed', page);
   }
+};
+
+const onPageSizeChange = () => {
+  emit('page-size-changed', parseInt(localPageSize.value));
 };
 </script> 

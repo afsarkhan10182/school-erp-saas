@@ -87,22 +87,18 @@
           </tbody>
         </table>
       </div>
-      <!-- Pagination -->
-      <div v-if="pagination && pagination.pages > 1" class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6 mt-4">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button @click="changePage(pagination.page - 1)" :disabled="pagination.page <= 1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-          <button @click="changePage(pagination.page + 1)" :disabled="pagination.page >= pagination.pages" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button v-for="page in getPageNumbers()" :key="page" @click="changePage(page)" :disabled="page === '...' || page === pagination.page" class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium" :class="page === pagination.page ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'">
-                {{ page }}
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
+      <!-- Enhanced Pagination -->
+      <Pagination 
+        v-if="pagination && pagination.pages > 1"
+        :pagination="{
+          page: pagination.page,
+          limit: pagination.limit,
+          total: pagination.total
+        }"
+        item-label="transactions"
+        @page-changed="changePage"
+        @page-size-changed="onPageSizeChange"
+      />
     </div>
 
     <!-- Add Manual Payment Modal -->
@@ -186,6 +182,7 @@ import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue'; // Added import for Pagination component
 
 const authStore = useAuthStore();
 const { showError } = useToast();
@@ -262,31 +259,10 @@ const changePage = (page) => {
   fetchTransactions();
 };
 
-const getPageNumbers = () => {
-  if (!pagination.value) return [];
-  const pages = [];
-  const current = pagination.value.page;
-  const total = pagination.value.pages;
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-  } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i);
-      pages.push('...');
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push('...');
-      for (let i = total - 4; i <= total; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) pages.push(i);
-      pages.push('...');
-      pages.push(total);
-    }
-  }
-  return pages;
+const onPageSizeChange = (limit) => {
+  filters.value.limit = limit;
+  filters.value.page = 1; // Reset to first page when page size changes
+  fetchTransactions();
 };
 
 const formatDate = (dateString) => {

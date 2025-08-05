@@ -1,12 +1,19 @@
 FROM node:22-alpine
+
 WORKDIR /app
 
-# Copy & install only prod deps
+# Install dependencies
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install
 
-# Copy rest of backend code
+# Copy source code
 COPY . .
 
+# Create uploads directory
+RUN mkdir -p uploads && chmod 755 uploads
+
+# Expose port
 EXPOSE 4000
-CMD ["npm", "start"]
+
+# Start development server
+CMD ["npm", "run", "dev"] 

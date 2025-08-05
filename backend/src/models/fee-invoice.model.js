@@ -8,6 +8,13 @@ const FeeInvoice = sequelize.define('FeeInvoice', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  // Add auto-increment ID for invoice numbering
+  invoice_id: {
+    type: DataTypes.BIGINT,
+    autoIncrement: true,
+    unique: true,
+    allowNull: false,
+  },
   invoice_number: {
     type: DataTypes.STRING(50),
     allowNull: false,

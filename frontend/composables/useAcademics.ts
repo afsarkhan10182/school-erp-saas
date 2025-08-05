@@ -83,11 +83,15 @@ export function useAcademics() {
     loading.value = true;
     error.value = null;
     try {
+      console.log('🔍 fetchAcademicYears: Starting with schoolId:', schoolId);
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
       
+      console.log('🔍 fetchAcademicYears: Calling API with params:', params.toString());
       const response = await apiClient.academicYears.getDropdown(params.toString());
+      console.log('🔍 fetchAcademicYears: API response:', response);
       academicYears.value = response.data || [];
+      console.log('🔍 fetchAcademicYears: Set academicYears.value:', academicYears.value);
     } catch (err) {
       console.error('❌ useAcademics: Error fetching academic years:', err);
       error.value = 'Failed to fetch academic years';
@@ -101,12 +105,16 @@ export function useAcademics() {
     loading.value = true;
     error.value = null;
     try {
+      console.log('🔍 fetchClasses: Starting with schoolId:', schoolId, 'branchId:', branchId);
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
       if (branchId) params.append('branch_id', branchId);
       
+      console.log('🔍 fetchClasses: Calling API with params:', params.toString());
       const response = await apiClient.classes.getDropdown(params.toString());
+      console.log('🔍 fetchClasses: API response:', response);
       classes.value = response.data || [];
+      console.log('🔍 fetchClasses: Set classes.value:', classes.value);
     } catch (err) {
       console.error('❌ useAcademics: Error fetching classes:', err);
       error.value = 'Failed to fetch classes';

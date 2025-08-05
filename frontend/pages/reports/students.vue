@@ -506,49 +506,17 @@
         </div>
         
         <!-- Pagination -->
-        <div class="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <button
-              @click="previousPage"
-              :disabled="currentPage === 1"
-              class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              @click="nextPage"
-              :disabled="currentPage >= totalPages"
-              class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  @click="previousPage"
-                  :disabled="currentPage === 1"
-                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  @click="nextPage"
-                  :disabled="currentPage >= totalPages"
-                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
+        <Pagination 
+          v-if="totalItems > 0"
+          :pagination="{
+            page: currentPage,
+            limit: pageSize,
+            total: totalItems
+          }"
+          item-label="students"
+          @page-changed="goToPage"
+          @page-size-changed="onPageSizeChange"
+        />
       </div>
     </div>
   </div>
@@ -571,6 +539,7 @@ import apiClient from '~/utils/api';
 import { Chart, registerables } from 'chart.js';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import Pagination from '~/components/Pagination.vue';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -592,7 +561,7 @@ const isRefreshing = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const totalItems = ref(0);
-const totalPages = ref(0);
+
 
 // Filters
 const filters = reactive({
@@ -651,7 +620,7 @@ const fetchReport = async () => {
     const response = await apiClient.students.getReport(params);
     students.value = response.data?.items || response.data || [];
     totalItems.value = response.pagination?.total || 0;
-    totalPages.value = response.pagination?.totalPages || 0;
+    
   } catch (error) {
     showToast('Error fetching student report', 'error');
   }
@@ -1035,18 +1004,17 @@ const viewFees = (student) => {
   navigateTo(`/fees/invoices?student_id=${student.id}`);
 };
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
+const goToPage = (page) => {
+  if (page >= 1) {
+    currentPage.value = page;
     fetchReport();
   }
 };
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchReport();
-  }
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
+  currentPage.value = 1; // Reset to first page when page size changes
+  fetchReport();
 };
 
 const formatDate = (date) => {

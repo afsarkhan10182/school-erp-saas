@@ -67,7 +67,6 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="feeType.branch" class="flex items-center">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
                     <span class="font-medium">{{ feeType.branch.name }}</span>
                     <span v-if="feeType.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ feeType.branch.code }})</span>
                   </div>

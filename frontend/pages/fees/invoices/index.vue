@@ -22,13 +22,6 @@
             <Plus class="-ml-1 mr-2 h-5 w-5" />
             Generate Invoices
           </button>
-          <button
-            @click="showPaymentModal = true"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <CreditCard class="-ml-1 mr-2 h-5 w-5" />
-            Record Payment
-          </button>
         </div>
       </div>
 
@@ -108,158 +101,41 @@
         :is-loading="isLoading"
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
+        @branch-change="onBranchChange"
       />
-
-      <!-- Invoices Table Component with Pagination -->
+      
+      <!-- Invoices Table Component -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
         <InvoiceTable
+          ref="invoiceTableRef"
           :invoices="invoices"
+          :grouped-invoices="paginatedGroupedInvoices"
+          :view-mode="viewMode"
           :is-loading="isLoading"
+          :total-invoices="invoices.length"
+          :current-filters="filters"
           @view-invoice="viewInvoice"
           @record-payment="recordPayment"
-          @generate-receipt="generateReceipt"
           @view-receipt="viewReceipt"
           @view-combined-receipt="viewCombinedReceipt"
         />
-        
-        <!-- Pagination -->
-        <div v-if="totalItems > 0" class="px-4 py-4 flex flex-col space-y-4 border-t border-gray-200 dark:border-gray-700 md:px-6 md:flex-row md:items-center md:justify-between md:space-y-0">
-          <!-- Mobile Pagination -->
-          <div class="flex flex-col space-y-3 md:hidden">
-            <!-- Results Info -->
-            <div class="text-center">
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-              </p>
-            </div>
-            
-            <!-- Page Size Selector -->
-            <div class="flex items-center justify-center space-x-2">
-              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-              <select 
-                v-model="pageSize" 
-                @change="onPageSizeChange"
-                class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-            </div>
-            
-            <!-- Navigation Buttons -->
-            <div class="flex items-center justify-between">
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 1"
-                class="flex-1 mr-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                Previous
-              </button>
-              <span class="text-sm font-medium text-gray-900 dark:text-white px-4 py-2">
-                {{ currentPage }} / {{ totalPages }}
-              </span>
-              <button
-                @click="nextPage"
-                :disabled="currentPage >= totalPages"
-                class="flex-1 ml-2 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                Next
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            
-            <!-- Page Numbers (if multiple pages) -->
-            <div v-if="totalPages > 1" class="flex items-center justify-center space-x-1">
-              <button
-                v-for="pageNum in getVisiblePages()"
-                :key="pageNum"
-                @click="goToPage(pageNum)"
-                :class="[
-                  'px-3 py-2 text-sm font-medium rounded-md min-w-[40px]',
-                  pageNum === currentPage
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 bg-white border border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                ]"
-                :disabled="pageNum === '...'"
-              >
-                {{ pageNum }}
-              </button>
-            </div>
-          </div>
-        <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
-          <div class="flex items-center space-x-4">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-              <span v-if="totalItems > 0">
-                Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * pageSize, totalItems) }}</span> of <span class="font-medium">{{ totalItems }}</span> results
-              </span>
-              <span v-else>
-                No results found
-              </span>
-            </p>
-            
-            <div v-if="totalItems > 0" class="flex items-center space-x-2">
-              <label class="text-sm text-gray-700 dark:text-gray-300">Show:</label>
-              <select 
-                v-model="pageSize" 
-                @change="onPageSizeChange"
-                class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span class="text-sm text-gray-700 dark:text-gray-300">per page</span>
-            </div>
-          </div>
-          
-          <div v-if="totalItems > 0" class="flex items-center space-x-2">
-            <div v-if="totalPages > 1" class="flex items-center space-x-1">
-              <button
-                v-for="pageNum in getVisiblePages()"
-                :key="pageNum"
-                @click="goToPage(pageNum)"
-                :class="[
-                  'px-3 py-1 text-sm font-medium rounded-md',
-                  pageNum === currentPage
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                ]"
-                :disabled="pageNum === '...'"
-              >
-                {{ pageNum }}
-              </button>
-            </div>
-            
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-              <button
-                @click="previousPage"
-                :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                @click="nextPage"
-                :disabled="currentPage >= totalPages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        </div>
+      </div>
+      
+      <!-- Pagination - Outside the overflow-hidden container -->
+      <Pagination 
+        v-if="totalStudentGroups > 0"
+        :pagination="{
+          page: currentPage,
+          limit: pageSize,
+          total: totalStudentGroups
+        }"
+        item-label="students"
+        :additional-info="`${summary.totalInvoices || 0} total invoices`"
+        @page-changed="goToPage"
+        @page-size-changed="onPageSizeChange"
+      />
       </div>
     </div>
-  </div>
 
     <!-- Quick Collect Modal -->
     <QuickCollectFeeModal
@@ -371,33 +247,18 @@
     <div v-if="showReceiptModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
         <div class="mt-3">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
-            <div class="flex items-center space-x-2">
-              <!-- Print Button -->
-              <button
-                @click="printReceipt"
-                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-              >
-                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Receipt
-              </button>
-
-              <!-- Close Button -->
-              <button
-                @click="showReceiptModal = false"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div v-if="isLoadingReceipt" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">Loading receipt...</p>
           </div>
           
-          <div v-if="selectedReceipt" v-html="selectedReceipt.receipt_html" class="receipt-container print-friendly"></div>
+          <div v-else-if="selectedReceipt">
+            <ReceiptViewer 
+              :receipt-data="selectedReceipt" 
+              :school-data="schoolData"
+              @close="showReceiptModal = false"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -496,7 +357,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -520,6 +380,8 @@ import QuickCollectFeeModal from '~/components/QuickCollectFeeModal.vue';
 import InvoiceFilters from '~/components/InvoiceFilters.vue';
 import InvoiceTable from '~/components/InvoiceTable.vue';
 import GenerateInvoicesModal from '~/components/GenerateInvoicesModal.vue';
+import Pagination from '~/components/Pagination.vue';
+import ReceiptViewer from '~/components/ReceiptViewer.vue';
 
 // Composables
 const { showToast } = useToast();
@@ -543,6 +405,7 @@ const authStore = useAuthStore();
 
 // State
 const invoices = ref([]);
+const studentsData = ref([]); // New: Store student data directly from API
 const summary = ref({});
 const isLoading = ref(false);
 const showGenerateModal = ref(false); // Ensure modal starts closed
@@ -552,22 +415,26 @@ const isSubmittingPayment = ref(false);
 const showQuickCollectModal = ref(false);
 const showReceiptModal = ref(false);
 const selectedReceipt = ref(null);
+const isLoadingReceipt = ref(false);
 const selectedInvoiceForPayment = ref(null);
 const showMultiplePaymentsModal = ref(false);
 const selectedMultiplePayments = ref(null);
+const schoolData = ref({}); // Add school data for receipt viewer
+const invoiceTableRef = ref(null); // Ref for InvoiceTable component
 
-// Pagination - Set to exactly 10 records
+// Pagination
 const currentPage = ref(1);
 const pageSize = ref(10);
-const totalItems = ref(0);
-const totalPages = ref(0);
+
+// View mode (only grouped)
+const viewMode = ref('grouped');
 
 // Filters - Start with empty filters
 const filters = reactive({
   payment_model: '',
   branch_id: '',
   academic_year: '',
-  class_name: '',
+  class_id: '',
   status: '',
 });
 
@@ -582,6 +449,58 @@ const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_adm
 const hasAppliedFilters = computed(() => {
   return Object.values(filters).some(value => value !== '');
 });
+
+// Computed properties for accordion grouping
+const groupedInvoices = computed(() => {
+  console.log('🔄 Computing groupedInvoices with students:', studentsData.value);
+  
+  if (!studentsData.value || studentsData.value.length === 0) {
+    console.log('❌ No students to display');
+    return [];
+  }
+
+  // Transform student data to match the expected format for the accordion
+  const result = studentsData.value.map(student => ({
+    studentId: student.student_id,
+    studentName: student.student_name,
+    admissionNumber: student.admission_number,
+    className: student.class_name,
+    studentPhoto: null, // Not available in current response
+    // Use the detailed invoice data from the API response
+    invoices: [...student.invoices, ...student.grouped_invoices, ...student.ungrouped_invoices],
+    totalAmount: student.total_amount,
+    paidAmount: student.paid_amount,
+    balanceAmount: student.balance_amount,
+    paidCount: student.paid_count,
+    pendingCount: student.pending_count,
+    overdueCount: student.overdue_count,
+    partialCount: student.partial_count
+  }));
+
+  console.log('✅ Grouped students result:', result);
+  return result;
+});
+
+// Paginated grouped results for display (frontend pagination by students)
+const paginatedGroupedInvoices = computed(() => {
+  // Since we're now using backend pagination, we don't need frontend pagination
+  // The backend already returns the correct page of students
+  return groupedInvoices.value;
+});
+
+// Total student groups for pagination - should come from API response
+const totalStudentGroups = ref(0);
+
+// Total pages for student groups
+const totalPagesForGroups = computed(() => {
+  const pages = Math.ceil(totalStudentGroups.value / pageSize.value);
+  console.log('📖 Total Pages for Groups:', pages, '(Total Students:', totalStudentGroups.value, '/ PageSize:', pageSize.value, ')');
+  return pages;
+});
+
+
+
+
 
 // Auto-set branch filter based on user role
 const setDefaultBranchFilter = () => {
@@ -607,25 +526,44 @@ const paymentForm = reactive({
 const fetchInvoices = async () => {
   isLoading.value = true;
   try {
-    // Build params object with all filters
+    // Build params object with filters for the new student-based endpoint
     const params = {
       page: currentPage.value,
-      limit: pageSize.value,
+      limit: pageSize.value
     };
     
     // Add filters only if they have values
     if (filters.payment_model) params.payment_model = filters.payment_model;
     if (filters.branch_id) params.branch_id = filters.branch_id;
     if (filters.academic_year) params.academic_year = filters.academic_year;
-    if (filters.class_name) params.class_name = filters.class_name;
+    if (filters.class_id) params.class_id = filters.class_id;
     if (filters.status) params.status = filters.status;
     
-    // Use the new grouped API instead of getAll
-    const response = await apiClient.feeInvoices.getGrouped(params);
+    // Use the new student-based paginated endpoint
+    const response = await apiClient.invoices.getStudentSummary(params);
     
-    invoices.value = response.data?.invoices || [];
-    totalItems.value = response.data?.pagination?.total_count || 0;
-    totalPages.value = response.data?.pagination?.total_pages || 0;
+    // Extract student data from the response
+    const studentsDataFromAPI = response.data.students || [];
+    
+    // Store student data directly
+    studentsData.value = studentsDataFromAPI;
+    
+    // Update pagination data
+    currentPage.value = response.data.current_page;
+    totalStudentGroups.value = response.data.total_students || 0;
+    
+    // Calculate summary from the aggregated student data (not from individual invoices)
+    const totalInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.total_invoices || 0), 0);
+    const paidInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.paid_count || 0), 0);
+    const overdueInvoices = studentsDataFromAPI.reduce((sum, student) => sum + (student.overdue_count || 0), 0);
+    const totalCollected = studentsDataFromAPI.reduce((sum, student) => sum + parseFloat(student.paid_amount || 0), 0);
+    
+    summary.value = {
+      totalInvoices,
+      paidInvoices,
+      overdueInvoices,
+      totalCollected
+    };
     
   } catch (error) {
     showToast('Error fetching invoices', 'error');
@@ -634,45 +572,19 @@ const fetchInvoices = async () => {
   }
 };
 
-// Fetch summary data properly
-const fetchSummary = async () => {
-  try {
-    // Use the dedicated summary endpoint instead of fetching all invoices
-    const params = {};
-    
-    // Add current filters to summary
-    if (filters.payment_model) params.payment_model = filters.payment_model;
-    if (filters.branch_id) params.branch_id = filters.branch_id;
-    if (filters.academic_year) params.academic_year = filters.academic_year;
-    if (filters.class_name) params.class_name = filters.class_name;
-    if (filters.status) params.status = filters.status;
-    
-    const response = await apiClient.feeInvoices.getSummary(params);
-    
-    // Use the summary data directly from the API - backend returns different structure
-    const data = response.data;
-    summary.value = {
-      totalInvoices: data?.invoice_counts?.total || 0,
-      paidInvoices: data?.invoice_counts?.paid || 0,
-      overdueInvoices: data?.invoice_counts?.overdue || 0,
-      totalCollected: data?.amounts?.total_paid || 0
-    };
-    
-  } catch (error) {
-    // Set default values
-    summary.value = {
-      totalInvoices: 0,
-      paidInvoices: 0,
-      overdueInvoices: 0,
-      totalCollected: 0
-    };
-  }
-};
+
 
 const closeGenerateModal = () => {
   showGenerateModal.value = false;
 };
 
+/**
+ * Generate invoices with automatic batching for large student sets
+ * - Processes students in batches of 50 for better performance
+ * - Shows progress updates during batch processing
+ * - Handles errors gracefully and continues with remaining batches
+ * - Falls back to single API call for small student sets (< 50)
+ */
 const generateInvoices = async (formData) => {
   // Validate form based on payment model
   if (!formData.fee_structure_ids || formData.fee_structure_ids.length === 0) {
@@ -695,16 +607,103 @@ const generateInvoices = async (formData) => {
 
   isGenerating.value = true;
   try {
-    // Unified approach - use the same API for both monthly and installment payments
-    await apiClient.feeInvoices.generateInvoices(formData);
-    showToast('Invoices generated successfully!', 'success');
+    // Check if we have student_ids in formData for batching
+    const studentIds = formData.student_ids || [];
+    
+    // If less than 50 students, use existing flow
+    if (studentIds.length < 50) {
+      const response = await apiClient.feeInvoices.generateInvoices(formData);
+      
+      // Show detailed success information
+      const totalGenerated = response.data.total_generated || 0;
+      const errors = response.data.errors || [];
+      
+      if (errors.length > 0) {
+        showToast(`Partial success: Generated ${totalGenerated} invoices. ${errors.length} students had existing invoices.`, 'warning');
+      } else {
+        showToast(`Successfully generated ${totalGenerated} invoices!`, 'success');
+      }
+    } else {
+      // Batch processing for 50+ students
+      const batchSize = 50;
+      let total = studentIds.length;
+      let completed = 0;
+      let totalGenerated = 0;
+      let totalErrors = [];
+
+      // Show initial message
+      showToast(`Starting invoice generation for ${total} students...`, 'info');
+
+      for (let i = 0; i < total; i += batchSize) {
+        const batch = studentIds.slice(i, i + batchSize);
+        
+        try {
+          // Create batch-specific form data
+          const batchFormData = {
+            ...formData,
+            student_ids: batch
+          };
+          
+          const response = await apiClient.feeInvoices.generateInvoices(batchFormData);
+          
+          completed += batch.length;
+          totalGenerated += response.data.total_generated || 0;
+          
+          // Collect errors from this batch
+          if (response.data.errors && response.data.errors.length > 0) {
+            totalErrors.push(...response.data.errors);
+          }
+          
+          // Show progress
+          showToast(`${completed} done out of ${total}`, 'info');
+          
+          // Small delay between batches to prevent overwhelming the server
+          if (i + batchSize < total) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (err) {
+          console.error('Batch failed:', err);
+          completed += batch.length; // Count as processed even if failed
+          
+          // Show more specific error message
+          const batchNumber = Math.floor(i / batchSize) + 1;
+          const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
+          showToast(`Error in invoice generation for ${batchNumber}: ${errorMessage}`, 'warning');
+        }
+      }
+
+      // Show final result
+      if (totalErrors.length > 0) {
+        showToast(`✅ Complete: Generated ${totalGenerated} invoices. ${totalErrors.length} students had existing invoices.`, 'warning');
+      } else {
+        showToast(`✅ Invoice generation complete: ${totalGenerated} invoices generated`, 'success');
+      }
+    }
     
     showGenerateModal.value = false;
     await fetchInvoices();
-    await fetchSummary();
   } catch (error) {
-    if (error.response && error.response.data && error.response.data.message) {
-      showToast(error.response.data.message, 'error');
+    if (error.response && error.response.data) {
+      const responseData = error.response.data;
+      
+      if (responseData.errors && responseData.errors.length > 0) {
+        // Show detailed error information
+        const totalErrors = responseData.errors.length;
+        const totalGenerated = responseData.total_generated || 0;
+        
+        if (totalGenerated > 0) {
+          showToast(`Partial success: Generated ${totalGenerated} invoices. ${totalErrors} students had existing invoices.`, 'warning');
+        } else {
+          showToast(`No invoices generated. ${totalErrors} students already have invoices for this period.`, 'error');
+        }
+        
+        // Log detailed errors for debugging
+        console.log('Invoice generation errors:', responseData.errors);
+      } else if (responseData.message) {
+        showToast(responseData.message, 'error');
+      } else {
+        showToast('Error generating invoices', 'error');
+      }
     } else {
       showToast('Error generating invoices', 'error');
     }
@@ -715,26 +714,56 @@ const generateInvoices = async (formData) => {
 
 const submitPayment = async () => {
   isSubmittingPayment.value = true;
+  
   try {
     let response;
+    let invoice = selectedInvoiceForPayment.value;
     
-        // Find invoice by number for regular invoices
-    const invoice = invoices.value.find(inv => inv.invoice_number === paymentForm.invoice_number);
-    if (!invoice) {
-      showToast('Invoice not found!', 'error');
+    // Check if we have a selected invoice from the accordion
+    if (invoice && invoice.invoice_number === paymentForm.invoice_number) {
+      // Record payment for fee invoice (works for both installment and monthly)
+      response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+        payment_amount: paymentForm.amount,
+        payment_method: paymentForm.payment_method,
+        notes: paymentForm.notes
+      });
+    } else {
+      // Manual invoice number entry - we need to fetch the invoice first
+      // This is a fallback for manual entry, but the preferred way is through the accordion
+      showToast('Please use the "Pay Now" button from the student accordion for better experience', 'warning');
       return;
     }
     
-    // Record payment for fee invoice (works for both installment and monthly)
-    response = await apiClient.feeInvoices.recordPayment(invoice.id, {
-      payment_amount: paymentForm.amount,
-      payment_method: paymentForm.payment_method,
-      notes: paymentForm.notes
+    closePaymentModal();
+    
+    // Update the specific invoice data immediately without full refresh
+    if (response.data && response.data.updated_invoice) {
+      // Update the specific student's invoice data
+      if (invoiceTableRef.value) {
+        invoiceTableRef.value.updateInvoiceAfterPayment(
+          invoice.student_id, 
+          invoice.id, 
+          response.data.updated_invoice
+        );
+      }
+      
+      // Also update the main students data if available
+      updateStudentDataAfterPayment(invoice.student_id, response.data.updated_invoice);
+    }
+    
+    // Update local data immediately based on payment amount
+    updateLocalInvoiceData(invoice.id, parseFloat(paymentForm.amount));
+    
+    // Refresh the specific student's details without closing accordion
+    if (invoiceTableRef.value && invoice.student_id) {
+      invoiceTableRef.value.forceRefreshStudentDetails(invoice.student_id);
+    }
+    
+    // Refresh the invoice table in background (non-blocking)
+    fetchInvoices().catch(error => {
+      console.error('Error refreshing invoices after payment:', error);
     });
     
-    closePaymentModal();
-    await fetchInvoices();
-    await fetchSummary();
     showToast('Payment recorded successfully!', 'success');
     
     // Automatically show receipt after successful payment
@@ -756,24 +785,74 @@ const submitPayment = async () => {
 const onFilterChange = (newFilters) => {
   Object.assign(filters, newFilters);
   currentPage.value = 1; // Reset to first page when filters change
-  fetchInvoices();
-  fetchSummary(); // Also update summary when filters change
+  fetchInvoices(); // Fetch new data with filters
+};
+
+const onBranchChange = async (branchId) => {
+  // Reset class filter when branch changes
+  filters.class_id = '';
+  
+  // Refresh classes for the new branch
+  const schoolId = authStore.currentUser?.school_id;
+  if (branchId && branchId !== '') {
+    // Specific branch selected - fetch classes for that branch
+    await fetchClasses(schoolId, branchId);
+  } else {
+    // "All Branches" selected or no branch - fetch all classes
+    await fetchClasses(schoolId);
+  }
 };
 
 const clearFilters = () => {
   Object.keys(filters).forEach(key => {
     filters[key] = '';
   });
-  currentPage.value = 1;
-  fetchInvoices();
-  fetchSummary(); // Also update summary when filters are cleared
+  currentPage.value = 1; // Reset to first page when filters are cleared
+  fetchInvoices(); // Fetch new data without filters
 };
 
+// Pagination method
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPagesForGroups.value) {
+    currentPage.value = page;
+    fetchInvoices(); // Fetch new page from backend
+  }
+};
 
-
+// Add back the missing methods
 const viewInvoice = (invoice) => {
+  // Handle both regular invoices and group invoices
+  let studentId;
+  
+  if (invoice.is_grouped) {
+    // For group invoices, try to get student ID from multiple sources
+    studentId = invoice.student?.id || invoice.student_id;
+    console.log('🔍 Group invoice - studentId from student object:', studentId);
+    
+    // If still not found, try to find the student from the parent data
+    if (!studentId && studentsData.value) {
+      // Look for a student that has this grouped invoice
+      const parentStudent = studentsData.value.find(student => 
+        student.grouped_invoices && student.grouped_invoices.some(group => group.id === invoice.id)
+      );
+      studentId = parentStudent?.student_id;
+      console.log('🔍 Group invoice - studentId from parent data:', studentId);
+    }
+  } else {
+    // For regular invoices, student ID is directly on the invoice
+    studentId = invoice.student_id;
+    console.log('🔍 Regular invoice - studentId from invoice:', studentId);
+  }
+  
+  if (!studentId) {
+    console.log('❌ No student ID found for invoice:', invoice);
+    showToast('Student information not available for this invoice', 'error');
+    return;
+  }
+  
+  console.log('✅ Navigating to student fee ledger for studentId:', studentId);
   // Navigate to student fee ledger page for this invoice's student
-  navigateTo(`/students/${invoice.student_id}/fee-ledger`);
+  navigateTo(`/students/${studentId}/fee-ledger`);
 };
 
 const recordPayment = (invoice) => {
@@ -790,103 +869,218 @@ const isMonthlyPayment = (invoice) => {
   return invoice.payment_model === 'monthly';
 };
 
-const onPaymentRecorded = async () => {
-  // Clear any filters that might be causing "no results" after payment
-  // This ensures the user can see the updated invoice status
-  Object.keys(filters).forEach(key => {
-    filters[key] = '';
+// Update local invoice data immediately after payment
+const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
+  // Update in studentsData
+  studentsData.value.forEach(student => {
+    const allInvoices = [...(student.invoices || []), ...(student.grouped_invoices || []), ...(student.ungrouped_invoices || [])];
+    const invoice = allInvoices.find(inv => inv && inv.id === invoiceId);
+    
+    if (invoice) {
+      console.log('✅ Found invoice in student data, updating locally');
+      const oldPaidAmount = invoice.paid_amount || 0;
+      const newPaidAmount = oldPaidAmount + paymentAmount;
+      const newBalanceAmount = Math.max(0, (invoice.total_amount || 0) - newPaidAmount);
+      
+      invoice.paid_amount = newPaidAmount;
+      invoice.balance_amount = newBalanceAmount;
+      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial';
+      
+    }
   });
-  
-  await fetchInvoices();
-  await fetchSummary();
 };
 
-const generateReceipt = async (invoice) => {
-  try {
-    // For invoices that have payments but no receipt, we should view the existing receipt
-    // The "Generate Receipt" button should actually be "View Receipt" for paid invoices
-    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+// Update main student data after payment to refresh summary instantly
+const updateStudentDataAfterPayment = (studentId, updatedInvoiceData) => {
+  console.log('🔄 Parent: updateStudentDataAfterPayment called with:', { studentId, updatedInvoiceData });
+  
+  const studentIndex = studentsData.value.findIndex(student => student.student_id === studentId);
+  if (studentIndex !== -1) {
+    const student = studentsData.value[studentIndex];
+    console.log('✅ Found student in main data:', student.student_name);
     
-    if (response.data && response.data.receipt_html) {
-      // Show receipt modal - the receipt data is directly in response.data
-      selectedReceipt.value = response.data;
-      showReceiptModal.value = true;
+    // Normalize the updated invoice data
+    const normalizedInvoiceData = {
+      ...updatedInvoiceData,
+      paid_amount: parseFloat(updatedInvoiceData.paid_amount || 0),
+      balance_amount: parseFloat(updatedInvoiceData.balance_amount || 0),
+      total_amount: parseFloat(updatedInvoiceData.total_amount || 0)
+    };
+    
+    // Update the specific invoice in the student's invoice arrays
+    const allInvoices = [...(student.invoices || []), ...(student.grouped_invoices || []), ...(student.ungrouped_invoices || [])];
+    const invoiceIndex = allInvoices.findIndex(inv => inv && inv.id === updatedInvoiceData.id);
+    
+    if (invoiceIndex !== -1) {
+      console.log('✅ Found invoice in student data, updating...');
+      
+      // Update the invoice data
+      const oldStatus = allInvoices[invoiceIndex].status;
+      const oldPaidAmount = allInvoices[invoiceIndex].paid_amount;
+      const oldBalanceAmount = allInvoices[invoiceIndex].balance_amount;
+      
+      Object.assign(allInvoices[invoiceIndex], normalizedInvoiceData);
+      
+      console.log('✅ Updated invoice in main data:', {
+        oldStatus,
+        newStatus: allInvoices[invoiceIndex].status,
+        oldPaidAmount,
+        newPaidAmount: allInvoices[invoiceIndex].paid_amount,
+        oldBalanceAmount,
+        newBalanceAmount: allInvoices[invoiceIndex].balance_amount
+      });
+      
+      // Recalculate student summary
+      const totalAmount = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+      const totalPaid = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0);
+      const totalBalance = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.balance_amount || 0), 0);
+      
+      const paidCount = allInvoices.filter(inv => inv && inv.status === 'paid').length;
+      const pendingCount = allInvoices.filter(inv => inv && inv.status === 'sent').length;
+      const overdueCount = allInvoices.filter(inv => inv && inv.status === 'overdue').length;
+      const partialCount = allInvoices.filter(inv => inv && inv.status === 'partial_paid').length;
+      
+      // Update student summary
+      const oldTotalPaid = student.paid_amount;
+      const oldTotalBalance = student.balance_amount;
+      
+      student.total_amount = totalAmount;
+      student.paid_amount = totalPaid;
+      student.balance_amount = totalBalance;
+      student.paid_count = paidCount;
+      student.pending_count = pendingCount;
+      student.overdue_count = overdueCount;
+      student.partial_count = partialCount;
+     
     } else {
-      showToast('No receipt found for this invoice', 'error');
+      console.log('❌ Invoice not found in student data');
     }
-  } catch (error) {
-    console.error('Error fetching receipt:', error);
-    if (error.response && error.response.data && error.response.data.message) {
-      showToast(error.response.data.message, 'error');
-    } else {
-      showToast('Error fetching receipt', 'error');
-    }
+  } else {
+    console.log('❌ Student not found in main data');
   }
 };
 
+const onPaymentRecorded = async () => {
+  // Refresh all expanded student details without closing accordions
+  if (invoiceTableRef.value) {
+    // Get all currently expanded students and refresh their details
+    const expandedStudents = invoiceTableRef.value.getExpandedStudents?.() || [];
+    
+    // Refresh each expanded student's details
+    for (const studentId of expandedStudents) {
+      await invoiceTableRef.value.forceRefreshStudentDetails(studentId);
+    }
+  }
+  
+  // Refresh the invoice table in background (non-blocking)
+  fetchInvoices().catch(error => {
+    console.error('Error refreshing invoices after payment:', error);
+  });
+};
+
 const viewReceipt = async (invoice) => {
+  isLoadingReceipt.value = true;
   try {
-    // Unified approach - use feeInvoices API for both monthly and installment invoices
-    const response = await apiClient.feeInvoices.getReceipt(invoice.id);
+    const response = await apiClient.feeInvoices.getInvoiceReceiptData(invoice.id);
     
     if (response.data) {
-      // Check if this is a multiple payments response
-      if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
-        // Show multiple payments modal
-        selectedMultiplePayments.value = response.data;
-        showMultiplePaymentsModal.value = true;
-      } else if (response.data.receipt_html) {
-        // Single receipt - show receipt modal
+      // For installment payments with multiple payments, show combined receipt
+      if (invoice.payment_model === 'installment' && invoice.paid_amount > 0 && invoice.balance_amount > 0) {
+        // This is an installment payment with partial payments - show combined receipt
         selectedReceipt.value = response.data;
         showReceiptModal.value = true;
+      } else if (response.data.has_multiple_payments && response.data.payments && response.data.payments.length > 0) {
+        // Show multiple payments modal for other payment types
+        selectedMultiplePayments.value = response.data;
+        showMultiplePaymentsModal.value = true;
       } else {
-        showToast('No receipt found for this invoice', 'error');
+        // Single receipt - show receipt modal with structured data
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
       }
     } else {
       showToast('No receipt found for this invoice', 'error');
     }
   } catch (error) {
     showToast('Error fetching receipt', 'error');
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
-const viewPaymentReceipt = (paymentItem) => {
+const viewPaymentReceipt = async (paymentItem) => {
+  isLoadingReceipt.value = true;
   try {
-    // Show the individual payment receipt
-    selectedReceipt.value = {
-      receipt_number: paymentItem.receipt.receipt_number,
-      receipt_html: paymentItem.receipt.receipt_html,
-      receipt_data: paymentItem.receipt.receipt_data,
-      payment: paymentItem.payment,
-      invoice: selectedMultiplePayments.value.invoice,
-    };
-    
-    // Close multiple payments modal and show receipt modal
-    showMultiplePaymentsModal.value = false;
-    showReceiptModal.value = true;
+    const response = await apiClient.feeInvoices.getPaymentReceiptData(paymentItem.payment.id);
+    if (response.data) {
+      selectedReceipt.value = {
+        ...response.data,
+        payment: paymentItem.payment,
+        invoice: selectedMultiplePayments.value.invoice,
+      };
+      showMultiplePaymentsModal.value = false;
+      showReceiptModal.value = true;
+    } else {
+      showToast('No receipt found for this payment', 'error');
+    }
   } catch (error) {
     showToast('Error viewing payment receipt', 'error');
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
 const viewCombinedReceipt = async (combinedInvoice) => {
+  isLoadingReceipt.value = true;
   try {
-    // Use receipt_group_id instead of id for grouped receipts
-    const receiptGroupId = combinedInvoice.receipt_group_id || combinedInvoice.id;
-    const response = await apiClient.feeInvoices.getCombinedReceipt(receiptGroupId);
-
-    if (response.data && response.data.receipt_html) {
-      selectedReceipt.value = response.data;
+    // Check if we already have receipt data from the payment response
+    if (combinedInvoice.combined_receipt) {
+      // Extract receipt data from the combined_receipt structure
+      const receiptData = combinedInvoice.combined_receipt.receipt_data || combinedInvoice.combined_receipt;
+      
+      // Use the receipt data directly from the payment response
+      selectedReceipt.value = {
+        ...receiptData,
+        receipt_number: combinedInvoice.receipt_group_id || combinedInvoice.id,
+        payment_date: combinedInvoice.applied_payments?.[0]?.payment_date || new Date(),
+        payment_amount: combinedInvoice.total_payment_amount,
+        payment_method: combinedInvoice.payment_method || 'cash'
+      };
       showReceiptModal.value = true;
+    } else if (combinedInvoice.receipt_group_id) {
+      // Fallback: fetch receipt data from API using receipt_group_id
+      console.log('🔍 Fetching receipt for group ID:', combinedInvoice.receipt_group_id)
+      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
+      console.log('🔍 API Response:', response)
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this combined invoice', 'error');
+      }
     } else {
-      showToast('No receipt found for this combined invoice', 'error');
+      // Last fallback: try with id
+      console.log('🔍 Fetching receipt for ID:', combinedInvoice.id)
+      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+      console.log('🔍 API Response:', response)
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this combined invoice', 'error');
+      }
     }
   } catch (error) {
+    console.error('Error viewing combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showToast(error.response.data.message, 'error');
     } else {
       showToast('Error fetching combined receipt', 'error');
     }
+  } finally {
+    isLoadingReceipt.value = false;
   }
 };
 
@@ -895,7 +1089,7 @@ const printReceipt = () => {
   
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
-  const receiptHtml = selectedReceipt.value.receipt_html;
+  const receiptData = selectedReceipt.value.receipt_data || selectedReceipt.value;
   
   // Add print-specific styles
   const printStyles = `
@@ -983,6 +1177,182 @@ const printReceipt = () => {
     </style>
   `;
   
+  // Helper functions for formatting
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN');
+  };
+  
+  const formatCurrency = (amount) => {
+    if (!amount) return '0';
+    return parseFloat(amount).toLocaleString('en-IN');
+  };
+  
+  const getMonthName = (month) => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1] || 'Unknown';
+  };
+  
+  const isJuniorCollege = receiptData.class_name && receiptData.class_name.toLowerCase().includes('junior');
+  const schoolType = isJuniorCollege ? 'JUNIOR COLLEGE' : 'ENGLISH MEDIUM SCHOOL';
+  const isMonthlyPayment = receiptData.payment_model === 'monthly';
+  const isCombinedPayment = receiptData.payment_model === 'combined';
+  
+  // Helper function to parse paid months string
+  const parsePaidMonths = (paidMonthsString) => {
+    if (!paidMonthsString) return [];
+    return paidMonthsString.split(',').map(month => {
+      const [monthNum, year] = month.trim().split(' ');
+      return {
+        month: parseInt(monthNum),
+        year: parseInt(year),
+        monthName: getMonthName(parseInt(monthNum))
+      };
+    });
+  };
+
+  // Check if this is a smart payment response
+  const isSmartPayment = receiptData.summary && receiptData.receipt_group_id;
+  
+  // Parse paid months for smart payment
+  const paidMonths = isSmartPayment ? parsePaidMonths(receiptData.summary.paid_months) : [];
+  
+  // Generate HTML from structured data
+  const receiptHtml = `
+    <div class="receipt">
+      <div class="header">
+        <div class="trust-name" style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;">HAJI OMAR MOOSA EDUCATIONAL TRUST</div>
+        <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000; margin-bottom: 5px; text-transform: uppercase;">School Name</div>
+        <div class="school-type" style="font-size: 12px; color: #666; margin-bottom: 5px;">ENGLISH MEDIUM SCHOOL</div>
+        <div class="school-address" style="font-size: 11px; color: #666; margin-bottom: 10px;">27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.</div>
+      </div>
+      
+      <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; color: #000; margin: 15px 0; text-transform: uppercase;">
+        MULTIPLE MONTHS PAYMENT RECEIPT
+      </div>
+      
+      <div class="receipt-info" style="padding: 15px;">
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Invoice No:</span>
+          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.receipt_group_id : (receiptData.invoice_number || receiptData.receipt_number || 'N/A')}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Date:</span>
+          <span class="info-value" style="color: #000;">${formatDate(new Date())}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Name of the Pupil:</span>
+          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.student_name : (receiptData.student_name || 'N/A')}</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Std. & Div.:</span>
+          <span class="info-value" style="color: #000;">C12</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Roll No:</span>
+          <span class="info-value" style="color: #000;">3246</span>
+        </div>
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">G.R. No:</span>
+          <span class="info-value" style="color: #000;">3246</span>
+        </div>
+        
+        ${isSmartPayment && paidMonths.length > 0 ? `
+        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+          <span class="info-label" style="font-weight: bold; color: #333;">Months Covered:</span>
+          <span class="info-value" style="color: #000;">${paidMonths.map(m => `${m.monthName} ${m.year}`).join(', ')}</span>
+        </div>
+        ` : ''}
+        
+        ${isSmartPayment && paidMonths.length > 0 ? `
+        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Month</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Fee Type</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paidMonths.map(month => {
+              const amountPerMonth = receiptData.summary.total_applied_amount / receiptData.summary.months_covered;
+              return `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${month.monthName} ${month.year}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">TUITION FEES</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">₹${formatCurrency(amountPerMonth)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+        ` : `
+        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Particulars</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${receiptData.fee_type_name || 'Tuition Fees'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${formatCurrency(receiptData.payment_amount || 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+        `}
+        
+        <div class="summary-section" style="margin: 15px 0; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd;">
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Total Amount:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(isSmartPayment ? receiptData.summary.total_applied_amount : (receiptData.payment_amount || 0))}</span>
+          </div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Payment Method:</span>
+            <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.summary.payment_mode.toUpperCase() : (receiptData.payment_method || 'cash').toUpperCase()}</span>
+          </div>
+        </div>
+        
+        ${isSmartPayment ? `
+        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
+          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Monthly Payment Summary</div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Months:</span>
+            <span class="info-value" style="color: #000;">${receiptData.summary.remaining_invoices} months</span>
+          </div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Balance:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.summary.remaining_balance)}</span>
+          </div>
+        </div>
+        ` : `
+        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
+          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Outstanding Balance</div>
+          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Amount:</span>
+            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.remaining_balance || 0)}</span>
+          </div>
+        </div>
+        `}
+      </div>
+      
+      <div class="signature-section" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <div class="signature" style="text-align: center; font-size: 11px;">
+          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
+          ${isJuniorCollege ? 'Cashier Signature' : 'Receiver\'s Signature'}
+        </div>
+        <div class="signature" style="text-align: center; font-size: 11px;">
+          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
+          Date
+        </div>
+      </div>
+    </div>
+  `;
+  
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -1006,76 +1376,132 @@ const printReceipt = () => {
   }, 500);
 };
 
+// Add missing methods referenced in template
+const getInvoiceNumber = (invoice) => {
+  return invoice.invoice_number || invoice.id;
+};
 
+const isGroupedPayment = (invoice) => {
+  return invoice.payment_model === 'installment';
+};
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchInvoices();
+const getMonthsCovered = (invoice) => {
+  if (invoice.months_covered) {
+    return invoice.months_covered;
+  }
+  return 'N/A';
+};
+
+const getPaymentModelClass = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+  } else if (isGroupedPayment(invoice)) {
+    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+  }
+  return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+};
+
+const getPaymentModelIcon = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return Calendar;
+  } else if (isGroupedPayment(invoice)) {
+    return GraduationCap;
+  }
+  return FileText;
+};
+
+const getPaymentModelText = (invoice) => {
+  if (isMonthlyPayment(invoice)) {
+    return 'Monthly';
+  } else if (isGroupedPayment(invoice)) {
+    return 'Installment';
+  }
+  return 'Single';
+};
+
+const getStudentName = (invoice) => {
+  if (invoice.student?.first_name && invoice.student?.last_name) {
+    return `${invoice.student.first_name} ${invoice.student.last_name}`;
+  }
+  return invoice.student?.name || 'Unknown Student';
+};
+
+const getBranchName = (invoice) => {
+  // For grouped invoices, check branch directly
+  if (invoice.branch?.name) {
+    return invoice.branch.name;
+  }
+  // For individual invoices, check student's branch
+  if (invoice.student?.branch?.name) {
+    return invoice.student.branch.name;
+  }
+  // Fallback to branch_name field
+  if (invoice.branch_name) {
+    return invoice.branch_name;
+  }
+  return 'N/A';
+};
+
+const getClassDisplay = (invoice) => {
+  return invoice.class_name || invoice.student?.current_class || 'N/A';
+};
+
+const getAmount = (invoice) => {
+  return parseFloat(invoice.total_amount || 0);
+};
+
+const getPaidAmount = (invoice) => {
+  return parseFloat(invoice.paid_amount || 0);
+};
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'paid':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+    case 'partial_paid':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    case 'overdue':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+    case 'unpaid':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
   }
 };
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchInvoices();
+const getStatusText = (status) => {
+  switch (status) {
+    case 'paid':
+      return 'Paid';
+    case 'partial_paid':
+      return 'Partial Paid';
+    case 'overdue':
+      return 'Overdue';
+    case 'unpaid':
+      return 'Unpaid';
+    default:
+      return 'Unknown';
   }
-};
-
-const goToPage = (page) => {
-  if (page !== '...' && page >= 1 && page <= totalPages.value && page !== currentPage.value) {
-    currentPage.value = page;
-    fetchInvoices();
-  }
-};
-
-const onPageSizeChange = async () => {
-  if (import.meta.client) {
-    localStorage.setItem('invoicesPageSize', pageSize.value.toString());
-  }
-  
-  currentPage.value = 1;
-  await fetchInvoices();
-};
-
-const getVisiblePages = () => {
-  const pages = [];
-  const total = totalPages.value;
-  const current = currentPage.value;
-  
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push('...');
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      pages.push('...');
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push('...');
-      pages.push(total);
-    }
-  }
-  
-  return pages;
 };
 
 const formatCurrency = (amount) => {
-  return parseFloat(amount || 0).toLocaleString('en-IN');
+  return parseFloat(amount || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+const formatDate = (date) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-IN');
+};
+
+const getMonthLabel = (month) => {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  return months[month - 1] || 'Unknown';
 };
 
 const getMonthName = (month) => {
@@ -1084,18 +1510,6 @@ const getMonthName = (month) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   return months[month - 1] || 'Unknown';
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 // Simplified academic data loading - only load when modal is opened
@@ -1118,9 +1532,13 @@ const installmentFeeStructures = ref([]);
 
 const fetchMonthlyFeeStructures = async () => {
   try {
+    console.log('🔍 Fetching monthly fee structures...');
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    console.log('📊 Monthly fee structures response:', response);
     monthlyFeeStructures.value = response.data.fee_structures || [];
+    console.log('✅ Loaded monthly fee structures:', monthlyFeeStructures.value.length);
   } catch (error) {
+    console.error('❌ Error loading monthly fee structures:', error);
     showToast('Error loading monthly fee structures', 'error');
     monthlyFeeStructures.value = [];
   }
@@ -1128,10 +1546,15 @@ const fetchMonthlyFeeStructures = async () => {
 
 const fetchInstallmentFeeStructures = async () => {
   try {
+    console.log('🔍 Fetching installment fee structures...');
     const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    console.log('📊 Installment fee structures response:', response);
     installmentFeeStructures.value = response.data.fee_structures || [];
+    console.log('✅ Loaded installment fee structures:', installmentFeeStructures.value.length);
   } catch (error) {
+    console.error('❌ Error loading installment fee structures:', error);
     showToast('Error loading installment fee structures', 'error');
+    installmentFeeStructures.value = [];
   }
 };
 
@@ -1230,10 +1653,8 @@ const fetchBranches = async () => {
 // Load academic data on page load
 const loadAcademicData = async () => {
   try {
-    
     // Get user context for API calls
     const schoolId = authStore.currentUser?.school_id;
-    const branchId = authStore.currentUser?.branch_id;
     
     // Load academic years and classes for filters with individual error handling
     const promises = [];
@@ -1246,9 +1667,9 @@ const loadAcademicData = async () => {
       })
     );
     
-    // Classes
+    // Classes - Load all classes initially, not filtered by branch
     promises.push(
-      fetchClasses(schoolId, branchId).catch(error => {
+      fetchClasses(schoolId).catch(error => {
         console.error('Error fetching classes:', error);
         return null;
       })
@@ -1281,6 +1702,27 @@ const loadAcademicData = async () => {
   }
 };
 
+// Load school data for receipt viewer
+const loadSchoolData = async () => {
+  try {
+    const schoolId = authStore.currentUser?.school_id;
+    if (schoolId) {
+      const response = await apiClient.schools.getById(schoolId);
+      if (response.data) {
+        schoolData.value = response.data;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading school data:', error);
+    // Set default school data
+    schoolData.value = {
+      name: 'School',
+      trust_name: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      address: '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'
+    };
+  }
+};
+
 
 onMounted(async () => {
   try {
@@ -1292,15 +1734,17 @@ onMounted(async () => {
       }
     }
     
-    // Set default branch filter based on user role
-    setDefaultBranchFilter();
-    
-    // Load academic data first
+    // Load academic data first (including all classes)
     await loadAcademicData();
     
-    // Then fetch invoices and summary
+    // Set default branch filter based on user role AFTER classes are loaded
+    setDefaultBranchFilter();
+    
+    // Load school data for receipt viewer
+    await loadSchoolData();
+    
+    // Then fetch invoices (summary is included in the response)
     await fetchInvoices();
-    await fetchSummary();
   } catch (error) {
     showToast('Error initializing component', 'error');
   }
@@ -1326,6 +1770,23 @@ const closePaymentModal = () => {
   paymentForm.payment_method = 'cash';
   paymentForm.notes = '';
   selectedInvoiceForPayment.value = null;
+};
+
+// Watch pageSize to ensure it's always a number
+watch(pageSize, (newValue) => {
+  if (typeof newValue === 'string') {
+    pageSize.value = parseInt(newValue);
+  }
+}, { immediate: false }); // Don't trigger immediately on component mount
+
+const onPageSizeChange = (newPageSize) => {
+  pageSize.value = newPageSize;
+  localStorage.setItem('invoicesPageSize', pageSize.value);
+  currentPage.value = 1; // Reset to first page when page size changes
+  // Only fetch invoices if we're not in the initial loading state
+  if (!isLoading.value) {
+    fetchInvoices(); // Fetch with new page size
+  }
 };
 </script>
 
