@@ -65,8 +65,14 @@ docker compose cp school_erp_backup_empty.dump postgres:/tmp/school_erp_backup_e
 4. Restore the dump:
    docker compose exec -T postgres pg_restore -U postgres -d school_erp --no-owner /tmp/school_erp_backup_empty.dump
 ```
+5. **Run DB migrations**
+```bash
+docker exec -it school-erp-api-1 npm run db:migrate
 
-5. **Access the application**
+Replace school-erp-api-1 with your actual API container name, if it's different.
+```
+
+6. **Access the application**
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:4000
 
