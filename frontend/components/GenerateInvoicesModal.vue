@@ -47,7 +47,7 @@
             >
               <option value="">Select Fee Structure</option>
               <option v-for="structure in availableFeeStructures" :key="structure.id" :value="structure.id">
-                {{ structure.name }} - {{ structure.feeType?.name }} ({{ structure.class_name }}{{ structure.section ? ` - ${structure.section}` : '' }})
+                {{ structure.feeType?.name }} - {{ structure.class_name }}{{ structure.section ? ` (${structure.section})` : '' }}{{ structure.stream_names ? ` - ${structure.stream_names}` : '' }} ({{ structure.academic_year }})
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -78,9 +78,13 @@
                 <span v-else>{{ selectedFeeStructure.class_name }}</span>
               </span>
             </div>
-            <div>
+            <div v-if="selectedFeeStructure.section">
               <span class="text-gray-600 dark:text-gray-400">Section:</span>
-              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.section || 'All Sections' }}</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.section }}</span>
+            </div>
+            <div v-if="selectedFeeStructure.stream_names">
+              <span class="text-gray-600 dark:text-gray-400">Streams:</span>
+              <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedFeeStructure.stream_names }}</span>
             </div>
             <div>
               <span class="text-gray-600 dark:text-gray-400">Academic Year:</span>
@@ -498,26 +502,52 @@ const fetchStudents = async () => {
             continue;
           }
           
-          const classParams = { ...params, class_id: classId, limit: 1000 }; // Set high limit to get all students
-          console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) with params:`, classParams);
-          const response = await apiClient.students.getAll(classParams);
-          console.log(`📊 API response for class ${className}:`, response);
-          
-          // Handle different response structures
-          let students = [];
-          if (response.data && Array.isArray(response.data)) {
-            students = response.data;
-          } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
-            students = response.data.students;
-          } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
-            students = response.data.items;
-          }
-          
-          if (students.length > 0) {
-            allStudents.push(...students);
-            console.log(`✅ Found ${students.length} students for class ${className}`);
+          // If fee structure has streams, fetch students for each stream
+          if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
+            for (const streamId of selectedStructure.stream_ids) {
+              const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
+              console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) and stream ${streamId} with params:`, streamParams);
+              const response = await apiClient.students.getAll(streamParams);
+              
+              // Handle different response structures
+              let students = [];
+              if (response.data && Array.isArray(response.data)) {
+                students = response.data;
+              } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+                students = response.data.students;
+              } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+                students = response.data.items;
+              }
+              
+              if (students.length > 0) {
+                allStudents.push(...students);
+                console.log(`✅ Found ${students.length} students for class ${className} and stream ${streamId}`);
+              } else {
+                console.log(`⚠️ No students found for class ${className} and stream ${streamId}`);
+              }
+            }
           } else {
-            console.log(`⚠️ No students found for class ${className}`);
+            // No streams, fetch all students for the class
+            const classParams = { ...params, class_id: classId, limit: 1000 };
+            console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) with params:`, classParams);
+            const response = await apiClient.students.getAll(classParams);
+            
+            // Handle different response structures
+            let students = [];
+            if (response.data && Array.isArray(response.data)) {
+              students = response.data;
+            } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+              students = response.data.students;
+            } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+              students = response.data.items;
+            }
+            
+            if (students.length > 0) {
+              allStudents.push(...students);
+              console.log(`✅ Found ${students.length} students for class ${className}`);
+            } else {
+              console.log(`⚠️ No students found for class ${className}`);
+            }
           }
         } catch (error) {
           console.error(`❌ Error fetching students for class ${className}:`, error);
@@ -538,26 +568,56 @@ const fetchStudents = async () => {
         return;
       }
       
-      params.class_id = classId;
-      params.limit = 1000; // Set high limit to get all students
-      console.log('📚 Fee structure has single class:', selectedStructure.class_name, '(ID:', classId, ')');
-      console.log('🔍 Fetching students with params:', params);
-      const response = await apiClient.students.getAll(params);
-      console.log('📊 API response for single class:', response);
-      
-      // Handle different response structures
-      let students = [];
-      if (response.data && Array.isArray(response.data)) {
-        students = response.data;
-      } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
-        students = response.data.students;
-      } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
-        students = response.data.items;
+      // If fee structure has streams, fetch students for each stream
+      if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
+        const allStudents = [];
+        for (const streamId of selectedStructure.stream_ids) {
+          const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
+          console.log(`🔍 Fetching students for class ${selectedStructure.class_name} (ID: ${classId}) and stream ${streamId} with params:`, streamParams);
+          const response = await apiClient.students.getAll(streamParams);
+          
+          // Handle different response structures
+          let students = [];
+          if (response.data && Array.isArray(response.data)) {
+            students = response.data;
+          } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+            students = response.data.students;
+          } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+            students = response.data.items;
+          }
+          
+          if (students.length > 0) {
+            allStudents.push(...students);
+            console.log(`✅ Found ${students.length} students for class ${selectedStructure.class_name} and stream ${streamId}`);
+          } else {
+            console.log(`⚠️ No students found for class ${selectedStructure.class_name} and stream ${streamId}`);
+          }
+        }
+        availableStudents.value = allStudents;
+        console.log(`✅ Total: Fetched ${allStudents.length} students for class ${selectedStructure.class_name} with streams`);
+      } else {
+        // No streams, fetch all students for the class
+        params.class_id = classId;
+        params.limit = 1000; // Set high limit to get all students
+        console.log('📚 Fee structure has single class:', selectedStructure.class_name, '(ID:', classId, ')');
+        console.log('🔍 Fetching students with params:', params);
+        const response = await apiClient.students.getAll(params);
+        console.log('📊 API response for single class:', response);
+        
+        // Handle different response structures
+        let students = [];
+        if (response.data && Array.isArray(response.data)) {
+          students = response.data;
+        } else if (response.data && response.data.students && Array.isArray(response.data.students)) {
+          students = response.data.students;
+        } else if (response.data && response.data.items && Array.isArray(response.data.items)) {
+          students = response.data.items;
+        }
+        
+        availableStudents.value = students;
+        console.log(`✅ Fetched ${students.length} students for class: ${selectedStructure.class_name}`);
+        console.log('📊 Student details:', students.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
       }
-      
-      availableStudents.value = students;
-      console.log(`✅ Fetched ${students.length} students for class: ${selectedStructure.class_name}`);
-      console.log('📊 Student details:', students.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
     }
     
     // Log the final result
