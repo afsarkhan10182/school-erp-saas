@@ -413,6 +413,7 @@ const getStudents = async (req, res, next) => {
       branch_id,
       class_id,
       section_id,
+      stream_id,
       school_id
     } = req.query;
 
@@ -475,6 +476,10 @@ const getStudents = async (req, res, next) => {
 
     if (section_id) {
       whereClause.section_id = section_id;
+    }
+
+    if (stream_id) {
+      whereClause.stream_id = stream_id;
     }
 
     // Calculate pagination

@@ -403,7 +403,27 @@ const getFeeStructureById = async (req, res, next) => {
       throw new ApiError(404, 'Fee structure not found.');
     }
 
-    return res.status(200).json({ success: true, data: feeStructure });
+    // Add stream names to the response
+    const structureData = feeStructure.toJSON();
+    
+    // If the structure has stream_ids, fetch the stream names
+    if (structureData.stream_ids && structureData.stream_ids.length > 0) {
+      const streams = await Stream.findAll({
+        where: {
+          id: { [Op.in]: structureData.stream_ids },
+          is_active: true
+        },
+        attributes: ['name'],
+        order: [['name', 'ASC']]
+      });
+      
+      // Create a comma-separated string of stream names for display
+      structureData.stream_names = streams.map(s => s.name).join(', ');
+    } else {
+      structureData.stream_names = '';
+    }
+
+    return res.status(200).json({ success: true, data: structureData });
   } catch (error) {
     logger.error('Error fetching fee structure:', error);
     return next(error);
@@ -1156,32 +1176,63 @@ const getFeeStructuresWithContext = async (req, res, next) => {
           model: FeeType,
           as: 'feeType',
         },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+        },
       ],
       order: [['academic_year', 'DESC'], ['class_name', 'ASC'], ['name', 'ASC']],
     });
 
-    // Format the response with complete context
-    const formattedStructures = feeStructures.map(structure => ({
-      id: structure.id,
-      name: structure.name,
-      academic_year: structure.academic_year,
-      class_name: structure.class_name,
-      applicable_classes: structure.applicable_classes, // Add applicable_classes field
-      section: structure.section,
-      amount: structure.amount,
-      payment_model: structure.payment_model,
-      due_day: structure.due_day,
-      installment_type: structure.installment_type,
-      installment_count: structure.installment_count,
-      monthly_payment_amount: structure.monthly_payment_amount,
-      total_months: structure.total_months,
-      feeType: structure.feeType,
-      branch_id: structure.branch_id,
-      school_id: structure.school_id,
-      is_active: structure.is_active,
-      created_at: structure.created_at,
-      updated_at: structure.updated_at,
-    }));
+    // Format the response with complete context and stream names
+    const formattedStructures = await Promise.all(
+      feeStructures.map(async (structure) => {
+        const structureData = structure.toJSON();
+        
+        // If the structure has stream_ids, fetch the stream names
+        if (structureData.stream_ids && structureData.stream_ids.length > 0) {
+          const streams = await Stream.findAll({
+            where: {
+              id: { [Op.in]: structureData.stream_ids },
+              is_active: true
+            },
+            attributes: ['name'],
+            order: [['name', 'ASC']]
+          });
+          
+          // Create a comma-separated string of stream names for display
+          structureData.stream_names = streams.map(s => s.name).join(', ');
+        } else {
+          structureData.stream_names = '';
+        }
+        
+        return {
+          id: structureData.id,
+          name: structureData.name,
+          academic_year: structureData.academic_year,
+          class_name: structureData.class_name,
+          applicable_classes: structureData.applicable_classes,
+          section: structureData.section,
+          stream_ids: structureData.stream_ids,
+          stream_names: structureData.stream_names,
+          amount: structureData.amount,
+          payment_model: structureData.payment_model,
+          due_day: structureData.due_day,
+          installment_type: structureData.installment_type,
+          installment_count: structureData.installment_count,
+          monthly_payment_amount: structureData.monthly_payment_amount,
+          total_months: structureData.total_months,
+          feeType: structureData.feeType,
+          branch: structureData.branch,
+          branch_id: structureData.branch_id,
+          school_id: structureData.school_id,
+          is_active: structureData.is_active,
+          created_at: structureData.created_at,
+          updated_at: structureData.updated_at,
+        };
+      })
+    );
 
     return res.status(200).json({ 
       success: true, 

@@ -32,7 +32,7 @@
           </p>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
           <EnhancedDropdown
             v-if="isSuperAdmin"
             v-model="selectedSchool"
@@ -55,10 +55,9 @@
             :disabled="isSuperAdmin && !selectedSchool"
             @update:modelValue="onBranchChange"
             @change="onBranchChange"
-            :class="isSuperAdmin ? 'md:col-span-1' : 'md:col-span-2'"
           />
           
-          <div v-if="isBranchAdmin" class="md:col-span-2">
+          <div v-if="isBranchAdmin">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Branch
             </label>
@@ -76,6 +75,17 @@
             :loading="classesLoading"
             :disabled="!selectedBranch"
             @update:modelValue="onClassChange"
+          />
+
+          <EnhancedDropdown
+            v-model="selectedStream"
+            :options="streamOptions"
+            label="Stream (Optional)"
+            placeholder="All Streams"
+            id="stream-filter"
+            :loading="streamsLoading"
+            :disabled="!selectedClass"
+            @update:modelValue="onStreamChange"
           />
           
           <EnhancedDropdown
@@ -159,6 +169,7 @@
                 <span v-if="selectedBranchName" class="font-medium text-gray-900 dark:text-white">{{ isSuperAdmin && selectedSchoolName ? ' - ' : '' }}{{ selectedBranchName }}</span>
                 <span v-if="selectedClassName && selectedClassName !== 'All Classes'" class="font-medium text-gray-900 dark:text-white"> - {{ selectedClassName }}</span>
                 <span v-if="selectedSectionName && selectedSectionName !== 'All Sections'" class="font-medium text-gray-900 dark:text-white"> - {{ selectedSectionName }}</span>
+                <span v-if="selectedStreamName && selectedStreamName !== 'All Streams'" class="font-medium text-gray-900 dark:text-white"> - {{ selectedStreamName }}</span>
                 <span v-if="filters.academic_year && filters.academic_year !== 'All Years'" class="font-medium text-gray-900 dark:text-white"> - {{ filters.academic_year }}</span>
                 <span v-if="searchQuery" class="font-medium text-gray-900 dark:text-white"> - Search: "{{ searchQuery }}"</span>
               </p>
@@ -456,16 +467,19 @@ const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { 
   academicYears, 
   classes, 
+  streams,
   sections, 
   loading: academicsLoading,
   fetchAcademicYears, 
   fetchClasses, 
+  fetchStreams,
   fetchSections 
 } = useAcademics();
 
 // Separate loading states for better UX
 const classesLoading = ref(false);
 const sectionsLoading = ref(false);
+const streamsLoading = ref(false);
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
 
 const students = ref([]);
@@ -491,6 +505,7 @@ const selectedSchool = ref('');
 const selectedBranch = ref('');
 const selectedClass = ref('');
 const selectedSection = ref('');
+const selectedStream = ref('');
 
 const canApplyFilters = computed(() => {
   if (isSuperAdmin.value) {
@@ -528,6 +543,11 @@ const selectedSectionName = computed(() => {
   return section?.name || '';
 });
 
+const selectedStreamName = computed(() => {
+  const stream = streams.value.find(s => s.id === selectedStream.value);
+  return stream?.name || '';
+});
+
 // Computed properties for dropdown options with "Select All" options
 const schoolOptions = computed(() => {
   return schools.value.map(school => ({
@@ -559,6 +579,14 @@ const sectionOptions = computed(() => {
   return options;
 });
 
+const streamOptions = computed(() => {
+  const options = streams.value.map(stream => ({
+    value: stream.id,
+    label: stream.name
+  }));
+  return options;
+});
+
 const academicYearOptions = computed(() => {
   const options = academicYears.value.map(year => ({
     value: year.name,
@@ -578,9 +606,11 @@ const onSchoolChange = async () => {
   selectedBranch.value = '';
   selectedClass.value = '';
   selectedSection.value = '';
+  selectedStream.value = '';
   branches.value = [];
   classes.value = [];
   sections.value = [];
+  streams.value = [];
   hasAppliedFilters.value = false;
   students.value = [];
   
@@ -592,8 +622,10 @@ const onSchoolChange = async () => {
 const onBranchChange = async () => {
   selectedClass.value = '';
   selectedSection.value = '';
+  selectedStream.value = '';
   classes.value = [];
   sections.value = [];
+  streams.value = [];
   hasAppliedFilters.value = false;
   students.value = [];
   
@@ -612,20 +644,31 @@ const onBranchChange = async () => {
 
 const onClassChange = async () => {
   selectedSection.value = '';
+  selectedStream.value = '';
   sections.value = [];
+  streams.value = [];
   
   if (selectedClass.value) {
     sectionsLoading.value = true;
+    streamsLoading.value = true;
     try {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
-      await fetchSections(schoolId, selectedBranch.value, selectedClass.value);
+      await Promise.all([
+        fetchSections(schoolId, selectedBranch.value, selectedClass.value),
+        fetchStreams(schoolId, selectedBranch.value, selectedClass.value)
+      ]);
     } finally {
       sectionsLoading.value = false;
+      streamsLoading.value = false;
     }
   }
 };
 
 const onSectionChange = () => {
+  // No auto-fetch, just update the selection
+};
+
+const onStreamChange = () => {
   // No auto-fetch, just update the selection
 };
 
@@ -640,6 +683,7 @@ const resetFilters = () => {
   selectedBranch.value = '';
   selectedClass.value = '';
   selectedSection.value = '';
+  selectedStream.value = '';
   filters.academic_year = '';
   searchQuery.value = '';
   students.value = [];
@@ -688,6 +732,11 @@ const fetchStudents = async (page = 1) => {
     // Add section filter (only if not "All Sections")
     if (selectedSection.value) {
       params.section_id = selectedSection.value;
+    }
+
+    // Add stream filter (only if not "All Streams")
+    if (selectedStream.value) {
+      params.stream_id = selectedStream.value;
     }
 
     const response = await apiClient.students.getAll(params);
