@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorize } = require('../../middleware/auth');
+const { uploadSingle } = require('../../middleware/upload');
 const { validate } = require('../../middleware/validate');
 const { validateRoleAssignment } = require('../../middleware/roleValidation');
 const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
@@ -23,6 +24,7 @@ router.get(
 router.put(
   '/profile/me',
   authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']),
+  uploadSingle('profile_image'),
   UserController.updateMyProfile
 );
 

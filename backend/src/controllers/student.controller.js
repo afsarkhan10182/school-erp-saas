@@ -7,6 +7,8 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 const { sanitizeEnumFields } = require('../utils/studentUtils');
 const { getCurrentAcademicYearForSchool } = require('../utils/academicYearUtils');
+const fs = require('fs').promises;
+const { resolveUploadsPath } = require('../utils/pathHelper');
 
 // Utility function to handle ENUM validation errors
 const handleEnumValidationError = (error) => {
@@ -674,7 +676,19 @@ const updateStudent = async (req, res, next) => {
 
     // Handle file uploads
     if (req.files && req.files.student_profile_picture) {
-      studentUpdates.profile_picture = req.files.student_profile_picture[0].filename;
+      const newProfilePicture = req.files.student_profile_picture[0].filename;
+      studentUpdates.profile_picture = newProfilePicture;
+      
+      // Delete the old profile picture if it exists and is different
+      if (student.profile_picture && student.profile_picture !== newProfilePicture) {
+        try {
+          const oldFilePath = resolveUploadsPath(student.profile_picture);
+          await fs.unlink(oldFilePath);
+          logger.info(`Deleted old student profile picture: ${student.profile_picture}`);
+        } catch (error) {
+          logger.error(`Error deleting old student profile picture ${student.profile_picture}:`, error);
+        }
+      }
     }
 
     // Remove any fields that shouldn't be updated directly

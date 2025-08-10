@@ -289,7 +289,15 @@ class SchoolController {
       if (modules) {
         updatedModules = modules;
       } else if (subscription_plan) {
-        updatedModules = ModuleConfig.getModulesForPlan(subscription_plan);
+        // Always pull modules from DB plan to avoid drift
+        const { SubscriptionPlan } = require('../../models');
+        const plan = await SubscriptionPlan.findOne({
+          where: { code: subscription_plan, is_active: true }
+        });
+        if (!plan) {
+          throw new ApiError(400, 'Invalid subscription plan');
+        }
+        updatedModules = plan.modules;
       }
       
       if (updatedModules) {
@@ -339,29 +347,29 @@ class SchoolController {
     });
   });
 
-  // Get available subscription plans (for upgrade requests)
+  // Get available subscription plans (for upgrade requests) - from DB only
   static getSubscriptionPlans = asyncHandler(async (req, res) => {
-    const { ModuleConfig } = require('../../utils/moduleConfig');
-    
-    const plans = ModuleConfig.getAllSubscriptionPlans();
-    const planDetails = Object.entries(plans).map(([key, plan]) => ({
-      key,
-      name: plan.name,
-      description: plan.description,
-      price: plan.price,
-      modules: plan.modules.map(moduleKey => ({
-        key: moduleKey,
-        ...ModuleConfig.getModuleDescription(moduleKey),
-      })),
-      max_students: plan.max_students,
-      max_branches: plan.max_branches,
-      max_staff: plan.max_staff,
-    }));
+    const { SubscriptionPlan } = require('../../models');
+    const plans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: [
+        'code',
+        'name',
+        'description',
+        'price',
+        'billing_cycle',
+        'modules',
+        'max_students',
+        'max_branches',
+        'max_staff',
+      ],
+    });
 
     res.json({
       success: true,
       message: 'Subscription plans retrieved successfully',
-      data: planDetails,
+      data: plans,
     });
   });
 
@@ -385,38 +393,25 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { ModuleConfig } = require('../../utils/moduleConfig');
     const { SubscriptionPlan } = require('../../models');
     
-    // First try to get requested plan from database
-    let requestedPlanDetails = null;
-    if (requested_plan) {
-      requestedPlanDetails = await SubscriptionPlan.findOne({
-        where: { code: requested_plan, is_active: true }
-      });
-    }
-
-    // If not found in database, fall back to ModuleConfig
-    if (!requestedPlanDetails) {
-      requestedPlanDetails = ModuleConfig.getSubscriptionPlan(requested_plan);
-    }
+    // Get requested plan from database
+    const requestedPlanDetails = requested_plan
+      ? await SubscriptionPlan.findOne({
+          where: { code: requested_plan, is_active: true }
+        })
+      : null;
 
     if (!requestedPlanDetails) {
       throw new ApiError(400, 'Invalid subscription plan');
     }
 
-    // Get current plan details
-    let currentPlanDetails = null;
-    if (school.subscription_plan) {
-      currentPlanDetails = await SubscriptionPlan.findOne({
-        where: { code: school.subscription_plan, is_active: true }
-      });
-    }
-
-    // If not found in database, fall back to ModuleConfig
-    if (!currentPlanDetails) {
-      currentPlanDetails = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
-    }
+    // Get current plan details from database
+    const currentPlanDetails = school.subscription_plan
+      ? await SubscriptionPlan.findOne({
+          where: { code: school.subscription_plan, is_active: true }
+        })
+      : null;
 
     if (!currentPlanDetails) {
       throw new ApiError(400, 'Invalid current subscription plan');

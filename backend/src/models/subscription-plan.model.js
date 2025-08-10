@@ -82,7 +82,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
-    defaultValue: ['academics', 'attendance', 'fees'],
+    defaultValue: ['students', 'attendance', 'fees'],
   },
   features: {
     type: DataTypes.JSONB,

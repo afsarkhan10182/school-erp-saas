@@ -17,8 +17,8 @@
               <div class="flex items-center space-x-4">
                 <div class="flex-shrink-0">
                   <img 
-                    v-if="form.profilePicture || user?.profilePicture" 
-                    :src="form.profilePicture || user?.profilePicture" 
+                    v-if="form.profilePreview || user?.profile_image" 
+                    :src="form.profilePreview || uploadsUrl(user?.profile_image)" 
                     alt="Profile" 
                     class="h-16 w-16 rounded-full object-cover"
                   />
@@ -104,27 +104,7 @@
               />
             </div>
 
-            <!-- School/Branch Information (Read-only) -->
-            <div v-if="user?.schoolId || user?.branchId" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div v-if="user?.schoolId">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School</label>
-                <input 
-                  :value="schoolName" 
-                  type="text" 
-                  readonly
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
-                />
-              </div>
-              <div v-if="user?.branchId">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch</label>
-                <input 
-                  :value="branchName" 
-                  type="text" 
-                  readonly
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
-                />
-              </div>
-            </div>
+            <!-- School/Branch section removed as requested -->
 
             <!-- Submit Button -->
             <div class="flex justify-end">
@@ -189,9 +169,9 @@
       </div>
       <!-- TODO: END TO END SUBSCRIPTION LIMITS -->
       <!-- Subscription Limits Section (School Admin Only) -->
-      <!-- <div v-if="authStore.isSchoolAdmin" class="mt-8">
+      <div v-if="authStore.isSchoolAdmin" class="mt-8">
         <SubscriptionLimits />
-      </div> -->
+      </div>
     </div>
   </div>
 </template>
@@ -211,18 +191,20 @@ import {
 
 const authStore = useAuthStore();
 const user = computed(() => authStore.currentUser);
+const config = useRuntimeConfig();
+const uploadsUrl = (filename) => filename ? `${config.public.apiBase?.replace('/api','')}/uploads/${filename}` : '';
 
 const isSubmitting = ref(false);
 const isChangingPassword = ref(false);
-const schoolName = ref('');
-const branchName = ref('');
+// Removed school/branch references
 
 const form = reactive({
   first_name: '',
   last_name: '',
   email: '',
   phone: '',
-  profilePicture: null
+  profileFile: null,
+  profilePreview: null
 });
 
 const passwordForm = reactive({
@@ -234,7 +216,8 @@ const passwordForm = reactive({
 const onFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
-    form.profilePicture = URL.createObjectURL(file);
+    form.profileFile = file;
+    form.profilePreview = URL.createObjectURL(file);
   }
 };
 
@@ -247,11 +230,8 @@ const updateProfile = async () => {
     formData.append('email', form.email);
     formData.append('phone', form.phone);
     
-    if (form.profilePicture && form.profilePicture.startsWith('blob:')) {
-      // Convert blob URL back to file
-      const response = await fetch(form.profilePicture);
-      const blob = await response.blob();
-      formData.append('profilePicture', blob, 'profile.jpg');
+    if (form.profileFile) {
+      formData.append('profile_image', form.profileFile);
     }
     
     await apiClient.users.updateProfile(formData);
@@ -353,13 +333,13 @@ const formatRole = (role) => {
 
 const fetchSchoolAndBranchNames = async () => {
   try {
-    if (user.value?.schoolId) {
-      const schoolResponse = await apiClient.schools.getById(user.value.schoolId);
+    if (user.value?.school_id) {
+      const schoolResponse = await apiClient.schools.getById(user.value.school_id);
       schoolName.value = schoolResponse.data?.name || '';
     }
     
-    if (user.value?.branchId) {
-      const branchResponse = await apiClient.branches.getById(user.value.branchId);
+    if (user.value?.branch_id) {
+      const branchResponse = await apiClient.branches.getById(user.value.branch_id);
       branchName.value = branchResponse.data?.name || '';
     }
   } catch (error) {
@@ -367,15 +347,18 @@ const fetchSchoolAndBranchNames = async () => {
   }
 };
 
-onMounted(() => {
-  // Initialize form with current user data
+onMounted(async () => {
+  // Ensure we have the latest user data from the server
+  await authStore.checkAuth();
   if (user.value) {
     form.first_name = user.value.first_name || '';
     form.last_name = user.value.last_name || '';
     form.email = user.value.email || '';
     form.phone = user.value.phone || '';
+    if (user.value.profile_image) {
+      form.profilePreview = uploadsUrl(user.value.profile_image);
+    }
   }
-  
-  fetchSchoolAndBranchNames();
+  // Removed school/branch fetch
 });
 </script> 

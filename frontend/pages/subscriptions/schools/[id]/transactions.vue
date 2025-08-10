@@ -66,12 +66,11 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plan</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">By</th>
-            </tr>
+             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="txn in transactions" :key="txn.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ formatDate(txn.created_at) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ formatDate(txn.createdAt || txn.created_at) }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">₹{{ txn.amount }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ txn.currency }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ formatMethod(txn.payment_method) }}</td>
@@ -82,7 +81,6 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ txn.subscriptionPlan?.name || '-' }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">{{ txn.description }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">{{ txn.createdBy?.email || '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -141,6 +139,10 @@
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Description</label>
               <textarea v-model="form.description" class="input-field" rows="2"></textarea>
             </div>
+            <div class="md:col-span-2 flex items-center gap-2 mt-2">
+              <input id="markPaidNow" type="checkbox" v-model="form.mark_paid_now" class="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+              <label for="markPaidNow" class="text-sm text-gray-700 dark:text-gray-300">Mark as paid now</label>
+            </div>
           </div>
           <div class="flex justify-end gap-3 mt-4">
             <button type="button" class="btn-secondary" @click="showAddModal = false">Cancel</button>
@@ -177,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
@@ -234,11 +236,7 @@ const fetchTransactions = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const result = await fetchSchoolTransactions(schoolId, filters.value);
-    if (result && result.data.transactions) {
-      transactions.value = result.data.transactions;
-      pagination.value = result.data.pagination;
-    }
+    await fetchSchoolTransactions(schoolId, filters.value);
   } catch (e) {
     error.value = e?.message || 'Failed to load transactions';
     showToastNotification(error.value, 'error');
@@ -297,7 +295,8 @@ const form = ref({
   currency: 'INR',
   payment_method: 'offline_cash',
   billing_cycle: 'monthly',
-  description: ''
+  description: '',
+  mark_paid_now: true,
 });
 const addLoading = ref(false);
 const addError = ref('');
@@ -306,16 +305,23 @@ const handleAddPayment = async () => {
   addLoading.value = true;
   addError.value = '';
   try {
-    await createManualTransaction({
+    const payload = {
       school_id: schoolId,
       amount: form.value.amount,
       currency: form.value.currency,
       payment_method: form.value.payment_method,
       billing_cycle: form.value.billing_cycle,
-      description: form.value.description
-    });
+      description: form.value.description,
+    };
+
+    if (form.value.mark_paid_now) {
+      payload.payment_status = 'completed';
+      payload.transaction_status = 'success';
+    }
+
+    await createManualTransaction(payload);
     showAddModal.value = false;
-    form.value = { amount: '', currency: 'INR', payment_method: 'offline_cash', billing_cycle: 'monthly', description: '' };
+    form.value = { amount: '', currency: 'INR', payment_method: 'offline_cash', billing_cycle: 'monthly', description: '', mark_paid_now: true };
     showToastNotification('Payment added successfully!', 'success');
     fetchTransactions();
   } catch (e) {
@@ -325,6 +331,19 @@ const handleAddPayment = async () => {
     addLoading.value = false;
   }
 };
+
+// Adjust default for the checkbox when payment method changes
+watch(
+  () => form.value.payment_method,
+  (method) => {
+    if (method === 'offline_cash') {
+      form.value.mark_paid_now = true;
+    } else if (form.value.mark_paid_now === true) {
+      // For non-cash, default to unchecked but let user override
+      form.value.mark_paid_now = false;
+    }
+  }
+);
 
 onMounted(fetchTransactions);
 </script>

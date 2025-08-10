@@ -6,6 +6,7 @@ export function useSubscriptions() {
   const schools = ref([]);
   const plans = ref<any[]>([]);
   const transactions = ref([]);
+  const pagination = ref({ page: 1, limit: 10, total: 0, pages: 0 });
   const loading = ref(false);
   const error = ref('');
 
@@ -201,6 +202,7 @@ export function useSubscriptions() {
       const response = await apiClient.subscriptions.getSchoolTransactions(schoolId, params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
+        pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
         return response;
       } else {
         error.value = response.message || 'Failed to fetch transactions.';
@@ -351,6 +353,26 @@ export function useSubscriptions() {
     }
   };
 
+  // Get school renewal requests (for school/branch admins)
+  const fetchSchoolRenewalRequests = async (params = {}) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getSchoolRenewalRequests(params);
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch renewal requests.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const checkAndUpdateAllStatuses = async () => {
     try {
       const response = await apiClient.subscriptions.checkAllStatuses();
@@ -365,6 +387,7 @@ export function useSubscriptions() {
     schools,
     plans,
     transactions,
+    pagination,
     loading,
     error,
     fetchSchoolsWithSubscriptions,
@@ -384,6 +407,7 @@ export function useSubscriptions() {
     fetchRenewalRequests,
     createRenewalRequest,
     reviewRenewalRequest,
+    fetchSchoolRenewalRequests,
     checkAndUpdateAllStatuses
   };
 } 

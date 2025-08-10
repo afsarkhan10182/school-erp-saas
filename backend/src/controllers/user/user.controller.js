@@ -2,6 +2,8 @@ const UserService = require('../../services/user/user.service');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const { RoleManager, ROLES } = require('../../utils/roleManager');
+const fs = require('fs').promises;
+const { resolveUploadsPath } = require('../../utils/pathHelper');
 
 class UserController {
   // Create a new user with role-based access control
@@ -256,10 +258,27 @@ class UserController {
   // Update current user's profile
   static async updateMyProfile(req, res, next) {
     try {
-      const updateData = {
-        ...req.body,
-        updated_by: req.user.id,
-      };
+      const updateData = { ...req.body, updated_by: req.user.id };
+
+      // Get current user to check for existing profile image
+      const currentUser = await UserService.getUserById(req.user.id, req.user);
+      const oldProfileImage = currentUser.profile_image;
+
+      // If a profile image is uploaded, save its filename to profile_image
+      if (req.file) {
+        updateData.profile_image = req.file.filename;
+        
+        // Delete the old profile image if it exists and is different
+        if (oldProfileImage && oldProfileImage !== req.file.filename) {
+          try {
+            const oldFilePath = resolveUploadsPath(oldProfileImage);
+            await fs.unlink(oldFilePath);
+            logger.info(`Deleted old profile image: ${oldProfileImage}`);
+          } catch (error) {
+            logger.error(`Error deleting old profile image ${oldProfileImage}:`, error);
+          }
+        }
+      }
 
       const user = await UserService.updateUser(req.user.id, updateData, req.user);
       

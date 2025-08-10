@@ -720,7 +720,7 @@ export const apiClient = {
     
     updateProfile: async (profileData: FormData) => {
       const api = createApiInstance();
-      const response = await api.put<ApiResponse<any>>('/users/profile', profileData, {
+      const response = await api.put<ApiResponse<any>>('/users/profile/me', profileData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -728,9 +728,15 @@ export const apiClient = {
       return response.data;
     },
     
-    changePassword: async (passwordData: { currentPassword: string; newPassword: string }) => {
+    changePassword: async (passwordData: { currentPassword?: string; newPassword?: string; confirmPassword?: string; current_password?: string; new_password?: string; confirm_password?: string }) => {
       const api = createApiInstance();
-      const response = await api.put<ApiResponse<null>>('/users/change-password', passwordData);
+      // Map to backend-expected payload (snake_case)
+      const payload = {
+        current_password: passwordData.current_password ?? passwordData.currentPassword,
+        new_password: passwordData.new_password ?? passwordData.newPassword,
+        confirm_password: passwordData.confirm_password ?? passwordData.confirmPassword ?? (passwordData.new_password ?? passwordData.newPassword),
+      };
+      const response = await api.post<ApiResponse<null>>('/users/change-password', payload);
       return response.data;
     }
   },
@@ -940,6 +946,13 @@ export const apiClient = {
       const response = await api.get<ApiResponse<any>>('/subscriptions/plans', { params });
       return response.data;
     },
+
+    // Active plans for school/branch admins (limited fields)
+    getActivePlansForSchools: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/plans/active');
+      return response.data;
+    },
     
     getPlanById: async (id: string) => {
       const api = createApiInstance();
@@ -1037,6 +1050,13 @@ export const apiClient = {
     reviewRenewalRequest: async (requestId: string, reviewData: any) => {
       const api = createApiInstance();
       const response = await api.put<ApiResponse<any>>(`/subscriptions/renewal-requests/${requestId}/review`, reviewData);
+      return response.data;
+    },
+
+    // School admin: list own school's renewal requests
+    getSchoolRenewalRequests: async (params?: { page?: number; limit?: number; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/school/renewal-requests', { params });
       return response.data;
     },
     

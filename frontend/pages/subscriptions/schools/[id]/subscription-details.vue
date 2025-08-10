@@ -176,7 +176,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Renewal Requests</h2>
-          <button @click="showRenewalModal = true" class="btn-primary">New Request</button>
+          <button v-if="canRequestRenewal" @click="showRenewalModal = true" class="btn-primary">New Request</button>
         </div>
         <div v-if="renewalRequests.length === 0" class="text-center py-8 text-gray-500">
           No renewal requests found

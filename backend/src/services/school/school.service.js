@@ -6,7 +6,8 @@ const RedisUtils = require('../../utils/redis-utils');
 
 class SchoolService {
   static isModuleEnabled(school, moduleName) {
-    return school.subscription_plan && school.subscription_plan.modules && school.subscription_plan.modules.includes(moduleName);
+    // Use school.modules as source of truth
+    return Array.isArray(school.modules) && school.modules.includes(moduleName);
   }
 
   static async createSchool(schoolData) {

@@ -4,7 +4,6 @@ const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest,
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const bcrypt = require('bcryptjs');
-const { ModuleConfig } = require('../../utils/moduleConfig');
 
 class SubscriptionService {
   // Get all subscription plans
@@ -44,6 +43,16 @@ class SubscriptionService {
         pages: Math.ceil(count / limit),
       },
     };
+  }
+
+  // Get active plans for school/branch admins (limited fields)
+  static async getActivePlansForSchools() {
+    const rows = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['id', 'name', 'code', 'price', 'billing_cycle', 'max_students', 'max_staff', 'max_branches']
+    });
+    return rows;
   }
 
   // Get plan by ID
@@ -468,6 +477,15 @@ class SubscriptionService {
       await school.update(updateData, { transaction });
       
       logger.info(`Updated school subscription: ${school.name} (${school.id}) - Plan: ${plan ? plan.code : 'No change'}`);
+
+      // If plan changed, backfill transactions that have no plan reference
+      if (plan) {
+        try {
+          await this.syncTransactionsWithCurrentPlan(school.id);
+        } catch (syncErr) {
+          logger.warn('syncTransactionsWithCurrentPlan failed:', syncErr);
+        }
+      }
       
       await transaction.commit();
       
@@ -525,8 +543,44 @@ class SubscriptionService {
 
   // Create manual transaction
   static async createManualTransaction(transactionData, userId) {
+    const { school_id, subscription_plan_id, billing_cycle } = transactionData;
+
+    if (!school_id) {
+      throw new ApiError(400, 'School ID is required for a transaction');
+    }
+
+    const school = await School.findByPk(school_id);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    // Auto-attach current plan if not provided
+    let planId = subscription_plan_id || null;
+    let effectiveBillingCycle = billing_cycle;
+    if (!planId) {
+      const currentPlan = await SubscriptionPlan.findOne({ where: { code: school.subscription_plan, is_active: true } });
+      if (currentPlan) {
+        planId = currentPlan.id;
+        if (!effectiveBillingCycle) {
+          effectiveBillingCycle = currentPlan.billing_cycle;
+        }
+      }
+    }
+
+    // Default statuses: mark immediate cash as completed/success if not explicitly provided
+    const defaultedPaymentStatus = transactionData.payment_status
+      ? transactionData.payment_status
+      : (transactionData.payment_method === 'offline_cash' ? 'completed' : undefined);
+    const defaultedTransactionStatus = transactionData.transaction_status
+      ? transactionData.transaction_status
+      : (transactionData.payment_method === 'offline_cash' ? 'success' : undefined);
+
     const transaction = await Transaction.create({
       ...transactionData,
+      payment_status: defaultedPaymentStatus || transactionData.payment_status, // allow model defaults otherwise
+      transaction_status: defaultedTransactionStatus || transactionData.transaction_status,
+      subscription_plan_id: planId,
+      billing_cycle: effectiveBillingCycle || transactionData.billing_cycle,
       created_by: userId,
       updated_by: userId,
     });
@@ -826,6 +880,13 @@ class SubscriptionService {
           },
           { transaction }
         );
+
+        // Backfill any missing transaction plan references after approval
+        try {
+          await this.syncTransactionsWithCurrentPlan(request.school_id);
+        } catch (syncErr) {
+          logger.warn('syncTransactionsWithCurrentPlan failed:', syncErr);
+        }
       }
 
       await transaction.commit();
@@ -879,18 +940,10 @@ class SubscriptionService {
         throw new ApiError(404, 'School not found');
       }
 
-      // First try to get plan from database
-      let plan = null;
-      if (school.subscription_plan) {
-        plan = await SubscriptionPlan.findOne({
-          where: { code: school.subscription_plan, is_active: true }
-        });
-      }
-
-      // If not found in database, fall back to ModuleConfig
-      if (!plan) {
-        plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
-      }
+      // Get current plan strictly from database
+      const plan = school.subscription_plan
+        ? await SubscriptionPlan.findOne({ where: { code: school.subscription_plan, is_active: true } })
+        : null;
 
       if (!plan) {
         throw new ApiError(400, 'Invalid subscription plan');
@@ -919,10 +972,10 @@ class SubscriptionService {
         } 
       });
 
-      // Use plan limits from database or fallback to ModuleConfig
-      const maxStudents = plan.max_students || plan.maxStudents || 50;
-      const maxStaff = plan.max_staff || plan.maxStaff || 10;
-      const maxBranches = plan.max_branches || plan.maxBranches || 1;
+      // Use plan limits from database
+      const maxStudents = plan.max_students;
+      const maxStaff = plan.max_staff;
+      const maxBranches = plan.max_branches;
 
       // Calculate usage percentages
       const studentUsage = maxStudents === -1 ? 0 : (studentCount / maxStudents) * 100;
@@ -936,8 +989,8 @@ class SubscriptionService {
         branches: maxBranches !== -1 && branchCount >= maxBranches
       };
 
-      // Get upgrade suggestions
-      const upgradeSuggestions = this.getUpgradeSuggestions(school.subscription_plan, {
+      // Get upgrade suggestions (from DB plans)
+      const upgradeSuggestions = await this.getUpgradeSuggestions(school.subscription_plan, {
         students: studentCount,
         users: userCount,
         branches: branchCount
@@ -975,50 +1028,90 @@ class SubscriptionService {
     }
   }
 
-  // Get upgrade suggestions based on current usage
-  static getUpgradeSuggestions(currentPlan, usage) {
-    const plans = ModuleConfig.getAllSubscriptionPlans();
+  // Get upgrade suggestions based on current usage (from DB plans only)
+  static async getUpgradeSuggestions(currentPlanCode, usage) {
+    const activePlans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['price', 'ASC']],
+    });
+
+    if (!activePlans || activePlans.length === 0) {
+      return [];
+    }
+
+    const normalize = (v) => (v || '').toString().toUpperCase();
+    const currentPlan = activePlans.find(
+      (p) => normalize(p.code) === normalize(currentPlanCode)
+    );
+
+    if (!currentPlan) {
+      return [];
+    }
+
     const suggestions = [];
 
-    Object.entries(plans).forEach(([planKey, plan]) => {
-      if (planKey === currentPlan.toUpperCase()) {
-        return; // Skip current plan
-      }
+    for (const plan of activePlans) {
+      if (normalize(plan.code) === normalize(currentPlan.code)) continue;
 
-      let reason = '';
       const reasons = [];
 
-      // Check if this plan would solve any current limitations
-      if (plan.max_students !== -1 && usage.students >= plan.max_students) {
-        reasons.push(`Supports ${plan.max_students} students (you have ${usage.students})`);
-      }
-      if (plan.max_staff !== -1 && usage.users >= plan.max_staff) {
-        reasons.push(`Supports ${plan.max_staff} staff (you have ${usage.users})`);
-      }
-      if (plan.max_branches !== -1 && usage.branches >= plan.max_branches) {
-        reasons.push(`Supports ${plan.max_branches} branches (you have ${usage.branches})`);
+      // Limits: suggest if current is exceeded and candidate can accommodate
+      if (
+        currentPlan.max_students !== -1 &&
+        usage.students >= currentPlan.max_students &&
+        (plan.max_students === -1 || usage.students <= plan.max_students)
+      ) {
+        reasons.push(
+          `Supports ${plan.max_students === -1 ? 'unlimited' : plan.max_students} students (you have ${usage.students})`
+        );
       }
 
-      // Check for additional modules
-      const currentModules = ModuleConfig.getModulesForPlan(currentPlan);
-      const additionalModules = plan.modules.filter(module => !currentModules.includes(module));
+      if (
+        currentPlan.max_staff !== -1 &&
+        usage.users >= currentPlan.max_staff &&
+        (plan.max_staff === -1 || usage.users <= plan.max_staff)
+      ) {
+        reasons.push(
+          `Supports ${plan.max_staff === -1 ? 'unlimited' : plan.max_staff} staff (you have ${usage.users})`
+        );
+      }
+
+      if (
+        currentPlan.max_branches !== -1 &&
+        usage.branches >= currentPlan.max_branches &&
+        (plan.max_branches === -1 || usage.branches <= plan.max_branches)
+      ) {
+        reasons.push(
+          `Supports ${plan.max_branches === -1 ? 'unlimited' : plan.max_branches} branches (you have ${usage.branches})`
+        );
+      }
+
+      // Additional modules in the candidate plan
+      const currentModules = currentPlan.modules || [];
+      const additionalModules = (plan.modules || []).filter(
+        (module) => !currentModules.includes(module)
+      );
       if (additionalModules.length > 0) {
         reasons.push(`Includes additional modules: ${additionalModules.join(', ')}`);
       }
 
       if (reasons.length > 0) {
+        const currentPrice = Number(currentPlan.price || 0);
+        const candidatePrice = Number(plan.price || 0);
         suggestions.push({
-          plan_key: planKey,
+          plan_key: plan.code,
           plan_name: plan.name,
-          price: plan.price,
-          reasons: reasons,
-          is_recommended: plan.price > plans[currentPlan.toUpperCase()]?.price || 0
+          price: candidatePrice,
+          billing_cycle: plan.billing_cycle,
+          reasons,
+          is_recommended: candidatePrice > currentPrice ? 1 : 0,
         });
       }
-    });
+    }
 
-    // Sort by recommendation (higher price plans first)
-    suggestions.sort((a, b) => b.is_recommended - a.is_recommended);
+    suggestions.sort(
+      (a, b) => b.is_recommended - a.is_recommended || Number(b.price) - Number(a.price)
+    );
 
     return suggestions;
   }
@@ -1200,6 +1293,27 @@ class SubscriptionService {
       logger.error('Error syncing all schools with plans:', error);
       throw error;
     }
+  }
+
+  // Ensure transactions without a plan reference point to the school's current plan
+  static async syncTransactionsWithCurrentPlan(schoolId) {
+    const school = await School.findByPk(schoolId);
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    const plan = await SubscriptionPlan.findOne({ where: { code: school.subscription_plan, is_active: true } });
+    if (!plan) {
+      logger.warn(`No active plan found for school ${schoolId} during transaction sync`);
+      return { updated: 0 };
+    }
+
+    const [updated] = await Transaction.update(
+      { subscription_plan_id: plan.id },
+      { where: { school_id: schoolId, subscription_plan_id: null } }
+    );
+
+    return { updated };
   }
 }
 
