@@ -335,7 +335,7 @@ const menuGroups = computed(() => {
       id: 'reports',
       title: 'Reports & Analytics',
       items: [
-        // { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
+        { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
         { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
       ]
     });
@@ -363,6 +363,7 @@ const menuGroups = computed(() => {
       ...(!isBranchAdmin.value ? [
                 { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
               ] : []),      
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
         // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
       ]

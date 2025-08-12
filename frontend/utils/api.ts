@@ -680,6 +680,42 @@ export const apiClient = {
       });
       return response.data;
     },
+
+    // Student reports and analytics
+    getReport: async (params?: {
+      page?: number;
+      limit?: number;
+      academic_year?: string;
+      class_name?: string;
+      section_name?: string;
+      status?: string;
+      search?: string;
+      date_from?: string;
+      date_to?: string;
+      sort_by?: string;
+      sort_order?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.get<PaginatedResponse<any>>('/students/report', { params });
+      return response.data;
+    },
+
+    getStats: async (params?: {
+      academic_year?: string;
+      branch_id?: string;
+      class_id?: string;
+      section_id?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/students/stats', { params });
+      return response.data;
+    },
+
+    exportReport: async (queryString: string) => {
+      const api = createApiInstance();
+      const response = await api.get(`/students/export?${queryString}`);
+      return response;
+    },
   },
 
 

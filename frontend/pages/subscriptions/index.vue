@@ -415,10 +415,6 @@ onMounted(() => {
   }
 });
 
-// Set page title
-useHead({
-  title: 'School Subscriptions - School ERP'
-});
 </script>
 
 <style scoped>

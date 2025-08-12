@@ -734,10 +734,6 @@ const toggleAdminPassword = () => {
 
 onMounted(loadSchool);
 
-// Set page title
-useHead({
-  title: 'Edit School - School ERP'
-});
 </script>
 
 <style scoped>

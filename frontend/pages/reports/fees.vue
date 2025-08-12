@@ -26,58 +26,6 @@
             <Printer class="-ml-1 mr-2 h-4 w-4" />
             Print Report
           </button>
-          
-          <!-- Download As Dropdown -->
-          <div class="relative download-dropdown">
-            <button
-              @click="toggleDownloadDropdown"
-              :disabled="isLoading || invoices.length === 0"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download class="-ml-1 mr-2 h-4 w-4" />
-              Download As
-              <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            <!-- Dropdown Menu -->
-            <div 
-              v-show="showDownloadDropdown"
-              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
-              style="transform-origin: top right;"
-            >
-              <div class="py-1">
-                <button
-                  @click="downloadPDFReport"
-                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                >
-                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  PDF
-                </button>
-                <button
-                  @click="downloadDetailedReport"
-                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                >
-                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Excel
-                </button>
-                <button
-                  @click="downloadCSVReport"
-                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                >
-                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  CSV
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -314,6 +262,57 @@
             <span class="text-sm text-gray-500 dark:text-gray-400">
               {{ groupedInvoices.length > 0 ? `${invoices.length} invoices` : 'No records' }}
             </span>
+            <!-- Download As Dropdown -->
+            <div class="relative download-dropdown">
+              <button
+                @click="toggleDownloadDropdown"
+                :disabled="isLoading || invoices.length === 0"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download class="-ml-1 mr-2 h-4 w-4" />
+                Download As
+                <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div 
+                v-show="showDownloadDropdown"
+                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
+                style="transform-origin: top right;"
+              >
+                <div class="py-1">
+                  <button
+                    @click="downloadPDFReport"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                  >
+                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    PDF
+                  </button>
+                  <button
+                    @click="downloadExcelReport"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                  >
+                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Excel
+                  </button>
+                  <button
+                    @click="downloadCSVReport"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                  >
+                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    CSV
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -504,10 +503,11 @@ import {
   Search,
   Printer
 } from 'lucide-vue-next';
-import apiClient from '~/utils/api';
+import apiClient, { createApiInstance } from '~/utils/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import Pagination from '~/components/Pagination.vue';
+import ExportDropdown from '~/components/ExportDropdown.vue';
 
 
 // Get auth store and toast
@@ -2199,36 +2199,7 @@ const generatePDFContent = () => {
   `;
 };
 
-const downloadPDFReport = async () => {
-  try {
-    // Close dropdown first
-    closeDownloadDropdown();
-    
-    // Generate PDF content
-    const pdfContent = generatePDFContent();
-    
-    // Create a new window with the PDF content
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(pdfContent);
-    printWindow.document.close();
-    
-    // Wait for content to load, then trigger print
-    printWindow.onload = () => {
-      // Use browser's print to PDF functionality
-      printWindow.print();
-      
-      // Close the window after printing
-      setTimeout(() => {
-        printWindow.close();
-      }, 1000);
-    };
-    
-    showToast('PDF report opened for printing/download', 'success');
-  } catch (error) {
-    console.error('Error generating PDF report:', error);
-    showToast('Error generating PDF report', 'error');
-  }
-};
+
 
 
 
@@ -2293,6 +2264,8 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
+
+
 // Dropdown functions
 const toggleDownloadDropdown = () => {
   showDownloadDropdown.value = !showDownloadDropdown.value;
@@ -2301,6 +2274,73 @@ const toggleDownloadDropdown = () => {
 const closeDownloadDropdown = () => {
   showDownloadDropdown.value = false;
 };
+
+// Export functions using new API
+const downloadPDFReport = async () => {
+  try {
+    closeDownloadDropdown();
+    showToast('Generating PDF report...', 'info');
+    
+    const queryParams = new URLSearchParams({
+      ...filters,
+      includeSummary: 'true'
+    });
+    
+    const api = createApiInstance();
+    const response = await api.get(`/export/fee-invoices/pdf?${queryParams}`, {
+      responseType: 'blob'
+    });
+    
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fee-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('PDF report downloaded successfully!', 'success');
+  } catch (error) {
+    console.error('PDF export error:', error);
+    showToast('Failed to download PDF report', 'error');
+  }
+};
+
+const downloadExcelReport = async () => {
+  try {
+    closeDownloadDropdown();
+    showToast('Generating Excel report...', 'info');
+    
+    const queryParams = new URLSearchParams({
+      ...filters,
+      includeSummary: 'true'
+    });
+    
+    const api = createApiInstance();
+    const response = await api.get(`/export/fee-invoices/excel?${queryParams}`, {
+      responseType: 'blob'
+    });
+    
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fee-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('Excel report downloaded successfully!', 'success');
+  } catch (error) {
+    console.error('Excel export error:', error);
+    showToast('Failed to download Excel report', 'error');
+  }
+};
+
+
 
 // Close dropdown when clicking outside
 const handleClickOutside = (event) => {
@@ -2342,11 +2382,11 @@ onMounted(async () => {
     
     console.log('✅ Page initialization complete');
     
-    // Add click outside listener for dropdown
-    document.addEventListener('click', handleClickOutside);
-    
     // Don't load any data initially - user must click "Apply Filters"
     console.log('📊 No initial data loaded - waiting for user to apply filters');
+    
+    // Add click outside listener for dropdown
+    document.addEventListener('click', handleClickOutside);
     
   } catch (error) {
     console.error('❌ Error initializing page:', error);
@@ -2360,4 +2400,5 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
+
 </script> 

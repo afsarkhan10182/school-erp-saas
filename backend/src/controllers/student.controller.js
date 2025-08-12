@@ -1343,13 +1343,8 @@ const exportStudentReport = async (req, res, next) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Set response headers for Excel download
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=student_report.xlsx');
-
-    // TODO: Implement Excel generation
-    // For now, return JSON
-    res.json({
+    // Return JSON data for frontend to handle
+    return res.status(200).json({
       success: true,
       data: students,
       message: 'Student report generated successfully',
