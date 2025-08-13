@@ -680,6 +680,15 @@ export const apiClient = {
       });
       return response.data;
     },
+
+    // Download student import template
+    downloadTemplate: async (type = 'complete') => {
+      const api = createApiInstance();
+      const response = await api.get(`/students/import-template?type=${type}`, {
+        responseType: 'blob'
+      });
+      return response;
+    },
   },
 
 
