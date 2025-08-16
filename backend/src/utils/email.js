@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 const config = require('../config/config');
-const logger = require('./logger');
+const { logger } = require('./logger');
 const ApiError = require('./ApiError');
 const httpStatus = require('http-status');
 const path = require('path');
@@ -38,7 +38,7 @@ transporter.verify((error) => {
  */
 const compileTemplate = async (templateName, data = {}) => {
   try {
-    const templatePath = path.join(__dirname, `../templates/emails/${templateName}.ejs`);
+    const templatePath = path.join(__dirname, `../notificationTemplates/email/${templateName}.ejs`);
     const template = await fs.promises.readFile(templatePath, 'utf-8');
     return ejs.render(template, data);
   } catch (error) {

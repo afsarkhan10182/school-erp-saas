@@ -1086,7 +1086,18 @@ export const apiClient = {
       return response.data;
     },
 
-    getReport: async (params: { report_type?: 'daily' | 'monthly'; date?: string; month?: number; year?: number; class_id?: string; section_id?: string; student_id?: string }) => {
+    getReport: async (params: { 
+      report_type?: 'daily' | 'monthly'; 
+      date?: string; 
+      month?: number; 
+      year?: number; 
+      class_id?: string; 
+      section_id?: string; 
+      student_id?: string;
+      date_from?: string;
+      date_to?: string;
+      academic_year?: string;
+    }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/attendance/reports', { params });
       return response.data;
@@ -1101,6 +1112,78 @@ export const apiClient = {
     bulkImport: async (rows: any[]) => {
       const api = createApiInstance();
       const response = await api.post<ApiResponse<any>>('/attendance/bulk-import', { rows });
+      return response.data;
+    },
+  },
+
+  // Attendance Notification endpoints
+  attendanceNotifications: {
+    sendAbsenceNotifications: async (data: {
+      absentStudents: Array<{ student_id: string; remarks?: string }>;
+      sessionData: {
+        date: string;
+        class_id: string;
+        section_id?: string;
+        attendance_type?: 'daily' | 'period';
+        period_number?: number;
+      };
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/attendance-notifications/absence', data);
+      return response.data;
+    },
+
+    sendLateArrivalNotifications: async (data: {
+      lateStudents: Array<{ student_id: string; arrival_time?: string; remarks?: string }>;
+      sessionData: {
+        date: string;
+        class_id: string;
+        section_id?: string;
+        attendance_type?: 'daily' | 'period';
+        period_number?: number;
+      };
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/attendance-notifications/late-arrival', data);
+      return response.data;
+    },
+
+    sendAttendanceSummary: async (data: {
+      classData: {
+        totalStudents?: number;
+        presentCount?: number;
+        absentCount?: number;
+        lateCount?: number;
+        attendancePercentage?: number;
+        className?: string;
+        sectionName?: string;
+      };
+      sessionData: {
+        date: string;
+        class_id: string;
+        section_id?: string;
+        attendance_type?: 'daily' | 'period';
+        period_number?: number;
+      };
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/attendance-notifications/summary', data);
+      return response.data;
+    },
+
+    getNotificationSettings: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/attendance-notifications/settings');
+      return response.data;
+    },
+
+    sendTestNotification: async (data: {
+      type: 'absence' | 'late' | 'summary';
+      email: string;
+      studentId?: string;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/attendance-notifications/test', data);
       return response.data;
     },
   }

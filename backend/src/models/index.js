@@ -16,6 +16,9 @@ const AcademicYear = require('./academic-year.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
 const Stream = require('./stream.model');
+const Subject = require('./subject.model');
+const AttendanceSession = require('./attendance-session.model');
+const AttendanceRecord = require('./attendance-record.model');
 
 // Initialize associations
 const models = {
@@ -36,6 +39,9 @@ const models = {
   Class,
   Section,
   Stream,
+  Subject,
+  AttendanceSession,
+  AttendanceRecord,
 };
 
 // Call associate function for each model if it exists

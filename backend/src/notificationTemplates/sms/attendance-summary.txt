@@ -1,0 +1,13 @@
+{{schoolName}} - Daily Attendance Summary
+
+{{studentName}} - {{date}}
+Class: {{className}} ({{sectionName}})
+
+Today's Attendance:
+✅ Present: {{presentCount}}
+❌ Absent: {{absentCount}}
+⏰ Late: {{lateCount}}
+
+Attendance Rate: {{attendancePercentage}}%
+
+For questions: {{schoolPhone}}

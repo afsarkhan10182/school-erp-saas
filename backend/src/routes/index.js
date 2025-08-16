@@ -15,6 +15,9 @@ const academicYearRoutes = require('./academic-year.routes');
 const classRoutes = require('./class.routes');
 const sectionRoutes = require('./section.routes');
 const streamRoutes = require('./stream.routes');
+const attendanceRoutes = require('./attendance.routes');
+const attendanceNotificationRoutes = require('./attendance-notification.routes');
+const templateRoutes = require('./template.routes');
 
 const router = express.Router();
 
@@ -41,5 +44,14 @@ router.use('/academic-years', academicYearRoutes);
 router.use('/classes', classRoutes);
 router.use('/sections', sectionRoutes);
 router.use('/streams', streamRoutes);
+
+// Attendance routes
+router.use('/attendance', attendanceRoutes);
+
+// Attendance Notification routes
+router.use('/attendance-notifications', attendanceNotificationRoutes);
+
+// Template routes
+router.use('/templates', templateRoutes);
 
 module.exports = router;

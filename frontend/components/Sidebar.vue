@@ -304,7 +304,6 @@ const menuGroups = computed(() => {
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
             { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList },
-            { id: 'take-attendance', title: 'Take Attendance', path: '/attendance/take', icon: UserCheck },
             { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
           ]
         }
