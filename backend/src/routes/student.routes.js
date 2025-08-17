@@ -44,22 +44,15 @@ router.post('/',
 );
 
 // GET endpoint to download student import template
-router.get('/import-template', (req, res) => {
-  const path = require('path');
+router.get('/import-template', (req, res, next) => {
+  const { generateStudentTemplateRequired, generateStudentTemplateComplete } = require('../controllers/template.controller');
   const { type = 'complete' } = req.query;
   
-  let templatePath;
-  let filename;
-  
   if (type === 'required') {
-    templatePath = path.join(__dirname, '../../templates/student-import-template-required.csv');
-    filename = 'Student-Import-Template-Required-Fields.csv';
+    return generateStudentTemplateRequired(req, res, next);
   } else {
-    templatePath = path.join(__dirname, '../../templates/student-import-template-complete.csv');
-    filename = 'Student-Import-Template-Complete-with-Sample-Data.csv';
+    return generateStudentTemplateComplete(req, res, next);
   }
-  
-  res.download(templatePath, filename);
 });
 
 // POST endpoint for bulk import students from CSV

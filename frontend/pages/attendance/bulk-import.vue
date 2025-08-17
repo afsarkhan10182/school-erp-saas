@@ -133,7 +133,7 @@ import { ref } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { apiClient } from '~/utils/api';
 
-const { showToast } = useToast();
+const { showSuccess, showError, showWarning } = useToast();
 
 const dragOver = ref(false);
 const selectedFile = ref<File | null>(null);
@@ -160,7 +160,7 @@ const handleDrop = (e: DragEvent) => {
     if (isValidFile(file)) {
       selectedFile.value = file;
     } else {
-      showToast({ type: 'error', message: 'Please select a CSV or Excel file' });
+      showError('Please select a CSV or Excel file');
     }
   }
 };
@@ -172,7 +172,7 @@ const handleFileSelect = (e: Event) => {
   if (file && isValidFile(file)) {
     selectedFile.value = file;
   } else if (file) {
-    showToast({ type: 'error', message: 'Please select a CSV or Excel file' });
+    showError('Please select a CSV or Excel file');
   }
 };
 
@@ -187,7 +187,7 @@ const isValidFile = (file: File) => {
 
 const uploadFile = async () => {
   if (!selectedFile.value) {
-    showToast({ type: 'error', message: 'Please select a file to upload' });
+    showError('Please select a file to upload');
     return;
   }
 
@@ -220,20 +220,14 @@ const uploadFile = async () => {
     };
 
     if (results.value.imported > 0) {
-      showToast({ 
-        type: 'success', 
-        message: `Successfully imported ${results.value.imported} attendance records` 
-      });
+      showSuccess(`Successfully imported ${results.value.imported} attendance records`);
     } else {
-      showToast({ 
-        type: 'warning', 
-        message: 'No records were imported. Please check the file format and data.' 
-      });
+      showWarning('No records were imported. Please check the file format and data.');
     }
 
   } catch (error: any) {
     console.error('Upload error:', error);
-    showToast({ type: 'error', message: error.message || 'Failed to upload file' });
+    showError(error.message || 'Failed to upload file');
     results.value = {
       imported: 0,
       skipped: 0,
@@ -270,10 +264,10 @@ const downloadTemplate = async () => {
     link.remove();
     window.URL.revokeObjectURL(url);
     
-    showToast({ type: 'success', message: 'Template downloaded successfully!' });
+    showSuccess('Template downloaded successfully!');
   } catch (error) {
     console.error('Error downloading template:', error);
-    showToast({ type: 'error', message: 'Failed to download template. Please try again.' });
+    showError('Failed to download template. Please try again.');
   }
 };
 </script>
