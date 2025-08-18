@@ -2,11 +2,11 @@
   <div class="p-4 space-y-4">
     <h2 class="text-xl font-semibold">Attendance Reports</h2>
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-      <input v-model="filters.date_from" type="date" class="border px-2 py-1 rounded" placeholder="From Date" title="From Date" />
-      <input v-model="filters.date_to" type="date" class="border px-2 py-1 rounded" placeholder="To Date" title="To Date" />
+      <input v-model="filters.date_from" type="date" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="From Date" title="From Date" />
+      <input v-model="filters.date_to" type="date" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="To Date" title="To Date" />
       <EnhancedDropdown :options="classOptions" v-model="filters.class_id" placeholder="Class" />
       <EnhancedDropdown :options="sectionOptions" v-model="filters.section_id" placeholder="Section" />
-      <input v-model="filters.academic_year" type="text" class="border px-2 py-1 rounded" placeholder="Academic Year (e.g., 2024-25)" title="Academic Year" />
+      <input v-model="filters.academic_year" type="text" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Academic Year (e.g., 2024-25)" title="Academic Year" />
       <button class="bg-blue-600 text-white px-3 py-1 rounded" @click="load">Load</button>
     </div>
     <div class="flex gap-2">
@@ -32,9 +32,9 @@
       </button>
     </div>
 
-    <div v-if="summary" class="bg-gray-50 p-3 rounded border">
-      <div class="font-medium mb-2">Summary</div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+    <div v-if="summary" class="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+      <div class="font-medium mb-2 text-gray-900 dark:text-white">Summary</div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-gray-700 dark:text-gray-300">
         <div>Total: {{ summary.total }}</div>
         <div>Present: {{ summary.present }}</div>
         <div>Absent: {{ summary.absent }}</div>
@@ -43,8 +43,8 @@
       </div>
     </div>
 
-    <div v-if="!loading && (!records || records.length === 0)" class="border rounded p-6 bg-gray-50 text-gray-600">
-      <div class="font-medium mb-2">No attendance records</div>
+    <div v-if="!loading && (!records || records.length === 0)" class="border border-gray-200 dark:border-gray-700 rounded p-6 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+      <div class="font-medium mb-2 text-gray-900 dark:text-white">No attendance records</div>
       <p>Adjust the report filters and try again.</p>
     </div>
 

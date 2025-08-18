@@ -751,10 +751,18 @@ const removeFile = () => {
 
 const downloadTemplate = async (type = 'complete') => {
   try {
-    const response = await apiClient.students.downloadTemplate(type);
+    const config = useRuntimeConfig();
+    const response = await fetch(`${config.public.apiBase}/students/import-template?type=${type}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to download template');
+    }
     
     // Create blob from response
-    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     
     // Create download link
