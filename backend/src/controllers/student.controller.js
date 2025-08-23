@@ -1165,8 +1165,8 @@ const getStudentReport = async (req, res, next) => {
       section_name,
       status,
       search,
-      date_from,
-      date_to,
+      from_date,
+      to_date,
       sort_by = 'created_at',
       sort_order = 'DESC',
       school_id,
@@ -1207,13 +1207,13 @@ const getStudentReport = async (req, res, next) => {
     if (status) whereClause.status = status;
     
     // Add date range filters
-    if (date_from || date_to) {
+    if (from_date || to_date) {
       whereClause.admission_date = {};
-      if (date_from) {
-        whereClause.admission_date[Op.gte] = new Date(date_from);
+      if (from_date) {
+        whereClause.admission_date[Op.gte] = new Date(from_date);
       }
-      if (date_to) {
-        whereClause.admission_date[Op.lte] = new Date(date_to);
+      if (to_date) {
+        whereClause.admission_date[Op.lte] = new Date(to_date);
       }
     }
 

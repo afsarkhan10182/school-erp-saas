@@ -10,10 +10,10 @@
           @change="onPageSizeChange"
           class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         >
-          <option value="10">10</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
         </select>
         <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
       </div>
@@ -77,10 +77,10 @@
             @change="onPageSizeChange"
             class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
           </select>
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ itemLabel }} per page</span>
         </div>
@@ -158,12 +158,20 @@ const props = defineProps({
 
 const emit = defineEmits(['page-changed', 'page-size-changed']);
 
-// Local page size state
-const localPageSize = ref(props.pagination.limit || 10);
+// Local page size state - ensure it's a valid option value
+const getInitialPageSize = () => {
+  const limit = parseInt(props.pagination.limit) || 10;
+  // Ensure it's one of the valid options: 10, 25, 50, 100
+  const validOptions = [10, 25, 50, 100];
+  return validOptions.includes(limit) ? limit : 10;
+};
+
+const localPageSize = ref(getInitialPageSize());
 
 // Watch for external page size changes
 watch(() => props.pagination.limit, (newLimit) => {
-  localPageSize.value = newLimit;
+  const newPageSize = getInitialPageSize();
+  localPageSize.value = newPageSize;
 });
 
 const totalPages = computed(() => {
