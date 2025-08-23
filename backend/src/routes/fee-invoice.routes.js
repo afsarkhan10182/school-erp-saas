@@ -31,7 +31,8 @@ const {
   getReceiptData,
   getCombinedReceiptData,
   getInvoiceReceiptData,
-  getStudentFeeInvoiceSummary
+  getStudentFeeInvoiceSummary,
+  getReceiptsReport
 } = require('../controllers/fee-invoice');
 const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
 const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
@@ -94,6 +95,9 @@ router.get('/summary', requireRole('super_admin', 'school_admin', 'branch_admin'
 
 // GET endpoint to retrieve fee statistics
 router.get('/stats', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeStats);
+
+// GET endpoint to retrieve receipts report (payments only)
+router.get('/receipts-report', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptsReport);
 
 // GET endpoint to retrieve fee invoice report with pagination and filtering
 router.get('/report', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReport);

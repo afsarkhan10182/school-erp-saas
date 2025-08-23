@@ -58,6 +58,8 @@ module.exports = {
   getReceiptData: receipts.getReceiptData,
   getCombinedReceiptData: receipts.getCombinedReceiptData,
   getInvoiceReceiptData: receipts.getInvoiceReceiptData,
+  // Receipts report
+  getReceiptsReport: receipts.getReceiptsReport,
 
   // Advanced payment operations
   getBreakdown: advancedPayments.getBreakdown,
