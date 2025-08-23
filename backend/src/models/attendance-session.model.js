@@ -13,9 +13,13 @@ const AttendanceSession = sequelize.define('AttendanceSession', {
     allowNull: false,
   },
   attendance_type: {
-    type: DataTypes.ENUM('daily'),
+    type: DataTypes.ENUM('daily', 'period'),
     allowNull: false,
     defaultValue: 'daily',
+  },
+  period_number: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   academic_year: {
     type: DataTypes.STRING(10),

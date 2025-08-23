@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, readonly } from 'vue'
 import { apiClient } from '~/utils/api'
 import { useToast } from '~/composables/useToast'
 import { useAuthStore } from '~/stores/auth'
@@ -10,6 +10,8 @@ interface AttendanceSession {
   status: 'draft' | 'published'
   class_id: string
   section_id?: string
+  school_id?: string
+  branch_id?: string
   academic_year?: string
   remarks?: string
 }
@@ -100,21 +102,19 @@ export const useAttendance = () => {
     attendance_type: 'daily'
     class_id: string
     section_id?: string
+    school_id?: string
+    branch_id?: string
     academic_year?: string
   }) => {
     try {
       loading.value = true
       error.value = null
       
-      // Ensure context is available
-      if (!auth.currentSchool?.id || !auth.currentBranch?.id) {
-        throw new Error('Please select a school/branch to proceed')
-      }
-      
       const payload = {
         ...sessionData,
-        school_id: auth.currentSchool.id,
-        branch_id: auth.currentBranch.id
+        // Use auth context as fallback only if not provided in sessionData
+        school_id: sessionData.school_id || auth.currentSchool?.id,
+        branch_id: sessionData.branch_id || auth.currentBranch?.id
       }
       
       const response = await apiClient.attendance.upsertSession(payload)

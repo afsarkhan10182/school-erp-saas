@@ -110,7 +110,7 @@ const formatDate = (date) => {
 
 const getStatusType = (item) => {
   // Determine status badge type based on item context
-  if (item.attendance_type !== undefined) return 'attendance'
+  if (item.attendance_type !== undefined || item.session_id !== undefined || (item.status && ['present', 'absent', 'late', 'excused'].includes(item.status))) return 'attendance'
   if (item.invoice_id !== undefined) return 'invoice'
   if (item.payment_id !== undefined) return 'payment'
   return 'general'

@@ -304,7 +304,6 @@ const menuGroups = computed(() => {
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
             { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList },
-            { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
           ]
         }
       ]
@@ -339,6 +338,7 @@ const menuGroups = computed(() => {
       items: [
         // { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
         { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
+        { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
       ]
     });
   }

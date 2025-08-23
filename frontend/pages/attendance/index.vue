@@ -1,9 +1,30 @@
 <template>
   <div class="p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Attendance</h1>
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Attendance</h1>
+      <NuxtLink 
+        to="/attendance/bulk-import" 
+        class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+        </svg>
+        Bulk Import
+      </NuxtLink>
+    </div>
 
     <!-- Filter Card -->
     <FilterCard>
+      <template #header>
+        <div class="ml-auto">
+          <button
+            @click="resetFilters"
+            class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </template>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <!-- Date -->
         <FormField id="attendance-date" label="Date" required>
@@ -12,7 +33,26 @@
             type="date" 
             class="input-field"
             :max="new Date().toISOString().split('T')[0]"
-            @change="onFilterChange"
+          />
+        </FormField>
+
+        <!-- School (Super Admin Only) -->
+        <FormField v-if="isSuperAdmin" id="attendance-school" label="School">
+          <EnhancedDropdown 
+            :options="schoolOptions" 
+            v-model="form.school_id" 
+            placeholder="All Schools"
+            @update:modelValue="onSchoolChange"
+          />
+        </FormField>
+        
+        <!-- Branch (Super Admin and School Admin) -->
+        <FormField v-if="isSuperAdmin || isSchoolAdmin" id="attendance-branch" label="Branch">
+          <EnhancedDropdown 
+            :options="branchOptions" 
+            v-model="form.branch_id" 
+            placeholder="All Branches"
+            @update:modelValue="onBranchChange"
           />
         </FormField>
         
@@ -33,7 +73,6 @@
             v-model="form.section_id" 
             placeholder="All Sections"
             :disabled="!form.class_id"
-            @update:modelValue="onFilterChange"
           />
         </FormField>
         
@@ -44,7 +83,6 @@
             type="text" 
             class="input-field"
             placeholder="2025-2026"
-            @input="onFilterChange"
           />
         </FormField>
         
@@ -57,42 +95,31 @@
             placeholder="Search students..."
           />
         </FormField>
+
+        <!-- Apply Filters Button (matching Fee Reports pattern) -->
+        <div class="flex items-end">
+          <button 
+            @click="applyFilters"
+            :disabled="loading || !form.date || !form.class_id"
+            class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            {{ loading ? 'Loading...' : 'Apply Filters' }}
+          </button>
+        </div>
       </div>
       
       <template #actions>
         <!-- Left side - Action buttons -->
         <div class="flex gap-3">
-          <NuxtLink 
-            to="/attendance/bulk-import" 
-            class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Bulk Import
-          </NuxtLink>
-          
           <button 
             @click="saveAttendance(true)"
             :disabled="!hasValidSession || saving || loading || students.length === 0"
             class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {{ saving ? 'Publishing...' : 'Save & Publish' }}
-          </button>
-          
-          <button 
-            @click="saveAttendance(false)"
-            :disabled="!hasValidSession || saving || loading || students.length === 0"
-            class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ saving ? 'Saving...' : 'Save Draft' }}
-          </button>
-        </div>
-        
-        <!-- Right side - Reset button -->
-        <div class="flex gap-3">
-          <button 
-            @click="resetFilters"
-            class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-          >
-            Reset Filters
+            {{ saving ? 'Saving...' : 'Save' }}
           </button>
         </div>
       </template>
@@ -186,6 +213,9 @@ import { ref, computed, watch } from 'vue'
 import { useAttendance } from '~/composables/useAttendance'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useToast } from '~/composables/useToast'
+import { useAuth } from '~/composables/useAuth'
+import { useAuthStore } from '~/stores/auth'
+import { apiClient } from '~/utils/api'
 import FilterCard from '~/components/ui/FilterCard.vue'
 import FormField from '~/components/FormField.vue'
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue'
@@ -204,10 +234,25 @@ const {
 
 const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns()
 const { showError, showSuccess } = useToast()
+const { isSuperAdmin, isSchoolAdmin } = useAuth()
+
+// School and branch data
+const schools = ref([])
+const branches = ref([])
+const schoolOptions = computed(() => schools.value.map(school => ({
+  value: school.id,
+  label: school.name
+})))
+const branchOptions = computed(() => branches.value.map(branch => ({
+  value: branch.id,
+  label: branch.name
+})))
 
 // Form state
 const form = ref({
   date: new Date().toISOString().slice(0, 10),
+  school_id: '',
+  branch_id: '',
   class_id: '',
   section_id: '',
   academic_year: ''
@@ -240,25 +285,22 @@ const onClassChange = async (classId: string) => {
   
   if (classId) {
     await loadSections(classId)
-    // Auto-load students after class change if date is selected
-    if (form.value.date) {
-      await loadStudents()
-    }
   }
 }
 
-// Auto-filtering handler for other fields
-const onFilterChange = async () => {
-  // Debounce auto-filtering to avoid too many API calls
-  if (autoFilterTimeout.value) {
-    clearTimeout(autoFilterTimeout.value)
+// Remove auto-filtering - filters are now applied only on button click
+const onFilterChange = () => {
+  // No auto-filtering - user must click "Apply Filters" button
+}
+
+// Apply filters when user clicks the button
+const applyFilters = async () => {
+  if (!form.value.date || !form.value.class_id) {
+    showError('Please select date and class before applying filters')
+    return
   }
   
-  autoFilterTimeout.value = setTimeout(async () => {
-    if (form.value.date && form.value.class_id) {
-      await loadStudents()
-    }
-  }, 500) // 500ms debounce
+  await loadStudents()
 }
 
 const loadStudents = async () => {
@@ -272,13 +314,19 @@ const loadStudents = async () => {
     
     // Then create/get session if we have students
     if (students.value.length > 0) {
-      await createSession({
+      const sessionData: any = {
         date: form.value.date,
         attendance_type: 'daily',
         class_id: form.value.class_id,
         section_id: form.value.section_id || undefined,
         academic_year: form.value.academic_year || undefined
-      })
+      }
+      
+      // Include school_id and branch_id if they're selected (for super admin and school admin)
+      if (form.value.school_id) sessionData.school_id = form.value.school_id
+      if (form.value.branch_id) sessionData.branch_id = form.value.branch_id
+      
+      await createSession(sessionData)
       
       // Only show success message if we have a meaningful number of students
       if (students.value.length === 0) {
@@ -314,19 +362,110 @@ const saveAttendance = async (publish: boolean) => {
   }
 }
 
+// School and branch functions
+const loadSchools = async () => {
+  if (!isSuperAdmin.value) return
+  
+  try {
+    const response = await apiClient.schools.getAll()
+    if (response.success) {
+      schools.value = response.data?.schools || response.data?.items || response.data || []
+    }
+  } catch (error) {
+    console.error('Error loading schools:', error)
+    showError('Failed to load schools')
+  }
+}
+
+const loadBranches = async () => {
+  if (!isSuperAdmin.value && !isSchoolAdmin.value) return
+
+  try {
+    const response = await apiClient.branches.getAll()
+    let allBranches = []
+    
+    if (response.success) {
+      allBranches = response.data?.branches || response.data?.items || response.data || []
+      
+      // Filter branches based on user role and selected school
+      if (isSuperAdmin.value) {
+        if (form.value.school_id) {
+          branches.value = allBranches.filter(branch => branch.school_id === form.value.school_id)
+        } else {
+          branches.value = allBranches
+        }
+      } else if (isSchoolAdmin.value) {
+        // School admin sees branches from their school
+        const authStore = useAuthStore()
+        branches.value = allBranches.filter(branch => branch.school_id === authStore.user?.school_id)
+      }
+    }
+  } catch (error) {
+    console.error('Error loading branches:', error)
+    showError('Failed to load branches')
+  }
+}
+
+const onSchoolChange = async () => {
+  form.value.branch_id = '' // Reset branch when school changes
+  form.value.class_id = ''  // Reset class when school changes
+  form.value.section_id = '' // Reset section when school changes
+  
+  await loadBranches() // Reload branches for selected school
+  await loadClasses()  // Reload classes
+  
+  // Clear current students when school changes
+  students.value = []
+  attendanceRecords.value = {}
+  currentSession.value = null
+}
+
+const onBranchChange = async () => {
+  form.value.class_id = ''  // Reset class when branch changes
+  form.value.section_id = '' // Reset section when branch changes
+  
+  await loadClasses()  // Reload classes for selected branch
+  
+  // Clear current students when branch changes
+  students.value = []
+  attendanceRecords.value = {}
+  currentSession.value = null
+}
+
 const resetFilters = () => {
   form.value = {
     date: new Date().toISOString().slice(0, 10),
+    school_id: '',
+    branch_id: '',
     class_id: '',
     section_id: '',
     academic_year: ''
   }
   searchQuery.value = ''
+  
+  // Clear students and attendance data when resetting
+  students.value = []
+  attendanceRecords.value = {}
+  currentSession.value = null
+  
+  // Reset dropdowns to initial state
+  sectionOptions.value = []
+  
+  // Reload initial data to reset dropdowns properly
+  if (isSuperAdmin.value) {
+    loadSchools()
+  }
+  if (isSuperAdmin.value || isSchoolAdmin.value) {
+    loadBranches()
+  }
+  loadClasses()
 }
 
 // Load initial data
 onMounted(async () => {
-  await loadClasses()
+  await loadSchools()  // Load schools first (for super admin)
+  await loadBranches() // Load branches 
+  await loadClasses()  // Load classes
 })
 
 // Cleanup timeout on unmount

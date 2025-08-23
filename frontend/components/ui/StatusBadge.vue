@@ -61,6 +61,11 @@ const statusClasses = computed(() => {
 })
 
 const displayValue = computed(() => {
-  return props.customValue || props.status || '-'
+  const value = props.customValue || props.status || '-'
+  // Capitalize first letter for better display
+  if (typeof value === 'string' && value.length > 0) {
+    return value.charAt(0).toUpperCase() + value.slice(1)
+  }
+  return value
 })
 </script>

@@ -1,36 +1,145 @@
 <template>
   <div class="p-4 space-y-4">
-    <h2 class="text-xl font-semibold">Attendance Reports</h2>
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-      <input v-model="filters.date_from" type="date" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="From Date" title="From Date" />
-      <input v-model="filters.date_to" type="date" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="To Date" title="To Date" />
-      <EnhancedDropdown :options="classOptions" v-model="filters.class_id" placeholder="Class" />
-      <EnhancedDropdown :options="sectionOptions" v-model="filters.section_id" placeholder="Section" />
-      <input v-model="filters.academic_year" type="text" class="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Academic Year (e.g., 2024-25)" title="Academic Year" />
-      <button class="bg-blue-600 text-white px-3 py-1 rounded" @click="load">Load</button>
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-semibold">Attendance Reports</h2>
+      <div class="flex gap-2">
+        <button 
+          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2" 
+          @click="exportPDF" 
+          :disabled="!records.length || loading"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Export PDF
+        </button>
+        <button 
+          class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2" 
+          @click="exportExcel" 
+          :disabled="!records.length || loading"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Export Excel
+        </button>
+        <button 
+          class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+          @click="showNotificationModal = true"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4 19h6v-6H4v6zM4 5h6V4a1 1 0 00-1-1H5a1 1 0 00-1 1v1zM20 5V4a1 1 0 00-1-1h-1a1 1 0 00-1 1v1h3z"></path>
+          </svg>
+          Notifications
+        </button>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <button 
-        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
-        @click="exportPDF" 
-        :disabled="!records.length || loading"
-      >
-        Export PDF
-      </button>
-      <button 
-        class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" 
-        @click="exportExcel" 
-        :disabled="!records.length || loading"
-      >
-        Export Excel
-      </button>
-      <button 
-        class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-        @click="showNotificationModal = true"
-      >
-        Notifications
-      </button>
-    </div>
+    <!-- Filters -->
+    <FilterCard>
+      <template #header>
+        <div class="ml-auto">
+          <button
+            @click="resetFilters"
+            :disabled="loading"
+            class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </template>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
+          <input 
+            v-model="filters.date_from" 
+            type="date" 
+            :disabled="loading"
+            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
+          <input 
+            v-model="filters.date_to" 
+            type="date" 
+            :disabled="loading"
+            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+        </div>
+
+        <!-- School (Super Admin Only) -->
+        <div v-if="isSuperAdmin">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
+          <EnhancedDropdown 
+            :options="schoolOptions" 
+            v-model="filters.school_id" 
+            placeholder="All Schools" 
+            @update:modelValue="onSchoolChange"
+            :disabled="loading"
+          />
+        </div>
+        
+        <!-- Branch (Super Admin and School Admin) -->
+        <div v-if="isSuperAdmin || isSchoolAdmin">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+          <EnhancedDropdown 
+            :options="branchOptions" 
+            v-model="filters.branch_id" 
+            placeholder="All Branches" 
+            @update:modelValue="onBranchChange"
+            :disabled="loading"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
+          <EnhancedDropdown 
+            :options="classOptions" 
+            v-model="filters.class_id" 
+            placeholder="All Classes" 
+            @update:modelValue="onClassChange"
+            :disabled="loading"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section</label>
+          <EnhancedDropdown 
+            :options="sectionOptions" 
+            v-model="filters.section_id" 
+            placeholder="All Sections"
+            :disabled="loading || !filters.class_id"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
+          <input 
+            v-model="filters.academic_year" 
+            type="text" 
+            :disabled="loading"
+            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="2024-25"
+          />
+        </div>
+        
+        <!-- Apply Filters Button -->
+        <div class="flex items-end">
+          <button 
+            @click="load"
+            :disabled="loading"
+            class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            {{ loading ? 'Loading...' : 'Apply Filters' }}
+          </button>
+        </div>
+      </div>
+    </FilterCard>
 
     <div v-if="summary" class="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
       <div class="font-medium mb-2 text-gray-900 dark:text-white">Summary</div>
@@ -145,16 +254,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
+import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
 import { apiClient } from '~/utils/api';
 import Modal from '~/components/Modal.vue';
+import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import FilterCard from '~/components/ui/FilterCard.vue';
 
 // Removed reportTypeOptions as we now use date range filters
 
 const filters = ref<any>({ 
   date_from: new Date().toISOString().slice(0,10),
   date_to: new Date().toISOString().slice(0,10),
+  school_id: '',
+  branch_id: '',
   academic_year: '',
   class_id: '',
   section_id: ''
@@ -164,6 +279,22 @@ const records = ref<any[]>([]);
 const summary = ref<any>(null);
 const classOptions = ref<any[]>([]);
 const sectionOptions = ref<any[]>([]);
+
+// Auth composables
+const { isSuperAdmin, isSchoolAdmin } = useAuth();
+const authStore = useAuthStore();
+
+// School and branch data
+const schools = ref<any[]>([]);
+const branches = ref<any[]>([]);
+const schoolOptions = computed(() => schools.value.map(school => ({
+  value: school.id,
+  label: school.name
+})));
+const branchOptions = computed(() => branches.value.map(branch => ({
+  value: branch.id,
+  label: branch.name
+})));
 
 // Notification modal state
 const showNotificationModal = ref(false);
@@ -185,11 +316,102 @@ const columns = [
   { key: 'remarks', label: 'Remarks' },
 ];
 
+const loadSchools = async () => {
+  if (!isSuperAdmin.value) return;
+  
+  try {
+    const response = await apiClient.schools.getAll();
+    if (response.success) {
+      schools.value = response.data?.schools || response.data?.items || response.data || [];
+    }
+  } catch (error) {
+    console.error('Error loading schools:', error);
+  }
+};
+
+const loadBranches = async () => {
+  if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
+
+  try {
+    const response = await apiClient.branches.getAll();
+    let allBranches = [];
+    
+    if (response.success) {
+      allBranches = response.data?.branches || response.data?.items || response.data || [];
+      
+      // Filter branches based on user role and selected school
+      if (isSuperAdmin.value) {
+        if (filters.value.school_id) {
+          branches.value = allBranches.filter(branch => branch.school_id === filters.value.school_id);
+        } else {
+          branches.value = allBranches;
+        }
+      } else if (isSchoolAdmin.value) {
+        // School admin sees branches from their school
+        branches.value = allBranches.filter(branch => branch.school_id === authStore.user?.school_id);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading branches:', error);
+  }
+};
+
 const loadDropdowns = async () => {
   const classes = await apiClient.classes.getAll({ page: 1, limit: 100, is_active: 'true' });
   classOptions.value = (classes.data?.rows || classes.data || []).map((c: any) => ({ label: c.name, value: c.id }));
   const sections = await apiClient.sections.getAll({ page: 1, limit: 100, is_active: 'true' });
   sectionOptions.value = (sections.data?.rows || sections.data || []).map((s: any) => ({ label: s.name, value: s.id }));
+};
+
+const onSchoolChange = async () => {
+  filters.value.branch_id = ''; // Reset branch when school changes
+  filters.value.class_id = '';  // Reset class when school changes
+  filters.value.section_id = ''; // Reset section when school changes
+  
+  await loadBranches(); // Reload branches for selected school
+  await loadDropdowns(); // Reload classes
+};
+
+const onBranchChange = async () => {
+  filters.value.class_id = '';  // Reset class when branch changes
+  filters.value.section_id = ''; // Reset section when branch changes
+  
+  await loadDropdowns(); // Reload classes for selected branch
+};
+
+const onClassChange = async () => {
+  filters.value.section_id = ''; // Reset section when class changes
+  await loadDropdowns(); // Reload sections for selected class
+};
+
+const resetFilters = async () => {
+  filters.value = {
+    date_from: new Date().toISOString().slice(0, 10),
+    date_to: new Date().toISOString().slice(0, 10),
+    school_id: '',
+    branch_id: '',
+    academic_year: '',
+    class_id: '',
+    section_id: ''
+  };
+  
+  // Clear current records and summary
+  records.value = [];
+  summary.value = null;
+  
+  // Reset dropdowns
+  sectionOptions.value = [];
+  
+  // Reload initial data
+  await loadDropdowns();
+  if (isSuperAdmin.value) {
+    await loadSchools();
+  }
+  if (isSuperAdmin.value || isSchoolAdmin.value) {
+    await loadBranches();
+  }
+  
+  showToast('Filters reset successfully', 'success');
 };
 
 const { showToast } = useToast();
@@ -199,7 +421,7 @@ const load = async () => {
   try {
     // Validate date_from is provided
     if (!filters.value.date_from) {
-      showToast({ type: 'error', message: 'From Date is required to load data' });
+      showToast('From Date is required to load data', 'error');
       loading.value = false;
       return;
     }
@@ -210,6 +432,8 @@ const load = async () => {
       date_to: filters.value.date_to || filters.value.date_from // Use date_from if date_to is not provided
     };
     
+    if (filters.value.school_id) params.school_id = filters.value.school_id;
+    if (filters.value.branch_id) params.branch_id = filters.value.branch_id;
     if (filters.value.class_id) params.class_id = filters.value.class_id;
     if (filters.value.section_id) params.section_id = filters.value.section_id;
     if (filters.value.academic_year) params.academic_year = filters.value.academic_year;
@@ -225,7 +449,7 @@ const load = async () => {
   } catch (err: any) {
     console.error('Report load error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to load attendance report';
-    showToast({ type: 'error', message: msg });
+    showToast(msg, 'error');
   } finally {
     loading.value = false;
   }
@@ -241,7 +465,7 @@ const exportPDF = async () => {
     
     // Validate date_from is provided
     if (!filters.value.date_from) {
-      showToast({ type: 'error', message: 'From Date is required for PDF export' });
+      showToast('From Date is required for PDF export', 'error');
       return;
     }
     
@@ -251,6 +475,8 @@ const exportPDF = async () => {
     const dateTo = filters.value.date_to || filters.value.date_from;
     queryParams.append('date_to', dateTo);
     
+    if (filters.value.school_id) queryParams.append('school_id', filters.value.school_id);
+    if (filters.value.branch_id) queryParams.append('branch_id', filters.value.branch_id);
     if (filters.value.class_id) queryParams.append('class_id', filters.value.class_id);
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
@@ -274,10 +500,10 @@ const exportPDF = async () => {
     link.remove();
     window.URL.revokeObjectURL(url);
     
-    showToast({ type: 'success', message: 'PDF report downloaded successfully!' });
+    showToast('PDF report downloaded successfully!', 'success');
   } catch (error: any) {
     console.error('PDF export error:', error);
-    showToast({ type: 'error', message: 'Failed to export PDF report' });
+    showToast('Failed to export PDF report', 'error');
   } finally {
     loading.value = false;
   }
@@ -293,7 +519,7 @@ const exportExcel = async () => {
     
     // Validate date_from is provided
     if (!filters.value.date_from) {
-      showToast({ type: 'error', message: 'From Date is required for Excel export' });
+      showToast('From Date is required for Excel export', 'error');
       return;
     }
     
@@ -303,6 +529,8 @@ const exportExcel = async () => {
     const dateTo = filters.value.date_to || filters.value.date_from;
     queryParams.append('date_to', dateTo);
     
+    if (filters.value.school_id) queryParams.append('school_id', filters.value.school_id);
+    if (filters.value.branch_id) queryParams.append('branch_id', filters.value.branch_id);
     if (filters.value.class_id) queryParams.append('class_id', filters.value.class_id);
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
@@ -326,10 +554,10 @@ const exportExcel = async () => {
     link.remove();
     window.URL.revokeObjectURL(url);
     
-    showToast({ type: 'success', message: 'Excel report downloaded successfully!' });
+    showToast('Excel report downloaded successfully!', 'success');
   } catch (error: any) {
     console.error('Excel export error:', error);
-    showToast({ type: 'error', message: 'Failed to export Excel report' });
+    showToast('Failed to export Excel report', 'error');
   } finally {
     loading.value = false;
   }
@@ -380,7 +608,7 @@ const sendNotifications = async () => {
     
     const sessions = sessionsResponse.data || [];
     if (sessions.length === 0) {
-      showToast({ type: 'error', message: 'No published attendance sessions found for the selected date and class' });
+      showToast('No published attendance sessions found for the selected date and class', 'error');
       return;
     }
     
@@ -398,7 +626,7 @@ const sendNotifications = async () => {
         .map((record: any) => ({ student_id: record.student_id, remarks: record.remarks }));
       
       if (absentStudents.length === 0) {
-        showToast({ type: 'warning', message: 'No absent students found for the selected session' });
+        showToast('No absent students found for the selected session', 'warning');
         return;
       }
       
@@ -423,7 +651,7 @@ const sendNotifications = async () => {
         }));
       
       if (lateStudents.length === 0) {
-        showToast({ type: 'warning', message: 'No late students found for the selected session' });
+        showToast('No late students found for the selected session', 'warning');
         return;
       }
       
@@ -465,7 +693,7 @@ const sendNotifications = async () => {
       });
     }
     
-    showToast({ type: 'success', message: `Notifications sent successfully! ${response.data.emailsSent || 0} emails sent.` });
+    showToast(`Notifications sent successfully! ${response.data.emailsSent || 0} emails sent.`, 'success');
     showNotificationModal.value = false;
     notificationForm.value = {
       type: '',
@@ -476,14 +704,46 @@ const sendNotifications = async () => {
     
   } catch (error: any) {
     console.error('Error sending notifications:', error);
-    showToast({ type: 'error', message: error.response?.data?.message || 'Failed to send notifications' });
+    
+    // Parse error and show user-friendly message
+    let userMessage = 'Unable to send notifications. Please try again.';
+    
+    // Handle specific error scenarios with user-friendly messages
+    if (error.response?.status === 404) {
+      userMessage = 'No attendance records found for the selected date and class. Please ensure attendance is marked and published first.';
+    } else if (error.response?.status === 400) {
+      const errorMsg = error.response?.data?.message || '';
+      if (errorMsg.includes('students data is required') || errorMsg.includes('No absent students')) {
+        userMessage = 'No absent students found for the selected session. Please check the attendance records.';
+      } else if (errorMsg.includes('do not belong to your school')) {
+        userMessage = 'Access denied: You can only send notifications for students in your school.';
+      } else if (errorMsg.includes('Session data') || errorMsg.includes('date and class_id is required')) {
+        userMessage = 'Invalid session data. Please select a valid date and class.';
+      } else if (errorMsg.includes('No published attendance sessions found')) {
+        userMessage = 'No attendance sessions found for the selected date and class. Please ensure attendance is marked and saved first.';
+      } else {
+        userMessage = 'Invalid request. Please check your selections and try again.';
+      }
+    } else if (error.response?.status === 403) {
+      userMessage = 'You do not have permission to send notifications for this class.';
+    } else if (error.response?.status === 500) {
+      userMessage = 'Server error occurred. Please contact your administrator if this persists.';
+    } else if (error.response?.status === 401) {
+      userMessage = 'Session expired. Please log in again and try again.';
+    } else if (!error.response) {
+      userMessage = 'Network error. Please check your internet connection and try again.';
+    }
+    
+    showToast(userMessage, 'error');
   } finally {
     isNotificationLoading.value = false;
   }
 };
 
-await loadDropdowns();
-await load();
+await loadSchools();   // Load schools first (for super admin)
+await loadBranches();  // Load branches
+await loadDropdowns(); // Load classes and sections
+await load();          // Load initial data
 </script>
 
 <style scoped></style>
