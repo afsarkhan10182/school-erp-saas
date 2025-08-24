@@ -336,9 +336,31 @@ const menuGroups = computed(() => {
       id: 'reports',
       title: 'Reports & Analytics',
       items: [
-        // { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3 },
-        { id: 'fee-reports', title: 'Fee Reports', path: '/reports/fees', icon: PieChart },
-        { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
+        {
+          id: 'reports',
+          title: 'Reports',
+          icon: BarChart3,
+          children: [
+            {
+              id: 'fees',
+              title: 'Fees',
+              icon: DollarSign,
+              children: [
+                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart },
+                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt },
+              ]
+            },
+            {
+              id: 'student',
+              title: 'Student',
+              icon: Users,
+              children: [
+                { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3 },
+              ]
+            },
+            { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
+          ]
+        }
       ]
     });
   }
