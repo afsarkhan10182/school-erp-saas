@@ -13,9 +13,9 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div class="mb-4 sm:mb-0">
           <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Fee Collection Reports
+            Fee Management Reports
           </h1>
-          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Detailed fee collection reports and analytics</p>
+          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Invoice tracking, outstanding balances, and fee analytics</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
           <button
@@ -309,7 +309,7 @@
       <!-- Detailed Report Table -->
       <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="px-6 py-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Detailed Fee Collection Report</h3>
+                      <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Detailed Fee Management Report</h3>
           <div class="flex space-x-3">
             <span class="text-sm text-gray-500 dark:text-gray-400">
               {{ groupedInvoices.length > 0 ? `${invoices.length} invoices` : 'No records' }}
@@ -1016,8 +1016,8 @@ const fetchReportSummary = async () => {
 const fetchReport = async () => {
   try {
     const params = {
-      // Send a very large limit to get all invoices since we're handling pagination on frontend
-      limit: 10000, // Large limit to get all invoices
+      // Use a reasonable limit - the backend should handle pagination properly
+      limit: 1000, // Reduced from 10000 to prevent excessive data loading
       // Map frontend filters to backend API parameters
       search: filters.student_search || undefined,
       status: filters.status || undefined,
@@ -1458,7 +1458,7 @@ const printReport = () => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Fee Collection Report</title>
+      <title>Fee Management Report</title>
       <style>
         @page {
           size: A4;
@@ -1737,7 +1737,7 @@ const downloadDetailedReport = async () => {
     const currentSummary = summary.value;
     const currentDate = new Date().toLocaleDateString('en-IN');
     
-    console.log('📊 Current summary data for Excel:', currentSummary);
+
     
     // Build query string from filters (using same logic as fetchReport)
     const queryParams = new URLSearchParams();
@@ -1821,11 +1821,11 @@ const downloadDetailedReport = async () => {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
     
-    showToast('Fee collection report downloaded successfully', 'success');
+    showToast('Fee management report downloaded successfully', 'success');
     console.log('✅ Excel download completed successfully');
   } catch (error) {
     console.error('❌ Error downloading Excel report:', error);
-    showToast('Error downloading fee collection report', 'error');
+    showToast('Error downloading fee management report', 'error');
   }
 };
 

@@ -13,6 +13,9 @@ export function createApiInstance(): AxiosInstance {
     withCredentials: true, // Include cookies with requests
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
     },
   });
 
@@ -369,11 +372,13 @@ export const apiClient = {
       branch_id?: string; 
       search?: string; 
       section?: string; 
-      start_date?: string; 
-      end_date?: string; 
+      from_date?: string; 
+      to_date?: string; 
     }) => {
       const api = createApiInstance();
-      const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params });
+      // Add cache-busting parameter
+      const cacheBustParams = { ...params, _t: Date.now() };
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/summary', { params: cacheBustParams });
       return response.data;
     },
 
@@ -428,6 +433,23 @@ export const apiClient = {
     getInvoiceReceiptData: async (invoiceId: string) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>(`/fee-invoices/${invoiceId}/receipt-data`);
+      return response.data;
+    },
+
+    // Receipts Report (payments only)
+    getReceiptsReport: async (params?: {
+      from_date?: string;
+      to_date?: string;
+      payment_method?: string;
+      class_id?: string;
+      section?: string;
+      search?: string;
+      branch_id?: string;
+      page?: number;
+      limit?: number;
+    }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/fee-invoices/receipts-report', { params });
       return response.data;
     },
 
@@ -501,9 +523,11 @@ export const apiClient = {
     },
 
     // Report and export methods
-    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; class_id?: string; section_id?: string; fee_type_id?: string; payment_status?: string; date_from?: string; date_to?: string }) => {
+    getReport: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; class_id?: string; section_id?: string; fee_type_id?: string; payment_status?: string; from_date?: string; to_date?: string }) => {
       const api = createApiInstance();
-      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/report', { params });
+      // Add cache-busting parameter
+      const cacheBustParams = { ...params, _t: Date.now() };
+      const response = await api.get<PaginatedResponse<any>>('/fee-invoices/report', { params: cacheBustParams });
       return response.data;
     },
 

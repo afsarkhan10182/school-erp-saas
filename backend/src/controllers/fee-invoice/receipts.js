@@ -4,6 +4,7 @@ const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('../../services/receipt.service');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
+const { createDateRange } = require('../../utils/dateUtils');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {
@@ -244,16 +245,18 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
 // Get grouped receipts by date range
 const getGroupedReceipts = async (req, res, next) => {
   try {
-    const { start_date, end_date, student_id, class_name, section } = req.query;
+    const { from_date, to_date, student_id, class_name, section } = req.query;
 
-    if (!start_date || !end_date) {
-      throw new ApiError(400, 'Start date and end date are required');
+    if (!from_date || !to_date) {
+      throw new ApiError(400, 'From date and to date are required');
     }
 
+    const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
+    
     const whereClause = {
       school_id: req.schoolId,
       payment_date: {
-        [Op.between]: [new Date(start_date), new Date(end_date)],
+        [Op.between]: [fromDateTime, toDateTime],
       },
     };
 
@@ -353,8 +356,8 @@ const getGroupedReceipts = async (req, res, next) => {
           total_amount: totalAmount,
           total_payments: totalPayments,
           date_range: {
-            start_date,
-            end_date,
+            from_date,
+            to_date,
           },
         },
         grouped_payments: groupedArray,
@@ -941,6 +944,278 @@ const getInvoiceReceiptData = async (req, res, next) => {
   }
 };
 
+// Simple receipts report for dedicated receipts page
+const getReceiptsReport = async (req, res, next) => {
+  try {
+    const { 
+      from_date, 
+      to_date, 
+      payment_method, 
+      class_id, 
+      section, 
+      search,
+      branch_id,
+      page = 1, 
+      limit = 20 
+    } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const whereClause = {
+      school_id: req.schoolId,
+    };
+
+    // Add branch filter for branch admins
+    if (req.user.role === 'branch_admin') {
+      whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    }
+
+    // Date filter
+    if (from_date && to_date) {
+      const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
+      whereClause.payment_date = {
+        [Op.between]: [fromDateTime, toDateTime],
+      };
+    }
+
+    // Payment method filter
+    if (payment_method) {
+      whereClause.payment_method = payment_method;
+    }
+
+    // Branch filter
+    if (branch_id) {
+      whereClause['$invoice.student.branch_id$'] = branch_id;
+    }
+
+    const includeClause = [
+      {
+        model: FeeInvoice,
+        as: 'invoice',
+        include: [
+          {
+            model: Student,
+            as: 'student',
+            where: {},
+            include: [
+              {
+                model: Branch,
+                as: 'branch',
+                attributes: ['id', 'name', 'code'],
+              },
+            ],
+          },
+          {
+            model: FeeStructure,
+            as: 'feeStructure',
+            include: [
+              {
+                model: FeeType,
+                as: 'feeType',
+                attributes: ['id', 'name'],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    // Add student filters
+    if (class_id) {
+      if (!includeClause[0].include[0].where) includeClause[0].include[0].where = {};
+      includeClause[0].include[0].where.class_id = class_id;
+      if (!includeClause[0].where) includeClause[0].where = {};
+      includeClause[0].where.student_id = { [Op.not]: null };
+    }
+    if (section) {
+      if (!includeClause[0].include[0].where) includeClause[0].include[0].where = {};
+      includeClause[0].include[0].where.section = section;
+    }
+    
+    // Add search filter
+    if (search) {
+      if (!includeClause[0].include[0].where) {
+        includeClause[0].include[0].where = {};
+      }
+      includeClause[0].include[0].where[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { admission_number: { [Op.iLike]: `%${search}%` } },
+        { roll_number: { [Op.iLike]: `%${search}%` } },
+      ];
+      if (!includeClause[0].where) {
+        includeClause[0].where = {};
+      }
+      includeClause[0].where.student_id = { [Op.not]: null };
+    }
+
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      if (!includeClause[0].include[0].where) includeClause[0].include[0].where = {};
+      includeClause[0].include[0].where.branch_id = req.user.branch_id;
+    }
+
+    // Ensure we only get payments with valid student data
+    if (!includeClause[0].include[0].where) includeClause[0].include[0].where = {};
+    includeClause[0].include[0].where.id = { [Op.not]: null };
+    if (!includeClause[0].where) includeClause[0].where = {};
+    includeClause[0].where.student_id = { [Op.not]: null };
+
+    // Get all payments
+    const allPayments = await FeePayment.findAll({
+      where: whereClause,
+      include: includeClause,
+      order: [['payment_date', 'DESC']],
+    });
+
+    // Group by receipt_group_id if exists, otherwise show individual
+    const groupedReceipts = {};
+    const individualReceipts = [];
+
+    allPayments.forEach(payment => {
+      const receiptGroupId = payment.invoice?.receipt_group_id;
+      
+      if (receiptGroupId) {
+        if (!groupedReceipts[receiptGroupId]) {
+          groupedReceipts[receiptGroupId] = {
+            receipt_group_id: receiptGroupId,
+            payments: [],
+            total_amount: 0,
+            payment_date: payment.payment_date,
+            payment_method: payment.payment_method,
+            student: payment.invoice?.student,
+            branch: payment.invoice?.student?.branch,
+            fee_types: new Set(),
+            month_count: 0,
+            months: []
+          };
+        }
+        
+        groupedReceipts[receiptGroupId].payments.push(payment);
+        groupedReceipts[receiptGroupId].total_amount += parseFloat(payment.payment_amount || 0);
+        groupedReceipts[receiptGroupId].fee_types.add(payment.invoice?.feeStructure?.feeType?.name || 'N/A');
+        groupedReceipts[receiptGroupId].month_count += 1;
+        
+        // Add month information if available
+        if (payment.invoice?.month && payment.invoice?.year) {
+          groupedReceipts[receiptGroupId].months.push({
+            month: payment.invoice.month,
+            year: payment.invoice.year
+          });
+        }
+      } else {
+        individualReceipts.push(payment);
+      }
+    });
+
+    // Convert grouped receipts to simple format
+    const groupedReceiptsArray = Object.values(groupedReceipts).map(group => ({
+      id: group.receipt_group_id,
+      receipt_number: group.receipt_group_id,
+      payment_date: group.payment_date,
+      payment_amount: group.total_amount,
+      payment_method: group.payment_method,
+      student: {
+        id: group.student?.id,
+        name: group.student?.first_name && group.student?.last_name 
+          ? `${group.student?.first_name} ${group.student?.last_name}`.trim()
+          : group.student?.first_name || group.student?.last_name || null,
+        admission_number: group.student?.admission_number,
+        roll_number: group.student?.roll_number,
+        current_class: group.student?.current_class,
+        section: group.student?.section,
+      },
+      fee_type: Array.from(group.fee_types).join(', '),
+      branch: group.branch?.name,
+      month_count: group.month_count,
+      months: group.months
+    }));
+
+    // Format individual receipts
+    const individualReceiptsArray = individualReceipts.map(payment => ({
+      id: payment.id,
+      receipt_number: payment.receipt_number || `RCP-${payment.id}`,
+      payment_date: payment.payment_date,
+      payment_amount: parseFloat(payment.payment_amount),
+      payment_method: payment.payment_method,
+      student: {
+        id: payment.invoice?.student?.id,
+        name: payment.invoice?.student?.first_name && payment.invoice?.student?.last_name 
+          ? `${payment.invoice?.student?.first_name} ${payment.invoice?.student?.last_name}`.trim()
+          : payment.invoice?.student?.first_name || payment.invoice?.student?.last_name || null,
+        admission_number: payment.invoice?.student?.admission_number,
+        roll_number: payment.invoice?.student?.roll_number,
+        current_class: payment.invoice?.student?.current_class,
+        section: payment.invoice?.student?.section,
+      },
+      fee_type: payment.invoice?.feeStructure?.feeType?.name || 'N/A',
+      branch: payment.invoice?.student?.branch?.name,
+      month_count: 1
+    }));
+
+    // Combine and sort all receipts
+    const allReceipts = [...groupedReceiptsArray, ...individualReceiptsArray]
+      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+
+    // Filter out receipts with incomplete student data
+    let finalReceipts = allReceipts;
+    if (class_id || search) {
+      finalReceipts = allReceipts.filter(receipt => 
+        receipt.student && 
+        receipt.student.id && 
+        receipt.student.name && 
+        receipt.student.name.trim() !== '' &&
+        receipt.student.name !== 'Student data unavailable'
+      );
+    }
+
+    // Apply pagination
+    const totalRecords = finalReceipts.length;
+    const totalPages = Math.ceil(totalRecords / parseInt(limit));
+    const paginatedReceipts = finalReceipts.slice(offset, offset + parseInt(limit));
+
+    // Calculate summary data
+    const totalCollected = finalReceipts.reduce((sum, receipt) => sum + receipt.payment_amount, 0);
+    const totalReceipts = finalReceipts.length;
+
+    // Payment method breakdown
+    const paymentMethodBreakdown = {};
+    finalReceipts.forEach(receipt => {
+      const method = receipt.payment_method || 'cash';
+      if (!paymentMethodBreakdown[method]) {
+        paymentMethodBreakdown[method] = { amount: 0, count: 0 };
+      }
+      paymentMethodBreakdown[method].amount += receipt.payment_amount;
+      paymentMethodBreakdown[method].count += 1;
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        payments: paginatedReceipts,
+        summary: {
+          total_collected: totalCollected,
+          total_receipts: totalReceipts,
+          payment_methods: Object.entries(paymentMethodBreakdown).map(([method, data]) => ({
+            payment_method: method,
+            amount: data.amount,
+            count: data.count
+          })),
+        },
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_records: totalRecords,
+          per_page: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching receipts report:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   getReceiptForInvoice,
   getEnhancedPaymentReceipts,
@@ -951,4 +1226,6 @@ module.exports = {
   getReceiptData,
   getCombinedReceiptData,
   getInvoiceReceiptData,
+  // Receipts report
+  getReceiptsReport,
 }; 

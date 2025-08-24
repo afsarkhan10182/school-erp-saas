@@ -3,6 +3,7 @@ const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
+const { createDateRange } = require('../../utils/dateUtils');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {
@@ -23,7 +24,7 @@ const getStudentFullName = (student) => {
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
-    const { academic_year, class_name, start_date, end_date, status, branch_id, search, section } = req.query;
+    const { academic_year, class_name, from_date, to_date, status, branch_id, search, section } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -40,9 +41,10 @@ const getFeeCollectionSummary = async (req, res, next) => {
 
     if (academic_year) whereClause.academic_year = academic_year;
     if (status) whereClause.status = status;
-    if (start_date && end_date) {
+    if (from_date && to_date) {
+      const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       whereClause.created_at = {
-        [Op.between]: [new Date(start_date), new Date(end_date)],
+        [Op.between]: [fromDateTime, toDateTime],
       };
     }
 
@@ -208,16 +210,18 @@ const getFeeInvoiceReport = async (req, res, next) => {
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
+      const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
+      
       // Filter by both invoice_date and due_date to capture all relevant invoices
       whereClause[Op.or] = [
         {
           invoice_date: {
-            [Op.between]: [new Date(from_date), new Date(to_date)],
+            [Op.between]: [fromDateTime, toDateTime],
           }
         },
         {
           due_date: {
-            [Op.between]: [new Date(from_date), new Date(to_date)],
+            [Op.between]: [fromDateTime, toDateTime],
           }
         }
       ];
@@ -305,7 +309,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
 // GET endpoint to export fee invoices report
 const exportFeeInvoicesReport = async (req, res, next) => {
   try {
-    const { format = 'excel', search, status, class_name, section, from_date, to_date, branch_id } = req.query;
+    const { format = 'excel', search, status, class_name, section, from_date, to_date, branch_id, report_type } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -322,16 +326,18 @@ const exportFeeInvoicesReport = async (req, res, next) => {
 
     if (status) whereClause.status = status;
     if (from_date && to_date) {
+      const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
+      
       // Filter by both invoice_date and due_date to capture all relevant invoices
       whereClause[Op.or] = [
         {
           invoice_date: {
-            [Op.between]: [new Date(from_date), new Date(to_date)],
+            [Op.between]: [fromDateTime, toDateTime],
           }
         },
         {
           due_date: {
-            [Op.between]: [new Date(from_date), new Date(to_date)],
+            [Op.between]: [fromDateTime, toDateTime],
           }
         }
       ];
@@ -379,30 +385,144 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       includeClause[0].where.branch_id = req.user.branch_id;
     }
 
-    const invoices = await FeeInvoice.findAll({
-      where: whereClause,
-      include: includeClause,
-      order: [['created_at', 'DESC']],
-    });
+    // Handle different report types
+    let exportData = [];
+    
+    if (report_type === 'receipts') {
+      // Export receipts report - use same logic as getReceiptsReport
+      const allPayments = await FeePayment.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: FeeInvoice,
+            as: 'invoice',
+            include: [
+              {
+                model: Student,
+                as: 'student',
+                where: includeClause[0].where,
+                include: [
+                  {
+                    model: Branch,
+                    as: 'branch',
+                    attributes: ['id', 'name', 'code'],
+                  },
+                ],
+              },
+              {
+                model: FeeStructure,
+                as: 'feeStructure',
+                include: [
+                  {
+                    model: FeeType,
+                    as: 'feeType',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        order: [['payment_date', 'DESC']],
+      });
 
-    // Convert to export format with enhanced data
-    const exportData = invoices.map(invoice => ({
-      'Invoice Number': invoice.invoice_number || invoice.id,
-      'Student Name': invoice.student ? getStudentFullName(invoice.student) : 'N/A',
-      'Admission Number': invoice.student?.admission_number || 'N/A',
-      'Roll Number': invoice.student?.roll_number || 'N/A',
-      'Class': invoice.student?.current_class || 'N/A',
-      'Section': invoice.student?.section || 'N/A',
-      'Fee Type': invoice.feeStructure?.feeType?.name || 'N/A',
-      'Total Amount': parseFloat(invoice.total_amount || 0).toFixed(2),
-      'Paid Amount': parseFloat(invoice.paid_amount || 0).toFixed(2),
-      'Balance Amount': parseFloat(invoice.balance_amount || 0).toFixed(2),
-      'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-IN') : 'N/A',
-      'Status': invoice.status || 'N/A',
-      'Payment Method': invoice.payment_method || 'N/A',
-      'Created Date': invoice.created_at ? new Date(invoice.created_at).toLocaleDateString('en-IN') : 'N/A',
-      'Last Updated': invoice.updated_at ? new Date(invoice.updated_at).toLocaleDateString('en-IN') : 'N/A',
-    }));
+      // Group by receipt_group_id if exists, otherwise show individual (same logic as getReceiptsReport)
+      const groupedReceipts = {};
+      const individualReceipts = [];
+
+      allPayments.forEach(payment => {
+        const receiptGroupId = payment.invoice?.receipt_group_id;
+        
+        if (receiptGroupId) {
+          if (!groupedReceipts[receiptGroupId]) {
+            groupedReceipts[receiptGroupId] = {
+              receipt_group_id: receiptGroupId,
+              payments: [],
+              total_amount: 0,
+              payment_date: payment.payment_date,
+              payment_method: payment.payment_method,
+              student: payment.invoice?.student,
+              branch: payment.invoice?.student?.branch,
+              fee_types: new Set(),
+              month_count: 0,
+              months: []
+            };
+          }
+          
+          groupedReceipts[receiptGroupId].payments.push(payment);
+          groupedReceipts[receiptGroupId].total_amount += parseFloat(payment.payment_amount || 0);
+          groupedReceipts[receiptGroupId].fee_types.add(payment.invoice?.feeStructure?.feeType?.name || 'N/A');
+          groupedReceipts[receiptGroupId].month_count += 1;
+        } else {
+          individualReceipts.push(payment);
+        }
+      });
+
+      // Convert grouped receipts to export format
+      const groupedReceiptsArray = Object.values(groupedReceipts).map(group => ({
+        'Receipt Number': group.receipt_group_id,
+        'Payment Date': group.payment_date ? new Date(group.payment_date).toLocaleDateString('en-IN') : 'N/A',
+        'Student Name': group.student ? getStudentFullName(group.student) : 'N/A',
+        'Admission Number': group.student?.admission_number || 'N/A',
+        'Roll Number': group.student?.roll_number || 'N/A',
+        'Branch': group.branch?.name || 'N/A',
+        'Class': group.student?.current_class || 'N/A',
+        'Section': group.student?.section || 'N/A',
+        'Fee Type': Array.from(group.fee_types).join(', '),
+        'Payment Amount': group.total_amount.toFixed(2),
+        'Payment Method': group.payment_method || 'N/A',
+        'Transaction ID': group.payments[0]?.transaction_id || 'N/A',
+        'Created Date': group.payments[0]?.created_at ? new Date(group.payments[0].created_at).toLocaleDateString('en-IN') : 'N/A',
+        'Month Count': group.month_count > 1 ? `${group.month_count} months` : '1 month'
+      }));
+
+      // Convert individual receipts to export format
+      const individualReceiptsArray = individualReceipts.map(payment => ({
+        'Receipt Number': payment.receipt_number || payment.id,
+        'Payment Date': payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-IN') : 'N/A',
+        'Student Name': payment.invoice?.student ? getStudentFullName(payment.invoice.student) : 'N/A',
+        'Admission Number': payment.invoice?.student?.admission_number || 'N/A',
+        'Roll Number': payment.invoice?.student?.roll_number || 'N/A',
+        'Branch': payment.invoice?.student?.branch?.name || 'N/A',
+        'Class': payment.invoice?.student?.current_class || 'N/A',
+        'Section': payment.invoice?.student?.section || 'N/A',
+        'Fee Type': payment.invoice?.feeStructure?.feeType?.name || 'N/A',
+        'Payment Amount': parseFloat(payment.payment_amount || 0).toFixed(2),
+        'Payment Method': payment.payment_method || 'N/A',
+        'Transaction ID': payment.transaction_id || 'N/A',
+        'Created Date': payment.created_at ? new Date(payment.created_at).toLocaleDateString('en-IN') : 'N/A',
+        'Month Count': '1 month'
+      }));
+
+      // Combine and sort all receipts (same as getReceiptsReport)
+      exportData = [...groupedReceiptsArray, ...individualReceiptsArray]
+        .sort((a, b) => new Date(b['Payment Date']) - new Date(a['Payment Date']));
+    } else {
+      // Export invoices report (default)
+      const invoices = await FeeInvoice.findAll({
+        where: whereClause,
+        include: includeClause,
+        order: [['created_at', 'DESC']],
+      });
+
+      // Convert to export format with enhanced data
+      exportData = invoices.map(invoice => ({
+        'Invoice Number': invoice.invoice_number || invoice.id,
+        'Student Name': invoice.student ? getStudentFullName(invoice.student) : 'N/A',
+        'Admission Number': invoice.student?.admission_number || 'N/A',
+        'Roll Number': invoice.student?.roll_number || 'N/A',
+        'Class': invoice.student?.current_class || 'N/A',
+        'Section': invoice.student?.section || 'N/A',
+        'Fee Type': invoice.feeStructure?.feeType?.name || 'N/A',
+        'Total Amount': parseFloat(invoice.total_amount || 0).toFixed(2),
+        'Paid Amount': parseFloat(invoice.paid_amount || 0).toFixed(2),
+        'Balance Amount': parseFloat(invoice.balance_amount || 0).toFixed(2),
+        'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-IN') : 'N/A',
+        'Status': invoice.status || 'N/A',
+        'Payment Method': invoice.payment_method || 'N/A',
+        'Created Date': invoice.created_at ? new Date(invoice.created_at).toLocaleDateString('en-IN') : 'N/A',
+        'Last Updated': invoice.updated_at ? new Date(invoice.updated_at).toLocaleDateString('en-IN') : 'N/A',
+      }));
+    }
 
     // Debug logging
     logger.info(`Export data prepared: ${exportData.length} records`);
@@ -425,55 +545,79 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         
         logger.info('XLSX library loaded successfully');
         
-        // Calculate summary totals (same as CSV)
-        const summaryTotals = {
-          totalInvoices: exportData.length,
-          totalAmount: 0,
-          totalCollected: 0,
-          totalPending: 0,
-          paidInvoices: 0,
-          unpaidInvoices: 0,
-          partialInvoices: 0,
-          overdueInvoices: 0
-        };
+        // Calculate summary totals based on report type (same logic as CSV)
+        let summaryTotals = {};
+        let collectionRate = '0.00';
         
-        exportData.forEach(row => {
-          const totalAmount = parseFloat(row['Total Amount'] || 0);
-          const paidAmount = parseFloat(row['Paid Amount'] || 0);
-          const balanceAmount = parseFloat(row['Balance Amount'] || 0);
-          const status = row['Status'] || '';
+        if (report_type === 'receipts') {
+          // Receipts summary calculation
+          summaryTotals = {
+            totalReceipts: exportData.length,
+            totalCollected: 0,
+            totalAmount: 0
+          };
           
-          summaryTotals.totalAmount += totalAmount;
-          summaryTotals.totalCollected += paidAmount;
-          summaryTotals.totalPending += balanceAmount;
+          exportData.forEach(row => {
+            const paymentAmount = parseFloat(row['Payment Amount'] || 0);
+            summaryTotals.totalCollected += paymentAmount;
+            summaryTotals.totalAmount += paymentAmount; // For receipts, amount = collected
+          });
           
-          switch (status.toLowerCase()) {
-            case 'paid':
-              summaryTotals.paidInvoices++;
-              break;
-            case 'unpaid':
-              summaryTotals.unpaidInvoices++;
-              break;
-            case 'partial_paid':
-              summaryTotals.partialInvoices++;
-              break;
-            case 'overdue':
-              summaryTotals.overdueInvoices++;
-              break;
-          }
-        });
-        
-        const collectionRate = summaryTotals.totalAmount > 0 
-          ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
-          : '0.00';
+          collectionRate = summaryTotals.totalAmount > 0 
+            ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+            : '0.00';
+        } else {
+          // Invoices summary calculation
+          summaryTotals = {
+            totalInvoices: exportData.length,
+            totalAmount: 0,
+            totalCollected: 0,
+            totalPending: 0,
+            paidInvoices: 0,
+            unpaidInvoices: 0,
+            partialInvoices: 0,
+            overdueInvoices: 0
+          };
+          
+          exportData.forEach(row => {
+            const totalAmount = parseFloat(row['Total Amount'] || 0);
+            const paidAmount = parseFloat(row['Paid Amount'] || 0);
+            const balanceAmount = parseFloat(row['Balance Amount'] || 0);
+            const status = row['Status'] || '';
+            
+            summaryTotals.totalAmount += totalAmount;
+            summaryTotals.totalCollected += paidAmount;
+            summaryTotals.totalPending += balanceAmount;
+            
+            switch (status.toLowerCase()) {
+              case 'paid':
+                summaryTotals.paidInvoices++;
+                break;
+              case 'unpaid':
+                summaryTotals.unpaidInvoices++;
+                break;
+              case 'partial_paid':
+                summaryTotals.partialInvoices++;
+                break;
+              case 'overdue':
+                summaryTotals.overdueInvoices++;
+                break;
+            }
+          });
+          
+          collectionRate = summaryTotals.totalAmount > 0 
+            ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+            : '0.00';
+        }
         
         // Generate Excel file
         const workbook = XLSX.utils.book_new();
         logger.info('Workbook created successfully');
         
         // Create Summary worksheet
+        const reportTitle = report_type === 'receipts' ? 'Receipts Report Summary' : 'Fee Collection Report Summary';
         const summaryData = [
-          ['Fee Collection Report Summary'],
+          [reportTitle],
           [''],
           ['Report Information'],
           ['Generated on', new Date().toLocaleDateString('en-IN') + ' at ' + new Date().toLocaleTimeString('en-IN')],
@@ -499,18 +643,26 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         
         summaryData.push(['']);
         summaryData.push(['Summary Totals']);
-        summaryData.push(['Total Invoices', summaryTotals.totalInvoices]);
-        summaryData.push(['Total Amount', `₹${summaryTotals.totalAmount.toFixed(2)}`]);
-        summaryData.push(['Total Collected', `₹${summaryTotals.totalCollected.toFixed(2)}`]);
-        summaryData.push(['Total Pending', `₹${summaryTotals.totalPending.toFixed(2)}`]);
-        summaryData.push(['Collection Rate', `${collectionRate}%`]);
         
-        summaryData.push(['']);
-        summaryData.push(['Status Breakdown']);
-        summaryData.push(['Paid Invoices', summaryTotals.paidInvoices]);
-        summaryData.push(['Unpaid Invoices', summaryTotals.unpaidInvoices]);
-        summaryData.push(['Partial Paid Invoices', summaryTotals.partialInvoices]);
-        summaryData.push(['Overdue Invoices', summaryTotals.overdueInvoices]);
+        if (report_type === 'receipts') {
+          summaryData.push(['Total Receipts', summaryTotals.totalReceipts]);
+          summaryData.push(['Total Amount', `₹${summaryTotals.totalAmount.toFixed(2)}`]);
+          summaryData.push(['Total Collected', `₹${summaryTotals.totalCollected.toFixed(2)}`]);
+          summaryData.push(['Collection Rate', `${collectionRate}%`]);
+        } else {
+          summaryData.push(['Total Invoices', summaryTotals.totalInvoices]);
+          summaryData.push(['Total Amount', `₹${summaryTotals.totalAmount.toFixed(2)}`]);
+          summaryData.push(['Total Collected', `₹${summaryTotals.totalCollected.toFixed(2)}`]);
+          summaryData.push(['Total Pending', `₹${summaryTotals.totalPending.toFixed(2)}`]);
+          summaryData.push(['Collection Rate', `${collectionRate}%`]);
+          
+          summaryData.push(['']);
+          summaryData.push(['Status Breakdown']);
+          summaryData.push(['Paid Invoices', summaryTotals.paidInvoices]);
+          summaryData.push(['Unpaid Invoices', summaryTotals.unpaidInvoices]);
+          summaryData.push(['Partial Paid Invoices', summaryTotals.partialInvoices]);
+          summaryData.push(['Overdue Invoices', summaryTotals.overdueInvoices]);
+        }
         
         summaryData.push(['']);
         summaryData.push(['Applied Filters']);
@@ -616,7 +768,8 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         
         // Set headers for better compatibility
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="fee-collection-report-${new Date().toISOString().split('T')[0]}.xlsx"`);
+        const excelFilename = report_type === 'receipts' ? 'receipts-report' : 'fee-collection-report';
+      res.setHeader('Content-Disposition', `attachment; filename="${excelFilename}-${new Date().toISOString().split('T')[0]}.xlsx"`);
         res.setHeader('Content-Length', excelBuffer.length);
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Pragma', 'no-cache');
@@ -687,53 +840,77 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         return;
       }
       
-      // Calculate summary totals
-      const summaryTotals = {
-        totalInvoices: exportData.length,
-        totalAmount: 0,
-        totalCollected: 0,
-        totalPending: 0,
-        paidInvoices: 0,
-        unpaidInvoices: 0,
-        partialInvoices: 0,
-        overdueInvoices: 0
-      };
+      // Calculate summary totals based on report type
+      let summaryTotals = {};
+      let collectionRate = '0.00';
       
-      exportData.forEach(row => {
-        const totalAmount = parseFloat(row['Total Amount'] || 0);
-        const paidAmount = parseFloat(row['Paid Amount'] || 0);
-        const balanceAmount = parseFloat(row['Balance Amount'] || 0);
-        const status = row['Status'] || '';
+      if (report_type === 'receipts') {
+        // Receipts summary calculation
+        summaryTotals = {
+          totalReceipts: exportData.length,
+          totalCollected: 0,
+          totalAmount: 0
+        };
         
-        summaryTotals.totalAmount += totalAmount;
-        summaryTotals.totalCollected += paidAmount;
-        summaryTotals.totalPending += balanceAmount;
+        exportData.forEach(row => {
+          const paymentAmount = parseFloat(row['Payment Amount'] || 0);
+          summaryTotals.totalCollected += paymentAmount;
+          summaryTotals.totalAmount += paymentAmount; // For receipts, amount = collected
+        });
         
-        switch (status.toLowerCase()) {
-          case 'paid':
-            summaryTotals.paidInvoices++;
-            break;
-          case 'unpaid':
-            summaryTotals.unpaidInvoices++;
-            break;
-          case 'partial_paid':
-            summaryTotals.partialInvoices++;
-            break;
-          case 'overdue':
-            summaryTotals.overdueInvoices++;
-            break;
-        }
-      });
-      
-      const collectionRate = summaryTotals.totalAmount > 0 
-        ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
-        : '0.00';
+        collectionRate = summaryTotals.totalAmount > 0 
+          ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+          : '0.00';
+      } else {
+        // Invoices summary calculation
+        summaryTotals = {
+          totalInvoices: exportData.length,
+          totalAmount: 0,
+          totalCollected: 0,
+          totalPending: 0,
+          paidInvoices: 0,
+          unpaidInvoices: 0,
+          partialInvoices: 0,
+          overdueInvoices: 0
+        };
+        
+        exportData.forEach(row => {
+          const totalAmount = parseFloat(row['Total Amount'] || 0);
+          const paidAmount = parseFloat(row['Paid Amount'] || 0);
+          const balanceAmount = parseFloat(row['Balance Amount'] || 0);
+          const status = row['Status'] || '';
+          
+          summaryTotals.totalAmount += totalAmount;
+          summaryTotals.totalCollected += paidAmount;
+          summaryTotals.totalPending += balanceAmount;
+          
+          switch (status.toLowerCase()) {
+            case 'paid':
+              summaryTotals.paidInvoices++;
+              break;
+            case 'unpaid':
+              summaryTotals.unpaidInvoices++;
+              break;
+            case 'partial_paid':
+              summaryTotals.partialInvoices++;
+              break;
+            case 'overdue':
+              summaryTotals.overdueInvoices++;
+              break;
+          }
+        });
+        
+        collectionRate = summaryTotals.totalAmount > 0 
+          ? ((summaryTotals.totalCollected / summaryTotals.totalAmount) * 100).toFixed(2)
+          : '0.00';
+      }
       
       // Generate CSV with summary information
       const csvLines = [];
       
       // Add report header
-      csvLines.push('Fee Collection Report');
+      const reportTitle = report_type === 'receipts' ? 'Receipts Report' : 'Fee Collection Report';
+      csvLines.push(reportTitle);
       csvLines.push(`Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}`);
       
       // Add school information
@@ -756,19 +933,26 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       
       // Add summary section
       csvLines.push('SUMMARY TOTALS');
-      csvLines.push(`Total Invoices,${summaryTotals.totalInvoices}`);
-      csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
-      csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
-      csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
-      csvLines.push(`Collection Rate,${collectionRate}%`);
-      csvLines.push(''); // Empty line
       
-      // Add status breakdown
-      csvLines.push('STATUS BREAKDOWN');
-      csvLines.push(`Paid Invoices,${summaryTotals.paidInvoices}`);
-      csvLines.push(`Unpaid Invoices,${summaryTotals.unpaidInvoices}`);
-      csvLines.push(`Partial Paid Invoices,${summaryTotals.partialInvoices}`);
-      csvLines.push(`Overdue Invoices,${summaryTotals.overdueInvoices}`);
+      if (report_type === 'receipts') {
+        csvLines.push(`Total Receipts,${summaryTotals.totalReceipts}`);
+        csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+        csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+        csvLines.push(`Collection Rate,${collectionRate}%`);
+      } else {
+        csvLines.push(`Total Invoices,${summaryTotals.totalInvoices}`);
+        csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+        csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+        csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
+        csvLines.push(`Collection Rate,${collectionRate}%`);
+        
+        csvLines.push(''); // Empty line
+        csvLines.push('STATUS BREAKDOWN');
+        csvLines.push(`Paid Invoices,${summaryTotals.paidInvoices}`);
+        csvLines.push(`Unpaid Invoices,${summaryTotals.unpaidInvoices}`);
+        csvLines.push(`Partial Paid Invoices,${summaryTotals.partialInvoices}`);
+        csvLines.push(`Overdue Invoices,${summaryTotals.overdueInvoices}`);
+      }
       csvLines.push(''); // Empty line
       
       // Add filter information
@@ -791,7 +975,8 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       
       // Add detailed data headers
       const csvHeaders = Object.keys(exportData[0] || {});
-      csvLines.push('DETAILED INVOICE DATA');
+      const dataTitle = report_type === 'receipts' ? 'DETAILED RECEIPT DATA' : 'DETAILED INVOICE DATA';
+      csvLines.push(dataTitle);
       csvLines.push(csvHeaders.join(','));
       
       // Add detailed data rows
@@ -812,10 +997,16 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       
       // Add totals row
       csvLines.push('TOTALS');
-      csvLines.push(`Total Records,${summaryTotals.totalInvoices}`);
-      csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
-      csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
-      csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
+      if (report_type === 'receipts') {
+        csvLines.push(`Total Records,${summaryTotals.totalReceipts}`);
+        csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+        csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+      } else {
+        csvLines.push(`Total Records,${summaryTotals.totalInvoices}`);
+        csvLines.push(`Total Amount,₹${summaryTotals.totalAmount.toFixed(2)}`);
+        csvLines.push(`Total Collected,₹${summaryTotals.totalCollected.toFixed(2)}`);
+        csvLines.push(`Total Pending,₹${summaryTotals.totalPending.toFixed(2)}`);
+      }
       
       const csvContent = csvLines.join('\n');
       logger.info(`CSV content length: ${csvContent.length} characters`);
@@ -829,7 +1020,8 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       logger.info(`CSV with BOM length: ${csvWithBOM.length} characters`);
       
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="fee-collection-report-${new Date().toISOString().split('T')[0]}.csv"`);
+      const filename = report_type === 'receipts' ? 'receipts-report' : 'fee-collection-report';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}-${new Date().toISOString().split('T')[0]}.csv"`);
       res.setHeader('Content-Length', Buffer.byteLength(csvWithBOM, 'utf8'));
       
       logger.info('Sending CSV file to client...');
