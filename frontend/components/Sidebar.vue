@@ -369,7 +369,8 @@ const menuGroups = computed(() => {
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
-            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users }
+            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
+            { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList },
           ]
         }
       ]
@@ -423,7 +424,15 @@ const menuGroups = computed(() => {
               children: [
                 { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3 },
               ]
-            }
+            },
+            {
+              id: 'attendance',
+              title: 'Attendance',
+              icon: ClipboardList,
+              children: [
+                { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
+              ]
+            },
           ]
         }
       ]

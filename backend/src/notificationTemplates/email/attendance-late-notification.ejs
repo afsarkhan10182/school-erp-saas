@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Late Arrival Notice</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ffc107, #ff8f00);
+            color: #212529;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #ffc107;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #495057;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #212529;
+            font-size: 14px;
+        }
+        .reminder-section {
+            background-color: #e8f5e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            border-left: 5px solid #28a745;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+        }
+        .contact-info {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        @media (max-width: 600px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                margin: 10px;
+            }
+            .header, .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏰ Late Arrival Notice</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.8;">Punctuality Reminder</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear <strong><%= parentName %></strong>,</p>
+            
+            <div class="warning-box">
+                <h3 style="margin: 0 0 10px 0; color: #856404;">
+                    <strong><%= studentName %></strong> arrived <strong>LATE</strong> to school today
+                </h3>
+                <p style="margin: 0; font-size: 14px;">
+                    We wanted to inform you about this late arrival and remind you about the importance of punctuality.
+                </p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Student Name</span>
+                    <span class="info-value"><%= studentName %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Student ID</span>
+                    <span class="info-value"><%= studentId %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Class</span>
+                    <span class="info-value"><%= className %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Section</span>
+                    <span class="info-value"><%= sectionName %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Date</span>
+                    <span class="info-value"><%= new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Arrival Time</span>
+                    <span class="info-value"><%= arrivalTime %></span>
+                </div>
+            </div>
+
+            <% if (remarks) { %>
+            <div style="margin: 20px 0; padding: 15px; background-color: #d1ecf1; border-radius: 8px; border-left: 5px solid #17a2b8;">
+                <strong>Additional Notes:</strong><br>
+                <%= remarks %>
+            </div>
+            <% } %>
+
+            <div class="reminder-section">
+                <h4 style="margin: 0 0 15px 0; color: #155724;">🎯 Importance of Punctuality:</h4>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Helps students start their day in an organized manner</li>
+                    <li>Ensures they don't miss important announcements or morning activities</li>
+                    <li>Develops good time management habits for life</li>
+                    <li>Shows respect for teachers and fellow students</li>
+                    <li>Prevents disruption to ongoing classes</li>
+                </ul>
+            </div>
+
+            <div style="background-color: #e2e3e5; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                <h4 style="margin: 0 0 15px 0; color: #383d41;">💡 Tips for Better Punctuality:</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px;">
+                    <li>Plan and prepare school items the night before</li>
+                    <li>Set a consistent bedtime and wake-up routine</li>
+                    <li>Account for travel time and potential delays</li>
+                    <li>Create a morning checklist to avoid last-minute rush</li>
+                </ul>
+            </div>
+
+            <div class="contact-info">
+                <h4 style="margin: 0 0 10px 0;">📞 Need to Report Expected Delays?</h4>
+                <p style="margin: 5px 0;"><strong>School:</strong> <%= schoolName %></p>
+                <% if (schoolPhone && schoolPhone !== 'N/A') { %>
+                <p style="margin: 5px 0;"><strong>Phone:</strong> <%= schoolPhone %></p>
+                <% } %>
+                <% if (schoolEmail && schoolEmail !== 'school@example.com') { %>
+                <p style="margin: 5px 0;"><strong>Email:</strong> <%= schoolEmail %></p>
+                <% } %>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #6c757d;">
+                    Please inform the school in advance if your child will be late due to appointments or emergencies.
+                </p>
+            </div>
+
+            <p style="margin-top: 25px; font-size: 14px; color: #6c757d;">
+                We appreciate your cooperation in helping <%= studentName %> maintain good attendance habits.
+                This notification is sent automatically and does not require a response unless you have concerns.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>&copy; <%= new Date().getFullYear() %> <%= schoolName %>. All rights reserved.</p>
+            <p>Generated on <%= new Date().toLocaleString() %></p>
+        </div>
+    </div>
+</body>
+</html>

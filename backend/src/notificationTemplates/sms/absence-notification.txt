@@ -1,0 +1,10 @@
+Dear Parent,
+
+Your child {{studentName}} was marked ABSENT on {{date}}.
+
+If this is incorrect or your child was absent due to illness/emergency, please contact {{schoolName}} immediately.
+
+School Phone: {{schoolPhone}}
+
+Thank you,
+{{schoolName}}
