@@ -504,7 +504,7 @@ const generateCombinedReceiptHtml = (data, school) => {
         <div class="trust-name" style="font-size: 18px; font-weight: bold; color: #000;">${school.trust_name || 'School Trust'}</div>
         <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000;">${school.name}</div>
         <div class="school-type" style="font-size: 14px; color: #000;">${school.school_type || 'Educational Institution'}</div>
-        <div class="school-address" style="font-size: 12px; color: #000;">${school.address}</div>
+        <div class="school-address" style="font-size: 12px; color: #000;">${data.school_address || school.address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
       </div>
       
       <div style="padding: 20px;">

@@ -1317,9 +1317,9 @@ const printReceipt = () => {
     <div class="receipt">
       <div class="header">
         <div class="trust-name" style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;">HAJI OMAR MOOSA EDUCATIONAL TRUST</div>
-        <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000; margin-bottom: 5px; text-transform: uppercase;">School Name</div>
+        <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000; margin-bottom: 5px; text-transform: uppercase;">${receiptData.school_name || 'School Name'}</div>
         <div class="school-type" style="font-size: 12px; color: #666; margin-bottom: 5px;">ENGLISH MEDIUM SCHOOL</div>
-        <div class="school-address" style="font-size: 11px; color: #666; margin-bottom: 10px;">27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.</div>
+        <div class="school-address" style="font-size: 11px; color: #666; margin-bottom: 10px;">${receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
       </div>
       
       <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; color: #000; margin: 15px 0; text-transform: uppercase;">
