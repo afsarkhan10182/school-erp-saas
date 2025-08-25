@@ -3,7 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { logger } = require('../utils/logger');
 const { resolveUploadsPath } = require('../utils/pathHelper');
-const { generateUniqueInvoiceNumber, getClassCode } = require('../controllers/fee-invoice/core');
+const { generateUniqueReceiptNumber, getClassCode } = require('../controllers/fee-invoice/core');
 
 /**
  * Generate receipt data on-demand from payment ID
@@ -11,7 +11,7 @@ const { generateUniqueInvoiceNumber, getClassCode } = require('../controllers/fe
  */
 const generateReceiptData = async (paymentId) => {
   try {
-    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School } = require('../models');
+    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('../models');
     
     // Fetch payment with all related data from database
     const payment = await FeePayment.findByPk(paymentId, {
@@ -23,6 +23,13 @@ const generateReceiptData = async (paymentId) => {
             {
               model: Student,
               as: 'student',
+              include: [
+                {
+                  model: Branch,
+                  as: 'branch',
+                  attributes: ['id', 'name', 'code'],
+                },
+              ],
             },
             {
               model: FeeStructure,
@@ -31,6 +38,11 @@ const generateReceiptData = async (paymentId) => {
                 {
                   model: FeeType,
                   as: 'feeType',
+                },
+                {
+                  model: Class,
+                  as: 'class',
+                  attributes: ['id', 'name', 'code'],
                 },
               ],
             },
@@ -101,39 +113,20 @@ const generateReceiptData = async (paymentId) => {
     // Generate receipt number if not exists
     let receiptNumber = payment.receipt_number;
     if (!receiptNumber) {
+      // Generate unique receipt number with RCP prefix
       let classCode = 'GEN';
-      if (feeStructure?.class_name) {
-        classCode = getClassCode(feeStructure);
-      } else if (student.current_class) {
-        const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
+      if (invoice.feeStructure?.class?.code) {
+        classCode = invoice.feeStructure.class.code;
+      } else if (invoice.feeStructure?.class_name) {
+        classCode = getClassCode(invoice.feeStructure);
+      } else if (invoice.student.current_class) {
+        const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
         classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
         classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
       }
-
-      const tempInvoice = await generateUniqueInvoiceNumber(classCode, {
-        student_id: '00000000-0000-0000-0000-000000000000',
-        fee_structure_id: '00000000-0000-0000-0000-000000000000',
-        academic_year: 'TEMP',
-        class_name: 'TEMP',
-        fee_type_name: 'TEMP',
-        due_date: new Date(),
-        amount: 0,
-        base_amount: 0,
-        discount_amount: 0,
-        tax_amount: 0,
-        total_amount: 0,
-        paid_amount: 0,
-        balance_amount: 0,
-        status: 'draft',
-        payment_status: 'pending',
-        installment_number: 1,
-        total_installments: 1,
-        payment_model: 'installment',
-        school_id: '00000000-0000-0000-0000-000000000000',
-        created_by: null,
-      }, true);
       
-      receiptNumber = tempInvoice.invoice_number;
+      const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: payment.school_id });
+      receiptNumber = tempReceipt.receipt_number;
       
       // Update payment with receipt number
       await payment.update({ receipt_number: receiptNumber });
@@ -142,7 +135,7 @@ const generateReceiptData = async (paymentId) => {
     // Build receipt data structure
     const receiptData = {
       receipt_number: receiptNumber,
-      invoice_number: invoice.invoice_number,
+      invoice_number: invoice.invoice_number, // Keep invoice number for reference
       student_name: `${student.first_name} ${student.last_name || ''}`,
       admission_number: student.admission_number,
       roll_number: student.roll_number,
@@ -157,6 +150,13 @@ const generateReceiptData = async (paymentId) => {
       school_name: school.name,
       school_address: school.address,
       school_logo: school.logo_url,
+      branch_name: student.branch?.name || null,
+      branch_code: student.branch?.code || null,
+      branch: student.branch ? {
+        id: student.branch.id,
+        name: student.branch.name,
+        code: student.branch.code
+      } : null,
       fee_type_name: feeStructure?.feeType?.name || 'Tuition Fees',
       academic_year: invoice.academic_year,
       total_fees: parseFloat(invoice.total_amount),
@@ -197,7 +197,7 @@ const generateReceiptData = async (paymentId) => {
  */
 const generateCombinedReceiptData = async (paymentIds) => {
   try {
-    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School } = require('../models');
+    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('../models');
     
     // Fetch all payments with related data
     const payments = await FeePayment.findAll({
@@ -210,6 +210,13 @@ const generateCombinedReceiptData = async (paymentIds) => {
             {
               model: Student,
               as: 'student',
+              include: [
+                {
+                  model: Branch,
+                  as: 'branch',
+                  attributes: ['id', 'name', 'code'],
+                },
+              ],
             },
             {
               model: FeeStructure,
@@ -218,6 +225,11 @@ const generateCombinedReceiptData = async (paymentIds) => {
                 {
                   model: FeeType,
                   as: 'feeType',
+                },
+                {
+                  model: Class,
+                  as: 'class',
+                  attributes: ['id', 'name', 'code'],
                 },
               ],
             },
@@ -283,41 +295,22 @@ const generateCombinedReceiptData = async (paymentIds) => {
     }
 
     // Generate receipt number
-    let classCode = 'GEN';
-    if (firstPayment.invoice.feeStructure?.class_name) {
-      classCode = getClassCode(firstPayment.invoice.feeStructure);
-    } else if (student.current_class) {
-      const cleanName = student.current_class.replace(/^Class\s+/i, '').trim();
-      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
+    // Try to get class code from fee structure's class first
+    let classCode = firstPayment.invoice.feeStructure?.class?.code;
+    
+    // If no class code from fee structure, try to get it from invoice class name
+    if (!classCode && firstPayment.invoice.class_name) {
+      classCode = firstPayment.invoice.class_name.replace(/^Class\s+/i, '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     }
-
-    const tempInvoice = await generateUniqueInvoiceNumber(classCode, {
-      student_id: '00000000-0000-0000-0000-000000000000',
-      fee_structure_id: '00000000-0000-0000-0000-000000000000',
-      academic_year: 'TEMP',
-      class_name: 'TEMP',
-      fee_type_name: 'TEMP',
-      due_date: new Date(),
-      amount: 0,
-      base_amount: 0,
-      discount_amount: 0,
-      tax_amount: 0,
-      total_amount: 0,
-      paid_amount: 0,
-      balance_amount: 0,
-      status: 'draft',
-      payment_status: 'pending',
-      installment_number: 1,
-      total_installments: 1,
-      payment_model: 'installment',
-      school_id: '00000000-0000-0000-0000-000000000000',
-      created_by: null,
-    }, true);
+    
+    // Fallback to GEN if still no class code
+    if (!classCode) {
+      classCode = 'GEN';
+    }
 
     // Build combined receipt data
     const receiptData = {
-      receipt_number: payments.length === 1 ? payments[0].invoice.invoice_number : `GROUP-${payments.map(p => p.invoice.invoice_number).join('-')}`,
+      receipt_number: payments.length === 1 ? payments[0].receipt_number : `GROUP-${payments.map(p => p.receipt_number).join('-')}`,
       invoice_number: payments.length === 1 ? payments[0].invoice.invoice_number : payments.map(p => p.invoice.invoice_number).join(', '),
       invoice_numbers: payments.map(p => p.invoice.invoice_number).join(', '),
       student_name: `${student.first_name} ${student.last_name || ''}`,
@@ -334,6 +327,13 @@ const generateCombinedReceiptData = async (paymentIds) => {
       school_name: school.name,
       school_address: school.address,
       school_logo: school.logo_url,
+      branch_name: student.branch?.name || null,
+      branch_code: student.branch?.code || null,
+      branch: student.branch ? {
+        id: student.branch.id,
+        name: student.branch.name,
+        code: student.branch.code
+      } : null,
       fee_type_name: monthlyPayments.length > 0 ? monthlyPayments[0].invoice.feeStructure?.feeType?.name || 'Tuition Fees' : 'Multiple Fee Types',
       academic_year: firstPayment.invoice.academic_year,
       total_fees: totalAmount,

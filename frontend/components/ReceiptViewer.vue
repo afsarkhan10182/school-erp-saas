@@ -33,8 +33,7 @@
         <div class="header">
           <img v-if="receiptData.school_logo" :src="receiptData.school_logo" alt="School Logo" class="school-logo">
           <div class="trust-name">{{ schoolData.trust_name || 'HAJI OMAR MOOSA EDUCATIONAL TRUST' }}</div>
-          <div class="school-name">{{ receiptData.school_name }}</div>
-          <div class="school-type">{{ schoolType }}</div>
+          <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
           <div class="school-address">{{ receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.' }}</div>
         </div>
         
@@ -46,7 +45,11 @@
         <!-- Receipt Information -->
         <div class="receipt-info">
           <div class="info-row">
-            <span class="info-label">Invoice No:</span>
+            <span class="info-label">Receipt No:</span>
+            <span class="info-value receipt-number">{{ getReceiptNumberDisplay() }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Invoice Reference:</span>
             <span class="info-value invoice-number">{{ getInvoiceNumberDisplay() }}</span>
           </div>
           <div class="info-row">
@@ -61,10 +64,10 @@
             <span class="info-label">{{ isJuniorCollege ? 'Class' : 'Std. & Div.' }}:</span>
             <span class="info-value">{{ receiptData.class_name }}{{ receiptData.section ? ' - ' + receiptData.section : '' }}</span>
           </div>
-          <div v-if="receiptData.branch_name || receiptData.branch?.name" class="info-row">
+          <!-- <div v-if="receiptData.branch_name || receiptData.branch?.name" class="info-row">
             <span class="info-label">Branch:</span>
             <span class="info-value">{{ receiptData.branch_name || receiptData.branch?.name || 'N/A' }}</span>
-          </div>
+          </div> -->
           <div class="info-row">
             <span class="info-label">Roll No:</span>
             <span class="info-value">{{ receiptData.roll_number || 'N/A' }}</span>
@@ -121,14 +124,14 @@
           <table v-else-if="isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 1" class="fee-table">
             <thead>
               <tr>
-                <th class="table-header">Invoice No</th>
+                <th class="table-header">Installment No</th>
                 <th class="table-header">Due Date</th>
                 <th class="table-header">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="invoice in receiptData.invoices" :key="invoice.id">
-                <td>{{ invoice.invoice_number }}</td>
+              <tr v-for="(invoice, index) in receiptData.invoices" :key="invoice.id">
+                <td>{{ index + 1 }}</td>
                 <td>{{ formatDate(invoice.due_date) }}</td>
                 <td>{{ formatCurrency(invoice.total_amount) }}</td>
               </tr>
@@ -263,7 +266,28 @@ const isJuniorCollege = computed(() => {
 })
 
 const schoolType = computed(() => {
-  return isJuniorCollege.value ? 'JUNIOR COLLEGE' : 'ENGLISH MEDIUM SCHOOL'
+  // First check class name
+  if (isJuniorCollege.value) {
+    return 'JUNIOR COLLEGE'
+  }
+  
+  // Then check branch name for college indicators
+  const branchName = props.receiptData.branch_name || props.receiptData.branch?.name || ''
+  if (branchName) {
+    const branchNameLower = branchName.toLowerCase()
+    if (branchNameLower.includes('jr') || 
+        branchNameLower.includes('junior') || 
+        branchNameLower.includes('college') ||
+        branchNameLower.includes('jc')) {
+      return 'JUNIOR COLLEGE'
+    }
+  }
+  
+  return 'ENGLISH MEDIUM SCHOOL'
+})
+
+const branchDisplay = computed(() => {
+  return ''
 })
 
 const isMonthlyPayment = computed(() => {
@@ -317,20 +341,17 @@ const getFeeTypeDisplay = () => {
   return 'Tuition Fees'
 }
 
-const getInvoiceNumberDisplay = () => {
-  
-  // For group invoices, use the receipt group ID if available
-  if (isCombinedPayment.value && props.receiptData.receipt_group_id) {
-    return props.receiptData.receipt_group_id
-  }
-  
-  if (props.receiptData.invoice_number) {
-    return props.receiptData.invoice_number
-  }
-
-  //if above is not available, use receipt_number
+const getReceiptNumberDisplay = () => {
   if (props.receiptData.receipt_number) {
     return props.receiptData.receipt_number
+  }
+  return 'N/A'
+}
+
+const getInvoiceNumberDisplay = () => {
+  // Always show the original invoice number as reference
+  if (props.receiptData.invoice_number) {
+    return props.receiptData.invoice_number
   }
   
   return 'N/A'
@@ -589,6 +610,15 @@ onMounted(() => {
 .info-value {
   color: #000;
   font-weight: 500;
+}
+
+.receipt-number {
+  font-weight: bold;
+  color: #3b82f6;
+  background-color: #e0f2fe;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #bbdefb;
 }
 
 .invoice-number {

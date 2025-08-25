@@ -567,8 +567,11 @@ export const apiClient = {
       page?: number;
       limit?: number;
       academic_year?: string;
+      class_id?: string;
       class_name?: string;
       section?: string;
+      stream?: string;
+      stream_id?: string;
       status?: string;
       branch_id?: string;
       payment_model?: 'monthly' | 'installment';

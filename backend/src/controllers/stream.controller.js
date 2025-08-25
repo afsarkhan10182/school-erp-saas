@@ -566,9 +566,11 @@ class StreamController {
         }
       }
 
+      console.log('🔍 getStreamsForDropdown - whereClause:', whereClause);
+      
       const streams = await Stream.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'code', 'description'],
+        attributes: ['id', 'name', 'code', 'description', 'class_id'],
         include: [
           {
             model: Class,
@@ -583,6 +585,9 @@ class StreamController {
         ],
         order: [['sort_order', 'ASC'], ['name', 'ASC']],
       });
+      
+      console.log('🔍 getStreamsForDropdown - found streams:', streams.length, 'items');
+      console.log('🔍 getStreamsForDropdown - first stream:', streams[0]?.toJSON());
       
       res.json({
         success: true,

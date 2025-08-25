@@ -1,8 +1,8 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../../models');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
-const { generateUniqueInvoiceNumber, getClassCode } = require('../../controllers/fee-invoice/core');
+const { generateUniqueReceiptNumber, getClassCode } = require('./core');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {
@@ -50,6 +50,11 @@ const getBreakdown = async (req, res, next) => {
             {
               model: FeeType,
               as: 'feeType',
+            },
+            {
+              model: Class,
+              as: 'class',
+              attributes: ['id', 'name', 'code'],
             },
           ],
         },
@@ -157,6 +162,11 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
               model: FeeType,
               as: 'feeType',
             },
+            {
+              model: Class,
+              as: 'class',
+              attributes: ['id', 'name', 'code'],
+            },
           ],
         },
       ],
@@ -184,9 +194,11 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     // Get school data for receipt generation
     const school = await School.findByPk(req.schoolId);
 
-    // Generate receipt number using the proper function
+    // Generate unique receipt number for this payment
     let classCode = 'GEN';
-    if (invoice.feeStructure?.class_name) {
+    if (invoice.feeStructure?.class?.code) {
+      classCode = invoice.feeStructure.class.code;
+    } else if (invoice.feeStructure?.class_name) {
       classCode = getClassCode(invoice.feeStructure);
     } else if (invoice.student.current_class) {
       const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
@@ -194,30 +206,9 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
     }
 
-    const tempReceipt = await generateUniqueInvoiceNumber(classCode, {
-      student_id: '00000000-0000-0000-0000-000000000000',
-      fee_structure_id: '00000000-0000-0000-0000-000000000000',
-      academic_year: 'TEMP',
-      class_name: 'TEMP',
-      fee_type_name: 'TEMP',
-      due_date: new Date(),
-      amount: 0,
-      base_amount: 0,
-      discount_amount: 0,
-      tax_amount: 0,
-      total_amount: 0,
-      paid_amount: 0,
-      balance_amount: 0,
-      status: 'draft',
-      payment_status: 'pending',
-      installment_number: 1,
-      total_installments: 1,
-      payment_model: 'installment',
-      school_id: '00000000-0000-0000-0000-000000000000',
-      created_by: null,
-    }, true);
-    
-    const receiptNumber = tempReceipt.invoice_number;
+    // Generate unique receipt number for this payment
+    const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });
+    const receiptNumber = tempReceipt.receipt_number;
 
     // Create payment record
     const paymentData = {
@@ -241,8 +232,8 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
         remaining_balance: Math.max(0, totalAmount - newPaidAmount),
         school_name: school.name,
         fee_type: invoice.feeStructure?.feeType?.name || 'Unknown',
-        class_name: invoice.class_name,
-        section: invoice.section,
+        class_name: invoice.student?.current_class || invoice.class_name,
+        section: invoice.student?.section || invoice.section,
         installment_number: installment_number || 'Flexible',
       },
       notes: notes || `Flexible installment payment - ${installment_number || 'Custom'}`,

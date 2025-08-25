@@ -309,7 +309,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
 // GET endpoint to export fee invoices report
 const exportFeeInvoicesReport = async (req, res, next) => {
   try {
-    const { format = 'excel', search, status, class_name, section, from_date, to_date, branch_id, report_type } = req.query;
+    const { format = 'excel', search, status, class_name, section, from_date, to_date, branch_id, report_type, columns } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -458,25 +458,32 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       });
 
       // Convert grouped receipts to export format
-      const groupedReceiptsArray = Object.values(groupedReceipts).map(group => ({
-        'Receipt Number': group.receipt_group_id,
-        'Payment Date': group.payment_date ? new Date(group.payment_date).toLocaleDateString('en-IN') : 'N/A',
-        'Student Name': group.student ? getStudentFullName(group.student) : 'N/A',
-        'Admission Number': group.student?.admission_number || 'N/A',
-        'Roll Number': group.student?.roll_number || 'N/A',
-        'Branch': group.branch?.name || 'N/A',
-        'Class': group.student?.current_class || 'N/A',
-        'Section': group.student?.section || 'N/A',
-        'Fee Type': Array.from(group.fee_types).join(', '),
-        'Payment Amount': group.total_amount.toFixed(2),
-        'Payment Method': group.payment_method || 'N/A',
-        'Transaction ID': group.payments[0]?.transaction_id || 'N/A',
-        'Created Date': group.payments[0]?.created_at ? new Date(group.payments[0].created_at).toLocaleDateString('en-IN') : 'N/A',
-        'Month Count': group.month_count > 1 ? `${group.month_count} months` : '1 month'
-      }));
+      const groupedReceiptsArray = Object.values(groupedReceipts).map(group => {
+        // Collect all unique invoice numbers for grouped receipts
+        const invoiceNumbers = [...new Set(group.payments.map(p => p.invoice?.invoice_number).filter(Boolean))];
+        
+        return {
+          'Invoice Number': invoiceNumbers.join(', '),
+          'Receipt Number': group.receipt_group_id,
+          'Payment Date': group.payment_date ? new Date(group.payment_date).toLocaleDateString('en-IN') : 'N/A',
+          'Student Name': group.student ? getStudentFullName(group.student) : 'N/A',
+          'Admission Number': group.student?.admission_number || 'N/A',
+          'Roll Number': group.student?.roll_number || 'N/A',
+          'Branch': group.branch?.name || 'N/A',
+          'Class': group.student?.current_class || 'N/A',
+          'Section': group.student?.section || 'N/A',
+          'Fee Type': Array.from(group.fee_types).join(', '),
+          'Payment Amount': group.total_amount.toFixed(2),
+          'Payment Method': group.payment_method || 'N/A',
+          'Transaction ID': group.payments[0]?.transaction_id || 'N/A',
+          'Created Date': group.payments[0]?.created_at ? new Date(group.payments[0].created_at).toLocaleDateString('en-IN') : 'N/A',
+          'Month Count': group.month_count > 1 ? `${group.month_count} months` : '1 month'
+        };
+      });
 
       // Convert individual receipts to export format
       const individualReceiptsArray = individualReceipts.map(payment => ({
+        'Invoice Number': payment.invoice?.invoice_number || 'N/A',
         'Receipt Number': payment.receipt_number || payment.id,
         'Payment Date': payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-IN') : 'N/A',
         'Student Name': payment.invoice?.student ? getStudentFullName(payment.invoice.student) : 'N/A',
@@ -496,6 +503,37 @@ const exportFeeInvoicesReport = async (req, res, next) => {
       // Combine and sort all receipts (same as getReceiptsReport)
       exportData = [...groupedReceiptsArray, ...individualReceiptsArray]
         .sort((a, b) => new Date(b['Payment Date']) - new Date(a['Payment Date']));
+      
+      // Filter columns if specified
+      if (columns && report_type === 'receipts') {
+        const selectedColumns = columns.split(',').map(col => col.trim());
+        const columnMapping = {
+          'invoice_number': 'Invoice Number',
+          'receipt_number': 'Receipt Number',
+          'payment_date': 'Payment Date',
+          'student_name': 'Student Name',
+          'branch': 'Branch',
+          'class': 'Class',
+          'section': 'Section',
+          'payment_amount': 'Payment Amount',
+          'payment_method': 'Payment Method',
+          'fee_type': 'Fee Type'
+        };
+        
+        // Filter export data to only include selected columns
+        exportData = exportData.map(record => {
+          const filteredRecord = {};
+          selectedColumns.forEach(colKey => {
+            const mappedCol = columnMapping[colKey];
+            if (mappedCol && record[mappedCol] !== undefined) {
+              filteredRecord[mappedCol] = record[mappedCol];
+            }
+          });
+          return filteredRecord;
+        });
+        
+        logger.info(`Filtered export data to ${selectedColumns.length} columns:`, selectedColumns);
+      }
     } else {
       // Export invoices report (default)
       const invoices = await FeeInvoice.findAll({

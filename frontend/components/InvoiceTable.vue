@@ -14,7 +14,10 @@
         <div 
           @click="toggleStudent(studentGroup.studentId)"
           class="px-6 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-between"
-          :class="{ 'bg-indigo-50 dark:bg-indigo-900/20': expandedStudents && expandedStudents.includes(studentGroup.studentId) }"
+          :class="{ 
+            'bg-indigo-50 dark:bg-indigo-900/20': expandedStudents && expandedStudents.includes(studentGroup.studentId),
+            'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500': newInvoiceStudents.has(studentGroup.studentId)
+          }"
         >
           <div class="flex items-center space-x-4">
             <!-- Chevron Icon -->
@@ -38,8 +41,15 @@
             
             <!-- Student Info -->
             <div>
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
-                {{ studentGroup.studentName }}
+              <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                <span>{{ studentGroup.studentName }}</span>
+                <!-- New invoice indicator -->
+                <span 
+                  v-if="newInvoiceStudents.has(studentGroup.studentId)"
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                >
+                  New
+                </span>
               </div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
                 Roll No: {{ studentGroup.admissionNumber }} • Admission: {{ studentGroup.admissionNumber }} • {{ studentGroup.className }}
@@ -435,6 +445,7 @@ const cleanup = () => {
   studentDetails.value = {};
   loadingDetails.value = {};
   detailErrors.value = {};
+  newInvoiceStudents.value.clear();
 };
 
 // Cleanup on component unmount
@@ -450,6 +461,9 @@ const studentDetails = ref({});
 const loadingDetails = ref({});
 const detailErrors = ref({});
 const paymentSuccessStates = ref({}); // Track payment success states
+
+// Track students who received new invoices for highlighting
+const newInvoiceStudents = ref(new Set());
 
 // Accordion methods with lazy loading
 const toggleStudent = async (studentId) => {
@@ -527,12 +541,24 @@ const loadStudentDetails = async (studentId) => {
   }
 };
 
+// Method to set students who received new invoices
+const setNewInvoiceStudents = (studentIds) => {
+  newInvoiceStudents.value = new Set(studentIds);
+  
+  // Clear the highlighting after 30 seconds
+  setTimeout(() => {
+    newInvoiceStudents.value.clear();
+  }, 30000);
+};
+
 // Expose methods to parent (after all functions are defined)
 defineExpose({
   clearStudentDetails,
   updateInvoiceAfterPayment,
   refreshStudentDetails: loadStudentDetails,
   getExpandedStudents: () => expandedStudents.value || [],
+  toggleStudent, // Expose the toggle function
+  setNewInvoiceStudents, // Expose the highlighting function
   forceRefreshStudentDetails: async (studentId) => {
     // Force refresh by clearing cache and reloading
     if (studentDetails.value && studentDetails.value[studentId]) {
