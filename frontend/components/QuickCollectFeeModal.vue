@@ -104,7 +104,7 @@
                 <div class="flex justify-between items-start">
                   <div class="flex-1">
                     <div class="font-medium text-green-800 dark:text-green-200">
-                      {{ payment.display_name || `${payment.feeStructure?.feeType?.name || 'Fee'} - Group Payment` }}
+                      {{ payment.is_grouped ? payment.receipt_group_id : payment.invoice_number }}
                     </div>
                     <div class="text-sm text-green-600 dark:text-green-300">
                       {{ payment.months_covered }} month{{ payment.months_covered > 1 ? 's' : '' }} covered: {{ payment.month_names }}

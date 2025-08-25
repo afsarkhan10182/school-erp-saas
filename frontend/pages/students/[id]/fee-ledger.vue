@@ -202,7 +202,7 @@
               <tr v-for="invoice in (ledgerData?.invoices || [])" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <div>
-                    <div class="font-medium">{{ invoice.invoice_number || 'N/A' }}</div>
+                    <div class="font-medium">{{ getInvoiceNumber(invoice) }}</div>
                     <div 
                       v-if="invoice.is_grouped" 
                       class="text-xs text-gray-500 dark:text-gray-400 cursor-help"
@@ -540,7 +540,7 @@
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
             <div class="flex space-x-2">
-              <button
+              <!-- <button
                 @click="printReceipt"
                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
@@ -548,7 +548,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
                 Print Receipt
-              </button>
+              </button> -->
               <button
                 @click="showReceiptModal = false"
                 class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
@@ -617,7 +617,9 @@
                     }"
                     class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                                       <div class="font-medium text-gray-900 dark:text-white text-sm">{{ receipt.display_name }}</div>
+                                       <div class="font-medium text-gray-900 dark:text-white text-sm">
+                    {{ receipt.is_grouped ? receipt.receipt_group_id : receipt.invoice_number }}
+                  </div>
                    <div class="text-xs text-gray-500 dark:text-gray-400">
                      {{ formatDate(receipt.payment_date) }} - ₹{{ formatCurrency(receipt.payment_amount) }}
                    </div>
@@ -640,7 +642,7 @@
               <div v-if="selectedReceiptFromList" class="h-full">
                 <div class="flex justify-between items-center mb-4">
                   <h4 class="font-medium text-gray-900 dark:text-white">Receipt Preview</h4>
-                  <button
+                  <!-- <button
                     @click="printReceipt"
                     class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                   >
@@ -648,7 +650,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                     </svg>
                     Print Receipt
-                  </button>
+                  </button> -->
                 </div>
                 
                 <div v-if="isLoadingReceiptContent" class="flex justify-center items-center h-64">
@@ -656,7 +658,7 @@
                   <span class="ml-2 text-gray-600 dark:text-gray-400">Loading receipt...</span>
                 </div>
                 
-                <div v-else-if="selectedReceiptFromList" class="receipt-content max-h-[500px] overflow-y-auto">
+                <div v-else-if="selectedReceiptFromList" class="receipt-content max-h-[550px] overflow-y-auto">
                   <ReceiptViewer 
                     :receipt-data="selectedReceiptFromList" 
                     :school-data="schoolData"
@@ -1148,7 +1150,7 @@ const fetchAllReceipts = async () => {
                   is_grouped: false,
                   receipt_type: 'individual',
                   receipt_group_id: null,
-                  display_name: `${invoice.invoice_number} - Payment ${index + 1}`,
+
                   months_covered: invoice.months_covered,
                   month_names: invoice.month_names,
                   month_range: invoice.month_range,
@@ -1190,7 +1192,7 @@ const fetchAllReceipts = async () => {
                 is_grouped: invoice.is_grouped || false,
                 receipt_type: invoice.is_grouped ? 'grouped' : 'individual',
                 receipt_group_id: invoice.receipt_group_id,
-                display_name: invoice.display_name || invoice.invoice_number,
+
                 months_covered: invoice.months_covered,
                 month_names: invoice.month_names,
                 month_range: invoice.month_range,
@@ -1459,7 +1461,16 @@ const getStudentFullName = (student) => {
   }
 };
 
-
+// Helper function to get invoice number (same as invoices page)
+const getInvoiceNumber = (invoice) => {
+  // For grouped payments, show the receipt group ID as it's more meaningful
+  // For regular invoices, show the actual invoice number
+  if (invoice.is_grouped && invoice.receipt_group_id) {
+    return invoice.receipt_group_id; // Show RCP-GROUP-C5-26 for grouped payments
+  }
+  // Otherwise use invoice_number or fallback
+  return invoice.invoice_number || 'UNKNOWN';
+};
 
 onMounted(() => {
   fetchStudent();

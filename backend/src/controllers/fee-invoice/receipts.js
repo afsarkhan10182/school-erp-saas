@@ -377,7 +377,7 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
     }
 
     // Use the provided receipt group ID instead of generating a new one
-    const receiptNumber = receiptGroupId || `GROUP-${invoices.map(inv => inv.invoice_number).join('-')}`;
+    const receiptNumber = receiptGroupId || `RCP-GROUP-${invoices.map(inv => inv.invoice_number).join('-')}`;
     
     // Calculate totals
     const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
@@ -443,6 +443,8 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       student_name: getStudentFullName(student),
       student_id: student.id,
       admission_number: student.admission_number,
+      class_name: student.current_class,
+      section: student.section,
       school_name: school.name,
       school_address: school.address,
       branch_name: branch?.name || null,
@@ -524,6 +526,14 @@ const generateCombinedReceiptHtml = (data, school) => {
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span class="info-label" style="font-weight: bold; color: #000;">Admission No:</span>
             <span class="info-value" style="color: #000;">${data.admission_number}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span class="info-label" style="font-weight: bold; color: #000;">Class:</span>
+            <span class="info-value" style="color: #000;">${data.class_name || 'N/A'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span class="info-label" style="font-weight: bold; color: #000;">Section:</span>
+            <span class="info-value" style="color: #000;">${data.section || 'N/A'}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span class="info-label" style="font-weight: bold; color: #000;">Payment Method:</span>
@@ -682,8 +692,9 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
       
       // Get branch information from the first invoice
       const branch = invoices[0].branch;
+      const student = invoices[0].student;
       
-      // Ensure branch information is included in the stored receipt data
+      // Ensure branch information and student details are included in the stored receipt data
       const enhancedReceiptData = {
         ...storedReceiptData,
         branch_name: branch?.name || storedReceiptData.branch_name || null,
@@ -693,6 +704,10 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
           name: branch.name,
           code: branch.code
         } : storedReceiptData.branch || null,
+        class_name: student?.current_class || storedReceiptData.class_name || null,
+        section: student?.section || storedReceiptData.section || null,
+        student_name: student ? `${student.first_name} ${student.last_name || ''}` : storedReceiptData.student_name || null,
+        admission_number: student?.admission_number || storedReceiptData.admission_number || null,
       };
       
       return res.status(200).json({
@@ -956,8 +971,11 @@ const getReceiptsReport = async (req, res, next) => {
       search,
       branch_id,
       page = 1, 
-      limit = 20 
+      limit = 10,
+      export_all = false
     } = req.query;
+    
+
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -1109,27 +1127,37 @@ const getReceiptsReport = async (req, res, next) => {
     });
 
     // Convert grouped receipts to simple format
-    const groupedReceiptsArray = Object.values(groupedReceipts).map(group => ({
-      id: group.receipt_group_id,
-      receipt_number: group.receipt_group_id,
-      payment_date: group.payment_date,
-      payment_amount: group.total_amount,
-      payment_method: group.payment_method,
-      student: {
-        id: group.student?.id,
-        name: group.student?.first_name && group.student?.last_name 
-          ? `${group.student?.first_name} ${group.student?.last_name}`.trim()
-          : group.student?.first_name || group.student?.last_name || null,
-        admission_number: group.student?.admission_number,
-        roll_number: group.student?.roll_number,
-        current_class: group.student?.current_class,
-        section: group.student?.section,
-      },
-      fee_type: Array.from(group.fee_types).join(', '),
-      branch: group.branch?.name,
-      month_count: group.month_count,
-      months: group.months
-    }));
+    const groupedReceiptsArray = Object.values(groupedReceipts).map(group => {
+      // Collect all unique invoice numbers for grouped receipts
+      const invoiceNumbers = [...new Set(group.payments.map(p => p.invoice?.invoice_number).filter(Boolean))];
+      const invoiceIds = [...new Set(group.payments.map(p => p.invoice?.id).filter(Boolean))];
+      
+      return {
+        id: group.receipt_group_id,
+        receipt_number: group.receipt_group_id,
+        payment_date: group.payment_date,
+        payment_amount: group.total_amount,
+        payment_method: group.payment_method,
+        invoice: {
+          id: invoiceIds.join(', '),
+          invoice_number: invoiceNumbers.join(', ')
+        },
+        student: {
+          id: group.student?.id,
+          name: group.student?.first_name && group.student?.last_name 
+            ? `${group.student?.first_name} ${group.student?.last_name}`.trim()
+            : group.student?.first_name || group.student?.last_name || null,
+          admission_number: group.student?.admission_number,
+          roll_number: group.student?.roll_number,
+          current_class: group.student?.current_class,
+          section: group.student?.section,
+        },
+        fee_type: Array.from(group.fee_types).join(', '),
+        branch: group.branch?.name,
+        month_count: group.month_count,
+        months: group.months
+      };
+    });
 
     // Format individual receipts
     const individualReceiptsArray = individualReceipts.map(payment => ({
@@ -1138,6 +1166,10 @@ const getReceiptsReport = async (req, res, next) => {
       payment_date: payment.payment_date,
       payment_amount: parseFloat(payment.payment_amount),
       payment_method: payment.payment_method,
+      invoice: {
+        id: payment.invoice?.id,
+        invoice_number: payment.invoice?.invoice_number
+      },
       student: {
         id: payment.invoice?.student?.id,
         name: payment.invoice?.student?.first_name && payment.invoice?.student?.last_name 
@@ -1169,10 +1201,20 @@ const getReceiptsReport = async (req, res, next) => {
       );
     }
 
-    // Apply pagination
+    // Apply pagination (skip if export_all is true)
     const totalRecords = finalReceipts.length;
-    const totalPages = Math.ceil(totalRecords / parseInt(limit));
-    const paginatedReceipts = finalReceipts.slice(offset, offset + parseInt(limit));
+    let paginatedReceipts;
+    let totalPages;
+    
+    if (export_all === 'true' || export_all === true) {
+      // For export, return all records without pagination
+      paginatedReceipts = finalReceipts;
+      totalPages = 1;
+    } else {
+      // Normal pagination
+      totalPages = Math.ceil(totalRecords / parseInt(limit));
+      paginatedReceipts = finalReceipts.slice(offset, offset + parseInt(limit));
+    }
 
     // Calculate summary data
     const totalCollected = finalReceipts.reduce((sum, receipt) => sum + receipt.payment_amount, 0);

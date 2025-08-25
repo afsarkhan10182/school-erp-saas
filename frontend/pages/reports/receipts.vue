@@ -10,6 +10,57 @@
           <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Payment collections and receipt tracking</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
+          <!-- Column Selector -->
+          <div class="relative column-selector-dropdown">
+            <button
+              @click="toggleColumnSelector"
+              class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Columns
+              <svg class="ml-1 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showColumnSelector }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <!-- Column Selector Dropdown -->
+            <div 
+              v-show="showColumnSelector"
+              class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
+            >
+              <div class="p-2">
+                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">Select Columns</h3>
+                <div class="space-y-1">
+                  <label v-for="(column, index) in availableColumns" :key="column.key" class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs">
+                    <input
+                      type="checkbox"
+                      :checked="column.visible"
+                      @change="toggleColumnVisibility(index)"
+                      class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                    />
+                    <span class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none">{{ column.label }}</span>
+                  </label>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <button
+                    @click="selectAllColumns"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-2 cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    @click="deselectAllColumns"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <button
             @click="printReport"
             :disabled="isLoading || payments.length === 0"
@@ -281,29 +332,47 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Receipt No</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
+                <th v-if="isColumnVisible('invoice_number')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice No</th>
+                <th v-if="isColumnVisible('receipt_number')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Receipt No</th>
+                <th v-if="isColumnVisible('payment_date')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                <th v-if="isColumnVisible('student_name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
+                <th v-if="isColumnVisible('branch')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
+                <th v-if="isColumnVisible('class')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
+                <th v-if="isColumnVisible('section')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section</th>
+                <th v-if="isColumnVisible('payment_amount')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                <th v-if="isColumnVisible('payment_method')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
+                <th v-if="isColumnVisible('fee_type')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
               <tr v-if="isLoading">
-                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                <td :colspan="displayedColumns.length" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                   Loading receipts...
                 </td>
               </tr>
               <tr v-else-if="payments.length === 0">
-                <td colspan="8" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                <td :colspan="displayedColumns.length" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                   No receipts found for the selected filters
                 </td>
               </tr>
               <tr v-else v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <!-- Invoice Number -->
+                <td v-if="isColumnVisible('invoice_number')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <div class="flex flex-col">
+                    <span v-if="payment.invoice?.invoice_number" class="font-medium text-blue-600 dark:text-blue-400">
+                      {{ payment.invoice.invoice_number }}
+                    </span>
+                    <span v-else-if="payment.invoice?.id" class="font-medium text-blue-600 dark:text-blue-400">
+                      {{ payment.invoice.id }}
+                    </span>
+                    <span v-else class="text-gray-500 dark:text-gray-400 italic">
+                      N/A
+                    </span>
+                  </div>
+                </td>
+                
+                <!-- Receipt Number -->
+                <td v-if="isColumnVisible('receipt_number')" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                   <div class="flex items-center">
                     <span>{{ payment.receipt_number }}</span>
                     <span v-if="payment.month_count > 1" class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white dark:bg-blue-500 dark:text-white" :title="getMonthsCovered(payment)">
@@ -311,23 +380,24 @@
                     </span>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Date -->
+                <td v-if="isColumnVisible('payment_date')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ formatDate(payment.payment_date) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Student Name -->
+                <td v-if="isColumnVisible('student_name')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div v-if="payment.student && payment.student.name">
                     <div class="font-medium">{{ payment.student.name }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                      <span v-if="payment.student.roll_number">Roll No: {{ payment.student.roll_number }}</span>
-                      <span v-if="payment.student.roll_number && payment.student.admission_number"> • </span>
-                      <span v-if="payment.student.admission_number">Admission: {{ payment.student.admission_number }}</span>
-                    </div>
                   </div>
                   <div v-else class="text-gray-500 dark:text-gray-400 italic">
                     Student data unavailable
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Branch -->
+                <td v-if="isColumnVisible('branch')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <span v-if="payment.branch" class="font-medium text-gray-900 dark:text-white">
                     {{ payment.branch }}
                   </span>
@@ -335,23 +405,41 @@
                     N/A
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Class -->
+                <td v-if="isColumnVisible('class')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <span v-if="payment.student && payment.student.current_class">
-                    {{ payment.student.current_class }}{{ payment.student.section ? `-${payment.student.section}` : '' }}
+                    {{ payment.student.current_class }}
                   </span>
                   <span v-else class="text-gray-500 dark:text-gray-400 italic">
                     N/A
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
+                
+                <!-- Section -->
+                <td v-if="isColumnVisible('section')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <span v-if="payment.student && payment.student.section">
+                    {{ payment.student.section }}
+                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
+                    N/A
+                  </span>
+                </td>
+                
+                <!-- Amount -->
+                <td v-if="isColumnVisible('payment_amount')" class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
                   ₹{{ formatCurrency(payment.payment_amount) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Payment Method -->
+                <td v-if="isColumnVisible('payment_method')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="getPaymentMethodClass(payment.payment_method)">
                     {{ payment.payment_method }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                
+                <!-- Fee Type -->
+                <td v-if="isColumnVisible('fee_type')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ payment.fee_type || 'N/A' }}
                 </td>
               </tr>
@@ -362,11 +450,7 @@
         <!-- Pagination -->
         <Pagination 
           v-if="pagination.total_records > 0"
-          :pagination="{
-            page: pagination.current_page || 1,
-            total: pagination.total_records || 0,
-            limit: pagination.per_page || 20
-          }"
+          :pagination="pagination"
           item-label="receipts"
           @page-changed="changePage"
           @page-size-changed="handlePageSizeChange"
@@ -383,6 +467,7 @@ import { apiClient } from '~/utils/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranchContext } from '~/composables/useBranchContext';
+import { useAuthStore } from '~/stores/auth';
 import Pagination from '~/components/Pagination.vue';
 
 // Page metadata
@@ -406,20 +491,42 @@ const summary = ref({
 
 
 const pagination = ref({
+  page: 1,
   current_page: 1,
   total_pages: 1,
+  total: 0,
   total_records: 0,
-  per_page: 20,
-  limit: 20 // Add this to ensure compatibility with Pagination component
+  per_page: 10,
+  limit: 10
 });
 const showDownloadDropdown = ref(false); // Track download dropdown state
-
+const showColumnSelector = ref(false); // Track column selector state
 
 
 // Dropdown data
 const schools = ref([]);
 const branches = ref([]);
 const classes = ref([]);
+const sections = ref([]);
+
+// Available columns for selection
+const availableColumns = ref([
+  { key: 'invoice_number', label: 'Invoice No', visible: false }, // Hidden by default as per user's image
+  { key: 'receipt_number', label: 'Receipt No', visible: true },
+  { key: 'payment_date', label: 'Date', visible: true },
+  { key: 'student_name', label: 'Student Name', visible: true },
+  { key: 'branch', label: 'Branch', visible: true },
+  { key: 'class', label: 'Class', visible: true },
+  { key: 'section', label: 'Section', visible: false },
+  { key: 'payment_amount', label: 'Amount', visible: true },
+  { key: 'payment_method', label: 'Method', visible: true },
+  { key: 'fee_type', label: 'Fee Type', visible: true }
+]);
+
+// Computed property to filter visible columns
+const displayedColumns = computed(() => {
+  return availableColumns.value.filter(col => col.visible);
+});
 
 // User role for conditional filtering
 const userRole = computed(() => authStore.currentUser?.role || 'branch_admin');
@@ -440,6 +547,7 @@ const filters = reactive({
 // Methods
 const handleDateRangeChange = () => {
   const today = new Date();
+  
   const formatDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -521,19 +629,24 @@ const fetchReceiptsData = async (page = 1) => {
     const response = await apiClient.feeInvoices.getReceiptsReport(params);
     
     if (response.success) {
-      payments.value = response.data.payments;
-      summary.value = response.data.summary;
-      pagination.value = {
-        ...response.data.pagination,
-        limit: response.data.pagination.per_page // Ensure limit is set for Pagination component
+      payments.value = response.data.payments || [];
+      summary.value = response.data.summary || {
+        total_collected: 0,
+        total_receipts: 0,
+        payment_methods: []
       };
       
-      // Debug pagination
-      console.log('📊 Receipts Pagination Debug:', {
-        payments: payments.value.length,
-        pagination: pagination.value,
-        summary: summary.value
-      });
+      // Ensure pagination data exists
+      const paginationData = response.data.pagination || {};
+      pagination.value = {
+        page: paginationData.current_page || 1,
+        current_page: paginationData.current_page || 1,
+        total: paginationData.total_records || 0,
+        total_records: paginationData.total_records || 0,
+        total_pages: paginationData.total_pages || 1,
+        per_page: paginationData.per_page || 10,
+        limit: paginationData.per_page || 10
+      };
     } else {
       showToast('Error fetching receipts data', 'error');
     }
@@ -545,15 +658,65 @@ const fetchReceiptsData = async (page = 1) => {
   }
 };
 
+// Function to fetch ALL records for export/print (without pagination)
+const fetchAllReceiptsForExport = async () => {
+  try {
+    const params = {
+      // Don't send page and limit - backend should return all records
+      export_all: true
+    };
+
+    // Add filters
+    if (filters.from_date) params.from_date = filters.from_date;
+    if (filters.to_date) params.to_date = filters.to_date;
+    if (filters.payment_method) params.payment_method = filters.payment_method;
+    if (filters.school_id) params.school_id = filters.school_id;
+    if (filters.branch_id) params.branch_id = filters.branch_id;
+    
+    // Add class ID if selected
+    if (filters.class_id && filters.class_id !== '') {
+      params.class_id = filters.class_id;
+    }
+    
+    // Add section name if selected
+    if (filters.section_id && filters.section_id !== '') {
+      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
+      if (selectedSection) {
+        params.section = selectedSection.name;
+      }
+    }
+    
+    if (filters.search) params.search = filters.search;
+
+    const response = await apiClient.feeInvoices.getReceiptsReport(params);
+    
+    if (response.success) {
+      const allPayments = response.data.payments || [];
+      const exportSummary = response.data.summary || {
+        total_collected: 0,
+        total_receipts: 0,
+        payment_methods: []
+      };
+      
+      return { payments: allPayments, summary: exportSummary };
+    } else {
+      throw new Error('Failed to fetch all receipts data');
+    }
+  } catch (error) {
+    console.error('Error fetching all receipts for export:', error);
+    throw error;
+  }
+};
+
 const changePage = (page) => {
-  console.log('📄 Changing to page:', page);
-  if (page >= 1) {
+  if (page >= 1 && page <= pagination.value.total_pages) {
+    pagination.value.current_page = page;
+    pagination.value.page = page;
     fetchReceiptsData(page);
   }
 };
 
 const handlePageSizeChange = (newPageSize) => {
-  console.log('📄 Changing page size to:', newPageSize);
   pagination.value.per_page = newPageSize;
   pagination.value.limit = newPageSize; // Also update limit for Pagination component
   fetchReceiptsData(1);
@@ -753,17 +916,12 @@ const downloadDetailedReport = async () => {
   try {
     closeDownloadDropdown();
     
-    console.log('📊 Starting Excel download with filters:', filters);
+    // Fetch all records for Excel export
+    const { payments: allPayments, summary: excelSummary } = await fetchAllReceiptsForExport();
     
-    // Check if we have any data to export
-    if (payments.value.length === 0) {
-      console.log('📊 No payments available, fetching data first...');
-      await fetchReceiptsData(1);
-      
-      if (payments.value.length === 0) {
-        showToast('No data found for the selected filters', 'warning');
-        return;
-      }
+    if (allPayments.length === 0) {
+      showToast('No data found for the selected filters', 'warning');
+      return;
     }
     
     // Build query string from filters
@@ -778,11 +936,13 @@ const downloadDetailedReport = async () => {
     if (filters.class_id) queryParams.append('class_id', filters.class_id);
     if (filters.search) queryParams.append('search', filters.search);
     
+    // Add selected columns for export
+    const selectedColumns = displayedColumns.value.map(col => col.key).join(',');
+    queryParams.append('columns', selectedColumns);
+    
     // Add format parameter for Excel
     queryParams.append('format', 'excel');
     queryParams.append('report_type', 'receipts');
-    
-    console.log('📊 Excel download query params:', queryParams.toString());
     
     const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
     
@@ -808,9 +968,8 @@ const downloadDetailedReport = async () => {
     window.URL.revokeObjectURL(url);
     
     showToast('Receipts report downloaded successfully', 'success');
-    console.log('✅ Excel download completed successfully');
   } catch (error) {
-    console.error('❌ Error downloading Excel report:', error);
+    console.error('Error downloading Excel report:', error);
     showToast('Error downloading receipts report', 'error');
   }
 };
@@ -819,17 +978,12 @@ const downloadCSVReport = async () => {
   try {
     closeDownloadDropdown();
     
-    console.log('📊 Starting CSV download with filters:', filters);
+    // Fetch all records for CSV export
+    const { payments: allPayments, summary: csvSummary } = await fetchAllReceiptsForExport();
     
-    // Check if we have any data to export
-    if (payments.value.length === 0) {
-      console.log('📊 No payments available, fetching data first...');
-      await fetchReceiptsData(1);
-      
-      if (payments.value.length === 0) {
-        showToast('No data found for the selected filters', 'warning');
-        return;
-      }
+    if (allPayments.length === 0) {
+      showToast('No data found for the selected filters', 'warning');
+      return;
     }
     
     // Try backend export first, fallback to frontend generation
@@ -846,11 +1000,13 @@ const downloadCSVReport = async () => {
       if (filters.class_id) queryParams.append('class_id', filters.class_id);
       if (filters.search) queryParams.append('search', filters.search);
       
+      // Add selected columns for export
+      const selectedColumns = displayedColumns.value.map(col => col.key).join(',');
+      queryParams.append('columns', selectedColumns);
+      
       // Add format parameter for CSV
       queryParams.append('format', 'csv');
       queryParams.append('report_type', 'receipts');
-      
-      console.log('📊 CSV download query params:', queryParams.toString());
       
       const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
       
@@ -869,16 +1025,14 @@ const downloadCSVReport = async () => {
         window.URL.revokeObjectURL(url);
         
         showToast('Receipts report downloaded successfully', 'success');
-        console.log('✅ CSV download completed successfully from backend');
         return;
       }
     } catch (backendError) {
-      console.warn('⚠️ Backend CSV export failed, using frontend generation:', backendError);
+      console.warn('Backend CSV export failed, using frontend generation:', backendError);
     }
     
     // Fallback to frontend CSV generation
-    console.log('📊 Using frontend CSV generation as fallback');
-    const csvContent = generateCSV(payments.value);
+    const csvContent = generateCSV(allPayments, csvSummary);
     const blob = new Blob([csvContent], { 
       type: 'text/csv;charset=utf-8;' 
     });
@@ -892,9 +1046,8 @@ const downloadCSVReport = async () => {
     window.URL.revokeObjectURL(url);
     
     showToast('Receipts report downloaded successfully', 'success');
-    console.log('✅ CSV download completed successfully from frontend');
   } catch (error) {
-    console.error('❌ Error downloading CSV report:', error);
+    console.error('Error downloading CSV report:', error);
     showToast('Error downloading receipts report', 'error');
   }
 };
@@ -931,7 +1084,7 @@ const getPaymentMethodText = (method) => {
 };
 
 // Generate PDF content (similar to fees report)
-const generatePDFContent = () => {
+const generatePDFContent = (paymentsData = payments.value, summaryData = summary.value) => {
   // Get current filter values for the report header
   const getFilterText = () => {
     const filterTexts = [];
@@ -1090,11 +1243,11 @@ const generatePDFContent = () => {
       
       <div class="summary-cards">
         <div class="summary-card">
-          <div class="summary-value">₹${formatCurrency(summary.value.total_collected)}</div>
+          <div class="summary-value">₹${formatCurrency(summaryData.total_collected)}</div>
           <div class="summary-label">Total Collected</div>
         </div>
         <div class="summary-card">
-          <div class="summary-value">${summary.value.total_receipts}</div>
+          <div class="summary-value">${summaryData.total_receipts}</div>
           <div class="summary-label">Total Receipts</div>
         </div>
       </div>
@@ -1102,56 +1255,80 @@ const generatePDFContent = () => {
       <table>
         <thead>
           <tr>
-            <th>Receipt No</th>
-            <th>Payment Date</th>
-            <th>Student Name</th>
-            <th>Admission No</th>
-            <th>Branch</th>
-            <th>Class</th>
-            <th>Fee Type</th>
-            <th>Amount</th>
-            <th>Payment Method</th>
-            <th>Transaction ID</th>
+            ${displayedColumns.value.map(col => `<th>${col.label}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
-          ${payments.value.map(payment => `
+          ${paymentsData.map(payment => `
             <tr>
-              <td>${payment.receipt_number || payment.id}</td>
-              <td>${formatDate(payment.payment_date)}</td>
-              <td>${payment.student?.name || 'N/A'}</td>
-              <td>${payment.student?.admission_number || 'N/A'}</td>
-              <td>${payment.branch || 'N/A'}</td>
-              <td>${payment.student?.current_class || 'N/A'}</td>
-              <td>${payment.fee_type || 'N/A'}</td>
-              <td>₹${formatCurrency(payment.payment_amount)}</td>
-              <td>${getPaymentMethodText(payment.payment_method)}</td>
-              <td>${payment.transaction_id || 'N/A'}</td>
+                             ${displayedColumns.value.map(col => {
+                 switch(col.key) {
+                   case 'invoice_number':
+                     return `<td>${payment.invoice?.invoice_number || payment.invoice?.id || 'N/A'}</td>`;
+                   case 'receipt_number':
+                     return `<td>${payment.receipt_number || payment.id}</td>`;
+                   case 'payment_date':
+                     return `<td>${formatDate(payment.payment_date)}</td>`;
+                   case 'student_name':
+                     return `<td>${payment.student?.name || 'N/A'}</td>`;
+                   case 'branch':
+                     return `<td>${payment.branch || 'N/A'}</td>`;
+                   case 'class':
+                     return `<td>${payment.student?.current_class || 'N/A'}</td>`;
+                   case 'section':
+                     return `<td>${payment.student?.section || 'N/A'}</td>`;
+                   case 'payment_amount':
+                     return `<td>₹${formatCurrency(payment.payment_amount)}</td>`;
+                   case 'payment_method':
+                     return `<td>${getPaymentMethodText(payment.payment_method)}</td>`;
+                   case 'fee_type':
+                     return `<td>${payment.fee_type || 'N/A'}</td>`;
+                   default:
+                     return `<td>N/A</td>`;
+                 }
+               }).join('')}
             </tr>
           `).join('')}
         </tbody>
       </table>
       
       <div class="footer">
-        Total Records: ${payments.value.length} | Generated on: ${new Date().toLocaleString('en-IN')}
+        Total Records: ${paymentsData.length} | Generated on: ${new Date().toLocaleString('en-IN')}
       </div>
     </body>
     </html>
   `;
 };
 
-const printReport = () => {
+const printReport = async () => {
   try {
-    const printContent = generatePDFContent();
+    // Fetch all records for printing
+    const { payments: allPayments, summary: printSummary } = await fetchAllReceiptsForExport();
+    
+    // Check if we have data to print
+    if (allPayments.length === 0) {
+      showToast('No data found for the selected filters', 'warning');
+      return;
+    }
+    
+    // Generate PDF content with all records
+    const printContent = generatePDFContent(allPayments, printSummary);
     
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('Please allow popups to print the report', 'error');
+      return;
+    }
+    
     printWindow.document.write(printContent);
     printWindow.document.close();
     
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
-    }, 500);
+    }, 1000);
+    
+    showToast('Print report generated successfully', 'success');
   } catch (error) {
     console.error('Error printing report:', error);
     showToast('Error printing report', 'error');
@@ -1167,6 +1344,29 @@ const closeDownloadDropdown = () => {
   showDownloadDropdown.value = false;
 };
 
+const toggleColumnSelector = () => {
+  showColumnSelector.value = !showColumnSelector.value;
+};
+
+const selectAllColumns = () => {
+  availableColumns.value.forEach(col => col.visible = true);
+};
+
+const deselectAllColumns = () => {
+  availableColumns.value.forEach(col => col.visible = false);
+};
+
+// Helper function to check if a column is visible
+const isColumnVisible = (columnKey) => {
+  const column = availableColumns.value.find(col => col.key === columnKey);
+  return column ? column.visible : false;
+};
+
+// Function to toggle column visibility
+const toggleColumnVisibility = (index) => {
+  availableColumns.value[index].visible = !availableColumns.value[index].visible;
+};
+
 // Close dropdown when clicking outside
 onMounted(() => {
   document.addEventListener('click', (event) => {
@@ -1174,13 +1374,17 @@ onMounted(() => {
     if (dropdown && !dropdown.contains(event.target)) {
       closeDownloadDropdown();
     }
+    const columnSelector = document.querySelector('.column-selector-dropdown');
+    if (columnSelector && !columnSelector.contains(event.target)) {
+      showColumnSelector.value = false;
+    }
   });
 });
 
-const generateCSV = (payments) => {
+const generateCSV = (paymentsData = payments.value, summaryData = summary.value) => {
   // Generate summary section
-  const totalCollected = payments.reduce((sum, payment) => sum + parseFloat(payment.payment_amount || 0), 0);
-  const totalReceipts = payments.length;
+  const totalCollected = summaryData.total_collected || paymentsData.reduce((sum, payment) => sum + parseFloat(payment.payment_amount || 0), 0);
+  const totalReceipts = summaryData.total_receipts || paymentsData.length;
 
   // Create summary rows
   const summaryRows = [
@@ -1232,24 +1436,38 @@ const generateCSV = (payments) => {
   summaryRows.push(['Detailed Receipts Data']);
   summaryRows.push(['']);
 
-  // Data headers
-  const headers = ['Receipt No', 'Payment Date', 'Student Name', 'Admission Number', 'Roll Number', 'Branch', 'Class', 'Section', 'Amount', 'Payment Method', 'Fee Type', 'Transaction ID'];
+  // Data headers - only include visible columns
+  const headers = displayedColumns.value.map(col => col.label);
   
-  // Data rows
-  const dataRows = payments.map(payment => [
-    payment.receipt_number || payment.id || 'N/A',
-    formatDate(payment.payment_date) || 'N/A',
-    payment.student?.name || 'N/A',
-    payment.student?.admission_number || 'N/A',
-    payment.student?.roll_number || 'N/A',
-    payment.branch || 'N/A',
-    payment.student?.current_class || 'N/A',
-    payment.student?.section || 'N/A',
-    formatCurrency(payment.payment_amount) || '₹0',
-    getPaymentMethodText(payment.payment_method) || 'N/A',
-    payment.fee_type || 'N/A',
-    payment.transaction_id || 'N/A'
-  ]);
+  // Data rows - only include visible columns
+  const dataRows = paymentsData.map(payment => 
+    displayedColumns.value.map(col => {
+      switch(col.key) {
+        case 'invoice_number':
+          return payment.invoice?.invoice_number || payment.invoice?.id || 'N/A';
+        case 'receipt_number':
+          return payment.receipt_number || payment.id || 'N/A';
+        case 'payment_date':
+          return formatDate(payment.payment_date) || 'N/A';
+        case 'student_name':
+          return payment.student?.name || 'N/A';
+        case 'branch':
+          return payment.branch || 'N/A';
+        case 'class':
+          return payment.student?.current_class || 'N/A';
+        case 'section':
+          return payment.student?.section || 'N/A';
+        case 'payment_amount':
+          return formatCurrency(payment.payment_amount) || '₹0';
+        case 'payment_method':
+          return getPaymentMethodText(payment.payment_method) || 'N/A';
+        case 'fee_type':
+          return payment.fee_type || 'N/A';
+        default:
+          return 'N/A';
+      }
+    })
+  );
   
   // Combine summary and data
   const allRows = [...summaryRows, headers, ...dataRows];

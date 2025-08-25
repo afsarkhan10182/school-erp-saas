@@ -1882,7 +1882,7 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
       return {
         id: group.receipt_group_id,
         receipt_group_id: group.receipt_group_id,
-        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: group.receipt_group_id, // Show the receipt group ID for grouped payments
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -1896,7 +1896,7 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
         year: years[0],
         months_covered: group.invoices.length,
         month_names: monthNames,
-        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,

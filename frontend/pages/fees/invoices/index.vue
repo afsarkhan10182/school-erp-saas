@@ -97,11 +97,14 @@
         :filters="filters"
         :academic-years="academicYears"
         :classes="classes"
+        :sections="sections"
+        :streams="streams"
         :branches="branches"
         :is-loading="isLoading"
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
         @branch-change="onBranchChange"
+        @class-change="onClassChange"
       />
       
       <!-- Invoices Table Component -->
@@ -388,10 +391,12 @@ const { showToast } = useToast();
 const { 
   academicYears, 
   classes, 
+  streams,
   sections, 
   loading: academicsLoading,
   fetchAcademicYears, 
   fetchClasses, 
+  fetchStreams,
   fetchSections 
 } = useAcademics();
 
@@ -435,6 +440,8 @@ const filters = reactive({
   branch_id: '',
   academic_year: '',
   class_id: '',
+  section: '',
+  stream: '',
   status: '',
 });
 
@@ -537,6 +544,8 @@ const fetchInvoices = async () => {
     if (filters.branch_id) params.branch_id = filters.branch_id;
     if (filters.academic_year) params.academic_year = filters.academic_year;
     if (filters.class_id) params.class_id = filters.class_id;
+    if (filters.section) params.section = filters.section;
+    if (filters.stream) params.stream = filters.stream;
     if (filters.status) params.status = filters.status;
     
     // Use the new student-based paginated endpoint
@@ -681,7 +690,50 @@ const generateInvoices = async (formData) => {
     }
     
     showGenerateModal.value = false;
+    
+    // Store current expanded accordions before refreshing
+    const currentlyExpanded = invoiceTableRef.value ? invoiceTableRef.value.getExpandedStudents() : [];
+    
     await fetchInvoices();
+    
+    // Clear cached student details so that when users expand accordions,
+    // they will see the newly generated invoices
+    if (invoiceTableRef.value) {
+      invoiceTableRef.value.clearStudentDetails();
+      
+      // Restore expanded accordions after a short delay to ensure new data is loaded
+      if (currentlyExpanded.length > 0) {
+        setTimeout(() => {
+          currentlyExpanded.forEach(studentId => {
+            // Check if the student still exists in the new data
+            const studentExists = studentsData.value.some(student => student.student_id === studentId);
+            if (studentExists) {
+              invoiceTableRef.value.toggleStudent(studentId);
+            }
+          });
+        }, 100);
+      }
+      
+      // Highlight students who received new invoices (visual indicator)
+      if (formData.student_ids && formData.student_ids.length > 0) {
+        // Store the list of students who received new invoices for highlighting
+        const newInvoiceStudents = new Set(formData.student_ids);
+        
+        // Pass this information to the InvoiceTable component
+        if (invoiceTableRef.value) {
+          invoiceTableRef.value.setNewInvoiceStudents(newInvoiceStudents);
+        }
+      }
+      
+      // Show a helpful toast message
+      const newStudentsCount = formData.student_ids ? formData.student_ids.length : 0;
+      if (newStudentsCount > 0) {
+        const message = newStudentsCount === 1 
+          ? '1 student received new invoices. Click on the student row to view details.'
+          : `${newStudentsCount} students received new invoices. Click on student rows to view details.`;
+        showToast(message, 'success');
+      }
+    }
   } catch (error) {
     if (error.response && error.response.data) {
       const responseData = error.response.data;
@@ -791,6 +843,8 @@ const onFilterChange = (newFilters) => {
 const onBranchChange = async (branchId) => {
   // Reset class filter when branch changes
   filters.class_id = '';
+  filters.section = '';
+  filters.stream = '';
   
   // Refresh classes for the new branch
   const schoolId = authStore.currentUser?.school_id;
@@ -803,11 +857,49 @@ const onBranchChange = async (branchId) => {
   }
 };
 
+const onClassChange = async (classId) => {
+  console.log('🔍 onClassChange called with classId:', classId);
+  
+  // Reset section and stream filters when class changes
+  filters.section = '';
+  filters.stream = '';
+  
+  // Fetch streams and sections for the selected class
+  const schoolId = authStore.currentUser?.school_id;
+  const branchId = filters.branch_id || authStore.currentUser?.branch_id;
+  
+  console.log('🔍 Fetching streams/sections with:', { schoolId, branchId, classId });
+  
+  if (classId && classId !== '') {
+    try {
+      const [streamsResult, sectionsResult] = await Promise.all([
+        fetchStreams(schoolId, branchId, classId),
+        fetchSections(schoolId, branchId, classId)
+      ]);
+      
+      console.log('🔍 Streams fetched:', streams.value.length, 'items:', streams.value);
+      console.log('🔍 Sections fetched:', sections.value.length, 'items:', sections.value);
+    } catch (error) {
+      console.error('❌ Error fetching streams/sections:', error);
+    }
+  } else {
+    // Clear streams and sections when no class is selected
+    streams.value = [];
+    sections.value = [];
+    console.log('🔍 Cleared streams and sections');
+  }
+};
+
 const clearFilters = () => {
   Object.keys(filters).forEach(key => {
     filters[key] = '';
   });
   currentPage.value = 1; // Reset to first page when filters are cleared
+  
+  // Clear streams and sections when filters are cleared
+  streams.value = [];
+  sections.value = [];
+  
   fetchInvoices(); // Fetch new data without filters
 };
 

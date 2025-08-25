@@ -33,24 +33,33 @@ const getClassCode = (feeStructure) => {
   if (feeStructure.class_name) {
     const cleanName = feeStructure.class_name.replace(/^Class\s+/i, '').trim();
     const code = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    return code.length >= 3 ? code : `${code}${'0'.repeat(3 - code.length)}`;
+    const finalCode = code.length >= 3 ? code : `${code}${'0'.repeat(3 - code.length)}`;
+    return finalCode;
   }
   
   // Default fallback
   return 'GEN';
 };
 
-// Generate unique invoice number using PostgreSQL auto-increment
+// Generate unique invoice number using global sequential numbering
 const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly = false) => {
-  // Get the next auto-increment ID directly from the database
+  const { school_id } = invoiceData;
+  
+  // Get the highest existing invoice number across the entire school (global sequential)
   const result = await sequelize.query(
-    "SELECT nextval(pg_get_serial_sequence('fee_invoices', 'invoice_id')) as next_id",
-    { type: sequelize.QueryTypes.SELECT }
+    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'INV-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
+     FROM fee_invoices 
+     WHERE school_id = :school_id`,
+    { 
+      type: sequelize.QueryTypes.SELECT,
+      replacements: { school_id }
+    }
   );
   
-  const nextId = result[0].next_id;
+  const maxNumber = result[0].max_number || 0;
+  const nextId = maxNumber + 1;
   
-  // Generate invoice number using the auto-increment ID
+  // Generate invoice number using global sequential ID
   const invoiceNumber = `INV-${classCode}-${nextId}`;
   
   if (receiptOnly) {
@@ -65,6 +74,30 @@ const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly =
   });
   
   return realInvoice; // Return the complete invoice object
+};
+
+// Generate unique receipt number using global sequential numbering (same logic as invoices)
+const generateUniqueReceiptNumber = async (classCode, context = {}) => {
+  const { school_id } = context;
+  
+  // Get the highest existing receipt number across the entire school (global sequential)
+  const result = await sequelize.query(
+    `SELECT MAX(CAST(SUBSTRING(receipt_number FROM 'RCP-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
+     FROM fee_payments 
+     WHERE school_id = :school_id`,
+    { 
+      type: sequelize.QueryTypes.SELECT,
+      replacements: { school_id }
+    }
+  );
+  
+  const maxNumber = result[0].max_number || 0;
+  const nextId = maxNumber + 1;
+  
+  // Generate receipt number using global sequential ID
+  const receiptNumber = `RCP-${classCode}-${nextId}`;
+  
+  return { receipt_number: receiptNumber };
 };
 
 // Generate invoices for students based on fee structure
@@ -1166,7 +1199,7 @@ const getGroupedInvoices = async (req, res, next) => {
       return {
         id: group.receipt_group_id,
         receipt_group_id: group.receipt_group_id,
-        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`,
+        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.replace('RCP-GROUP-', '')}`,
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || group.invoices[0]?.fee_type_name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,
@@ -1181,7 +1214,7 @@ const getGroupedInvoices = async (req, res, next) => {
         months_covered: group.invoices.length,
         month_range: monthRange,
         month_names: monthNames,
-        display_name: `${group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.slice(-8)}`} → Paid for ${monthNames} (₹${group.total_paid.toLocaleString()})`,
+
         payment_date: group.payment_date,
         payment_method: group.payment_method,
         transaction_id: group.transaction_id,
@@ -1240,5 +1273,6 @@ module.exports = {
   adjustInvoice,
   getGroupedInvoices,
   generateUniqueInvoiceNumber,
-  getClassCode
+  getClassCode,
+  generateUniqueReceiptNumber
 }; 

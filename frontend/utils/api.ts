@@ -567,8 +567,11 @@ export const apiClient = {
       page?: number;
       limit?: number;
       academic_year?: string;
+      class_id?: string;
       class_name?: string;
       section?: string;
+      stream?: string;
+      stream_id?: string;
       status?: string;
       branch_id?: string;
       payment_model?: 'monthly' | 'installment';
@@ -703,6 +706,15 @@ export const apiClient = {
         }
       });
       return response.data;
+    },
+
+    // Download student import template
+    downloadTemplate: async (type = 'complete') => {
+      const api = createApiInstance();
+      const response = await api.get(`/students/import-template?type=${type}`, {
+        responseType: 'blob'
+      });
+      return response;
     },
   },
 
