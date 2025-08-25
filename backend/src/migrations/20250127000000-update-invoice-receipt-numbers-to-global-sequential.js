@@ -26,7 +26,7 @@ module.exports = {
             ORDER BY created_at, id
           )
           UPDATE fee_invoices 
-          SET invoice_number = 'INV-' || SUBSTRING(invoice_number FROM 'INV-([A-Z0-9]+)-[0-9]+') || '-' || numbered_invoices.new_number
+          SET invoice_number = 'INV-' || SUBSTRING(fee_invoices.invoice_number FROM 'INV-([A-Z0-9]+)-[0-9]+') || '-' || numbered_invoices.new_number
           FROM numbered_invoices
           WHERE fee_invoices.id = numbered_invoices.id
         `, {
@@ -46,7 +46,7 @@ module.exports = {
             ORDER BY created_at, id
           )
           UPDATE fee_payments 
-          SET receipt_number = 'RCP-' || SUBSTRING(receipt_number FROM 'RCP-([A-Z0-9]+)-[0-9]+') || '-' || numbered_receipts.new_number
+          SET receipt_number = 'RCP-' || SUBSTRING(fee_payments.receipt_number FROM 'RCP-([A-Z0-9]+)-[0-9]+') || '-' || numbered_receipts.new_number
           FROM numbered_receipts
           WHERE fee_payments.id = numbered_receipts.id
         `, {
