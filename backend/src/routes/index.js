@@ -10,7 +10,6 @@ const studentRoutes = require('./student.routes');
 const feeTypeRoutes = require('./fee-type.routes');
 const feeStructureRoutes = require('./fee-structure.routes');
 const feeInvoiceRoutes = require('./fee-invoice.routes');
-const exportRoutes = require('./export.routes');
 
 const academicYearRoutes = require('./academic-year.routes');
 const classRoutes = require('./class.routes');
@@ -49,8 +48,5 @@ router.use('/streams', streamRoutes);
 // Settings routes
 router.use('/school/configuration', schoolConfigurationRoutes);
 router.use('/academic/settings', academicSettingsRoutes);
-
-// Export routes
-router.use('/export', exportRoutes);
 
 module.exports = router;

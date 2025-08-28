@@ -359,10 +359,7 @@ import {
   Puzzle
 } from 'lucide-vue-next';
 
-// Apply settings middleware for role-based access control
-definePageMeta({
-  middleware: ['settings']
-});
+
 
 const authStore = useAuthStore();
 const { showToast } = useToast();
@@ -614,9 +611,7 @@ const saveAcademicSettings = async () => {
   }
 };
 
-const exportSettings = () => {
-  showToast('Export functionality will be implemented', 'info');
-};
+
 
 const importSettings = () => {
   showToast('Import functionality will be implemented', 'info');

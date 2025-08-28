@@ -262,57 +262,6 @@
             <span class="text-sm text-gray-500 dark:text-gray-400">
               {{ groupedInvoices.length > 0 ? `${invoices.length} invoices` : 'No records' }}
             </span>
-            <!-- Download As Dropdown -->
-            <div class="relative download-dropdown">
-              <button
-                @click="toggleDownloadDropdown"
-                :disabled="isLoading || invoices.length === 0"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download class="-ml-1 mr-2 h-4 w-4" />
-                Download As
-                <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              <!-- Dropdown Menu -->
-              <div 
-                v-show="showDownloadDropdown"
-                class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
-                style="transform-origin: top right;"
-              >
-                <div class="py-1">
-                  <button
-                    @click="downloadPDFReport"
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                  >
-                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    PDF
-                  </button>
-                  <button
-                    @click="downloadExcelReport"
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                  >
-                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Excel
-                  </button>
-                  <button
-                    @click="downloadCSVReport"
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
-                  >
-                    <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    CSV
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
         
@@ -507,7 +456,7 @@ import apiClient, { createApiInstance } from '~/utils/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import Pagination from '~/components/Pagination.vue';
-import ExportDropdown from '~/components/ExportDropdown.vue';
+
 
 
 // Get auth store and toast
@@ -524,7 +473,7 @@ const schools = ref([]); // Add schools for super admin
 const isLoading = ref(false);
 const isInitializing = ref(true);
 const expandedStudents = ref([]); // Track which students are expanded
-const showDownloadDropdown = ref(false); // Track download dropdown state
+
 
 // Summary data from backend (for accurate totals)
 const summaryData = ref({
@@ -1829,139 +1778,7 @@ const downloadDetailedReport = async () => {
   }
 };
 
-const downloadCSVReport = async () => {
-  try {
-    // Close dropdown first
-    closeDownloadDropdown();
-    
-    console.log('📊 Starting CSV download with filters:', filters);
-    
-    // Check if we have any data to export
-    if (invoices.value.length === 0) {
-      console.log('📊 No invoices available, fetching data first...');
-      await Promise.all([
-        fetchReport(),
-        fetchReportSummary()
-      ]);
-      
-      if (invoices.value.length === 0) {
-        showToast('No data found for the selected filters', 'warning');
-        return;
-      }
-    }
-    
-    // First, ensure we have the latest data by fetching both report and summary
-    if (invoices.value.length === 0) {
-      console.log('📊 No data available, fetching report data first...');
-      await Promise.all([
-        fetchReport(),
-        fetchReportSummary()
-      ]);
-    }
-    
-    // Get current summary data
-    const currentSummary = summary.value;
-    
-    // Build query string from filters (using same logic as fetchReport)
-    const queryParams = new URLSearchParams();
-    
-    // Add basic filters
-    if (filters.student_search && filters.student_search.trim() !== '') {
-      queryParams.append('search', filters.student_search);
-    }
-    if (filters.status && filters.status.trim() !== '') {
-      queryParams.append('status', filters.status);
-    }
-    if (filters.branch_id && filters.branch_id.trim() !== '') {
-      queryParams.append('branch_id', filters.branch_id);
-    }
-    
-    // Add date parameters (using same logic as fetchReport)
-    if (filters.fromDate && filters.fromDate.trim() !== '') {
-      queryParams.append('from_date', filters.fromDate);
-    }
-    if (filters.toDate && filters.toDate.trim() !== '') {
-      queryParams.append('to_date', filters.toDate);
-    }
-    
-    // Add class name if selected
-    if (filters.class_id && filters.class_id !== '') {
-      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
-      if (selectedClass) {
-        queryParams.append('class_name', selectedClass.name);
-      }
-    }
-    
-    // Add section name if selected
-    if (filters.section_id && filters.section_id !== '') {
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        queryParams.append('section', selectedSection.name);
-      }
-    }
-    
-    // Add format parameter for CSV
-    queryParams.append('format', 'csv');
-    
-    console.log('📊 CSV download query params:', queryParams.toString());
-    
-    const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
-    
-    console.log('📊 CSV Export response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      dataType: typeof response.data,
-      dataSize: response.data ? response.data.size || response.data.length : 'N/A',
-      responseKeys: response.data ? Object.keys(response.data) : 'N/A'
-    });
-    
-    // Check if response is successful
-    if (!response || !response.data) {
-      throw new Error('No data received from server');
-    }
-    
-    // Check if response status indicates success
-    if (response.status !== 200) {
-      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
-    }
-    
-    // Additional check for empty data
-    if (response.data.size === 0 || response.data.length === 0) {
-      console.warn('⚠️ CSV response data is empty');
-      
-      // Try to get JSON response to see what's happening
-      try {
-        const jsonResponse = await apiClient.feeInvoices.exportReport(queryParams.toString().replace('format=csv', 'format=json'));
-        console.log('📊 JSON response for debugging:', jsonResponse);
-      } catch (jsonError) {
-        console.error('❌ JSON fallback also failed:', jsonError);
-      }
-      
-      showToast('No data found for the selected filters', 'warning');
-      return;
-    }
-    
-    // Create blob and download
-    const blob = new Blob([response.data], { 
-      type: 'text/csv;charset=utf-8;' 
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fee-collection-report-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showToast('CSV report downloaded successfully', 'success');
-    console.log('✅ CSV download completed successfully');
-  } catch (error) {
-    console.error('❌ Error downloading CSV report:', error);
-    showToast('Error downloading CSV report', 'error');
-  }
-};
+
 
 const generatePDFContent = () => {
   // Get current filter values for the report header
@@ -2267,78 +2084,11 @@ const getStatusText = (status) => {
 
 
 // Dropdown functions
-const toggleDownloadDropdown = () => {
-  showDownloadDropdown.value = !showDownloadDropdown.value;
-};
 
-const closeDownloadDropdown = () => {
-  showDownloadDropdown.value = false;
-};
 
-// Export functions using new API
-const downloadPDFReport = async () => {
-  try {
-    closeDownloadDropdown();
-    showToast('Generating PDF report...', 'info');
-    
-    const queryParams = new URLSearchParams({
-      ...filters,
-      includeSummary: 'true'
-    });
-    
-    const api = createApiInstance();
-    const response = await api.get(`/export/fee-invoices/pdf?${queryParams}`, {
-      responseType: 'blob'
-    });
-    
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fee-report-${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    showToast('PDF report downloaded successfully!', 'success');
-  } catch (error) {
-    console.error('PDF export error:', error);
-    showToast('Failed to download PDF report', 'error');
-  }
-};
 
-const downloadExcelReport = async () => {
-  try {
-    closeDownloadDropdown();
-    showToast('Generating Excel report...', 'info');
-    
-    const queryParams = new URLSearchParams({
-      ...filters,
-      includeSummary: 'true'
-    });
-    
-    const api = createApiInstance();
-    const response = await api.get(`/export/fee-invoices/excel?${queryParams}`, {
-      responseType: 'blob'
-    });
-    
-    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fee-report-${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    showToast('Excel report downloaded successfully!', 'success');
-  } catch (error) {
-    console.error('Excel export error:', error);
-    showToast('Failed to download Excel report', 'error');
-  }
-};
+
+
 
 
 

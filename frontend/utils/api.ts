@@ -500,17 +500,11 @@ export const apiClient = {
       return response.data;
     },
 
-    // Report and export methods
+    // Report methods
     getReport: async (params?: { page?: number; limit?: number; academic_year?: string; status?: string; student_id?: string; class_id?: string; section_id?: string; fee_type_id?: string; payment_status?: string; date_from?: string; date_to?: string }) => {
       const api = createApiInstance();
       const response = await api.get<PaginatedResponse<any>>('/fee-invoices/report', { params });
       return response.data;
-    },
-
-    exportReport: async (queryString: string) => {
-      const api = createApiInstance();
-      const response = await api.get(`/fee-invoices/export?${queryString}`, { responseType: 'blob' });
-      return response;
     },
   },
 
@@ -711,11 +705,7 @@ export const apiClient = {
       return response.data;
     },
 
-    exportReport: async (queryString: string) => {
-      const api = createApiInstance();
-      const response = await api.get(`/students/export?${queryString}`);
-      return response;
-    },
+
   },
 
 
