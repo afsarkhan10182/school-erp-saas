@@ -408,8 +408,6 @@ export const apiClient = {
       return response.data;
     },
 
-
-
     // Generate receipt data for an invoice (on-demand)
     generateInvoiceReceipt: async (invoiceId: string) => {
       const api = createApiInstance();
@@ -459,8 +457,6 @@ export const apiClient = {
       return response.data;
     },
 
-
-
     // Smart payment allocation (amount-based with receipt grouping)
     recordSmartPayment: async (paymentData: {
       student_id: string;
@@ -501,9 +497,6 @@ export const apiClient = {
       const response = await api.get<ApiResponse<any>>('/fee-invoices/grouped-receipts', { params });
       return response.data;
     },
-
-
-
     getBreakdown: async (params: { student_id: string; fee_structure_id: string; academic_year: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/fee-invoices/breakdown', { params });
@@ -531,9 +524,9 @@ export const apiClient = {
       return response.data;
     },
 
-    exportReport: async (queryString: string) => {
+    exportReport: async (endpoint: string, queryString: string) => {
       const api = createApiInstance();
-      const response = await api.get(`/fee-invoices/export?${queryString}`, { responseType: 'blob' });
+      const response = await api.get(`${endpoint}?${queryString}`, { responseType: 'blob' });
       return response;
     },
   },
@@ -826,6 +819,30 @@ export const apiClient = {
       const response = await api.post<ApiResponse<any>>('/academic-years/sync-schools');
       return response.data;
     }
+  },
+
+  // Academic Calendar endpoints
+  academicCalendar: {
+    checkWorkingDay: async (params: { date: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/academic-calendar/check-working-day', { params });
+      return response.data;
+    },
+    getCalendar: async (params: { date_from: string; date_to: string; academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/academic-calendar', { params });
+      return response.data;
+    },
+    upsertEntry: async (data: { date: string; day_type: string; description?: string; academic_year: string }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/academic-calendar', data);
+      return response.data;
+    },
+    bulkCreate: async (data: { entries: Array<{ date: string; day_type: string; description?: string; academic_year: string }> }) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>('/academic-calendar/bulk', data);
+      return response.data;
+    },
   },
 
   // Class endpoints

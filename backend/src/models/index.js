@@ -13,6 +13,7 @@ const FeeStructure = require('./fee-structure.model');
 const FeeInvoice = require('./fee-invoice.model');
 const FeePayment = require('./fee-payment.model');
 const AcademicYear = require('./academic-year.model');
+const AcademicCalendar = require('./academic-calendar.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
 const Stream = require('./stream.model');
@@ -36,6 +37,7 @@ const models = {
   FeeInvoice,
   FeePayment,
   AcademicYear,
+  AcademicCalendar,
   Class,
   Section,
   Stream,

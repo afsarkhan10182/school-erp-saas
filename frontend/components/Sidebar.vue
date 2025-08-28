@@ -423,16 +423,9 @@ const menuGroups = computed(() => {
               icon: Users,
               children: [
                 { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3 },
-              ]
-            },
-            {
-              id: 'attendance',
-              title: 'Attendance',
-              icon: ClipboardList,
-              children: [
                 { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
               ]
-            },
+            }
           ]
         }
       ]

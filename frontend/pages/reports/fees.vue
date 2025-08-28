@@ -18,24 +18,79 @@
           <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Invoice tracking, outstanding balances, and fee analytics</p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
+          <!-- Column Selector -->
+          <div class="relative column-selector-dropdown">
+            <button
+              @click="toggleColumnSelector"
+              class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Columns
+              <svg class="ml-1 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showColumnSelector }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <!-- Column Selector Dropdown -->
+            <div 
+              v-show="showColumnSelector"
+              class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
+            >
+              <div class="p-2">
+                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">Select Columns</h3>
+                <div class="space-y-1">
+                  <label v-for="(column, index) in availableColumns" :key="column.key" class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs">
+                    <input
+                      type="checkbox"
+                      :checked="column.visible"
+                      @change="toggleColumnVisibility(index)"
+                      class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                    />
+                    <span class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none">{{ column.label }}</span>
+                  </label>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <button
+                    @click="selectAllColumns"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-2 cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    @click="deselectAllColumns"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <button
-            @click="printReport"
+            @click="printFeesReport"
             :disabled="isLoading || invoices.length === 0"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Printer class="-ml-1 mr-2 h-4 w-4" />
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
             Print Report
           </button>
           
-          <!-- Download As Dropdown -->
+          <!-- Download Dropdown -->
           <div class="relative download-dropdown">
             <button
               @click="toggleDownloadDropdown"
               :disabled="isLoading || invoices.length === 0"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download class="-ml-1 mr-2 h-4 w-4" />
-              Download As
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download
               <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -58,7 +113,7 @@
                   PDF
                 </button>
                 <button
-                  @click="downloadDetailedReport"
+                  @click="downloadExcelReport"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,7 +314,7 @@
             </div>
             <div class="flex items-center">
               <button
-                @click="generateReport"
+                @click="fetchReportData"
                 :disabled="isLoading"
                 class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
@@ -507,12 +562,23 @@ import {
 import apiClient from '~/utils/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import { useExportService } from '~/composables/useExportService';
+import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/Pagination.vue';
 
 
 // Get auth store and toast
 const authStore = useAuthStore();
 const { showToast } = useToast();
+
+// Export services
+const { 
+  generateReport,
+  isGenerating, 
+  generationProgress
+} = useExportService();
+
+const { printReport: printReportCommon } = usePrintReport();
 
 // State
 const invoices = ref([]);
@@ -521,10 +587,33 @@ const streams = ref([]);
 const branches = ref([]);
 const sections = ref([]);
 const schools = ref([]); // Add schools for super admin
+const feeTypes = ref([]); // Add fee types for reference
 const isLoading = ref(false);
 const isInitializing = ref(true);
 const expandedStudents = ref([]); // Track which students are expanded
 const showDownloadDropdown = ref(false); // Track download dropdown state
+const showColumnSelector = ref(false); // Track column selector state
+
+// Available columns for selection
+const availableColumns = ref([
+  { key: 'student_name', label: 'Student Name', visible: true },
+  { key: 'admission_number', label: 'Admission No', visible: true },
+  { key: 'branch', label: 'Branch', visible: true },
+  { key: 'class', label: 'Class', visible: true },
+  { key: 'section', label: 'Section', visible: false },
+  { key: 'stream', label: 'Stream', visible: false },
+  { key: 'total_amount', label: 'Total Amount', visible: true },
+  { key: 'paid_amount', label: 'Paid Amount', visible: true },
+  { key: 'balance_amount', label: 'Balance', visible: true },
+  { key: 'status', label: 'Status', visible: true },
+  { key: 'due_date', label: 'Due Date', visible: false },
+  { key: 'invoice_count', label: 'Invoice Count', visible: false }
+]);
+
+// Computed property to filter visible columns
+const displayedColumns = computed(() => {
+  return availableColumns.value.filter(col => col.visible);
+});
 
 // Summary data from backend (for accurate totals)
 const summaryData = ref({
@@ -714,15 +803,11 @@ const toggleStudent = (studentId) => {
   }
 };
 
-const generateReport = async () => {
-
-  
+const fetchReportData = async () => {
   if (isLoading.value) {
-    console.log('⚠️ Already loading, returning');
     return;
   }
   
-  console.log('🔄 Setting loading state...');
   isLoading.value = true;
   try {
     // Fetch both report data and summary data in parallel
@@ -731,10 +816,8 @@ const generateReport = async () => {
       fetchReportSummary()
     ]);
   } catch (error) {
-    console.error('❌ Error generating report:', error);
     showToast('Error generating report', 'error');
   } finally {
-    console.log('🏁 Setting loading to false');
     isLoading.value = false;
   }
 };
@@ -1388,849 +1471,217 @@ const fetchFeeTypes = async () => {
   }
 };
 
-const printReport = () => {
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank', 'width=1200,height=800');
+// Common function to format invoice data for exports
+const formatInvoiceDataForExport = (invoice) => {
+  const formattedInvoice = {};
   
-  // Get current filter values for the report header
-  const getFilterText = () => {
-    const filterTexts = [];
-    
-    // Date range
-    if (filters.dateRange && filters.dateRange !== 'all_time') {
-      if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
-        filterTexts.push(`Date Range: ${formatDate(filters.fromDate)} to ${formatDate(filters.toDate)}`);
-      } else {
-        filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
+  // Use availableColumns configuration instead of manual checking
+  availableColumns.value.forEach(column => {
+    if (column.visible) {
+      const key = column.key;
+      
+      switch (key) {
+        case 'student_name':
+          if (invoice.student?.first_name) {
+            formattedInvoice[key] = `${invoice.student.first_name} ${invoice.student.last_name || ''}`.trim();
+          } else {
+            formattedInvoice[key] = 'N/A';
+          }
+          break;
+          
+        case 'admission_number':
+          formattedInvoice[key] = invoice.student?.admission_number || 'N/A';
+          break;
+          
+        case 'branch':
+          formattedInvoice[key] = invoice.branch || 'N/A';
+          break;
+          
+        case 'class':
+          formattedInvoice[key] = invoice.student?.current_class || 'N/A';
+          break;
+          
+        case 'section':
+          formattedInvoice[key] = invoice.student?.section || 'N/A';
+          break;
+          
+        case 'stream':
+          formattedInvoice[key] = invoice.student?.stream || 'N/A';
+          break;
+          
+        case 'total_amount':
+          formattedInvoice[key] = formatCurrency(invoice.total_amount);
+          break;
+          
+        case 'paid_amount':
+          formattedInvoice[key] = formatCurrency(invoice.paid_amount);
+          break;
+          
+        case 'balance_amount':
+          formattedInvoice[key] = formatCurrency(invoice.balance_amount);
+          break;
+          
+        case 'status':
+          formattedInvoice[key] = getStatusText(invoice.status);
+          break;
+          
+        case 'due_date':
+          formattedInvoice[key] = formatDate(invoice.due_date);
+          break;
+          
+        case 'invoice_count':
+          formattedInvoice[key] = invoice.invoice_count || 1;
+          break;
+          
+        default:
+          formattedInvoice[key] = invoice[key] || 'N/A';
       }
     }
-    
-    // School (for super admin)
-    if (filters.school_id && authStore.user?.role === 'super_admin') {
-      const school = schools.value.find(s => s.id === filters.school_id);
-      if (school) filterTexts.push(`School: ${school.name}`);
-    }
-    
-    // Branch
-    if (filters.branch_id) {
-      const branch = branches.value.find(b => b.id === filters.branch_id);
-      if (branch) filterTexts.push(`Branch: ${branch.name}`);
-    }
-    
-    // Class
-    if (filters.class_id) {
-      const classItem = classes.value.find(c => c.id === filters.class_id);
-      if (classItem) filterTexts.push(`Class: ${classItem.name}`);
-    }
-    
-    // Section
-    if (filters.section_id) {
-      const section = sections.value.find(s => s.id === filters.section_id);
-      if (section) filterTexts.push(`Section: ${section.name}`);
-    }
-    
-    // Stream
-    if (filters.stream_id) {
-      const stream = streams.value.find(s => s.id === filters.stream_id);
-      if (stream) filterTexts.push(`Stream: ${stream.name}`);
-    }
-    
-    // Status
-    if (filters.status && filters.status !== 'all') {
-      filterTexts.push(`Status: ${filters.status.toUpperCase()}`);
-    }
-    
-    // Payment method
-    if (filters.payment_method && filters.payment_method !== 'all') {
-      filterTexts.push(`Payment Method: ${filters.payment_method.toUpperCase()}`);
-    }
-    
-    // Student search
-    if (filters.student_search) {
-      filterTexts.push(`Student Search: ${filters.student_search}`);
-    }
-    
-    return filterTexts.length > 0 ? filterTexts.join(' | ') : 'All Records';
-  };
+  });
   
-  // Create the print content with improved styling and filter display
-  const printContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Fee Management Report</title>
-      <style>
-        @page {
-          size: A4;
-          margin: 1cm;
-        }
-        @media print {
-          body { margin: 0; padding: 15px; }
-          .no-print { display: none; }
-          .summary-cards { page-break-inside: avoid; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          .receipt-header { 
-            background: #f8f9fa !important; 
-            color: #000 !important; 
-            padding: 20px;
-            border-bottom: 2px solid #333;
-            text-align: center;
-          }
-          .receipt-info {
-            background: #f8f9fa !important;
-            color: #000 !important;
-            padding: 15px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-          }
-          .receipt-summary {
-            background: #f8f9fa !important;
-            color: #000 !important;
-            padding: 15px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-          }
-          .receipt-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin-top: 20px;
-          }
-          .receipt-table th, .receipt-table td {
-            border: 1px solid #000 !important;
-            padding: 8px !important;
-            text-align: left !important;
-            color: #000 !important;
-            font-size: 11px !important;
-          }
-          .receipt-table th {
-            background: #f8f9fa !important;
-            font-weight: bold !important;
-          }
-          .amount-paid { color: #059669 !important; font-weight: bold; }
-          .amount-pending { color: #dc2626 !important; font-weight: bold; }
-          .amount-total { color: #000 !important; font-weight: bold; }
-          .receipt-footer {
-            background: #f8f9fa !important;
-            color: #000 !important;
-            padding: 15px;
-            margin-top: 20px;
-            border-top: 2px solid #333;
-            text-align: center;
-          }
-        }
-        body { 
-          font-family: Arial, sans-serif; 
-          margin: 0; 
-          padding: 20px; 
-          background-color: #ffffff;
-          color: #000000;
-          line-height: 1.4;
-        }
-        .receipt-header {
-          text-align: center;
-          padding: 20px;
-          border-bottom: 2px solid #333;
-          background: #f8f9fa;
-          color: #000;
-          margin-bottom: 20px;
-        }
-        .school-name {
-          font-size: 28px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .report-title {
-          font-size: 24px;
-          margin-bottom: 8px;
-        }
-        .report-date {
-          font-size: 16px;
-          color: #666;
-        }
-        .receipt-info {
-          background: #f8f9fa;
-          color: #000;
-          padding: 15px;
-          margin: 10px 0;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        .receipt-summary {
-          background: #f8f9fa;
-          color: #000;
-          padding: 15px;
-          margin: 10px 0;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-        }
-        .summary-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          gap: 20px;
-          margin-top: 15px;
-        }
-        .summary-item {
-          text-align: center;
-          padding: 15px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          background: #fff;
-        }
-        .summary-value {
-          font-size: 24px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .summary-label {
-          font-size: 14px;
-          color: #666;
-        }
-        .receipt-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 20px;
-          font-size: 12px;
-        }
-        .receipt-table th, .receipt-table td {
-          border: 1px solid #000;
-          padding: 8px;
-          text-align: left;
-          color: #000;
-          font-size: 11px;
-        }
-        .receipt-table th {
-          background: #f8f9fa;
-          font-weight: bold;
-        }
-        .amount-paid { color: #059669; font-weight: bold; }
-        .amount-pending { color: #dc2626; font-weight: bold; }
-        .amount-total { color: #000; font-weight: bold; }
-        .status-paid { color: #28a745; font-weight: bold; }
-        .status-partial { color: #ffc107; font-weight: bold; }
-        .status-unpaid { color: #dc3545; font-weight: bold; }
-        .status-overdue { color: #dc3545; font-weight: bold; }
-        .receipt-footer {
-          background: #f8f9fa;
-          color: #000;
-          padding: 15px;
-          margin-top: 20px;
-          border-top: 2px solid #333;
-          text-align: center;
-          font-size: 12px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="receipt-header">
-        <div class="school-name">School ERP System</div>
-        <div class="report-title">Fee Collection Report</div>
-        <div class="report-date">Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}</div>
-      </div>
-      
-      <div class="receipt-info">
-        <h3 style="margin: 0 0 10px 0;">Applied Filters:</h3>
-        <div style="font-weight: 500;">${getFilterText()}</div>
-      </div>
-      
-      <div class="receipt-summary">
-        <h3 style="margin: 0 0 15px 0;">Financial Summary:</h3>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <div class="summary-value">₹${formatCurrency(summaryData.value.totalAmount)}</div>
-            <div class="summary-label">Total Amount</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-value" style="color: #059669;">₹${formatCurrency(summaryData.value.totalCollected)}</div>
-            <div class="summary-label">Total Collected</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-value" style="color: #dc2626;">₹${formatCurrency(summaryData.value.totalPending)}</div>
-            <div class="summary-label">Total Pending</div>
-          </div>
-          <div class="summary-item">
-            <div class="summary-value" style="color: #2563eb;">${summaryData.value.collectionRate}%</div>
-            <div class="summary-label">Collection Rate</div>
-          </div>
-        </div>
-      </div>
-      
-      <table class="receipt-table">
-        <thead>
-          <tr>
-            <th>Invoice #</th>
-            <th>Student Name</th>
-            <th>Admission #</th>
-            <th>Class</th>
-            <th>Fee Type</th>
-            <th>Due Date</th>
-            <th>Total Amount</th>
-            <th>Paid Amount</th>
-            <th>Pending Amount</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${invoices.value.map(invoice => `
-            <tr>
-              <td>${invoice.invoice_number || 'N/A'}</td>
-              <td>${invoice.student?.first_name || ''} ${invoice.student?.last_name || ''}</td>
-              <td>${invoice.student?.admission_number || 'N/A'}</td>
-              <td>${invoice.student?.current_class || 'N/A'}${invoice.student?.section ? `-${invoice.student.section}` : ''}</td>
-              <td>${invoice.feeStructure?.feeType?.name || 'Monthly Fees'}</td>
-              <td>${formatDate(invoice.due_date)}</td>
-              <td class="amount-total">₹${formatCurrency(invoice.total_amount)}</td>
-              <td class="amount-paid">₹${formatCurrency(invoice.paid_amount)}</td>
-              <td class="amount-pending">₹${formatCurrency(invoice.balance_amount || 0)}</td>
-              <td class="status-${invoice.status}">${getStatusText(invoice.status)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="6" style="font-weight: bold;">Total:</td>
-            <td class="amount-total">₹${formatCurrency(summaryData.value.totalAmount)}</td>
-            <td class="amount-paid">₹${formatCurrency(summaryData.value.totalCollected)}</td>
-            <td class="amount-pending">₹${formatCurrency(summaryData.value.totalPending)}</td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-      
-      <div class="receipt-footer">
-        <p><strong>Report Generated by:</strong> ${authStore.user?.name || 'System'}</p>
-        <p><strong>Total Records:</strong> ${invoices.value.length}</p>
-        <p><strong>Generated on:</strong> ${new Date().toLocaleString('en-IN')}</p>
-      </div>
-    </body>
-    </html>
-  `;
-  
-  printWindow.document.write(printContent);
-  printWindow.document.close();
-  
-  // Wait for content to load then print
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 500);
+  return formattedInvoice;
 };
 
-const downloadDetailedReport = async () => {
-  try {
-    // Close dropdown first
-    closeDownloadDropdown();
-    
-    console.log('📊 Starting Excel download with filters:', filters);
-    
-    // First, ensure we have the latest data by fetching both report and summary
-    if (invoices.value.length === 0) {
-      console.log('📊 No data available, fetching report data first...');
-      await Promise.all([
-        fetchReport(),
-        fetchReportSummary()
-      ]);
-    }
-    
-    // Get current summary data
-    const currentSummary = summary.value;
-    const currentDate = new Date().toLocaleDateString('en-IN');
-    
-
-    
-    // Build query string from filters (using same logic as fetchReport)
-    const queryParams = new URLSearchParams();
-    
-    // Add basic filters
-    if (filters.student_search && filters.student_search.trim() !== '') {
-      queryParams.append('search', filters.student_search);
-    }
-    if (filters.status && filters.status.trim() !== '') {
-      queryParams.append('status', filters.status);
-    }
-    if (filters.branch_id && filters.branch_id.trim() !== '') {
-      queryParams.append('branch_id', filters.branch_id);
-    }
-    
-    // Add date parameters (using same logic as fetchReport)
-    if (filters.fromDate && filters.fromDate.trim() !== '') {
-      queryParams.append('from_date', filters.fromDate);
-    }
-    if (filters.toDate && filters.toDate.trim() !== '') {
-      queryParams.append('to_date', filters.toDate);
-    }
-    
-    // Add class name if selected
-    if (filters.class_id && filters.class_id !== '') {
-      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
-      if (selectedClass) {
-        queryParams.append('class_name', selectedClass.name);
-      }
-    }
-    
-    // Add section name if selected
-    if (filters.section_id && filters.section_id !== '') {
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        queryParams.append('section', selectedSection.name);
-      }
-    }
-    
-    // Add summary data to query params so backend can include it
-    queryParams.append('include_summary', 'true');
-    queryParams.append('summary_total_amount', currentSummary.totalAmount.toString());
-    queryParams.append('summary_total_collected', currentSummary.totalCollected.toString());
-    queryParams.append('summary_total_pending', currentSummary.totalPending.toString());
-    queryParams.append('summary_collection_rate', currentSummary.collectionRate.toString());
-    queryParams.append('summary_total_invoices', invoices.value.length.toString());
-    queryParams.append('summary_total_students', groupedInvoices.value.length.toString());
-    
-    console.log('📊 Excel download query params:', queryParams.toString());
-    
-    const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
-    
-    console.log('📊 Export response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      dataType: typeof response.data,
-      dataSize: response.data ? response.data.size || response.data.length : 'N/A'
-    });
-    
-    // Check if response is successful
-    if (!response || !response.data) {
-      throw new Error('No data received from server');
-    }
-    
-    // Check if response status indicates success
-    if (response.status !== 200) {
-      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
-    }
-    
-    // Create blob and download
-    const blob = new Blob([response.data], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fee-collection-report-${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showToast('Fee management report downloaded successfully', 'success');
-    console.log('✅ Excel download completed successfully');
-  } catch (error) {
-    console.error('❌ Error downloading Excel report:', error);
-    showToast('Error downloading fee management report', 'error');
-  }
+// Reusable function to format all invoices data for export
+const formatDataForExport = () => {
+  return invoices.value.map(invoice => formatInvoiceDataForExport(invoice));
 };
 
-const downloadCSVReport = async () => {
+// Unified download function following DRY principle
+const downloadReport = async (format) => {
   try {
-    // Close dropdown first
     closeDownloadDropdown();
     
-    console.log('📊 Starting CSV download with filters:', filters);
-    
-    // Check if we have any data to export
-    if (invoices.value.length === 0) {
-      console.log('📊 No invoices available, fetching data first...');
-      await Promise.all([
-        fetchReport(),
-        fetchReportSummary()
-      ]);
-      
-      if (invoices.value.length === 0) {
-        showToast('No data found for the selected filters', 'warning');
-        return;
-      }
-    }
-    
-    // First, ensure we have the latest data by fetching both report and summary
-    if (invoices.value.length === 0) {
-      console.log('📊 No data available, fetching report data first...');
-      await Promise.all([
-        fetchReport(),
-        fetchReportSummary()
-      ]);
-    }
-    
-    // Get current summary data
-    const currentSummary = summary.value;
-    
-    // Build query string from filters (using same logic as fetchReport)
-    const queryParams = new URLSearchParams();
-    
-    // Add basic filters
-    if (filters.student_search && filters.student_search.trim() !== '') {
-      queryParams.append('search', filters.student_search);
-    }
-    if (filters.status && filters.status.trim() !== '') {
-      queryParams.append('status', filters.status);
-    }
-    if (filters.branch_id && filters.branch_id.trim() !== '') {
-      queryParams.append('branch_id', filters.branch_id);
-    }
-    
-    // Add date parameters (using same logic as fetchReport)
-    if (filters.fromDate && filters.fromDate.trim() !== '') {
-      queryParams.append('from_date', filters.fromDate);
-    }
-    if (filters.toDate && filters.toDate.trim() !== '') {
-      queryParams.append('to_date', filters.toDate);
-    }
-    
-    // Add class name if selected
-    if (filters.class_id && filters.class_id !== '') {
-      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
-      if (selectedClass) {
-        queryParams.append('class_name', selectedClass.name);
-      }
-    }
-    
-    // Add section name if selected
-    if (filters.section_id && filters.section_id !== '') {
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        queryParams.append('section', selectedSection.name);
-      }
-    }
-    
-    // Add format parameter for CSV
-    queryParams.append('format', 'csv');
-    
-    console.log('📊 CSV download query params:', queryParams.toString());
-    
-    const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
-    
-    console.log('📊 CSV Export response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      dataType: typeof response.data,
-      dataSize: response.data ? response.data.size || response.data.length : 'N/A',
-      responseKeys: response.data ? Object.keys(response.data) : 'N/A'
-    });
-    
-    // Check if response is successful
-    if (!response || !response.data) {
-      throw new Error('No data received from server');
-    }
-    
-    // Check if response status indicates success
-    if (response.status !== 200) {
-      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
-    }
-    
-    // Additional check for empty data
-    if (response.data.size === 0 || response.data.length === 0) {
-      console.warn('⚠️ CSV response data is empty');
-      
-      // Try to get JSON response to see what's happening
-      try {
-        const jsonResponse = await apiClient.feeInvoices.exportReport(queryParams.toString().replace('format=csv', 'format=json'));
-        console.log('📊 JSON response for debugging:', jsonResponse);
-      } catch (jsonError) {
-        console.error('❌ JSON fallback also failed:', jsonError);
-      }
-      
-      showToast('No data found for the selected filters', 'warning');
+    if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
       return;
     }
     
-    // Create blob and download
-    const blob = new Blob([response.data], { 
-      type: 'text/csv;charset=utf-8;' 
+    const exportFilters = {
+      from_date: filters.fromDate,
+      to_date: filters.toDate,
+      school_id: filters.school_id,
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      stream_id: filters.stream_id,
+      section_id: filters.section_id,
+      status: filters.status,
+      payment_method: filters.payment_method,
+      search: filters.student_search
+    };
+
+    // Remove undefined values
+    Object.keys(exportFilters).forEach(key => {
+      if (exportFilters[key] === undefined || exportFilters[key] === '') {
+        delete exportFilters[key];
+      }
     });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fee-collection-report-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+
+    const selectedColumns = displayedColumns.value.map(col => ({
+      key: col.key,
+      header: col.label
+    }));
     
-    showToast('CSV report downloaded successfully', 'success');
-    console.log('✅ CSV download completed successfully');
+    await generateReport({
+      report_type: 'fees',
+      format,
+      filters: exportFilters,
+      columns: selectedColumns
+    });
+    
   } catch (error) {
-    console.error('❌ Error downloading CSV report:', error);
-    showToast('Error downloading CSV report', 'error');
+    showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
   }
 };
 
-const generatePDFContent = () => {
-  // Get current filter values for the report header
-  const getFilterText = () => {
-    const filterTexts = [];
-    
-    // Date range
-    if (filters.dateRange && filters.dateRange !== 'all_time') {
-      if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
-        filterTexts.push(`Date Range: ${formatDate(filters.fromDate)} to ${formatDate(filters.toDate)}`);
-      } else {
-        filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
-      }
-    }
-    
-    // School (for super admin)
-    if (filters.school_id && authStore.user?.role === 'super_admin') {
-      const school = schools.value.find(s => s.id === filters.school_id);
-      if (school) filterTexts.push(`School: ${school.name}`);
-    }
-    
-    // Branch
-    if (filters.branch_id) {
-      const branch = branches.value.find(b => b.id === filters.branch_id);
-      if (branch) filterTexts.push(`Branch: ${branch.name}`);
-    }
-    
-    // Class
-    if (filters.class_id) {
-      const classItem = classes.value.find(c => c.id === filters.class_id);
-      if (classItem) filterTexts.push(`Class: ${classItem.name}`);
-    }
-    
-    // Section
-    if (filters.section_id) {
-      const section = sections.value.find(s => s.id === filters.section_id);
-      if (section) filterTexts.push(`Section: ${section.name}`);
-    }
-    
-    // Stream
-    if (filters.stream_id) {
-      const stream = streams.value.find(s => s.id === filters.stream_id);
-      if (stream) filterTexts.push(`Stream: ${stream.name}`);
-    }
-    
-    // Status
-    if (filters.status && filters.status !== 'all') {
-      filterTexts.push(`Status: ${filters.status.toUpperCase()}`);
-    }
-    
-    // Payment method
-    if (filters.payment_method && filters.payment_method !== 'all') {
-      filterTexts.push(`Payment Method: ${filters.payment_method.toUpperCase()}`);
-    }
-    
-    // Student search
-    if (filters.student_search) {
-      filterTexts.push(`Student Search: ${filters.student_search}`);
-    }
-    
-    return filterTexts.length > 0 ? filterTexts.join(' | ') : 'All Records';
-  };
+const downloadPDFReport = () => downloadReport('pdf');
+const downloadExcelReport = () => downloadReport('excel');
+const downloadCSVReport = () => downloadReport('csv');
 
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Fee Collection Report</title>
-      <style>
-        @page {
-          size: A4;
-          margin: 1cm;
-        }
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 20px;
-          color: #333;
-          line-height: 1.4;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #333;
-          padding-bottom: 20px;
-        }
-        .school-name {
-          font-size: 28px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .report-title {
-          font-size: 24px;
-          margin-bottom: 8px;
-        }
-        .report-date {
-          font-size: 16px;
-          color: #666;
-        }
-        .filters {
-          margin-bottom: 25px;
-          padding: 15px;
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        .summary-cards {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
-          gap: 15px;
-        }
-        .summary-card {
-          flex: 1;
-          padding: 20px;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          text-align: center;
-          background-color: #fff;
-        }
-        .summary-value {
-          font-size: 28px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .summary-label {
-          font-size: 14px;
-          color: #666;
-          font-weight: 500;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 25px;
-          font-size: 12px;
-        }
-        th, td {
-          border: 1px solid #dee2e6;
-          padding: 10px 8px;
-          text-align: left;
-        }
-        th {
-          background-color: #f8f9fa;
-          font-weight: bold;
-          color: #495057;
-        }
-        .status-paid { color: #28a745; font-weight: bold; }
-        .status-partial { color: #ffc107; font-weight: bold; }
-        .status-unpaid { color: #dc3545; font-weight: bold; }
-        .status-overdue { color: #dc3545; font-weight: bold; }
-        .footer {
-          margin-top: 30px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          border-top: 1px solid #dee2e6;
-          padding-top: 15px;
-        }
-        @media print {
-          body { margin: 0; padding: 15px; }
-          .no-print { display: none; }
-          .summary-cards { page-break-inside: avoid; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="school-name">School ERP System</div>
-        <div class="report-title">Fee Collection Report</div>
-        <div class="report-date">Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}</div>
-      </div>
-      
-      <div class="filters">
-        <strong>Applied Filters:</strong> ${getFilterText()}
-      </div>
-      
-      <div class="summary-cards">
-        <div class="summary-card">
-          <div class="summary-value">₹${formatCurrency(summaryData.value.totalAmount)}</div>
-          <div class="summary-label">Total Amount</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value">₹${formatCurrency(summaryData.value.totalCollected)}</div>
-          <div class="summary-label">Total Collected</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value">₹${formatCurrency(summaryData.value.totalPending)}</div>
-          <div class="summary-label">Total Pending</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value">${summaryData.value.collectionRate}%</div>
-          <div class="summary-label">Collection Rate</div>
-        </div>
-      </div>
-      
-      <table>
-        <thead>
-          <tr>
-            <th>Invoice</th>
-            <th>Student</th>
-            <th>Class</th>
-            <th>Fee Type</th>
-            <th>Amount</th>
-            <th>Paid</th>
-            <th>Due Date</th>
-            <th>Days Overdue</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${invoices.value.map(invoice => `
-            <tr>
-              <td>${invoice.invoice_number || invoice.id}</td>
-              <td>${invoice.student?.first_name ? `${invoice.student.first_name} ${invoice.student.last_name || ''}` : 'N/A'}</td>
-              <td>${invoice.student?.current_class || 'N/A'}</td>
-              <td>${invoice.fee_structure?.fee_type?.name || invoice.fee_type_name || 'N/A'}</td>
-              <td>₹${formatCurrency(invoice.total_amount)}</td>
-              <td>₹${formatCurrency(invoice.paid_amount)}</td>
-              <td>${formatDate(invoice.due_date)}</td>
-              <td>${getDaysOverdue(invoice.due_date)}</td>
-              <td class="status-${invoice.status}">${getStatusText(invoice.status)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      
-      <div class="footer">
-        Total Records: ${invoices.value.length} | Generated on: ${new Date().toLocaleString('en-IN')}
-      </div>
-    </body>
-    </html>
-  `;
-};
-
-const downloadPDFReport = async () => {
+const printFeesReport = async () => {
   try {
-    // Close dropdown first
-    closeDownloadDropdown();
+    if (!validateColumnVisibility('print')) {
+      return;
+    }
     
-    // Generate PDF content
-    const pdfContent = generatePDFContent();
+    // Fetch all data for printing (similar to receipts page)
+    if (invoices.value.length === 0) {
+      showToast('No data to print. Please load some invoices first.', 'warning');
+      return;
+    } 
     
-    // Create a new window with the PDF content
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(pdfContent);
-    printWindow.document.close();
+    const formattedData = invoices.value.map(invoice => formatInvoiceDataForExport(invoice));
     
-    // Wait for content to load, then trigger print
-    printWindow.onload = () => {
-      // Use browser's print to PDF functionality
-      printWindow.print();
-      
-      // Close the window after printing
-      setTimeout(() => {
-        printWindow.close();
-      }, 1000);
+    const reportData = {
+      title: 'Fee Invoices Report',
+      data: formattedData,
+      columns: displayedColumns.value.map(col => ({
+        key: col.key,
+        header: col.label
+      })),
+      filters: {
+        'Date Range': filters.dateRange,
+        'From Date': filters.dateRange === 'custom' ? formatDate(filters.fromDate) : 'N/A',
+        'To Date': filters.dateRange === 'custom' ? formatDate(filters.toDate) : 'N/A',
+        'Status': filters.status || 'All Status',
+        'Payment Method': filters.payment_method || 'All Methods',
+        'Search': filters.student_search || 'None'
+      },
+      totalRecords: invoices.value.length,
+      reportType: 'fees'
     };
     
-    showToast('PDF report opened for printing/download', 'success');
+    await printReportCommon(reportData, {
+      showHeader: true,
+      showSummary: true,
+      showFilters: true,
+      showFooter: true,
+      autoPrint: true
+    });
   } catch (error) {
-    console.error('Error generating PDF report:', error);
-    showToast('Error generating PDF report', 'error');
+    showToast('Error printing report', 'error');
   }
 };
 
+// Column management methods
+const toggleColumnSelector = () => {
+  showColumnSelector.value = !showColumnSelector.value;
+};
 
+const selectAllColumns = () => {
+  availableColumns.value.forEach(col => col.visible = true);
+};
+
+const deselectAllColumns = () => {
+  availableColumns.value.forEach(col => col.visible = false);
+};
+
+const toggleColumnVisibility = (index) => {
+  availableColumns.value[index].visible = !availableColumns.value[index].visible;
+};
+
+// Helper function to check if a column is visible
+const isColumnVisible = (columnKey) => {
+  const column = availableColumns.value.find(col => col.key === columnKey);
+  return column ? column.visible : false;
+};
+
+// Common method to validate column visibility for exports
+const validateColumnVisibility = (action = 'export') => {
+  if (displayedColumns.value.length === 0) {
+    showToast(`No columns selected. Please select at least one column to ${action}.`, 'warning');
+    return false;
+  }
+  return true;
+};
+
+// Common method to validate data availability for exports
+const validateDataAvailability = (action = 'export') => {
+  if (invoices.value.length === 0) {
+    showToast(`No data available to ${action}. Please load some invoices first.`, 'warning');
+    return false;
+  }
+  return true;
+};
 
 const viewInvoice = (invoice) => {
   // Navigate to student's fee ledger page instead of individual invoice
@@ -2242,8 +1693,6 @@ const viewInvoice = (invoice) => {
   }
 };
 
-
-
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPagesForGroups.value) {
     currentPage.value = page;
@@ -2254,8 +1703,6 @@ const onPageSizeChange = (newPageSize) => {
   pageSize.value = newPageSize;
   currentPage.value = 1; // Reset to first page when page size changes
 };
-
-
 
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
@@ -2308,9 +1755,11 @@ const handleClickOutside = (event) => {
   if (dropdown && !dropdown.contains(event.target)) {
     closeDownloadDropdown();
   }
+  const columnSelector = document.querySelector('.column-selector-dropdown');
+  if (columnSelector && !columnSelector.contains(event.target)) {
+    showColumnSelector.value = false;
+  }
 };
-
-// Remove automatic report generation - user must click "Apply Filters"
 
 // Watch pageSize to ensure it's always a number
 watch(pageSize, (newValue) => {
@@ -2334,7 +1783,8 @@ onMounted(async () => {
       fetchBranches(),
       fetchClasses(),
       fetchStreams(),
-      fetchSections()
+      fetchSections(),
+      fetchFeeTypes()
     ]);
     
     // Set default date range

@@ -60,13 +60,60 @@ const upsertSession = async (req, res, next) => {
 // Save attendance records for a session
 const saveRecords = async (req, res, next) => {
   try {
-    const { session_id, records } = req.body;
+    const { session_id, records, publish } = req.body;
     if (!session_id || !Array.isArray(records)) {
       throw new ApiError(httpStatus.default.BAD_REQUEST, 'session_id and records[] are required');
     }
 
     const session = await AttendanceSession.findOne({ where: { id: session_id, school_id: req.schoolId } });
     if (!session) throw new ApiError(httpStatus.default.NOT_FOUND, 'Attendance session not found');
+
+    // Check if it's a working day (if academic calendar is enabled)
+    try {
+      const { AcademicCalendar } = require('../models');
+      const calendarEntry = await AcademicCalendar.findOne({
+        where: {
+          date: session.date,
+          school_id: req.schoolId,
+          branch_id: session.branch_id
+        }
+      });
+
+      if (calendarEntry && calendarEntry.day_type !== 'working') {
+        throw new ApiError(httpStatus.default.BAD_REQUEST, `Attendance cannot be marked on ${calendarEntry.day_type} days`);
+      }
+    } catch (calendarError) {
+      // If academic calendar is not set up, continue with basic weekend check
+      const dayOfWeek = new Date(session.date).getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+      
+      if (isWeekend) {
+        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Attendance cannot be marked on weekends');
+      }
+    }
+
+    // Check cut-off time for publishing (configurable, default 4 PM)
+    if (publish === true) {
+      const currentTime = new Date();
+      const sessionDate = new Date(session.date);
+      const cutoffTime = new Date(sessionDate);
+      cutoffTime.setHours(16, 0, 0, 0); // 4 PM
+
+      if (currentTime > cutoffTime) {
+        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Attendance cannot be published after 4:00 PM. Please contact admin for late submissions.');
+      }
+    }
+
+    // Check edit time limit (24 hours for published sessions)
+    if (session.status === 'published') {
+      const sessionTime = new Date(session.updated_at || session.created_at);
+      const currentTime = new Date();
+      const hoursDiff = (currentTime - sessionTime) / (1000 * 60 * 60);
+      
+      if (hoursDiff > 24) {
+        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Published attendance cannot be edited after 24 hours');
+      }
+    }
 
     const bulk = records.map(r => ({
       session_id,
@@ -89,7 +136,7 @@ const saveRecords = async (req, res, next) => {
     }
 
     // Optionally publish
-    if (req.body.publish === true) {
+    if (publish === true) {
       await session.update({ status: 'published', updated_by: req.user.id });
     }
 

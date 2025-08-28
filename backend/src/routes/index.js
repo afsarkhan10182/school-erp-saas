@@ -12,12 +12,14 @@ const feeStructureRoutes = require('./fee-structure.routes');
 const feeInvoiceRoutes = require('./fee-invoice.routes');
 
 const academicYearRoutes = require('./academic-year.routes');
+const academicCalendarRoutes = require('./academic-calendar.routes');
 const classRoutes = require('./class.routes');
 const sectionRoutes = require('./section.routes');
 const streamRoutes = require('./stream.routes');
 const attendanceRoutes = require('./attendance.routes');
 const attendanceNotificationRoutes = require('./attendance-notification.routes');
 const templateRoutes = require('./template.routes');
+const exportRoutes = require('./export.routes');
 
 const router = express.Router();
 
@@ -41,6 +43,7 @@ router.use('/fee-invoices', feeInvoiceRoutes);
 
 // Academic Management routes
 router.use('/academic-years', academicYearRoutes);
+router.use('/academic-calendar', academicCalendarRoutes);
 router.use('/classes', classRoutes);
 router.use('/sections', sectionRoutes);
 router.use('/streams', streamRoutes);
@@ -53,5 +56,8 @@ router.use('/attendance-notifications', attendanceNotificationRoutes);
 
 // Template routes
 router.use('/templates', templateRoutes);
+
+// Export routes
+router.use('/export', exportRoutes);
 
 module.exports = router;

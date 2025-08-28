@@ -74,7 +74,7 @@ export const useAttendance = () => {
         ...filters
       }
       
-      const response = await apiClient.attendance.listSessions(params)
+      const response = await apiClient.attendance.listSessions(params) as any
       const data = response.data || []
       const total = response.pagination?.total || data.length
       
@@ -167,8 +167,8 @@ export const useAttendance = () => {
         params.section_id = sectionId
       }
       
-      const response = await apiClient.students.getAll(params)
-      const data = response.data?.rows || response.data || []
+      const response = await apiClient.students.getAll(params) as any
+      const data = response.data || []
       
       students.value = data
       

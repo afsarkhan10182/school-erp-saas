@@ -127,8 +127,8 @@ const localFilters = ref({
 // Status options for attendance
 const statusOptions = [
   { label: 'All Statuses', value: '' },
-  { label: 'Draft', value: 'draft' },
-  { label: 'Published', value: 'published' }
+  { label: 'Draft (Can Edit)', value: 'draft' },
+  { label: 'Published (Final)', value: 'published' }
 ]
 
 
