@@ -29,12 +29,10 @@ export const formatDate = (date: any): string => {
   try {
     const dateObj = new Date(date)
     if (isNaN(dateObj.getTime())) {
-      console.warn('Invalid date value:', date)
       return 'Invalid Date'
     }
     return dateObj.toLocaleDateString('en-IN')
   } catch (e) {
-    console.error('Error formatting date:', e, 'Date value:', date)
     return 'Invalid Date'
   }
 }

@@ -182,7 +182,7 @@ export const useModulesStore = defineStore('modules', {
         // this.modules = response.data.modules;
         // this.roles = response.data.roles;
       } catch (error) {
-        console.error('Error fetching modules:', error);
+        // Error handling
       } finally {
         this.isLoading = false;
       }
@@ -226,7 +226,6 @@ export const useModulesStore = defineStore('modules', {
           roles: this.roles,
         }));
       } catch (error) {
-        console.error('Error saving module settings:', error);
         throw error;
       }
     },
@@ -240,7 +239,7 @@ export const useModulesStore = defineStore('modules', {
           this.roles = settings.roles || this.roles;
         }
       } catch (error) {
-        console.error('Error loading module settings:', error);
+        // Error handling
       }
     },
   },

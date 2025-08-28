@@ -289,14 +289,7 @@ const props = defineProps({
   }
 });
 
-// Debug logging for props
-console.log('📋 InvoiceTable props:', {
-  invoices: props.invoices || [],
-  groupedInvoices: props.groupedInvoices || [],
-  viewMode: props.viewMode || 'grouped',
-  isLoading: props.isLoading || false,
-  totalInvoices: props.totalInvoices || 0
-});
+// Props received
 
 const emit = defineEmits(['view-invoice', 'record-payment', 'generate-receipt', 'view-receipt', 'view-combined-receipt']);
 
@@ -407,7 +400,6 @@ const updateInvoiceAfterPayment = (studentId, invoiceId, updatedInvoiceData) => 
 const updateStudentSummary = (studentData) => {
   // Add null checks to prevent unmounting errors
   if (!studentData || !studentData.ungrouped_invoices || !studentData.grouped_invoices || !studentData.summary) {
-    console.log('❌ Student data missing required properties for summary update');
     return;
   }
   
@@ -521,18 +513,10 @@ const loadStudentDetails = async (studentId) => {
     
     if (response.success && response.data) {
       studentDetails.value[studentId] = response.data;
-      console.log('🔍 Student details loaded:', {
-        studentId,
-        totalInvoices: response.data.summary?.total_invoices,
-        paidCount: response.data.summary?.paid_count,
-        ungroupedInvoices: response.data.ungrouped_invoices?.length,
-        groupedInvoices: response.data.grouped_invoices?.length
-      });
     } else {
       throw new Error(response.message || 'Failed to load invoice details');
     }
   } catch (error) {
-    console.error('Error loading student details:', error);
     detailErrors.value[studentId] = error.message || 'Failed to load invoice details';
   } finally {
     if (loadingDetails.value) {
@@ -814,11 +798,6 @@ const canGenerateReceipt = (invoice) => {
 };
 
 const viewInvoice = (invoice, studentId = null) => {
-  console.log('🔍 InvoiceTable: viewInvoice called with invoice:', invoice);
-  console.log('🔍 InvoiceTable: invoice.student:', invoice.student);
-  console.log('🔍 InvoiceTable: invoice.student_id:', invoice.student_id);
-  console.log('🔍 InvoiceTable: studentId from context:', studentId);
-  
   // If we have a studentId from context, use it; otherwise try to get it from the invoice
   const finalStudentId = studentId || invoice.student?.id || invoice.student_id;
   

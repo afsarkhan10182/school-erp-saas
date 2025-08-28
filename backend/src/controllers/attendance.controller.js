@@ -5,6 +5,7 @@ const { logger } = require('../utils/logger');
 const { AttendanceSession, AttendanceRecord, Student, Parent, Class, Section } = require('../models');
 const { sendSMS } = require('../utils/sms');
 const attendanceExportService = require('../services/attendance-export.service');
+const AttendanceValidationService = require('../services/attendance-validation.service');
 
 // Create or get an attendance session for a class/section/date/period
 const upsertSession = async (req, res, next) => {
@@ -68,79 +69,109 @@ const saveRecords = async (req, res, next) => {
     const session = await AttendanceSession.findOne({ where: { id: session_id, school_id: req.schoolId } });
     if (!session) throw new ApiError(httpStatus.default.NOT_FOUND, 'Attendance session not found');
 
-    // Check if it's a working day (if academic calendar is enabled)
-    try {
-      const { AcademicCalendar } = require('../models');
-      const calendarEntry = await AcademicCalendar.findOne({
-        where: {
-          date: session.date,
-          school_id: req.schoolId,
-          branch_id: session.branch_id
-        }
-      });
+    // Use comprehensive validation service with soft enforcement
+    const settings = await AttendanceValidationService.validateAttendanceSubmission(
+      req.schoolId, 
+      session.date, 
+      records, 
+      publish
+    );
 
-      if (calendarEntry && calendarEntry.day_type !== 'working') {
-        throw new ApiError(httpStatus.default.BAD_REQUEST, `Attendance cannot be marked on ${calendarEntry.day_type} days`);
-      }
-    } catch (calendarError) {
-      // If academic calendar is not set up, continue with basic weekend check
-      const dayOfWeek = new Date(session.date).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-      
-      if (isWeekend) {
-        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Attendance cannot be marked on weekends');
-      }
-    }
-
-    // Check cut-off time for publishing (configurable, default 4 PM)
-    if (publish === true) {
-      const currentTime = new Date();
-      const sessionDate = new Date(session.date);
-      const cutoffTime = new Date(sessionDate);
-      cutoffTime.setHours(16, 0, 0, 0); // 4 PM
-
-      if (currentTime > cutoffTime) {
-        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Attendance cannot be published after 4:00 PM. Please contact admin for late submissions.');
-      }
-    }
-
-    // Check edit time limit (24 hours for published sessions)
+    // Check edit time limit for published sessions (soft enforcement with grace mode)
     if (session.status === 'published') {
-      const sessionTime = new Date(session.updated_at || session.created_at);
-      const currentTime = new Date();
-      const hoursDiff = (currentTime - sessionTime) / (1000 * 60 * 60);
-      
-      if (hoursDiff > 24) {
-        throw new ApiError(httpStatus.default.BAD_REQUEST, 'Published attendance cannot be edited after 24 hours');
+      try {
+        await AttendanceValidationService.validateWithGraceMode(
+          AttendanceValidationService.validateEditTimeLimit,
+          'editTimeLimit',
+          session.date,
+          settings
+        );
+      } catch (editError) {
+        // Log the violation but don't block if enforcement is disabled
+        await AttendanceValidationService.logAttendanceAction('edit_time_limit_violation', {
+          session_id,
+          user_id: req.user.id,
+          error: editError.message
+        }, settings);
+        
+        // Only throw error if enforcement is enabled and not in grace mode
+        if (settings.attendanceSettings?.validationRules?.enforceEditTimeLimit === true) {
+          throw new ApiError(400, '⚠️ This action is outside school policy. Your admin may review this change.');
+        }
       }
     }
 
-    const bulk = records.map(r => ({
-      session_id,
-      student_id: r.student_id,
-      date: session.date,
-      status: r.status,
-      remarks: r.remarks || null,
-      class_id: session.class_id,
-      section_id: session.section_id,
-      stream_id: session.stream_id,
-      school_id: session.school_id,
+    // Process attendance records with soft validation and grace mode
+    const processedRecords = records.map(record => {
+      try {
+        // Validate attendance status
+        AttendanceValidationService.validateAttendanceStatus(
+          record.status, 
+          record.remarks, 
+          settings
+        );
+      } catch (validationError) {
+        // Log validation violations
+        AttendanceValidationService.logAttendanceAction('validation_violation', {
+          session_id,
+          student_id: record.student_id,
+          status: record.status,
+          remarks: record.remarks,
+          error: validationError.message
+        }, settings);
+        
+        // Only throw error if enforcement is enabled and not in grace mode
+        if (settings.attendanceSettings?.validationRules?.enforceRemarksForAbsent === true ||
+            settings.attendanceSettings?.validationRules?.enforceRemarksForLate === true) {
+          throw new ApiError(400, '⚠️ This action is outside school policy. Your admin may review this change.');
+        }
+      }
+      
+      return {
+        ...record,
+        status: record.status,
+        remarks: record.remarks || ''
+      };
+    });
+
+    // Bulk upsert attendance records
+    await AttendanceRecord.bulkCreate(processedRecords.map(record => ({
+      session_id: session_id,
+      student_id: record.student_id,
+      date: session.date, // Add the date from the session
+      status: record.status,
+      remarks: record.remarks,
+      school_id: req.schoolId,
       branch_id: session.branch_id,
+      class_id: session.class_id, // Add class_id from session
+      section_id: session.section_id, // Add section_id from session
       created_by: req.user.id,
-      updated_by: req.user.id,
-    }));
+      updated_by: req.user.id
+    })), {
+      updateOnDuplicate: ['status', 'remarks', 'updated_by', 'updated_at']
+    });
 
-    // Upsert by unique (session_id, student_id)
-    for (const rec of bulk) {
-      await AttendanceRecord.upsert(rec);
+    // Update session status if publishing
+    if (publish && session.status !== 'published') {
+      await session.update({
+        status: 'published',
+        updated_by: req.user.id
+      });
     }
 
-    // Optionally publish
-    if (publish === true) {
-      await session.update({ status: 'published', updated_by: req.user.id });
-    }
+    // Log successful attendance action
+    await AttendanceValidationService.logAttendanceAction('attendance_saved', {
+      session_id,
+      records_count: processedRecords.length,
+      published: publish,
+      user_id: req.user.id
+    }, settings);
 
-    return res.status(httpStatus.default.OK).json({ success: true });
+    return res.status(httpStatus.default.OK).json({
+      success: true,
+      message: publish ? 'Attendance published successfully' : 'Attendance saved successfully',
+      data: { session_id, records_count: processedRecords.length }
+    });
   } catch (error) {
     logger.error('Error saving attendance records:', error);
     return next(error);

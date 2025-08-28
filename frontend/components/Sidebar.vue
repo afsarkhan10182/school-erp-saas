@@ -10,7 +10,7 @@
   <!-- Sidebar -->
   <div 
     :class="[
-      'sidebar-container fixed inset-y-0 left-0 z-[9999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      'sidebar-container fixed inset-y-0 left-0 z-[99999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
       sidebarClasses,
       'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
@@ -71,7 +71,7 @@
         <!-- Navigation Menu Items -->
         <template v-for="menuGroup in visibleMenuGroups" :key="menuGroup.id">
           <!-- Menu Group Header -->
-          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider sidebar-group-header">
             {{ menuGroup.title }}
           </div>
           
@@ -81,7 +81,7 @@
             <div v-if="menuItem.children" class="space-y-1 relative group">
               <div 
                 :class="[navClass(''), menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
-                @click="open ? toggleMenu(menuItem.id) : null"
+                @click="toggleMenu(menuItem.id)"
               >
                 <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
                 <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
@@ -152,7 +152,7 @@
                     <div v-if="subItem.children" class="space-y-1">
                       <div 
                         :class="[navClass(''), subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
-                        @click="open ? toggleSubMenu(subItem.id) : null"
+                        @click="toggleSubMenu(subItem.id)"
                       >
                         <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                         <span class="flex-1">{{ subItem.title }}</span>
@@ -493,14 +493,12 @@ const subNavClass = (path) => {
 };
 
 const handleMenuClick = (path, event) => {
-  // Handle middle click or Ctrl/Cmd + click to open in new tab
   if (event.button === 1 || ((event.ctrlKey || event.metaKey) && event.type === 'click')) {
     event.preventDefault();
     window.open($router.resolve(path).href, '_blank');
     return;
   }
 
-  // For normal clicks, close the sidebar if on mobile
   if (isMobile.value) {
     emit('toggle');
   }
@@ -515,33 +513,18 @@ let mql;
 
 // Computed sidebar classes to avoid hydration issues
 const sidebarClasses = computed(() => {
-  // On server, always render in a consistent collapsed state
-  if (import.meta.server) {
-    return 'w-16 translate-x-0'; // Stable collapsed state for SSR
-  }
-  
-  // On client, apply dynamic classes
   if (isMobile.value) {
     return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full';
-  } else {
-    return props.open ? 'w-64' : 'w-16';
   }
+  return props.open ? 'w-64' : 'w-16';
 });
 
 const checkMobile = () => {
   if (import.meta.client) {
     const newIsMobile = window.innerWidth < 768;
     if (newIsMobile !== isMobile.value) {
-      // On desktop (non-mobile), always keep the menu open
-      // On mobile, always close it initially
       emit('toggle', !newIsMobile);
-      
-      // Prevent body scroll when sidebar is open on mobile
-      if (newIsMobile && props.open) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
+      document.body.style.overflow = newIsMobile && props.open ? 'hidden' : '';
     }
   }
 };
@@ -641,12 +624,64 @@ nav {
 }
 
 /* Prevent any content from appearing above sidebar */
-.z-\[9999\] {
-  z-index: 9999 !important;
+.z-\[99999\] {
+  z-index: 99999 !important;
+}
+
+/* Ensure sidebar stays on top during all states */
+.sidebar-container {
+  position: fixed !important;
+  z-index: 99999 !important;
+  isolation: isolate;
 }
 
 /* Ensure proper stacking context */
 .flex {
   position: relative;
+}
+
+/* Prevent overlapping during hydration */
+.sidebar-container {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Ensure proper mobile positioning */
+@media (max-width: 767px) {
+  .sidebar-container {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar-container.w-\[280px\].translate-x-0 {
+    transform: translateX(0);
+  }
+}
+
+/* Add transition delay to prevent flash during hydration */
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-container {
+    transition-delay: 0.05s;
+  }
+}
+
+/* FIX: Disable pointer events on overlapping labels when sidebar is collapsed */
+.sidebar-container:not(.w-64) .sidebar-group-header {
+  pointer-events: none;
+}
+
+/* Ensure menu items remain clickable when collapsed */
+.sidebar-container:not(.w-64) nav a,
+.sidebar-container:not(.w-64) nav button,
+.sidebar-container:not(.w-64) nav div[class*="flex items-center"] {
+  pointer-events: auto;
+}
+
+/* Ensure proper hover states for menu items */
+nav div[class*="flex items-center"]:hover {
+  background-color: rgb(243 244 246);
+}
+
+.dark nav div[class*="flex items-center"]:hover {
+  background-color: rgb(55 65 81);
 }
 </style>

@@ -395,19 +395,10 @@ const filteredSchools = computed(() => {
 });
 
 const filteredMonthlyFeeStructures = computed(() => {
-  console.log('🔍 Props monthlyFeeStructures:', props.monthlyFeeStructures);
-  console.log('🔍 User context:', {
-    role: userRole.value,
-    branch: userBranch.value,
-    currentUser: authStore.currentUser
-  });
   return Array.isArray(props.monthlyFeeStructures) ? props.monthlyFeeStructures : [];
 });
 
 const availableFeeStructures = computed(() => {
-  console.log('🔍 Computing available fee structures for payment model:', form.payment_model);
-  console.log('🔍 Raw fee structures:', filteredMonthlyFeeStructures.value);
-  
   if (form.payment_model === 'monthly') {
     const structures = filteredMonthlyFeeStructures.value
       .filter(structure => structure.payment_model === 'monthly')
@@ -423,7 +414,6 @@ const availableFeeStructures = computed(() => {
         branch_id: structure.branch_id || structure.branch?.id, // Ensure branch_id is available
       }));
     
-    console.log('📚 Monthly fee structures:', structures);
     return structures;
   } else if (form.payment_model === 'installment') {
     const structures = filteredMonthlyFeeStructures.value
@@ -440,7 +430,6 @@ const availableFeeStructures = computed(() => {
         branch_id: structure.branch_id || structure.branch?.id, // Ensure branch_id is available
       }));
     
-    console.log('📚 Installment fee structures:', structures);
     return structures;
   }
   return [];
@@ -472,8 +461,6 @@ const fetchStudents = async () => {
       return;
     }
     
-    console.log('🔍 Fetching students for fee structure:', selectedStructure);
-    
     // Build params for student filtering
     const params = {
       branch_id: selectedStructure.branch_id,
@@ -487,7 +474,6 @@ const fetchStudents = async () => {
     
     // If fee structure has applicable_classes (array), we need to fetch students for each class
     if (selectedStructure.applicable_classes && selectedStructure.applicable_classes.length > 0) {
-      console.log('📚 Fee structure has applicable classes:', selectedStructure.applicable_classes);
       // Fetch students for all applicable classes
       const allStudents = [];
       
@@ -498,7 +484,6 @@ const fetchStudents = async () => {
           const classId = classItem?.id;
           
           if (!classId) {
-            console.warn(`⚠️ No class ID found for class name: ${className}`);
             continue;
           }
           
@@ -506,7 +491,6 @@ const fetchStudents = async () => {
           if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
             for (const streamId of selectedStructure.stream_ids) {
               const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
-              console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) and stream ${streamId} with params:`, streamParams);
               const response = await apiClient.students.getAll(streamParams);
               
               // Handle different response structures
@@ -521,15 +505,11 @@ const fetchStudents = async () => {
               
               if (students.length > 0) {
                 allStudents.push(...students);
-                console.log(`✅ Found ${students.length} students for class ${className} and stream ${streamId}`);
-              } else {
-                console.log(`⚠️ No students found for class ${className} and stream ${streamId}`);
               }
             }
           } else {
             // No streams, fetch all students for the class
             const classParams = { ...params, class_id: classId, limit: 1000 };
-            console.log(`🔍 Fetching students for class ${className} (ID: ${classId}) with params:`, classParams);
             const response = await apiClient.students.getAll(classParams);
             
             // Handle different response structures
@@ -544,26 +524,20 @@ const fetchStudents = async () => {
             
             if (students.length > 0) {
               allStudents.push(...students);
-              console.log(`✅ Found ${students.length} students for class ${className}`);
-            } else {
-              console.log(`⚠️ No students found for class ${className}`);
             }
           }
         } catch (error) {
-          console.error(`❌ Error fetching students for class ${className}:`, error);
+          // Error handling
         }
       }
       
       availableStudents.value = allStudents;
-      console.log(`✅ Total: Fetched ${allStudents.length} students from ${selectedStructure.applicable_classes.length} applicable classes`);
-      console.log('📊 Student details:', allStudents.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
     } else {
       // Use single class_name - find the class ID
       const classItem = props.classes?.find(c => c.name === selectedStructure.class_name);
       const classId = classItem?.id;
       
       if (!classId) {
-        console.warn(`⚠️ No class ID found for class name: ${selectedStructure.class_name}`);
         availableStudents.value = [];
         return;
       }
@@ -573,7 +547,6 @@ const fetchStudents = async () => {
         const allStudents = [];
         for (const streamId of selectedStructure.stream_ids) {
           const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
-          console.log(`🔍 Fetching students for class ${selectedStructure.class_name} (ID: ${classId}) and stream ${streamId} with params:`, streamParams);
           const response = await apiClient.students.getAll(streamParams);
           
           // Handle different response structures
@@ -588,13 +561,9 @@ const fetchStudents = async () => {
           
           if (students.length > 0) {
             allStudents.push(...students);
-            console.log(`✅ Found ${students.length} students for class ${selectedStructure.class_name} and stream ${streamId}`);
-          } else {
-            console.log(`⚠️ No students found for class ${selectedStructure.class_name} and stream ${streamId}`);
           }
         }
         availableStudents.value = allStudents;
-        console.log(`✅ Total: Fetched ${allStudents.length} students for class ${selectedStructure.class_name} with streams`);
       } else {
         // No streams, fetch all students for the class
         params.class_id = classId;
@@ -615,24 +584,10 @@ const fetchStudents = async () => {
         }
         
         availableStudents.value = students;
-        console.log(`✅ Fetched ${students.length} students for class: ${selectedStructure.class_name}`);
-        console.log('📊 Student details:', students.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}`, class: s.current_class, section: s.section })));
       }
     }
     
-    // Log the final result
-    console.log('🎯 Final available students:', availableStudents.value.map(s => ({
-      id: s.id,
-      name: s.first_name + ' ' + s.last_name,
-      class: s.current_class,
-      section: s.section,
-      branch: s.branch?.name
-    })));
-    
   } catch (error) {
-    console.error('❌ Error fetching students:', error);
-    console.error('Selected fee structure:', selectedStructure);
-    console.error('Params used:', params);
     availableStudents.value = [];
     showToast('Error loading students', 'error');
   } finally {
@@ -767,7 +722,6 @@ const generateInvoices = () => {
   
   // Ensure auth store is properly initialized
   if (!authStore.currentUser) {
-    console.error('Auth store not initialized');
     return;
   }
   
@@ -788,7 +742,6 @@ const generateInvoices = () => {
 const initializeComponent = async () => {
   // Ensure auth store is properly initialized
   if (!authStore.currentUser) {
-    console.warn('Auth store not initialized yet');
     return;
   }
   

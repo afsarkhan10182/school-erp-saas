@@ -2,7 +2,7 @@ const httpStatus = require('http-status');
 const { Op } = require('sequelize');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
-const { AcademicCalendar } = require('../models');
+const { AcademicCalendar, School } = require('../models');
 
 // Check if a date is a working day
 const checkWorkingDay = async (req, res, next) => {
@@ -34,18 +34,70 @@ const checkWorkingDay = async (req, res, next) => {
 
     const calendarEntry = await AcademicCalendar.findOne({ where });
 
-    // If no specific entry exists, check if it's a weekend
+    // If no specific calendar entry exists, check school's working days configuration
     if (!calendarEntry) {
-      const dayOfWeek = new Date(date).getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+      // Get school settings to determine working days
+      let isWorkingDay = true;
+      let dayType = 'working';
+      let description = 'Working Day';
+      
+      if (req.schoolId) {
+        try {
+          const school = await School.findByPk(req.schoolId, {
+            attributes: ['id', 'settings']
+          });
+          
+          if (school && school.settings) {
+            const settings = school.settings;
+            const dayOfWeek = new Date(date).getDay();
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayName = dayNames[dayOfWeek];
+            
+            // Check if working days enforcement is enabled
+            const enforceWorkingDays = settings.enforce_working_days === true;
+            
+            if (enforceWorkingDays) {
+              // Use school's working days configuration
+              const workingDays = settings.working_days || {
+                monday: true, tuesday: true, wednesday: true, thursday: true, friday: true,
+                saturday: false, sunday: false
+              };
+              
+              isWorkingDay = workingDays[dayName] === true;
+              dayType = isWorkingDay ? 'working' : 'non-working';
+              description = isWorkingDay ? 'Working Day' : 'Non-Working Day';
+            } else {
+              // If enforcement is disabled, treat all days as working days
+              isWorkingDay = true;
+              dayType = 'working';
+              description = 'Working Day (No restrictions)';
+            }
+          }
+        } catch (error) {
+          logger.error('Error getting school settings for working day check:', error);
+          // Fallback to default weekend logic
+          const dayOfWeek = new Date(date).getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          isWorkingDay = !isWeekend;
+          dayType = isWeekend ? 'weekend' : 'working';
+          description = isWeekend ? 'Weekend' : 'Working Day';
+        }
+      } else {
+        // For super admin without school context, use default weekend logic
+        const dayOfWeek = new Date(date).getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        isWorkingDay = !isWeekend;
+        dayType = isWeekend ? 'weekend' : 'working';
+        description = isWeekend ? 'Weekend' : 'Working Day';
+      }
       
       return res.status(httpStatus.default.OK).json({
         success: true,
         data: {
           date,
-          is_working_day: !isWeekend,
-          day_type: isWeekend ? 'weekend' : 'working',
-          description: isWeekend ? 'Weekend' : 'Working Day'
+          is_working_day: isWorkingDay,
+          day_type: dayType,
+          description: description
         }
       });
     }

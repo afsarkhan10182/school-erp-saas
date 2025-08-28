@@ -9,41 +9,36 @@
         </p>
       </div>
 
-      <!-- Tab Navigation -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <!-- Tab Headers -->
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="flex overflow-x-auto scrollbar-hide px-4 sm:px-6" aria-label="Settings tabs">
-            <div class="flex space-x-6 sm:space-x-8 min-w-full">
-              <button
-                v-for="tab in settingsTabs"
-                :key="tab.id"
-                @click="activeTab = tab.id"
-                :class="[
-                  'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 whitespace-nowrap flex-shrink-0',
-                  activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                ]"
-              >
-                <div class="flex items-center">
-                  <component :is="tab.icon" class="w-4 h-4 mr-2" />
-                  <span class="hidden sm:inline">{{ tab.name }}</span>
-                  <span class="sm:hidden">{{ tab.name.split(' ')[0] }}</span>
-                  <span v-if="tab.badge" class="ml-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs px-2 py-1 rounded-full">
-                    {{ tab.badge }}
-                  </span>
-                </div>
-              </button>
-            </div>
-          </nav>
+      <!-- Settings Navigation -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-4">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Settings Section:</label>
+            <select 
+              v-model="activeTab" 
+              :disabled="loadingStates[activeTab]"
+              class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option v-for="tab in settingsTabs" :key="tab.id" :value="tab.id">
+                {{ tab.name }}
+              </option>
+            </select>
+          </div>
         </div>
 
-        <!-- Tab Content -->
-        <div class="p-4 sm:p-6">
+        <!-- Settings Content -->
+        <div class="space-y-6">
           <!-- School Information Tab -->
           <div v-if="activeTab === 'school'" class="space-y-6">
-            <form @submit.prevent="saveSchoolSettings" class="space-y-6">
+            <!-- Loading State -->
+            <div v-if="loadingStates.school" class="flex justify-center items-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading school settings...</span>
+            </div>
+            
+            <!-- Content -->
+            <div v-else class="space-y-6">
+            <div class="space-y-6">
               <!-- School Information -->
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">School Information</h3>
@@ -144,16 +139,25 @@
 
               <!-- Save Button -->
               <div class="flex justify-end">
-                <button type="submit" class="btn-primary" :disabled="isSaving">
+                <button @click="saveSchoolSettings" class="btn-primary" :disabled="isSaving">
                   {{ isSaving ? 'Saving...' : 'Save Settings' }}
                 </button>
               </div>
-            </form>
+            </div>
+            </div>
           </div>
 
           <!-- Academic Settings Tab -->
           <div v-if="activeTab === 'academic'" class="space-y-6">
-            <form @submit.prevent="saveAcademicSettings" class="space-y-6">
+            <!-- Loading State -->
+            <div v-if="loadingStates.academic" class="flex justify-center items-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading academic settings...</span>
+            </div>
+            
+            <!-- Content -->
+            <div v-else class="space-y-6">
+            <div class="space-y-6">
               <!-- Academic Year -->
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Academic Year</h3>
@@ -169,6 +173,14 @@
                       <option value="inactive">Inactive</option>
                       <option value="upcoming">Upcoming</option>
                     </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date</label>
+                    <input v-model="academicYear.startDate" type="date" class="input-field" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
+                    <input v-model="academicYear.endDate" type="date" class="input-field" />
                   </div>
                 </div>
               </div>
@@ -207,13 +219,83 @@
                 </div>
               </div>
 
+              <!-- Attendance Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Attendance Settings</h3>
+                
+                <!-- Basic Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Minimum Attendance %</label>
+                    <input v-model="attendanceSettings.minimumPercentage" type="number" class="input-field" min="0" max="100" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Cut-off Time</label>
+                    <input v-model="attendanceSettings.timeSettings.cutoffTime" type="time" class="input-field" />
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">When attendance must be submitted</p>
+                  </div>
+                </div>
+
+                <!-- Simple Rules -->
+                <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
+                  <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Rules</h4>
+                  <div class="space-y-4">
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.validationRules.enforceCutoffTime" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enforce cut-off time</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.validationRules.enforceWorkingDays" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enforce working days</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Working Days (only show if enforce working days is checked) -->
+                <div v-if="attendanceSettings.validationRules.enforceWorkingDays" class="border-t border-gray-200 dark:border-gray-600 pt-4">
+                  <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Working Days</h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Select which days attendance can be marked</p>
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.monday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Monday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.tuesday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Tuesday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.wednesday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Wednesday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.thursday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Thursday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.friday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Friday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.saturday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Saturday</label>
+                    </div>
+                    <div class="flex items-center">
+                      <input v-model="attendanceSettings.workingDays.sunday" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Sunday</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Save Button -->
               <div class="flex justify-end">
-                <button type="submit" class="btn-primary" :disabled="isSavingAcademic">
-                  {{ isSavingAcademic ? 'Saving...' : 'Save Academic Settings' }}
+                <button @click="saveAcademicSettings" class="btn-primary" :disabled="isSavingAcademic">
+                  {{ isSavingAcademic ? 'Saving...' : 'Save Settings' }}
                 </button>
               </div>
-            </form>
+            </div>
+            </div>
           </div>
 
           <!-- Fee Configuration Tab -->
@@ -359,8 +441,6 @@ import {
   Puzzle
 } from 'lucide-vue-next';
 
-
-
 const authStore = useAuthStore();
 const { showToast } = useToast();
 
@@ -368,6 +448,34 @@ const { showToast } = useToast();
 const activeTab = ref('school');
 const isSaving = ref(false);
 const isSavingAcademic = ref(false);
+
+// Loading states for each tab
+const loadingStates = reactive({
+  school: false,
+  academic: false,
+  fees: false,
+  system: false,
+  notifications: false,
+  security: false,
+  integrations: false,
+  backup: false,
+  profile: false,
+  modules: false
+});
+
+// Data cache to avoid reloading
+const dataCache = reactive({
+  school: null,
+  academic: null,
+  fees: null,
+  system: null,
+  notifications: null,
+  security: null,
+  integrations: null,
+  backup: null,
+  profile: null,
+  modules: null
+});
 
 // School Configuration Data
 const schoolInfo = reactive({
@@ -395,7 +503,9 @@ const operationalSettings = reactive({
 // Academic Settings Data
 const academicYear = reactive({
   name: '',
-  status: 'active'
+  status: 'active',
+  startDate: '',
+  endDate: ''
 });
 
 const termSettings = reactive({
@@ -406,6 +516,26 @@ const termSettings = reactive({
 const gradingSystem = reactive({
   scale: 'percentage',
   passingPercentage: 40
+});
+
+const attendanceSettings = reactive({
+  minimumPercentage: 75,
+  timeSettings: {
+    cutoffTime: '16:00'
+  },
+  validationRules: {
+    enforceWorkingDays: false,
+    enforceCutoffTime: false
+  },
+  workingDays: {
+    monday: true,
+    tuesday: true,
+    wednesday: true,
+    thursday: true,
+    friday: true,
+    saturday: false,
+    sunday: false
+  }
 });
 
 // Computed properties
@@ -475,66 +605,108 @@ const settingsTabs = computed(() => {
 });
 
 // Methods
-const loadSchoolData = async () => {
+const loadTabData = async (tabName) => {
+  // Set loading state
+  loadingStates[tabName] = true;
+  
   try {
     // Check if user is authenticated
     if (!authStore.isLoggedIn) {
-      console.log('User not authenticated, skipping school data load');
       return;
     }
 
     // Check if user has required role
     if (!authStore.isSchoolAdmin && !authStore.isSuperAdmin) {
-      console.log('User does not have required role for settings access');
       return;
     }
 
     const api = createApiInstance();
-    const response = await api.get('/school/configuration');
-    
-    if (response.data.success) {
-      Object.assign(schoolInfo, response.data.data.schoolInfo || {});
-      Object.assign(contactInfo, response.data.data.contactInfo || {});
-      Object.assign(operationalSettings, response.data.data.operationalSettings || {});
+    let response;
+
+    switch (tabName) {
+      case 'school':
+        response = await api.get('/school/configuration');
+        if (response.data.success) {
+          Object.assign(schoolInfo, response.data.data.schoolInfo || {});
+          Object.assign(contactInfo, response.data.data.contactInfo || {});
+          Object.assign(operationalSettings, response.data.data.operationalSettings || {});
+          dataCache.school = true; // Mark as loaded
+        }
+        break;
+
+      case 'academic':
+        response = await api.get('/academic/settings');
+        if (response.data.success) {
+          Object.assign(academicYear, response.data.data.academicYear || {});
+          Object.assign(termSettings, response.data.data.termSettings || {});
+          Object.assign(gradingSystem, response.data.data.gradingSystem || {});
+          Object.assign(attendanceSettings, response.data.data.attendanceSettings || {});
+          dataCache.academic = true; // Mark as loaded
+        }
+        break;
+
+      case 'fees':
+        // TODO: Implement when fee settings endpoint is ready
+        dataCache.fees = true;
+        break;
+
+      case 'system':
+        // TODO: Implement when system settings endpoint is ready
+        dataCache.system = true;
+        break;
+
+      case 'notifications':
+        // TODO: Implement when notification settings endpoint is ready
+        dataCache.notifications = true;
+        break;
+
+      case 'security':
+        // TODO: Implement when security settings endpoint is ready
+        dataCache.security = true;
+        break;
+
+      case 'integrations':
+        // TODO: Implement when integrations endpoint is ready
+        dataCache.integrations = true;
+        break;
+
+      case 'backup':
+        // TODO: Implement when backup endpoint is ready
+        dataCache.backup = true;
+        break;
+
+      case 'profile':
+        // TODO: Implement when profile endpoint is ready
+        dataCache.profile = true;
+        break;
+
+      case 'modules':
+        // TODO: Implement when modules endpoint is ready
+        dataCache.modules = true;
+        break;
+
+      default:
+        // Unknown tab - skip loading
+        break;
     }
   } catch (error) {
-    console.error('Failed to load school configuration:', error);
     // Only show error toast if it's not an authentication error
     if (error.response?.status !== 401 && error.response?.status !== 403) {
-      showToast('Failed to load school configuration', 'error');
+      showToast(`Failed to load ${tabName} settings`, 'error');
     }
+  } finally {
+    // Clear loading state
+    loadingStates[tabName] = false;
   }
 };
 
+// Legacy methods for backward compatibility (can be removed later)
+const loadSchoolData = async () => {
+  await loadTabData('school');
+};
+
 const loadAcademicData = async () => {
-  try {
-    // Check if user is authenticated
-    if (!authStore.isLoggedIn) {
-      console.log('User not authenticated, skipping academic data load');
-      return;
-    }
-
-    // Check if user has required role
-    if (!authStore.isSchoolAdmin && !authStore.isSuperAdmin) {
-      console.log('User does not have required role for settings access');
-      return;
-    }
-
-    const api = createApiInstance();
-    const response = await api.get('/academic/settings');
-    
-    if (response.data.success) {
-      Object.assign(academicYear, response.data.data.academicYear || {});
-      Object.assign(termSettings, response.data.data.termSettings || {});
-      Object.assign(gradingSystem, response.data.data.gradingSystem || {});
-    }
-  } catch (error) {
-    console.error('Failed to load academic settings:', error);
-    // Only show error toast if it's not an authentication error
-    if (error.response?.status !== 401 && error.response?.status !== 403) {
-      showToast('Failed to load academic settings', 'error');
-    }
-  }
+  await loadTabData('academic');
 };
 
 const saveSchoolSettings = async () => {
@@ -561,18 +733,21 @@ const saveSchoolSettings = async () => {
     
     if (response.data.success) {
       showToast('School settings saved successfully', 'success');
+      // Clear cache to ensure fresh data on next load
+      dataCache.school = null;
     }
   } catch (error) {
-    console.error('Failed to save school settings:', error);
     if (error.response?.status === 401 || error.response?.status === 403) {
       showToast('Authentication required to save settings', 'error');
     } else {
-      showToast('Settings saved successfully', 'success');
+      showToast('Failed to save school settings', 'error');
     }
   } finally {
     isSaving.value = false;
   }
 };
+
+
 
 const saveAcademicSettings = async () => {
   isSavingAcademic.value = true;
@@ -593,18 +768,20 @@ const saveAcademicSettings = async () => {
     const response = await api.put('/academic/settings', {
       academicYear,
       termSettings,
-      gradingSystem
+      gradingSystem,
+      attendanceSettings
     });
     
     if (response.data.success) {
       showToast('Academic settings saved successfully', 'success');
+      // Clear cache to ensure fresh data on next load
+      dataCache.academic = null;
     }
   } catch (error) {
-    console.error('Failed to save academic settings:', error);
     if (error.response?.status === 401 || error.response?.status === 403) {
       showToast('Authentication required to save settings', 'error');
     } else {
-      showToast('Academic settings saved successfully', 'success');
+      showToast('Failed to save academic settings', 'error');
     }
   } finally {
     isSavingAcademic.value = false;
@@ -619,6 +796,12 @@ const importSettings = () => {
 
 const resetToDefaults = () => {
   showToast('Reset functionality will be implemented', 'info');
+};
+
+// Method to refresh current tab data
+const refreshCurrentTab = () => {
+  dataCache[activeTab.value] = null;
+  loadTabData(activeTab.value);
 };
 
 // Lifecycle
@@ -637,21 +820,31 @@ onMounted(async () => {
     });
   }
   
-  // Only load data if user is authenticated and has required role
+  // Only load data for the active tab if user is authenticated and has required role
   if (authStore.isLoggedIn && (authStore.isSchoolAdmin || authStore.isSuperAdmin)) {
-    loadSchoolData();
-    loadAcademicData();
+    loadTabData(activeTab.value);
   } else if (authStore.isLoggedIn) {
     showToast('You do not have permission to access settings', 'error');
+  }
+});
+
+// Watch for active tab changes to load data lazily
+watch(activeTab, async (newTab) => {
+  if (!authStore.isLoggedIn || (!authStore.isSchoolAdmin && !authStore.isSuperAdmin)) {
+    return;
+  }
+
+  // Only load if not already cached and not currently loading
+  if (!dataCache[newTab] && !loadingStates[newTab]) {
+    await loadTabData(newTab);
   }
 });
 
 // Watch for authentication state changes
 watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   if (isLoggedIn && (authStore.isSchoolAdmin || authStore.isSuperAdmin)) {
-    // User just logged in and has required role, load data
-    loadSchoolData();
-    loadAcademicData();
+    // Load data for the currently active tab only
+    loadTabData(activeTab.value);
   }
 });
 

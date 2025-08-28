@@ -284,7 +284,6 @@ const fetchUsageData = async () => {
     const response = await apiClient.subscriptions.getUsage();
     usageData.value = response.data;
   } catch (err) {
-    console.error('Error fetching usage data:', err);
     error.value = err.response?.data?.message || 'Failed to load subscription data';
   } finally {
     loading.value = false;
@@ -301,7 +300,6 @@ const fetchActivePlans = async () => {
       activePlans.value = resp?.data?.plans || [];
     }
   } catch (err) {
-    console.error('Error loading plans:', err);
     activePlans.value = [];
   }
 };
@@ -347,7 +345,6 @@ const requestUpgrade = async (planKey) => {
     });
     showSuccess('Upgrade request submitted successfully!');
   } catch (err) {
-    console.error('Error requesting upgrade:', err);
     showError(err.response?.data?.message || 'Failed to submit upgrade request');
   }
 };
@@ -391,7 +388,6 @@ const requestRenewal = async () => {
     });
     showSuccess('Renewal request submitted successfully!');
   } catch (err) {
-    console.error('Error requesting renewal:', err);
     showError(err.response?.data?.message || 'Failed to submit renewal request');
   }
 };
@@ -430,7 +426,6 @@ const submitRequest = async () => {
     showRequestModal.value = false;
     await fetchUsageData();
   } catch (err) {
-    console.error('Error submitting request:', err);
     showError(err.response?.data?.message || 'Failed to submit request');
   } finally {
     submitting.value = false;

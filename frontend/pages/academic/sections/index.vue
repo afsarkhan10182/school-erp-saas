@@ -422,7 +422,6 @@ const loadStreamsForClass = async (classId) => {
     const response = await fetchStreamsAPI(params);
     streams.value = response.data || [];
   } catch (error) {
-    console.error('Error loading streams:', error);
     streams.value = [];
   } finally {
     loadingStreams.value = false;
@@ -473,7 +472,7 @@ const fetchSections = async () => {
     const response = await apiClient.sections.getAll(params);
     sections.value = response.data || [];
   } catch (error) {
-    console.error('Error fetching sections:', error);
+    // Error handling
   } finally {
     isLoading.value = false;
   }
@@ -579,7 +578,6 @@ const saveSection = async () => {
       window.dispatchEvent(event);
     }
   } catch (error) {
-    console.error('Error saving section:', error);
     // Show error message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -613,7 +611,7 @@ const toggleStatus = async (section) => {
       window.dispatchEvent(event);
     }
   } catch (error) {
-    console.error('Error toggling section status:', error);
+    // Error handling
   }
 };
 
@@ -637,7 +635,6 @@ const deleteSection = async (id) => {
       window.dispatchEvent(event);
     }
   } catch (error) {
-    console.error('Error deleting section:', error);
     // Show error message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {

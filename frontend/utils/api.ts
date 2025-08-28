@@ -39,7 +39,6 @@ export function createApiInstance(): AxiosInstance {
       
       // Safety check for originalRequest
       if (!originalRequest) {
-        console.error('❌ Original request is undefined:', error);
         return Promise.reject(error);
       }
       
@@ -60,24 +59,19 @@ export function createApiInstance(): AxiosInstance {
         originalRequest._retry = true;
         
         try {
-          console.log('🔄 Attempting token refresh...');
           // Call refresh endpoint to get new tokens
           const refreshResponse = await api.post('/auth/refresh-token');
           
           if (refreshResponse.status === 200) {
-            console.log('✅ Token refresh successful, retrying original request');
             // Retry the original request with new tokens (cookies are automatically included)
             return api(originalRequest);
           }
         } catch (refreshError: any) {
-          console.error('❌ Token refresh failed:', refreshError);
-          
           // If refresh failed, logout and redirect (but only once)
           if (import.meta.client) {
             const authStore = useAuthStore();
             // Only logout if not already on login page
             if (window.location.pathname !== '/login') {
-              console.log('🚪 Redirecting to login due to failed token refresh');
               await authStore.logout();
               await navigateTo('/login');
             }

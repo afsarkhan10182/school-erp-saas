@@ -10,8 +10,39 @@ class AcademicSettingsController {
     const user = req.user;
     const schoolId = user.school_id;
 
-    if (!schoolId) {
+    // For super_admin, allow access without school_id
+    if (!schoolId && user.role !== 'super_admin') {
       throw new ApiError(400, 'No school assigned to user');
+    }
+
+    // If super_admin and no school_id, return empty settings
+    if (!schoolId && user.role === 'super_admin') {
+      return success(res, {
+        academicYear: {
+          name: '',
+          startDate: '',
+          endDate: '',
+          status: 'active'
+        },
+        termSettings: {
+          numberOfTerms: 3,
+          termDuration: 12,
+          enableMidTermExams: true,
+          enableFinalExams: true
+        },
+        gradingSystem: {
+          scale: 'percentage',
+          passingPercentage: 40,
+          enableGPA: true,
+          showClassRank: false
+        },
+        attendanceSettings: {
+          minimumPercentage: 75,
+          trackingMethod: 'daily',
+          autoMarkAbsent: true,
+          sendAlerts: true
+        }
+      });
     }
 
     const school = await School.findByPk(schoolId, {
@@ -22,14 +53,13 @@ class AcademicSettingsController {
       throw new ApiError(404, 'School not found');
     }
 
-    // Get current academic year
-    const currentAcademicYear = await AcademicYear.findOne({
-      where: { 
-        school_id: schoolId,
-        is_current: true 
-      },
-      attributes: ['id', 'name', 'start_date', 'end_date', 'status']
-    });
+    // Get current academic year through school's current_academic_year_id
+    let currentAcademicYear = null;
+    if (school.current_academic_year_id) {
+      currentAcademicYear = await AcademicYear.findByPk(school.current_academic_year_id, {
+        attributes: ['id', 'name', 'start_date', 'end_date', 'status']
+      });
+    }
 
     // Get settings from JSONB field with defaults
     const settings = school.settings || {};
@@ -63,9 +93,22 @@ class AcademicSettingsController {
 
     const attendanceSettings = {
       minimumPercentage: settings.minimum_attendance_percentage || 75,
-      trackingMethod: settings.attendance_tracking_method || 'daily',
-      autoMarkAbsent: settings.auto_mark_absent !== false,
-      sendAlerts: settings.send_attendance_alerts !== false
+      timeSettings: {
+        cutoffTime: settings.cutoff_time || '16:00'
+      },
+      validationRules: {
+        enforceWorkingDays: settings.enforce_working_days === true,
+        enforceCutoffTime: settings.enforce_cutoff_time === true
+      },
+      workingDays: {
+        monday: settings.working_days?.monday !== false,
+        tuesday: settings.working_days?.tuesday !== false,
+        wednesday: settings.working_days?.wednesday !== false,
+        thursday: settings.working_days?.thursday !== false,
+        friday: settings.working_days?.friday !== false,
+        saturday: settings.working_days?.saturday === true,
+        sunday: settings.working_days?.sunday === true
+      }
     };
 
     success(res, {
@@ -82,11 +125,18 @@ class AcademicSettingsController {
     const schoolId = user.school_id;
     const { academicYear, termSettings, gradingSystem, attendanceSettings } = req.body;
 
-    if (!schoolId) {
+    // For super_admin, allow access without school_id but require school_id in request
+    if (!schoolId && user.role !== 'super_admin') {
       throw new ApiError(400, 'No school assigned to user');
     }
 
-    const school = await School.findByPk(schoolId);
+    // If super_admin and no school_id in token, require school_id in request body
+    const targetSchoolId = schoolId || req.body.school_id;
+    if (!targetSchoolId && user.role === 'super_admin') {
+      throw new ApiError(400, 'School ID is required for super admin');
+    }
+
+    const school = await School.findByPk(targetSchoolId);
     if (!school) {
       throw new ApiError(404, 'School not found');
     }
@@ -110,9 +160,22 @@ class AcademicSettingsController {
 
     if (attendanceSettings) {
       settingsUpdate.minimum_attendance_percentage = attendanceSettings.minimumPercentage;
-      settingsUpdate.attendance_tracking_method = attendanceSettings.trackingMethod;
-      settingsUpdate.auto_mark_absent = attendanceSettings.autoMarkAbsent;
-      settingsUpdate.send_attendance_alerts = attendanceSettings.sendAlerts;
+      
+      // Time settings
+      if (attendanceSettings.timeSettings) {
+        settingsUpdate.cutoff_time = attendanceSettings.timeSettings.cutoffTime;
+      }
+      
+      // Validation rules (minimal & essential)
+      if (attendanceSettings.validationRules) {
+        settingsUpdate.enforce_working_days = attendanceSettings.validationRules.enforceWorkingDays;
+        settingsUpdate.enforce_cutoff_time = attendanceSettings.validationRules.enforceCutoffTime;
+      }
+      
+      // Working days configuration
+      if (attendanceSettings.workingDays) {
+        settingsUpdate.working_days = attendanceSettings.workingDays;
+      }
     }
 
     // Update school settings
@@ -123,38 +186,45 @@ class AcademicSettingsController {
 
     // Update academic year if provided
     if (academicYear && academicYear.name) {
-      const currentAcademicYear = await AcademicYear.findOne({
-        where: { 
-          school_id: schoolId,
-          is_current: true 
-        }
-      });
+      let currentAcademicYear = null;
+      
+      // Get current academic year through school's current_academic_year_id
+      if (school.current_academic_year_id) {
+        currentAcademicYear = await AcademicYear.findByPk(school.current_academic_year_id);
+      }
 
       if (currentAcademicYear) {
+        // Update existing academic year
         await currentAcademicYear.update({
           name: academicYear.name,
-          start_date: academicYear.startDate,
-          end_date: academicYear.endDate,
+          start_date: academicYear.startDate || currentAcademicYear.start_date,
+          end_date: academicYear.endDate || currentAcademicYear.end_date,
           status: academicYear.status,
           updated_by: user.id
         });
       } else {
-        // Create new academic year if none exists
-        await AcademicYear.create({
-          school_id: schoolId,
+        // Create new academic year and link it to the school
+        const newAcademicYear = await AcademicYear.create({
           name: academicYear.name,
-          start_date: academicYear.startDate,
-          end_date: academicYear.endDate,
+          code: academicYear.name.replace(/\s+/g, '').toUpperCase(), // Generate code from name
+          start_date: academicYear.startDate || new Date().toISOString().split('T')[0], // Default to today if not provided
+          end_date: academicYear.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year from now
           status: academicYear.status,
           is_current: true,
           created_by: user.id,
+          updated_by: user.id
+        });
+        
+        // Update school to link to the new academic year
+        await school.update({
+          current_academic_year_id: newAcademicYear.id,
           updated_by: user.id
         });
       }
     }
 
     logger.info('Academic settings updated', {
-      schoolId,
+      schoolId: targetSchoolId,
       updatedBy: user.id
     });
 
