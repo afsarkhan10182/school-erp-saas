@@ -1,7 +1,7 @@
 const { School, Student, User, Branch, SubscriptionPlan } = require('../models');
-const { ModuleConfig } = require('../utils/moduleConfig');
 const ApiError = require('../utils/ApiError');
 const { logger } = require('../utils/logger');
+const SchoolService = require('../services/school/school.service');
 
 /**
  * Middleware to validate subscription limits before creating resources
@@ -24,18 +24,12 @@ const validateSubscriptionLimits = async (req, res, next) => {
       throw new ApiError(404, 'School not found');
     }
 
-    // First try to get plan from database
-    let plan = null;
-    if (school.subscription_plan) {
-      plan = await SubscriptionPlan.findOne({
-        where: { code: school.subscription_plan, is_active: true }
-      });
-    }
-
-    // If not found in database, fall back to ModuleConfig
-    if (!plan) {
-      plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
-    }
+    // Get plan strictly from database
+    const plan = school.subscription_plan
+      ? await SubscriptionPlan.findOne({
+          where: { code: school.subscription_plan, is_active: true }
+        })
+      : null;
 
     if (!plan) {
       throw new ApiError(400, 'Invalid subscription plan');
@@ -89,7 +83,7 @@ const validateModuleAccess = (requiredModule) => {
         throw new ApiError(404, 'School not found');
       }
 
-      if (!ModuleConfig.isModuleEnabled(school, requiredModule)) {
+      if (!SchoolService.isModuleEnabled(school, requiredModule)) {
         throw new ApiError(403, `Module '${requiredModule}' is not available in your subscription plan. Please upgrade to access this feature.`);
       }
 

@@ -191,30 +191,35 @@
     </div>
 
     <!-- Review Modal -->
-    <Modal v-if="showReviewModal" @close="showReviewModal = false" :title="`${reviewAction} Renewal Request`">
-      <form @submit.prevent="submitReview" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ reviewAction === 'Approve' ? 'Approval' : 'Rejection' }} Notes
-          </label>
-          <textarea 
-            v-model="reviewForm.admin_response" 
-            rows="4" 
-            class="input-field"
-            :placeholder="reviewAction === 'Approve' ? 'Optional notes for approval...' : 'Please provide reason for rejection...'"
-          ></textarea>
-        </div>
+    <Modal :show="showReviewModal" @close="showReviewModal = false">
+      <template #header>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ reviewAction }} Renewal Request</h3>
+      </template>
+      <template #body>
+        <form @submit.prevent="submitReview" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {{ reviewAction === 'Approve' ? 'Approval' : 'Rejection' }} Notes
+            </label>
+            <textarea 
+              v-model="reviewForm.admin_response" 
+              rows="4" 
+              class="input-field"
+              :placeholder="reviewAction === 'Approve' ? 'Optional notes for approval...' : 'Please provide reason for rejection...'"
+            ></textarea>
+          </div>
 
-        <div class="flex justify-end space-x-3 pt-4">
-          <button type="button" @click="showReviewModal = false" class="btn-secondary">
-            Cancel
-          </button>
-          <button type="submit" :disabled="submitting" class="btn-primary">
-            <span v-if="submitting">Processing...</span>
-            <span v-else>{{ reviewAction }}</span>
-          </button>
-        </div>
-      </form>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button type="button" @click="showReviewModal = false" class="btn-secondary">
+              Cancel
+            </button>
+            <button type="submit" :disabled="submitting" class="btn-primary">
+              <span v-if="submitting">Processing...</span>
+              <span v-else>{{ reviewAction }}</span>
+            </button>
+          </div>
+        </form>
+      </template>
     </Modal>
   </div>
 </template>
@@ -234,7 +239,7 @@ definePageMeta({
 });
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin can access renewal requests
 const user = authStore.user;
@@ -243,7 +248,7 @@ if (user?.role !== 'super_admin') {
   await navigateTo('/dashboard');
 }
 
-const { renewalRequests, loading, error, fetchRenewalRequests, reviewRenewalRequest } = useSubscriptions();
+const { loading, error, fetchRenewalRequests, reviewRenewalRequest, fetchSchoolsWithSubscriptions } = useSubscriptions();
 
 // Reactive data
 const requests = ref([]);
@@ -257,7 +262,10 @@ const reviewAction = ref('');
 // Filters
 const filters = ref({
   page: 1,
-  limit: 10
+  limit: 10,
+  status: '',
+  request_type: '',
+  school_id: ''
 });
 
 // Review form

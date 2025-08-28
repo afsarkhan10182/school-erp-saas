@@ -244,10 +244,7 @@ class ModuleConfig {
       return false;
     }
 
-    // Get modules from school data
     const schoolModules = school.modules || [];
-    
-    // Check if module is in the school's enabled modules
     return schoolModules.includes(moduleKey);
   }
 

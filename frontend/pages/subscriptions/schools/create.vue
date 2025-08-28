@@ -806,10 +806,6 @@ onMounted(async () => {
   }
 });
 
-// Set page title
-useHead({
-  title: 'Add School - School ERP'
-});
 
 // Password visibility toggle
 const showAdminPassword = ref(false);

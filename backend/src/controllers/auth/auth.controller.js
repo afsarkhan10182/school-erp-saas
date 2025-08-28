@@ -201,12 +201,11 @@ class AuthController {
 
   static async getCurrentUser(req, res, next) {
     try {
-      // Get current user from request (added by auth middleware)
-      const user = req.user;
-      
+      // Return full user profile instead of just JWT claims
+      const fullUser = await require('../../services/user/user.service').getUserById(req.user.id, req.user);
       res.json({
         success: true,
-        data: user,
+        data: fullUser,
       });
     } catch (error) {
       next(error);

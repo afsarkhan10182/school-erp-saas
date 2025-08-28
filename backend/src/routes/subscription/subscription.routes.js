@@ -7,8 +7,10 @@ const { upload } = require('../../middleware/upload');
 // All routes require authentication
 router.use(verifyToken);
 
-// Subscription Plans Routes (Super Admin Only)
+// Subscription Plans Routes
 router.get('/plans', authorize(['super_admin']), SubscriptionController.getAllPlans);
+// Active plans for schools (School Admin/Branch Admin/Super Admin)
+router.get('/plans/active', authorize(['school_admin', 'branch_admin', 'super_admin']), SubscriptionController.getActivePlansForSchools);
 router.get('/plans/:id', authorize(['super_admin']), SubscriptionController.getPlanById);
 router.post('/plans', authorize(['super_admin']), SubscriptionController.createPlan);
 router.put('/plans/:id', authorize(['super_admin']), SubscriptionController.updatePlan);

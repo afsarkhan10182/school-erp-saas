@@ -286,7 +286,7 @@ const Student = sequelize.define('Student', {
       const SubscriptionPlan = require('./subscription-plan.model');
       const school = await School.findByPk(student.school_id);
       if (school) {
-        // First try to get plan from database
+        // Plans and limits must come from DB; in dev, allow a temporary fallback for local testing
         let plan = null;
         if (school.subscription_plan) {
           plan = await SubscriptionPlan.findOne({
@@ -294,9 +294,8 @@ const Student = sequelize.define('Student', {
           });
         }
 
-        // If not found in database, fall back to ModuleConfig
         if (!plan) {
-          plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+          throw new Error('Invalid subscription plan configuration. Please contact support.');
         }
 
         if (plan) {

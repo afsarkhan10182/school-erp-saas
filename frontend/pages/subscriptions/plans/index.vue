@@ -120,7 +120,6 @@ const deletePlanAction = async () => {
 
 onMounted(fetchAllPlans);
 
-useHead({ title: 'Subscription Plans - School ERP' });
 </script>
 <style scoped>
 .btn-primary {

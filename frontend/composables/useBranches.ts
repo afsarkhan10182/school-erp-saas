@@ -94,7 +94,27 @@ export function useBranches() {
       });
       const data = await res.json();
       if (!data.success) {
-        error.value = data.message || 'Failed to create branch.';
+        // Collect detailed validation errors if present
+        const fieldErrors = (data.fieldErrors || []) as Array<{ field?: string; message?: string }>;
+        const errorMap = data.errors || {};
+        const collected: string[] = [];
+
+        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          fieldErrors.forEach((fe) => {
+            if (fe?.message) collected.push(fe.message);
+          });
+        }
+        if (errorMap && typeof errorMap === 'object') {
+          Object.values(errorMap).forEach((val: any) => {
+            if (Array.isArray(val)) {
+              collected.push(...val);
+            } else if (typeof val === 'string') {
+              collected.push(val);
+            }
+          });
+        }
+
+        error.value = collected.length > 0 ? collected.join(', ') : (data.message || 'Failed to create branch.');
         return null;
       }
       return data.data;

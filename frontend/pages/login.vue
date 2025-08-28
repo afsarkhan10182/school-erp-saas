@@ -261,10 +261,6 @@ const handleLogin = async () => {
     loading.value = false;
   }
 };
-
-useHead({
-  title: 'Login - School ERP'
-});
 </script>
 
 <style scoped>

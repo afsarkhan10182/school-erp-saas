@@ -21,6 +21,9 @@ const attendanceNotificationRoutes = require('./attendance-notification.routes')
 const templateRoutes = require('./template.routes');
 const exportRoutes = require('./export.routes');
 
+// Settings routes
+const { schoolConfigurationRoutes, academicSettingsRoutes } = require('./settings');
+
 const router = express.Router();
 
 // Health check routes (no auth required)
@@ -59,5 +62,8 @@ router.use('/templates', templateRoutes);
 
 // Export routes
 router.use('/export', exportRoutes);
+// Settings routes
+router.use('/school/configuration', schoolConfigurationRoutes);
+router.use('/academic/settings', academicSettingsRoutes);
 
 module.exports = router;

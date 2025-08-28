@@ -166,7 +166,7 @@ const School = sequelize.define('School', {
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
-    defaultValue: ['academics', 'attendance', 'fees', 'exams', 'library'],
+    defaultValue: ['students', 'attendance', 'fees', 'exams', 'library'],
   },
   is_active: {
     type: DataTypes.BOOLEAN,

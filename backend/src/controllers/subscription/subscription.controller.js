@@ -18,6 +18,21 @@ class SubscriptionController {
     }
   }
 
+  // Get active plans for school/branch admins (limited fields)
+  static async getActivePlansForSchools(req, res, next) {
+    try {
+      if (!['school_admin', 'branch_admin', 'super_admin'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+      }
+
+      const plans = await SubscriptionService.getActivePlansForSchools();
+      res.json({ success: true, data: { plans } });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getActivePlansForSchools:', error);
+      next(error);
+    }
+  }
+
   // Get plan by ID
   static async getPlanById(req, res, next) {
     try {
@@ -321,8 +336,19 @@ class SubscriptionController {
         });
       }
 
+      const { schoolId } = req.params;
+      if (!schoolId) {
+        return res.status(400).json({ success: false, message: 'School ID is required' });
+      }
+
+      // Ensure minimum required fields
+      const { amount } = req.body || {};
+      if (amount === undefined || amount === null || Number.isNaN(Number(amount))) {
+        return res.status(400).json({ success: false, message: 'Valid amount is required' });
+      }
+
       const transaction = await SubscriptionService.createManualTransaction(
-        req.body,
+        { ...req.body, school_id: schoolId },
         req.user.id
       );
       

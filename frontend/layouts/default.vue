@@ -101,6 +101,11 @@ const toggleMobileSidebar = () => {
 };
 
 const pageTitle = computed(() => {
+  // Safety check for route availability
+  if (!route || !route.path) {
+    return 'School ERP';
+  }
+  
   const path = route.path;
   if (path.startsWith('/dashboard')) return 'Dashboard';
   if (path.startsWith('/schools')) return 'Schools';
@@ -112,7 +117,11 @@ const pageTitle = computed(() => {
   if (path.startsWith('/reports')) return 'Reports';
   if (path.startsWith('/settings')) return 'Settings';
   if (path.startsWith('/subscriptions')) return 'Subscriptions';
-  return 'School ERP';
+});
+
+// Set dynamic page title
+useHead({
+  title: computed(() => pageTitle.value)
 });
 
 // Theme management

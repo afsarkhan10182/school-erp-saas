@@ -164,9 +164,9 @@ const Branch = sequelize.define('Branch', {
           });
         }
 
-        // If not found in database, fall back to ModuleConfig
+        // If not found in database, allow dev-only fallback; prod must fail loudly
         if (!plan) {
-          plan = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
+          throw new Error('Invalid subscription plan configuration. Please contact support.');
         }
 
         if (plan) {

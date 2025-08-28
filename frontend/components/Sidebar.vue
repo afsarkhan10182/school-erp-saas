@@ -454,6 +454,7 @@ const menuGroups = computed(() => {
       ...(!isBranchAdmin.value ? [
                 { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
               ] : []),      
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
         { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
         // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
       ]

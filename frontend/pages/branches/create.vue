@@ -104,6 +104,7 @@ if (user?.role !== 'super_admin') {
 }
 
 const { createBranch, loading, error } = useBranches();
+const { showError: toastError, showSuccess: toastSuccess } = useToast();
 const { schools, fetchSchoolsWithSubscriptions } = useSubscriptions();
 
 const form = ref({
@@ -161,12 +162,15 @@ const handleSubmit = async () => {
   if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
   const result = await createBranch(formData);
   if (result) {
+    toastSuccess('Branch created successfully');
     success.value = true;
     setTimeout(() => {
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('branch-updated'));
       success.value = false;
       navigateTo('/branches');
     }, 1500);
+  } else if (error.value) {
+    toastError(error.value);
   }
 };
 
