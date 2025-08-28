@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
-const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student } = require('../../models');
+const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student, Module, PlanModule } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const bcrypt = require('bcryptjs');
@@ -31,6 +31,17 @@ class SubscriptionService {
           as: 'createdBy',
           attributes: ['id', 'first_name', 'last_name', 'email'],
         },
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_required', 'is_enabled', 'sort_order'],
+            as: 'planModule'
+          },
+          attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core'],
+          where: { is_active: true },
+          required: false
+        }
       ],
     });
     
@@ -50,7 +61,20 @@ class SubscriptionService {
     const rows = await SubscriptionPlan.findAll({
       where: { is_active: true },
       order: [['sort_order', 'ASC'], ['name', 'ASC']],
-      attributes: ['id', 'name', 'code', 'price', 'billing_cycle', 'max_students', 'max_staff', 'max_branches']
+      attributes: ['id', 'name', 'code', 'price', 'billing_cycle', 'max_students', 'max_staff', 'max_branches'],
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_required', 'is_enabled', 'sort_order'],
+            as: 'planModule'
+          },
+          attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core'],
+          where: { is_active: true },
+          required: false
+        }
+      ]
     });
     return rows;
   }
@@ -69,6 +93,17 @@ class SubscriptionService {
           as: 'updatedBy',
           attributes: ['id', 'first_name', 'last_name', 'email'],
         },
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_required', 'is_enabled', 'sort_order'],
+            as: 'planModule'
+          },
+          attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core'],
+          where: { is_active: true },
+          required: false
+        }
       ],
     });
     
@@ -81,36 +116,126 @@ class SubscriptionService {
 
   // Create new subscription plan
   static async createPlan(planData, userId) {
+    const { modules, ...planFields } = planData;
+    
+    // Create the plan first
     const plan = await SubscriptionPlan.create({
-      ...planData,
+      ...planFields,
       created_by: userId,
       updated_by: userId,
     });
+
+    // If modules are provided, create plan-module relationships
+    if (modules && Array.isArray(modules) && modules.length > 0) {
+      // Validate that all modules exist
+      const moduleCodes = modules.map(m => typeof m === 'string' ? m : m.code || m.key);
+      const existingModules = await Module.findAll({
+        where: { 
+          code: moduleCodes,
+          is_active: true 
+        }
+      });
+
+      if (existingModules.length !== moduleCodes.length) {
+        const foundCodes = existingModules.map(m => m.code);
+        const missingCodes = moduleCodes.filter(code => !foundCodes.includes(code));
+        throw new ApiError(400, `Invalid modules: ${missingCodes.join(', ')}`);
+      }
+
+      // Create plan-module relationships
+      const planModules = existingModules.map((module, index) => ({
+        subscription_plan_id: plan.id,
+        module_id: module.id,
+        is_required: module.is_core, // Core modules are required
+        is_enabled: true,
+        sort_order: index + 1,
+        created_by: userId,
+        updated_by: userId
+      }));
+
+      await PlanModule.bulkCreate(planModules);
+    }
     
     return plan;
   }
 
   // Update subscription plan
   static async updatePlan(id, planData, userId) {
-    const plan = await SubscriptionPlan.findByPk(id);
+    const { modules, ...planFields } = planData;
+    
+    const plan = await SubscriptionPlan.findByPk(id, {
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { attributes: ['is_required', 'is_enabled', 'sort_order'] },
+          attributes: ['id', 'code', 'name'],
+          required: false
+        }
+      ]
+    });
+    
     if (!plan) {
       throw new ApiError(404, 'Subscription plan not found');
     }
     
     // Store old modules for comparison
-    const oldModules = plan.modules;
+    const oldModuleCodes = plan.modules.map(m => m.code).sort();
     
+    // Update plan fields
     await plan.update({
-      ...planData,
+      ...planFields,
       updated_by: userId,
     });
     
-    // If modules changed, sync all schools using this plan
-    if (planData.modules && JSON.stringify(oldModules) !== JSON.stringify(planData.modules)) {
-      await this.syncSchoolsWithPlan(plan.code);
+    // Handle modules update if provided
+    if (modules && Array.isArray(modules)) {
+      // Get current module codes
+      const newModuleCodes = modules.map(m => typeof m === 'string' ? m : m.code || m.key).sort();
+      
+      // Check if modules actually changed
+      if (JSON.stringify(oldModuleCodes) !== JSON.stringify(newModuleCodes)) {
+        // Delete existing plan-module relationships
+        await PlanModule.destroy({
+          where: { subscription_plan_id: plan.id }
+        });
+        
+        // Create new plan-module relationships
+        if (modules.length > 0) {
+          const moduleCodes = modules.map(m => typeof m === 'string' ? m : m.code || m.key);
+          const existingModules = await Module.findAll({
+            where: { 
+              code: moduleCodes,
+              is_active: true 
+            }
+          });
+          
+          if (existingModules.length !== moduleCodes.length) {
+            const foundCodes = existingModules.map(m => m.code);
+            const missingCodes = moduleCodes.filter(code => !foundCodes.includes(code));
+            throw new ApiError(400, `Invalid modules: ${missingCodes.join(', ')}`);
+          }
+          
+          const planModules = existingModules.map((module, index) => ({
+            subscription_plan_id: plan.id,
+            module_id: module.id,
+            is_required: module.is_core,
+            is_enabled: true,
+            sort_order: index + 1,
+            created_by: userId,
+            updated_by: userId
+          }));
+          
+          await PlanModule.bulkCreate(planModules);
+        }
+        
+        // Sync all schools using this plan
+        await this.syncSchoolsWithPlan(plan.code);
+      }
     }
     
-    return plan;
+    // Return updated plan with modules
+    return await this.getPlanById(id);
   }
 
   // Delete subscription plan

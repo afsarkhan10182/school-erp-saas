@@ -3,6 +3,8 @@ const User = require('./user.model');
 const School = require('./school.model');
 const Branch = require('./branch.model');
 const SubscriptionPlan = require('./subscription-plan.model');
+const Module = require('./module.model');
+const PlanModule = require('./plan-module.model');
 const Transaction = require('./transaction.model');
 const SubscriptionRenewalRequest = require('./subscription-renewal-request.model');
 const Student = require('./student.model');
@@ -27,6 +29,8 @@ const models = {
   School,
   Branch,
   SubscriptionPlan,
+  Module,
+  PlanModule,
   Transaction,
   SubscriptionRenewalRequest,
   Student,

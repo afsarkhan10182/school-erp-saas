@@ -33,6 +33,7 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cycle</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Modules</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Limits</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
@@ -46,6 +47,12 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">₹{{ plan.price }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ plan.billing_cycle }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">
+                <div v-if="plan.modules && plan.modules.length > 0">
+                  <div v-for="module in plan.modules" :key="module.id">{{ module.name }}</div>
+                </div>
+                <div v-else class="text-gray-500 dark:text-gray-400">No modules</div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">
                 <div>Students: {{ plan.max_students }}</div>
                 <div>Branches: {{ plan.max_branches }}</div>

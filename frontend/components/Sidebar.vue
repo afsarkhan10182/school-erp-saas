@@ -49,8 +49,20 @@
         </div>
       </template>
       
-      <!-- Actual navigation content -->
-      <nav v-else class="px-2 py-4 space-y-2">
+      <!-- Loading state for modules -->
+      <div v-if="modulesLoading" class="px-2 py-4 space-y-2">
+        <div class="animate-pulse">
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        </div>
+      </div>
+      
+
+      
+              <!-- Actual navigation content -->
+        <nav v-else class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
           <NuxtLink 
@@ -77,14 +89,27 @@
           
           <!-- Menu Items -->
           <template v-for="menuItem in menuGroup.items" :key="menuItem.id">
+            <!-- Direct Link Menu Item (no children or empty children, has path) -->
+            <NuxtLink 
+              v-if="(!menuItem.children || menuItem.children.length === 0) && menuItem.path" 
+              :to="menuItem.path" 
+              :class="navClass(menuItem.path)"
+              @click="handleMenuClick(menuItem.path, $event)"
+              @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+            >
+              <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+              <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
+            </NuxtLink>
+            
             <!-- Collapsible Menu -->
-            <div v-if="menuItem.children" class="space-y-1 relative group">
+            <div v-else-if="menuItem.children && menuItem.children.length > 0" class="space-y-1 relative group">
               <div 
                 :class="[navClass(''), menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
                 @click="toggleMenu(menuItem.id)"
               >
                 <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
                 <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
+                <!-- Chevron only for top-level collapsibles -->
                 <ChevronDown 
                   v-if="open || isMobile"
                   class="w-4 h-4 transition-transform duration-200" 
@@ -100,11 +125,11 @@
                 <div class="py-1">
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
-                    <div v-if="subItem.children" class="relative group/sub">
+                    <div v-if="subItem.children && subItem.children.length > 0" class="relative group/sub">
                       <div class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300">
                         <component :is="subItem.icon" class="w-4 h-4 mr-2" />
                         <span>{{ subItem.title }}</span>
-                        <ChevronDown class="w-3 h-3 ml-auto" />
+                        <!-- No chevron in hover menus for nested items -->
                       </div>
                       <!-- Nested hover menu -->
                       <div class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[180px] z-50 border border-gray-200 dark:border-gray-700">
@@ -149,14 +174,16 @@
                   <!-- Handle nested submenus -->
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
-                    <div v-if="subItem.children" class="space-y-1">
+                    <div v-if="subItem.children && subItem.children.length > 0" class="space-y-1">
                       <div 
                         :class="[navClass(''), subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
                         @click="toggleSubMenu(subItem.id)"
                       >
                         <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                         <span class="flex-1">{{ subItem.title }}</span>
+                        <!-- Show chevron ONLY in expanded sidebar mode for nested submenus -->
                         <ChevronDown 
+                          v-if="open && subItem.children.length > 0"
                           class="w-4 h-4 transition-transform duration-200" 
                           :class="{ 'rotate-180': subMenuOpen === subItem.id }"
                         />
@@ -197,24 +224,6 @@
                 </div>
               </div>
             </div>
-            
-            <!-- Direct Link Menu -->
-            <div v-else class="relative group">
-              <NuxtLink 
-                :to="menuItem.path" 
-                :class="navClass(menuItem.path)"
-                @click="handleMenuClick(menuItem.path, $event)"
-                @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
-              >
-                <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
-                <span v-if="open || isMobile">{{ menuItem.title }}</span>
-              </NuxtLink>
-              <!-- Hover Menu for Collapsed State -->
-              <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700">
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ menuItem.title }}</span>
-              </div>
-            </div>
           </template>
         </template>
       </nav>
@@ -228,6 +237,7 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import { 
   Home, 
   School, 
@@ -270,6 +280,7 @@ const emit = defineEmits(['toggle']);
 // Use centralized composables
 const { isHydrated } = useHydrationState();
 const { isMobile } = useMobileDetection();
+const { loadUserModules, filterMenuByModules, isLoading: modulesLoading, userModules } = useModuleAccess();
 
 // Function to save sidebar state
 const saveSidebarState = (isOpen) => {
@@ -292,12 +303,12 @@ watch(() => props.open, (newValue) => {
   saveSidebarState(newValue);
 });
 
-// Role checks
-const isSuperAdmin = computed(() => props.user?.role === 'super_admin');
-const isSchoolAdmin = computed(() => props.user?.role === 'school_admin');
-const isBranchAdmin = computed(() => props.user?.role === 'branch_admin');
-const isAccountant = computed(() => props.user?.role === 'accountant');
-const isReceptionist = computed(() => props.user?.role === 'receptionist');
+// Role checks - use authStore for consistency
+const isSuperAdmin = computed(() => authStore.user?.role === 'super_admin');
+const isSchoolAdmin = computed(() => authStore.user?.role === 'school_admin');
+const isBranchAdmin = computed(() => authStore.user?.role === 'branch_admin');
+const isAccountant = computed(() => authStore.user?.role === 'accountant');
+const isReceptionist = computed(() => authStore.user?.role === 'receptionist');
 
 // Menu configuration
 const menuGroups = computed(() => {
@@ -342,10 +353,11 @@ const menuGroups = computed(() => {
           id: 'students',
           title: 'Students',
           icon: GraduationCap,
+          requiredModule: 'students',
           children: [
-            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus },
-            { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
-            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList },
+            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus, requiredModule: 'students' },
+            { id: 'all-students', title: 'All Students', path: '/students', icon: Users, requiredModule: 'students' },
+            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList, requiredModule: 'students' },
           ]
         }
       ]
@@ -370,7 +382,7 @@ const menuGroups = computed(() => {
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
-            { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList },
+            { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList, requiredModule: 'attendance' },
           ]
         }
       ]
@@ -387,10 +399,11 @@ const menuGroups = computed(() => {
           id: 'fee-management',
           title: 'Fees',
           icon: DollarSign,
+          requiredModule: 'fees',
           children: [
-            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
-            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
-            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt }
+            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag, requiredModule: 'fees' },
+            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List, requiredModule: 'fees' },
+            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt, requiredModule: 'fees' }
           ]
         }
       ]
@@ -407,23 +420,26 @@ const menuGroups = computed(() => {
           id: 'reports',
           title: 'Reports',
           icon: BarChart3,
+          requiredModule: 'reports',
           children: [
             {
               id: 'fees',
               title: 'Fees',
               icon: DollarSign,
+              requiredModule: 'fees',
               children: [
-                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart },
-                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt },
+                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart, requiredModule: 'fees' },
+                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt, requiredModule: 'fees' },
               ]
             },
             {
               id: 'student',
               title: 'Student',
               icon: Users,
+              requiredModule: 'students',
               children: [
-                { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3 },
-                { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3 },
+                { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3, requiredModule: 'students' },
+                { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
               ]
             }
           ]
@@ -464,10 +480,31 @@ const menuGroups = computed(() => {
   return groups;
 });
 
-// Get visible menu groups based on user role
+// Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
-  return menuGroups.value;
+  // Super admin: show all menu groups
+  if (authStore.user?.role === 'super_admin') {
+    return menuGroups.value;
+  }
+  
+  // For non-super admins, filter based on modules
+  if (!userModules.value || userModules.value.length === 0) {
+    return [];
+  }
+
+  // Use the improved filtering from useModuleAccess
+  return menuGroups.value
+    .map(group => {
+      const filteredItems = filterMenuByModules(group.items);
+      return {
+        ...group,
+        items: filteredItems
+      };
+    })
+    .filter(group => group.items.length > 0); // remove empty groups
 });
+
+
 
 const toggleMenu = (menu) => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;
@@ -529,12 +566,15 @@ const checkMobile = () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   if (import.meta.client) {
     checkMobile();
     mql = window.matchMedia('(max-width: 767px)');
     mql.addEventListener('change', checkMobile);
   }
+  
+  // Load user modules for menu filtering
+  await loadUserModules();
 });
 
 onUnmounted(() => {

@@ -52,11 +52,29 @@
       </div>
       <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Modules Enabled *</label>
-        <div class="flex flex-wrap gap-2">
-          <label v-for="module in allModules" :key="module" class="inline-flex items-center text-gray-700 dark:text-gray-300">
-            <input type="checkbox" v-model="form.modules" :value="module" class="mr-1" />
-            {{ module }}
-          </label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            v-for="module in availableModules"
+            :key="module.key"
+            class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <input
+              type="checkbox"
+              :id="module.key"
+              v-model="form.modules"
+              :value="module.key"
+              class="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label :for="module.key" class="flex-1 cursor-pointer">
+              <div class="flex items-center">
+                <span class="text-lg mr-2">{{ module.icon }}</span>
+                <div>
+                  <div class="font-medium text-gray-900 dark:text-white">{{ module.name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ module.description }}</div>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
       <div>
@@ -94,11 +112,25 @@ if (user?.role !== 'super_admin') {
 }
 
 const route = useRoute();
-const { updatePlan, getPlanById, loading, error } = useSubscriptions();
+const { updatePlan, getPlanById, loading, error, fetchAvailableModules } = useSubscriptions();
 
-const allModules = [
-  'students', 'fees', 'attendance', 'exams', 'library', 'transport', 'hr', 'reports', 'settings'
-];
+const allModules = ref([]);
+const availableModules = ref([]);
+const loaded = ref(false);
+
+// Load available modules
+const loadAvailableModules = async () => {
+  try {
+    const modulesData = await fetchAvailableModules();
+    if (modulesData) {
+      availableModules.value = modulesData;
+      allModules.value = modulesData.map(m => m.key);
+    }
+  } catch (error) {
+    console.error('Error loading available modules:', error);
+    showError('Failed to load available modules');
+  }
+};
 
 const form = ref({
   name: '',
@@ -114,20 +146,39 @@ const form = ref({
   is_active: true,
   sort_order: 1
 });
-const loaded = ref(false);
 
 // Load single plan by ID using the proper API client
+onMounted(async () => {
+  await loadAvailableModules();
+  await loadPlan();
+});
+
 const loadPlan = async () => {
   try {
-    const result = await getPlanById(route.params.id);
-    if (result) {
-      Object.assign(form.value, result);
+    const planData = await getPlanById(route.params.id);
+    if (planData) {
+      // Extract module codes from the modules array
+      const moduleCodes = planData.modules ? planData.modules.map(module => module.code || module.key) : [];
+      
+      form.value = {
+        name: planData.name,
+        code: planData.code,
+        price: planData.price,
+        currency: planData.currency,
+        billing_cycle: planData.billing_cycle,
+        max_students: planData.max_students,
+        max_staff: planData.max_staff,
+        max_branches: planData.max_branches,
+        modules: moduleCodes,
+        description: planData.description,
+        is_active: planData.is_active,
+        sort_order: planData.sort_order
+      };
       loaded.value = true;
-    } else {
-      error.value = 'Failed to load plan';
     }
-  } catch (e) {
-    error.value = 'Network error';
+  } catch (error) {
+    console.error('Error loading plan:', error);
+    showError('Failed to load plan');
   }
 };
 
@@ -149,8 +200,6 @@ const handleSubmit = async () => {
     await navigateTo('/subscriptions/plans');
   }
 };
-
-onMounted(loadPlan);
 </script>
 <style scoped>
 .input-field {

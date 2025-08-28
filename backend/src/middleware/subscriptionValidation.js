@@ -83,7 +83,8 @@ const validateModuleAccess = (requiredModule) => {
         throw new ApiError(404, 'School not found');
       }
 
-      if (!SchoolService.isModuleEnabled(school, requiredModule)) {
+      const isEnabled = await SchoolService.isModuleEnabled(school, requiredModule);
+      if (!isEnabled) {
         throw new ApiError(403, `Module '${requiredModule}' is not available in your subscription plan. Please upgrade to access this feature.`);
       }
 

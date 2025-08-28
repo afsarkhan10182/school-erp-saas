@@ -73,6 +73,26 @@ export function useSubscriptions() {
     }
   };
 
+  // Get available modules
+  const fetchAvailableModules = async () => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.subscriptions.getAvailableModules();
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch available modules.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Get single subscription plan by ID
   const getPlanById = async (id: string) => {
     loading.value = true;
@@ -393,6 +413,7 @@ export function useSubscriptions() {
     fetchSchoolsWithSubscriptions,
     getSchoolWithSubscription,
     fetchPlans,
+    fetchAvailableModules,
     getPlanById,
     createPlan,
     updatePlan,

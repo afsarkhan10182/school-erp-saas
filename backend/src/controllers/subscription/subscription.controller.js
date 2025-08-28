@@ -517,6 +517,62 @@ class SubscriptionController {
     }
   }
 
+  // Get available modules (for plan creation and management)
+  static async getAvailableModules(req, res, next) {
+    try {
+      if (!['super_admin', 'school_admin', 'branch_admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to access module information',
+        });
+      }
+
+      const { Module } = require('../../models');
+      
+      // Fetch all active modules from database
+      const modules = await Module.findAll({
+        where: { is_active: true },
+        order: [['sort_order', 'ASC'], ['name', 'ASC']],
+        attributes: [
+          'id',
+          'code',
+          'name',
+          'description',
+          'icon',
+          'features',
+          'category',
+          'is_core',
+          'sort_order',
+          'version'
+        ]
+      });
+
+      // Transform to consistent format
+      const formattedModules = modules.map(module => ({
+        id: module.id,
+        key: module.code,
+        name: module.name,
+        description: module.description,
+        icon: module.icon,
+        features: module.features,
+        category: module.category,
+        is_core: module.is_core,
+        sort_order: module.sort_order,
+        version: module.version,
+        is_active: module.is_active
+      }));
+
+      res.json({
+        success: true,
+        message: 'Available modules retrieved successfully',
+        data: formattedModules,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getAvailableModules:', error);
+      next(error);
+    }
+  }
+
   // Get subscription statistics
   static async getSubscriptionStats(req, res, next) {
     try {
@@ -606,6 +662,110 @@ class SubscriptionController {
       });
     } catch (error) {
       logger.error('Error in SubscriptionController.syncAllSchoolsWithPlans:', error);
+      next(error);
+    }
+  }
+
+  // Get all modules (for super admin management)
+  static async getAllModules(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can manage modules',
+        });
+      }
+
+      const { Module } = require('../../models');
+      
+      const modules = await Module.findAll({
+        order: [['sort_order', 'ASC'], ['name', 'ASC']],
+        include: [
+          {
+            model: User,
+            as: 'createdBy',
+            attributes: ['id', 'first_name', 'last_name', 'email'],
+          },
+          {
+            model: User,
+            as: 'updatedBy',
+            attributes: ['id', 'first_name', 'last_name', 'email'],
+          }
+        ]
+      });
+
+      res.json({
+        success: true,
+        message: 'Modules retrieved successfully',
+        data: modules,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getAllModules:', error);
+      next(error);
+    }
+  }
+
+  // Create new module (super admin only)
+  static async createModule(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can create modules',
+        });
+      }
+
+      const { Module } = require('../../models');
+      const module = await Module.create({
+        ...req.body,
+        created_by: req.user.id,
+        updated_by: req.user.id,
+      });
+      
+      res.status(201).json({
+        success: true,
+        message: 'Module created successfully',
+        data: module,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.createModule:', error);
+      next(error);
+    }
+  }
+
+  // Update module (super admin only)
+  static async updateModule(req, res, next) {
+    try {
+      if (req.user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only super admins can update modules',
+        });
+      }
+
+      const { id } = req.params;
+      const { Module } = require('../../models');
+      
+      const module = await Module.findByPk(id);
+      if (!module) {
+        return res.status(404).json({
+          success: false,
+          message: 'Module not found',
+        });
+      }
+
+      await module.update({
+        ...req.body,
+        updated_by: req.user.id,
+      });
+      
+      res.json({
+        success: true,
+        message: 'Module updated successfully',
+        data: module,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.updateModule:', error);
       next(error);
     }
   }

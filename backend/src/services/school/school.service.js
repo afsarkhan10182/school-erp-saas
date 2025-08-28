@@ -5,9 +5,35 @@ const ApiError = require('../../utils/ApiError');
 const RedisUtils = require('../../utils/redis-utils');
 
 class SchoolService {
-  static isModuleEnabled(school, moduleName) {
-    // Use school.modules as source of truth
-    return Array.isArray(school.modules) && school.modules.includes(moduleName);
+  static async isModuleEnabled(school, moduleName) {
+    if (!school || !moduleName) {
+      return false;
+    }
+
+    const { SubscriptionPlan, Module } = require('../../models');
+    
+    // Get school's subscription plan with modules
+    const subscriptionPlan = await SubscriptionPlan.findOne({
+      where: { code: school.subscription_plan, is_active: true },
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_enabled'],
+            where: { is_enabled: true }
+          },
+          attributes: ['code'],
+          where: { 
+            code: moduleName,
+            is_active: true 
+          },
+          required: false
+        }
+      ]
+    });
+
+    return subscriptionPlan?.modules?.length > 0;
   }
 
   static async createSchool(schoolData) {

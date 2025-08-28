@@ -186,8 +186,8 @@
               <option value="">Select a plan...</option>
               <option
                 v-for="plan in subscriptionPlans"
-                :key="plan.key"
-                :value="plan.key"
+                :key="plan.code"
+                :value="plan.code"
               >
                 {{ plan.name }} - ₹{{ plan.price }}/month
               </option>
@@ -249,8 +249,8 @@
               <option value="">Select a plan...</option>
               <option
                 v-for="plan in upgradeablePlans"
-                :key="plan.key"
-                :value="plan.key"
+                :key="plan.code"
+                :value="plan.code"
               >
                 {{ plan.name }} - ₹{{ plan.price }}/month
               </option>
@@ -340,7 +340,7 @@ const enabledModules = computed(() =>
 )
 
 const selectedPlanDetails = computed(() => 
-  subscriptionPlans.value.find(plan => plan.key === selectedPlan.value)
+  subscriptionPlans.value.find(plan => plan.code === selectedPlan.value)
 )
 
 const upgradeablePlans = computed(() => 
@@ -348,7 +348,7 @@ const upgradeablePlans = computed(() =>
 )
 
 const upgradeRequestDetails = computed(() => 
-  subscriptionPlans.value.find(plan => plan.key === upgradeRequest.plan)
+  subscriptionPlans.value.find(plan => plan.code === upgradeRequest.plan)
 )
 
 // Methods
@@ -378,10 +378,10 @@ const loadModules = async () => {
 
 const loadSubscriptionPlans = async () => {
   try {
-    const response = await apiClient.schools.getSubscriptionPlans()
+    const response = await apiClient.subscriptions.getActivePlansForSchools()
     
     if (response.success) {
-      subscriptionPlans.value = response.data || []
+      subscriptionPlans.value = response.data.plans || []
     }
   } catch (error) {
     console.error('Error loading subscription plans:', error)
@@ -398,7 +398,7 @@ const updateSubscription = async () => {
     
     const response = await apiClient.schools.updateModules(
       schoolId, 
-      selectedPlanDetails.value.modules.map(m => m.key),
+      selectedPlanDetails.value.modules.map(m => m.code),
       selectedPlan.value
     )
     
@@ -419,11 +419,11 @@ const updateSubscription = async () => {
 const requestUpgrade = (moduleKey) => {
   // Find a plan that includes this module
   const plan = subscriptionPlans.value.find(p => 
-    p.modules.some(m => m.key === moduleKey) && p.price > (currentPlan.value?.price || 0)
+    p.modules.some(m => m.code === moduleKey) && p.price > (currentPlan.value?.price || 0)
   )
   
   if (plan) {
-    upgradeRequest.value.plan = plan.key
+    upgradeRequest.value.plan = plan.code
     upgradeRequest.value.reason = `Need access to ${moduleKey} module`
     showUpgradeModal.value = true
   }

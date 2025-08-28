@@ -994,6 +994,13 @@ export const apiClient = {
       return response.data;
     },
 
+    // Get available modules for plan creation
+    getAvailableModules: async () => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/available-modules');
+      return response.data;
+    },
+
     // Active plans for school/branch admins (limited fields)
     getActivePlansForSchools: async () => {
       const api = createApiInstance();

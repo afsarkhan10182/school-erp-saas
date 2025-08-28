@@ -328,12 +328,67 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    // Import module configuration
-    const { ModuleConfig } = require('../../utils/moduleConfig');
+    const { Module, SubscriptionPlan } = require('../../models');
+    
+    // Get school's subscription plan with modules
+    const subscriptionPlan = await SubscriptionPlan.findOne({
+      where: { code: school.subscription_plan, is_active: true },
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_required', 'is_enabled', 'sort_order'],
+            as: 'planModule'
+          },
+          attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core'],
+          where: { is_active: true },
+          required: false
+        }
+      ]
+    });
 
-    // Get modules for display
-    const modulesForDisplay = ModuleConfig.getModulesForDisplay(school);
-    const planComparison = ModuleConfig.getPlanComparison(school.subscription_plan);
+    // Get all available modules for comparison
+    const allModules = await Module.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core']
+    });
+
+    // Get enabled modules for this school
+    const enabledModules = subscriptionPlan?.modules || [];
+    const enabledModuleCodes = enabledModules.map(m => m.code);
+
+    // Create modules for display
+    const modulesForDisplay = allModules.map(module => ({
+      id: module.id,
+      key: module.code,
+      name: module.name,
+      description: module.description,
+      icon: module.icon,
+      category: module.category,
+      is_core: module.is_core,
+      enabled: enabledModuleCodes.includes(module.code),
+      canEnable: false, // School admin cannot enable/disable
+      upgradeRequired: !enabledModuleCodes.includes(module.code)
+    }));
+
+    // Get available subscription plans for upgrade
+    const availablePlans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['code', 'name', 'description', 'price', 'billing_cycle'],
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { attributes: [] },
+          attributes: ['code', 'name', 'description', 'icon'],
+          where: { is_active: true },
+          required: false
+        }
+      ]
+    });
 
     res.json({
       success: true,
@@ -341,7 +396,7 @@ class SchoolController {
       data: {
         modules: modulesForDisplay,
         subscription_plan: school.subscription_plan,
-        plan_comparison: planComparison,
+        plan_comparison: availablePlans,
         can_upgrade: req.user.role === 'school_admin',
       },
     });

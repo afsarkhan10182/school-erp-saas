@@ -79,11 +79,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
       min: { args: [-1], msg: 'Max branches must be at least -1 (unlimited)' },
     },
   },
-  modules: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: false,
-    defaultValue: ['students', 'attendance', 'fees'],
-  },
+  // Remove the hardcoded modules array - now managed through PlanModule relationship
   features: {
     type: DataTypes.JSONB,
     allowNull: false,
@@ -152,6 +148,20 @@ SubscriptionPlan.associate = (models) => {
   SubscriptionPlan.belongsTo(models.User, {
     foreignKey: 'updated_by',
     as: 'updatedBy',
+  });
+
+  // SubscriptionPlan has many Modules through PlanModule
+  SubscriptionPlan.belongsToMany(models.Module, {
+    through: models.PlanModule,
+    foreignKey: 'subscription_plan_id',
+    otherKey: 'module_id',
+    as: 'modules',
+  });
+
+  // SubscriptionPlan has many PlanModules
+  SubscriptionPlan.hasMany(models.PlanModule, {
+    foreignKey: 'subscription_plan_id',
+    as: 'planModules',
   });
 };
 
