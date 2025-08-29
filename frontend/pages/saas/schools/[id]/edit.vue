@@ -1,42 +1,18 @@
 <template>
   <div class="container mx-auto py-8 max-w-4xl">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Add New School</h1>
-      <p class="text-gray-600 dark:text-gray-400 mt-1">Create a new school with subscription plan and admin user</p>
-      <div class="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <div class="flex items-start">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">What happens when you create a school?</h3>
-            <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-              <ul class="list-disc list-inside space-y-1">
-                <li>A new school record is created in the schools table</li>
-                <li>A first branch is automatically created (e.g., "Main Branch" or your specified name)</li>
-                <li>A default academic year is created based on your starting month setting</li>
-                <li>A school admin user is created with the credentials you provide</li>
-                <li>Additional branches can be added later via the Branches section</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+    <div class="mb-6 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit School Subscription</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">Update school and subscription details</p>
       </div>
+      <NuxtLink to="/saas" class="btn-secondary">Back to List</NuxtLink>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">Creating school...</p>
-    </div>
-
-    <!-- Plans Loading State -->
-    <div v-else-if="plansLoading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">Loading subscription plans...</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Loading school details...</p>
     </div>
 
     <!-- Error State -->
@@ -55,7 +31,7 @@
     </div>
 
     <!-- Form -->
-    <form v-if="!loading && !plansLoading && !error" @submit.prevent="handleSubmit" class="space-y-8">
+    <form v-else @submit.prevent="handleSubmit" class="space-y-8">
       <!-- School Information -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Information</h2>
@@ -68,7 +44,7 @@
             <div class="flex justify-between items-center mb-1">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">School Code *</label>
               <span v-if="form.schoolData.code && !isSchoolCodeValid" class="text-xs text-red-600 dark:text-red-400">
-                Must be 2-20 uppercase letters and numbers only
+                Must be 2-20 alphanumeric characters
               </span>
             </div>
             <input 
@@ -79,13 +55,9 @@
                 'input-field', 
                 form.schoolData.code && !isSchoolCodeValid ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
               ]" 
-              placeholder="e.g., TEST01 (uppercase letters and numbers only)" 
+              placeholder="e.g., SCHOOL001" 
               @input="validateSchoolCode"
             />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch Name (First Branch) *</label>
-            <input v-model="form.schoolData.branch_name" type="text" required class="input-field" placeholder="Enter first branch name" />
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
@@ -111,12 +83,21 @@
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
-            <input v-model="form.schoolData.currency" type="text" class="input-field" placeholder="e.g. INR, USD" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+            <input
+              v-model="form.schoolData.phone"
+              type="tel"
+              class="input-field"
+              placeholder="Enter phone number"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
-            <input v-model="form.schoolData.currency_symbol" type="text" class="input-field" placeholder="e.g. ₹, $" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
+            <select v-model="form.schoolData.currency" class="input-field" @change="autoFillCurrencySymbol">
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Starting Month</label>
@@ -149,24 +130,8 @@
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City *</label>
-            <input
-              v-model="form.schoolData.city"
-              type="text"
-              required
-              class="input-field"
-              placeholder="Enter city"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State *</label>
-            <input
-              v-model="form.schoolData.state"
-              type="text"
-              required
-              class="input-field"
-              placeholder="Enter state"
-            />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
+            <input v-model="form.schoolData.currency_symbol" type="text" class="input-field" placeholder="e.g. ₹, $" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Logo</label>
@@ -184,15 +149,6 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Report Card Design (optional)</label>
             <input ref="reportCardInput" type="file" accept="image/*,application/pdf" class="input-field" @change="onFileChange('report_card_design', $event)" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
-            <input
-              v-model="form.schoolData.phone"
-              type="tel"
-              class="input-field"
-              placeholder="Enter phone number"
-            />
-          </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
             <textarea
@@ -201,6 +157,24 @@
               class="input-field"
               placeholder="Enter school address"
             ></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+            <input
+              v-model="form.schoolData.city"
+              type="text"
+              class="input-field"
+              placeholder="Enter city"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+            <input
+              v-model="form.schoolData.state"
+              type="text"
+              class="input-field"
+              placeholder="Enter state"
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
@@ -238,8 +212,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Subscription Plan *</label>
-            <select v-model="form.subscriptionData.plan_code" required class="input-field" :disabled="plansLoading">
-              <option value="">{{ plansLoading ? 'Loading plans...' : 'Select a plan' }}</option>
+            <select v-model="form.subscriptionData.plan_code" required class="input-field">
+              <option value="">Select a plan</option>
               <option v-for="plan in plans" :key="plan.code" :value="plan.code">
                 {{ plan.name }} - ₹{{ plan.price }}/{{ plan.billing_cycle }}
               </option>
@@ -247,25 +221,25 @@
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Status *</label>
-            <select v-model="form.subscriptionData.status" required class="input-field" @change="handleStatusChange">
+            <select v-model="form.subscriptionData.status" required class="input-field">
               <option value="trial">Trial</option>
               <option value="active">Active</option>
               <option value="lifetime">Lifetime</option>
               <option value="suspended">Suspended</option>
+              <option value="expired">Expired</option>
             </select>
           </div>
           <div v-if="form.subscriptionData.status === 'trial'">
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Trial Days *</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Trial Days</label>
             <input v-model.number="form.subscriptionData.trial_days" type="number" min="1" class="input-field" @input="autoSetTrialEndDate" />
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date *</label>
             <input v-model="form.subscriptionData.start_date" type="date" required class="input-field" @change="autoSetTrialEndDate" />
           </div>
-          <div v-if="form.subscriptionData.status !== 'lifetime' && selectedPlan?.billing_cycle !== 'lifetime'">
+          <div v-if="form.subscriptionData.status !== 'lifetime'">
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
-            <input v-model="form.subscriptionData.end_date" type="date" :readonly="true" class="input-field bg-gray-100 dark:bg-gray-700" />
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-calculated based on billing cycle</p>
+            <input v-model="form.subscriptionData.end_date" type="date" class="input-field" />
           </div>
         </div>
 
@@ -327,14 +301,14 @@
             <input v-model="form.subscriptionData.admin_phone" type="text" class="input-field" @input="form.subscriptionData.admin_phone = form.subscriptionData.admin_phone.replace(/[^\d]/g, '')" />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">New Password (optional)</label>
             <div class="relative">
-              <input :type="showAdminPassword ? 'text' : 'password'" v-model="form.subscriptionData.admin_password" class="input-field pr-10" placeholder="Enter password or leave blank for auto-generation" />
+              <input :type="showAdminPassword ? 'text' : 'password'" v-model="form.subscriptionData.admin_password" class="input-field pr-10" placeholder="Leave blank to keep current password" />
               <button type="button" @click="toggleAdminPassword" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
                 <component :is="showAdminPassword ? EyeOff : Eye" class="w-5 h-5" />
               </button>
             </div>
-            <button type="button" class="btn-secondary mt-2" @click="generatePassword">Generate</button>
+            <button type="button" class="btn-secondary mt-2" @click="generatePassword">Generate New Password</button>
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
@@ -347,7 +321,7 @@
           </div>
           <div class="col-span-2 flex items-center mt-2">
             <input type="checkbox" v-model="form.subscriptionData.send_email" class="mr-2" />
-            <span class="text-gray-700 dark:text-gray-300">Send credentials to email</span>
+            <span class="text-gray-700 dark:text-gray-300">Send new password to email (if password changed)</span>
           </div>
         </div>
       </div>
@@ -371,8 +345,8 @@
             </select>
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-300 dark:text-gray-300">Currency</label>
-            <select v-model="form.subscriptionData.payment_currency" class="input-field" @change="autoFillCurrencySymbol">
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency</label>
+            <select v-model="form.subscriptionData.payment_currency" class="input-field">
               <option value="INR">INR (₹)</option>
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
@@ -391,11 +365,11 @@
 
       <!-- Submit Buttons -->
       <div class="flex justify-end gap-3">
-        <NuxtLink to="/subscriptions" class="btn-secondary">
+        <NuxtLink to="/saas" class="btn-secondary">
           Cancel
         </NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">
-          {{ loading ? 'Creating...' : 'Create School' }}
+          {{ loading ? 'Saving...' : 'Save Changes' }}
         </button>
       </div>
     </form>
@@ -427,14 +401,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import { useSchools } from '~/composables/useSchools';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
-const { showError, showApiError } = useToast();
+const { showError } = useToast();
 
 // Access control - only Super Admin can access school subscription management
 const user = authStore.user;
@@ -443,10 +419,30 @@ if (user?.role !== 'super_admin') {
   await navigateTo('/dashboard');
 }
 
-const { createSchoolWithSubscription, plans, fetchPlans, loading, error } = useSubscriptions();
-const adminEmailError = ref(''); 
+const route = useRoute();
+const router = useRouter();
+const { updateSchoolSubscription, getSchoolWithSubscription, plans, fetchPlans, loading: subscriptionLoading, error: subscriptionError } = useSubscriptions();
+
+// Combine loading and error states
+const loading = computed(() => subscriptionLoading.value);
+const error = computed(() => subscriptionError.value);
+
+const formError = ref('');
+const emailError = ref('');
+const adminEmailError = ref('');
 const isSchoolCodeValid = ref(true);
-const plansLoading = ref(false);
+
+// Toast notification state
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastType = ref('success');
+
+// File inputs
+const systemLogoInput = ref(null);
+const textLogoInput = ref(null);
+const printingLogoInput = ref(null);
+const reportCardInput = ref(null);
+const fileInputs = ref({});
 
 const form = ref({
   schoolData: {
@@ -457,128 +453,44 @@ const form = ref({
     address: '',
     city: '',
     state: '',
-    country: 'India',
+    country: '',
     postal_code: '',
     website: '',
-    branch_name: '',
     currency: 'INR',
     currency_symbol: '₹',
-    starting_month: 6,
-    academic_year_start: 'academic',
-    timezone: 'Asia/Kolkata',
-    locale: 'en-IN',
-    date_format: 'DD/MM/YYYY',
-    time_format: '12h'
+    starting_month: 6, // Default to June
+    academic_year_start: 'academic' // Default to Academic Year
   },
   subscriptionData: {
     plan_code: '',
-    status: 'trial',
-    start_date: new Date().toISOString().split('T')[0],
+    status: '',
+    start_date: '',
     end_date: '',
-    payment_amount: '',
-    payment_method: 'offline_cash',
-    payment_currency: 'INR',
     trial_days: 30,
-    trx_id: '',
-    notes: '',
-    // Admin fields moved here
     admin_first_name: '',
     admin_last_name: '',
     admin_email: '',
     admin_phone: '',
     admin_password: '',
-    admin_role: 'school_admin', // Added for role
-    send_email: true // Added for send_email
+    admin_role: 'school_admin',
+    send_email: false,
+    payment_amount: '',
+    payment_currency: 'INR',
+    payment_method: 'offline_cash',
+    trx_id: '',
+    notes: ''
   }
 });
 
-const showSuccessModal = ref(false);
-const createdSchool = ref(null);
-const systemLogoInput = ref(null);
-const textLogoInput = ref(null);
-const printingLogoInput = ref(null);
-const reportCardInput = ref(null);
-
-// Toast notification state
-const showToast = ref(false);
-const toastMessage = ref('');
-const toastType = ref('success');
-const emailError = ref('');
-
-const fileInputs = ref({});
+// File handling
 const onFileChange = (field, event) => {
   fileInputs.value[field] = event.target.files[0];
 };
 
-// Computed property for selected plan
-const selectedPlan = computed(() => {
-  return plans.value.find(plan => plan.code === form.value.subscriptionData.plan_code);
+// Load school data on mount
+onMounted(() => {
+  loadSchool();
 });
-
-// Toast notification methods
-const showToastNotification = (message, type = 'success') => {
-  toastMessage.value = message;
-  toastType.value = type;
-  showToast.value = true;
-  setTimeout(() => {
-    hideToast();
-  }, 5000);
-};
-
-const hideToast = () => {
-  showToast.value = false;
-};
-
-const toastClasses = computed(() => {
-  return toastType.value === 'success' 
-    ? 'bg-green-50 border border-green-200 text-green-800' 
-    : 'bg-red-50 border border-red-200 text-red-800';
-});
-
-// On plan change, set end date based on billing cycle
-const onPlanChange = () => {
-  if (selectedPlan.value) {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    let endDate = new Date(startDate);
-    
-    switch (selectedPlan.value.billing_cycle) {
-      case 'monthly':
-        endDate.setMonth(endDate.getMonth() + 1);
-        break;
-      case 'yearly':
-        endDate.setFullYear(endDate.getFullYear() + 1);
-        break;
-      case 'lifetime':
-        endDate.setFullYear(endDate.getFullYear() + 100); // Set to far future
-        break;
-    }
-    
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  }
-};
-
-// Generate random password
-const generatePassword = () => {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  form.value.subscriptionData.admin_password = password;
-};
-
-// Auto-fill currency symbol when currency is selected
-const autoFillCurrencySymbol = () => {
-  if (form.value.schoolData.currency === 'INR') {
-    form.value.schoolData.currency_symbol = '₹';
-  } else if (form.value.schoolData.currency === 'USD') {
-    form.value.schoolData.currency_symbol = '$';
-  } else if (form.value.schoolData.currency === 'EUR') {
-    form.value.schoolData.currency_symbol = '€';
-  } else {
-    form.value.schoolData.currency_symbol = ''; // Default or empty
-  }
-};
 
 // School code validation
 const validateSchoolCode = () => {
@@ -593,59 +505,6 @@ const validateSchoolCode = () => {
   const codeRegex = /^[A-Z0-9]{2,20}$/;
   isSchoolCodeValid.value = codeRegex.test(upperCode);
   return isSchoolCodeValid.value;
-};
-
-// Auto-set end date for trial status
-const autoSetTrialEndDate = () => {
-  if (form.value.subscriptionData.status === 'trial') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const trialDays = form.value.subscriptionData.trial_days;
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + trialDays);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  }
-};
-
-// Handle status change to update end date
-const handleStatusChange = () => {
-  if (form.value.subscriptionData.status === 'trial') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const trialDays = form.value.subscriptionData.trial_days;
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + trialDays);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'monthly') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const endDate = new Date(startDate);
-    endDate.setMonth(startDate.getMonth() + 1);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'yearly') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(startDate.getFullYear() + 1);
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  } else if (form.value.subscriptionData.status === 'active' && selectedPlan?.billing_cycle === 'lifetime') {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(startDate.getFullYear() + 100); // Set to far future
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
-  }
-};
-
-// Validate unique email (frontend only)
-const validateUniqueEmail = (type) => {
-  const email = form.value.subscriptionData.admin_email;
-  const schoolCode = form.value.schoolData.code;
-  const schoolName = form.value.schoolData.name;
-
-  if (type === 'admin') {
-    if (email.toLowerCase() === schoolCode.toLowerCase() || email.toLowerCase() === schoolName.toLowerCase()) {
-      adminEmailError.value = 'Email cannot be the same as School Code or Name.';
-      return false;
-    }
-  }
-  adminEmailError.value = '';
-  return true;
 };
 
 // School email validation
@@ -684,6 +543,22 @@ const validateAdminEmail = () => {
   return true;
 };
 
+// Validate unique email (frontend only)
+const validateUniqueEmail = (type) => {
+  const email = form.value.subscriptionData.admin_email;
+  const schoolCode = form.value.schoolData.code;
+  const schoolName = form.value.schoolData.name;
+
+  if (type === 'admin') {
+    if (email.toLowerCase() === schoolCode.toLowerCase() || email.toLowerCase() === schoolName.toLowerCase()) {
+      adminEmailError.value = 'Email cannot be the same as School Code or Name.';
+      return false;
+    }
+  }
+  adminEmailError.value = '';
+  return true;
+};
+
 // Form validation
 const validateForm = () => {
   const isSchoolEmailValid = validateSchoolEmail();
@@ -693,19 +568,135 @@ const validateForm = () => {
   return isSchoolEmailValid && isAdminEmailValid && isCodeValid;
 };
 
-// Handle form submission
+// Generate random password
+const generatePassword = () => {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  form.value.subscriptionData.admin_password = password;
+};
+
+// Auto-fill currency symbol when currency is selected
+const autoFillCurrencySymbol = () => {
+  if (form.value.schoolData.currency === 'INR') {
+    form.value.schoolData.currency_symbol = '₹';
+  } else if (form.value.schoolData.currency === 'USD') {
+    form.value.schoolData.currency_symbol = '$';
+  } else if (form.value.schoolData.currency === 'EUR') {
+    form.value.schoolData.currency_symbol = '€';
+  } else {
+    form.value.schoolData.currency_symbol = '';
+  }
+};
+
+// Auto-set end date for trial status
+const autoSetTrialEndDate = () => {
+  if (form.value.subscriptionData.status === 'trial') {
+    const startDate = new Date(form.value.subscriptionData.start_date);
+    const trialDays = form.value.subscriptionData.trial_days;
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + trialDays);
+    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+  }
+};
+
+const selectedPlan = computed(() => {
+  return plans.value.find(plan => plan.code === form.value.subscriptionData.plan_code);
+});
+
+// Toast notification methods
+const showToastNotification = (message, type = 'success') => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  setTimeout(() => {
+    hideToast();
+  }, 5000);
+};
+
+const hideToast = () => {
+  showToast.value = false;
+};
+
+const toastClasses = computed(() => {
+  return toastType.value === 'success' 
+    ? 'bg-green-50 border border-green-200 text-green-800' 
+    : 'bg-red-50 border border-red-200 text-red-800';
+});
+
+const loadSchool = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    // Fetch plans
+    await fetchPlans({ is_active: true });
+    
+    // Fetch school details with subscription data
+    const school = await getSchoolWithSubscription(route.params.id);
+    if (!school) throw new Error('School not found');
+    
+    // Populate form
+    form.value.schoolData = {
+      name: school.name || '',
+      code: school.code || '',
+      email: school.email || '',
+      phone: school.phone || '',
+      address: school.address || '',
+      city: school.city || '',
+      state: school.state || '',
+      country: school.country || 'India',
+      postal_code: school.postal_code || '',
+      website: school.website || '',
+      currency: school.currency || 'INR',
+      currency_symbol: school.settings?.currency_symbol || '₹',
+      starting_month: school.starting_month || 6, // Default to June
+      academic_year_start: school.academic_year_start || 'academic' // Default to Academic Year
+    };
+    
+    form.value.subscriptionData = {
+      plan_code: school.subscription_plan || '',
+      status: school.status || '',
+      start_date: school.subscription_start_date?.split('T')[0] || '',
+      end_date: school.subscription_end_date?.split('T')[0] || '',
+      trial_days: 30,
+      admin_first_name: school.admin_user?.first_name || '',
+      admin_last_name: school.admin_user?.last_name || '',
+      admin_email: school.admin_user?.email || '',
+      admin_phone: school.admin_user?.phone || '',
+      admin_password: '',
+      admin_role: school.admin_user?.role || 'school_admin',
+      send_email: false,
+      payment_amount: '',
+      payment_currency: 'INR',
+      payment_method: 'offline_cash',
+      trx_id: '',
+      notes: ''
+    };
+  } catch (e) {
+    error.value = e?.message || 'Failed to load school details';
+    showToastNotification(error.value, 'error');
+  } finally {
+    loading.value = false;
+  }
+};
+
 const handleSubmit = async () => {
+  formError.value = '';
+  
   // Validate form before submission
   if (!validateForm()) {
     showToastNotification('Please fix the validation errors', 'error');
     return;
   }
   
-  // Note: loading state is managed by the composable during createSchoolWithSubscription
-  error.value = '';
+  loading.value = true;
   try {
+    // Use FormData for file uploads (exactly like create form)
     const formData = new FormData();
-    // Append nested objects as JSON strings
+    
+    // Append form data as JSON strings (same as create form)
     formData.append('schoolData', JSON.stringify(form.value.schoolData));
     formData.append('subscriptionData', JSON.stringify(form.value.subscriptionData));
 
@@ -714,104 +705,35 @@ const handleSubmit = async () => {
     if (fileInputs.value.text_logo) formData.append('text_logo', fileInputs.value.text_logo);
     if (fileInputs.value.printing_logo) formData.append('printing_logo', fileInputs.value.printing_logo);
     if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
-    // Call composable
-    const result = await createSchoolWithSubscription(formData);
+
+    // Call composable (same pattern as create form)
+    const result = await updateSchoolSubscription(route.params.id, formData);
+    
     if (result) {
-      createdSchool.value = result;
-      showToastNotification(`School "${result.school.name}" created successfully with branch "${result.branch.name}" and academic year "${result.academic_year.name}"!`, 'success');
-      // Reset form after successful creation
+      showToastNotification('School and subscription updated successfully!', 'success');
       setTimeout(() => {
-        try {
-          // Clear any previous email error
-          emailError.value = '';
-          // Reset form data
-          form.value = {
-            schoolData: {
-              name: '',
-              code: '',
-              email: '',
-              phone: '',
-              address: '',
-              city: '',
-              state: '',
-              country: 'India',
-              postal_code: '',
-              website: '',
-              branch_name: '',
-              currency: 'INR',
-              currency_symbol: '₹',
-              starting_month: 6,
-              academic_year_start: 'academic',
-              timezone: 'Asia/Kolkata',
-              locale: 'en-IN',
-              date_format: 'DD/MM/YYYY',
-              time_format: '12h'
-            },
-            subscriptionData: {
-              plan_code: '',
-              status: 'trial',
-              start_date: new Date().toISOString().split('T')[0],
-              end_date: '',
-              payment_amount: '',
-              payment_method: 'offline_cash',
-              payment_currency: 'INR',
-              trial_days: 30,
-              trx_id: '',
-              notes: '',
-              admin_first_name: '',
-              admin_last_name: '',
-              admin_email: '',
-              admin_phone: '',
-              admin_password: generatePassword(),
-              admin_role: 'school_admin',
-              send_email: true
-            }
-          };
-          
-          // Clear file inputs
-          fileInputs.value = {};
-          if (systemLogoInput.value) systemLogoInput.value.value = '';
-          if (textLogoInput.value) textLogoInput.value.value = '';
-          if (printingLogoInput.value) printingLogoInput.value.value = '';
-          if (reportCardInput.value) reportCardInput.value.value = '';
-          
-          // Reset validation states
-          emailError.value = '';
-          adminEmailError.value = '';
-          isSchoolCodeValid.value = true;
-        } catch (error) {
-          console.error('Error resetting form:', error);
-        }
-      }, 2000);
+        router.push('/saas');
+      }, 1500);
+    } else {
+      throw new Error('Failed to update school subscription');
     }
-  } catch (err) {
-    console.error('Error creating school:', err);
-    showApiError(err, 'Failed to create school');
-  }
-};
-
-// Close success modal
-const closeSuccessModal = () => {
-  showSuccessModal.value = false;
-  createdSchool.value = null;
-};
-
-// Fetch plans on mount
-onMounted(async () => {
-  plansLoading.value = true;
-  try {
-    await fetchPlans({ is_active: true });
+  } catch (e) {
+    const errorMsg = e?.message || 'Failed to update school subscription';
+    formError.value = errorMsg;
+    showToastNotification(errorMsg, 'error');
   } finally {
-    plansLoading.value = false;
+    loading.value = false;
   }
-});
-
+};
 
 // Password visibility toggle
 const showAdminPassword = ref(false);
 const toggleAdminPassword = () => {
   showAdminPassword.value = !showAdminPassword.value;
 };
+
+onMounted(loadSchool);
+
 </script>
 
 <style scoped>

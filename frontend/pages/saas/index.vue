@@ -9,13 +9,13 @@
         <p class="text-gray-600 dark:text-gray-400 mt-1">Overview of school subscriptions and platform metrics</p>
       </div>
       <div class="flex gap-3">
-        <NuxtLink to="/subscriptions/plans" class="btn-secondary">
+        <NuxtLink to="/saas/plans" class="btn-secondary">
           Manage Plans
         </NuxtLink>
-        <NuxtLink to="/subscriptions/renewal-requests" class="btn-secondary">
+        <NuxtLink to="/saas/renewal-requests" class="btn-secondary">
           Renewal Requests
         </NuxtLink>
-        <NuxtLink to="/subscriptions/schools/create" class="btn-primary">
+        <NuxtLink to="/saas/schools/create" class="btn-primary">
           Add School
         </NuxtLink>
       </div>
@@ -172,13 +172,13 @@
                 <!-- Actions -->
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex space-x-2">
-                    <NuxtLink :to="`/subscriptions/schools/${school.id}`" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
+                    <NuxtLink :to="`/saas/schools/${school.id}`" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
                       View
                     </NuxtLink>
-                    <NuxtLink :to="`/subscriptions/schools/${school.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">
+                    <NuxtLink :to="`/saas/schools/${school.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">
                       Edit
                     </NuxtLink>
-                    <NuxtLink :to="`/subscriptions/schools/${school.id}/transactions`" class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
+                    <NuxtLink :to="`/saas/schools/${school.id}/transactions`" class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
                       Transactions
                     </NuxtLink>
                     <button
@@ -210,7 +210,7 @@
             </svg>
           </div>
           <p class="text-gray-600 dark:text-gray-400">No schools found</p>
-          <NuxtLink to="/subscriptions/schools/create" class="btn-primary mt-4">
+          <NuxtLink to="/saas/schools/create" class="btn-primary mt-4">
             Add First School
           </NuxtLink>
         </div>

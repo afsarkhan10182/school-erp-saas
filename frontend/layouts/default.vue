@@ -86,7 +86,7 @@ const pageTitle = computed(() => {
     '/academic': 'Academic Management',
     '/reports': 'Reports',
     '/settings': 'Settings',
-    '/subscriptions': 'Subscriptions'
+    '/saas': 'Subscriptions'
   };
   
   return titleMap[Object.keys(titleMap).find(key => path.startsWith(key))] || 'School ERP';

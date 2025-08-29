@@ -128,7 +128,7 @@ export const useModulesStore = defineStore('modules', {
       this.isLoading = true;
       try {
         // Fetch available modules from API
-        const response = await apiClient.subscriptions.getAvailableModules();
+        const response = await apiClient.saas.getAvailableModules();
         if (response.success) {
           this.availableModules = response.data;
         }

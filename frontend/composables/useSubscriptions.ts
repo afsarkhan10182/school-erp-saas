@@ -15,7 +15,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getSchoolsWithSubscriptions(params);
+      const response = await apiClient.saas.getSchoolsWithSubscriptions(params);
 
       if (response.success) {
         schools.value = response.data.schools || [];
@@ -37,7 +37,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getSchoolWithSubscription(id);
+      const response = await apiClient.saas.getSchoolWithSubscription(id);
       if (response.success) {
         return response.data;
       } else {
@@ -57,7 +57,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getPlans(params);
+      const response = await apiClient.saas.getPlans(params);
       if (response.success) {
         plans.value = response.data.plans || [];
         return response;
@@ -78,7 +78,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getAvailableModules();
+      const response = await apiClient.saas.getAvailableModules();
       if (response.success) {
         return response.data;
       } else {
@@ -98,7 +98,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getPlanById(id);
+      const response = await apiClient.saas.getPlanById(id);
       if (response.success) {
         return response.data;
       } else {
@@ -118,7 +118,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.createPlan(planData);
+      const response = await apiClient.saas.createPlan(planData);
       if (!response.success) {
         error.value = response.message || 'Failed to create plan.';
         return null;
@@ -137,7 +137,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.updatePlan(id, planData);
+      const response = await apiClient.saas.updatePlan(id, planData);
       if (!response.success) {
         error.value = response.message || 'Failed to update plan.';
         return null;
@@ -156,7 +156,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.deletePlan(id);
+      const response = await apiClient.saas.deletePlan(id);
       if (!response.success) {
         error.value = response.message || 'Failed to delete plan.';
         return false;
@@ -175,7 +175,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.createSchoolWithSubscription(formData);
+      const response = await apiClient.saas.createSchoolWithSubscription(formData);
       
       if (!response.success) {
         // Create an error object that mimics axios error structure
@@ -200,7 +200,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.updateSchoolSubscription(schoolId, formData);
+      const response = await apiClient.saas.updateSchoolSubscription(schoolId, formData);
       if (!response.success) {
         error.value = response.message || 'Failed to update school subscription.';
         return null;
@@ -219,7 +219,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getSchoolTransactions(schoolId, params);
+      const response = await apiClient.saas.getSchoolTransactions(schoolId, params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
         pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
@@ -241,7 +241,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.createManualTransaction(transactionData);
+      const response = await apiClient.saas.createManualTransaction(transactionData);
       if (!response.success) {
         error.value = response.message || 'Failed to create transaction.';
         return null;
@@ -260,7 +260,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getSubscriptionStats();
+      const response = await apiClient.saas.getSubscriptionStats();
       if (response.success) {
         return response.data;
       } else {
@@ -280,7 +280,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.suspendSchool(schoolId);
+      const response = await apiClient.saas.suspendSchool(schoolId);
       if (!response.success) {
         error.value = response.message || 'Failed to suspend school.';
         return null;
@@ -299,7 +299,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.reactivateSchool(schoolId);
+      const response = await apiClient.saas.reactivateSchool(schoolId);
       if (!response.success) {
         error.value = response.message || 'Failed to reactivate school.';
         return null;
@@ -318,7 +318,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getRenewalRequests(params);
+      const response = await apiClient.saas.getRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
@@ -338,7 +338,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.createRenewalRequest(requestData);
+      const response = await apiClient.saas.createRenewalRequest(requestData);
       if (response.success) {
         return response.data;
       } else {
@@ -358,7 +358,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.reviewRenewalRequest(requestId, reviewData);
+      const response = await apiClient.saas.reviewRenewalRequest(requestId, reviewData);
       if (response.success) {
         return response.data;
       } else {
@@ -378,7 +378,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.subscriptions.getSchoolRenewalRequests(params);
+      const response = await apiClient.saas.getSchoolRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
@@ -393,9 +393,29 @@ export function useSubscriptions() {
     }
   };
 
+  // Get school subscription details (for school admins)
+  const fetchSchoolSubscriptionDetails = async () => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.saas.getUsage();
+      if (response.success) {
+        return response.data;
+      } else {
+        error.value = response.message || 'Failed to fetch school subscription details.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const checkAndUpdateAllStatuses = async () => {
     try {
-      const response = await apiClient.subscriptions.checkAllStatuses();
+      const response = await apiClient.saas.checkAllStatuses();
       return response.data;
     } catch (error) {
       console.error('Error checking subscription statuses:', error);
@@ -412,6 +432,7 @@ export function useSubscriptions() {
     error,
     fetchSchoolsWithSubscriptions,
     getSchoolWithSubscription,
+    fetchSchoolSubscriptionDetails,
     fetchPlans,
     fetchAvailableModules,
     getPlanById,

@@ -184,7 +184,7 @@ class SubscriptionLifecycleService {
         }
 
         const requestedPlan = await SubscriptionPlan.findOne({
-          where: { code: request.requested_plan, is_active: true },
+          where: { code: request.requested_plan_code, is_active: true },
           transaction
         });
 
@@ -223,7 +223,7 @@ class SubscriptionLifecycleService {
             currency: 'INR',
             type: 'subscription_change',
             status: 'completed',
-            description: `Subscription change from ${request.current_plan} to ${request.requested_plan}`,
+            description: `Subscription change from ${request.current_plan_code} to ${request.requested_plan_code}`,
             reference: `RENEWAL_${request.id}`,
             created_by: reviewedBy
           }, { transaction });

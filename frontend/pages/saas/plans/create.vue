@@ -96,7 +96,7 @@
 
       <!-- Actions -->
       <div class="flex justify-end gap-3">
-        <NuxtLink to="/subscriptions/plans" class="btn-secondary">Cancel</NuxtLink>
+        <NuxtLink to="/saas/plans" class="btn-secondary">Cancel</NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">
           <span v-if="loading" class="flex items-center">
             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ const handleSubmit = async () => {
   const result = await createPlan(form.value);
   if (result) {
     showSuccess('Subscription plan created successfully!');
-    router.push('/subscriptions/plans');
+    router.push('/saas/plans');  
   }
 };
 

@@ -129,7 +129,7 @@ const School = sequelize.define('School', {
   subscription_plan: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    defaultValue: 'trial',
+    defaultValue: 'TRIAL',
   },
   subscription_start_date: {
     type: DataTypes.DATE,

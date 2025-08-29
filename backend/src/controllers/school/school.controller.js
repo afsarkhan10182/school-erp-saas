@@ -390,13 +390,19 @@ class SchoolController {
       ]
     });
 
+    // Mark the current plan
+    const plansWithCurrentFlag = availablePlans.map(plan => ({
+      ...plan.toJSON(),
+      isCurrentPlan: plan.code === school.subscription_plan
+    }));
+
     res.json({
       success: true,
       message: 'School modules retrieved successfully',
       data: {
         modules: modulesForDisplay,
         subscription_plan: school.subscription_plan,
-        plan_comparison: availablePlans,
+        plan_comparison: plansWithCurrentFlag,
         can_upgrade: req.user.role === 'school_admin',
       },
     });

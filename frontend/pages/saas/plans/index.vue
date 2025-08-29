@@ -5,7 +5,7 @@
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Subscription Plans</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">Manage all available subscription plans</p>
       </div>
-      <NuxtLink to="/subscriptions/plans/create" class="btn-primary">Add Plan</NuxtLink>
+      <NuxtLink to="/saas/plans/create" class="btn-primary">Add Plan</NuxtLink>
     </div>
 
     <div v-if="loading" class="text-center py-8">
@@ -65,7 +65,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
-                  <NuxtLink :to="`/subscriptions/plans/${plan.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</NuxtLink>
+                  <NuxtLink :to="`/saas/plans/${plan.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</NuxtLink>
                   <button @click="deletePlanConfirm(plan.id)" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
                 </div>
               </td>

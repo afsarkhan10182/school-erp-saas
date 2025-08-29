@@ -793,6 +793,11 @@ class SubscriptionService {
       throw new ApiError(404, 'School not found');
     }
 
+    // Ensure school has a subscription plan
+    if (!school.subscription_plan) {
+      throw new ApiError(400, 'School does not have a current subscription plan');
+    }
+
     // Validate requested plan
     const requestedPlan = await SubscriptionPlan.findOne({
       where: { code: requested_plan_code, is_active: true },
@@ -818,14 +823,16 @@ class SubscriptionService {
     const renewalRequest = await SubscriptionRenewalRequest.create({
       school_id,
       current_plan_code: school.subscription_plan,
-      requested_plan_code,
+      requested_plan_code: requested_plan_code,
       request_type,
-      current_subscription_end_date: currentEndDate,
-      requested_start_date: requestedStartDate,
+      current_subscription_end_date: school.subscription_end_date || new Date(),
+      requested_start_date: new Date(),
       requested_end_date: requestedEndDate,
       billing_cycle,
-      request_reason,
+      status: 'pending',
+      request_reason: request_reason,
       requested_by: userId,
+      is_active: true,
     });
 
     return renewalRequest;

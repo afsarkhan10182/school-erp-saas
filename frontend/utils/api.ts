@@ -974,8 +974,8 @@ export const apiClient = {
     }
   },
 
-  // Subscription endpoints
-  subscriptions: {
+  // SaaS Management endpoints
+  saas: {
     getSchoolsWithSubscriptions: async (params?: { page?: number; limit?: number; search?: string; status?: string; subscription_plan?: string; id?: string }) => {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/subscriptions/schools', { params });

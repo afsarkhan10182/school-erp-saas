@@ -87,7 +87,7 @@
         <span class="text-gray-700 dark:text-gray-300">{{ form.is_active ? 'Yes' : 'No' }}</span>
       </div>
       <div class="flex justify-end gap-3">
-        <NuxtLink to="/subscriptions/plans" class="btn-secondary">Cancel</NuxtLink>
+        <NuxtLink to="/saas/plans" class="btn-secondary">Cancel</NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? 'Saving...' : 'Save Changes' }}</button>
       </div>
     </form>
@@ -197,7 +197,7 @@ const handleSubmit = async () => {
       window.dispatchEvent(event);
     }
     // Redirect to list page
-    await navigateTo('/subscriptions/plans');
+    await navigateTo('/saas/plans');
   }
 };
 </script>

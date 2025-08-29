@@ -41,19 +41,19 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Quick Actions</h3>
         <div class="space-y-3">
           <NuxtLink
-            to="/subscriptions/plans"
+            to="/saas/plans"
             class="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Manage Subscription Plans
           </NuxtLink>
           <NuxtLink
-            to="/subscriptions/schools"
+            to="/saas/schools"
             class="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Manage Schools & Subscriptions
           </NuxtLink>
           <NuxtLink
-            to="/subscriptions/renewal-requests"
+            to="/saas/renewal-requests"
             class="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             Review Renewal Requests

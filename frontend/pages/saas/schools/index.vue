@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Schools with Subscriptions</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">Manage school subscriptions and billing</p>
       </div>
-      <NuxtLink to="/subscriptions/schools/create" class="btn-primary">
+      <NuxtLink to="/saas/schools/create" class="btn-primary">
         <Plus class="w-4 h-4 mr-2" />
         Add New School
       </NuxtLink>
@@ -159,19 +159,19 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <NuxtLink
-                    :to="`/subscriptions/schools/${school.id}`"
+                    :to="`/saas/schools/${school.id}`"
                     class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
                     View
                   </NuxtLink>
                   <NuxtLink
-                    :to="`/subscriptions/schools/${school.id}/edit`"
+                    :to="`/saas/schools/${school.id}/edit`"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     Edit
                   </NuxtLink>
                   <NuxtLink
-                    :to="`/subscriptions/schools/${school.id}/transactions`"
+                    :to="`/saas/schools/${school.id}/transactions`"
                     class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                   >
                     Transactions
@@ -191,7 +191,7 @@
           Get started by creating a new school with subscription.
         </p>
         <div class="mt-6">
-          <NuxtLink to="/subscriptions/schools/create" class="btn-primary">
+          <NuxtLink to="/saas/schools/create" class="btn-primary">
             <Plus class="w-4 h-4 mr-2" />
             Add New School
           </NuxtLink>
@@ -237,7 +237,7 @@ const { schools, loading, error, fetchSchoolsWithSubscriptions, suspendSchool, r
 // Load plans for filter dropdown
 const loadPlans = async () => {
   try {
-    const result = await apiClient.subscriptions.getPlans();
+    const result = await apiClient.saas.getPlans();
     if (result.success) {
       plans.value = result.data.plans || [];
     }

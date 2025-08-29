@@ -13,7 +13,7 @@ export function useSchools() {
     try {
       if (includeSubscriptions) {
         // Use subscription endpoint for enhanced data
-        const response = await apiClient.subscriptions.getSchoolsWithSubscriptions();
+        const response = await apiClient.saas.getSchoolsWithSubscriptions();
         if (response.success) {
           schools.value = response.data.schools || [];
         } else {

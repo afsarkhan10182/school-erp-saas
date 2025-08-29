@@ -314,20 +314,21 @@ const isReceptionist = computed(() => authStore.user?.role === 'receptionist');
 const menuGroups = computed(() => {
   const groups = [];
 
-  // Platform & Subscription Management (Super Admin Only)
+  // SaaS Management (Super Admin Only)
   if (isSuperAdmin.value) {
     groups.push({
-      id: 'subscription',
-      title: 'Saas Subscription',
+      id: 'saas',
+      title: 'SaaS Management',
       items: [
         {
-          id: 'subscription-management',
-          title: 'School Subscription',
+          id: 'saas-management',
+          title: 'School Subscriptions',
           icon: CreditCard,
           children: [
-             { id: 'customer-overview', title: 'Overview', path: '/subscriptions', icon: BarChart3 },
-            { id: 'subscription-plans', title: 'Subscription Plans', path: '/subscriptions/plans', icon: List },
-            { id: 'renewal-requests', title: 'Renewal Requests', path: '/subscriptions/renewal-requests', icon: FileText },
+             { id: 'customer-overview', title: 'Overview', path: '/saas', icon: BarChart3 },
+            { id: 'subscription-plans', title: 'Subscription Plans', path: '/saas/plans', icon: List },
+            { id: 'renewal-requests', title: 'Renewal Requests', path: '/saas/renewal-requests', icon: FileText },
+            { id: 'schools', title: 'Schools', path: '/saas/schools', icon: Building2 },
           ]
         },
       ]
@@ -463,17 +464,38 @@ const menuGroups = computed(() => {
 
   // Settings
   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    const settingsItems = [];
+    
+    // Super Admin gets full settings
+    if (isSuperAdmin.value) {
+      settingsItems.push(
+        { id: 'staff-list', title: 'User List', path: '/users', icon: Users },
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
+        { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings, requiredModule: 'settings' }
+      );
+    } 
+    // School Admin gets simplified settings
+    else if (isSchoolAdmin.value) {
+      settingsItems.push(
+        { id: 'staff-list', title: 'Staff List', path: '/users', icon: Users },
+        { id: 'settings-main', title: 'School Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
+        { id: 'subscription', title: 'Subscription', path: '/settings/subscription', icon: CreditCard }
+      );
+    }
+    // Branch Admin gets minimal settings
+    else {
+      settingsItems.push(
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+      );
+    }
+
     groups.push({
       id: 'settings',
       title: 'Settings',
-      items: [
-      ...(!isBranchAdmin.value ? [
-                { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
-              ] : []),      
-        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
-        // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
-      ]
+      items: settingsItems
     });
   }
 

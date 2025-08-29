@@ -23,7 +23,7 @@ export function useModuleAccess() {
       // Super admin has access to all modules - load all available modules
       try {
         isLoading.value = true;
-        const response = await apiClient.subscriptions.getAvailableModules();
+        const response = await apiClient.saas.getAvailableModules();
         if (response.success) {
           const allModules = response.data
             .filter((module: any) => module.is_active)
@@ -133,6 +133,8 @@ export function useModuleAccess() {
       
       '/reports': 'reports',
       '/reports/advanced': 'reports',
+      
+      '/settings/modules': 'settings',
     };
 
     const requiredModule = routeModuleMap[routePath];
