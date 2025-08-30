@@ -57,15 +57,15 @@
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Plan Name:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ school?.plan_details?.name || school?.subscription_plan || 'N/A' }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.plan_details?.name || school?.subscription_plan || 'No Plan' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Price:</span>
-                <span class="font-medium text-gray-900 dark:text-white">₹{{ school?.plan_details?.price || 'N/A' }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.plan_details?.price !== null && school?.plan_details?.price !== undefined ? `₹${school.plan_details.price}` : 'N/A' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Billing Cycle:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ formatBillingCycle(school?.plan_details?.billing_cycle) }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.plan_details?.billing_cycle ? formatBillingCycle(school.plan_details.billing_cycle) : 'N/A' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Status:</span>
@@ -202,8 +202,7 @@
           </NuxtLink>
         </div>
         <div v-if="transactions.length === 0" class="text-center py-8 text-gray-500">
-          <div v-if="user?.role === 'super_admin'">No transactions found</div>
-          <div v-else>Transaction history is not available for school administrators</div>
+          No transactions found
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -219,7 +218,7 @@
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-for="transaction in transactions" :key="transaction.id">
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ formatDate(transaction.created_at) }}
+                  {{ formatDate(transaction.created_at || transaction.createdAt || transaction.payment_date) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   ₹{{ transaction.amount }}
@@ -228,8 +227,8 @@
                   {{ formatMethod(transaction.payment_method) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="statusClass(transaction.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
-                    {{ formatStatus(transaction.status) }}
+                  <span :class="statusClass(transaction.payment_status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                    {{ formatStatus(transaction.payment_status) }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -254,6 +253,7 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Current Plan</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Requested Plan</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Reason</th>
@@ -262,13 +262,26 @@
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-for="request in renewalRequests" :key="request.id">
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ request.created_at ? formatDate(request.created_at) : 'Not available' }}
+                  {{ formatDate(request.created_at) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white capitalize">
                   {{ formatRequestType(request.request_type) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ request.requested_plan_code }}
+                <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                  <div>
+                    <div class="font-medium">{{ request.current_plan_details?.name || request.current_plan_code || 'N/A' }}</div>
+                    <div class="text-xs text-gray-500">
+                      ₹{{ request.current_plan_details?.price || 'N/A' }} / {{ formatBillingCycle(request.current_plan_details?.billing_cycle) }}
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                  <div>
+                    <div class="font-medium">{{ request.requested_plan_details?.name || request.requested_plan_code || 'N/A' }}</div>
+                    <div class="text-xs text-gray-500">
+                      ₹{{ request.requested_plan_details?.price || 'N/A' }} / {{ formatBillingCycle(request.requested_plan_details?.billing_cycle) }}
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span :class="statusClass(request.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
@@ -349,6 +362,71 @@
         </button>
       </template>
     </Modal>
+
+    <!-- Plan Details Modal -->
+    <Modal :show="showPlanDetailsModal" @close="showPlanDetailsModal = false">
+      <template #header>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Plan Details</h3>
+      </template>
+      
+      <template #body>
+        <div v-if="selectedPlanDetails" class="space-y-6">
+          <!-- Plan Overview -->
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">{{ selectedPlanDetails.name }}</h4>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-600 dark:text-gray-400">Price:</span>
+                <span class="font-medium text-gray-900 dark:text-white ml-2">₹{{ selectedPlanDetails.price }}</span>
+              </div>
+              <div>
+                <span class="text-gray-600 dark:text-gray-400">Billing Cycle:</span>
+                <span class="font-medium text-gray-900 dark:text-white ml-2">{{ formatBillingCycle(selectedPlanDetails.billing_cycle) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-600 dark:text-gray-400">Max Students:</span>
+                <span class="font-medium text-gray-900 dark:text-white ml-2">{{ selectedPlanDetails.max_students === -1 ? 'Unlimited' : selectedPlanDetails.max_students }}</span>
+              </div>
+              <div>
+                <span class="text-gray-600 dark:text-gray-400">Max Staff:</span>
+                <span class="font-medium text-gray-900 dark:text-white ml-2">{{ selectedPlanDetails.max_staff === -1 ? 'Unlimited' : selectedPlanDetails.max_staff }}</span>
+              </div>
+              <div>
+                <span class="text-gray-600 dark:text-gray-400">Max Branches:</span>
+                <span class="font-medium text-gray-900 dark:text-white ml-2">{{ selectedPlanDetails.max_branches === -1 ? 'Unlimited' : selectedPlanDetails.max_branches }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modules -->
+          <div v-if="selectedPlanDetails.modules && selectedPlanDetails.modules.length > 0">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-3">Included Modules</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div 
+                v-for="module in selectedPlanDetails.modules" 
+                :key="module.id"
+                class="flex items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
+              >
+                <Check class="w-4 h-4 text-green-600 dark:text-green-400 mr-2" />
+                <span class="text-sm text-gray-900 dark:text-white">{{ module.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div v-if="selectedPlanDetails.description">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">Description</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ selectedPlanDetails.description }}</p>
+          </div>
+        </div>
+      </template>
+      
+      <template #footer>
+        <button type="button" @click="showPlanDetailsModal = false" class="btn-primary">
+          Close
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -390,18 +468,48 @@ interface Transaction {
   id: string;
   amount: number;
   payment_method: string;
-  status: string;
+  payment_status: string;
+  transaction_status?: string;
   description?: string;
   created_at: string;
+  createdAt?: string;
+  payment_date?: string;
+  transaction_id?: string;
+  currency?: string;
+  subscription_plan?: {
+    name: string;
+    code: string;
+  };
 }
 
 interface RenewalRequest {
   id: string;
   request_type: string;
   requested_plan_code: string;
+  current_plan_code?: string;
   status: string;
   request_reason?: string;
   created_at: string;
+  current_plan_details?: {
+    name: string;
+    code: string;
+    price: number;
+    billing_cycle: string;
+    max_students: number;
+    max_staff: number;
+    max_branches: number;
+    description?: string;
+  };
+  requested_plan_details?: {
+    name: string;
+    code: string;
+    price: number;
+    billing_cycle: string;
+    max_students: number;
+    max_staff: number;
+    max_branches: number;
+    description?: string;
+  };
 }
 
 interface Plan {
@@ -412,6 +520,9 @@ interface Plan {
   billing_cycle: string;
   description?: string;
   modules?: any[];
+  max_students?: number;
+  max_staff?: number;
+  max_branches?: number;
   isCurrentPlan?: boolean;
 }
 
@@ -445,7 +556,7 @@ const emit = defineEmits<{
 }>();
 
 const authStore = useAuthStore();
-const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchPlans, fetchRenewalRequests, fetchSchoolSubscriptionDetails, fetchSchoolRenewalRequests, createRenewalRequest } = useSubscriptions();
+const { fetchSchoolsWithSubscriptions, fetchSchoolTransactions, fetchMyTransactions, fetchPlans, fetchRenewalRequests, fetchSchoolSubscriptionDetails, fetchSchoolRenewalRequests, createRenewalRequest } = useSubscriptions();
 const { showSuccess, showError: toastError } = useToast();
 
 // Reactive data
@@ -457,6 +568,8 @@ const renewalRequests = ref<RenewalRequest[]>([]);
 const availablePlans = ref<Plan[]>([]);
 const showRenewalModal = ref(false);
 const submitting = ref(false);
+const showPlanDetailsModal = ref(false);
+const selectedPlanDetails = ref<Plan | null>(null);
 
 // Renewal form
 const renewalForm = ref<RenewalForm>({
@@ -587,53 +700,68 @@ const isFormValid = computed(() => {
 
 // Methods
 const statusClass = (status: string | undefined) => {
-  if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  if (!status) return 'bg-gray-100 text-gray-800';
+  
   const classes: Record<string, string> = {
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    trial: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    suspended: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    approved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    success: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    processing: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    initiated: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+    failed: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+    refunded: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
   };
-  return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+  
+  return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
 };
 
 const formatStatus = (status: string | undefined) => {
   if (!status) return 'N/A';
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  
+  const statuses: Record<string, string> = {
+    completed: 'Completed',
+    pending: 'Pending',
+    failed: 'Failed',
+    refunded: 'Refunded',
+    cancelled: 'Cancelled',
+    success: 'Success',
+    processing: 'Processing',
+    initiated: 'Initiated',
+  };
+  
+  return statuses[status] || status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-const formatDate = (dateString: string | undefined) => {
-  if (!dateString) return 'Not set';
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return 'N/A';
+  
+  // Handle lifetime subscriptions
+  if (dateString === 'lifetime' || dateString === 'Lifetime') {
+    return 'Lifetime';
+  }
   
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Invalid date';
-    
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   } catch (error) {
-    return 'Invalid date';
+    return 'Invalid Date';
   }
 };
 
 const formatMethod = (method: string | undefined) => {
-  if (!method) return 'Not specified';
+  if (!method) return 'N/A';
   
   const methods: Record<string, string> = {
     offline_cash: 'Cash',
     offline_cheque: 'Cheque',
     offline_bank_transfer: 'Bank Transfer',
+    online: 'Online',
     card: 'Card',
     upi: 'UPI',
-    online: 'Online',
   };
   
   return methods[method] || method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ');
@@ -682,12 +810,6 @@ const loadData = async () => {
         throw new Error('School not found');
       }
       
-      // Load transactions for super admin
-      const transactionsResponse = await fetchSchoolTransactions(schoolId, { limit: 5 });
-      if (transactionsResponse) {
-        transactions.value = transactionsResponse.data.transactions;
-      }
-      
       // Load renewal requests for super admin
       try {
         const requestsResponse = await fetchRenewalRequests({ school_id: schoolId });
@@ -704,18 +826,18 @@ const loadData = async () => {
         availablePlans.value = plansResponse.data.plans;
       }
     } else {
-      // School admin: use the simple usage endpoint (like SubscriptionLimits.vue)
+      // School admin: use the simple usage endpoint
       const schoolResponse = await fetchSchoolSubscriptionDetails();
       if (schoolResponse) {
-        // Transform the data to match the expected format (like SubscriptionLimits.vue does)
+        // Transform the data to match the expected format
         school.value = {
           id: schoolId,
           name: user.value?.school_name || 'My School',
           code: user.value?.school_id || '',
           status: schoolResponse.subscription_status?.status || 'active',
           subscription_plan: schoolResponse.current_plan,
-          subscription_start_date: new Date().toISOString(), // Default to current date
-          subscription_end_date: new Date().toISOString(), // Default to current date
+          subscription_start_date: new Date().toISOString(),
+          subscription_end_date: new Date().toISOString(),
           max_students: schoolResponse.plan_details?.max_students,
           max_staff: schoolResponse.plan_details?.max_staff,
           max_branches: schoolResponse.plan_details?.max_branches,
@@ -723,9 +845,6 @@ const loadData = async () => {
           plan_details: schoolResponse.plan_details,
           modules: schoolResponse.plan_details?.modules || []
         };
-        
-        // No transaction data for school admins
-        transactions.value = [];
         
         // Load renewal requests for school admin
         try {
@@ -752,14 +871,25 @@ const loadData = async () => {
       }
     }
     
+    // Load transactions for both roles using the same endpoint
+    // Backend handles permissions - school admins can only see their own transactions
+    const transactionsResponse = await fetchSchoolTransactions(schoolId, { limit: 5 });
+    if (transactionsResponse) {
+      transactions.value = transactionsResponse.data.transactions;
+    }
+    
+    // Emit data loaded event
     if (school.value) {
-      emit('data-loaded', { school: school.value, transactions: transactions.value, renewalRequests: renewalRequests.value });
+      emit('data-loaded', {
+        school: school.value,
+        transactions: transactions.value,
+        renewalRequests: renewalRequests.value,
+      });
     }
     
   } catch (err: any) {
-    console.error('Error loading data:', err);
-    error.value = err.message || 'Failed to load subscription details';
-    toastError('Failed to load subscription details');
+    console.error('Error loading subscription data:', err);
+    error.value = err.message || 'Failed to load subscription data';
   } finally {
     loading.value = false;
   }

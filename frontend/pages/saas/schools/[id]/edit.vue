@@ -245,34 +245,34 @@
 
         <!-- Plan Details Preview -->
         <div v-if="selectedPlan" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Plan Details</h3>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
+          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Plan Details</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Price:</span>
               <span class="font-medium text-gray-900 dark:text-white">₹{{ selectedPlan.price }}/{{ selectedPlan.billing_cycle }}</span>
             </div>
-            <div>
+            <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Students:</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_students }}</span>
             </div>
-            <div>
+            <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Staff:</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_staff }}</span>
             </div>
-            <div>
+            <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Branches:</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_branches }}</span>
             </div>
           </div>
-          <div class="mt-2">
+          <div class="mt-3">
             <span class="text-gray-500 dark:text-gray-400 text-sm">Modules:</span>
-            <div class="flex flex-wrap gap-1 mt-1">
+            <div class="flex flex-wrap gap-2 mt-2">
               <span
                 v-for="module in selectedPlan.modules"
-                :key="module"
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                :key="module.code || module"
+                class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-600 dark:bg-blue-700 text-white"
               >
-                {{ module }}
+                {{ module.name || module }}
               </span>
             </div>
           </div>
@@ -309,6 +309,10 @@
               </button>
             </div>
             <button type="button" class="btn-secondary mt-2" @click="generatePassword">Generate New Password</button>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <strong>Note:</strong> If you want to change the admin password, either enter a new password above or click "Generate New Password". 
+              If left blank, the current password will remain unchanged.
+            </p>
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
@@ -660,7 +664,7 @@ const loadSchool = async () => {
       status: school.status || '',
       start_date: school.subscription_start_date?.split('T')[0] || '',
       end_date: school.subscription_end_date?.split('T')[0] || '',
-      trial_days: 30,
+      trial_days: school.trial_days || 30, // Use actual trial days from school or default
       admin_first_name: school.admin_user?.first_name || '',
       admin_last_name: school.admin_user?.last_name || '',
       admin_email: school.admin_user?.email || '',
@@ -710,10 +714,17 @@ const handleSubmit = async () => {
     const result = await updateSchoolSubscription(route.params.id, formData);
     
     if (result) {
-      showToastNotification('School and subscription updated successfully!', 'success');
+      let successMessage = 'School and subscription updated successfully!';
+      
+      // If admin user was updated and password was provided, show password info
+      if (result.admin_user && result.admin_user.password && result.admin_user.password !== 'Password unchanged') {
+        successMessage += ` Admin password: ${result.admin_user.password}`;
+      }
+      
+      showToastNotification(successMessage, 'success');
       setTimeout(() => {
         router.push('/saas');
-      }, 1500);
+      }, 3000); // Give more time to read the password
     } else {
       throw new Error('Failed to update school subscription');
     }

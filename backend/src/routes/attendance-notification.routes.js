@@ -4,7 +4,6 @@ const {
   sendLateArrivalNotifications,
   sendAttendanceSummary,
   getNotificationSettings,
-  testNotification,
 } = require('../controllers/attendance-notification.controller');
 const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
 const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
@@ -53,11 +52,6 @@ router.post('/summary', sendAttendanceSummary);
  */
 router.get('/settings', getNotificationSettings);
 
-/**
- * @route POST /api/attendance-notifications/test
- * @desc Send test notification
- * @access Private (super_admin, school_admin, branch_admin, teacher)
- */
-router.post('/test', testNotification);
+
 
 module.exports = router;

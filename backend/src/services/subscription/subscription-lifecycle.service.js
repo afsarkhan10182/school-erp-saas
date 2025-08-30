@@ -25,8 +25,8 @@ class SubscriptionLifecycleService {
     const startDate = school.subscription_start_date;
     const endDate = school.subscription_end_date;
     
-    // Lifetime plans never expire
-    if (school.subscription_plan === 'lifetime') {
+    // Check if it's a lifetime plan based on billing cycle
+    if (school.plan_details?.billing_cycle === 'lifetime' || school.subscription_plan === 'lifetime') {
       return 'active';
     }
     

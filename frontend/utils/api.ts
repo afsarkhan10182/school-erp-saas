@@ -1058,6 +1058,12 @@ export const apiClient = {
       return response.data;
     },
     
+    getMyTransactions: async (params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subscriptions/my-transactions', { params });
+      return response.data;
+    },
+    
     createManualTransaction: async (transactionData: any) => {
       const api = createApiInstance();
       const response = await api.post<ApiResponse<any>>(`/subscriptions/schools/${transactionData.school_id}/transactions`, transactionData);
@@ -1117,6 +1123,24 @@ export const apiClient = {
     checkAllStatuses: async () => {
       const api = createApiInstance();
       const response = await api.post<ApiResponse<any>>('/subscriptions/check-all-statuses');
+      return response.data;
+    },
+
+
+
+    // Simple module toggle
+    toggleSchoolModule: async (schoolId: string, moduleCode: string, enabled: boolean) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<any>>(`/subscriptions/schools/${schoolId}/toggle-module`, { 
+        module_code: moduleCode, 
+        enabled: enabled 
+      });
+      return response.data;
+    },
+    
+    getAvailableModulesForSchool: async (schoolId: string) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>(`/subscriptions/schools/${schoolId}/available-modules`);
       return response.data;
     }
   },
@@ -1251,15 +1275,7 @@ export const apiClient = {
       return response.data;
     },
 
-    sendTestNotification: async (data: {
-      type: 'absence' | 'late' | 'summary';
-      email: string;
-      studentId?: string;
-    }) => {
-      const api = createApiInstance();
-      const response = await api.post<ApiResponse<any>>('/attendance-notifications/test', data);
-      return response.data;
-    },
+
   }
 };
 

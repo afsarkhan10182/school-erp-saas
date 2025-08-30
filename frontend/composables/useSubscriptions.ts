@@ -236,6 +236,28 @@ export function useSubscriptions() {
     }
   };
 
+  // Get my school transactions (for school admins)
+  const fetchMyTransactions = async (params = {}) => {
+    loading.value = true;
+    error.value = '';
+    try {
+      const response = await apiClient.saas.getMyTransactions(params);
+      if (response.success) {
+        transactions.value = response.data.transactions || [];
+        pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
+        return response;
+      } else {
+        error.value = response.message || 'Failed to fetch transactions.';
+        return null;
+      }
+    } catch (e: any) {
+      error.value = e.response?.data?.message || 'Network error.';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Create manual transaction
   const createManualTransaction = async (transactionData: any) => {
     loading.value = true;
@@ -442,6 +464,7 @@ export function useSubscriptions() {
     createSchoolWithSubscription,
     updateSchoolSubscription,
     fetchSchoolTransactions,
+    fetchMyTransactions,
     createManualTransaction,
     fetchSubscriptionStats,
     suspendSchool,

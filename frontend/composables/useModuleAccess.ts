@@ -134,7 +134,7 @@ export function useModuleAccess() {
       '/reports': 'reports',
       '/reports/advanced': 'reports',
       
-      '/settings/modules': 'settings',
+      // Module settings page removed - now handled through subscription plans
     };
 
     const requiredModule = routeModuleMap[routePath];

@@ -328,7 +328,6 @@ const menuGroups = computed(() => {
              { id: 'customer-overview', title: 'Overview', path: '/saas', icon: BarChart3 },
             { id: 'subscription-plans', title: 'Subscription Plans', path: '/saas/plans', icon: List },
             { id: 'renewal-requests', title: 'Renewal Requests', path: '/saas/renewal-requests', icon: FileText },
-            { id: 'schools', title: 'Schools', path: '/saas/schools', icon: Building2 },
           ]
         },
       ]
@@ -471,8 +470,7 @@ const menuGroups = computed(() => {
       settingsItems.push(
         { id: 'staff-list', title: 'User List', path: '/users', icon: Users },
         { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
-        { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings, requiredModule: 'settings' }
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
       );
     } 
     // School Admin gets simplified settings

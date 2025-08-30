@@ -593,12 +593,8 @@ const settingsTabs = computed(() => {
 
   // Add module management for super admin
   if (isSuperAdmin.value) {
-    tabs.push({
-      id: 'modules',
-      name: 'Module Management',
-      icon: Puzzle,
-      badge: 'Admin Only'
-    });
+    // Module management is now handled through subscription plans
+    // No separate module management needed
   }
 
   return tabs;

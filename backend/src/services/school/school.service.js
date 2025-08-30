@@ -3,6 +3,7 @@ const { School, User, Branch } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const RedisUtils = require('../../utils/redis-utils');
+const BaseService = require('../shared/base.service');
 
 class SchoolService {
   static async isModuleEnabled(school, moduleName) {
@@ -37,18 +38,14 @@ class SchoolService {
   }
 
   static async createSchool(schoolData) {
-    try {
-      // Handle file uploads and settings
+    return BaseService.executeWithErrorHandling(async () => {
+      // Handle file uploads and settings using base service
       const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, ...basicData } = schoolData;
       
-      // Prepare settings object
-      const settings = {
-        currency_symbol: currency_symbol || '₹',
-        system_logo: system_logo ? `/uploads/${system_logo.filename}` : null,
-        text_logo: text_logo ? `/uploads/${text_logo.filename}` : null,
-        printing_logo: printing_logo ? `/uploads/${printing_logo.filename}` : null,
-        report_card_design: report_card_design ? `/uploads/${report_card_design.filename}` : null
-      };
+      const settings = BaseService.createSettingsFromFiles(
+        { system_logo, text_logo, printing_logo, report_card_design },
+        { currency_symbol: currency_symbol || '₹' }
+      );
 
       // If subscription plan is provided, validate and sync with plan
       let planData = {};
@@ -82,31 +79,22 @@ class SchoolService {
         settings
       });
       
-      // Clear cache after creating new school
-      await RedisUtils.del('cache:schools:list');
-      await RedisUtils.del('cache:schools:stats');
+      // Clear cache using base service
+      await BaseService.clearCache(['cache:schools:list', 'cache:schools:stats']);
       
       return school;
-    } catch (error) {
-      logger.error('Error in SchoolService.createSchool:', error);
-      throw error;
-    }
+    }, 'SchoolService.createSchool');
   }
 
   static async getAllSchools({ page = 1, limit = 10, search, status }) {
-    try {
+    return BaseService.executeWithErrorHandling(async () => {
       logger.info('getAllSchools called with params:', { page, limit, search, status });
       
-      const offset = (page - 1) * limit;
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = {};
 
-      if (search) {
-        where[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-        ];
-      }
+      // Use base service for search filter
+      Object.assign(where, BaseService.buildSearchFilter(search, ['name', 'code', 'email']));
 
       if (status) {
         where.status = status;
@@ -124,37 +112,15 @@ class SchoolService {
 
       logger.info('getAllSchools result:', { count, rowsCount: rows.length });
 
-      const result = {
-        schools: rows,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-
-      // Cache the result for 5 minutes
-      // await RedisUtils.set(cacheKey, result, 300);
-      
-      return result;
-    } catch (error) {
-      logger.error('Error in SchoolService.getAllSchools:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'schools');
+    }, 'SchoolService.getAllSchools');
   }
 
   static async getSchoolById(id, user) {
-    try {
-      const cacheKey = `school:${id}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for school details');
-        return cached;
-      }
-
+    const cacheKey = `school:${id}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
       const school = await School.findByPk(id, {
         include: [
           {
@@ -176,24 +142,15 @@ class SchoolService {
         throw new ApiError(404, 'School not found');
       }
 
-      // Cache the result for 10 minutes
-      await RedisUtils.set(cacheKey, school, 600);
-      
       return school;
-    } catch (error) {
-      logger.error('Error in SchoolService.getSchoolById:', error);
-      throw error;
-    }
+    }, 600);
   }
 
   static async updateSchool(id, updateData) {
-    try {
-      const school = await School.findByPk(id);
-      if (!school) {
-        throw new ApiError(404, 'School not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const school = await BaseService.validateEntityExists(School, id, 'School');
 
-      // Handle file uploads and settings
+      // Handle file uploads and settings using base service
       const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, ...basicData } = updateData;
       
       // Update settings if new values are provided
@@ -201,10 +158,7 @@ class SchoolService {
       const newSettings = {
         ...currentSettings,
         ...(currency_symbol && { currency_symbol }),
-        ...(system_logo && { system_logo: `/uploads/${system_logo.filename}` }),
-        ...(text_logo && { text_logo: `/uploads/${text_logo.filename}` }),
-        ...(printing_logo && { printing_logo: `/uploads/${printing_logo.filename}` }),
-        ...(report_card_design && { report_card_design: `/uploads/${report_card_design.filename}` })
+        ...BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design })
       };
 
       // If subscription plan is being changed, validate and sync with plan
@@ -239,50 +193,29 @@ class SchoolService {
         settings: newSettings
       });
       
-      // Clear cache after update
-      await RedisUtils.del(`school:${id}`);
-      await RedisUtils.del('cache:schools:list');
-      await RedisUtils.del('cache:schools:stats');
+      // Clear cache using base service
+      await BaseService.clearCache([`school:${id}`, 'cache:schools:list', 'cache:schools:stats']);
       
       return school;
-    } catch (error) {
-      logger.error('Error in SchoolService.updateSchool:', error);
-      throw error;
-    }
+    }, 'SchoolService.updateSchool');
   }
 
   static async deleteSchool(id) {
-    try {
-      const school = await School.findByPk(id);
-      if (!school) {
-        throw new ApiError(404, 'School not found');
-      }
-
+    return BaseService.executeWithErrorHandling(async () => {
+      const school = await BaseService.validateEntityExists(School, id, 'School');
       await school.destroy();
       
-      // Clear cache after deletion
-      await RedisUtils.del(`school:${id}`);
-      await RedisUtils.del('cache:schools:list');
-      await RedisUtils.del('cache:schools:stats');
+      // Clear cache using base service
+      await BaseService.clearCache([`school:${id}`, 'cache:schools:list', 'cache:schools:stats']);
       
       return true;
-    } catch (error) {
-      logger.error('Error in SchoolService.deleteSchool:', error);
-      throw error;
-    }
+    }, 'SchoolService.deleteSchool');
   }
 
   static async getSchoolStats(schoolId) {
-    try {
-      const cacheKey = `school:stats:${schoolId}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for school stats');
-        return cached;
-      }
-
+    const cacheKey = `school:stats:${schoolId}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
       const [userCount, branchCount] = await Promise.all([
         User.count({ where: { school_id: schoolId } }),
         Branch.count({ where: { school_id: schoolId } }),
@@ -294,14 +227,8 @@ class SchoolService {
         // Add more stats as needed
       };
 
-      // Cache the result for 5 minutes
-      await RedisUtils.set(cacheKey, stats, 300);
-      
       return stats;
-    } catch (error) {
-      logger.error('Error in SchoolService.getSchoolStats:', error);
-      throw error;
-    }
+    }, 300);
   }
 }
 

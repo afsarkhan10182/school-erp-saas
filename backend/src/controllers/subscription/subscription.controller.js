@@ -26,7 +26,7 @@ class SubscriptionController {
       }
 
       const plans = await SubscriptionService.getActivePlansForSchools();
-      res.json({ success: true, data: { plans } });
+      res.json({ success: true, data: { plans: plans } });
     } catch (error) {
       logger.error('Error in SubscriptionController.getActivePlansForSchools:', error);
       next(error);
@@ -306,14 +306,63 @@ class SubscriptionController {
   // Get school transactions
   static async getSchoolTransactions(req, res, next) {
     try {
-      if (req.user.role !== 'super_admin') {
+      const { schoolId } = req.params;
+      
+      // Super admin can access any school's transactions
+      // School admin can only access their own school's transactions
+      if (req.user.role === 'super_admin') {
+        // Super admin can access any school
+        const transactions = await SubscriptionService.getSchoolTransactions(schoolId, req.query);
+        
+        res.json({
+          success: true,
+          data: transactions,
+        });
+      } else if (req.user.role === 'school_admin') {
+        // School admin can only access their own school's transactions
+        if (req.user.school_id !== schoolId) {
+          return res.status(403).json({
+            success: false,
+            message: 'You can only access your own school\'s transaction data',
+          });
+        }
+        
+        const transactions = await SubscriptionService.getSchoolTransactions(schoolId, req.query);
+        
+        res.json({
+          success: true,
+          data: transactions,
+        });
+      } else {
         return res.status(403).json({
           success: false,
-          message: 'Only super admins can access transaction data',
+          message: 'Not authorized to access transaction data',
+        });
+      }
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getSchoolTransactions:', error);
+      next(error);
+    }
+  }
+
+  // Get my school transactions (for school admins - convenience endpoint)
+  static async getMySchoolTransactions(req, res, next) {
+    try {
+      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only school admins can access their own transaction data',
         });
       }
 
-      const { schoolId } = req.params;
+      const schoolId = req.user.school_id;
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'School ID not found for user',
+        });
+      }
+
       const transactions = await SubscriptionService.getSchoolTransactions(schoolId, req.query);
       
       res.json({
@@ -321,7 +370,7 @@ class SubscriptionController {
         data: transactions,
       });
     } catch (error) {
-      logger.error('Error in SubscriptionController.getSchoolTransactions:', error);
+      logger.error('Error in SubscriptionController.getMySchoolTransactions:', error);
       next(error);
     }
   }
@@ -517,58 +566,72 @@ class SubscriptionController {
     }
   }
 
-  // Get available modules (for plan creation and management)
-  static async getAvailableModules(req, res, next) {
+  // Toggle module for school (enable/disable)
+  static async toggleSchoolModule(req, res, next) {
     try {
-      if (!['super_admin', 'school_admin', 'branch_admin'].includes(req.user.role)) {
+      if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Not authorized to access module information',
+          message: 'Only super admins can toggle modules',
         });
       }
 
-      const { Module } = require('../../models');
+      const { schoolId } = req.params;
+      const { module_code, enabled } = req.body;
+
+      if (!module_code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Module code is required',
+        });
+      }
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'Enabled flag must be boolean',
+        });
+      }
+
+      const school = await SubscriptionService.toggleSchoolModule(
+        schoolId,
+        module_code,
+        enabled,
+        req.user.id
+      );
       
-      // Fetch all active modules from database
-      const modules = await Module.findAll({
-        where: { is_active: true },
-        order: [['sort_order', 'ASC'], ['name', 'ASC']],
-        attributes: [
-          'id',
-          'code',
-          'name',
-          'description',
-          'icon',
-          'features',
-          'category',
-          'is_core',
-          'sort_order',
-          'version'
-        ]
-      });
-
-      // Transform to consistent format
-      const formattedModules = modules.map(module => ({
-        id: module.id,
-        key: module.code,
-        name: module.name,
-        description: module.description,
-        icon: module.icon,
-        features: module.features,
-        category: module.category,
-        is_core: module.is_core,
-        sort_order: module.sort_order,
-        version: module.version,
-        is_active: module.is_active
-      }));
-
       res.json({
         success: true,
-        message: 'Available modules retrieved successfully',
-        data: formattedModules,
+        message: `Module ${module_code} ${enabled ? 'enabled' : 'disabled'} successfully`,
+        data: school,
       });
     } catch (error) {
-      logger.error('Error in SubscriptionController.getAvailableModules:', error);
+      logger.error('Error in SubscriptionController.toggleSchoolModule:', error);
+      next(error);
+    }
+  }
+
+  // Get available modules for school
+  static async getAvailableModulesForSchool(req, res, next) {
+    try {
+      const { schoolId } = req.params;
+      
+      // Check permissions
+      if (req.user.role === 'school_admin' && req.user.school_id !== schoolId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only access your own school\'s module data',
+        });
+      }
+
+      const availableModules = await SubscriptionService.getAvailableModulesForSchool(schoolId);
+      
+      res.json({
+        success: true,
+        data: availableModules,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getAvailableModulesForSchool:', error);
       next(error);
     }
   }
@@ -766,6 +829,61 @@ class SubscriptionController {
       });
     } catch (error) {
       logger.error('Error in SubscriptionController.updateModule:', error);
+      next(error);
+    }
+  }
+
+
+
+  // Get available modules (for plan creation and management)
+  static async getAvailableModules(req, res, next) {
+    try {
+      if (!['super_admin', 'school_admin', 'branch_admin'].includes(req.user.role)) {
+        return res.status(403).json({ success: false, message: 'Not authorized to access module information' });
+      }
+
+      const { Module } = require('../../models');
+      
+      // Fetch all active modules from database
+      const modules = await Module.findAll({
+        where: { is_active: true },
+        order: [['sort_order', 'ASC'], ['name', 'ASC']],
+        attributes: [
+          'id',
+          'code',
+          'name',
+          'description',
+          'icon',
+          'features',
+          'category',
+          'is_core',
+          'sort_order',
+          'version'
+        ]
+      });
+
+      // Transform to consistent format
+      const formattedModules = modules.map(module => ({
+        id: module.id,
+        key: module.code,
+        name: module.name,
+        description: module.description,
+        icon: module.icon,
+        features: module.features,
+        category: module.category,
+        is_core: module.is_core,
+        sort_order: module.sort_order,
+        version: module.version,
+        is_active: module.is_active
+      }));
+
+      res.json({
+        success: true,
+        message: 'Available modules retrieved successfully',
+        data: formattedModules,
+      });
+    } catch (error) {
+      logger.error('Error in SubscriptionController.getAvailableModules:', error);
       next(error);
     }
   }

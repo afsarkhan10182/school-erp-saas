@@ -2,10 +2,10 @@
   <div>
     <SubscriptionDetails 
       :school-id="$route.params.id"
-      :edit-school-url="`/saas/schools/${$route.params.id}`"
+      :edit-school-url="`/saas/schools/${$route.params.id}/edit`"
       :transactions-url="`/saas/schools/${$route.params.id}/transactions`"
       title="Subscription Details"
-      :subtitle="`${school?.name} - ${school?.code}`"
+      :subtitle="schoolName"
       plan-section-title="Plan Information"
       limits-section-title="Plan Limits"
       modules-section-title="Available Modules"
@@ -19,9 +19,11 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import { useSubscriptions } from '~/composables/useSubscriptions';
 
 // Page meta
 definePageMeta({
@@ -31,6 +33,11 @@ definePageMeta({
 const route = useRoute();
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();
+const { getSchoolWithSubscription } = useSubscriptions();
+
+// Reactive data
+const school = ref(null);
+const schoolName = ref('Loading...');
 
 // Access control - only Super Admin can access subscription details
 const user = authStore.user;
@@ -38,6 +45,22 @@ if (user?.role !== 'super_admin') {
   showError('Access denied. Only Super Admin can view subscription details.');
   await navigateTo('/dashboard');
 }
+
+// Load school details for the header
+const loadSchoolDetails = async () => {
+  try {
+    const schoolData = await getSchoolWithSubscription(route.params.id);
+    if (schoolData) {
+      school.value = schoolData;
+      schoolName.value = `${schoolData.name} - ${schoolData.code}`;
+    } else {
+      schoolName.value = 'School Not Found';
+    }
+  } catch (error) {
+    console.error('Error loading school details:', error);
+    schoolName.value = 'Error Loading School';
+  }
+};
 
 // Event handlers
 const handleDataLoaded = (data) => {
@@ -48,6 +71,11 @@ const handleRenewalRequested = (data) => {
   showSuccess('Renewal request submitted successfully');
   console.log('Renewal requested:', data);
 };
+
+// Load school details on mount
+onMounted(() => {
+  loadSchoolDetails();
+});
 </script>
 
 <style scoped>

@@ -3,21 +3,16 @@ const { Op } = require('sequelize');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { RoleManager, ROLES } = require('../../utils/roleManager');
+const BaseService = require('../shared/base.service');
 
 class BranchService {
   // Create a new branch
   static async createBranch(branchData) {
-    try {
-      // Handle file uploads and settings
+    return BaseService.executeWithErrorHandling(async () => {
+      // Handle file uploads and settings using base service
       const { system_logo, text_logo, printing_logo, report_card_design, currency, currency_symbol, ...basicData } = branchData;
       
-      // Prepare settings object
-      const settings = {
-        system_logo: system_logo ? `/uploads/${system_logo.filename}` : null,
-        text_logo: text_logo ? `/uploads/${text_logo.filename}` : null,
-        printing_logo: printing_logo ? `/uploads/${printing_logo.filename}` : null,
-        report_card_design: report_card_design ? `/uploads/${report_card_design.filename}` : null
-      };
+      const settings = BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design });
 
       const branch = await Branch.create({
         ...basicData,
@@ -28,24 +23,17 @@ class BranchService {
 
       logger.info(`Branch created: ${branch.name} (${branch.id})`);
       return branch;
-    } catch (error) {
-      logger.error('Error in BranchService.createBranch:', error);
-      throw error;
-    }
+    }, 'BranchService.createBranch');
   }
 
   // Get all branches with pagination and filtering
   static async getAllBranches({ page = 1, limit = 10, search, status, school_id }) {
-    try {
-      const offset = (page - 1) * limit;
+    return BaseService.executeWithErrorHandling(async () => {
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = {};
 
-      if (search) {
-        where[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
-        ];
-      }
+      // Use base service for search filter
+      Object.assign(where, BaseService.buildSearchFilter(search, ['name', 'code']));
 
       if (status) {
         where.status = status;
@@ -74,24 +62,14 @@ class BranchService {
         offset,
       });
 
-      return {
-        branches: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-    } catch (error) {
-      logger.error('Error in BranchService.getAllBranches:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'branches');
+    }, 'BranchService.getAllBranches');
   }
 
   // Get branch by ID with access control
   static async getBranchById(id, user) {
-    try {
+    return BaseService.executeWithErrorHandling(async () => {
       const branch = await Branch.findByPk(id, {
         include: [
           {
@@ -117,27 +95,20 @@ class BranchService {
       }
 
       return branch;
-    } catch (error) {
-      logger.error('Error in BranchService.getBranchById:', error);
-      throw error;
-    }
+    }, 'BranchService.getBranchById');
   }
 
   // Update branch
   static async updateBranch(id, updateData, user) {
-    try {
-      const branch = await Branch.findByPk(id);
-      
-      if (!branch) {
-        throw new ApiError(404, 'Branch not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const branch = await BaseService.validateEntityExists(Branch, id, 'Branch');
 
       // Use RoleManager for access control
       if (!RoleManager.canAccessBranch(user.role, user.school_id, user.branch_id, branch.school_id, branch.id)) {
         throw new ApiError(403, 'Access denied - You can only update branches you have access to');
       }
 
-      // Handle file uploads and settings
+      // Handle file uploads and settings using base service
       const { system_logo, text_logo, printing_logo, report_card_design, currency, currency_symbol, ...basicData } = updateData;
       
       // Update settings if new values are provided
@@ -146,10 +117,7 @@ class BranchService {
         ...currentSettings,
         ...(currency && { currency }),
         ...(currency_symbol && { currency_symbol }),
-        ...(system_logo && { system_logo: `/uploads/${system_logo.filename}` }),
-        ...(text_logo && { text_logo: `/uploads/${text_logo.filename}` }),
-        ...(printing_logo && { printing_logo: `/uploads/${printing_logo.filename}` }),
-        ...(report_card_design && { report_card_design: `/uploads/${report_card_design.filename}` })
+        ...BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design })
       };
 
       await branch.update({
@@ -159,20 +127,13 @@ class BranchService {
       
       logger.info(`Branch updated: ${branch.name} (${branch.id})`);
       return branch;
-    } catch (error) {
-      logger.error('Error in BranchService.updateBranch:', error);
-      throw error;
-    }
+    }, 'BranchService.updateBranch');
   }
 
   // Delete branch (soft delete)
   static async deleteBranch(id) {
-    try {
-      const branch = await Branch.findByPk(id);
-      
-      if (!branch) {
-        throw new ApiError(404, 'Branch not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const branch = await BaseService.validateEntityExists(Branch, id, 'Branch');
 
       // Check if branch has active users
       const activeUsers = await User.count({
@@ -188,24 +149,17 @@ class BranchService {
       
       logger.info(`Branch deleted: ${branch.name} (${branch.id})`);
       return true;
-    } catch (error) {
-      logger.error('Error in BranchService.deleteBranch:', error);
-      throw error;
-    }
+    }, 'BranchService.deleteBranch');
   }
 
   // Get branches by school
   static async getBranchesBySchool(schoolId, { page = 1, limit = 10, search, status }) {
-    try {
-      const offset = (page - 1) * limit;
+    return BaseService.executeWithErrorHandling(async () => {
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = { school_id: schoolId };
 
-      if (search) {
-        where[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
-        ];
-      }
+      // Use base service for search filter
+      Object.assign(where, BaseService.buildSearchFilter(search, ['name', 'code']));
 
       if (status) {
         where.status = status;
@@ -225,33 +179,20 @@ class BranchService {
         offset,
       });
 
-      return {
-        branches: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-    } catch (error) {
-      logger.error('Error in BranchService.getBranchesBySchool:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'branches');
+    }, 'BranchService.getBranchesBySchool');
   }
 
   // Get branch statistics
   static async getBranchStats(branchId) {
-    try {
+    return BaseService.executeWithErrorHandling(async () => {
       const userCount = await User.count({ where: { branch_id: branchId } });
 
       return {
         totalUsers: userCount,
       };
-    } catch (error) {
-      logger.error('Error in BranchService.getBranchStats:', error);
-      throw error;
-    }
+    }, 'BranchService.getBranchStats');
   }
 }
 

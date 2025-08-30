@@ -128,8 +128,7 @@ const School = sequelize.define('School', {
   },
   subscription_plan: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    defaultValue: 'TRIAL',
+    allowNull: true, // Changed from false to true - no default
   },
   subscription_start_date: {
     type: DataTypes.DATE,
@@ -141,18 +140,15 @@ const School = sequelize.define('School', {
   },
   max_students: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 100,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   max_staff: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 20,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   max_branches: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   current_academic_year_id: {
     type: DataTypes.UUID,
@@ -165,8 +161,8 @@ const School = sequelize.define('School', {
   },
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: false,
-    defaultValue: ['students', 'attendance', 'fees', 'exams', 'library'],
+    allowNull: true, // Changed from false to true - will be set from plan
+    defaultValue: [], // Empty array instead of hardcoded modules
   },
   is_active: {
     type: DataTypes.BOOLEAN,
@@ -188,6 +184,13 @@ const School = sequelize.define('School', {
       model: 'users',
       key: 'id',
     },
+  },
+  // Simple module disable/enable
+  disabled_modules: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Modules that are disabled for this school'
   },
 }, {
   tableName: 'schools',

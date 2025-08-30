@@ -11,8 +11,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Skip for login/logout routes
   if (to.path === '/login' || to.path === '/logout') return;
 
-  // Skip for dashboard and test pages
-  if (to.path === '/dashboard' || to.path === '/test-sidebar' || to.path === '/debug-modules') return;
+      // Skip for dashboard
+    if (to.path === '/dashboard') return;
 
   // Load modules if not already loaded
   if (!isLoading.value) {

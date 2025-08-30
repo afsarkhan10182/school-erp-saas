@@ -6,12 +6,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Attendance Notifications</h1>
         <p class="text-gray-600 mt-1">Manage and send attendance notifications to parents</p>
       </div>
-      <button
-        @click="showTestModal = true"
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Test Notification
-      </button>
+
     </div>
 
     <!-- Statistics Cards -->
@@ -111,64 +106,7 @@
       </div>
     </div>
 
-    <!-- Test Notification Modal -->
-    <Modal :show="showTestModal" @close="showTestModal = false">
-      <template #header>
-        <h3 class="text-lg font-medium text-gray-900">Test Notification</h3>
-      </template>
-      
-      <template #body>
-        <form @submit.prevent="sendTestNotification" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Notification Type</label>
-            <select v-model="testForm.type" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
-              <option value="absence">Absence Alert</option>
-              <option value="late">Late Arrival Notice</option>
-              <option value="summary">Daily Summary</option>
-            </select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Test Email Address</label>
-            <input 
-              v-model="testForm.email" 
-              type="email" 
-              required 
-              placeholder="parent@example.com"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Student ID (Optional)</label>
-            <input 
-              v-model="testForm.studentId" 
-              type="text" 
-              placeholder="Leave empty for test data"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-            />
-          </div>
-        </form>
-      </template>
-      
-      <template #footer>
-        <button 
-          type="button" 
-          @click="showTestModal = false"
-          class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button 
-          type="submit" 
-          @click="sendTestNotification"
-          :disabled="isLoading"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {{ isLoading ? 'Sending...' : 'Send Test' }}
-        </button>
-      </template>
-    </Modal>
+
 
     <!-- Send Notification Modal -->
     <Modal :show="showSendModal" @close="showSendModal = false">
@@ -264,15 +202,11 @@ definePageMeta({
 // Reactive data
 const settings = ref(null)
 const isLoading = ref(false)
-const showTestModal = ref(false)
+
 const showSendModal = ref(false)
 const sendNotificationType = ref('')
 
-const testForm = ref({
-  type: 'absence',
-  email: '',
-  studentId: ''
-})
+
 
 const sendForm = ref({
   date: '',
@@ -474,20 +408,7 @@ const sendNotifications = async () => {
   }
 }
 
-const sendTestNotification = async () => {
-  try {
-    isLoading.value = true
-    const response = await apiClient.attendanceNotifications.sendTestNotification(testForm.value)
-    showToast('success', `Test notification sent successfully to ${testForm.value.email}`)
-    showTestModal.value = false
-    testForm.value = { type: 'absence', email: '', studentId: '' }
-  } catch (error) {
-    console.error('Error sending test notification:', error)
-    showToast('error', error.response?.data?.message || 'Failed to send test notification')
-  } finally {
-    isLoading.value = false
-  }
-}
+
 
 // Lifecycle
 onMounted(() => {

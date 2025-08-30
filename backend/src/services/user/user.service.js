@@ -5,15 +5,16 @@ const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
 const RedisUtils = require('../../utils/redis-utils');
 const { RoleManager, ROLES } = require('../../utils/roleManager');
+const BaseService = require('../shared/base.service');
 
 class UserService {
   static async createUser(userData) {
-    try {
+    return BaseService.executeWithErrorHandling(async () => {
       let generatedPassword = null;
       
       // Auto-generate password if not provided
       if (!userData.password || userData.password.trim() === '') {
-        generatedPassword = UserService.generateRandomPassword();
+        generatedPassword = BaseService.generateRandomPassword();
         userData.password = generatedPassword;
         logger.info('Auto-generated password for user:', userData.email);
       }
@@ -33,18 +34,17 @@ class UserService {
 
       const user = await User.create(userData);
       
-      // Clear user-related caches
-      await RedisUtils.del('cache:users:list');
-      await RedisUtils.del(`user:${user.id}`);
-      if (user.school_id) {
-        await RedisUtils.del(`school:${user.school_id}`);
-        await RedisUtils.del('cache:schools:list');
-      }
+      // Clear user-related caches using base service
+      await BaseService.clearCache([
+        'cache:users:list',
+        `user:${user.id}`,
+        ...(user.school_id ? [`school:${user.school_id}`, 'cache:schools:list'] : [])
+      ]);
       
       // Clear all user list caches to ensure new users appear
       const keys = await RedisUtils.keys('users:list:*');
       if (keys && keys.length > 0) {
-        await RedisUtils.del(...keys);
+        await BaseService.clearCache(keys);
       }
 
       // Return the user data along with the generated password if it was auto-generated
@@ -54,31 +54,21 @@ class UserService {
       }
       
       return userResponse;
-    } catch (error) {
-      logger.error('Error in UserService.createUser:', error);
-      throw error;
-    }
+    }, 'UserService.createUser');
   }
 
   // Get all users with pagination and filtering
   static async getAllUsers({ page = 1, limit = 10, search, role, status, school_id }) {
-    try {
-      const cacheKey = `users:list:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}:${school_id || 'all'}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for users list');
-        return cached;
-      }
-
-      const offset = (page - 1) * limit;
+    const cacheKey = `users:list:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}:${school_id || 'all'}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = {};
 
       // Only include non-deleted users
       where.deleted_at = null;
 
-      // Apply search filter
+      // Apply search filter using base service
       if (search) {
         where[Op.or] = [
           { first_name: { [Op.iLike]: `%${search}%` } },
@@ -132,37 +122,15 @@ class UserService {
         offset,
       });
 
-      const result = {
-        users: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-
-      // Cache the result for 5 minutes
-      await RedisUtils.set(cacheKey, result, 300);
-      
-      return result;
-    } catch (error) {
-      logger.error('Error in UserService.getAllUsers:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+    }, 300);
   }
 
   static async getUserById(id, currentUser) {
-    try {
-      const cacheKey = `user:${id}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for user details');
-        return cached;
-      }
-
+    const cacheKey = `user:${id}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
       const user = await User.findByPk(id, {
         include: [
           {
@@ -188,22 +156,13 @@ class UserService {
         throw new ApiError(403, 'Access denied');
       }
 
-      // Cache the result for 10 minutes
-      await RedisUtils.set(cacheKey, user, 600);
-      
       return user;
-    } catch (error) {
-      logger.error('Error in UserService.getUserById:', error);
-      throw error;
-    }
+    }, 600);
   }
 
   static async updateUser(id, updateData, currentUser) {
-    try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        throw new ApiError(404, 'User not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const user = await BaseService.validateEntityExists(User, id, 'User');
 
       // Use RoleManager for access control
       if (!RoleManager.canAccessUser(currentUser, user)) {
@@ -212,46 +171,43 @@ class UserService {
 
       await user.update(updateData);
       
-      // Clear related caches
-      await RedisUtils.del(`user:${id}`);
-      await RedisUtils.del('cache:users:list');
+      // Clear related caches using base service
+      const cacheKeys = [
+        `user:${id}`,
+        'cache:users:list'
+      ];
       
       // Clear all user list caches to ensure updated users appear
       const keys = await RedisUtils.keys('users:list:*');
       if (keys && keys.length > 0) {
-        await RedisUtils.del(...keys);
+        cacheKeys.push(...keys);
       }
       
       // Clear school-specific user caches
       const schoolKeys = await RedisUtils.keys('users:school:*');
       if (schoolKeys && schoolKeys.length > 0) {
-        await RedisUtils.del(...schoolKeys);
+        cacheKeys.push(...schoolKeys);
       }
       
       // Clear branch-specific user caches
       const branchKeys = await RedisUtils.keys('users:branch:*');
       if (branchKeys && branchKeys.length > 0) {
-        await RedisUtils.del(...branchKeys);
+        cacheKeys.push(...branchKeys);
       }
       
       if (user.school_id) {
-        await RedisUtils.del(`school:${user.school_id}`);
-        await RedisUtils.del('cache:schools:list');
+        cacheKeys.push(`school:${user.school_id}`, 'cache:schools:list');
       }
       
+      await BaseService.clearCache(cacheKeys);
+      
       return user;
-    } catch (error) {
-      logger.error('Error in UserService.updateUser:', error);
-      throw error;
-    }
+    }, 'UserService.updateUser');
   }
 
   static async deleteUser(id, currentUser) {
-    try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        throw new ApiError(404, 'User not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const user = await BaseService.validateEntityExists(User, id, 'User');
 
       // Use RoleManager for access control
       if (!RoleManager.canAccessUser(currentUser, user)) {
@@ -260,54 +216,48 @@ class UserService {
 
       await user.destroy();
       
-      // Clear related caches
-      await RedisUtils.del(`user:${id}`);
-      await RedisUtils.del('cache:users:list');
+      // Clear related caches using base service
+      const cacheKeys = [
+        `user:${id}`,
+        'cache:users:list'
+      ];
       
       // Clear all user list caches to ensure deleted users are removed
       const keys = await RedisUtils.keys('users:list:*');
       if (keys && keys.length > 0) {
-        await RedisUtils.del(...keys);
+        cacheKeys.push(...keys);
       }
       
       // Clear school-specific user caches
       const schoolKeys = await RedisUtils.keys('users:school:*');
       if (schoolKeys && schoolKeys.length > 0) {
-        await RedisUtils.del(...schoolKeys);
+        cacheKeys.push(...schoolKeys);
       }
       
       // Clear branch-specific user caches
       const branchKeys = await RedisUtils.keys('users:branch:*');
       if (branchKeys && branchKeys.length > 0) {
-        await RedisUtils.del(...branchKeys);
+        cacheKeys.push(...branchKeys);
       }
       
       if (user.school_id) {
-        await RedisUtils.del(`school:${user.school_id}`);
-        await RedisUtils.del('cache:schools:list');
+        cacheKeys.push(`school:${user.school_id}`, 'cache:schools:list');
       }
       
+      await BaseService.clearCache(cacheKeys);
+      
       return true;
-    } catch (error) {
-      logger.error('Error in UserService.deleteUser:', error);
-      throw error;
-    }
+    }, 'UserService.deleteUser');
   }
 
   static async getUsersBySchool(schoolId, { page = 1, limit = 10, search, role, status }) {
-    try {
-      const cacheKey = `users:school:${schoolId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for school users list');
-        return cached;
-      }
-
-      const offset = (page - 1) * limit;
+    const cacheKey = `users:school:${schoolId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = { school_id: schoolId };
 
+      // Use base service for search filter
       if (search) {
         where[Op.or] = [
           { first_name: { [Op.iLike]: `%${search}%` } },
@@ -339,40 +289,19 @@ class UserService {
         offset,
       });
 
-      const result = {
-        users: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-
-      // Cache the result for 5 minutes
-      await RedisUtils.set(cacheKey, result, 300);
-      
-      return result;
-    } catch (error) {
-      logger.error('Error in UserService.getUsersBySchool:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+    }, 300);
   }
 
   static async getUsersByBranch(branchId, { page = 1, limit = 10, search, role, status }, currentUser) {
-    try {
-      const cacheKey = `users:branch:${branchId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
-      
-      // Try to get from cache first
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug('Cache hit for branch users list');
-        return cached;
-      }
-
-      const offset = (page - 1) * limit;
+    const cacheKey = `users:branch:${branchId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
+    
+    return BaseService.getFromCache(cacheKey, async () => {
+      const { offset } = BaseService.buildPaginationParams({ page, limit });
       const where = { branch_id: branchId };
 
+      // Use base service for search filter
       if (search) {
         where[Op.or] = [
           { first_name: { [Op.iLike]: `%${search}%` } },
@@ -397,33 +326,15 @@ class UserService {
         offset,
       });
 
-      const result = {
-        users: rows,
-        pagination: {
-          page,
-          limit,
-          total: count,
-          pages: Math.ceil(count / limit),
-        },
-      };
-
-      // Cache the result for 5 minutes
-      await RedisUtils.set(cacheKey, result, 300);
-      
-      return result;
-    } catch (error) {
-      logger.error('Error in UserService.getUsersByBranch:', error);
-      throw error;
-    }
+      // Use base service for pagination response
+      return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+    }, 300);
   }
 
   // Change user password
   static async changePassword(userId, currentPassword, newPassword) {
-    try {
-      const user = await User.findByPk(userId);
-      if (!user) {
-        throw new ApiError(404, 'User not found');
-      }
+    return BaseService.executeWithErrorHandling(async () => {
+      const user = await BaseService.validateEntityExists(User, userId, 'User');
 
       // Verify current password
       const isMatch = await user.isPasswordMatch(currentPassword);
@@ -437,39 +348,14 @@ class UserService {
       // Update password
       await user.update({ password: hashedPassword });
 
-      // Clear user cache
-      await RedisUtils.del(`user:${userId}`);
+      // Clear user cache using base service
+      await BaseService.clearCache(`user:${userId}`);
 
       return true;
-    } catch (error) {
-      logger.error('Error in UserService.changePassword:', error);
-      throw error;
-    }
+    }, 'UserService.changePassword');
   }
 
-  // Generate a random password that meets validation requirements
-  static generateRandomPassword() {
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*';
-    
-    // Ensure at least one character from each required category
-    let password = '';
-    password += lowercase[Math.floor(Math.random() * lowercase.length)];
-    password += uppercase[Math.floor(Math.random() * uppercase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
-    
-    // Fill the rest with random characters
-    const allChars = lowercase + uppercase + numbers + symbols;
-    for (let i = 4; i < 10; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
-    }
-    
-    // Shuffle the password
-    return password.split('').sort(() => Math.random() - 0.5).join('');
-  }
+
 }
 
 module.exports = UserService;
