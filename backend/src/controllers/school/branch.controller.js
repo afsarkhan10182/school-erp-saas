@@ -154,6 +154,43 @@ class BranchController {
       next(error);
     }
   }
+
+  // Get branches for dropdown/select
+  static async getBranchesForDropdown(req, res, next) {
+    try {
+      const { school_id, status = 'active' } = req.query;
+      let whereClause = { status };
+      
+      // Role-based access control
+      if (req.user.role === 'super_admin') {
+        // Super admin can see all branches, optionally filtered by school
+        if (school_id) {
+          whereClause.school_id = school_id;
+        }
+      } else if (req.user.role === 'school_admin') {
+        // School admin can only see branches in their school
+        whereClause.school_id = req.user.school_id;
+      } else if (req.user.role === 'branch_admin') {
+        // Branch admin can only see their own branch
+        whereClause.id = req.user.branch_id;
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+        });
+      }
+
+      const branches = await BranchService.getBranchesForDropdown(whereClause);
+      
+      res.json({
+        success: true,
+        data: branches,
+      });
+    } catch (error) {
+      logger.error('Error in BranchController.getBranchesForDropdown:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = BranchController; 

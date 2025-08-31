@@ -1,109 +1,53 @@
-const { Op } = require('sequelize');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
-const RedisUtils = require('../../utils/redis-utils');
 
 class BaseService {
-  // Common file upload handling
-  static handleFileUploads(uploadedFiles = {}, fileFields = ['system_logo', 'text_logo', 'printing_logo', 'report_card_design']) {
-    const fileData = {};
-    fileFields.forEach(field => {
-      if (uploadedFiles[field]) {
-        fileData[field] = uploadedFiles[field].filename;
-      }
-    });
-    return fileData;
-  }
-
-  // Common settings object creation from file uploads
-  static createSettingsFromFiles(uploadedFiles = {}, additionalSettings = {}) {
-    const settings = {
-      ...additionalSettings
-    };
-
-    if (uploadedFiles.system_logo) {
-      settings.system_logo = `/uploads/${uploadedFiles.system_logo.filename}`;
-    }
-    if (uploadedFiles.text_logo) {
-      settings.text_logo = `/uploads/${uploadedFiles.text_logo.filename}`;
-    }
-    if (uploadedFiles.printing_logo) {
-      settings.printing_logo = `/uploads/${uploadedFiles.printing_logo.filename}`;
-    }
-    if (uploadedFiles.report_card_design) {
-      settings.report_card_design = `/uploads/${uploadedFiles.report_card_design.filename}`;
-    }
-
-    return settings;
-  }
-
-  // Common pagination logic
-  static buildPaginationParams({ page = 1, limit = 10 }) {
-    const offset = (page - 1) * limit;
-    return { page: parseInt(page), limit: parseInt(limit), offset };
-  }
-
-  // Common search filter builder
-  static buildSearchFilter(search, searchFields) {
-    if (!search) return {};
-    
-    const searchConditions = searchFields.map(field => ({
-      [field]: { [Op.iLike]: `%${search}%` }
-    }));
-    
-    return { [Op.or]: searchConditions };
-  }
-
-  // Common pagination response builder
-  static buildPaginationResponse(rows, count, page, limit, dataKey = 'items') {
-    return {
-      [dataKey]: rows,
-      total: count,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(count / limit),
-    };
-  }
-
-  // Common cache management
-  static async clearCache(keys) {
+  /**
+   * Execute service method with error handling
+   */
+  static async executeWithErrorHandling(operation, operationName = 'Operation') {
     try {
-      if (Array.isArray(keys)) {
-        await RedisUtils.del(...keys);
-      } else {
-        await RedisUtils.del(keys);
-      }
-      logger.debug(`Cache cleared for keys: ${Array.isArray(keys) ? keys.join(', ') : keys}`);
+      return await operation();
     } catch (error) {
-      logger.warn('Failed to clear cache:', error.message);
-    }
-  }
-
-  // Common cache get with fallback
-  static async getFromCache(cacheKey, fetchFunction, ttl = 600) {
-    try {
-      const cached = await RedisUtils.get(cacheKey);
-      if (cached) {
-        logger.debug(`Cache hit for key: ${cacheKey}`);
-        return cached;
-      }
-
-      logger.debug(`Cache miss for key: ${cacheKey}`);
-      const data = await fetchFunction();
+      logger.error(`${operationName} failed:`, error);
       
-      if (data) {
-        await RedisUtils.set(cacheKey, data, ttl);
+      if (error instanceof ApiError) {
+        throw error;
       }
       
-      return data;
-    } catch (error) {
-      logger.warn(`Cache operation failed for key: ${cacheKey}`, error.message);
-      return await fetchFunction();
+      // Handle Sequelize errors
+      if (error.name === 'SequelizeValidationError') {
+        const validationErrors = error.errors.map(err => err.message).join(', ');
+        throw new ApiError(400, `Validation failed: ${validationErrors}`);
+      }
+      
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        const field = error.errors[0]?.path || 'field';
+        throw new ApiError(400, `${field} already exists`);
+      }
+      
+      if (error.name === 'SequelizeForeignKeyConstraintError') {
+        throw new ApiError(400, 'Referenced record does not exist');
+      }
+      
+      // Handle other database errors
+      if (error.name === 'SequelizeDatabaseError') {
+        logger.error('Database error:', error);
+        throw new ApiError(500, 'Database operation failed');
+      }
+      
+      // Default error handling
+      logger.error('Unexpected error:', error);
+      throw new ApiError(500, 'Internal server error');
     }
   }
 
-  // Common entity validation
-  static async validateEntityExists(model, id, entityName = 'Entity') {
+  /**
+   * Validate entity exists
+   */
+  static async validateEntityExists(model, id, entityName) {
+    if (!id) return;
+    
     const entity = await model.findByPk(id);
     if (!entity) {
       throw new ApiError(404, `${entityName} not found`);
@@ -111,103 +55,356 @@ class BaseService {
     return entity;
   }
 
-  // Common email validation
-  static validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      throw new ApiError(400, 'Please provide a valid email address');
-    }
-  }
-
-  // Common email uniqueness check
-  static async validateEmailUniqueness(model, email, excludeId = null, additionalWhere = {}) {
-    const whereClause = { email, ...additionalWhere };
-    if (excludeId) {
-      whereClause.id = { [Op.ne]: excludeId };
-    }
-
-    const existingUser = await model.findOne({ where: whereClause });
-    if (existingUser) {
-      throw new ApiError(400, 'Email already exists');
-    }
-  }
-
-  // Common error wrapper
-  static async executeWithErrorHandling(operation, operationName) {
-    try {
-      return await operation();
-    } catch (error) {
-      logger.error(`Error in ${operationName}:`, error);
-      throw error;
-    }
-  }
-
-  // Common transaction wrapper
-  static async executeInTransaction(sequelize, operation, operationName) {
-    const transaction = await sequelize.transaction();
-    try {
-      const result = await operation(transaction);
-      await transaction.commit();
-      return result;
-    } catch (error) {
-      await transaction.rollback();
-      logger.error(`Error in ${operationName} transaction:`, error);
-      throw error;
-    }
-  }
-
-  // Common soft delete logic
-  static async softDelete(model, id, entityName = 'Entity') {
-    const entity = await this.validateEntityExists(model, id, entityName);
-    await entity.update({ 
-      status: 'inactive',
-      deleted_at: new Date()
+  /**
+   * Validate multiple entities exist
+   */
+  static async validateEntitiesExist(model, ids, entityName) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return;
+    
+    const entities = await model.findAll({
+      where: { id: { [require('sequelize').Op.in]: ids } }
     });
+    
+    if (entities.length !== ids.length) {
+      throw new ApiError(404, `One or more ${entityName} not found`);
+    }
+    
+    return entities;
+  }
+
+  /**
+   * Build pagination response
+   */
+  static buildPaginationResponse(data, page, limit, total, dataKey = null) {
+    const response = {
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    };
+
+    // If dataKey is provided, wrap data in an object with that key
+    if (dataKey) {
+      response[dataKey] = data;
+    } else {
+      // Default behavior - data directly in response
+      response.data = data;
+    }
+
+    return response;
+  }
+
+  /**
+   * Build search filter
+   */
+  static buildSearchFilter(searchTerm, searchFields) {
+    if (!searchTerm || !searchFields || !Array.isArray(searchFields)) {
+      return {};
+    }
+
+    const { Op } = require('sequelize');
+    const searchConditions = searchFields.map(field => ({
+      [field]: { [Op.iLike]: `%${searchTerm}%` }
+    }));
+
+    return { [Op.or]: searchConditions };
+  }
+
+  /**
+   * Build date range filter
+   */
+  static buildDateRangeFilter(startDate, endDate, dateField = 'created_at') {
+    if (!startDate && !endDate) return {};
+
+    const { Op } = require('sequelize');
+    const filter = {};
+
+    if (startDate) {
+      filter[Op.gte] = new Date(startDate);
+    }
+
+    if (endDate) {
+      filter[Op.lte] = new Date(endDate);
+    }
+
+    return { [dateField]: filter };
+  }
+
+  /**
+   * Sanitize pagination parameters
+   */
+  static sanitizePaginationParams(params) {
+    const page = Math.max(1, parseInt(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(params.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    return { page, limit, offset };
+  }
+
+  /**
+   * Validate required fields
+   */
+  static validateRequiredFields(data, requiredFields) {
+    const missingFields = requiredFields.filter(field => 
+      data[field] === undefined || data[field] === null || data[field] === ''
+    );
+
+    if (missingFields.length > 0) {
+      throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
+    }
+  }
+
+  /**
+   * Validate data types
+   */
+  static validateDataTypes(data, typeValidations) {
+    const errors = [];
+
+    Object.keys(typeValidations).forEach(field => {
+      const value = data[field];
+      const expectedType = typeValidations[field];
+
+      if (value !== undefined && value !== null) {
+        if (expectedType === 'number' && isNaN(Number(value))) {
+          errors.push(`${field} must be a number`);
+        } else if (expectedType === 'boolean' && typeof value !== 'boolean') {
+          errors.push(`${field} must be a boolean`);
+        } else if (expectedType === 'date' && isNaN(Date.parse(value))) {
+          errors.push(`${field} must be a valid date`);
+        } else if (expectedType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          errors.push(`${field} must be a valid email`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      throw new ApiError(400, `Validation errors: ${errors.join(', ')}`);
+    }
+  }
+
+  /**
+   * Format response data
+   */
+  static formatResponseData(data, includeFields = null, excludeFields = null) {
+    if (Array.isArray(data)) {
+      return data.map(item => this.formatResponseData(item, includeFields, excludeFields));
+    }
+
+    if (data && typeof data === 'object') {
+      const formatted = {};
+
+      Object.keys(data).forEach(key => {
+        // Skip if field should be excluded
+        if (excludeFields && excludeFields.includes(key)) {
+          return;
+        }
+
+        // Include only specified fields
+        if (includeFields && !includeFields.includes(key)) {
+          return;
+        }
+
+        // Format nested objects
+        if (data[key] && typeof data[key] === 'object' && !Array.isArray(data[key])) {
+          formatted[key] = this.formatResponseData(data[key], includeFields, excludeFields);
+        } else {
+          formatted[key] = data[key];
+        }
+      });
+
+      return formatted;
+    }
+
+    return data;
+  }
+
+  /**
+   * Generate audit trail data
+   */
+  static generateAuditData(user, action) {
+    return {
+      created_by: user.id,
+      updated_by: user.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+      action,
+      user_id: user.id,
+      user_role: user.role,
+      school_id: user.school_id,
+      branch_id: user.branch_id
+    };
+  }
+
+  /**
+   * Check user permissions
+   */
+  static checkUserPermissions(user, requiredPermissions = []) {
+    if (!user) {
+      throw new ApiError(401, 'User not authenticated');
+    }
+
+    if (requiredPermissions.length > 0) {
+      const hasPermission = requiredPermissions.some(permission => 
+        user.permissions && user.permissions.includes(permission)
+      );
+
+      if (!hasPermission) {
+        throw new ApiError(403, 'Insufficient permissions');
+      }
+    }
+  }
+
+  /**
+   * Validate school/branch access
+   */
+  static validateSchoolBranchAccess(user, schoolId, branchId = null) {
+    if (user.role === 'super_admin') {
+      return true; // Super admin has access to everything
+    }
+
+    if (user.school_id !== schoolId) {
+      throw new ApiError(403, 'Access denied to this school');
+    }
+
+    if (user.role === 'branch_admin' && branchId && user.branch_id !== branchId) {
+      throw new ApiError(403, 'Access denied to this branch');
+    }
+
     return true;
   }
 
-  // Common status validation
-  static validateStatus(status, allowedStatuses = ['active', 'inactive']) {
-    if (status && !allowedStatuses.includes(status)) {
-      throw new ApiError(400, `Invalid status. Allowed values: ${allowedStatuses.join(', ')}`);
+  /**
+   * Build where clause for school/branch filtering
+   */
+  static buildSchoolBranchWhereClause(user, additionalFilters = {}) {
+    const whereClause = { ...additionalFilters };
+
+    if (user.role === 'school_admin') {
+      whereClause.school_id = user.school_id;
+    } else if (user.role === 'branch_admin') {
+      whereClause.school_id = user.school_id;
+      whereClause.branch_id = user.branch_id;
     }
+
+    return whereClause;
   }
 
-  // Common role validation
-  static validateRole(role, allowedRoles) {
-    if (role && !allowedRoles.includes(role)) {
-      throw new ApiError(400, `Invalid role. Allowed values: ${allowedRoles.join(', ')}`);
-    }
+  /**
+   * Log service operation
+   */
+  static logOperation(operation, details = {}) {
+    logger.info(`Service operation: ${operation}`, {
+      timestamp: new Date().toISOString(),
+      ...details
+    });
   }
 
-  // Common date validation
-  static validateDate(dateString, fieldName = 'Date') {
-    if (dateString) {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        throw new ApiError(400, `Invalid ${fieldName.toLowerCase()} format`);
+  /**
+   * Handle bulk operations with error tracking
+   */
+  static async executeBulkOperation(operation, items, operationName = 'Bulk Operation') {
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < items.length; i++) {
+      try {
+        const result = await operation(items[i], i);
+        results.push({
+          index: i,
+          success: true,
+          data: result
+        });
+      } catch (error) {
+        errors.push({
+          index: i,
+          success: false,
+          error: error.message,
+          item: items[i]
+        });
       }
     }
+
+    this.logOperation(operationName, {
+      total: items.length,
+      success: results.length,
+      errors: errors.length
+    });
+
+    return {
+      success_count: results.length,
+      error_count: errors.length,
+      results,
+      errors
+    };
   }
 
-  // Common phone validation
-  static validatePhone(phone) {
-    if (phone) {
-      const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-      if (!phoneRegex.test(phone)) {
-        throw new ApiError(400, 'Please provide a valid phone number');
+  /**
+   * Get data from cache or execute function and cache result
+   */
+  static async getFromCache(cacheKey, fetchFunction, ttl = 600) {
+    try {
+      const RedisUtils = require('../../utils/redis-utils');
+      const cachedData = await RedisUtils.get(cacheKey);
+      
+      if (cachedData) {
+        logger.debug(`Cache hit for key: ${cacheKey}`);
+        return cachedData;
       }
+
+      logger.debug(`Cache miss for key: ${cacheKey}, executing function`);
+      const data = await fetchFunction();
+      
+      if (data) {
+        await RedisUtils.set(cacheKey, data, ttl);
+        logger.debug(`Cached data for key: ${cacheKey}`);
+      }
+      
+      return data;
+    } catch (error) {
+      logger.warn(`Cache operation failed for key: ${cacheKey}`, error.message);
+      // Fallback to executing function without caching
+      return await fetchFunction();
     }
   }
 
-  // Common password generation
-  static generateRandomPassword(length = 12) {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
+  /**
+   * Clear cache for given keys
+   */
+  static async clearCache(keys) {
+    try {
+      const RedisUtils = require('../../utils/redis-utils');
+      
+      if (Array.isArray(keys)) {
+        for (const key of keys) {
+          await RedisUtils.del(key);
+          logger.debug(`Cleared cache key: ${key}`);
+        }
+      } else {
+        await RedisUtils.del(keys);
+        logger.debug(`Cleared cache key: ${keys}`);
+      }
+    } catch (error) {
+      logger.warn(`Failed to clear cache for keys: ${keys}`, error.message);
     }
-    return password;
+  }
+
+  /**
+   * Create settings object from uploaded files
+   */
+  static createSettingsFromFiles(files, additionalSettings = {}) {
+    const settings = { ...additionalSettings };
+
+    if (files) {
+      Object.keys(files).forEach(key => {
+        if (files[key] && files[key][0]) {
+          settings[key] = files[key][0].filename || files[key][0].path;
+        }
+      });
+    }
+
+    return settings;
   }
 }
 

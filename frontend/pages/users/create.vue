@@ -606,10 +606,10 @@ const fetchBranches = async (schoolId = null) => {
   
   isLoadingBranches.value = true;
   try {
-    const response = await apiClient.branches.getBySchool(targetSchoolId);
+            const response = await apiClient.branches.getForDropdown({ school_id: targetSchoolId });
     
-    // The API returns { success: true, data: { branches: [...], pagination: {...} } }
-    branches.value = response.data?.branches || response.data?.data?.branches || [];
+    // The dropdown API returns { success: true, data: [...] }
+    branches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
     showError('Failed to fetch branches');

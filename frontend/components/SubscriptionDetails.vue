@@ -141,25 +141,76 @@
 
       <!-- Modules -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          {{ modulesSectionTitle }}
-        </h2>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ modulesSectionTitle }}
+          </h2>
+          <div v-if="user?.role === 'super_admin'" class="flex gap-2">
+            <NuxtLink :to="`/saas/schools/${schoolId}/modules`" class="btn-secondary text-sm">
+              🔧 Manage Modules
+            </NuxtLink>
+          </div>
+        </div>
+        
         <div v-if="availableModules.length === 0" class="text-center py-8">
           <div class="text-gray-400 mb-2">No modules available</div>
           <div class="text-sm text-gray-500">
             {{ user?.role === 'super_admin' ? 'This school has no modules enabled.' : 'Contact your administrator to enable modules.' }}
           </div>
         </div>
-        <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div 
-            v-for="module in availableModules" 
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div
+            v-for="module in availableModules"
             :key="module.id"
-            class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+            class="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg"
+            :class="{
+              'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800': module.enabled,
+              'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800': !module.enabled
+            }"
           >
-            <div class="flex-shrink-0 w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <Check class="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div class="mr-3">
+              <div 
+                class="w-4 h-4 rounded-full flex items-center justify-center"
+                :class="{
+                  'bg-green-100 dark:bg-green-900': module.enabled,
+                  'bg-red-100 dark:bg-red-900': !module.enabled
+                }"
+              >
+                <Check v-if="module.enabled" class="w-3 h-3 text-green-600 dark:text-green-400" />
+                <X v-else class="w-3 h-3 text-red-600 dark:text-red-400" />
+              </div>
             </div>
-            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-white capitalize">{{ module.name }}</span>
+            <div class="flex-1">
+              <div class="flex items-center">
+                <span class="text-lg mr-2">{{ module.icon || '📦' }}</span>
+                <div>
+                  <div class="font-medium text-gray-900 dark:text-white">{{ module.name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ module.description || 'Module description' }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-if="module.is_core" class="ml-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                Core
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Module Summary -->
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center text-sm">
+            <div class="flex gap-4">
+              <span class="text-gray-500 dark:text-gray-400">
+                Enabled: <span class="font-medium text-green-600 dark:text-green-400">{{ enabledModuleCount }}</span>
+              </span>
+              <span class="text-gray-500 dark:text-gray-400">
+                Disabled: <span class="font-medium text-red-600 dark:text-red-400">{{ disabledModuleCount }}</span>
+              </span>
+              <span class="text-gray-500 dark:text-gray-400">
+                Total: <span class="font-medium text-gray-900 dark:text-white">{{ availableModules.length }}</span>
+              </span>
+            </div>
           </div>
         </div>
         
@@ -435,7 +486,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import { Check, AlertCircle } from 'lucide-vue-next';
+import { Check, AlertCircle, X } from 'lucide-vue-next';
 import { apiClient } from '~/utils/api';
 
 // Types
@@ -570,6 +621,7 @@ const showRenewalModal = ref(false);
 const submitting = ref(false);
 const showPlanDetailsModal = ref(false);
 const selectedPlanDetails = ref<Plan | null>(null);
+const saving = ref(false);
 
 // Renewal form
 const renewalForm = ref<RenewalForm>({
@@ -675,20 +727,43 @@ const availableModules = computed(() => {
     modules = school.value.plan_details.modules;
   }
   
-  // Transform modules to display format
+  // If no modules found, return empty array
+  if (modules.length === 0) {
+    return [];
+  }
+  
+  // Transform modules to display format with proper interface
   return modules.map((module: any) => {
     if (typeof module === 'string') {
       return {
         id: module,
+        code: module,
         name: module.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        enabled: true, // Default to enabled for string modules
+        is_core: false,
+        icon: '📦',
+        description: 'Module description'
       };
     } else if (typeof module === 'object') {
       return {
         id: module.code || module.id || module.name,
+        code: module.code || module.id || module.name,
         name: module.name || module.code || module.id,
+        enabled: module.enabled !== false, // Default to true if not explicitly disabled
+        is_core: module.is_core || false,
+        icon: module.icon || '📦',
+        description: module.description || 'Module description'
       };
     }
-    return { id: module, name: String(module) };
+    return { 
+      id: module, 
+      code: module,
+      name: String(module),
+      enabled: true,
+      is_core: false,
+      icon: '📦',
+      description: 'Module description'
+    };
   });
 });
 
@@ -878,6 +953,8 @@ const loadData = async () => {
       transactions.value = transactionsResponse.data.transactions;
     }
     
+
+    
     // Emit data loaded event
     if (school.value) {
       emit('data-loaded', {
@@ -935,6 +1012,10 @@ const submitRenewalRequest = async () => {
     submitting.value = false;
   }
 };
+
+// Computed properties for module counts
+const enabledModuleCount = computed(() => availableModules.value.filter((m: any) => m.enabled).length);
+const disabledModuleCount = computed(() => availableModules.value.filter((m: any) => !m.enabled).length);
 
 // Expose methods for parent components
 defineExpose({

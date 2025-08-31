@@ -37,7 +37,7 @@ const requireModuleAccess = (moduleCode) => {
       const hasAccess = await SubscriptionLifecycleService.canAccessModule(schoolId, moduleCode);
       
       // Cache the result for 5 minutes
-      await RedisUtils.setex(cacheKey, 300, hasAccess.toString());
+      await RedisUtils.set(cacheKey, hasAccess.toString(), 300);
 
       if (hasAccess) {
         return next();
@@ -150,7 +150,7 @@ const requireActiveSubscription = () => {
         subscriptionStatus = SubscriptionLifecycleService.calculateSubscriptionStatus(school);
         
         // Cache for 10 minutes
-        await RedisUtils.setex(cacheKey, 600, subscriptionStatus);
+        await RedisUtils.set(cacheKey, subscriptionStatus, 600);
       }
 
       // Allow access for active, trial, and lifetime subscriptions
@@ -218,7 +218,7 @@ const requireFeatureAccess = (featureName) => {
          subscriptionPlan.features[featureName] !== undefined);
 
       // Cache the result for 5 minutes
-      await RedisUtils.setex(cacheKey, 300, hasFeature.toString());
+      await RedisUtils.set(cacheKey, hasFeature.toString(), 300);
 
       if (hasFeature) {
         return next();

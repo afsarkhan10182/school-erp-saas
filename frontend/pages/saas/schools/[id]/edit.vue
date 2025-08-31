@@ -1,13 +1,18 @@
 <template>
   <div class="container mx-auto py-8 max-w-4xl">
     <!-- Header -->
-    <div class="mb-6 flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit School Subscription</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Update school and subscription details</p>
+          <div class="mb-6 flex justify-between items-center">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit School Subscription</h1>
+          <p class="text-gray-600 dark:text-gray-400 mt-1">Update school and subscription details</p>
+        </div>
+        <div class="flex gap-3">
+          <NuxtLink :to="`/saas/schools/${$route.params.id}/modules`" class="btn-secondary" style="background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+            🔧 Manage Modules
+          </NuxtLink>
+          <NuxtLink to="/saas" class="btn-secondary">Back to List</NuxtLink>
+        </div>
       </div>
-      <NuxtLink to="/saas" class="btn-secondary">Back to List</NuxtLink>
-    </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">

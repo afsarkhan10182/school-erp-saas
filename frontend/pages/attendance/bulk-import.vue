@@ -198,12 +198,7 @@ const uploadFile = async () => {
     const formData = new FormData();
     formData.append('file', selectedFile.value);
 
-    const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.apiBase}/attendance/bulk-import/file`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
+    const response = await apiClient.attendance.uploadBulkImportFile(selectedFile.value);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -244,11 +239,7 @@ const downloadTemplate = async () => {
   try {
     // Remove loading toast - user can see button state
     
-    const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.apiBase}/templates/attendance-import`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+    const response = await apiClient.attendance.getImportTemplate();
     
     if (!response.ok) {
       throw new Error('Failed to generate template');

@@ -29,7 +29,7 @@ class BranchService {
   // Get all branches with pagination and filtering
   static async getAllBranches({ page = 1, limit = 10, search, status, school_id }) {
     return BaseService.executeWithErrorHandling(async () => {
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = {};
 
       // Use base service for search filter
@@ -155,7 +155,7 @@ class BranchService {
   // Get branches by school
   static async getBranchesBySchool(schoolId, { page = 1, limit = 10, search, status }) {
     return BaseService.executeWithErrorHandling(async () => {
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = { school_id: schoolId };
 
       // Use base service for search filter
@@ -193,6 +193,26 @@ class BranchService {
         totalUsers: userCount,
       };
     }, 'BranchService.getBranchStats');
+  }
+
+  // Get branches for dropdown/select
+  static async getBranchesForDropdown(whereClause) {
+    return BaseService.executeWithErrorHandling(async () => {
+      const branches = await Branch.findAll({
+        where: whereClause,
+        attributes: ['id', 'name', 'code', 'school_id'],
+        include: [
+          {
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+          },
+        ],
+        order: [['name', 'ASC']],
+      });
+
+      return branches;
+    }, 'BranchService.getBranchesForDropdown');
   }
 }
 

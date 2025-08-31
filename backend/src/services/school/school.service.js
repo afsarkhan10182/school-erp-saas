@@ -90,7 +90,7 @@ class SchoolService {
     return BaseService.executeWithErrorHandling(async () => {
       logger.info('getAllSchools called with params:', { page, limit, search, status });
       
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = {};
 
       // Use base service for search filter
@@ -113,7 +113,7 @@ class SchoolService {
       logger.info('getAllSchools result:', { count, rowsCount: rows.length });
 
       // Use base service for pagination response
-      return BaseService.buildPaginationResponse(rows, count, page, limit, 'schools');
+      return BaseService.buildPaginationResponse(rows, page, limit, count);
     }, 'SchoolService.getAllSchools');
   }
 

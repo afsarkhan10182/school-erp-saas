@@ -371,8 +371,8 @@ const menuGroups = computed(() => {
       title: 'Academic Management',
       items: [
         {
-          id: 'academic',
-          title: 'Academic',
+          id: 'academic-setup',
+          title: 'Academic Setup',
           icon: BookOpen,
           children: [
             // Academic Years - only for super admin and school admin
@@ -382,6 +382,16 @@ const menuGroups = computed(() => {
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
+            { id: 'subjects', title: 'Subjects', path: '/academic/subjects', icon: BookOpen },
+            { id: 'exam-types', title: 'Exam Types', path: '/academic/exam-types', icon: Tag },
+          ]
+        },
+        {
+          id: 'academic-operations',
+          title: 'Academic Operations',
+          icon: ClipboardList,
+          children: [
+            { id: 'exams', title: 'Exams', path: '/exams', icon: FileText, requiredModule: 'exams' },
             { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList, requiredModule: 'attendance' },
           ]
         }
@@ -440,6 +450,7 @@ const menuGroups = computed(() => {
               children: [
                 { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3, requiredModule: 'students' },
                 { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
+                { id: 'exam-reports', title: 'Exam Reports', path: '/exams/report-cards', icon: FileText, requiredModule: 'exams' },
               ]
             }
           ]
@@ -478,8 +489,7 @@ const menuGroups = computed(() => {
       settingsItems.push(
         { id: 'staff-list', title: 'Staff List', path: '/users', icon: Users },
         { id: 'settings-main', title: 'School Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
-        { id: 'subscription', title: 'Subscription', path: '/settings/subscription', icon: CreditCard }
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
       );
     }
     // Branch Admin gets minimal settings
@@ -502,6 +512,8 @@ const menuGroups = computed(() => {
 
 // Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
+  console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
+  
   // Super admin: show all menu groups
   if (authStore.user?.role === 'super_admin') {
     return menuGroups.value;
@@ -509,11 +521,12 @@ const visibleMenuGroups = computed(() => {
   
   // For non-super admins, filter based on modules
   if (!userModules.value || userModules.value.length === 0) {
+    console.log('🔄 No user modules available');
     return [];
   }
 
   // Use the improved filtering from useModuleAccess
-  return menuGroups.value
+  const filtered = menuGroups.value
     .map(group => {
       const filteredItems = filterMenuByModules(group.items);
       return {
@@ -522,6 +535,9 @@ const visibleMenuGroups = computed(() => {
       };
     })
     .filter(group => group.items.length > 0); // remove empty groups
+  
+  console.log('🔄 Filtered menu groups:', filtered);
+  return filtered;
 });
 
 
@@ -596,6 +612,11 @@ onMounted(async () => {
   // Load user modules for menu filtering
   await loadUserModules();
 });
+
+// Watch for module changes to update sidebar
+watch(userModules, (newModules) => {
+  console.log('🔄 Sidebar modules updated:', newModules);
+}, { deep: true });
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', checkMobile);

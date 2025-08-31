@@ -3,6 +3,7 @@ const { sequelize } = require('../../config/database');
 const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student, Module, PlanModule } = require('../../models');
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
+const RedisUtils = require('../../utils/redis-utils');
 const bcrypt = require('bcryptjs');
 
 class SubscriptionService {
@@ -1786,9 +1787,10 @@ class SubscriptionService {
         updatedDisabledModules = [...new Set([...disabledModules, moduleCode])];
       }
       
-      // Update school disabled modules
+      // Update school disabled modules and timestamp
       await school.update({
         disabled_modules: updatedDisabledModules,
+        modules_updated_at: new Date(),
         updated_by: userId,
       }, { transaction });
 
@@ -1808,6 +1810,10 @@ class SubscriptionService {
       }, { transaction });
 
       await transaction.commit();
+      
+      // Clear module access cache for this school
+      const cacheKey = `module_access:${schoolId}:${moduleCode}`;
+      await RedisUtils.del(cacheKey);
       
       logger.info(`Module ${moduleCode} ${enabled ? 'enabled' : 'disabled'} for school ${school.name}`);
       return school;

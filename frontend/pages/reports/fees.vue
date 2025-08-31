@@ -1279,20 +1279,11 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-    const response = await apiClient.branches.getAll();
+            const response = await apiClient.branches.getForDropdown();
     console.log('🌿 Branches API response:', response);
     
-    // Handle different response structures
-    let allBranches = [];
-    if (response.success) {
-      allBranches = response.data.branches || [];
-    } else if (response.data?.items) {
-      allBranches = response.data.items;
-    } else if (response.data?.branches) {
-      allBranches = response.data.branches;
-    } else if (Array.isArray(response.data)) {
-      allBranches = response.data;
-    }
+    // Dropdown endpoint returns data directly as an array
+    let allBranches = response.data || [];
     
     console.log('🌿 All branches before filtering:', allBranches.length, allBranches);
     

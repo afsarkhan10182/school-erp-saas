@@ -358,20 +358,30 @@ class SchoolController {
     // Get enabled modules for this school
     const enabledModules = subscriptionPlan?.modules || [];
     const enabledModuleCodes = enabledModules.map(m => m.code);
+    
+    // Get school's disabled modules
+    const disabledModules = school.disabled_modules || [];
 
     // Create modules for display
-    const modulesForDisplay = allModules.map(module => ({
-      id: module.id,
-      key: module.code,
-      name: module.name,
-      description: module.description,
-      icon: module.icon,
-      category: module.category,
-      is_core: module.is_core,
-      enabled: enabledModuleCodes.includes(module.code),
-      canEnable: false, // School admin cannot enable/disable
-      upgradeRequired: !enabledModuleCodes.includes(module.code)
-    }));
+    const modulesForDisplay = allModules.map(module => {
+      const isInPlan = enabledModuleCodes.includes(module.code);
+      const isDisabled = disabledModules.includes(module.code);
+      const isEnabled = isInPlan && !isDisabled;
+      
+      return {
+        id: module.id,
+        key: module.code,
+        code: module.code,
+        name: module.name,
+        description: module.description,
+        icon: module.icon,
+        category: module.category,
+        is_core: module.is_core,
+        enabled: isEnabled,
+        canEnable: req.user.role === 'super_admin', // Only super admin can enable/disable
+        upgradeRequired: !isInPlan
+      };
+    });
 
     // Get available subscription plans for upgrade
     const availablePlans = await SubscriptionPlan.findAll({
@@ -404,6 +414,7 @@ class SchoolController {
         subscription_plan: school.subscription_plan,
         plan_comparison: plansWithCurrentFlag,
         can_upgrade: req.user.role === 'school_admin',
+        modules_updated_at: school.modules_updated_at,
       },
     });
   });

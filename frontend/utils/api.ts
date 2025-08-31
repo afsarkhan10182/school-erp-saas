@@ -131,6 +131,18 @@ export const apiClient = {
       const api = createApiInstance();
       const response = await api.get<ApiResponse<any>>('/auth/me');
       return response.data;
+    },
+
+    forgotPassword: async (email: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<null>>('/auth/forgot-password', { email });
+      return response.data;
+    },
+
+    resetPassword: async (token: string, password: string) => {
+      const api = createApiInstance();
+      const response = await api.post<ApiResponse<null>>('/auth/reset-password', { token, password });
+      return response.data;
     }
   },
 
@@ -240,6 +252,13 @@ export const apiClient = {
     delete: async (id: string) => {
       const api = createApiInstance();
       const response = await api.delete<ApiResponse<null>>(`/branches/${id}`);
+      return response.data;
+    },
+
+    // Get branches for dropdown/select
+    getForDropdown: async (params?: { school_id?: string; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/branches/dropdown', { params });
       return response.data;
     }
   },
@@ -654,6 +673,13 @@ export const apiClient = {
       const response = await api.get<ApiResponse<any>>(`/students/${id}`);
       return response.data;
     },
+
+    // Import template
+    getImportTemplate: async (type: string) => {
+      const api = createApiInstance();
+      const response = await api.get(`/students/import-template?type=${type}`, { responseType: 'blob' });
+      return response;
+    },
     
     // New endpoint for student invoice breakdown (accordion details)
     getInvoiceBreakdown: async (studentId: string, params?: {
@@ -760,6 +786,37 @@ export const apiClient = {
         confirm_password: passwordData.confirm_password ?? passwordData.confirmPassword ?? (passwordData.new_password ?? passwordData.newPassword),
       };
       const response = await api.post<ApiResponse<null>>('/users/change-password', payload);
+      return response.data;
+    }
+  },
+
+  // Academic endpoints
+  academic: {
+    // Classes
+    getClasses: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/classes', { params });
+      return response.data;
+    },
+
+    // Sections
+    getSections: async (params?: { class_id?: string; page?: number; limit?: number; search?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/sections', { params });
+      return response.data;
+    },
+
+    // Subjects
+    getSubjects: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/subjects', { params });
+      return response.data;
+    },
+
+    // Timetables
+    getMyTimetable: async (params?: { academic_year?: string }) => {
+      const api = createApiInstance();
+      const response = await api.get<ApiResponse<any>>('/timetables/my-timetable', { params });
       return response.data;
     }
   },
@@ -1212,6 +1269,37 @@ export const apiClient = {
       const response = await api.post<ApiResponse<any>>('/attendance/bulk-import', { rows });
       return response.data;
     },
+
+    // File upload for bulk import
+    uploadBulkImportFile: async (file: File) => {
+      const api = createApiInstance();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post<ApiResponse<any>>('/attendance/bulk-import/file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    },
+
+    // Get attendance import template
+    getImportTemplate: async () => {
+      const api = createApiInstance();
+      const response = await api.get('/templates/attendance-import', { responseType: 'blob' });
+      return response;
+    },
+
+    // Export reports
+    exportPdfReport: async (queryParams: string) => {
+      const api = createApiInstance();
+      const response = await api.get(`/attendance/reports/export/pdf?${queryParams}`, { responseType: 'blob' });
+      return response.data;
+    },
+
+    exportExcelReport: async (queryParams: string) => {
+      const api = createApiInstance();
+      const response = await api.get(`/attendance/reports/export/excel?${queryParams}`, { responseType: 'blob' });
+      return response.data;
+    }
   },
 
   // Attendance Notification endpoints

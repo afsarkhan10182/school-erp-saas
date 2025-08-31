@@ -322,7 +322,7 @@ const loadSchools = async () => {
   try {
     const response = await apiClient.schools.getAll();
     if (response.success) {
-      schools.value = response.data?.schools || response.data?.items || response.data || [];
+      schools.value = response.data?.items || [];
     }
   } catch (error) {
     console.error('Error loading schools:', error);
@@ -481,16 +481,9 @@ const exportPDF = async () => {
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
     
-    const response = await fetch(`${config.public.apiBase}/attendance/reports/export/pdf?${queryParams}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+    const response = await apiClient.attendance.exportPdfReport(queryParams.toString());
     
-    if (!response.ok) {
-      throw new Error('Failed to export PDF');
-    }
-    
-    const blob = await response.blob();
+    const blob = response;
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -535,16 +528,9 @@ const exportExcel = async () => {
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
     
-    const response = await fetch(`${config.public.apiBase}/attendance/reports/export/excel?${queryParams}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+    const response = await apiClient.attendance.exportExcelReport(queryParams.toString());
     
-    if (!response.ok) {
-      throw new Error('Failed to export Excel');
-    }
-    
-    const blob = await response.blob();
+    const blob = response;
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

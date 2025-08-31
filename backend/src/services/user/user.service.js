@@ -62,7 +62,7 @@ class UserService {
     const cacheKey = `users:list:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}:${school_id || 'all'}`;
     
     return BaseService.getFromCache(cacheKey, async () => {
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = {};
 
       // Only include non-deleted users
@@ -254,7 +254,7 @@ class UserService {
     const cacheKey = `users:school:${schoolId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
     
     return BaseService.getFromCache(cacheKey, async () => {
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = { school_id: schoolId };
 
       // Use base service for search filter
@@ -298,7 +298,7 @@ class UserService {
     const cacheKey = `users:branch:${branchId}:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}`;
     
     return BaseService.getFromCache(cacheKey, async () => {
-      const { offset } = BaseService.buildPaginationParams({ page, limit });
+      const { offset } = BaseService.sanitizePaginationParams({ page, limit });
       const where = { branch_id: branchId };
 
       // Use base service for search filter

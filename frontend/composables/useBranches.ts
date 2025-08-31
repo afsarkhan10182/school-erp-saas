@@ -11,23 +11,11 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getBySchool(schoolId);
+      const response = await apiClient.branches.getForDropdown({ school_id: schoolId });
       
       if (response.success) {
-        // Handle different response structures
-        const responseData = response.data as any;
-        if (responseData?.branches) {
-          // Backend returns { branches: [...], pagination: {...} }
-          branches.value = responseData.branches;
-        } else if (responseData?.items) {
-          // Fallback for paginated response
-          branches.value = responseData.items;
-        } else if (Array.isArray(responseData)) {
-          // Direct array response
-          branches.value = responseData;
-        } else {
-          branches.value = [];
-        }
+        // Dropdown endpoint returns data directly as an array
+        branches.value = response.data || [];
         return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
@@ -50,22 +38,10 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getAll(params);
+      const response = await apiClient.branches.getForDropdown(params);
       if (response.success) {
-        // Handle different response structures
-        const responseData = response.data as any;
-        if (responseData?.branches) {
-          // Backend returns { branches: [...], pagination: {...} }
-          branches.value = responseData.branches;
-        } else if (responseData?.items) {
-          // Fallback for paginated response
-          branches.value = responseData.items;
-        } else if (Array.isArray(responseData)) {
-          // Direct array response
-          branches.value = responseData;
-        } else {
-          branches.value = [];
-        }
+        // Dropdown endpoint returns data directly as an array
+        branches.value = response.data || [];
       } else {
         error.value = response.message || 'Failed to fetch branches.';
       }

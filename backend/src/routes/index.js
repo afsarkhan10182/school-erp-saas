@@ -11,13 +11,25 @@ const feeTypeRoutes = require('./fee-type.routes');
 const feeStructureRoutes = require('./fee-structure.routes');
 const feeInvoiceRoutes = require('./fee-invoice.routes');
 
-const academicYearRoutes = require('./academic-year.routes');
-const academicCalendarRoutes = require('./academic-calendar.routes');
+const academicYearRoutes = require('./academic/academic-year.routes');
+const academicCalendarRoutes = require('./academic/academic-calendar.routes');
 const classRoutes = require('./class.routes');
 const sectionRoutes = require('./section.routes');
 const streamRoutes = require('./stream.routes');
-const attendanceRoutes = require('./attendance.routes');
-const attendanceNotificationRoutes = require('./attendance-notification.routes');
+const attendanceRoutes = require('./academic/attendance/attendance.routes');
+const attendanceNotificationRoutes = require('./academic/attendance/attendance-notification.routes');
+
+// Academic subject routes
+const subjectRoutes = require('./academic/subjects/subject.routes');
+const subjectTeacherRoutes = require('./academic/subjects/subject-teacher.routes');
+const subjectGroupRoutes = require('./academic/subjects/subject-group.routes');
+
+// Academic exam routes
+const examRoutes = require('./academic/exams/exam.routes');
+const examTypeRoutes = require('./academic/exams/exam-type.routes');
+
+// Academic timetable routes
+const timetableRoutes = require('./academic/timetable/timetable.routes');
 const templateRoutes = require('./template.routes');
 const exportRoutes = require('./export.routes');
 
@@ -50,6 +62,18 @@ router.use('/academic-calendar', academicCalendarRoutes);
 router.use('/classes', classRoutes);
 router.use('/sections', sectionRoutes);
 router.use('/streams', streamRoutes);
+
+// Academic subject routes
+router.use('/subjects', subjectRoutes);
+router.use('/subject-teachers', subjectTeacherRoutes);
+router.use('/subject-groups', subjectGroupRoutes);
+
+// Academic exam routes
+router.use('/exams', examRoutes);
+router.use('/exam-types', examTypeRoutes);
+
+// Academic timetable routes
+router.use('/timetables', timetableRoutes);
 
 // Attendance routes
 router.use('/attendance', attendanceRoutes);

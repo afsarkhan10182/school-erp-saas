@@ -26,6 +26,7 @@ const AVAILABLE_MODULES = {
   HR: 'hr',
   REPORTS: 'reports',
   SETTINGS: 'settings',
+  TIMETABLES: 'timetables',
 };
 
 // Module descriptions for UI (DEPRECATED - use database)
@@ -84,6 +85,12 @@ const MODULE_DESCRIPTIONS = {
     icon: '⚙️',
     features: ['School settings', 'User management', 'System preferences']
   },
+  [AVAILABLE_MODULES.TIMETABLES]: {
+    name: 'Timetables',
+    description: 'Manage class and subject schedules',
+    icon: '⏰',
+    features: ['Class timetable', 'Subject timetable', 'Conflict detection']
+  },
 };
 
 // Subscription plans and their included modules (DEPRECATED - use database)
@@ -116,6 +123,7 @@ const SUBSCRIPTION_PLANS = {
       AVAILABLE_MODULES.FEES,
       AVAILABLE_MODULES.ATTENDANCE,
       AVAILABLE_MODULES.EXAMS,
+      AVAILABLE_MODULES.TIMETABLES,
       AVAILABLE_MODULES.SETTINGS,
       AVAILABLE_MODULES.REPORTS,
     ],

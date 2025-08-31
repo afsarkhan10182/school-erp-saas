@@ -28,12 +28,8 @@ definePageMeta({
 const authStore = useAuthStore();
 const { showSuccess, showError } = useToast();
 
-// Access control - only School Admin can access their subscription
-const user = authStore.user;
-if (!['school_admin', 'branch_admin'].includes(user?.role)) {
-  showError('Access denied. Only School Admin can view subscription details.');
-  await navigateTo('/dashboard');
-}
+// Redirect to combined profile page with subscription tab
+await navigateTo('/settings/profile?tab=subscription');
 
 // Event handlers
 const handleDataLoaded = (data) => {

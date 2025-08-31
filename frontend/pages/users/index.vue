@@ -342,8 +342,8 @@ const updateRoleCounts = () => {
 const fetchBranches = async () => {
   try {
     if (authStore.user?.school_id) {
-      const response = await apiClient.branches.getBySchool(authStore.user.school_id);
-      branches.value = response.data.branches || response.data || [];
+              const response = await apiClient.branches.getForDropdown({ school_id: authStore.user.school_id });
+              branches.value = response.data || [];
     }
   } catch (error) {
     console.error('Error fetching branches:', error);

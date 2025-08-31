@@ -9,7 +9,15 @@
       aria-haspopup="true"
     >
       <!-- User Avatar -->
-      <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+      <div v-if="props.user?.profile_image" class="w-8 h-8 rounded-full overflow-hidden">
+        <img 
+          :src="uploadsUrl(props.user.profile_image)" 
+          :key="props.user?.profile_image || 'default'"
+          :alt="userName"
+          class="w-full h-full object-cover"
+        />
+      </div>
+      <div v-else class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
         <component :is="getUserIcon()" class="w-4 h-4 text-white" />
       </div>
       
@@ -35,7 +43,15 @@
       <!-- User Header -->
       <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div v-if="props.user?.profile_image" class="w-10 h-10 rounded-full overflow-hidden">
+            <img 
+              :src="uploadsUrl(props.user.profile_image)" 
+              :key="props.user?.profile_image || 'default'"
+              :alt="userName"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div v-else class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
             <component :is="getUserIcon()" class="w-5 h-5 text-white" />
           </div>
           <div class="flex-1 min-w-0">
@@ -99,6 +115,12 @@ const emit = defineEmits(['logout']);
 const authStore = useAuthStore();
 const isOpen = ref(false);
 
+// Helper function for uploads URL
+const uploadsUrl = (filename) => {
+  const config = useRuntimeConfig()
+  return filename ? `${config.public.apiBase?.replace('/api','')}/uploads/${filename}` : ''
+}
+
 // Computed properties
 const userName = computed(() => {
   if (!props.user) return '';
@@ -134,6 +156,8 @@ const toggleDropdown = () => {
 const handleBlur = (event) => {
   // Use setTimeout to allow click events to fire first
   setTimeout(() => {
+    if (!event.currentTarget) return;
+    
     const dropdownContainer = event.currentTarget.closest('.user-profile-dropdown');
     if (!dropdownContainer?.contains(document.activeElement)) {
       isOpen.value = false;
@@ -181,6 +205,8 @@ const handleLogout = async () => {
 
 // Close dropdown when clicking outside
 const handleClickOutside = (event) => {
+  if (!event.target) return;
+  
   const dropdownContainer = event.target.closest('.user-profile-dropdown');
   if (!dropdownContainer) {
     isOpen.value = false;

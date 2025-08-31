@@ -192,6 +192,12 @@ const School = sequelize.define('School', {
     defaultValue: [],
     comment: 'Modules that are disabled for this school'
   },
+  modules_updated_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Timestamp when modules were last updated by super admin'
+  },
 }, {
   tableName: 'schools',
   timestamps: true,

@@ -1,6 +1,7 @@
-import { ref } from 'vue'
+import { ref, readonly } from 'vue'
 import { apiClient } from '~/utils/api'
 import { useToast } from '~/composables/useToast'
+import { subjectApi } from '~/api/subjects'
 
 interface DropdownOption {
   label: string
@@ -45,7 +46,7 @@ export const useDropdowns = () => {
     } catch (err: any) {
       error.value = 'Failed to load classes'
       console.error('Error loading classes:', err)
-      showToast({ type: 'error', message: 'Failed to load classes' })
+      showToast('Failed to load classes', 'error')
     } finally {
       loading.value = false
     }
@@ -80,7 +81,7 @@ export const useDropdowns = () => {
     } catch (err: any) {
       error.value = 'Failed to load sections'
       console.error('Error loading sections:', err)
-      showToast({ type: 'error', message: 'Failed to load sections' })
+      showToast('Failed to load sections', 'error')
     } finally {
       loading.value = false
     }
@@ -109,7 +110,7 @@ export const useDropdowns = () => {
     } catch (err: any) {
       error.value = 'Failed to load streams'
       console.error('Error loading streams:', err)
-      showToast({ type: 'error', message: 'Failed to load streams' })
+      showToast('Failed to load streams', 'error')
     } finally {
       loading.value = false
     }
@@ -118,37 +119,27 @@ export const useDropdowns = () => {
   /**
    * Load subjects for a specific class/stream or all subjects
    */
-  const loadSubjects = async (filters?: { classId?: string; streamId?: string }) => {
+  const loadSubjects = async (filters?: { classId?: string; streamId?: string; category?: string }) => {
     try {
       loading.value = true
       error.value = null
       
-      const params: any = { 
-        page: 1, 
-        limit: 100, 
-        is_active: 'true' 
-      }
+      const params: any = {}
+      if (filters?.classId) params.class_id = filters.classId
+      if (filters?.category) params.category = filters.category
       
-      if (filters?.classId) {
-        params.class_id = filters.classId
-      }
-      if (filters?.streamId) {
-        params.stream_id = filters.streamId
-      }
-      
-      // Note: Assuming subjects API exists, adjust endpoint as needed
-      const response = await apiClient.subjects?.getAll?.(params) || { data: [] }
-      
-      const subjects = response.data?.rows || response.data || []
-      subjectOptions.value = subjects.map((subject: any) => ({
-        label: subject.name,
-        value: subject.id
+      const response = await subjectApi.getForDropdown(params)
+      subjectOptions.value = response.data.subjects.map((subject: any) => ({
+        value: subject.id,
+        label: `${subject.name} (${subject.code})`,
+        category: subject.category,
+        credit_hours: subject.credit_hours
       }))
       
     } catch (err: any) {
       error.value = 'Failed to load subjects'
       console.error('Error loading subjects:', err)
-      showToast({ type: 'error', message: 'Failed to load subjects' })
+      showToast('Failed to load subjects', 'error')
     } finally {
       loading.value = false
     }

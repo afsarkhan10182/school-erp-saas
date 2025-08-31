@@ -752,10 +752,7 @@ const removeFile = () => {
 const downloadTemplate = async (type = 'complete') => {
   try {
     const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.apiBase}/students/import-template?type=${type}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+    const response = await apiClient.students.getImportTemplate(type);
     
     if (!response.ok) {
       throw new Error('Failed to download template');

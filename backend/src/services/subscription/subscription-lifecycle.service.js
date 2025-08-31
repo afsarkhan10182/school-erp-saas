@@ -63,6 +63,12 @@ class SubscriptionLifecycleService {
         return false;
       }
 
+      // Check if module is disabled for this school
+      const disabledModules = school.disabled_modules || [];
+      if (disabledModules.includes(moduleCode)) {
+        return false;
+      }
+
       // Get school's subscription plan with modules
       const subscriptionPlan = await SubscriptionPlan.findOne({
         where: { code: school.subscription_plan, is_active: true },

@@ -347,8 +347,8 @@ const fetchBranchesForSchool = async (schoolId) => {
   }
   
   try {
-    const response = await apiClient.branches.getBySchool(schoolId);
-    availableBranches.value = response.data?.branches || [];
+    const response = await apiClient.branches.getForDropdown({ school_id: schoolId });
+    availableBranches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
     availableBranches.value = [];
@@ -366,9 +366,9 @@ const fetchBranchesForCurrentSchool = async () => {
       return;
     }
     
-    const response = await apiClient.branches.getBySchool(schoolId);
+    const response = await apiClient.branches.getForDropdown({ school_id: schoolId });
     
-    availableBranches.value = response.data?.branches || response.data?.items || [];
+    availableBranches.value = response.data || [];
     
     // Auto-select the only branch for School Admin if there's only one
     if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {

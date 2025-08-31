@@ -969,7 +969,7 @@ const loadStreams = async () => {
 
 const loadBranches = async () => {
   try {
-    const response = await apiClient.branches.getAll();
+            const response = await apiClient.branches.getForDropdown();
     branches.value = response.data || [];
   } catch (error) {
     console.error('Error loading branches:', error);

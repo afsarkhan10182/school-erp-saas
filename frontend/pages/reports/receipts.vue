@@ -768,19 +768,10 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-    const response = await apiClient.branches.getAll();
+            const response = await apiClient.branches.getForDropdown();
     
-    // Handle different response structures
-    let allBranches = [];
-    if (response.success) {
-      allBranches = response.data.branches || [];
-    } else if (response.data?.items) {
-      allBranches = response.data.items;
-    } else if (response.data?.branches) {
-      allBranches = response.data.branches;
-    } else if (Array.isArray(response.data)) {
-      allBranches = response.data;
-    }
+    // Dropdown endpoint returns data directly as an array
+    let allBranches = response.data || [];
     
     // Apply role-based filtering
     const user = authStore.user;

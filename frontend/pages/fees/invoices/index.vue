@@ -1719,20 +1719,20 @@ const fetchBranches = async () => {
     
     if (authStore.isSuperAdmin) {
       // Super admin can see all branches
-      response = await apiClient.branches.getAll();
-      branches.value = response.data?.branches || response.data || [];
+      response = await apiClient.branches.getForDropdown();
+      branches.value = response.data || [];
     } else if (authStore.isSchoolAdmin) {
       // School admin sees only their school's branches
-      response = await apiClient.branches.getBySchool(authStore.currentUser?.school_id);
-      branches.value = response.data?.branches || response.data || [];
+      response = await apiClient.branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
+      branches.value = response.data || [];
     } else if (authStore.isBranchAdmin) {
       // Branch admin sees only their branch
       response = await apiClient.branches.getById(authStore.currentUser?.branch_id);
       branches.value = response.data ? [response.data] : [];
     } else {
       // Default fallback
-      response = await apiClient.branches.getAll();
-      branches.value = response.data?.branches || response.data || [];
+      response = await apiClient.branches.getForDropdown();
+      branches.value = response.data || [];
     }
     
   } catch (error) {

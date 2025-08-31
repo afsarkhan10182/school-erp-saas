@@ -36,6 +36,13 @@ router.get(
   BranchController.getAllBranches
 );
 
+// GET /api/branches/dropdown - Get branches for dropdown/select
+router.get(
+  '/dropdown',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  BranchController.getBranchesForDropdown
+);
+
 // Branch Admin routes (can view their own branch) - Must come before /:id
 router.get(
   '/my-branch',

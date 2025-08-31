@@ -1,14 +1,42 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Update your personal information and preferences</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Profile & Settings</h1>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage your profile and subscription settings</p>
       </div>
 
-      <!-- Profile Form -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+      <!-- Tab Navigation -->
+      <div class="mb-6">
+        <nav class="flex space-x-8 border-b border-gray-200 dark:border-gray-700">
+          <button
+            @click="activeTab = 'profile'"
+            :class="tabButtonClasses(activeTab === 'profile')"
+          >
+            <User class="inline-block w-4 h-4 mr-2" />
+            Profile
+          </button>
+          <button
+            v-if="canViewSubscription"
+            @click="activeTab = 'subscription'"
+            :class="tabButtonClasses(activeTab === 'subscription')"
+          >
+            <CreditCard class="inline-block w-4 h-4 mr-2" />
+            Subscription
+          </button>
+          <button
+            @click="activeTab = 'password'"
+            :class="tabButtonClasses(activeTab === 'password')"
+          >
+            <Lock class="inline-block w-4 h-4 mr-2" />
+            Change Password
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div v-if="activeTab === 'profile'" class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
           <form @submit.prevent="updateProfile">
             <!-- Profile Picture -->
@@ -19,12 +47,15 @@
                   <img 
                     v-if="form.profilePreview || user?.profile_image" 
                     :src="form.profilePreview || uploadsUrl(user?.profile_image)" 
+                    :key="user?.profile_image || 'default'"
                     alt="Profile" 
                     class="h-16 w-16 rounded-full object-cover"
                   />
                   <div v-else class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
                     <User class="h-8 w-8 text-gray-400" />
                   </div>
+                  
+
                 </div>
                 <div>
                   <input 
@@ -37,10 +68,12 @@
                   <button 
                     type="button"
                     @click="$refs.fileInput.click()"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    :disabled="loading"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload class="-ml-1 mr-2 h-4 w-4" />
-                    Change Photo
+                    <Upload v-if="!loading" class="-ml-1 mr-2 h-4 w-4" />
+                    <Loader2 v-else class="animate-spin -ml-1 mr-2 h-4 w-4" />
+                    {{ loading ? 'Uploading...' : 'Change Photo' }}
                   </button>
                 </div>
               </div>
@@ -54,7 +87,7 @@
                   v-model="form.first_name" 
                   type="text" 
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  :class="inputClasses"
                   placeholder="Enter first name"
                 />
               </div>
@@ -64,7 +97,7 @@
                   v-model="form.last_name" 
                   type="text" 
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  :class="inputClasses"
                   placeholder="Enter last name"
                 />
               </div>
@@ -77,7 +110,7 @@
                   v-model="form.email" 
                   type="email" 
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  :class="inputClasses"
                   placeholder="Enter email address"
                 />
               </div>
@@ -86,7 +119,7 @@
                 <input 
                   v-model="form.phone" 
                   type="tel" 
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  :class="inputClasses"
                   placeholder="Enter phone number"
                   @input="form.phone = form.phone.replace(/[^\d+]/g, '')"
                 />
@@ -100,265 +133,332 @@
                 :value="formatRole(user?.role)" 
                 type="text" 
                 readonly
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                :class="readonlyInputClasses"
               />
             </div>
 
-            <!-- School/Branch section removed as requested -->
+            <!-- School Information (Read-only) -->
+            <div v-if="user?.school_name" class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School</label>
+              <input 
+                :value="user.school_name" 
+                type="text" 
+                readonly
+                :class="readonlyInputClasses"
+              />
+            </div>
+
+            <!-- Branch Information (Read-only) -->
+            <div v-if="user?.branch_name" class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch</label>
+              <input 
+                :value="user.branch_name" 
+                type="text" 
+                readonly
+                :class="readonlyInputClasses"
+              />
+            </div>
 
             <!-- Submit Button -->
             <div class="flex justify-end">
               <button 
                 type="submit" 
-                :disabled="isSubmitting"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                :disabled="loading"
+                :class="submitButtonClasses('blue')"
               >
-                <Save v-if="!isSubmitting" class="-ml-1 mr-2 h-4 w-4" />
-                <div v-else class="-ml-1 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+                <Loader2 v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4" />
+                {{ loading ? 'Updating...' : 'Update Profile' }}
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- Change Password Section -->
-      <div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg">
+      <!-- Subscription Tab -->
+      <div v-else-if="activeTab === 'subscription' && canViewSubscription" class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
+          <SubscriptionDetails 
+            :school-id="authStore.user.school_id"
+            title="My Plan"
+            subtitle="Your subscription overview"
+            plan-section-title="Plan Overview"
+            limits-section-title="Usage Limits"
+            modules-section-title="Features Included"
+            transactions-section-title="Payment History"
+            renewal-requests-section-title="Upgrade/Downgrade Requests"
+            :can-request-renewal="true"
+            @data-loaded="handleDataLoaded"
+            @renewal-requested="handleRenewalRequested"
+          />
+        </div>
+      </div>
+
+      <!-- Change Password Tab -->
+      <div v-else-if="activeTab === 'password'" class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
           <form @submit.prevent="changePassword">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password *</label>
-                <PasswordInput
+                <input
                   v-model="passwordForm.currentPassword"
-                  placeholder="Enter current password"
+                  type="password"
                   required
+                  :class="inputClasses"
+                  placeholder="Enter current password"
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password *</label>
-                <PasswordInput
+                <input
                   v-model="passwordForm.newPassword"
-                  placeholder="Enter new password"
+                  type="password"
                   required
+                  :class="inputClasses"
+                  placeholder="Enter new password"
                 />
               </div>
             </div>
+            
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password *</label>
-              <PasswordInput
+              <input
                 v-model="passwordForm.confirmPassword"
-                placeholder="Confirm new password"
+                type="password"
                 required
+                :class="inputClasses"
+                placeholder="Confirm new password"
               />
             </div>
+            
             <div class="flex justify-end">
               <button 
                 type="submit" 
-                :disabled="isChangingPassword"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                :disabled="changingPassword"
+                :class="submitButtonClasses('red')"
               >
-                <Lock v-if="!isChangingPassword" class="-ml-1 mr-2 h-4 w-4" />
-                <div v-else class="-ml-1 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+                <Loader2 v-if="changingPassword" class="animate-spin -ml-1 mr-2 h-4 w-4" />
+                {{ changingPassword ? 'Changing...' : 'Change Password' }}
               </button>
             </div>
           </form>
         </div>
-      </div>
-      <!-- TODO: END TO END SUBSCRIPTION LIMITS -->
-      <!-- Subscription Limits Section (School Admin Only) -->
-      <div v-if="authStore.isSchoolAdmin" class="mt-8">
-        <SubscriptionLimits />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useAuthStore } from '~/stores/auth';
-import apiClient from '~/utils/api';
-import PasswordInput from '~/components/PasswordInput.vue';
-import SubscriptionLimits from '~/components/SubscriptionLimits.vue';
-import { 
-  User, 
-  Upload, 
-  Save, 
-  Lock 
-} from 'lucide-vue-next';
+import { ref, computed, onMounted } from 'vue'
+import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next'
+import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
+import SubscriptionDetails from '~/components/SubscriptionDetails.vue'
+import { apiClient } from '~/utils/api'
 
-const authStore = useAuthStore();
-const user = computed(() => authStore.currentUser);
-const config = useRuntimeConfig();
-const uploadsUrl = (filename) => filename ? `${config.public.apiBase?.replace('/api','')}/uploads/${filename}` : '';
+// Page meta
+definePageMeta({
+  layout: 'default'
+})
 
-const isSubmitting = ref(false);
-const isChangingPassword = ref(false);
-// Removed school/branch references
+const authStore = useAuthStore()
+const { showSuccess, showError } = useToast()
 
-const form = reactive({
+// Tab management
+const route = useRoute()
+const activeTab = ref(route.query.tab === 'subscription' ? 'subscription' : 'profile')
+
+// Form data
+const form = ref({
   first_name: '',
   last_name: '',
   email: '',
   phone: '',
-  profileFile: null,
-  profilePreview: null
-});
+  profile_image: null
+})
 
-const passwordForm = reactive({
+const loading = ref(false)
+const changingPassword = ref(false)
+const imageUploading = ref(false)
+const user = computed(() => authStore.user)
+
+
+
+// Password form data
+const passwordForm = ref({
   currentPassword: '',
   newPassword: '',
   confirmPassword: ''
-});
+})
 
+// Check if user can view subscription
+const canViewSubscription = computed(() => {
+  return ['school_admin', 'branch_admin'].includes(user.value?.role)
+})
+
+// Common CSS classes
+const inputClasses = computed(() => 
+  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white'
+)
+
+const readonlyInputClasses = computed(() => 
+  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+)
+
+const tabButtonClasses = computed(() => (isActive) => [
+  'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
+  isActive
+    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+])
+
+const submitButtonClasses = computed(() => (color = 'blue') => 
+  `inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-${color}-600 hover:bg-${color}-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${color}-500 disabled:opacity-50 disabled:cursor-not-allowed`
+)
+
+// Initialize form with user data
+const initializeForm = () => {
+  if (user.value) {
+    form.value = {
+      first_name: user.value.first_name || '',
+      last_name: user.value.last_name || '',
+      email: user.value.email || '',
+      phone: user.value.phone || '',
+      profile_image: null,
+      profilePreview: null
+    }
+  }
+}
+
+onMounted(() => {
+  initializeForm()
+})
+
+// File upload handling
 const onFileChange = (event) => {
-  const file = event.target.files[0];
+  const file = event.target.files[0]
   if (file) {
-    form.profileFile = file;
-    form.profilePreview = URL.createObjectURL(file);
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image size should be less than 5MB')
+      return
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select a valid image file')
+      return
+    }
+    
+    form.value.profile_image = file
+    // Create preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      form.value.profilePreview = e.target.result
+    }
+    reader.readAsDataURL(file)
   }
-};
+}
 
+// Update profile
 const updateProfile = async () => {
-  isSubmitting.value = true;
+  loading.value = true
   try {
-    const formData = new FormData();
-    formData.append('first_name', form.first_name);
-    formData.append('last_name', form.last_name);
-    formData.append('email', form.email);
-    formData.append('phone', form.phone);
+    const formData = new FormData()
+    formData.append('first_name', form.value.first_name)
+    formData.append('last_name', form.value.last_name)
+    formData.append('email', form.value.email)
+    formData.append('phone', form.value.phone)
     
-    if (form.profileFile) {
-      formData.append('profile_image', form.profileFile);
+    if (form.value.profile_image) {
+      formData.append('profile_image', form.value.profile_image)
     }
-    
-    await apiClient.users.updateProfile(formData);
-    
-    // Update local user data
-    authStore.updateUser({
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email,
-      phone: form.phone
-    });
-    
-    // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Profile updated successfully!',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error updating profile. Please try again.',
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
-    }
-  } finally {
-    isSubmitting.value = false;
-  }
-};
 
-const changePassword = async () => {
-  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'New passwords do not match!',
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
+    await apiClient.users.updateProfile(formData)
+
+    // Small delay to ensure server processes the image upload
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Update auth store with latest user data
+    await authStore.checkAuth()
+    
+    // Update auth store with latest user data
+    
+    // Update form data with the latest user data
+    if (authStore.user) {
+      form.value = {
+        first_name: authStore.user.first_name || '',
+        last_name: authStore.user.last_name || '',
+        email: authStore.user.email || '',
+        phone: authStore.user.phone || '',
+        profile_image: null,
+        profilePreview: null
+      }
     }
-    return;
+    
+    showSuccess('Profile updated successfully')
+  } catch (error) {
+    showError(error.data?.message || 'Failed to update profile')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Helper functions
+const formatRole = (role) => {
+  const roleMap = {
+    'super_admin': 'Super Admin',
+    'school_admin': 'School Admin',
+    'branch_admin': 'Branch Admin',
+    'teacher': 'Teacher',
+    'accountant': 'Accountant',
+    'receptionist': 'Receptionist'
+  }
+  return roleMap[role] || role
+}
+
+const uploadsUrl = (filename) => {
+  const config = useRuntimeConfig()
+  return filename ? `${config.public.apiBase?.replace('/api','')}/uploads/${filename}` : ''
+}
+
+// Change password function
+const changePassword = async () => {
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    showError('New passwords do not match')
+    return
   }
   
-  isChangingPassword.value = true;
+  changingPassword.value = true
   try {
     await apiClient.users.changePassword({
-      currentPassword: passwordForm.currentPassword,
-      newPassword: passwordForm.newPassword
-    });
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword
+    })
     
     // Reset form
-    passwordForm.currentPassword = '';
-    passwordForm.newPassword = '';
-    passwordForm.confirmPassword = '';
+    passwordForm.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
     
-    // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Password changed successfully!',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess('Password changed successfully')
   } catch (error) {
-    console.error('Error changing password:', error);
-    // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error changing password. Please check your current password.',
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showError(error.data?.message || 'Failed to change password')
   } finally {
-    isChangingPassword.value = false;
+    changingPassword.value = false
   }
-};
+}
 
-const formatRole = (role) => {
-  if (!role) return '';
-  return role.split('_').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
-};
+// Subscription event handlers
+const handleDataLoaded = (data) => {
+  // Data loaded successfully
+}
 
-const fetchSchoolAndBranchNames = async () => {
-  try {
-    if (user.value?.school_id) {
-      const schoolResponse = await apiClient.schools.getById(user.value.school_id);
-      schoolName.value = schoolResponse.data?.name || '';
-    }
-    
-    if (user.value?.branch_id) {
-      const branchResponse = await apiClient.branches.getById(user.value.branch_id);
-      branchName.value = branchResponse.data?.name || '';
-    }
-  } catch (error) {
-    console.error('Error fetching school/branch names:', error);
-  }
-};
-
-onMounted(async () => {
-  // Ensure we have the latest user data from the server
-  await authStore.checkAuth();
-  if (user.value) {
-    form.first_name = user.value.first_name || '';
-    form.last_name = user.value.last_name || '';
-    form.email = user.value.email || '';
-    form.phone = user.value.phone || '';
-    if (user.value.profile_image) {
-      form.profilePreview = uploadsUrl(user.value.profile_image);
-    }
-  }
-  // Removed school/branch fetch
-});
+const handleRenewalRequested = (data) => {
+  showSuccess('Renewal request submitted successfully')
+}
 </script> 
