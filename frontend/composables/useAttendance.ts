@@ -1,5 +1,5 @@
 import { ref, reactive, readonly } from 'vue'
-import { apiClient } from '~/utils/api'
+import { Attendance, Students } from '~/api'
 import { useToast } from '~/composables/useToast'
 import { useAuthStore } from '~/stores/auth'
 
@@ -74,7 +74,7 @@ export const useAttendance = () => {
         ...filters
       }
       
-      const response = await apiClient.attendance.listSessions(params) as any
+      const response = await Attendance.listSessions(params) as any
       const data = response.data || []
       const total = response.pagination?.total || data.length
       
@@ -117,7 +117,7 @@ export const useAttendance = () => {
         branch_id: sessionData.branch_id || auth.currentBranch?.id
       }
       
-      const response = await apiClient.attendance.upsertSession(payload)
+      const response = await Attendance.upsertSession(payload)
       
       // Handle different response structures
       let sessionResult = null
@@ -167,7 +167,7 @@ export const useAttendance = () => {
         params.section_id = sectionId
       }
       
-      const response = await apiClient.students.getAll(params) as any
+      const response = await Students.getAll(params) as any
       const data = response.data || []
       
       students.value = data
@@ -220,7 +220,7 @@ export const useAttendance = () => {
         throw new Error('Please ensure all students have valid attendance status')
       }
       
-      const response = await apiClient.attendance.saveRecords({
+      const response = await Attendance.saveRecords({
         session_id: sessionId,
         records,
         publish
@@ -250,7 +250,7 @@ export const useAttendance = () => {
       loading.value = true
       error.value = null
       
-      const response = await apiClient.attendance.getSession(sessionId)
+      const response = await Attendance.getSession(sessionId)
       return response.data
       
     } catch (err: any) {

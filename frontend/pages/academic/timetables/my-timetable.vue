@@ -134,7 +134,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useAcademics } from '~/composables/useAcademics'
 import { useToast } from '~/composables/useToast'
-import { apiClient } from '~/utils/api'
+import { Academic } from '~/api'
 
 // Composables
 const { academicYears, fetchAcademicYears } = useAcademics()
@@ -179,7 +179,7 @@ const loadMyTimetable = async () => {
     loading.value = true
     error.value = null
     
-    const response = await apiClient.academic.getMyTimetable({ academic_year: selectedAcademicYear.value })
+    const response = await Academic.getMyTimetable({ academic_year: selectedAcademicYear.value })
     myTimetable.value = response.data
   } catch (err) {
     console.error('Error loading timetable:', err)

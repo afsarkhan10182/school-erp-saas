@@ -1,5 +1,5 @@
 import { ref, readonly } from 'vue'
-import { apiClient } from '~/utils/api'
+import { Classes, Sections, Streams } from '~/api'
 import { useToast } from '~/composables/useToast'
 import { subjectApi } from '~/api/subjects'
 
@@ -31,7 +31,7 @@ export const useDropdowns = () => {
       loading.value = true
       error.value = null
       
-      const response = await apiClient.classes.getAll({ 
+      const response = await Classes.getAll({ 
         page: 1, 
         limit: 100, 
         is_active: 'true' 
@@ -70,7 +70,7 @@ export const useDropdowns = () => {
         params.class_id = classId
       }
       
-      const response = await apiClient.sections.getAll(params)
+      const response = await Sections.getAll(params)
       
       const sections = response.data?.rows || response.data || []
       sectionOptions.value = sections.map((section: any) => ({
@@ -95,7 +95,7 @@ export const useDropdowns = () => {
       loading.value = true
       error.value = null
       
-      const response = await apiClient.streams.getAll({ 
+      const response = await Streams.getAll({ 
         page: 1, 
         limit: 100, 
         is_active: 'true' 

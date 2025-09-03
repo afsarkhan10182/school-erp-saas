@@ -190,7 +190,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { apiClient } from '~/utils/api'
+import { AttendanceNotifications, Classes, Sections, Attendance } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Toast from '~/components/Toast.vue'
 
@@ -243,7 +243,7 @@ const getModalTitle = () => {
 const loadSettings = async () => {
   try {
     isLoading.value = true
-    const response = await apiClient.attendanceNotifications.getNotificationSettings()
+    const response = await AttendanceNotifications.getNotificationSettings()
     settings.value = response.data
   } catch (error) {
     console.error('Error loading notification settings:', error)
@@ -265,7 +265,7 @@ const getNotificationDescription = () => {
 
 const loadDropdowns = async () => {
   try {
-    const classes = await apiClient.classes.getAll({ page: 1, limit: 100, is_active: 'true' })
+          const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' })
     classOptions.value = (classes.data?.rows || classes.data || []).map((c) => ({ label: c.name, value: c.id }))
   } catch (error) {
     console.error('Error loading classes:', error)
@@ -281,7 +281,7 @@ const loadSections = async () => {
   }
   
   try {
-    const sections = await apiClient.sections.getAll({ 
+          const sections = await Sections.getAll({ 
       page: 1, 
       limit: 100, 
       is_active: 'true',
@@ -300,7 +300,7 @@ const sendNotifications = async () => {
     isLoading.value = true
     
     // First, find attendance sessions for the selected date and class
-    const sessionsResponse = await apiClient.attendance.listSessions({
+          const sessionsResponse = await Attendance.listSessions({
       page: 1,
       limit: 10,
       date_from: sendForm.value.date,
@@ -319,7 +319,7 @@ const sendNotifications = async () => {
     const session = sessions[0]
     
     // Get session details to find absent/late students
-    const sessionDetails = await apiClient.attendance.getSession(session.id)
+            const sessionDetails = await Attendance.getSession(session.id)
     const records = sessionDetails.data.records || []
     
     let response
@@ -333,7 +333,7 @@ const sendNotifications = async () => {
         return
       }
       
-      response = await apiClient.attendanceNotifications.sendAbsenceNotifications({
+              response = await AttendanceNotifications.sendAbsenceNotifications({
         absentStudents,
         sessionData: {
           date: sendForm.value.date,
@@ -358,7 +358,7 @@ const sendNotifications = async () => {
         return
       }
       
-      response = await apiClient.attendanceNotifications.sendLateArrivalNotifications({
+              response = await AttendanceNotifications.sendLateArrivalNotifications({
         lateStudents,
         sessionData: {
           date: sendForm.value.date,
@@ -376,7 +376,7 @@ const sendNotifications = async () => {
       const lateCount = records.filter(r => r.status === 'late').length
       const attendancePercentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0
       
-      response = await apiClient.attendanceNotifications.sendAttendanceSummary({
+              response = await AttendanceNotifications.sendAttendanceSummary({
         classData: {
           totalStudents,
           presentCount,

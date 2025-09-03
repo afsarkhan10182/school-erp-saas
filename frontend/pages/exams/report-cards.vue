@@ -132,8 +132,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useDropdowns } from '~/composables/useDropdowns'
-import examApi from '~/api/exams'
-import Student from '~/api/students'
+import { Exams } from '~/api'
+import { Students } from '~/api'
 
 // Composables
 const { showToast } = useToast()
@@ -174,7 +174,7 @@ const loadStudents = async () => {
 
   try {
     loading.value = true
-    const response = await Student.getAll({
+    const response = await Students.getAll({
       class_id: filters.value.class_id,
       section_id: filters.value.section_id,
       limit: 1000
@@ -210,7 +210,7 @@ const generateReportCards = async () => {
 
 const generateIndividualReportCard = async (student, showSuccess = true) => {
   try {
-    const response = await examApi.generateReportCard(student.id, {
+    const response = await Exams.generateReportCard(student.id, {
       academic_year: filters.value.academic_year
     })
     

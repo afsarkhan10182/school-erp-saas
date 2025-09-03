@@ -256,7 +256,7 @@ import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import SubscriptionDetails from '~/components/SubscriptionDetails.vue'
-import { apiClient } from '~/utils/api'
+import { Users } from '~/api'
 
 // Page meta
 definePageMeta({
@@ -376,7 +376,7 @@ const updateProfile = async () => {
       formData.append('profile_image', form.value.profile_image)
     }
 
-    await apiClient.users.updateProfile(formData)
+          await Users.updateProfile(formData)
 
     // Small delay to ensure server processes the image upload
     await new Promise(resolve => setTimeout(resolve, 500))
@@ -433,7 +433,7 @@ const changePassword = async () => {
   
   changingPassword.value = true
   try {
-    await apiClient.users.changePassword({
+          await Users.changePassword({
       currentPassword: passwordForm.value.currentPassword,
       newPassword: passwordForm.value.newPassword
     })

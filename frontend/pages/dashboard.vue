@@ -264,7 +264,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from
 import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
-import { apiClient } from '~/utils/api';
+import { Dashboard } from '~/api';
 import { useToast } from '~/composables/useToast';
 import Chart from 'chart.js/auto';
 
@@ -627,11 +627,11 @@ const fetchDashboardData = async () => {
     
     // Fetch stats and activities in parallel
     const [statsResponse, activitiesResponse] = await Promise.allSettled([
-      apiClient.dashboard.getStats({ 
+      Dashboard.getStats({ 
         branch_id: selectedBranch.value,
         new_students_days: dashboardConfig.newStudentsDays
       }),
-      apiClient.dashboard.getRecentActivities({ limit: dashboardConfig.activitiesLimit })
+      Dashboard.getRecentActivities({ limit: dashboardConfig.activitiesLimit })
     ]);
 
     // Handle stats response
@@ -658,10 +658,10 @@ const fetchDashboardData = async () => {
 
     // Fetch chart data
     const [studentsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] = await Promise.allSettled([
-      apiClient.dashboard.getStudentsChartData(),
-      apiClient.dashboard.getFeesChartData(),
-      apiClient.dashboard.getStudentDistributionData(),
-      apiClient.dashboard.getFeeTrendData({ months: dashboardConfig.feeTrendMonths })
+      Dashboard.getStudentsChartData(),
+              Dashboard.getFeesChartData(),
+              Dashboard.getStudentDistributionData(),
+              Dashboard.getFeeTrendData({ months: dashboardConfig.feeTrendMonths })
     ]);
 
     // Extract data from successful responses
@@ -814,7 +814,7 @@ const fetchFeeCollectionSummary = async () => {
       params.branch_id = selectedBranch.value;
     }
     
-    const response = await apiClient.dashboard.getFeeCollectionSummary(params);
+    const response = await Dashboard.getFeeCollectionSummary(params);
     if (response.success) {
       feeCollectionSummary.value = response.data;
       

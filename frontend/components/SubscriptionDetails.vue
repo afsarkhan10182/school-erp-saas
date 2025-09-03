@@ -487,7 +487,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Check, AlertCircle, X } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Saas } from '~/api';
 
 // Types
 interface School {
@@ -933,7 +933,7 @@ const loadData = async () => {
         
         // Load available plans for school admin
         try {
-          const plansResponse = await apiClient.saas.getActivePlansForSchools();
+          const plansResponse = await Saas.getActivePlansForSchools();
           if (plansResponse?.success) {
             availablePlans.value = plansResponse.data.plans;
           }

@@ -809,7 +809,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { fetchStreamsAPI } from '~/api/streams';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 import { useRoute, useRouter } from 'vue-router';
 
 // Props
@@ -1687,9 +1687,9 @@ const handleSubmit = async () => {
     
     let response;
     if (props.isEditing && props.studentId) {
-      response = await apiClient.students.updateWithFormData(props.studentId, formData);
+      response = await Students.updateWithFormData(props.studentId, formData);
     } else {
-      response = await apiClient.students.createWithFormData(formData);
+      response = await Students.createWithFormData(formData);
     }
     if (response.success) {
       showSuccess(`Student ${props.isEditing ? 'updated' : 'created'} successfully!`);

@@ -207,7 +207,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Users, Branches } from '~/api';
 import { useToast } from 'vue-toastification';
 
 const authStore = useAuthStore();
@@ -342,7 +342,7 @@ const updateRoleCounts = () => {
 const fetchBranches = async () => {
   try {
     if (authStore.user?.school_id) {
-              const response = await apiClient.branches.getForDropdown({ school_id: authStore.user.school_id });
+              const response = await Branches.getForDropdown({ school_id: authStore.user.school_id });
               branches.value = response.data || [];
     }
   } catch (error) {
@@ -359,14 +359,14 @@ const fetchUsers = async (showLoading = true) => {
     let response;
     if (isSchoolAdmin.value) {
       // Use the users endpoint with school_id filter for school admins
-      response = await apiClient.users.getAll({
+      response = await Users.getAll({
         schoolId: authStore.user.school_id,
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
         search: searchQuery.value || undefined,
       });
     } else {
       // Super admin can see all users
-      response = await apiClient.users.getAll({
+      response = await Users.getAll({
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
         search: searchQuery.value || undefined,
       });
@@ -429,7 +429,7 @@ const confirmDelete = (user) => {
 async function deleteUser() {
   if (!userToDelete.value) return;
   try {
-    await apiClient.users.delete(userToDelete.value.id);
+    await Users.delete(userToDelete.value.id);
     useToast().success('User deleted successfully');
     showDeleteModal.value = false;
     userToDelete.value = null;

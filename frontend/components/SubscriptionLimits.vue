@@ -254,7 +254,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Saas } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
 import Modal from '~/components/Modal.vue';
@@ -281,7 +281,7 @@ const fetchUsageData = async () => {
   error.value = null;
   
   try {
-    const response = await apiClient.saas.getUsage();
+    const response = await Saas.getUsage();
     usageData.value = response.data;
   } catch (err) {
     error.value = err.response?.data?.message || 'Failed to load subscription data';
@@ -293,10 +293,10 @@ const fetchUsageData = async () => {
 const fetchActivePlans = async () => {
   try {
     if (authStore.isSuperAdmin) {
-      const resp = await apiClient.saas.getPlans({ is_active: true });
+      const resp = await Saas.getPlans({ is_active: true });
       activePlans.value = resp?.data?.plans || [];
     } else {
-      const resp = await apiClient.saas.getActivePlansForSchools();
+      const resp = await Saas.getActivePlansForSchools();
       activePlans.value = resp?.data?.plans || [];
     }
   } catch (err) {
@@ -317,7 +317,7 @@ const requestUpgrade = async (planKey) => {
 
     // Super Admin can validate against active DB plans; School Admin cannot access this endpoint
     if (authStore.isSuperAdmin) {
-      const plansResp = await apiClient.saas.getPlans({ is_active: true });
+      const plansResp = await Saas.getPlans({ is_active: true });
       const activePlans = plansResp?.data?.plans || [];
       const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
       if (!match) {
@@ -328,7 +328,7 @@ const requestUpgrade = async (planKey) => {
     }
     else {
       // School/Branch admin: use active plans endpoint allowed for them
-      const plansResp = await apiClient.saas.getActivePlansForSchools();
+      const plansResp = await Saas.getActivePlansForSchools();
       const activePlans = plansResp?.data?.plans || [];
       const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
       if (!match) {
@@ -338,7 +338,7 @@ const requestUpgrade = async (planKey) => {
       requestedPlanCode = match.code;
     }
 
-    await apiClient.saas.createRenewalRequest({
+    await Saas.createRenewalRequest({
       requested_plan_code: requestedPlanCode,
       request_type: 'upgrade',
       request_reason: 'Requested upgrade based on usage limits'
@@ -361,7 +361,7 @@ const requestRenewal = async () => {
 
     // Super Admin can validate; School Admin cannot access plans endpoint
     if (authStore.isSuperAdmin) {
-      const plansResp = await apiClient.saas.getPlans({ is_active: true });
+      const plansResp = await Saas.getPlans({ is_active: true });
       const activePlans = plansResp?.data?.plans || [];
       const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
       if (!match) {
@@ -371,7 +371,7 @@ const requestRenewal = async () => {
       requestedPlanCode = match.code;
     }
     else {
-      const plansResp = await apiClient.saas.getActivePlansForSchools();
+      const plansResp = await Saas.getActivePlansForSchools();
       const activePlans = plansResp?.data?.plans || [];
       const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
       if (!match) {
@@ -381,7 +381,7 @@ const requestRenewal = async () => {
       requestedPlanCode = match.code;
     }
 
-    await apiClient.saas.createRenewalRequest({
+    await Saas.createRenewalRequest({
       requested_plan_code: requestedPlanCode,
       request_type: 'renewal',
       request_reason: 'Renew current plan'
@@ -416,7 +416,7 @@ const submitRequest = async () => {
       return;
     }
 
-    await apiClient.saas.createRenewalRequest({
+    await Saas.createRenewalRequest({
       requested_plan_code: match.code,
       request_type: form.value.request_type,
       billing_cycle: form.value.billing_cycle,

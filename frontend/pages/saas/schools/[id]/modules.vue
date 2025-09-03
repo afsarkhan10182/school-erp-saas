@@ -215,7 +215,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Schools, Saas } from '~/api';
 
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();
@@ -291,13 +291,13 @@ const loadSchoolModules = async () => {
     const schoolId = route.params.id;
     
     // Load school details
-    const schoolResponse = await apiClient.schools.getById(schoolId);
+    const schoolResponse = await Schools.getById(schoolId);
     if (schoolResponse.success) {
       school.value = schoolResponse.data.school;
     }
 
     // Load school modules
-    const modulesResponse = await apiClient.schools.getModules(schoolId);
+    const modulesResponse = await Schools.getModules(schoolId);
     if (modulesResponse.success) {
       modules.value = modulesResponse.data.modules.map(module => {
         // Ensure enabled property is properly set
@@ -314,7 +314,7 @@ const loadSchoolModules = async () => {
     // Load plan details if available
     if (school.value?.subscription_plan) {
       try {
-        const plansResponse = await apiClient.saas.getPlans();
+        const plansResponse = await Saas.getPlans();
         if (plansResponse.success && Array.isArray(plansResponse.data)) {
           planDetails.value = plansResponse.data.find(
             plan => plan.code === school.value.subscription_plan
@@ -359,7 +359,7 @@ const toggleModule = async (moduleCode, enabled) => {
   saving.value = true;
   
   try {
-    const response = await apiClient.saas.toggleSchoolModule(
+    const response = await Saas.toggleSchoolModule(
       route.params.id, 
       moduleCode, 
       enabled

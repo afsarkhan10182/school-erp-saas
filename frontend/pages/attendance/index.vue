@@ -401,7 +401,7 @@ import { useBranches } from '~/composables/useBranches'
 import { useAttendanceValidation } from '~/composables/useAttendanceValidation'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAuth } from '~/composables/useAuth'
-import { apiClient } from '~/utils/api'
+import { AcademicCalendar, Attendance, Students } from '~/api'
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue'
 import Pagination from '~/components/Pagination.vue'
 
@@ -575,7 +575,7 @@ const checkWorkingDay = async () => {
       return
     }
     
-    const response = await apiClient.academicCalendar.checkWorkingDay({
+    const response = await AcademicCalendar.checkWorkingDay({
       date: form.date,
       academic_year: form.academic_year
     })
@@ -688,7 +688,7 @@ const loadStudents = async () => {
 
     // Check if attendance already exists for this date and class
     try {
-      const existingSessionResponse = await apiClient.attendance.listSessions({
+      const existingSessionResponse = await Attendance.listSessions({
         date_from: form.date,
         date_to: form.date,
         class_id: form.class_id,
@@ -701,12 +701,12 @@ const loadStudents = async () => {
         showToast(`⚠️ Attendance already exists for ${form.date}. Loading existing data for editing.`, 'warning')
         
         // Load existing attendance data
-        const sessionResponse = await apiClient.attendance.getSession(existingSession.id)
+        const sessionResponse = await Attendance.getSession(existingSession.id)
         if (sessionResponse.success && sessionResponse.data) {
           const existingRecords = sessionResponse.data.records || []
           
           // Load students first
-          const response = await apiClient.students.getAll({
+          const response = await Students.getAll({
             class_id: form.class_id,
             section: form.section_id,
             branch_id: form.branch_id,
@@ -737,7 +737,7 @@ const loadStudents = async () => {
       console.log('Could not check existing attendance:', error)
     }
 
-    const response = await apiClient.students.getAll({
+    const response = await Students.getAll({
       class_id: form.class_id,
       section: form.section_id,
       branch_id: form.branch_id,
@@ -859,7 +859,7 @@ const saveAttendance = async (sessionId: string, records: any[], publish: boolea
   
   if (sessionId === 'temp') {
     try {
-      const sessionResponse = await apiClient.attendance.upsertSession({
+      const sessionResponse = await Attendance.upsertSession({
         date: form.date,
         attendance_type: 'daily',
         class_id: form.class_id,
@@ -879,7 +879,7 @@ const saveAttendance = async (sessionId: string, records: any[], publish: boolea
   }
   
   // Now save the records with the actual session ID
-  const response = await apiClient.attendance.saveRecords({
+      const response = await Attendance.saveRecords({
     session_id: actualSessionId,
     records,
     publish

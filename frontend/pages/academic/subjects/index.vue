@@ -300,7 +300,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAcademics } from '~/composables/useAcademics'
-import { subjectApi } from '~/api/subjects'
+import { Subjects } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Pagination from '~/components/Pagination.vue'
 import SubjectForm from '~/components/forms/SubjectForm.vue'
@@ -334,7 +334,7 @@ const filters = ref({
 const loadSubjects = async () => {
   try {
     loading.value = true
-    const response = await subjectApi.getAll(filters.value)
+    const response = await Subjects.getAll(filters.value)
     subjects.value = response.data.subjects
     totalItems.value = response.data.pagination.total
     totalPages.value = response.data.pagination.totalPages
@@ -348,7 +348,7 @@ const loadSubjects = async () => {
 
 const loadStats = async () => {
   try {
-    const response = await subjectApi.getStats()
+    const response = await Subjects.getStats()
     stats.value = response.data.stats
   } catch (error) {
     console.error('Error loading stats:', error)
@@ -398,7 +398,7 @@ const deleteSubject = async (subject) => {
   if (!confirm(`Are you sure you want to delete "${subject.name}"?`)) return
   
   try {
-    await subjectApi.delete(subject.id)
+    await Subjects.delete(subject.id)
     showToast('Subject deleted successfully', 'success')
     loadSubjects()
     loadStats()
@@ -411,10 +411,10 @@ const deleteSubject = async (subject) => {
 const handleSubjectSubmit = async (subjectData) => {
   try {
     if (editingSubject.value) {
-      await subjectApi.update(editingSubject.value.id, subjectData)
+      await Subjects.update(editingSubject.value.id, subjectData)
       showToast('Subject updated successfully', 'success')
     } else {
-      await subjectApi.create(subjectData)
+              await Subjects.create(subjectData)
       showToast('Subject created successfully', 'success')
     }
     closeModal()

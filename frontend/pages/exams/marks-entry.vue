@@ -244,8 +244,8 @@ import { useToast } from '~/composables/useToast'
 import { useExamOptions } from '~/composables/useExamOptions'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAcademics } from '~/composables/useAcademics'
-import { examApi } from '~/api/exams'
-import Student from '~/api/students'
+import { Exams } from '~/api'
+import { Students } from '~/api'
 
 // Composables
 const { showToast } = useToast()
@@ -303,7 +303,7 @@ const loadExams = async () => {
     if (selectedClass.value) filters.class_id = selectedClass.value
     if (selectedAcademicYear.value) filters.academic_year = selectedAcademicYear.value
     
-    const response = await examApi.getAll(filters)
+    const response = await Exams.getAll(filters)
     exams.value = response.data.exams || response.data.rows || []
     
   } catch (error) {
@@ -330,7 +330,7 @@ const loadStudentsForExam = async (exam) => {
       is_active: true
     }
     
-    const response = await Student.getAll(params)
+    const response = await Students.getAll(params)
     students.value = response.data.students || response.data.rows || []
     
     // Initialize student marks
@@ -392,7 +392,7 @@ const saveMarks = async () => {
       }
     })
     
-    await examApi.bulkCreateResults(selectedExam.value.id, results)
+    await Exams.bulkCreateResults(selectedExam.value.id, results)
     showToast('Marks saved successfully', 'success')
     
   } catch (error) {

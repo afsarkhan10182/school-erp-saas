@@ -447,7 +447,7 @@
 
 <script setup>
 import { ref, onMounted, reactive, computed, watch } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
@@ -739,7 +739,7 @@ const fetchStudents = async (page = 1) => {
       params.stream_id = selectedStream.value;
     }
 
-    const response = await apiClient.students.getAll(params);
+    const response = await Students.getAll(params);
     
     if (response.success) {
       // Backend returns: { success: true, data: students[], pagination: {...} }

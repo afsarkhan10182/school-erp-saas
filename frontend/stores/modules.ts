@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '~/utils/api';
+import { Saas, Schools } from '~/api';
 
 interface Module {
   key: string;
@@ -128,7 +128,7 @@ export const useModulesStore = defineStore('modules', {
       this.isLoading = true;
       try {
         // Fetch available modules from API
-        const response = await apiClient.saas.getAvailableModules();
+        const response = await Saas.getAvailableModules();
         if (response.success) {
           this.availableModules = response.data;
         }
@@ -142,7 +142,7 @@ export const useModulesStore = defineStore('modules', {
     async fetchSchoolModules(schoolId: string) {
       this.isLoading = true;
       try {
-        const response = await apiClient.schools.getModules(schoolId);
+        const response = await Schools.getModules(schoolId);
         if (response.success) {
           this.modules = response.data.modules || [];
         }

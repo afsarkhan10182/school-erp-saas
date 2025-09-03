@@ -262,7 +262,7 @@
 import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue';
 import { Plus, GraduationCap, Calendar, Building2 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 import { useToast } from '~/composables/useToast';
 
 const props = defineProps({
@@ -491,7 +491,7 @@ const fetchStudents = async () => {
           if (selectedStructure.stream_ids && selectedStructure.stream_ids.length > 0) {
             for (const streamId of selectedStructure.stream_ids) {
               const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
-              const response = await apiClient.students.getAll(streamParams);
+              const response = await Students.getAll(streamParams);
               
               // Handle different response structures
               let students = [];
@@ -510,7 +510,7 @@ const fetchStudents = async () => {
           } else {
             // No streams, fetch all students for the class
             const classParams = { ...params, class_id: classId, limit: 1000 };
-            const response = await apiClient.students.getAll(classParams);
+            const response = await Students.getAll(classParams);
             
             // Handle different response structures
             let students = [];
@@ -547,7 +547,7 @@ const fetchStudents = async () => {
         const allStudents = [];
         for (const streamId of selectedStructure.stream_ids) {
           const streamParams = { ...params, class_id: classId, stream_id: streamId, limit: 1000 };
-          const response = await apiClient.students.getAll(streamParams);
+          const response = await Students.getAll(streamParams);
           
           // Handle different response structures
           let students = [];
@@ -570,7 +570,7 @@ const fetchStudents = async () => {
         params.limit = 1000; // Set high limit to get all students
         console.log('📚 Fee structure has single class:', selectedStructure.class_name, '(ID:', classId, ')');
         console.log('🔍 Fetching students with params:', params);
-        const response = await apiClient.students.getAll(params);
+        const response = await Students.getAll(params);
         console.log('📊 API response for single class:', response);
         
         // Handle different response structures

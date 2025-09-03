@@ -559,7 +559,7 @@ import {
   Search,
   Printer
 } from 'lucide-vue-next';
-import apiClient from '~/utils/api';
+import { FeeInvoices, Invoices, Schools, Branches, Classes, Streams, Sections, FeeTypes } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
@@ -1034,7 +1034,7 @@ const fetchReportSummary = async () => {
       to_date_param: params.to_date
     });
     
-    const response = await apiClient.feeInvoices.getSummary(params);
+    const response = await FeeInvoices.getSummary(params);
     console.log('📊 Summary response:', response);
     
     if (response.success) {
@@ -1182,12 +1182,12 @@ const fetchReport = async () => {
     // Try different API endpoints if the main one fails
     let response;
     try {
-      response = await apiClient.feeInvoices.getReport(params);
+      response = await FeeInvoices.getReport(params);
       console.log('📊 Report response from feeInvoices.getReport:', response);
     } catch (error) {
       console.log('⚠️ feeInvoices.getReport failed, trying invoices.getAll...');
       try {
-        response = await apiClient.invoices.getAll(params);
+        response = await Invoices.getAll(params);
         console.log('📊 Report response from invoices.getAll:', response);
       } catch (secondError) {
         console.error('❌ Both API endpoints failed:', secondError);
@@ -1253,7 +1253,7 @@ const fetchSchools = async () => {
       return;
     }
     
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     console.log('🏫 Schools API response:', response);
     
     // Handle different response structures
@@ -1279,7 +1279,7 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-            const response = await apiClient.branches.getForDropdown();
+            const response = await Branches.getForDropdown();
     console.log('🌿 Branches API response:', response);
     
     // Dropdown endpoint returns data directly as an array
@@ -1339,7 +1339,7 @@ const fetchClasses = async () => {
     if (filters.branch_id) {
       params.branch_id = filters.branch_id;
     }
-    const response = await apiClient.classes.getAll(params);
+    const response = await Classes.getAll(params);
     console.log('Classes response:', response);
     
     // Handle different response structures
@@ -1372,7 +1372,7 @@ const fetchStreams = async () => {
     if (filters.class_id) {
       params.class_id = filters.class_id;
     }
-    const response = await apiClient.streams.getAll(params);
+    const response = await Streams.getAll(params);
     console.log('Streams response:', response);
     
     // Handle different response structures
@@ -1412,7 +1412,7 @@ const fetchSections = async () => {
     if (filters.stream_id && streams.value.length > 0) {
       params.stream_id = filters.stream_id;
     }
-    const response = await apiClient.sections.getAll(params);
+    const response = await Sections.getAll(params);
     console.log('Sections response:', response);
     
     // Handle different response structures
@@ -1438,7 +1438,7 @@ const fetchSections = async () => {
 
 const fetchFeeTypes = async () => {
   try {
-    const response = await apiClient.feeTypes.getAll();
+    const response = await FeeTypes.getAll();
     console.log('Fee types response:', response);
     
     // Handle different response structures

@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { useCookie } from 'nuxt/app';
-import apiClient from '~/utils/api';
+import { Saas } from '~/api';
 
 export function useSubscriptions() {
   const schools = ref([]);
@@ -15,7 +15,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getSchoolsWithSubscriptions(params);
+      const response = await Saas.getSchoolsWithSubscriptions(params);
 
       if (response.success) {
         schools.value = response.data.schools || [];
@@ -37,7 +37,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getSchoolWithSubscription(id);
+      const response = await Saas.getSchoolWithSubscription(id);
       if (response.success) {
         return response.data;
       } else {
@@ -57,7 +57,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getPlans(params);
+      const response = await Saas.getPlans(params);
       if (response.success) {
         plans.value = response.data.plans || [];
         return response;
@@ -78,7 +78,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getAvailableModules();
+      const response = await Saas.getAvailableModules();
       if (response.success) {
         return response.data;
       } else {
@@ -98,7 +98,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getPlanById(id);
+      const response = await Saas.getPlanById(id);
       if (response.success) {
         return response.data;
       } else {
@@ -118,7 +118,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.createPlan(planData);
+      const response = await Saas.createPlan(planData);
       if (!response.success) {
         error.value = response.message || 'Failed to create plan.';
         return null;
@@ -137,7 +137,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.updatePlan(id, planData);
+      const response = await Saas.updatePlan(id, planData);
       if (!response.success) {
         error.value = response.message || 'Failed to update plan.';
         return null;
@@ -156,7 +156,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.deletePlan(id);
+      const response = await Saas.deletePlan(id);
       if (!response.success) {
         error.value = response.message || 'Failed to delete plan.';
         return false;
@@ -175,7 +175,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.createSchoolWithSubscription(formData);
+      const response = await Saas.createSchoolWithSubscription(formData);
       
       if (!response.success) {
         // Create an error object that mimics axios error structure
@@ -200,7 +200,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.updateSchoolSubscription(schoolId, formData);
+      const response = await Saas.updateSchoolSubscription(schoolId, formData);
       if (!response.success) {
         error.value = response.message || 'Failed to update school subscription.';
         return null;
@@ -219,7 +219,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getSchoolTransactions(schoolId, params);
+      const response = await Saas.getSchoolTransactions(schoolId, params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
         pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
@@ -241,7 +241,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getMyTransactions(params);
+      const response = await Saas.getMyTransactions(params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
         pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
@@ -263,7 +263,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.createManualTransaction(transactionData);
+      const response = await Saas.createManualTransaction(transactionData);
       if (!response.success) {
         error.value = response.message || 'Failed to create transaction.';
         return null;
@@ -282,7 +282,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getSubscriptionStats();
+      const response = await Saas.getSubscriptionStats();
       if (response.success) {
         return response.data;
       } else {
@@ -302,7 +302,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.suspendSchool(schoolId);
+      const response = await Saas.suspendSchool(schoolId);
       if (!response.success) {
         error.value = response.message || 'Failed to suspend school.';
         return null;
@@ -321,7 +321,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.reactivateSchool(schoolId);
+      const response = await Saas.reactivateSchool(schoolId);
       if (!response.success) {
         error.value = response.message || 'Failed to reactivate school.';
         return null;
@@ -340,7 +340,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getRenewalRequests(params);
+      const response = await Saas.getRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
@@ -360,7 +360,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.createRenewalRequest(requestData);
+      const response = await Saas.createRenewalRequest(requestData);
       if (response.success) {
         return response.data;
       } else {
@@ -380,7 +380,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.reviewRenewalRequest(requestId, reviewData);
+      const response = await Saas.reviewRenewalRequest(requestId, reviewData);
       if (response.success) {
         return response.data;
       } else {
@@ -400,7 +400,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getSchoolRenewalRequests(params);
+      const response = await Saas.getSchoolRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
@@ -420,7 +420,7 @@ export function useSubscriptions() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.saas.getUsage();
+      const response = await Saas.getUsage();
       if (response.success) {
         return response.data;
       } else {
@@ -437,7 +437,7 @@ export function useSubscriptions() {
 
   const checkAndUpdateAllStatuses = async () => {
     try {
-      const response = await apiClient.saas.checkAllStatuses();
+      const response = await Saas.checkAllStatuses();
       return response.data;
     } catch (error) {
       console.error('Error checking subscription statuses:', error);

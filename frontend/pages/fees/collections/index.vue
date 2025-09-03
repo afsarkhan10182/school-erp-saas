@@ -37,7 +37,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchCollectionsAPI } from '~/api/collections';
+import { fetchCollectionsAPI } from '~/api';
 import CollectionTable from '~/components/CollectionTable.vue';
 import Pagination from '~/components/Pagination.vue';
 import { useToast } from '~/composables/useToast';

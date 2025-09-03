@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { apiClient } from '~/utils/api';
+import { AcademicYears, Classes, Streams, Sections } from '~/api';
 
 interface AcademicYear {
   id: string;
@@ -88,7 +88,7 @@ export function useAcademics() {
       if (schoolId) params.append('school_id', schoolId);
       
       console.log('🔍 fetchAcademicYears: Calling API with params:', params.toString());
-      const response = await apiClient.academicYears.getDropdown(params.toString());
+      const response = await AcademicYears.getDropdown(params.toString());
       console.log('🔍 fetchAcademicYears: API response:', response);
       academicYears.value = response.data || [];
       console.log('🔍 fetchAcademicYears: Set academicYears.value:', academicYears.value);
@@ -111,7 +111,7 @@ export function useAcademics() {
       if (branchId) params.append('branch_id', branchId);
       
       console.log('🔍 fetchClasses: Calling API with params:', params.toString());
-      const response = await apiClient.classes.getDropdown(params.toString());
+      const response = await Classes.getDropdown(params.toString());
       console.log('🔍 fetchClasses: API response:', response);
       classes.value = response.data || [];
       console.log('🔍 fetchClasses: Set classes.value:', classes.value);
@@ -133,7 +133,7 @@ export function useAcademics() {
       if (branchId) params.branch_id = branchId;
       if (classId) params.class_id = classId;
       
-      const response = await apiClient.streams.getForDropdown(params);
+      const response = await Streams.getForDropdown(params);
       streams.value = response.data || [];
     } catch (err) {
       console.error('❌ useAcademics: Error fetching streams:', err);
@@ -153,7 +153,7 @@ export function useAcademics() {
       if (branchId) params.append('branch_id', branchId);
       if (classId) params.append('class_id', classId);
       
-      const response = await apiClient.sections.getDropdown(params.toString());
+      const response = await Sections.getDropdown(params.toString());
       sections.value = response.data || [];
     } catch (err) {
       console.error('Error fetching sections:', err);
@@ -168,7 +168,7 @@ export function useAcademics() {
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
       
-      const response = await apiClient.academicYears.getCurrent(params.toString());
+      const response = await AcademicYears.getCurrent(params.toString());
       return response.data;
     } catch (err) {
       console.error('Error fetching current academic year:', err);

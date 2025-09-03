@@ -293,7 +293,7 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Students, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 
 const { showSuccess, showError, showInfo } = useToast();
@@ -343,7 +343,7 @@ const searchStudents = async () => {
   }
 
   try {
-    const response = await apiClient.students.getAll({
+    const response = await Students.getAll({
       search: searchQuery.value,
       limit: 10
     });
@@ -383,7 +383,7 @@ const selectStudent = async (student) => {
 const loadStudentDues = async (studentId) => {
   isLoading.value = true;
   try {
-    const response = await apiClient.feeInvoices.getStudentDues({
+    const response = await FeeInvoices.getStudentDues({
       student_id: studentId
     });
     
@@ -427,7 +427,7 @@ const submitPayment = async () => {
 
   isSubmitting.value = true;
   try {
-    const response = await apiClient.feeInvoices.recordSmartPayment({
+    const response = await FeeInvoices.recordSmartPayment({
       student_id: selectedStudent.value.id,
       payment_amount: parseFloat(paymentForm.value.amount),
       payment_method: paymentForm.value.payment_method,

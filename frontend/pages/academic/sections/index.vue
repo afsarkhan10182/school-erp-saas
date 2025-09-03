@@ -266,13 +266,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Sections } from '~/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
-import { fetchStreamsAPI } from '~/api/streams';
+import { Streams } from '~/api';
 
 const sections = ref([]);
 const isLoading = ref(false);
@@ -419,7 +419,7 @@ const loadStreamsForClass = async (classId) => {
       params.branch_id = authStore.user?.branch_id;
     }
     
-    const response = await fetchStreamsAPI(params);
+    const response = await Streams.getAll(params);
     streams.value = response.data || [];
   } catch (error) {
     streams.value = [];
@@ -469,7 +469,7 @@ const fetchSections = async () => {
       params.branch_id = authStore.user?.branch_id;
     }
     
-    const response = await apiClient.sections.getAll(params);
+    const response = await Sections.getAll(params);
     sections.value = response.data || [];
   } catch (error) {
     // Error handling
@@ -559,9 +559,9 @@ const saveSection = async () => {
     }
 
     if (isEditing.value) {
-      await apiClient.sections.update(editingId.value, payload);
+      await Sections.update(editingId.value, payload);
     } else {
-      await apiClient.sections.create(payload);
+              await Sections.create(payload);
     }
 
     closeModal();
@@ -595,7 +595,7 @@ const saveSection = async () => {
 
 const toggleStatus = async (section) => {
   try {
-    await apiClient.sections.update(section.id, {
+          await Sections.update(section.id, {
       is_active: !section.is_active
     });
     await fetchSections();
@@ -621,7 +621,7 @@ const deleteSection = async (id) => {
   }
   
   try {
-    await apiClient.sections.delete(id);
+    await Sections.delete(id);
     await fetchSections();
     
     // Show success message

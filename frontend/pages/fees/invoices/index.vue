@@ -375,7 +375,7 @@ import {
   GraduationCap,
   Calendar
 } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
@@ -549,7 +549,7 @@ const fetchInvoices = async () => {
     if (filters.status) params.status = filters.status;
     
     // Use the new student-based paginated endpoint
-    const response = await apiClient.invoices.getStudentSummary(params);
+    const response = await Invoices.getStudentSummary(params);
     
     // Extract student data from the response
     const studentsDataFromAPI = response.data.students || [];
@@ -621,7 +621,7 @@ const generateInvoices = async (formData) => {
     
     // If less than 50 students, use existing flow
     if (studentIds.length < 50) {
-      const response = await apiClient.feeInvoices.generateInvoices(formData);
+      const response = await FeeInvoices.generateInvoices(formData);
       
       // Show detailed success information
       const totalGenerated = response.data.total_generated || 0;
@@ -653,7 +653,7 @@ const generateInvoices = async (formData) => {
             student_ids: batch
           };
           
-          const response = await apiClient.feeInvoices.generateInvoices(batchFormData);
+          const response = await FeeInvoices.generateInvoices(batchFormData);
           
           completed += batch.length;
           totalGenerated += response.data.total_generated || 0;
@@ -774,7 +774,7 @@ const submitPayment = async () => {
     // Check if we have a selected invoice from the accordion
     if (invoice && invoice.invoice_number === paymentForm.invoice_number) {
       // Record payment for fee invoice (works for both installment and monthly)
-      response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+              response = await FeeInvoices.recordPayment(invoice.id, {
         payment_amount: paymentForm.amount,
         payment_method: paymentForm.payment_method,
         notes: paymentForm.notes
@@ -1073,7 +1073,7 @@ const onPaymentRecorded = async () => {
 const viewReceipt = async (invoice) => {
   isLoadingReceipt.value = true;
   try {
-    const response = await apiClient.feeInvoices.getInvoiceReceiptData(invoice.id);
+    const response = await FeeInvoices.getInvoiceReceiptData(invoice.id);
     
     if (response.data) {
       // For installment payments with multiple payments, show combined receipt
@@ -1103,7 +1103,7 @@ const viewReceipt = async (invoice) => {
 const viewPaymentReceipt = async (paymentItem) => {
   isLoadingReceipt.value = true;
   try {
-    const response = await apiClient.feeInvoices.getPaymentReceiptData(paymentItem.payment.id);
+    const response = await FeeInvoices.getPaymentReceiptData(paymentItem.payment.id);
     if (response.data) {
       selectedReceipt.value = {
         ...response.data,
@@ -1142,7 +1142,7 @@ const viewCombinedReceipt = async (combinedInvoice) => {
     } else if (combinedInvoice.receipt_group_id) {
       // Fallback: fetch receipt data from API using receipt_group_id
       console.log('🔍 Fetching receipt for group ID:', combinedInvoice.receipt_group_id)
-      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
       console.log('🔍 API Response:', response)
       if (response.data) {
         selectedReceipt.value = response.data;
@@ -1154,7 +1154,7 @@ const viewCombinedReceipt = async (combinedInvoice) => {
     } else {
       // Last fallback: try with id
       console.log('🔍 Fetching receipt for ID:', combinedInvoice.id)
-      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+      const response = await FeeInvoices.getCombinedReceipt(combinedInvoice.id);
       console.log('🔍 API Response:', response)
       if (response.data) {
         selectedReceipt.value = response.data;
@@ -1625,7 +1625,7 @@ const installmentFeeStructures = ref([]);
 const fetchMonthlyFeeStructures = async () => {
   try {
     console.log('🔍 Fetching monthly fee structures...');
-    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    const response = await FeeStructures.getWithContext({ payment_model: 'monthly' });
     console.log('📊 Monthly fee structures response:', response);
     monthlyFeeStructures.value = response.data.fee_structures || [];
     console.log('✅ Loaded monthly fee structures:', monthlyFeeStructures.value.length);
@@ -1639,7 +1639,7 @@ const fetchMonthlyFeeStructures = async () => {
 const fetchInstallmentFeeStructures = async () => {
   try {
     console.log('🔍 Fetching installment fee structures...');
-    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    const response = await FeeStructures.getWithContext({ payment_model: 'installment' });
     console.log('📊 Installment fee structures response:', response);
     installmentFeeStructures.value = response.data.fee_structures || [];
     console.log('✅ Loaded installment fee structures:', installmentFeeStructures.value.length);
@@ -1719,19 +1719,19 @@ const fetchBranches = async () => {
     
     if (authStore.isSuperAdmin) {
       // Super admin can see all branches
-      response = await apiClient.branches.getForDropdown();
+      response = await Branches.getForDropdown();
       branches.value = response.data || [];
     } else if (authStore.isSchoolAdmin) {
       // School admin sees only their school's branches
-      response = await apiClient.branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
+      response = await Branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
       branches.value = response.data || [];
     } else if (authStore.isBranchAdmin) {
       // Branch admin sees only their branch
-      response = await apiClient.branches.getById(authStore.currentUser?.branch_id);
+      response = await Branches.getById(authStore.currentUser?.branch_id);
       branches.value = response.data ? [response.data] : [];
     } else {
       // Default fallback
-      response = await apiClient.branches.getForDropdown();
+      response = await Branches.getForDropdown();
       branches.value = response.data || [];
     }
     
@@ -1799,7 +1799,7 @@ const loadSchoolData = async () => {
   try {
     const schoolId = authStore.currentUser?.school_id;
     if (schoolId) {
-      const response = await apiClient.schools.getById(schoolId);
+      const response = await Schools.getById(schoolId);
       if (response.data) {
         schoolData.value = response.data;
       }

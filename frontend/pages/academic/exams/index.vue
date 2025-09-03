@@ -452,7 +452,7 @@ import Modal from '~/components/Modal.vue';
 import ExamTypeDropdown from '~/components/forms/ExamTypeDropdown.vue';
 import { useExams } from '~/composables/useExams';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Academic } from '~/api';
 
 // Composables
 const { exams, stats, pagination, filters, loadExams, loadStats, createExam, updateExam, deleteExam } = useExams();
@@ -583,7 +583,7 @@ const loadSections = async () => {
   
   try {
     // Load sections for selected class
-    const response = await apiClient.academic.getSections({ class_id: examForm.value.class_id });
+    const response = await Academic.getSections({ class_id: examForm.value.class_id });
     sections.value = response.data || [];
   } catch (error) {
     console.error('Failed to load sections:', error);
@@ -593,8 +593,8 @@ const loadSections = async () => {
 const loadDropdownData = async () => {
   try {
     const [classesRes, subjectsRes] = await Promise.all([
-      apiClient.academic.getClasses(),
-      apiClient.academic.getSubjects()
+      Academic.getClasses(),
+      Academic.getSubjects()
     ]);
     
     classes.value = classesRes.data || [];

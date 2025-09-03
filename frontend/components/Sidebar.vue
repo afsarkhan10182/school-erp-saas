@@ -382,8 +382,8 @@ const menuGroups = computed(() => {
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
             { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
-            { id: 'subjects', title: 'Subjects', path: '/academic/subjects', icon: BookOpen },
-            { id: 'exam-types', title: 'Exam Types', path: '/academic/exam-types', icon: Tag },
+            { id: 'subjects', title: 'Subjects', path: '/academic/subjects', icon: BookOpen, requiredModule: 'exams' },
+            { id: 'exam-types', title: 'Exam Types', path: '/academic/exam-types', icon: Tag, requiredModule: 'exams' },
           ]
         },
         {
@@ -442,17 +442,17 @@ const menuGroups = computed(() => {
                 { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt, requiredModule: 'fees' },
               ]
             },
-            {
-              id: 'student',
-              title: 'Student',
-              icon: Users,
-              requiredModule: 'students',
-              children: [
-                { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3, requiredModule: 'students' },
-                { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
-                { id: 'exam-reports', title: 'Exam Reports', path: '/exams/report-cards', icon: FileText, requiredModule: 'exams' },
-              ]
-            }
+            // {
+            //   id: 'student',
+            //   title: 'Student',
+            //   icon: Users,
+            //   requiredModule: 'students',
+            //   children: [
+            //     { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3, requiredModule: 'students' },
+            //     { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
+            //     { id: 'exam-reports', title: 'Exam Reports', path: '/exams/report-cards', icon: FileText, requiredModule: 'exams' },
+            //   ]
+            // }
           ]
         }
       ]

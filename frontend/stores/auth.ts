@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginCredentials, AuthResponse } from '~/types';
-import { apiClient } from '~/utils/api';
+import { Auth } from '~/api';
 
 interface AuthState {
   user: User | null;
@@ -154,7 +154,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true;
       
-      const response = await apiClient.auth.login(credentials);
+      const response = await Auth.login(credentials);
       
       if (response.success) {
         const { user: userData } = response.data;
@@ -250,7 +250,7 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       // Call logout endpoint to invalidate tokens on server
-      await apiClient.auth.logout();
+      await Auth.logout();
     } catch (error: any) {
       // Handle specific error cases
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -300,7 +300,7 @@ export const useAuthStore = defineStore('auth', () => {
   const silentLogout = async () => {
     try {
       // Call logout endpoint to invalidate tokens on server
-      await apiClient.auth.logout();
+      await Auth.logout();
     } catch (error: any) {
       // Handle specific error cases silently
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -337,7 +337,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Check authentication
   const checkAuth = async (): Promise<boolean> => {
     try {
-      const response = await apiClient.auth.me();
+      const response = await Auth.me();
       if (response.success && response.data) {
         user.value = response.data;
         lastAuthCheck.value = Date.now();

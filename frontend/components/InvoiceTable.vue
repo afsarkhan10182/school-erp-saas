@@ -259,7 +259,7 @@
 <script setup>
 import { Calendar, CreditCard } from 'lucide-vue-next';
 import { ref, computed, onBeforeUnmount } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 
 const props = defineProps({
   invoices: {
@@ -509,7 +509,7 @@ const loadStudentDetails = async (studentId) => {
     );
     
     console.log('🔍 Loading student details with filters:', filteredParams);
-    const response = await apiClient.students.getInvoiceBreakdown(studentId, filteredParams);
+    const response = await Students.getInvoiceBreakdown(studentId, filteredParams);
     
     if (response.success && response.data) {
       studentDetails.value[studentId] = response.data;

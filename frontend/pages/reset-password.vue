@@ -110,7 +110,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { Lock } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Auth } from '~/api';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -155,7 +155,7 @@ const handleResetPassword = async () => {
   loading.value = true;
 
   try {
-    const response = await apiClient.auth.resetPassword(token.value, form.password);
+    const response = await Auth.resetPassword(token.value, form.password);
 
     if (response.success) {
       success.value = 'Password reset successfully! Redirecting to login...';

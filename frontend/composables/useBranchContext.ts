@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Branches } from '~/api';
 
 export const useBranchContext = () => {
   const authStore = useAuthStore();
@@ -30,10 +30,10 @@ export const useBranchContext = () => {
       
       if (authStore.isSuperAdmin) {
         // Super admin can see all branches
-        response = await apiClient.branches.getForDropdown();
+        response = await Branches.getForDropdown();
       } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
-        response = await apiClient.branches.getForDropdown({ school_id: authStore.currentSchool.id });
+                  response = await Branches.getForDropdown({ school_id: authStore.currentSchool.id });
       } else {
         // Other roles can only see their assigned branch
         if (authStore.currentBranch) {

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Saas, Schools } from '~/api';
 
 // Global state to prevent multiple API calls
 let globalUserModules: string[] = [];
@@ -69,7 +69,7 @@ export function useModuleAccess() {
     try {
       if (authStore.user?.role === 'super_admin') {
         // Super admin has access to all modules - load all available modules
-        const response = await apiClient.saas.getAvailableModules();
+        const response = await Saas.getAvailableModules();
         if (response.success) {
           const allModules = response.data
             .filter((module: any) => module.is_active)
@@ -95,7 +95,7 @@ export function useModuleAccess() {
           return;
         }
 
-        const response = await apiClient.schools.getModules(schoolId);
+        const response = await Schools.getModules(schoolId);
         
         if (response.success) {
           const enabledModules = response.data.modules
@@ -186,6 +186,8 @@ export function useModuleAccess() {
       '/exams': 'exams',
       '/exams/report-cards': 'exams',
       '/reports/exams': 'exams',
+      '/academic/exam-types': 'exams',
+      '/academic/subjects': 'exams',
       
       '/library': 'library',
       '/reports/library': 'library',
@@ -258,7 +260,7 @@ export function useModuleAccess() {
     if (!authStore.user?.school_id || authStore.user?.role === 'super_admin') return;
     
     try {
-      const response = await apiClient.schools.getModules(authStore.user.school_id);
+      const response = await Schools.getModules(authStore.user.school_id);
       if (response.success) {
         const serverTimestamp = response.data.modules_updated_at;
         const cachedTimestamp = sessionStorage.getItem('modules-updated-at');

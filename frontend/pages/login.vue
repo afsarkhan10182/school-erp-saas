@@ -195,7 +195,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Auth } from '~/api';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -253,7 +253,7 @@ const handleForgotPassword = async () => {
   forgotPasswordMessage.value = null;
 
   try {
-    const response = await apiClient.auth.forgotPassword(forgotPasswordForm.email);
+    const response = await Auth.forgotPassword(forgotPasswordForm.email);
 
     if (response.success) {
       forgotPasswordMessage.value = {

@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Branches } from '~/api';
 
 export function useBranches() {
   const branches = ref<any[]>([]);
@@ -11,7 +11,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getForDropdown({ school_id: schoolId });
+      const response = await Branches.getForDropdown({ school_id: schoolId });
       
       if (response.success) {
         // Dropdown endpoint returns data directly as an array
@@ -38,7 +38,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getForDropdown(params);
+      const response = await Branches.getForDropdown(params);
       if (response.success) {
         // Dropdown endpoint returns data directly as an array
         branches.value = response.data || [];
@@ -108,7 +108,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.getById(branchId);
+      const response = await Branches.getById(branchId);
       if (!response.success) {
         error.value = response.message || 'Failed to fetch branch.';
         return null;
@@ -158,7 +158,7 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.branches.delete(branchId);
+      const response = await Branches.delete(branchId);
       if (!response.success) {
         error.value = response.message || 'Failed to delete branch.';
         return false;

@@ -228,7 +228,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
-import { apiClient } from '~/utils/api'
+import { AcademicYears } from '~/api'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({
@@ -262,12 +262,12 @@ const fetchAcademicYears = async () => {
     authError.value = ''
     
     // Fetch academic years list
-    const response = await apiClient.academicYears.getAll()
+    const response = await AcademicYears.getAll()
     academicYears.value = response.data || []
     
     // Fetch current academic year with schools count
     try {
-      const currentResponse = await apiClient.academicYears.getCurrent()
+      const currentResponse = await AcademicYears.getCurrent()
       if (currentResponse.data) {
         // Update the current academic year in the list with schools count
         const currentIndex = academicYears.value.findIndex(year => year.id === currentResponse.data.id)
@@ -301,10 +301,10 @@ const saveYear = async () => {
     const payload = { ...form.value }
     
     if (editingYear.value) {
-      await apiClient.academicYears.update(editingYear.value.id, payload)
+      await AcademicYears.update(editingYear.value.id, payload)
       showToast('Academic year updated successfully', 'success')
     } else {
-      await apiClient.academicYears.create(payload)
+              await AcademicYears.create(payload)
       showToast('Academic year created successfully', 'success')
     }
     
@@ -333,7 +333,7 @@ const editYear = (year) => {
 
 const toggleCurrent = async (year) => {
   try {
-    await apiClient.academicYears.update(year.id, { is_current: !year.is_current })
+          await AcademicYears.update(year.id, { is_current: !year.is_current })
     showToast(`Academic year ${year.is_current ? 'unset' : 'set'} as current`, 'success')
     fetchAcademicYears()
   } catch (error) {
@@ -350,7 +350,7 @@ const deleteYear = async (year) => {
   
   if (confirm(`Are you sure you want to delete academic year ${year.name}?`)) {
     try {
-      await apiClient.academicYears.delete(year.id)
+      await AcademicYears.delete(year.id)
       showToast('Academic year deleted successfully', 'success')
       fetchAcademicYears()
     } catch (error) {
@@ -372,7 +372,7 @@ const closeForm = () => {
 const syncSchoolsToCurrentYear = async () => {
   try {
     syncing.value = true
-    await apiClient.academicYears.syncSchools()
+          await AcademicYears.syncSchools()
     showToast('All schools synced to current academic year successfully', 'success')
     fetchAcademicYears() // Refresh to get updated schools count
   } catch (error) {

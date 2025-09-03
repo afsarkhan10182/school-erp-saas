@@ -269,7 +269,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
-import { examTypeApi } from '~/api/exam-types'
+import { ExamTypes } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Pagination from '~/components/Pagination.vue'
 import ExamTypeForm from '~/components/forms/ExamTypeForm.vue'
@@ -300,7 +300,7 @@ const filters = ref({
 const loadExamTypes = async () => {
   try {
     loading.value = true
-    const response = await examTypeApi.getAll(filters.value)
+    const response = await ExamTypes.getAll(filters.value)
     examTypes.value = response.data.exam_types || response.data.rows || []
     totalItems.value = response.data.pagination?.total || 0
     totalPages.value = response.data.pagination?.totalPages || 0
@@ -368,7 +368,7 @@ const deleteExamType = async (examType) => {
   if (!confirm(`Are you sure you want to delete "${examType.name}"?`)) return
   
   try {
-    await examTypeApi.delete(examType.id)
+    await ExamTypes.delete(examType.id)
     showToast('Exam type deleted successfully', 'success')
     loadExamTypes()
     loadStats()
@@ -381,10 +381,10 @@ const deleteExamType = async (examType) => {
 const handleExamTypeSubmit = async (examTypeData) => {
   try {
     if (editingExamType.value) {
-      await examTypeApi.update(editingExamType.value.id, examTypeData)
+      await ExamTypes.update(editingExamType.value.id, examTypeData)
       showToast('Exam type updated successfully', 'success')
     } else {
-      await examTypeApi.create(examTypeData)
+              await ExamTypes.create(examTypeData)
       showToast('Exam type created successfully', 'success')
     }
     closeModal()

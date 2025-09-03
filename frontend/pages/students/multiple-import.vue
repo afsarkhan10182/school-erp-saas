@@ -337,8 +337,8 @@ import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
-import { fetchStreamsAPI } from '~/api/streams';
+import { Students } from '~/api';
+import { Streams } from '~/api';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
@@ -555,7 +555,7 @@ const loadStreamsForClass = async (classId) => {
       params.branch_id = authStore.currentUser?.branch_id;
     }
     
-    const response = await fetchStreamsAPI(params);
+    const response = await Streams.getAll(params);
     streams.value = response.data || [];
   } catch (error) {
     console.error('Error loading streams:', error);
@@ -752,7 +752,7 @@ const removeFile = () => {
 const downloadTemplate = async (type = 'complete') => {
   try {
     const config = useRuntimeConfig();
-    const response = await apiClient.students.getImportTemplate(type);
+    const response = await Students.getImportTemplate(type);
     
     if (!response.ok) {
       throw new Error('Failed to download template');
@@ -812,7 +812,7 @@ const handleSubmit = async () => {
       formData.append('school_id', form.school_id);
     }
 
-    const response = await apiClient.students.bulkImport(formData);
+    const response = await Students.bulkImport(formData);
   
     if (response.success) {
       importResults.value = response.data;

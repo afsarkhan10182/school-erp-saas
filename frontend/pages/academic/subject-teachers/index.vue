@@ -190,12 +190,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAcademics } from '~/composables/useAcademics'
-import { subjectTeacherApi } from '~/api/subject-teachers'
-import { subjectApi } from '~/api/subjects'
+import { Subjects, SubjectTeachers } from '~/api'
+import Modal from '~/components/Modal.vue'
+import Pagination from '~/components/Pagination.vue'
+import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue'
+import { Plus, BookOpen, CheckCircle, XCircle, Users } from 'lucide-vue-next'
 
 // Composables
 const { showToast } = useToast()
@@ -228,7 +231,7 @@ const academicYearOptions = computed(() => {
 const loadAssignments = async () => {
   try {
     loading.value = true
-    const response = await subjectTeacherApi.getAll(filters.value)
+    const response = await SubjectTeachers.getAll(filters.value)
     assignments.value = response.data.assignments || response.data.rows || []
   } catch (error) {
     console.error('Error loading assignments:', error)
@@ -240,7 +243,7 @@ const loadAssignments = async () => {
 
 const loadSubjects = async () => {
   try {
-    const response = await subjectApi.getAll()
+    const response = await Subjects.getAll()
     subjectOptions.value = (response.data.subjects || response.data.rows || []).map(subject => ({
       value: subject.id,
       label: `${subject.name} (${subject.code})`
@@ -268,7 +271,7 @@ const deleteAssignment = async (assignment) => {
   if (!confirm(`Are you sure you want to delete this assignment?`)) return
   
   try {
-    await subjectTeacherApi.delete(assignment.id)
+    await SubjectTeachers.delete(assignment.id)
     showToast('Assignment deleted successfully', 'success')
     loadAssignments()
   } catch (error) {

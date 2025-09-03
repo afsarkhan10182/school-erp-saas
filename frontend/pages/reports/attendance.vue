@@ -258,7 +258,7 @@ import { ref, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
-import { apiClient } from '~/utils/api';
+import { Schools, Branches, Classes, Sections, Attendance, AttendanceNotifications } from '~/api';
 import Modal from '~/components/Modal.vue';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 import FilterCard from '~/components/ui/FilterCard.vue';
@@ -320,7 +320,7 @@ const loadSchools = async () => {
   if (!isSuperAdmin.value) return;
   
   try {
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     if (response.success) {
       schools.value = response.data?.items || [];
     }
@@ -333,7 +333,7 @@ const loadBranches = async () => {
   if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
 
   try {
-    const response = await apiClient.branches.getAll();
+    const response = await Branches.getAll();
     let allBranches = [];
     
     if (response.success) {
@@ -357,9 +357,9 @@ const loadBranches = async () => {
 };
 
 const loadDropdowns = async () => {
-  const classes = await apiClient.classes.getAll({ page: 1, limit: 100, is_active: 'true' });
+  const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' });
   classOptions.value = (classes.data?.rows || classes.data || []).map((c: any) => ({ label: c.name, value: c.id }));
-  const sections = await apiClient.sections.getAll({ page: 1, limit: 100, is_active: 'true' });
+  const sections = await Sections.getAll({ page: 1, limit: 100, is_active: 'true' });
   sectionOptions.value = (sections.data?.rows || sections.data || []).map((s: any) => ({ label: s.name, value: s.id }));
 };
 
@@ -438,7 +438,7 @@ const load = async () => {
     if (filters.value.section_id) params.section_id = filters.value.section_id;
     if (filters.value.academic_year) params.academic_year = filters.value.academic_year;
     
-    const res = await apiClient.attendance.getReport(params);
+    const res = await Attendance.getReport(params);
     const data = (res as any).data || res;
     
     records.value = data.records || [];
@@ -481,7 +481,7 @@ const exportPDF = async () => {
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
     
-    const response = await apiClient.attendance.exportPdfReport(queryParams.toString());
+    const response = await Attendance.exportPdfReport(queryParams.toString());
     
     const blob = response;
     const url = window.URL.createObjectURL(blob);
@@ -528,7 +528,7 @@ const exportExcel = async () => {
     if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
     if (filters.value.academic_year) queryParams.append('academic_year', filters.value.academic_year);
     
-    const response = await apiClient.attendance.exportExcelReport(queryParams.toString());
+    const response = await Attendance.exportExcelReport(queryParams.toString());
     
     const blob = response;
     const url = window.URL.createObjectURL(blob);
@@ -557,7 +557,7 @@ const loadNotificationSections = async () => {
   }
   
   try {
-    const sections = await apiClient.sections.getAll({ 
+    const sections = await Sections.getAll({ 
       page: 1, 
       limit: 100, 
       is_active: 'true',
@@ -583,7 +583,7 @@ const sendNotifications = async () => {
     isNotificationLoading.value = true;
     
     // First, find attendance sessions for the selected date and class
-    const sessionsResponse = await apiClient.attendance.listSessions({
+    const sessionsResponse = await Attendance.listSessions({
       page: 1,
       limit: 10,
       date_from: notificationForm.value.date,
@@ -602,7 +602,7 @@ const sendNotifications = async () => {
     const session = sessions[0];
     
     // Get session details to find absent/late students
-    const sessionDetails = await apiClient.attendance.getSession(session.id);
+    const sessionDetails = await Attendance.getSession(session.id);
     const attendanceRecords = sessionDetails.data.records || [];
     
     let response;
@@ -616,7 +616,7 @@ const sendNotifications = async () => {
         return;
       }
       
-      response = await apiClient.attendanceNotifications.sendAbsenceNotifications({
+      response = await AttendanceNotifications.sendAbsenceNotifications({
         absentStudents,
         sessionData: {
           date: notificationForm.value.date,
@@ -641,7 +641,7 @@ const sendNotifications = async () => {
         return;
       }
       
-      response = await apiClient.attendanceNotifications.sendLateArrivalNotifications({
+      response = await AttendanceNotifications.sendLateArrivalNotifications({
         lateStudents,
         sessionData: {
           date: notificationForm.value.date,
@@ -659,7 +659,7 @@ const sendNotifications = async () => {
       const lateCount = attendanceRecords.filter((r: any) => r.status === 'late').length;
       const attendancePercentage = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
       
-      response = await apiClient.attendanceNotifications.sendAttendanceSummary({
+      response = await AttendanceNotifications.sendAttendanceSummary({
         classData: {
           totalStudents,
           presentCount,

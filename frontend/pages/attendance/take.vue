@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Classes, Sections, Students, Attendance } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 
 const auth = useAuthStore();
@@ -106,21 +106,21 @@ const { showToast } = useToast();
 
 const loadDropdowns = async () => {
   try {
-    const classes = await apiClient.classes.getAll({ page: 1, limit: 100, is_active: 'true' });
+    const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' });
     classOptions.value = (classes.data?.rows || classes.data || []).map((c: any) => ({ label: c.name, value: c.id }));
     
-    const sections = await apiClient.sections.getAll({ page: 1, limit: 100, is_active: 'true' });
+    const sections = await Sections.getAll({ page: 1, limit: 100, is_active: 'true' });
     sectionOptions.value = (sections.data?.rows || sections.data || []).map((s: any) => ({ label: s.name, value: s.id }));
   } catch (error: any) {
     console.error('Error loading dropdowns:', error);
-    showToast({ type: 'error', message: 'Failed to load classes and sections' });
+    showToast('Failed to load classes and sections', 'error');
   }
 };
 
 const loadStudents = async () => {
   if (!form.class_id) return;
   try {
-    const res = await apiClient.students.getAll({ page: 1, limit: 1000, class_id: form.class_id, section_id: form.section_id as any });
+    const res = await Students.getAll({ page: 1, limit: 1000, class_id: form.class_id, section_id: form.section_id as any });
     const rows = (res as any).data?.rows || (res as any).data || [];
     students.value = rows;
     
@@ -136,7 +136,7 @@ const loadStudents = async () => {
     }
   } catch (error: any) {
     console.error('Error loading students:', error);
-    showToast({ type: 'error', message: 'Failed to load students' });
+    showToast('Failed to load students', 'error');
   }
 };
 
@@ -144,7 +144,7 @@ watch(() => [form.class_id, form.section_id], loadStudents);
 
 const createOrGetSession = async () => {
   if (!form.date || !form.class_id) {
-    showToast({ type: 'error', message: 'Please select date and class first' });
+    showToast('Please select date and class first', 'error');
     return;
   }
   
@@ -154,11 +154,11 @@ const createOrGetSession = async () => {
     // Ensure context
     // @ts-ignore
     if (!auth.currentSchool?.id || !auth.currentBranch?.id) {
-      showToast({ type: 'error', message: 'Select a school/branch to proceed' });
+      showToast('Select a school/branch to proceed', 'error');
       return;
     }
     
-    const res = await apiClient.attendance.upsertSession({
+    const res = await Attendance.upsertSession({
       date: form.date,
       attendance_type: form.attendance_type,
       period_number: form.attendance_type === 'period' ? form.period_number || 1 : null,
@@ -199,14 +199,14 @@ const createOrGetSession = async () => {
     await loadStudents();
     
     if (students.value.length === 0) {
-      showToast({ type: 'warning', message: 'Session created but no students found for this class/section' });
+      showToast('Session created but no students found for this class/section', 'warning');
     } else {
-      showToast({ type: 'success', message: `Session ready with ${students.value.length} students` });
+      showToast(`Session ready with ${students.value.length} students`, 'success');
     }
   } catch (err: any) {
     console.error('Create/Load Session error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to create/load session';
-    showToast({ type: 'error', message: msg });
+    showToast(msg, 'error');
     session.value = null;
     students.value = [];
   } finally {
@@ -216,13 +216,13 @@ const createOrGetSession = async () => {
 
 const save = async (publish: boolean) => {
   if (!hasValidSession.value) {
-    showToast({ type: 'error', message: 'Create or load a session first' });
+    showToast('Create or load a session first', 'error');
     return;
   }
   
   // Validate that we have students loaded
   if (!students.value.length) {
-    showToast({ type: 'error', message: 'No students found. Please load a session first.' });
+    showToast('No students found. Please load a session first.', 'error');
     return;
   }
   
@@ -245,21 +245,21 @@ const save = async (publish: boolean) => {
     const validStatuses = ['present', 'absent', 'late', 'excused'];
     const invalidRecords = records.filter(r => !validStatuses.includes(r.status));
     if (invalidRecords.length > 0) {
-      showToast({ type: 'error', message: 'Please ensure all students have valid attendance status' });
+      showToast('Please ensure all students have valid attendance status', 'error');
       return;
     }
     
-    await apiClient.attendance.saveRecords({ 
+    await Attendance.saveRecords({ 
       session_id: session.value.id, 
       records, 
       publish 
     });
     
-    showToast({ type: 'success', message: publish ? 'Attendance published successfully' : 'Draft saved successfully' });
+    showToast(publish ? 'Attendance published successfully' : 'Draft saved successfully', 'success');
   } catch (err: any) {
     console.error('Save attendance error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to save attendance';
-    showToast({ type: 'error', message: msg });
+    showToast(msg, 'error');
   } finally {
     saving.value = false;
   }

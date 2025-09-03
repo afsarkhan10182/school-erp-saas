@@ -131,7 +131,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Attendance } from '~/api';
 
 const { showSuccess, showError, showWarning } = useToast();
 
@@ -198,7 +198,7 @@ const uploadFile = async () => {
     const formData = new FormData();
     formData.append('file', selectedFile.value);
 
-    const response = await apiClient.attendance.uploadBulkImportFile(selectedFile.value);
+    const response = await Attendance.uploadBulkImportFile(selectedFile.value);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -239,7 +239,7 @@ const downloadTemplate = async () => {
   try {
     // Remove loading toast - user can see button state
     
-    const response = await apiClient.attendance.getImportTemplate();
+    const response = await Attendance.getImportTemplate();
     
     if (!response.ok) {
       throw new Error('Failed to generate template');

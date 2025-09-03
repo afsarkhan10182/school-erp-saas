@@ -408,7 +408,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 
 const route = useRoute();
@@ -430,7 +430,7 @@ const fetchStudent = async () => {
 
 
     
-    const response = await apiClient.students.getById(studentId);
+    const response = await Students.getById(studentId);
     student.value = response.data;
   } catch (error) {
     console.error('Error fetching student:', error);

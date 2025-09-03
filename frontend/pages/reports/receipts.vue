@@ -463,7 +463,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { apiClient } from '~/utils/api';
+import { FeeInvoices, Schools, Branches, Classes } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranchContext } from '~/composables/useBranchContext';
@@ -638,7 +638,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
     
     if (filters.search) params.search = filters.search;
 
-    const response = await apiClient.feeInvoices.getReceiptsReport(params);
+    const response = await FeeInvoices.getReceiptsReport(params);
     
     if (response.success) {
       const responsePayments = response.data.payments || [];
@@ -754,7 +754,7 @@ const onClassChange = async () => {
 const fetchSchools = async () => {
   if (userRole.value === 'super_admin') {
     try {
-      const response = await apiClient.schools.getAll();
+      const response = await Schools.getAll();
       if (response.success) {
         schools.value = response.data.schools || [];
       }
@@ -768,7 +768,7 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-            const response = await apiClient.branches.getForDropdown();
+            const response = await Branches.getForDropdown();
     
     // Dropdown endpoint returns data directly as an array
     let allBranches = response.data || [];
@@ -812,7 +812,7 @@ const fetchClasses = async () => {
     if (filters.branch_id) {
       params.branch_id = filters.branch_id;
     }
-    const response = await apiClient.classes.getAll(params);
+    const response = await Classes.getAll(params);
     
     // Handle different response structures
     if (response.success) {

@@ -331,7 +331,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAcademics } from '~/composables/useAcademics'
-import examApi from '~/api/exams'
+import { Exams } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Pagination from '~/components/Pagination.vue'
 import ExamForm from '~/components/forms/ExamForm.vue'
@@ -370,7 +370,7 @@ const filters = ref({
 const loadExams = async () => {
   try {
     loading.value = true
-    const response = await examApi.getAll(filters.value)
+    const response = await Exams.getAll(filters.value)
     exams.value = response.data.exams
     totalItems.value = response.data.total
     totalPages.value = response.data.totalPages
@@ -384,7 +384,7 @@ const loadExams = async () => {
 
 const loadStats = async () => {
   try {
-    const response = await examApi.getStats()
+    const response = await Exams.getStats()
     stats.value = response.data.stats
   } catch (error) {
     console.error('Error loading stats:', error)
@@ -438,7 +438,7 @@ const deleteExam = async (exam) => {
   if (!confirm(`Are you sure you want to delete "${exam.name}"?`)) return
   
   try {
-    await examApi.delete(exam.id)
+    await Exams.delete(exam.id)
     showToast('Exam deleted successfully', 'success')
     loadExams()
     loadStats()
@@ -461,11 +461,11 @@ const handleExamSubmit = async (examData) => {
   try {
     if (editingExam.value) {
       console.log('Updating exam:', editingExam.value.id)
-      await examApi.update(editingExam.value.id, examData)
+      await Exams.update(editingExam.value.id, examData)
       showToast('Exam updated successfully', 'success')
     } else {
       console.log('Creating new exam')
-      const result = await examApi.create(examData)
+      const result = await Exams.create(examData)
       console.log('Exam creation result:', result)
       showToast('Exam created successfully', 'success')
     }

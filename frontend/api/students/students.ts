@@ -1,0 +1,112 @@
+import { createApiInstance } from '~/utils/api';
+import type { ApiResponse, PaginatedResponse } from '~/types';
+
+export interface Student {
+  id: string;
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  roll_number?: string;
+  class_id: string;
+  section_id?: string;
+  school_id: string;
+  branch_id: string;
+  status?: string;
+  gender?: string;
+  admission_date?: string;
+  email?: string;
+  phone?: string;
+  class?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  section?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+export interface StudentFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  class_id?: string;
+  section_id?: string;
+  status?: string;
+  school_id?: string;
+  branch_id?: string;
+  from_date?: string;
+  to_date?: string;
+  academic_year?: string;
+}
+
+export interface StudentStats {
+  total: number;
+  active: number;
+  inactive: number;
+  graduated: number;
+  dropped: number;
+  newThisMonth: number;
+  classCount: number;
+  class_distribution: Array<{ current_class: string; count: number }>;
+  branch_distribution: Array<{ branch_id: string; count: number }>;
+}
+
+export const Student = {
+  // Get all students with pagination and filtering
+  getAll: async (filters: StudentFilters = {}) => {
+    const api = createApiInstance();
+    const response = await api.get<PaginatedResponse<Student>>('/students', { params: filters });
+    return response.data;
+  },
+
+  // Get student by ID
+  getById: async (id: string) => {
+    const api = createApiInstance();
+    const response = await api.get<ApiResponse<Student>>(`/students/${id}`);
+    return response.data;
+  },
+
+  // Get student report with advanced filtering
+  getReport: async (filters: StudentFilters = {}) => {
+    const api = createApiInstance();
+    const response = await api.get<PaginatedResponse<Student>>('/students/report', { params: filters });
+    return response.data;
+  },
+
+  // Get student statistics
+  getStats: async (filters: StudentFilters = {}) => {
+    const api = createApiInstance();
+    const response = await api.get<ApiResponse<StudentStats>>('/students/stats', { params: filters });
+    return response.data;
+  },
+
+  // Get import template
+  getImportTemplate: async (type: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/students/import-template/${type}`, { responseType: 'blob' });
+    return response;
+  },
+
+  // Bulk import students
+  bulkImport: async (formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.post('/students/bulk-import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Get invoice breakdown for student
+  getInvoiceBreakdown: async (studentId: string, params: any) => {
+    const api = createApiInstance();
+    const response = await api.get(`/students/${studentId}/invoice-breakdown`, { params });
+    return response.data;
+  }
+};
+
+export default Student;
