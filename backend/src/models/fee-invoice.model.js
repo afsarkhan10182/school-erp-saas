@@ -204,6 +204,14 @@ status: {
       key: 'id',
     },
   },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
+      key: 'id',
+    },
+  },
   created_by: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -283,6 +291,12 @@ FeeInvoice.associate = (models) => {
   FeeInvoice.belongsTo(models.Branch, {
     foreignKey: 'branch_id',
     as: 'branch',
+  });
+
+  // FeeInvoice belongs to Stream
+  FeeInvoice.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
   });
 
   // FeeInvoice belongs to User (created_by)

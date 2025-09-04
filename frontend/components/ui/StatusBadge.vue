@@ -38,11 +38,11 @@ const statusClasses = computed(() => {
   if (props.type === 'invoice' || props.type === 'payment') {
     const financialClasses = {
       'paid': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      'unpaid': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      'partial': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      'sent': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      'partial_paid': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
       'overdue': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
       'cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-      'pending': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      'draft': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
     }
     return financialClasses[props.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
   }

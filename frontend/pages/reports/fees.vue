@@ -894,7 +894,7 @@ const groupedInvoices = computed(() => {
     // Count by status
     if (invoice.status === 'paid') {
       groups[studentId].paidCount++;
-    } else if (invoice.status === 'unpaid' || invoice.status === 'partial') {
+    } else if (invoice.status === 'sent' || invoice.status === 'partial_paid' || invoice.status === 'overdue') {
       groups[studentId].pendingCount++;
     }
     

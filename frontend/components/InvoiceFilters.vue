@@ -392,7 +392,12 @@ watch(() => props.filters, (newFilters) => {
 
 // Watch for streams changes
 watch(() => props.streams, (newStreams) => {
-  // Streams prop changed
+  console.log('🔍 InvoiceFilters: streams prop changed:', newStreams?.length, 'items:', newStreams);
+}, { immediate: true, deep: true });
+
+// Watch for sections changes
+watch(() => props.sections, (newSections) => {
+  console.log('🔍 InvoiceFilters: sections prop changed:', newSections?.length, 'items:', newSections);
 }, { immediate: true, deep: true });
 
 const onFilterChange = () => {

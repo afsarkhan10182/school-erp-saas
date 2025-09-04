@@ -535,6 +535,26 @@ const setNewInvoiceStudents = (studentIds) => {
   }, 30000);
 };
 
+// Method to close all accordions
+const closeAllAccordions = () => {
+  expandedStudents.value = [];
+  // Clear cached student details to force fresh data when reopened
+  Object.keys(studentDetails.value).forEach(key => {
+    delete studentDetails.value[key];
+  });
+  Object.keys(loadingDetails.value).forEach(key => {
+    delete loadingDetails.value[key];
+  });
+  Object.keys(detailErrors.value).forEach(key => {
+    delete detailErrors.value[key];
+  });
+};
+
+// Computed properties
+const isAllAccordionsClosed = computed(() => {
+  return expandedStudents.value.length === 0;
+});
+
 // Expose methods to parent (after all functions are defined)
 defineExpose({
   clearStudentDetails,
@@ -543,6 +563,8 @@ defineExpose({
   getExpandedStudents: () => expandedStudents.value || [],
   toggleStudent, // Expose the toggle function
   setNewInvoiceStudents, // Expose the highlighting function
+  closeAllAccordions, // Expose the close all accordions function
+  isAllAccordionsClosed: () => isAllAccordionsClosed.value, // Expose accordion state
   forceRefreshStudentDetails: async (studentId) => {
     // Force refresh by clearing cache and reloading
     if (studentDetails.value && studentDetails.value[studentId]) {

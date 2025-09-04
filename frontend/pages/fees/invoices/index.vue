@@ -614,6 +614,12 @@ const generateInvoices = async (formData) => {
     // Due date validation removed - it comes from fee structure
   }
 
+  // Close all accordions immediately when generating invoices
+  // This gives users a clean state and prevents stale data issues
+  if (invoiceTableRef.value) {
+    invoiceTableRef.value.closeAllAccordions();
+  }
+
   isGenerating.value = true;
   try {
     // Check if we have student_ids in formData for batching
@@ -716,28 +722,12 @@ const generateInvoices = async (formData) => {
     
     // Only refresh invoices and perform post-processing if invoices were actually generated
     if (totalGenerated > 0) {
-      // Store current expanded accordions before refreshing
-      const currentlyExpanded = invoiceTableRef.value ? invoiceTableRef.value.getExpandedStudents() : [];
-      
       await fetchInvoices();
       
       // Clear cached student details so that when users expand accordions,
       // they will see the newly generated invoices
       if (invoiceTableRef.value) {
         invoiceTableRef.value.clearStudentDetails();
-        
-        // Restore expanded accordions after a short delay to ensure new data is loaded
-        if (currentlyExpanded.length > 0) {
-          setTimeout(() => {
-            currentlyExpanded.forEach(studentId => {
-              // Check if the student still exists in the new data
-              const studentExists = studentsData.value.some(student => student.student_id === studentId);
-              if (studentExists) {
-                invoiceTableRef.value.toggleStudent(studentId);
-              }
-            });
-          }, 100);
-        }
         
         // Highlight students who received new invoices (visual indicator)
         if (formData.student_ids && formData.student_ids.length > 0) {
@@ -888,6 +878,9 @@ const onBranchChange = async (branchId) => {
 
 const onClassChange = async (classId) => {
   console.log('🔍 onClassChange called with classId:', classId);
+  console.log('🔍 Current filters state:', { ...filters });
+  console.log('🔍 Current streams count:', streams.value.length);
+  console.log('🔍 Current sections count:', sections.value.length);
   
   // Reset section and stream filters when class changes
   filters.section = '';
@@ -898,24 +891,61 @@ const onClassChange = async (classId) => {
   const branchId = filters.branch_id || authStore.currentUser?.branch_id;
   
   console.log('🔍 Fetching streams/sections with:', { schoolId, branchId, classId });
+  console.log('🔍 filters.branch_id is empty?', !filters.branch_id);
   
   if (classId && classId !== '') {
     try {
-      const [streamsResult, sectionsResult] = await Promise.all([
-        fetchStreams(schoolId, branchId, classId),
-        fetchSections(schoolId, branchId, classId)
-      ]);
+      // If "All Branches" is selected (branch_id is empty), fetch streams/sections without branch filtering
+      // This allows users to see all available streams/sections for the class across all branches
+      if (!filters.branch_id) {
+        console.log('🔍 "All Branches" selected - fetching streams/sections without branch filtering');
+        const [streamsResult, sectionsResult] = await Promise.all([
+          fetchStreams(schoolId, null, classId),
+          fetchSections(schoolId, null, classId)
+        ]);
+        
+        console.log('🔍 Streams API response:', streamsResult);
+        console.log('🔍 Sections API response:', sectionsResult);
+      } else {
+        // Specific branch selected - fetch with branch filtering
+        console.log('🔍 Specific branch selected - fetching streams/sections with branch filtering');
+        const [streamsResult, sectionsResult] = await Promise.all([
+          fetchStreams(schoolId, branchId, classId),
+          fetchSections(schoolId, branchId, classId)
+        ]);
+        
+        console.log('🔍 Streams API response:', streamsResult);
+        console.log('🔍 Sections API response:', sectionsResult);
+      }
       
-      console.log('🔍 Streams fetched:', streams.value.length, 'items:', streams.value);
-      console.log('🔍 Sections fetched:', sections.value.length, 'items:', sections.value);
+      console.log('🔍 After API calls - Streams count:', streams.value.length, 'items:', streams.value);
+      console.log('🔍 After API calls - Sections count:', sections.value.length, 'items:', sections.value);
+      
+      // If no streams/sections found, log a warning
+      if (streams.value.length === 0) {
+        console.warn('⚠️ No streams found for class:', classId);
+      }
+      if (sections.value.length === 0) {
+        console.warn('⚠️ No sections found for class:', classId);
+      }
+      
     } catch (error) {
       console.error('❌ Error fetching streams/sections:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      // Clear streams and sections on error to prevent stale data
+      streams.value = [];
+      sections.value = [];
     }
   } else {
     // Clear streams and sections when no class is selected
     streams.value = [];
     sections.value = [];
-    console.log('🔍 Cleared streams and sections');
+    console.log('🔍 Cleared streams and sections - no class selected');
   }
 };
 
@@ -1005,7 +1035,7 @@ const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
       
       invoice.paid_amount = newPaidAmount;
       invoice.balance_amount = newBalanceAmount;
-      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial';
+      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial_paid';
       
     }
   });

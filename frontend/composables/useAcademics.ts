@@ -38,6 +38,7 @@ interface Section {
   current_strength?: number;
   is_active?: boolean;
   stream_id?: string;
+  class_id?: string;
   class?: {
     id: string;
     name: string;
@@ -150,7 +151,7 @@ export function useAcademics() {
     try {
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
-      if (branchId) params.append('branch_id', branchId);
+      if (branchId && branchId !== '') params.append('branch_id', branchId);
       if (classId) params.append('class_id', classId);
       
       const response = await Sections.getDropdown(params.toString());

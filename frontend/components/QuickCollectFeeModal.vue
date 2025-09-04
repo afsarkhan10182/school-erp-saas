@@ -65,26 +65,60 @@
 
         <!-- Selected Student Dues -->
         <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4">
-            <h4 class="font-medium text-gray-900 dark:text-white mb-2">
-                              {{ getStudentFullName(selectedStudent) }}
-            </h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <!-- Student Dues Summary -->
+          <div v-if="studentDues?.summary" class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600">
+            <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-3">{{ getStudentFullName(selectedStudent) }}</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Total Dues:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary?.total_dues || 0) }}</div>
+                <span class="text-blue-600 dark:text-blue-300">Total Dues:</span>
+                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.total_dues) }}</div>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Overdue:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary?.overdue_amount || 0) }}</div>
+                <span class="text-blue-600 dark:text-blue-300">Overdue:</span>
+                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.overdue_amount) }}</div>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Invoices:</span>
-                <div class="font-medium">{{ studentDues.summary?.invoice_count || 0 }}</div>
+                <span class="text-blue-600 dark:text-blue-300">Total Amount:</span>
+                <div class="font-medium text-blue-900 dark:text-blue-100">₹{{ formatCurrency(studentDues.summary.total_amount || 0) }}</div>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Monthly Payments:</span>
-                <div class="font-medium">{{ studentDues.summary?.monthly_payment_count || 0 }}</div>
+                <span class="text-blue-600 dark:text-blue-300">Total Paid:</span>
+                <div class="font-medium text-green-600 dark:text-green-400">₹{{ formatCurrency(studentDues.summary.total_paid || 0) }}</div>
+              </div>
+            </div>
+            
+            <!-- Paid Months Summary -->
+            <div v-if="groupedPayments.length > 0" class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-600">
+
+              
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-200">Paid Months:</span>
+                <span class="text-xs text-blue-600 dark:text-blue-300">
+                  {{ studentDues?.summary?.paid_months_count || groupedPayments.reduce((sum, p) => sum + p.months_covered, 0) }} month{{ (studentDues?.summary?.paid_months_count || groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)) > 1 ? 's' : '' }} paid
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <div
+                  v-for="payment in groupedPayments"
+                  :key="payment.id"
+                  class="inline-flex items-center px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full"
+                  :title="`Paid: ₹${formatCurrency(payment.paid_amount)} on ${formatDate(payment.payment_date)}`"
+                >
+                  <!-- Display simplified month names -->
+                  <span v-if="payment.month_names && payment.month_names.trim()">
+                    {{ simplifyMonthNames(payment.month_names) }}
+                  </span>
+                  <span v-else-if="payment.month && payment.year">
+                    {{ getMonthName(payment.month) }} {{ payment.year }}
+                  </span>
+                  <span v-else-if="payment.months_covered > 1">
+                    {{ payment.months_covered }} months
+                  </span>
+                  <span v-else>
+                    Month {{ payment.month || 'N/A' }}
+                  </span>
+
+                </div>
               </div>
             </div>
           </div>
@@ -93,119 +127,73 @@
           <div v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0" class="space-y-3 mb-6">
             <h5 class="font-medium text-gray-900 dark:text-white">Monthly Payments</h5>
             
-            <!-- Grouped Payments (Paid/Partial Paid) -->
-            <div v-if="groupedPayments.length > 0" class="space-y-3">
-              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Recent Payments</h6>
-              <div
-                v-for="payment in groupedPayments"
-                :key="payment.id"
-                class="border border-green-200 dark:border-green-600 rounded-lg p-3 bg-green-50 dark:bg-green-900/20"
-              >
-                <div class="flex justify-between items-start">
-                  <div class="flex-1">
-                    <div class="font-medium text-green-800 dark:text-green-200">
-                      {{ payment.is_grouped ? payment.receipt_group_id : payment.invoice_number }}
-                    </div>
-                    <div class="text-sm text-green-600 dark:text-green-300">
-                      {{ payment.months_covered }} month{{ payment.months_covered > 1 ? 's' : '' }} covered: {{ payment.month_names }}
-                    </div>
-                    <div class="text-sm">
-                      <span class="text-green-600 dark:text-green-300">Total Paid:</span>
-                      <span class="font-medium text-green-800 dark:text-green-200">₹{{ formatCurrency(payment.paid_amount) }}</span>
-                      <span class="text-green-600 dark:text-green-300 ml-2">Payment Date:</span>
-                      <span class="font-medium">{{ formatDate(payment.payment_date) }}</span>
+            <!-- Simplified Pending Monthly Payments Summary -->
+            <div v-if="studentDues?.summary?.pending_months_count > 0" class="space-y-2 mb-4">
+              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Pending Monthly Payments</h6>
+              
+              <!-- Summary Card -->
+              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="font-medium text-gray-900 dark:text-white">
+                    {{ ungroupedPayments[0]?.feeStructure?.feeType?.name || 'Monthly Fee' }}
+                  </div>
+                  <span class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ studentDues.summary.pending_months_count }} month{{ studentDues.summary.pending_months_count > 1 ? 's' : '' }} pending
+                  </span>
+                </div>
+                
+                <!-- Common Values (shown once) -->
+                <div class="grid grid-cols-3 gap-3 mb-2 text-sm">
+                  <div>
+                    <span class="text-gray-500 dark:text-gray-400">Monthly:</span>
+                    <div class="font-medium">₹{{ formatCurrency(monthlyFeeAmount) }}</div>
+                  </div>
+                  <div>
+                    <span class="text-gray-500 dark:text-gray-400">Total Due:</span>
+                    <div class="font-medium">₹{{ formatCurrency(studentDues.summary.total_dues) }}</div>
+                  </div>
+                  <div>
+                    <span class="text-gray-500 dark:text-gray-400">Structure:</span>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      {{ ungroupedPayments[0]?.feeStructure?.name || 'Standard' }}
                     </div>
                   </div>
-                  <div class="ml-4">
+                </div>
+                
+                <!-- Pending Months List -->
+                <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending Months:</div>
+                  <div class="flex flex-wrap gap-1">
                     <span
-                      :class="getMonthlyStatusClass(payment.status)"
-                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                      v-for="payment in ungroupedPayments"
+                      :key="payment.id"
+                      class="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
                     >
-                      {{ getMonthlyStatusText(payment.status) }}
+                      {{ getMonthName(payment.month) }} {{ payment.year }}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Ungrouped Payments (Sent/Overdue) -->
-            <div v-if="ungroupedPayments.length > 0" class="space-y-3">
-              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Pending Payments</h6>
-              <div
-                v-for="payment in ungroupedPayments"
-                :key="payment.id"
-                class="border border-gray-200 dark:border-gray-600 rounded-lg p-3"
-              >
-                <div class="flex justify-between items-start">
-                  <div class="flex-1">
-                    <div class="font-medium">{{ payment.feeStructure?.feeType?.name || 'Fee' }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ getMonthName(payment.month) }} {{ payment.year }} | 
-                      {{ payment.feeStructure?.name || 'Fee Structure' }}
-                    </div>
-                    <div class="text-sm">
-                      <span class="text-gray-500 dark:text-gray-400">Due:</span>
-                      <span class="font-medium">₹{{ formatCurrency(payment.total_amount) }}</span>
-                      <span class="text-gray-500 dark:text-gray-400 ml-2">Paid:</span>
-                      <span class="font-medium">₹{{ formatCurrency(payment.paid_amount) }}</span>
-                      <span class="text-gray-500 dark:text-gray-400 ml-2">Balance:</span>
-                      <span class="font-medium text-red-600">₹{{ formatCurrency(payment.balance_amount) }}</span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <span
-                      :class="getMonthlyStatusClass(payment.status)"
-                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                    >
-                      {{ getMonthlyStatusText(payment.status) }}
-                    </span>
-                  </div>
-                </div>
+            
+            <!-- No Pending Payments Message -->
+            <div v-else-if="studentDues?.summary?.paid_months_count > 0" class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-600">
+              <div class="text-sm text-green-800 dark:text-green-200 text-center">
+                ✅ All monthly payments are up to date! No pending amounts.
               </div>
             </div>
           </div>
 
-          <!-- Invoice List -->
-          <div v-if="studentDues?.invoices && studentDues.invoices.length > 0" class="space-y-3 mb-6">
-            <h5 class="font-medium text-gray-900 dark:text-white">Installment Invoices</h5>
-            <div
-              v-for="invoice in studentDues.invoices"
-              :key="invoice.id"
-              class="border border-gray-200 dark:border-gray-600 rounded-lg p-3"
-            >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <div class="font-medium">{{ invoice.feeStructure?.feeType?.name || 'Fee' }}</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
-                    Due: {{ formatDate(invoice.due_date) }} | 
-                    {{ invoice.feeStructure?.name || 'Fee Structure' }}
-                  </div>
-                  <div class="text-sm">
-                    <span class="text-gray-500 dark:text-gray-400">Total:</span>
-                    <span class="font-medium">₹{{ formatCurrency(invoice.total_amount) }}</span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">Paid:</span>
-                    <span class="font-medium">₹{{ formatCurrency(invoice.paid_amount) }}</span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2">Balance:</span>
-                    <span class="font-medium text-red-600">₹{{ formatCurrency(invoice.balance_amount) }}</span>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <span
-                    :class="getStatusClass(invoice.status)"
-                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  >
-                    {{ getStatusText(invoice.status) }}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <!-- Other Invoices Summary -->
+          <div v-if="studentDues?.invoices && studentDues.invoices.length > 0" class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
+            Other: {{ studentDues.invoices.length }} invoices | ₹{{ formatCurrency(studentDues.invoices.reduce((sum, inv) => sum + inv.balance_amount, 0)) }}
           </div>
 
           <!-- Payment Form -->
-          <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <h5 class="font-medium text-gray-900 dark:text-white mb-3">Record Payment</h5>
-            <div class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <h5 class="font-medium text-gray-900 dark:text-white mb-2">Record Payment</h5>
+            <div class="space-y-3">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Payment Amount
@@ -268,16 +256,8 @@
         </div>
 
         <!-- Receipt Display -->
-        <div v-if="lastPaymentReceipt" class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600">
-          <h5 class="font-medium text-blue-900 dark:text-blue-100 mb-3">Payment Receipt</h5>
-          <div class="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-            <div><strong>Receipt Number:</strong> {{ lastPaymentReceipt.receipt_number }}</div>
-            <div><strong>Payment Date:</strong> {{ formatDate(lastPaymentReceipt.payment_date) }}</div>
-            <div><strong>Amount:</strong> ₹{{ formatCurrency(lastPaymentReceipt.amount) }}</div>
-            <div><strong>Method:</strong> {{ lastPaymentReceipt.payment_method }}</div>
-
-          </div>
-
+        <div v-if="lastPaymentReceipt" class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200">
+          Receipt: {{ lastPaymentReceipt.receipt_number }} | ₹{{ formatCurrency(lastPaymentReceipt.amount) }} | {{ formatDate(lastPaymentReceipt.payment_date) }}
         </div>
 
         <!-- Loading State -->
@@ -499,6 +479,7 @@ const getStatusText = (status) => {
   const texts = {
     sent: 'Sent',
     partial_paid: 'Partial Paid',
+    paid: 'Paid',
     overdue: 'Overdue',
   };
   return texts[status] || status;
@@ -507,7 +488,7 @@ const getStatusText = (status) => {
 const getMonthlyStatusClass = (status) => {
   const classes = {
     pending: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    partial: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    partial_paid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   };
@@ -517,7 +498,7 @@ const getMonthlyStatusClass = (status) => {
 const getMonthlyStatusText = (status) => {
   const texts = {
     pending: 'Pending',
-    partial: 'Partial Paid',
+    partial_paid: 'Partial Paid',
     paid: 'Paid',
     overdue: 'Overdue',
   };
@@ -546,6 +527,34 @@ const getMonthName = (monthNumber) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
   return months[monthNumber - 1];
+};
+
+// Helper function to simplify month names (e.g., "July 2025, August 2025" -> "Jul-Aug 2025")
+const simplifyMonthNames = (monthNamesString) => {
+  if (!monthNamesString) return '';
+  
+  const monthYearPairs = monthNamesString.split(', ');
+  if (monthYearPairs.length === 1) {
+    return monthYearPairs[0]; // Single month, return as is
+  }
+  
+  // Extract months and year
+  const months = monthYearPairs.map(pair => {
+    const parts = pair.trim().split(' ');
+    return parts[0]; // Just the month name
+  });
+  
+  const year = monthYearPairs[0].split(' ')[1]; // Get year from first pair
+  
+  // Create abbreviated month names
+  const abbreviatedMonths = months.map(month => month.substring(0, 3));
+  
+  if (abbreviatedMonths.length === 2) {
+    return `${abbreviatedMonths[0]}-${abbreviatedMonths[1]} ${year}`;
+  } else {
+    // For more than 2 months, show first and last with ellipsis
+    return `${abbreviatedMonths[0]}-${abbreviatedMonths[abbreviatedMonths.length - 1]} ${year}`;
+  }
 };
 
 
@@ -586,18 +595,52 @@ watch(searchQuery, () => {
   }
 });
 
+
+
 // Computed properties
 const groupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
   
-  return studentDues.value.monthly_payments
-    .filter(payment => payment.status === 'paid' || payment.status === 'partial')
-    .slice(0, 3); // Show only last 3 payments
+  const filteredPayments = studentDues.value.monthly_payments
+    .filter(payment => payment.status === 'paid' || payment.status === 'partial_paid');
+  
+  return filteredPayments;
 });
 
 const ungroupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
-  return studentDues.value.monthly_payments.filter(payment => payment.is_grouped !== true);
+  
+  // Get all monthly payments
+  const allMonthlyPayments = studentDues.value.monthly_payments;
+  
+  // Get paid months from grouped payments
+  const paidMonths = new Set();
+  groupedPayments.value.forEach(payment => {
+    // Add each month-year combination that's been paid
+    if (payment.month_names) {
+      const monthList = payment.month_names.split(', ');
+      monthList.forEach(monthYear => {
+        paidMonths.add(monthYear.trim());
+      });
+    }
+    // Also add individual month-year if month_names is not available
+    if (payment.month && payment.year) {
+      const monthYear = `${getMonthName(payment.month)} ${payment.year}`;
+      paidMonths.add(monthYear);
+    }
+  });
+  
+  // Filter out months that are already paid and only show pending ones
+  return allMonthlyPayments.filter(payment => {
+    if (payment.is_grouped) return false; // Skip grouped payments
+    
+    const monthYear = `${getMonthName(payment.month)} ${payment.year}`;
+    const isPaid = paidMonths.has(monthYear);
+    
+    // Only show invoices that are not fully paid
+    return !isPaid && (payment.status === 'sent' || payment.status === 'overdue' || 
+           (payment.status === 'partial_paid' && payment.balance_amount > 0));
+  });
 });
 
 const monthlyFeeAmount = computed(() => {
