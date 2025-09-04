@@ -613,7 +613,11 @@ const generateInvoices = async (req, res, next) => {
       }).join(', ');
       
       logger.error(`No invoices generated. Errors: ${errorMessages}`);
-      throw new ApiError(400, `No invoices generated. Errors: ${errorMessages}`);
+      if(errors.length > 5) {
+        throw new ApiError(400, `No invoices generated. Errors: ${errors.length} students had existing invoices.`);
+      } else {
+        throw new ApiError(400, `No invoices generated. Errors: ${errorMessages}`);
+      }
     }
     
     // Determine appropriate status code and message

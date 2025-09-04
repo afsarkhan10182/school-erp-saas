@@ -12,6 +12,8 @@ export interface FeeInvoiceParams {
   payment_status?: string;
   from_date?: string;
   to_date?: string;
+  payment_model?: string;
+  months?: number[];
 }
 
 export interface PaymentData {
@@ -72,6 +74,8 @@ export const FeeInvoices = {
     section?: string; 
     from_date?: string; 
     to_date?: string; 
+    payment_model?: string;
+    months?: number[];
   }) => {
     const api = createApiInstance();
     // Add cache-busting parameter

@@ -619,12 +619,24 @@ const generateInvoices = async (formData) => {
     // Check if we have student_ids in formData for batching
     const studentIds = formData.student_ids || [];
     
+    // Declare variables for tracking invoice generation
+    let totalGenerated = 0;
+    let hasApiError = false;
+    let backendErrorMessage = '';
+    
     // If less than 50 students, use existing flow
     if (studentIds.length < 50) {
       const response = await FeeInvoices.generateInvoices(formData);
       
+      // Check if the API response indicates no invoices were generated
+      if (!response.success || response.data.total_generated === 0) {
+        const errorMessage = response.message || 'No invoices generated';
+        showToast(`❌ ${errorMessage}`, 'error');
+        return;
+      }
+      
       // Show detailed success information
-      const totalGenerated = response.data.total_generated || 0;
+      totalGenerated = response.data.total_generated || 0;
       const errors = response.data.errors || [];
       
       if (errors.length > 0) {
@@ -637,7 +649,6 @@ const generateInvoices = async (formData) => {
       const batchSize = 50;
       let total = studentIds.length;
       let completed = 0;
-      let totalGenerated = 0;
       let totalErrors = [];
 
       // Show initial message
@@ -654,6 +665,14 @@ const generateInvoices = async (formData) => {
           };
           
           const response = await FeeInvoices.generateInvoices(batchFormData);
+          
+          // Check if the API response indicates no invoices were generated
+          if (!response.success || response.data.total_generated === 0) {
+            hasApiError = true;
+            backendErrorMessage = response.message || 'No invoices generated for this batch';
+            showToast(`Batch ${Math.floor(i / batchSize) + 1} failed: ${backendErrorMessage}`, 'error');
+            break; // Stop processing further batches
+          }
           
           completed += batch.length;
           totalGenerated += response.data.total_generated || 0;
@@ -672,17 +691,21 @@ const generateInvoices = async (formData) => {
           }
         } catch (err) {
           console.error('Batch failed:', err);
-          completed += batch.length; // Count as processed even if failed
+          hasApiError = true;
+          backendErrorMessage = err.response?.data?.message || err.message || 'Unknown error';
           
           // Show more specific error message
           const batchNumber = Math.floor(i / batchSize) + 1;
-          const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
-          showToast(`Error in invoice generation for ${batchNumber}: ${errorMessage}`, 'warning');
+          showToast(`Error in batch ${batchNumber}: ${backendErrorMessage}`, 'error');
+          break; // Stop processing further batches
         }
       }
 
-      // Show final result
-      if (totalErrors.length > 0) {
+      // Show final result based on whether there was an API error
+      if (hasApiError) {
+        const errorMsg = backendErrorMessage || 'Invoice generation stopped due to errors or already existing';
+        showToast(`${errorMsg}`, 'error');
+      } else if (totalErrors.length > 0) {
         showToast(`✅ Complete: Generated ${totalGenerated} invoices. ${totalErrors.length} students had existing invoices.`, 'warning');
       } else {
         showToast(`✅ Invoice generation complete: ${totalGenerated} invoices generated`, 'success');
@@ -691,48 +714,54 @@ const generateInvoices = async (formData) => {
     
     showGenerateModal.value = false;
     
-    // Store current expanded accordions before refreshing
-    const currentlyExpanded = invoiceTableRef.value ? invoiceTableRef.value.getExpandedStudents() : [];
-    
-    await fetchInvoices();
-    
-    // Clear cached student details so that when users expand accordions,
-    // they will see the newly generated invoices
-    if (invoiceTableRef.value) {
-      invoiceTableRef.value.clearStudentDetails();
+    // Only refresh invoices and perform post-processing if invoices were actually generated
+    if (totalGenerated > 0) {
+      // Store current expanded accordions before refreshing
+      const currentlyExpanded = invoiceTableRef.value ? invoiceTableRef.value.getExpandedStudents() : [];
       
-      // Restore expanded accordions after a short delay to ensure new data is loaded
-      if (currentlyExpanded.length > 0) {
-        setTimeout(() => {
-          currentlyExpanded.forEach(studentId => {
-            // Check if the student still exists in the new data
-            const studentExists = studentsData.value.some(student => student.student_id === studentId);
-            if (studentExists) {
-              invoiceTableRef.value.toggleStudent(studentId);
-            }
-          });
-        }, 100);
-      }
+      await fetchInvoices();
       
-      // Highlight students who received new invoices (visual indicator)
-      if (formData.student_ids && formData.student_ids.length > 0) {
-        // Store the list of students who received new invoices for highlighting
-        const newInvoiceStudents = new Set(formData.student_ids);
+      // Clear cached student details so that when users expand accordions,
+      // they will see the newly generated invoices
+      if (invoiceTableRef.value) {
+        invoiceTableRef.value.clearStudentDetails();
         
-        // Pass this information to the InvoiceTable component
-        if (invoiceTableRef.value) {
-          invoiceTableRef.value.setNewInvoiceStudents(newInvoiceStudents);
+        // Restore expanded accordions after a short delay to ensure new data is loaded
+        if (currentlyExpanded.length > 0) {
+          setTimeout(() => {
+            currentlyExpanded.forEach(studentId => {
+              // Check if the student still exists in the new data
+              const studentExists = studentsData.value.some(student => student.student_id === studentId);
+              if (studentExists) {
+                invoiceTableRef.value.toggleStudent(studentId);
+              }
+            });
+          }, 100);
+        }
+        
+        // Highlight students who received new invoices (visual indicator)
+        if (formData.student_ids && formData.student_ids.length > 0) {
+          // Store the list of students who received new invoices for highlighting
+          const newInvoiceStudents = new Set(formData.student_ids);
+          
+          // Pass this information to the InvoiceTable component
+          if (invoiceTableRef.value) {
+            invoiceTableRef.value.setNewInvoiceStudents(newInvoiceStudents);
+          }
+        }
+        
+        // Show a helpful toast message
+        const newStudentsCount = formData.student_ids ? formData.student_ids.length : 0;
+        if (newStudentsCount > 0) {
+          const message = newStudentsCount === 1 
+            ? '1 student received new invoices. Click on the student row to view details.'
+            : `${newStudentsCount} students received new invoices. Click on student rows to view details.`;
+          showToast(message, 'success');
         }
       }
-      
-      // Show a helpful toast message
-      const newStudentsCount = formData.student_ids ? formData.student_ids.length : 0;
-      if (newStudentsCount > 0) {
-        const message = newStudentsCount === 1 
-          ? '1 student received new invoices. Click on the student row to view details.'
-          : `${newStudentsCount} students received new invoices. Click on student rows to view details.`;
-        showToast(message, 'success');
-      }
+    } else {
+      // If no invoices were generated, just close the modal and show error
+      showGenerateModal.value = false;
     }
   } catch (error) {
     if (error.response && error.response.data) {

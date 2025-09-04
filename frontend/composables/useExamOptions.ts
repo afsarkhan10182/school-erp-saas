@@ -1,6 +1,6 @@
 import { ref, readonly } from 'vue'
-import { examTypeApi } from '~/api/exam-types'
-import { examStatusApi } from '~/api/exam-statuses'
+import { examTypeApi } from '~/api/academic/exam-types'
+import { examStatusApi } from '~/api/academic/exam-statuses'
 import { useToast } from '~/composables/useToast'
 
 interface DropdownOption {

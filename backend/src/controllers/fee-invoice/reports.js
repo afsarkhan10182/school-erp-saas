@@ -24,7 +24,7 @@ const getStudentFullName = (student) => {
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
-    const { academic_year, class_name, from_date, to_date, status, branch_id, search, section } = req.query;
+    const { academic_year, class_name, from_date, to_date, status, branch_id, search, section, payment_model, months } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -41,6 +41,21 @@ const getFeeCollectionSummary = async (req, res, next) => {
 
     if (academic_year) whereClause.academic_year = academic_year;
     if (status) whereClause.status = status;
+    
+    // Add payment model filtering
+    if (payment_model) {
+      whereClause.payment_model = payment_model;
+    }
+    
+    // Add months filtering for monthly payments
+    if (payment_model === 'monthly' && months && months.length > 0) {
+      // Convert months to array if it's a string
+      const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
+      whereClause.month = {
+        [Op.in]: monthsArray
+      };
+    }
+    
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       whereClause.created_at = {
@@ -192,7 +207,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
       query: req.query
     });
 
-    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id } = req.query;
+    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id, payment_model, months } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
@@ -209,6 +224,21 @@ const getFeeInvoiceReport = async (req, res, next) => {
     }
 
     if (status) whereClause.status = status;
+    
+    // Add payment model filtering
+    if (payment_model) {
+      whereClause.payment_model = payment_model;
+    }
+    
+    // Add months filtering for monthly payments
+    if (payment_model === 'monthly' && months && months.length > 0) {
+      // Convert months to array if it's a string
+      const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
+      whereClause.month = {
+        [Op.in]: monthsArray
+      };
+    }
+    
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       
@@ -231,7 +261,9 @@ const getFeeInvoiceReport = async (req, res, next) => {
       whereClause,
       page,
       limit,
-      offset
+      offset,
+      payment_model,
+      months
     });
 
     const includeClause = [

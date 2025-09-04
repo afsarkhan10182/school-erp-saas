@@ -807,7 +807,6 @@ import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
-import { fetchStreamsAPI } from '~/api/streams';
 import { useToast } from '~/composables/useToast';
 import { Students } from '~/api';
 import { useRoute, useRouter } from 'vue-router';

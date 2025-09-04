@@ -1,7 +1,7 @@
 import { ref, readonly } from 'vue'
 import { Classes, Sections, Streams } from '~/api'
 import { useToast } from '~/composables/useToast'
-import { subjectApi } from '~/api/subjects'
+import { subjectApi } from '~/api/academic/subjects'
 
 interface DropdownOption {
   label: string

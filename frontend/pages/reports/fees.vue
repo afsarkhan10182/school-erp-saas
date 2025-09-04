@@ -149,7 +149,7 @@
               Reset Filters
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
               <div class="relative group">
@@ -178,6 +178,100 @@
             <div v-if="filters.dateRange === 'custom'">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
               <input v-model="filters.toDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+            </div>
+            <!-- Payment Model Filter -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Model</label>
+              <div class="relative group">
+                <select v-model="filters.payment_model" @change="handlePaymentModelChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                  <option value="">All Models</option>
+                  <option value="installment">Installment Payments</option>
+                  <option value="monthly">Monthly Payments</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <!-- Month Filter - Only show when monthly is selected -->
+            <div v-if="filters.payment_model === 'monthly'" class="col-span-1">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Months
+                <span v-if="filters.selectedMonths.length > 0" class="ml-2 text-xs text-indigo-600 dark:text-indigo-400">
+                  ({{ filters.selectedMonths.length }} selected)
+                </span>
+              </label>
+              
+              <!-- Month Selection Grid - More Compact -->
+              <div class="grid grid-cols-4 gap-1.5 mb-2">
+                <button
+                  v-for="month in availableMonths" 
+                  :key="month.value"
+                  @click="toggleMonth(month.value)"
+                  :class="[
+                    'px-2 py-1.5 text-xs font-medium rounded-md border transition-all duration-200 cursor-pointer relative',
+                    filters.selectedMonths.includes(month.value)
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-200'
+                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300'
+                  ]"
+                >
+                  {{ month.label.slice(0, 3) }}
+                  <!-- Selection indicator -->
+                  <div v-if="filters.selectedMonths.includes(month.value)" class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                </button>
+              </div>
+              
+              <!-- Quick Actions - More Compact -->
+              <div class="flex space-x-1.5 mb-2">
+                <button 
+                  @click="selectAllMonths" 
+                  class="flex-1 px-2 py-1.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors duration-200"
+                >
+                  All
+                </button>
+                <button 
+                  @click="clearAllMonths" 
+                  class="flex-1 px-2 py-1.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200"
+                >
+                  Clear
+                </button>
+              </div>
+              
+              <!-- Selected Months Display - Compact -->
+              <div v-if="filters.selectedMonths.length > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-2">
+                <div class="flex items-center justify-between mb-1.5">
+                  <div class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                    ✓ {{ filters.selectedMonths.length }} month{{ filters.selectedMonths.length !== 1 ? 's' : '' }} selected
+                  </div>
+                  <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400">
+                    <div class="animate-spin rounded-full h-3 w-3 border-b border-indigo-600 mr-1"></div>
+                    Filtering...
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  <span 
+                    v-for="monthValue in filters.selectedMonths" 
+                    :key="monthValue"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                  >
+                    {{ getMonthLabel(monthValue) }}
+                    <button 
+                      @click="removeMonth(monthValue)" 
+                      class="ml-1.5 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  </span>
+                </div>
+              </div>
+              
+              <!-- No Months Selected Message - Compact -->
+              <div v-else class="text-center py-2 text-gray-500 dark:text-gray-400 text-xs bg-gray-50 dark:bg-gray-700 rounded-lg">
+                Click months above to select
+              </div>
             </div>
             <!-- School dropdown for super admin -->
             <div v-if="authStore.user?.role === 'super_admin'">
@@ -321,6 +415,45 @@
                 <Search class="-ml-1 mr-2 h-4 w-4" />
                 {{ isLoading ? 'Loading Report...' : 'Apply Filters' }}
               </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Active Filters Display -->
+        <div v-if="hasActiveFilters" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
+            <div class="flex flex-wrap gap-2">
+              <span 
+                v-if="filters.payment_model" 
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+              >
+                {{ getPaymentModelLabel(filters.payment_model) }}
+              </span>
+              <span 
+                v-if="filters.payment_model === 'monthly' && filters.selectedMonths.length > 0" 
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              >
+                {{ filters.selectedMonths.length === 1 ? getMonthLabel(filters.selectedMonths[0]) : `${filters.selectedMonths.length} Months` }}
+              </span>
+              <span 
+                v-if="filters.status" 
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+              >
+                {{ getStatusLabel(filters.status) }}
+              </span>
+              <span 
+                v-if="filters.class_id" 
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+              >
+                {{ getClassName(filters.class_id) }}
+              </span>
+              <span 
+                v-if="filters.section_id" 
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+              >
+                {{ getSectionName(filters.section_id) }}
+              </span>
             </div>
           </div>
         </div>
@@ -594,6 +727,23 @@ const expandedStudents = ref([]); // Track which students are expanded
 const showDownloadDropdown = ref(false); // Track download dropdown state
 const showColumnSelector = ref(false); // Track column selector state
 
+
+// Available months for monthly payment filtering
+const availableMonths = ref([
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' }
+]);
+
 // Available columns for selection
 const availableColumns = ref([
   { key: 'student_name', label: 'Student Name', visible: true },
@@ -643,7 +793,12 @@ const filters = reactive({
   status: '',
   payment_method: '',
   student_search: '',
+  payment_model: '',
+  selectedMonths: [],
 });
+
+// Debug: Log filters object
+console.log('🔧 Initial filters object:', filters);
 
 // Computed properties
 const summary = computed(() => {
@@ -671,6 +826,11 @@ const showStreamDropdown = computed(() => {
 // Show section dropdown only if the selected class/stream has sections
 const showSectionDropdown = computed(() => {
   return filters.class_id && sections.value.length > 0;
+});
+
+// Check if there are any active filters
+const hasActiveFilters = computed(() => {
+  return !!(filters.payment_model || filters.selectedMonths?.length > 0 || filters.status || filters.class_id || filters.section_id || filters.branch_id || filters.school_id);
 });
 
 // Group invoices by student for accordion view
@@ -836,6 +996,8 @@ const resetFilters = () => {
     status: '',
     payment_method: '',
     student_search: '',
+    payment_model: '',
+    selectedMonths: [],
   });
   handleDateRangeChange();
   // Clear the results when resetting filters
@@ -931,6 +1093,53 @@ const handleDateRangeChange = () => {
   });
 };
 
+const handlePaymentModelChange = () => {
+  console.log('💰 Payment model changed to:', filters.payment_model);
+  console.log('💰 Current selectedMonths:', filters.selectedMonths);
+  
+  // Clear month selection when payment model changes
+  if (filters.payment_model !== 'monthly') {
+    filters.selectedMonths = [];
+  }
+  
+  console.log('💰 After clearing, selectedMonths:', filters.selectedMonths);
+  
+  // Clear existing data to force refresh with new payment model
+  invoices.value = [];
+  summaryData.value = {
+    totalAmount: 0,
+    totalCollected: 0,
+    totalPending: 0,
+    collectionRate: 0,
+    totalInvoices: 0
+  };
+};
+
+// Month management methods
+const toggleMonth = (monthValue) => {
+  const index = filters.selectedMonths.indexOf(monthValue);
+  if (index > -1) {
+    filters.selectedMonths.splice(index, 1);
+  } else {
+    filters.selectedMonths.push(monthValue);
+  }
+};
+
+const removeMonth = (monthValue) => {
+  const index = filters.selectedMonths.indexOf(monthValue);
+  if (index > -1) {
+    filters.selectedMonths.splice(index, 1);
+  }
+};
+
+const selectAllMonths = () => {
+  filters.selectedMonths = availableMonths.value.map(m => m.value);
+};
+
+const clearAllMonths = () => {
+  filters.selectedMonths = [];
+};
+
 const onSchoolChange = async () => {
   // Reset branch, class, and section when school changes
   filters.branch_id = '';
@@ -990,6 +1199,7 @@ const fetchReportSummary = async () => {
       status: filters.status || undefined,
       school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
+      payment_model: filters.payment_model || undefined,
     };
     
     // Only add date parameters if they are set and not empty
@@ -1018,6 +1228,12 @@ const fetchReportSummary = async () => {
       }
     }
 
+    // Add month filter for monthly payments
+    if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
+      params.months = filters.selectedMonths;
+      console.log('📅 Adding months filter:', filters.selectedMonths);
+    }
+
     // Remove undefined values
     Object.keys(params).forEach(key => {
       if (params[key] === undefined) {
@@ -1026,6 +1242,11 @@ const fetchReportSummary = async () => {
     });
 
     console.log('📊 Fetching summary with params:', params);
+    console.log('📊 Months filter debug:', {
+      payment_model: filters.payment_model,
+      selectedMonths: filters.selectedMonths,
+      months_param: params.months
+    });
     console.log('📊 Date parameters debug:', {
       dateRange: filters.dateRange,
       fromDate: filters.fromDate,
@@ -1106,6 +1327,7 @@ const fetchReport = async () => {
       status: filters.status || undefined,
       school_id: filters.school_id || undefined, // Add school_id for super admin
       branch_id: filters.branch_id || undefined,
+      payment_model: filters.payment_model || undefined,
     };
     
     // Only add date parameters if they are set and not empty
@@ -1134,6 +1356,12 @@ const fetchReport = async () => {
       }
     }
     
+    // Add month filter for monthly payments
+    if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
+      params.months = filters.selectedMonths;
+      console.log('📅 Adding months filter:', filters.selectedMonths);
+    }
+    
     // TODO: Backend doesn't support stream filtering yet
     // Only add stream_id if streams are available and selected
     // if (filters.stream_id && filters.stream_id !== '' && streams.value.length > 0) {
@@ -1148,6 +1376,11 @@ const fetchReport = async () => {
     });
     
     console.log('🔍 Fetching report with params:', params);
+    console.log('🔍 Months filter debug:', {
+      payment_model: filters.payment_model,
+      selectedMonths: filters.selectedMonths,
+      months_param: params.months
+    });
     console.log('🔍 Current filter values:', {
       class_id: filters.class_id,
       class_name: classes.value.find(cls => cls.id === filters.class_id)?.name,
@@ -1157,6 +1390,8 @@ const fetchReport = async () => {
       branch_id: filters.branch_id,
       status: filters.status,
       student_search: filters.student_search,
+      payment_model: filters.payment_model,
+      selectedMonths: filters.selectedMonths,
       dateRange: filters.dateRange,
       fromDate: filters.fromDate,
       toDate: filters.toDate
@@ -1530,6 +1765,20 @@ const formatInvoiceDataForExport = (invoice) => {
     }
   });
   
+  // Add payment model and month information for better context
+  if (invoice.payment_model) {
+    formattedInvoice.payment_model = getPaymentModelLabel(invoice.payment_model);
+  }
+  
+  if (invoice.payment_model === 'monthly' && invoice.month) {
+    formattedInvoice.month = getMonthLabel(invoice.month);
+  }
+  
+  // Add selected months filter info if applicable
+  if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
+    formattedInvoice.filtered_months = filters.selectedMonths.map(m => getMonthLabel(m)).join(', ');
+  }
+  
   return formattedInvoice;
 };
 
@@ -1557,7 +1806,9 @@ const downloadReport = async (format) => {
       section_id: filters.section_id,
       status: filters.status,
       payment_method: filters.payment_method,
-      search: filters.student_search
+      search: filters.student_search,
+      payment_model: filters.payment_model,
+      months: filters.selectedMonths
     };
 
     // Remove undefined values
@@ -1602,24 +1853,30 @@ const printFeesReport = async () => {
     
     const formattedData = invoices.value.map(invoice => formatInvoiceDataForExport(invoice));
     
-    const reportData = {
-      title: 'Fee Invoices Report',
-      data: formattedData,
-      columns: displayedColumns.value.map(col => ({
-        key: col.key,
-        header: col.label
-      })),
-      filters: {
-        'Date Range': filters.dateRange,
-        'From Date': filters.dateRange === 'custom' ? formatDate(filters.fromDate) : 'N/A',
-        'To Date': filters.dateRange === 'custom' ? formatDate(filters.toDate) : 'N/A',
-        'Status': filters.status || 'All Status',
-        'Payment Method': filters.payment_method || 'All Methods',
-        'Search': filters.student_search || 'None'
-      },
-      totalRecords: invoices.value.length,
-      reportType: 'fees'
-    };
+      const reportData = {
+        title: 'Fee Invoices Report',
+        data: formattedData,
+        columns: displayedColumns.value.map(col => ({
+          key: col.key,
+          header: col.label
+        })),
+        filters: {
+          'Date Range': filters.dateRange,
+          'From Date': filters.dateRange === 'custom' ? formatDate(filters.fromDate) : 'N/A',
+          'To Date': filters.dateRange === 'custom' ? formatDate(filters.toDate) : 'N/A',
+          'Payment Model': filters.payment_model || 'All Models',
+          'Month': filters.payment_model === 'monthly' && filters.selectedMonths.length > 0 ? 
+            (filters.selectedMonths.length === 1 ? 
+              availableMonths.value.find(m => m.value === filters.selectedMonths[0])?.label : 
+              `${filters.selectedMonths.length} Months`
+            ) : 'N/A',
+          'Status': filters.status || 'All Status',
+          'Payment Method': filters.payment_method || 'All Methods',
+          'Search': filters.student_search || 'None'
+        },
+        totalRecords: invoices.value.length,
+        reportType: 'fees'
+      };
     
     await printReportCommon(reportData, {
       showHeader: true,
@@ -1731,6 +1988,40 @@ const getStatusText = (status) => {
   return texts[status] || status;
 };
 
+// Helper methods for active filters display
+const getPaymentModelLabel = (model) => {
+  const labels = {
+    installment: 'Installment Payments',
+    monthly: 'Monthly Payments'
+  };
+  return labels[model] || model;
+};
+
+const getMonthLabel = (monthValue) => {
+  const month = availableMonths.value.find(m => m.value === monthValue);
+  return month ? month.label : `Month ${monthValue}`;
+};
+
+const getStatusLabel = (status) => {
+  const labels = {
+    paid: 'Paid',
+    partial_paid: 'Partial Paid',
+    unpaid: 'Unpaid',
+    overdue: 'Overdue'
+  };
+  return labels[status] || status;
+};
+
+const getClassName = (classId) => {
+  const classItem = classes.value.find(cls => cls.id === classId);
+  return classItem ? classItem.name : `Class ${classId}`;
+};
+
+const getSectionName = (sectionId) => {
+  const section = sections.value.find(sec => sec.id === sectionId);
+  return section ? section.name : `Section ${sectionId}`;
+};
+
 // Dropdown functions
 const toggleDownloadDropdown = () => {
   showDownloadDropdown.value = !showDownloadDropdown.value;
@@ -1759,6 +2050,28 @@ watch(pageSize, (newValue) => {
   }
 });
 
+// Watch filters for debugging
+watch(filters, (newFilters) => {
+  console.log('🔧 Filters changed:', newFilters);
+}, { deep: true });
+
+// Watch selectedMonths to auto-trigger filtering when months change
+watch(() => filters.selectedMonths, (newMonths, oldMonths) => {
+  if (filters.payment_model === 'monthly' && newMonths.length !== oldMonths.length) {
+    console.log('📅 Months selection changed:', { old: oldMonths, new: newMonths });
+    // Auto-trigger filtering when months are selected/deselected
+    if (newMonths.length > 0) {
+      console.log('📅 Auto-triggering filter for selected months');
+      // Small delay to avoid rapid API calls
+      setTimeout(() => {
+        if (filters.selectedMonths.length > 0) {
+          fetchReportData();
+        }
+      }, 500);
+    }
+  }
+}, { deep: true });
+
 onMounted(async () => {
   try {
     isInitializing.value = true;
@@ -1785,6 +2098,8 @@ onMounted(async () => {
     
     // Add click outside listener for dropdown
     document.addEventListener('click', handleClickOutside);
+    
+
     
     // Don't load any data initially - user must click "Apply Filters"
     console.log('📊 No initial data loaded - waiting for user to apply filters');

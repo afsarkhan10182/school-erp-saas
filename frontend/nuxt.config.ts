@@ -62,6 +62,10 @@ export default defineNuxtConfig({
     // Optimize for development
     optimizeDeps: {
       include: ['vue', 'vue-router']
+    },
+    // 🚀 Remove console + debugger in production builds
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }
   },
 
