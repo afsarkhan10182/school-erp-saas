@@ -562,17 +562,17 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         order: [['payment_date', 'DESC']],
       });
 
-      // Group by receipt_group_id if exists, otherwise show individual (same logic as getReceiptsReport)
+      // Group by receipt_number if exists, otherwise show individual (same logic as getReceiptsReport)
       const groupedReceipts = {};
       const individualReceipts = [];
 
       allPayments.forEach(payment => {
-        const receiptGroupId = payment.invoice?.receipt_group_id;
+        const receiptNumber = payment.receipt_number;
         
-        if (receiptGroupId) {
-          if (!groupedReceipts[receiptGroupId]) {
-            groupedReceipts[receiptGroupId] = {
-              receipt_group_id: receiptGroupId,
+        if (receiptNumber) {
+          if (!groupedReceipts[receiptNumber]) {
+            groupedReceipts[receiptNumber] = {
+              receipt_number: receiptNumber,
               payments: [],
               total_amount: 0,
               payment_date: payment.payment_date,
@@ -585,10 +585,10 @@ const exportFeeInvoicesReport = async (req, res, next) => {
             };
           }
           
-          groupedReceipts[receiptGroupId].payments.push(payment);
-          groupedReceipts[receiptGroupId].total_amount += parseFloat(payment.payment_amount || 0);
-          groupedReceipts[receiptGroupId].fee_types.add(payment.invoice?.feeStructure?.feeType?.name || 'N/A');
-          groupedReceipts[receiptGroupId].month_count += 1;
+          groupedReceipts[receiptNumber].payments.push(payment);
+          groupedReceipts[receiptNumber].total_amount += parseFloat(payment.payment_amount || 0);
+          groupedReceipts[receiptNumber].fee_types.add(payment.invoice?.feeStructure?.feeType?.name || 'N/A');
+          groupedReceipts[receiptNumber].month_count += 1;
         } else {
           individualReceipts.push(payment);
         }
@@ -601,7 +601,7 @@ const exportFeeInvoicesReport = async (req, res, next) => {
         
         return {
           'Invoice Number': invoiceNumbers.join(', '),
-          'Receipt Number': group.receipt_group_id,
+          'Receipt Number': group.receipt_number,
           'Payment Date': group.payment_date ? new Date(group.payment_date).toLocaleDateString('en-IN') : 'N/A',
           'Student Name': group.student ? getStudentFullName(group.student) : 'N/A',
           'Admission Number': group.student?.admission_number || 'N/A',

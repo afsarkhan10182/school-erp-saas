@@ -47,7 +47,7 @@
             >
               <option value="">Select Fee Structure</option>
               <option v-for="structure in availableFeeStructures" :key="structure.id" :value="structure.id">
-                {{ structure.feeType?.name }} - {{ structure.class_name }}{{ structure.section ? ` (${structure.section})` : '' }}{{ structure.stream_names ? ` - ${structure.stream_names}` : '' }} ({{ structure.academic_year }})
+                {{ structure.feeType?.name }} - {{ structure.applicable_classes && structure.applicable_classes.length > 0 ? structure.applicable_classes.join(', ') : structure.class_name }}{{ structure.section ? ` (${structure.section})` : '' }}{{ structure.stream_names ? ` - ${structure.stream_names}` : '' }} ({{ structure.academic_year }})
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

@@ -178,10 +178,10 @@ status: {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
-  receipt_group_id: {
+  receipt_number: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: 'Groups multiple invoices under one receipt',
+    comment: 'Simple receipt number per class (RCP-{classcode}-{sequence})',
   },
   invoice_items: {
     type: DataTypes.JSONB,

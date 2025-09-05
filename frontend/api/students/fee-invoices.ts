@@ -35,6 +35,12 @@ export const FeeInvoices = {
     return response.data;
   },
 
+  getReceiptByNumber: async (receiptNumber: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/fee-invoices/receipt/${receiptNumber}`);
+    return response.data;
+  },
+
   getById: async (id: string) => {
     const api = createApiInstance();
     const response = await api.get(`/fee-invoices/${id}`);

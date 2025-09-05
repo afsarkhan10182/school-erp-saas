@@ -43,13 +43,6 @@
               <div class="trust-name">{{ receiptData.trust_name || schoolData.trust_name || 'HAJI OMAR MOOSA EDUCATIONAL TRUST' }}</div>
             </div>
             <div class="school-section">
-              <img 
-                v-if="receiptData.school_logo" 
-                :src="getImageUrl(receiptData.school_logo)" 
-                alt="School Logo" 
-                class="school-logo"
-                @error="handleLogoError"
-              >
               <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
               <div class="school-address">{{ receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.' }}</div>
             </div>
@@ -374,9 +367,16 @@ const getFeeTypeDisplay = () => {
 }
 
 const getReceiptNumberDisplay = () => {
+  // Check if receipt_number is directly in receiptData
   if (props.receiptData.receipt_number) {
     return props.receiptData.receipt_number
   }
+  
+  // Check if receiptData is nested inside a parent object (like combined_receipt)
+  if (props.receiptData.receipt_data && props.receiptData.receipt_data.receipt_number) {
+    return props.receiptData.receipt_data.receipt_number
+  }
+  
   return 'N/A'
 }
 

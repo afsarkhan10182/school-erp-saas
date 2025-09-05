@@ -195,16 +195,8 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     const school = await School.findByPk(req.schoolId);
 
     // Generate unique receipt number for this payment
-    let classCode = 'GEN';
-    if (invoice.feeStructure?.class?.code) {
-      classCode = invoice.feeStructure.class.code;
-    } else if (invoice.feeStructure?.class_name) {
-      classCode = getClassCode(invoice.feeStructure);
-    } else if (invoice.student.current_class) {
-      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
-      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
-    }
+    // Use the same class code logic as invoice generation to ensure consistency
+    const classCode = await getClassCode(invoice.feeStructure, invoice.student);
 
     // Generate unique receipt number for this payment
     const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });

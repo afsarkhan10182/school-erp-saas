@@ -27,6 +27,7 @@ const {
   getGroupedStudentInvoices,
   getGroupedInvoices,
   getCombinedReceiptByGroupId,
+  getReceiptByNumber,
   getCollections,
   // On-demand receipt endpoints
   getReceiptData,
@@ -79,6 +80,9 @@ router.get('/grouped', requireRole('super_admin', 'school_admin', 'branch_admin'
 
 // GET endpoint to retrieve combined receipt for a receipt group
 router.get('/grouped-receipts/:receiptGroupId', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getCombinedReceiptByGroupId);
+
+// GET endpoint to retrieve receipt data by receipt number
+router.get('/receipt/:receiptNumber', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptByNumber);
 
 // GET endpoint to retrieve student fee ledger
 router.get('/student-ledger', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentFeeLedger);

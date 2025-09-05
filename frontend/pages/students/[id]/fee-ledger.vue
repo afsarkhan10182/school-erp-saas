@@ -974,13 +974,14 @@ const viewReceipt = async (payment) => {
 
 // Select receipt from list (for tab-like functionality)
 const selectReceiptFromList = async (receipt) => {
+  console.log('Selecting receipt from list:', receipt);
   selectedReceiptFromList.value = receipt;
   isLoadingReceiptContent.value = true;
   
   try {
-    if (receipt.is_grouped && receipt.receipt_group_id) {
+    if (receipt.is_grouped && receipt.invoice_id) {
       // For grouped receipts, generate combined receipt data on-demand
-      const response = await FeeInvoices.getCombinedReceipt(receipt.receipt_group_id);
+      const response = await FeeInvoices.getReceiptByNumber(receipt.invoice_id);
       if (response.data) {
         selectedReceiptFromList.value = {
           ...receipt,
@@ -1090,19 +1091,44 @@ const viewReceiptFromList = async (receipt) => {
 // View combined receipt for grouped payments
 const viewCombinedReceipt = async (invoice) => {
   try {
-    if (!invoice.receipt_group_id) {
-      showError('No receipt group ID found for this payment');
+    // First check if we have combined_receipt data (from smart payments)
+    if (invoice.combined_receipt) {
+      console.log('🔍 Using cached combined_receipt data:', invoice.combined_receipt);
+      selectedReceipt.value = invoice.combined_receipt;
+      showReceiptModal.value = true;
       return;
     }
     
-    const response = await FeeInvoices.getCombinedReceipt(invoice.receipt_group_id);
-    
-    if (response.data) {
-      selectedReceipt.value = response.data;
-      showReceiptModal.value = true;
-    } else {
-      showError('No receipt found for this combined payment');
+    // Check for receipt_group_id (for grouped receipts)
+    if (invoice.receipt_group_id) {
+      console.log('🔍 Fetching receipt for group ID:', invoice.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(invoice.receipt_group_id);
+      
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showError('No receipt found for this combined payment');
+      }
+      return;
     }
+    
+    // Check for receipt_number (for individual receipts)
+    if (invoice.receipt_number) {
+      console.log('🔍 Fetching receipt for receipt number:', invoice.receipt_number);
+      const response = await FeeInvoices.getReceiptByNumber(invoice.receipt_number);
+      
+      if (response.success && response.data) {
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showError('No receipt found for this receipt number');
+      }
+      return;
+    }
+    
+    // If none of the above, show error
+    showError('No receipt group ID or receipt number found for this payment');
   } catch (error) {
     console.error('Error generating combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {

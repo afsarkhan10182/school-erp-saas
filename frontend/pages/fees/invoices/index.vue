@@ -1192,7 +1192,7 @@ const viewCombinedReceipt = async (combinedInvoice) => {
       // Use the receipt data directly from the payment response
       selectedReceipt.value = {
         ...receiptData,
-        receipt_number: combinedInvoice.receipt_group_id || combinedInvoice.id,
+        receipt_number: combinedInvoice.combined_receipt.receipt_number || combinedInvoice.receipt_number || combinedInvoice.receipt_group_id || combinedInvoice.id,
         payment_date: combinedInvoice.applied_payments?.[0]?.payment_date || new Date(),
         payment_amount: combinedInvoice.total_payment_amount,
         payment_method: combinedInvoice.payment_method || 'cash'
@@ -1209,6 +1209,18 @@ const viewCombinedReceipt = async (combinedInvoice) => {
         showReceiptModal.value = true;
       } else {
         showToast('No receipt found for this combined invoice', 'error');
+      }
+    } else if (combinedInvoice.receipt_number) {
+      // Try to fetch by receipt number
+      console.log('🔍 Fetching receipt for receipt number:', combinedInvoice.receipt_number)
+      const response = await FeeInvoices.getReceiptByNumber(combinedInvoice.receipt_number);
+      console.log('🔍 API Response:', response)
+      if (response.success && response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this receipt number', 'error');
       }
     } else {
       // Last fallback: try with id

@@ -54,6 +54,7 @@ module.exports = {
   // Receipt operations
   getGroupedReceipts: receipts.getGroupedReceipts,
   getCombinedReceiptByGroupId: receipts.getCombinedReceiptByGroupId,
+  getReceiptByNumber: receipts.getReceiptByNumber,
   getReceiptForInvoice: receipts.getReceiptForInvoice,
   // On-demand receipt functions
   getReceiptData: receipts.getReceiptData,

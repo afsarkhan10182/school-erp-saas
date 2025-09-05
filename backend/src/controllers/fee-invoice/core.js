@@ -23,33 +23,117 @@ const getStudentFullName = (student) => {
 
 // Generate unique invoice number with microsecond precision
 // Helper function to get class code from fee structure
-const getClassCode = (feeStructure) => {
+// Optimized version that uses pre-fetched class codes
+const getClassCodeOptimized = (feeStructure, student = null, classCodesMap = new Map()) => {
+  // If student is provided and fee structure has multiple classes, look up the actual class code
+  if (student && feeStructure.applicable_classes && Array.isArray(feeStructure.applicable_classes) && feeStructure.applicable_classes.length > 0) {
+    // Find the matching class from applicable_classes that matches student's current_class
+    const matchingClassName = feeStructure.applicable_classes.find(className => 
+      className === student.current_class
+    );
+    
+    if (matchingClassName) {
+      // Use pre-fetched class code from map
+      const classCode = classCodesMap.get(matchingClassName);
+      if (classCode) {
+        return classCode;
+      }
+    }
+  }
+  
   // Get code from the associated Class model
   if (feeStructure.class && feeStructure.class.code) {
     return feeStructure.class.code;
   }
   
-  // Generate from class_name
+  // Generate from class_name as fallback
   if (feeStructure.class_name) {
     const cleanName = feeStructure.class_name.replace(/^Class\s+/i, '').trim();
     const code = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    const finalCode = code.length >= 3 ? code : `${code}${'0'.repeat(3 - code.length)}`;
-    return finalCode;
+    return code;
   }
   
   // Default fallback
   return 'GEN';
 };
 
-// Generate unique invoice number using global sequential numbering
+// Keep original function for backward compatibility
+const getClassCode = async (feeStructure, student = null) => {
+  // If student is provided and fee structure has multiple classes, look up the actual class code
+  if (student && feeStructure.applicable_classes && Array.isArray(feeStructure.applicable_classes) && feeStructure.applicable_classes.length > 0) {
+    // Find the matching class from applicable_classes that matches student's current_class
+    const matchingClassName = feeStructure.applicable_classes.find(className => 
+      className === student.current_class
+    );
+    
+    if (matchingClassName) {
+      // Look up the actual class code from the database
+      const classData = await Class.findOne({
+        where: {
+          name: matchingClassName,
+          school_id: student.school_id,
+        },
+        attributes: ['code']
+      });
+      
+      if (classData && classData.code) {
+        return classData.code;
+      }
+    }
+  }
+  
+  // Get code from the associated Class model
+  if (feeStructure.class && feeStructure.class.code) {
+    return feeStructure.class.code;
+  }
+  
+  // Generate from class_name as fallback
+  if (feeStructure.class_name) {
+    const cleanName = feeStructure.class_name.replace(/^Class\s+/i, '').trim();
+    const code = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return code;
+  }
+  
+  // Default fallback
+  return 'GEN';
+};
+
+// Optimized version that uses pre-fetched max numbers
+const generateUniqueInvoiceNumberOptimized = (classCode, invoiceData, maxInvoiceNumbersMap = new Map(), receiptOnly = false) => {
+  const { school_id } = invoiceData;
+  
+  // Get the highest existing invoice number for this specific class from pre-fetched data
+  const maxNumber = maxInvoiceNumbersMap.get(classCode) || 0;
+  const nextId = maxNumber + 1;
+  
+  // Update the map for the next invoice with the same class code
+  maxInvoiceNumbersMap.set(classCode, nextId);
+  
+  // Generate invoice number using class-specific sequential ID
+  const invoiceNumber = `INV-${classCode}-${nextId}`;
+  
+  if (receiptOnly) {
+    // For receipt generation, just return the invoice number without creating a database record
+    return { invoice_number: invoiceNumber };
+  }
+  
+  // Create the real invoice with the generated invoice number
+  return FeeInvoice.create({
+    ...invoiceData,
+    invoice_number: invoiceNumber
+  });
+};
+
+// Generate unique invoice number using class-specific sequential numbering
 const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly = false) => {
   const { school_id } = invoiceData;
   
-  // Get the highest existing invoice number across the entire school (global sequential)
+  // Get the highest existing invoice number for this specific class
   const result = await sequelize.query(
-    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'INV-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
+    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'INV-${classCode}-([0-9]+)$') AS INTEGER)) as max_number
      FROM fee_invoices 
-     WHERE school_id = :school_id`,
+     WHERE school_id = :school_id 
+     AND invoice_number LIKE 'INV-${classCode}-%'`,
     { 
       type: sequelize.QueryTypes.SELECT,
       replacements: { school_id }
@@ -59,7 +143,7 @@ const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly =
   const maxNumber = result[0].max_number || 0;
   const nextId = maxNumber + 1;
   
-  // Generate invoice number using global sequential ID
+  // Generate invoice number using class-specific sequential ID
   const invoiceNumber = `INV-${classCode}-${nextId}`;
   
   if (receiptOnly) {
@@ -76,15 +160,16 @@ const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly =
   return realInvoice; // Return the complete invoice object
 };
 
-// Generate unique receipt number using global sequential numbering (same logic as invoices)
+// Generate unique receipt number using class-specific sequential numbering
 const generateUniqueReceiptNumber = async (classCode, context = {}) => {
   const { school_id } = context;
   
-  // Get the highest existing receipt number across the entire school (global sequential)
+  // Get the highest existing receipt number for this specific class
   const result = await sequelize.query(
-    `SELECT MAX(CAST(SUBSTRING(receipt_number FROM 'RCP-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
+    `SELECT MAX(CAST(SUBSTRING(receipt_number FROM 'RCP-${classCode}-([0-9]+)$') AS INTEGER)) as max_number
      FROM fee_payments 
-     WHERE school_id = :school_id`,
+     WHERE school_id = :school_id 
+     AND receipt_number LIKE 'RCP-${classCode}-%'`,
     { 
       type: sequelize.QueryTypes.SELECT,
       replacements: { school_id }
@@ -94,7 +179,7 @@ const generateUniqueReceiptNumber = async (classCode, context = {}) => {
   const maxNumber = result[0].max_number || 0;
   const nextId = maxNumber + 1;
   
-  // Generate receipt number using global sequential ID
+  // Generate receipt number using class-specific sequential ID
   const receiptNumber = `RCP-${classCode}-${nextId}`;
   
   return { receipt_number: receiptNumber };
@@ -174,6 +259,71 @@ const generateInvoices = async (req, res, next) => {
 
     if (feeStructures.length === 0) {
       throw new ApiError(404, 'No fee structures found for the specified IDs');
+    }
+
+    // OPTIMIZATION: Pre-fetch school data (moved outside loop)
+    const school = await School.findByPk(req.schoolId);
+    const startingMonth = school.starting_month || 6; // Default to June
+
+    // OPTIMIZATION: Pre-fetch all class codes to eliminate N+1 queries
+    const classNames = [...new Set(feeStructures.flatMap(fs => {
+      if (fs.applicable_classes && Array.isArray(fs.applicable_classes) && fs.applicable_classes.length > 0) {
+        return fs.applicable_classes;
+      } else if (fs.class_name) {
+        return [fs.class_name];
+      }
+      return [];
+    }))];
+
+    const classCodesMap = new Map();
+    if (classNames.length > 0) {
+      const classes = await Class.findAll({
+        where: {
+          name: { [Op.in]: classNames },
+          school_id: req.schoolId
+        },
+        attributes: ['name', 'code']
+      });
+      classes.forEach(cls => classCodesMap.set(cls.name, cls.code));
+    }
+
+    // OPTIMIZATION: Pre-calculate all needed class codes for invoice number generation
+    const allClassCodes = new Set();
+    feeStructures.forEach(fs => {
+      if (fs.applicable_classes && Array.isArray(fs.applicable_classes) && fs.applicable_classes.length > 0) {
+        fs.applicable_classes.forEach(className => {
+          const code = classCodesMap.get(className) || className.replace(/^Class\s+/i, '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+          allClassCodes.add(code);
+        });
+      } else if (fs.class && fs.class.code) {
+        allClassCodes.add(fs.class.code);
+      } else if (fs.class_name) {
+        const code = fs.class_name.replace(/^Class\s+/i, '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        allClassCodes.add(code);
+      }
+    });
+
+    // OPTIMIZATION: Batch fetch max invoice numbers for all class codes
+    const maxInvoiceNumbersMap = new Map();
+    if (allClassCodes.size > 0) {
+      const classCodesArray = Array.from(allClassCodes);
+      const maxInvoiceNumbers = await sequelize.query(
+        `SELECT 
+           SUBSTRING(invoice_number FROM 'INV-([A-Z0-9]+)-([0-9]+)$') as class_code,
+           MAX(CAST(SUBSTRING(invoice_number FROM 'INV-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
+         FROM fee_invoices 
+         WHERE school_id = :school_id 
+         AND invoice_number ~ '^INV-[A-Z0-9]+-[0-9]+$'
+         GROUP BY class_code`,
+        { 
+          type: sequelize.QueryTypes.SELECT,
+          replacements: { school_id: req.schoolId }
+        }
+      );
+      
+      maxInvoiceNumbers.forEach(row => {
+        maxInvoiceNumbersMap.set(row.class_code, row.max_number || 0);
+      });
     }
 
     // Group students by fee structure context to handle multiple fee structures
@@ -368,9 +518,7 @@ const generateInvoices = async (req, res, next) => {
           
           // Generate invoices based on payment model
           if (payment_model === 'monthly') {
-            // Get school to determine starting month
-            const school = await School.findByPk(req.schoolId);
-            const startingMonth = school.starting_month || 6; // Default to June
+            // Use pre-fetched school data (optimization)
             
             // Generate academic year months based on school's starting month
             const academicYearMonths = getAcademicYearMonths(startingMonth, feeStructure.academic_year);
@@ -386,8 +534,9 @@ const generateInvoices = async (req, res, next) => {
               // Calculate due date for this month (using due_day from fee structure)
               let calculatedDueDate = new Date(academicMonth.year, academicMonth.month - 1, feeStructure.due_day || 10);
               
-              // Generate unique invoice number
-              const invoice = await generateUniqueInvoiceNumber(getClassCode(feeStructure), {
+              // Generate unique invoice number (optimized)
+              const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
+              const invoice = await generateUniqueInvoiceNumberOptimized(classCode, {
                 student_id: student.id,
                 fee_structure_id: feeStructure.id,
                 academic_year: feeStructure.academic_year,
@@ -415,7 +564,7 @@ const generateInvoices = async (req, res, next) => {
                 school_id: req.schoolId,
                 branch_id: feeStructure.branch_id || req.branchId,
                 created_by: req.user.id,
-              });
+              }, maxInvoiceNumbersMap);
               invoices.push(invoice); // Store the invoice object
             }
           } else {
@@ -434,8 +583,9 @@ const generateInvoices = async (req, res, next) => {
                 logger.info(`No due date found in fee structure ${feeStructure.name}, using default date: ${calculatedDueDate}`);
               }
 
-              // Generate unique invoice number
-              const invoice = await generateUniqueInvoiceNumber(getClassCode(feeStructure), {
+              // Generate unique invoice number (optimized)
+              const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
+              const invoice = await generateUniqueInvoiceNumberOptimized(classCode, {
                 student_id: student.id,
                 fee_structure_id: feeStructure.id,
                 academic_year: feeStructure.academic_year,
@@ -461,7 +611,7 @@ const generateInvoices = async (req, res, next) => {
                 school_id: req.schoolId,
                 branch_id: feeStructure.branch_id || req.branchId,
                 created_by: req.user.id,
-              });
+              }, maxInvoiceNumbersMap);
               invoices.push(invoice); // Store the invoice object
             } else if (feeStructure.installment_type === 'multiple') {
               // Multiple Installments: Generate multiple invoices based on installment_amounts and installment_due_dates
@@ -506,8 +656,9 @@ const generateInvoices = async (req, res, next) => {
                   throw new ApiError(400, `Missing due date for installment ${i + 1} in fee structure ${feeStructure.name}.`);
                 }
 
-                // Generate unique invoice number for this installment
-                const invoice = await generateUniqueInvoiceNumber(getClassCode(feeStructure), {
+                // Generate unique invoice number for this installment (optimized)
+                const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
+                const invoice = await generateUniqueInvoiceNumberOptimized(classCode, {
                   student_id: student.id,
                   fee_structure_id: feeStructure.id,
                   academic_year: feeStructure.academic_year,
@@ -533,7 +684,7 @@ const generateInvoices = async (req, res, next) => {
                   school_id: req.schoolId,
                   branch_id: feeStructure.branch_id || req.branchId,
                   created_by: req.user.id,
-                });
+                }, maxInvoiceNumbersMap);
                 invoices.push(invoice); // Store the invoice object
               }
             }
@@ -1121,15 +1272,15 @@ const getGroupedInvoices = async (req, res, next) => {
 
 
 
-    // Group invoices by receipt_group_id for paid/partial_paid invoices
+    // Group invoices by receipt_number for paid/partial_paid invoices
     const groupedInvoices = {};
     const ungroupedInvoices = [];
 
     allInvoices.forEach(invoice => {
-      if (invoice.receipt_group_id && ['paid', 'partial_paid'].includes(invoice.status)) {
-        if (!groupedInvoices[invoice.receipt_group_id]) {
-          groupedInvoices[invoice.receipt_group_id] = {
-            receipt_group_id: invoice.receipt_group_id,
+      if (invoice.receipt_number && ['paid', 'partial_paid'].includes(invoice.status)) {
+        if (!groupedInvoices[invoice.receipt_number]) {
+          groupedInvoices[invoice.receipt_number] = {
+            receipt_number: invoice.receipt_number,
             invoices: [],
             total_amount: 0,
             total_paid: 0,
@@ -1144,10 +1295,10 @@ const getGroupedInvoices = async (req, res, next) => {
             payment_model: invoice.payment_model,
           };
         }
-        groupedInvoices[invoice.receipt_group_id].invoices.push(invoice);
-        groupedInvoices[invoice.receipt_group_id].total_amount += parseFloat(invoice.total_amount || 0);
-        groupedInvoices[invoice.receipt_group_id].total_paid += parseFloat(invoice.paid_amount || 0);
-        groupedInvoices[invoice.receipt_group_id].total_balance += parseFloat(invoice.balance_amount || 0);
+        groupedInvoices[invoice.receipt_number].invoices.push(invoice);
+        groupedInvoices[invoice.receipt_number].total_amount += parseFloat(invoice.total_amount || 0);
+        groupedInvoices[invoice.receipt_number].total_paid += parseFloat(invoice.paid_amount || 0);
+        groupedInvoices[invoice.receipt_number].total_balance += parseFloat(invoice.balance_amount || 0);
       } else {
         ungroupedInvoices.push(invoice);
       }
@@ -1201,9 +1352,9 @@ const getGroupedInvoices = async (req, res, next) => {
 
       
       return {
-        id: group.receipt_group_id,
-        receipt_group_id: group.receipt_group_id,
-        invoice_number: group.receipt_group_id.startsWith('INV-GROUP-') ? group.receipt_group_id : `INV-${group.receipt_group_id.replace('RCP-GROUP-', '')}`,
+        id: group.receipt_number,
+        receipt_number: group.receipt_number,
+        invoice_number: group.invoices.map(inv => inv.invoice_number).join(', '),
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || group.invoices[0]?.fee_type_name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,

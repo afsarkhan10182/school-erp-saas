@@ -1815,16 +1815,16 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Group invoices by receipt_group_id for paid/partial_paid invoices
+    // Group invoices by receipt_number for paid/partial_paid invoices
     const groupedInvoices = {};
     const ungroupedInvoices = [];
 
     invoices.forEach(invoice => {
-      // Only group invoices that have a receipt_group_id AND are paid/partial_paid
-      if (invoice.receipt_group_id && ['paid', 'partial_paid'].includes(invoice.status)) {
-        if (!groupedInvoices[invoice.receipt_group_id]) {
-          groupedInvoices[invoice.receipt_group_id] = {
-            receipt_group_id: invoice.receipt_group_id,
+      // Only group invoices that have a receipt_number AND are paid/partial_paid
+      if (invoice.receipt_number && ['paid', 'partial_paid'].includes(invoice.status)) {
+        if (!groupedInvoices[invoice.receipt_number]) {
+          groupedInvoices[invoice.receipt_number] = {
+            receipt_number: invoice.receipt_number,
             invoices: [],
             total_amount: 0,
             total_paid: 0,
@@ -1835,12 +1835,12 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
             status: invoice.status,
           };
         }
-        groupedInvoices[invoice.receipt_group_id].invoices.push(invoice);
-        groupedInvoices[invoice.receipt_group_id].total_amount += parseFloat(invoice.total_amount || 0);
-        groupedInvoices[invoice.receipt_group_id].total_paid += parseFloat(invoice.paid_amount || 0);
-        groupedInvoices[invoice.receipt_group_id].total_balance += parseFloat(invoice.balance_amount || 0);
+        groupedInvoices[invoice.receipt_number].invoices.push(invoice);
+        groupedInvoices[invoice.receipt_number].total_amount += parseFloat(invoice.total_amount || 0);
+        groupedInvoices[invoice.receipt_number].total_paid += parseFloat(invoice.paid_amount || 0);
+        groupedInvoices[invoice.receipt_number].total_balance += parseFloat(invoice.balance_amount || 0);
       } else {
-        // All other invoices (including paid invoices without receipt_group_id) go to ungrouped
+        // All other invoices (including paid invoices without receipt_number) go to ungrouped
         ungroupedInvoices.push(invoice);
       }
     });
@@ -1889,9 +1889,9 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
       }
       
       return {
-        id: group.receipt_group_id,
-        receipt_group_id: group.receipt_group_id,
-        invoice_number: group.receipt_group_id, // Show the receipt group ID for grouped payments
+        id: group.receipt_number,
+        receipt_number: group.receipt_number,
+        invoice_number: group.invoices.map(inv => inv.invoice_number).join(', '), // Show actual invoice numbers
         fee_type: group.invoices[0]?.feeStructure?.feeType?.name || 'Unknown',
         class_name: group.invoices[0]?.class_name,
         section: group.invoices[0]?.section,

@@ -257,7 +257,7 @@
 
         <!-- Receipt Display -->
         <div v-if="lastPaymentReceipt" class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200">
-          Receipt: {{ lastPaymentReceipt.receipt_number }} | ₹{{ formatCurrency(lastPaymentReceipt.amount) }} | {{ formatDate(lastPaymentReceipt.payment_date) }}
+          Receipt: {{ lastPaymentReceipt.receipt_number || 'N/A' }} | ₹{{ formatCurrency(lastPaymentReceipt.receipt_data?.amount || lastPaymentReceipt.amount) }} | {{ formatDate(lastPaymentReceipt.receipt_data?.payment_date || lastPaymentReceipt.payment_date) }}
         </div>
 
         <!-- Loading State -->
@@ -425,13 +425,8 @@ const submitPayment = async () => {
     
     // Store receipt data (without months info)
     const data = response.data;
-    lastPaymentReceipt.value = {
-      receipt_number: data.receipt_group_id,
-      payment_date: data.applied_payments[0]?.payment_date || new Date(),
-      amount: data.total_payment_amount,
-      payment_method: paymentForm.value.payment_method,
-      receipt_data: data.combined_receipt.receipt_data
-    };
+    // Use the full combined_receipt object which contains receipt_number and receipt_data
+    lastPaymentReceipt.value = data.combined_receipt || data;
     
     // Show simple success message
     showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);

@@ -211,33 +211,15 @@ const recordPayment = async (req, res, next) => {
     const school = await School.findByPk(req.schoolId);
 
     // Generate unique receipt number for each payment
-    let classCode = 'GEN';
-    if (invoice.feeStructure?.class?.code) {
-      classCode = invoice.feeStructure.class.code;
-      logger.info('Class code from feeStructure.class.code:', {
-        feeStructureId: invoice.feeStructure?.id,
-        classCode: classCode,
-        classData: invoice.feeStructure?.class
-      });
-    } else if (invoice.feeStructure?.class_name) {
-      classCode = getClassCode(invoice.feeStructure);
-      logger.info('Class code from feeStructure using getClassCode:', {
-        feeStructureId: invoice.feeStructure?.id,
-        className: invoice.feeStructure?.class_name,
-        classCode: classCode,
-        classData: invoice.feeStructure?.class
-      });
-    } else if (invoice.student.current_class) {
-      const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
-      classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-      classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
-      logger.info('Class code from student current_class:', {
-        studentClass: invoice.student.current_class,
-        classCode: classCode
-      });
-    }
-
-    logger.info('Final class code for receipt generation:', classCode);
+    // Use the same class code logic as invoice generation to ensure consistency
+    const classCode = await getClassCode(invoice.feeStructure, invoice.student);
+    
+    logger.info('Class code for receipt generation (using same logic as invoice):', {
+      feeStructureId: invoice.feeStructure?.id,
+      classCode: classCode,
+      studentClass: invoice.student?.current_class,
+      feeStructureClass: invoice.feeStructure?.class_name
+    });
 
     // Generate unique receipt number for this payment
     const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });
