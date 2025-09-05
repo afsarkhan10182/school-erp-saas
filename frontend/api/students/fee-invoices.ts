@@ -217,6 +217,15 @@ export const FeeInvoices = {
     return response.data;
   },
 
+  // Get report grouped by students with proper pagination
+  getReportGrouped: async (params?: FeeInvoiceParams) => {
+    const api = createApiInstance();
+    // Add cache-busting parameter
+    const cacheBustParams = { ...params, _t: Date.now() };
+    const response = await api.get('/fee-invoices/report-grouped', { params: cacheBustParams });
+    return response.data;
+  },
+
   exportReport: async (endpoint: string, queryString: string) => {
     const api = createApiInstance();
     const response = await api.get(`${endpoint}?${queryString}`, { responseType: 'blob' });

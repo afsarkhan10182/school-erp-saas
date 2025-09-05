@@ -9,6 +9,7 @@ const {
   cancelInvoice,
   getFeeCollectionSummary,
   getFeeInvoiceReport,
+  getFeeInvoiceReportGrouped,
   exportFeeInvoicesReport,
   applyLateFees,
   getFeeStats,
@@ -101,6 +102,9 @@ router.get('/receipts-report', requireRole('super_admin', 'school_admin', 'branc
 
 // GET endpoint to retrieve fee invoice report with pagination and filtering
 router.get('/report', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReport);
+
+// GET endpoint to retrieve fee invoice report grouped by students with pagination
+router.get('/report-grouped', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReportGrouped);
 
 // GET endpoint to export fee invoices report
 router.get('/export', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), exportFeeInvoicesReport);

@@ -638,38 +638,36 @@ class DashboardController {
         throw new ApiError(403, 'Access denied');
       }
 
-      // Get total collected and pending amounts
-      console.log('🔍 Dashboard query where clause:', JSON.stringify(where, null, 2));
+      // Get all summary statistics in a single optimized query
       
-      const [totalCollected, totalPending] = await Promise.all([
-        FeeInvoice.sum('paid_amount', { 
-          where: { 
-            ...where, 
-            status: { [Op.in]: ['paid', 'partial_paid'] } 
-          } 
-        }),
-        FeeInvoice.sum('balance_amount', { 
-          where: { 
-            ...where, 
-            status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
-          } 
-        })
-      ]);
-      
-      console.log('💰 Dashboard calculation results:');
-      console.log('   - Total Collected (paid invoices):', totalCollected);
-      console.log('   - Total Pending (balance_amount):', totalPending);
-      
-      // Also get all invoices for debugging
-      const allInvoices = await FeeInvoice.findAll({
+      const summaryStats = await FeeInvoice.findAll({
         where,
-        attributes: ['id', 'invoice_number', 'total_amount', 'paid_amount', 'balance_amount', 'status', 'academic_year'],
-        raw: true
+        attributes: [
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.col('id')), 'total_invoices'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'paid' THEN 1 END")), 'paid_count'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END")), 'pending_count'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'overdue' THEN 1 END")), 'overdue_count'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+        ],
+        raw: true,
       });
-      console.log('📋 All invoices found:', allInvoices.length);
-      allInvoices.forEach(inv => {
-        console.log(`   - ${inv.invoice_number}: paid=${inv.paid_amount}, balance=${inv.balance_amount}, status=${inv.status}`);
-      });
+
+      const stats = summaryStats[0] || {};
+      const totalInvoices = parseInt(stats.total_invoices || 0);
+      const paidInvoices = parseInt(stats.paid_count || 0);
+      const pendingInvoices = parseInt(stats.pending_count || 0);
+      const overdueInvoices = parseInt(stats.overdue_count || 0);
+      const totalCollected = parseFloat(stats.total_collected || 0);
+      const totalPending = parseFloat(stats.total_pending || 0);
+      
+      console.log('💰 Dashboard calculation results (optimized single query):');
+      console.log('   - Total Invoices:', totalInvoices);
+      console.log('   - Paid Invoices:', paidInvoices);
+      console.log('   - Pending Invoices:', pendingInvoices);
+      console.log('   - Overdue Invoices:', overdueInvoices);
+      console.log('   - Total Collected:', totalCollected);
+      console.log('   - Total Pending:', totalPending);
 
       // Get branch-wise breakdown for school admin and super admin
       let branchBreakdown = [];
@@ -679,53 +677,49 @@ class DashboardController {
           attributes: ['id', 'name']
         });
 
-        // Get fee data for each branch
-        const branchFeeData = await Promise.all(
-          branches.map(async (branch) => {
-            const branchWhereClause = { 
+        if (branches.length > 0) {
+          // Get all branch fee data in a single optimized query
+          const branchIds = branches.map(b => b.id);
+          const branchFeeData = await FeeInvoice.findAll({
+            where: { 
               ...where, 
-              branch_id: branch.id 
+              branch_id: { [Op.in]: branchIds } 
+            },
+            attributes: [
+              'branch_id',
+              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
+              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+            ],
+            group: ['branch_id'],
+            raw: true,
+          });
+
+          // Create a map for quick lookup
+          const branchStatsMap = {};
+          branchFeeData.forEach(stat => {
+            branchStatsMap[stat.branch_id] = {
+              total_collected: parseFloat(stat.total_collected || 0),
+              total_pending: parseFloat(stat.total_pending || 0)
             };
+          });
 
-            const [collected, pending] = await Promise.all([
-              FeeInvoice.sum('paid_amount', { 
-                where: { ...branchWhereClause, status: 'paid' } 
-              }),
-              FeeInvoice.sum('balance_amount', { 
-                where: { 
-                  ...branchWhereClause, 
-                  status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
-                } 
-              })
-            ]);
-
-            return {
+          // Build branch breakdown with fee data
+          branchBreakdown = branches
+            .map(branch => ({
               id: branch.id,
               name: branch.name,
-              total_collected: parseFloat(collected || 0),
-              total_pending: parseFloat(pending || 0)
-            };
-          })
-        );
-
-        // Filter out branches with no fee data
-        branchBreakdown = branchFeeData.filter(branch => 
-          branch.total_collected > 0 || branch.total_pending > 0
-        );
+              total_collected: branchStatsMap[branch.id]?.total_collected || 0,
+              total_pending: branchStatsMap[branch.id]?.total_pending || 0
+            }))
+            .filter(branch => branch.total_collected > 0 || branch.total_pending > 0);
+        }
       }
 
-      // Get additional statistics
-      const [totalInvoices, paidInvoices, pendingInvoices, overdueInvoices] = await Promise.all([
-        FeeInvoice.count({ where }),
-        FeeInvoice.count({ where: { ...where, status: 'paid' } }),
-        FeeInvoice.count({ where: { ...where, status: { [Op.in]: ['sent', 'partial_paid'] } } }),
-        FeeInvoice.count({ where: { ...where, status: 'overdue' } })
-      ]);
-
+      // Build summary response with optimized data
       const summary = {
         academic_year: targetAcademicYear,
-        total_collected: parseFloat(totalCollected || 0),
-        total_pending: parseFloat(totalPending || 0),
+        total_collected: totalCollected,
+        total_pending: totalPending,
         total_invoices: totalInvoices,
         paid_invoices: paidInvoices,
         pending_invoices: pendingInvoices,
@@ -733,7 +727,6 @@ class DashboardController {
         collection_rate: totalInvoices > 0 ? ((paidInvoices / totalInvoices) * 100).toFixed(1) : 0,
         branch_breakdown: branchBreakdown
       };
-
       res.json({ success: true, data: summary });
     } catch (error) {
       logger.error('Error in DashboardController.getFeeCollectionSummary:', error);

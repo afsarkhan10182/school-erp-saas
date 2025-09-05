@@ -157,10 +157,7 @@
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
                   <option value="week">This Week</option>
-                  <option value="last_week">Last Week</option>
                   <option value="month">This Month</option>
-                  <option value="last_month">Last Month</option>
-                  <option value="quarter">This Quarter</option>
                   <option value="year">This Year</option>
                   <option value="custom">Custom Range</option>
                 </select>
@@ -204,62 +201,56 @@
                 </span>
               </label>
               
-              <!-- Month Selection Grid - More Compact -->
-              <div class="grid grid-cols-4 gap-1.5 mb-2">
+              <!-- Month Selection Grid - Ultra Compact -->
+              <div class="grid grid-cols-6 gap-1 mb-2">
                 <button
                   v-for="month in availableMonths" 
                   :key="month.value"
                   @click="toggleMonth(month.value)"
                   :class="[
-                    'px-2 py-1.5 text-xs font-medium rounded-md border transition-all duration-200 cursor-pointer relative',
+                    'px-1.5 py-1 text-xs font-medium rounded border transition-all duration-200 cursor-pointer',
                     filters.selectedMonths.includes(month.value)
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-200'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300'
                   ]"
                 >
                   {{ month.label.slice(0, 3) }}
-                  <!-- Selection indicator -->
-                  <div v-if="filters.selectedMonths.includes(month.value)" class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                 </button>
               </div>
               
-              <!-- Quick Actions - More Compact -->
-              <div class="flex space-x-1.5 mb-2">
+              <!-- Quick Actions - Ultra Compact -->
+              <div class="flex space-x-1 mb-2">
                 <button 
                   @click="selectAllMonths" 
-                  class="flex-1 px-2 py-1.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors duration-200"
+                  class="flex-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors duration-200"
                 >
                   All
                 </button>
                 <button 
                   @click="clearAllMonths" 
-                  class="flex-1 px-2 py-1.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200"
+                  class="flex-1 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded hover:bg-red-200 dark:hover:bg-red-800 transition-colors duration-200"
                 >
                   Clear
                 </button>
               </div>
               
-              <!-- Selected Months Display - Compact -->
-              <div v-if="filters.selectedMonths.length > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-2">
-                <div class="flex items-center justify-between mb-1.5">
+              <!-- Selected Months Display - Ultra Compact -->
+              <div v-if="filters.selectedMonths.length > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded p-1.5">
+                <div class="flex items-center justify-between mb-1">
                   <div class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
                     ✓ {{ filters.selectedMonths.length }} month{{ filters.selectedMonths.length !== 1 ? 's' : '' }} selected
                   </div>
-                  <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400">
-                    <div class="animate-spin rounded-full h-3 w-3 border-b border-indigo-600 mr-1"></div>
-                    Filtering...
-                  </div>
                 </div>
-                <div class="flex flex-wrap gap-1.5">
+                <div class="flex flex-wrap gap-1">
                   <span 
                     v-for="monthValue in filters.selectedMonths" 
                     :key="monthValue"
-                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
                   >
                     {{ getMonthLabel(monthValue) }}
                     <button 
                       @click="removeMonth(monthValue)" 
-                      class="ml-1.5 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
+                      class="ml-1 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
                       type="button"
                     >
                       ×
@@ -268,8 +259,8 @@
                 </div>
               </div>
               
-              <!-- No Months Selected Message - Compact -->
-              <div v-else class="text-center py-2 text-gray-500 dark:text-gray-400 text-xs bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <!-- No Months Selected Message - Ultra Compact -->
+              <div v-else class="text-center py-1.5 text-gray-500 dark:text-gray-400 text-xs bg-gray-50 dark:bg-gray-700 rounded">
                 Click months above to select
               </div>
             </div>
@@ -419,42 +410,90 @@
           </div>
         </div>
         
-        <!-- Active Filters Display -->
+        <!-- Simple Active Filters Display -->
         <div v-if="hasActiveFilters" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <div class="flex items-center space-x-2">
             <span class="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
-            <div class="flex flex-wrap gap-2">
+            
+            <!-- Payment Model Filter -->
+            <span 
+              v-if="filters.payment_model" 
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+            >
+              {{ getPaymentModelLabel(filters.payment_model) }}
+              <button @click="clearPaymentModel" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+            
+            <!-- Monthly Filter -->
+            <div v-if="filters.payment_model === 'monthly' && filters.selectedMonths.length > 0" class="flex flex-wrap gap-1">
               <span 
-                v-if="filters.payment_model" 
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-              >
-                {{ getPaymentModelLabel(filters.payment_model) }}
-              </span>
-              <span 
-                v-if="filters.payment_model === 'monthly' && filters.selectedMonths.length > 0" 
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-              >
-                {{ filters.selectedMonths.length === 1 ? getMonthLabel(filters.selectedMonths[0]) : `${filters.selectedMonths.length} Months` }}
-              </span>
-              <span 
-                v-if="filters.status" 
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-              >
-                {{ getStatusLabel(filters.status) }}
-              </span>
-              <span 
-                v-if="filters.class_id" 
+                v-if="filters.selectedMonths.length <= 3"
+                v-for="monthValue in filters.selectedMonths"
+                :key="monthValue"
                 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
               >
-                {{ getClassName(filters.class_id) }}
+                {{ getMonthLabel(monthValue) }}
+                <button @click="removeMonth(monthValue)" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </span>
               <span 
-                v-if="filters.section_id" 
-                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                v-else
+                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
               >
-                {{ getSectionName(filters.section_id) }}
+                {{ `${filters.selectedMonths.length} Months` }}
+                <button @click="clearAllMonths" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </span>
             </div>
+            
+            <!-- Status Filter -->
+            <span 
+              v-if="filters.status" 
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+            >
+              {{ getStatusLabel(filters.status) }}
+              <button @click="clearStatus" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+            
+            <!-- Class Filter -->
+            <span 
+              v-if="filters.class_id" 
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+            >
+              {{ getClassName(filters.class_id) }}
+              <button @click="clearClass" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+            
+            <!-- Section Filter -->
+            <span 
+              v-if="filters.section_id" 
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+            >
+              {{ getSectionName(filters.section_id) }}
+              <button @click="clearSection" class="ml-1 hover:text-purple-600 dark:hover:text-purple-300">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
           </div>
         </div>
       </div>
@@ -464,34 +503,31 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="text-center">
             <div class="text-2xl font-bold text-gray-900 dark:text-white">
-              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summary.totalAmount)}` : '₹0' }}
+              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summaryData.totalAmount)}` : '₹0' }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">Total Amount</div>
             <div v-if="summaryData.totalInvoices > 0" class="text-xs text-gray-400 mt-1">{{ summaryData.totalInvoices }} invoices</div>
           </div>
           <div class="text-center">
             <div class="text-2xl font-bold text-green-600 dark:text-green-400">
-              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summary.totalCollected)}` : '₹0' }}
+              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summaryData.totalCollected)}` : '₹0' }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">Total Collected</div>
           </div>
           <div class="text-center">
             <div class="text-2xl font-bold text-red-600 dark:text-red-400">
-              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summary.totalPending)}` : '₹0' }}
+              {{ summaryData.totalInvoices > 0 ? `₹${formatCurrency(summaryData.totalPending)}` : '₹0' }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">Total Pending</div>
           </div>
           <div class="text-center">
             <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {{ summaryData.totalInvoices > 0 ? `${summary.collectionRate}%` : '0%' }}
+              {{ summaryData.totalInvoices > 0 ? `${summaryData.collectionRate}%` : '0%' }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</div>
           </div>
         </div>
-        <!-- Show message when no data -->
-        <div v-if="summaryData.totalInvoices === 0 && !isLoading" class="text-center mt-4">
-          <p class="text-gray-500 dark:text-gray-400">Select filters and click "Apply Filters" to view report data</p>
-        </div>
+        
       </div>
 
       <!-- Detailed Report Table -->
@@ -550,14 +586,14 @@
                 <div class="flex-shrink-0 h-10 w-10">
                   <img v-if="studentGroup.studentPhoto" :src="studentGroup.studentPhoto" alt="" class="h-10 w-10 rounded-full object-cover" />
                   <div v-else class="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                    {{ studentGroup.studentName.charAt(0).toUpperCase() }}
+                    {{ (studentGroup.studentName || 'U').charAt(0).toUpperCase() }}
                   </div>
                 </div>
                 
                 <!-- Student Info -->
                 <div>
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ studentGroup.studentName }}
+                    {{ studentGroup.studentName || 'Unknown Student' }}
                   </div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">
                     Roll No: {{ studentGroup.rollNumber }} • Admission: {{ studentGroup.admissionNumber }} • {{ studentGroup.className }}
@@ -726,7 +762,9 @@ const isInitializing = ref(true);
 const expandedStudents = ref([]); // Track which students are expanded
 const showDownloadDropdown = ref(false); // Track download dropdown state
 const showColumnSelector = ref(false); // Track column selector state
-
+const totalInvoices = ref(0); // Track total invoices from backend
+const totalStudentGroups = ref(0); // Track total students from backend
+const studentGroups = ref([]); // Store the paginated student groups from backend
 
 // Available months for monthly payment filtering
 const availableMonths = ref([
@@ -924,28 +962,29 @@ const groupedInvoices = computed(() => {
 
 // Paginated grouped results for display
 const paginatedGroupedInvoices = computed(() => {
-  // Ensure pageSize is a number
+  // If we have backend paginated student groups, use them directly
+  if (studentGroups.value.length > 0) {
+    console.log('📊 Using backend paginated student groups:', studentGroups.value.length);
+    return studentGroups.value;
+  }
+  
+  // Fallback to client-side pagination for flat data
   const pageSizeNum = parseInt(pageSize.value);
   const startIndex = (currentPage.value - 1) * pageSizeNum;
   const endIndex = startIndex + pageSizeNum;
   const result = groupedInvoices.value.slice(startIndex, endIndex);
   
-
-  
-  // Debug: Check if pagination is working
-  if (groupedInvoices.value.length > pageSizeNum && result.length === groupedInvoices.value.length) {
-    console.warn('⚠️ Pagination not working - showing all results instead of paginated results');
-    console.warn('⚠️ Expected:', pageSizeNum, 'items, but showing:', result.length, 'items');
-  }
+  console.log('📊 Using client-side pagination:', { 
+    total: groupedInvoices.value.length, 
+    pageSize: pageSizeNum, 
+    currentPage: currentPage.value,
+    result: result.length 
+  });
   
   return result;
 });
 
-// Update pagination to work with student groups instead of individual invoices
-const totalStudentGroups = computed(() => {
-  const count = groupedInvoices.value.length;
-  return count;
-});
+// totalStudentGroups is now a ref that gets updated from backend pagination
 
 const totalPagesForGroups = computed(() => {
   const pages = Math.ceil(totalStudentGroups.value / pageSize.value);
@@ -1047,28 +1086,9 @@ const handleDateRangeChange = () => {
       filters.fromDate = formatDate(weekStart);
       filters.toDate = formatDate(today);
       break;
-    case 'last_week':
-      const lastWeekStart = new Date(today);
-      lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
-      const lastWeekEnd = new Date(lastWeekStart);
-      lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-      filters.fromDate = formatDate(lastWeekStart);
-      filters.toDate = formatDate(lastWeekEnd);
-      break;
     case 'month':
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       filters.fromDate = formatDate(monthStart);
-      filters.toDate = formatDate(today);
-      break;
-    case 'last_month':
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      filters.fromDate = formatDate(lastMonthStart);
-      filters.toDate = formatDate(lastMonthEnd);
-      break;
-    case 'quarter':
-      const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-      filters.fromDate = formatDate(quarterStart);
       filters.toDate = formatDate(today);
       break;
     case 'year':
@@ -1210,22 +1230,19 @@ const fetchReportSummary = async () => {
       params.to_date = filters.toDate;
     }
 
-    // Only add class_name if a specific class is selected (not "All Classes")
+    // Only add class_id if a specific class is selected (not "All Classes")
     if (filters.class_id && filters.class_id !== '') {
-      // Find the class name from the selected class ID
-      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
-      if (selectedClass) {
-        params.class_name = selectedClass.name;
-      }
+      params.class_id = filters.class_id;
     }
 
-    // Only add section if a specific section is selected (not "All Sections")
+    // Only add section_id if a specific section is selected (not "All Sections")
     if (filters.section_id && filters.section_id !== '') {
-      // Find the section name from the selected section ID
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        params.section = selectedSection.name;
-      }
+      params.section_id = filters.section_id;
+    }
+
+    // Add stream_id if a specific stream is selected
+    if (filters.stream_id && filters.stream_id !== '') {
+      params.stream_id = filters.stream_id;
     }
 
     // Add month filter for monthly payments
@@ -1319,9 +1336,13 @@ const fetchReportSummary = async () => {
 
 const fetchReport = async () => {
   try {
+    // Clear previous student groups to ensure fresh data
+    studentGroups.value = [];
+    
     const params = {
-      // Use a reasonable limit - the backend should handle pagination properly
-      limit: 1000, // Reduced from 10000 to prevent excessive data loading
+      // Use proper pagination for student-grouped data
+      page: currentPage.value,
+      limit: pageSize.value, // Use pageSize for students per page
       // Map frontend filters to backend API parameters
       search: filters.student_search || undefined,
       status: filters.status || undefined,
@@ -1338,22 +1359,14 @@ const fetchReport = async () => {
       params.to_date = filters.toDate;
     }
     
-    // Only add class_name if a specific class is selected (not "All Classes")
+    // Only add class_id if a specific class is selected (not "All Classes")
     if (filters.class_id && filters.class_id !== '') {
-      // Find the class name from the selected class ID
-      const selectedClass = classes.value.find(cls => cls.id === filters.class_id);
-      if (selectedClass) {
-        params.class_name = selectedClass.name;
-      }
+      params.class_id = filters.class_id;
     }
     
-    // Only add section if a specific section is selected (not "All Sections")
+    // Only add section_id if a specific section is selected (not "All Sections")
     if (filters.section_id && filters.section_id !== '') {
-      // Find the section name from the selected section ID
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        params.section = selectedSection.name;
-      }
+      params.section_id = filters.section_id;
     }
     
     // Add month filter for monthly payments
@@ -1362,11 +1375,10 @@ const fetchReport = async () => {
       console.log('📅 Adding months filter:', filters.selectedMonths);
     }
     
-    // TODO: Backend doesn't support stream filtering yet
-    // Only add stream_id if streams are available and selected
-    // if (filters.stream_id && filters.stream_id !== '' && streams.value.length > 0) {
-    //   params.stream_id = filters.stream_id;
-    // }
+    // Add stream_id if a specific stream is selected
+    if (filters.stream_id && filters.stream_id !== '') {
+      params.stream_id = filters.stream_id;
+    }
     
     // Remove undefined values
     Object.keys(params).forEach(key => {
@@ -1414,16 +1426,16 @@ const fetchReport = async () => {
     console.log('🔍 Is "All Classes" selected?', !filters.class_id || filters.class_id === '');
     console.log('🔍 Will send class_name parameter?', params.hasOwnProperty('class_name'));
     
-    // Try different API endpoints if the main one fails
+    // Use the new grouped endpoint for proper student pagination
     let response;
     try {
-      response = await FeeInvoices.getReport(params);
-      console.log('📊 Report response from feeInvoices.getReport:', response);
+      response = await FeeInvoices.getReportGrouped(params);
+      console.log('📊 Report response from feeInvoices.getReportGrouped:', response);
     } catch (error) {
-      console.log('⚠️ feeInvoices.getReport failed, trying invoices.getAll...');
+      console.log('⚠️ feeInvoices.getReportGrouped failed, trying fallback...');
       try {
-        response = await Invoices.getAll(params);
-        console.log('📊 Report response from invoices.getAll:', response);
+        response = await FeeInvoices.getReport(params);
+        console.log('📊 Report response from feeInvoices.getReport (fallback):', response);
       } catch (secondError) {
         console.error('❌ Both API endpoints failed:', secondError);
         throw secondError;
@@ -1431,45 +1443,64 @@ const fetchReport = async () => {
     }
     
     if (response.success) {
-      invoices.value = response.data?.invoices || [];
-      // Reset pagination since we're handling it on frontend for grouped results
-      currentPage.value = 1; // Reset to first page when new data is loaded
-      console.log('✅ Invoices loaded:', invoices.value.length, 'Total invoices:', invoices.value.length);
-      
-      // Debug: Check pagination info from backend
-      if (response.data?.pagination) {
-        console.log('📊 Backend Pagination Info:', {
-          current_page: response.data.pagination.current_page,
-          total_pages: response.data.pagination.total_pages,
-          total_records: response.data.pagination.total_records,
-          per_page: response.data.pagination.per_page,
-          has_next: response.data.pagination.has_next,
-          has_prev: response.data.pagination.has_prev
+      // Handle grouped response (new endpoint)
+      if (response.data?.studentGroups) {
+        // Store the student groups directly from backend (already paginated)
+        studentGroups.value = response.data.studentGroups;
+        
+        // Convert grouped data back to flat invoice list for compatibility
+        const flatInvoices = [];
+        response.data.studentGroups.forEach(group => {
+          group.invoices.forEach(invoice => {
+            flatInvoices.push(invoice);
+          });
         });
+        invoices.value = flatInvoices;
+        
+        // Update pagination info
+        if (response.data?.pagination) {
+          totalStudentGroups.value = response.data.pagination.total_students;
+          totalInvoices.value = response.data.pagination.total_invoices;
+          
+          // Log if we're in print mode
+          if (response.data.pagination.is_print_mode) {
+            console.log('🖨️ Backend returned all data in print mode');
+          }
+          
+          console.log('📊 Grouped Backend Pagination Info:', {
+            current_page: response.data.pagination.current_page,
+            total_pages: response.data.pagination.total_pages,
+            total_students: response.data.pagination.total_students,
+            total_invoices: response.data.pagination.total_invoices,
+            per_page: response.data.pagination.per_page,
+            has_next: response.data.pagination.has_next,
+            has_prev: response.data.pagination.has_prev
+          });
+        }
+        
+        console.log('✅ Grouped data loaded:', {
+          studentGroups: response.data.studentGroups.length,
+          totalStudents: response.data.pagination?.total_students || 0,
+          totalInvoices: response.data.pagination?.total_invoices || 0
+        });
+      } else {
+        // Handle flat response (fallback)
+        studentGroups.value = []; // Clear student groups for flat data
+        invoices.value = response.data?.invoices || [];
+        
+        console.log('✅ Flat data loaded (fallback):', invoices.value.length, 'invoices');
+        
+        if (response.data?.pagination) {
+          console.log('📊 Flat Backend Pagination Info:', {
+            current_page: response.data.pagination.current_page,
+            total_pages: response.data.pagination.total_pages,
+            total_records: response.data.pagination.total_records,
+            per_page: response.data.pagination.per_page,
+            has_next: response.data.pagination.has_next,
+            has_prev: response.data.pagination.has_prev
+          });
+        }
       }
-      
-      // Debug: Check unique students in the response
-      const uniqueStudents = new Set();
-      const studentNames = [];
-      invoices.value.forEach(invoice => {
-        const studentId = invoice.student?.id || invoice.student_id || invoice.studentId;
-        const studentName = invoice.student?.first_name ? 
-          `${invoice.student.first_name} ${invoice.student.last_name || ''}` : 
-          'Unknown Student';
-        uniqueStudents.add(studentId);
-        studentNames.push(studentName);
-      });
-      
-      console.log('🔍 Backend Response Debug:', {
-        totalInvoices: invoices.value.length,
-        uniqueStudentIds: uniqueStudents.size,
-        uniqueStudentNames: [...new Set(studentNames)],
-        sampleInvoices: invoices.value.slice(0, 3).map(inv => ({
-          id: inv.id,
-          studentId: inv.student?.id || inv.student_id,
-          studentName: inv.student?.first_name ? `${inv.student.first_name} ${inv.student.last_name || ''}` : 'Unknown'
-        }))
-      });
     } else {
       console.error('❌ Report response not successful:', response);
       showToast('Error fetching fee report', 'error');
@@ -1796,42 +1827,137 @@ const downloadReport = async (format) => {
       return;
     }
     
-    const exportFilters = {
-      from_date: filters.fromDate,
-      to_date: filters.toDate,
-      school_id: filters.school_id,
-      branch_id: filters.branch_id,
-      class_id: filters.class_id,
-      stream_id: filters.stream_id,
-      section_id: filters.section_id,
-      status: filters.status,
-      payment_method: filters.payment_method,
-      search: filters.student_search,
-      payment_model: filters.payment_model,
-      months: filters.selectedMonths
-    };
-
-    // Remove undefined values
-    Object.keys(exportFilters).forEach(key => {
-      if (exportFilters[key] === undefined || exportFilters[key] === '') {
-        delete exportFilters[key];
-      }
-    });
-
-    const selectedColumns = displayedColumns.value.map(col => ({
-      key: col.key,
-      header: col.label
-    }));
+    // Show loading state
+    isLoading.value = true;
     
-    await generateReport({
-      report_type: 'fees',
-      format,
-      filters: exportFilters,
-      columns: selectedColumns
-    });
+    try {
+      // Use common function to fetch all data
+      const { invoices: allInvoices } = await fetchAllDataForExport(`${format.toUpperCase()} download`);
+      
+      // Format the data for export
+      const formattedData = allInvoices.map(invoice => formatInvoiceDataForExport(invoice));
+      
+      const exportFilters = {
+        from_date: filters.fromDate,
+        to_date: filters.toDate,
+        school_id: filters.school_id,
+        branch_id: filters.branch_id,
+        class_id: filters.class_id,
+        stream_id: filters.stream_id,
+        section_id: filters.section_id,
+        status: filters.status,
+        payment_method: filters.payment_method,
+        search: filters.student_search,
+        payment_model: filters.payment_model,
+        months: filters.selectedMonths
+      };
+
+      // Remove undefined values
+      Object.keys(exportFilters).forEach(key => {
+        if (exportFilters[key] === undefined || exportFilters[key] === '') {
+          delete exportFilters[key];
+        }
+      });
+
+      const selectedColumns = displayedColumns.value.map(col => ({
+        key: col.key,
+        header: col.label
+      }));
+      
+      // Use the fetched data instead of relying on the export service to fetch data
+      await generateReport({
+        report_type: 'fees',
+        format,
+        filters: exportFilters,
+        columns: selectedColumns,
+        data: formattedData // Pass the fetched data directly
+      });
+      
+    } catch (fetchError) {
+      console.error(`❌ Error fetching data for ${format.toUpperCase()} download:`, fetchError);
+      showToast(`Error fetching data for ${format.toUpperCase()} download`, 'error');
+      return;
+    }
     
   } catch (error) {
+    console.error(`❌ Error downloading ${format.toUpperCase()} report:`, error);
     showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
+  } finally {
+    // Always clear loading state
+    isLoading.value = false;
+  }
+};
+
+// Common function to fetch all data for print/download operations
+const fetchAllDataForExport = async (operation = 'export') => {
+  try {
+    // Fetch ALL data for export operations (not just current page)
+    const exportParams = {
+      // Don't pass page and limit - backend will return all data for export
+      // page: 1, // Removed - backend handles print mode when no page/limit
+      // limit: 10000, // Removed - backend handles print mode when no page/limit
+      // Map frontend filters to backend API parameters
+      search: filters.student_search || undefined,
+      status: filters.status || undefined,
+      class_name: filters.class_id ? (filters.class_id === '' ? undefined : filters.class_id) : undefined,
+      section: filters.section_id || undefined,
+      from_date: filters.fromDate || undefined,
+      to_date: filters.toDate || undefined,
+      branch_id: filters.branch_id || undefined,
+      payment_model: filters.payment_model || undefined,
+      months: filters.selectedMonths && filters.selectedMonths.length > 0 ? filters.selectedMonths : undefined,
+      class_id: filters.class_id || undefined,
+      section_id: filters.section_id || undefined,
+      stream_id: filters.stream_id || undefined,
+      academic_year: filters.academic_year || undefined,
+      payment_method: filters.payment_method || undefined
+    };
+    
+    console.log(`📊 Fetching all data for ${operation} (no page/limit = print mode):`, exportParams);
+    
+    // Try to get grouped data first, fallback to flat data
+    let allInvoices = [];
+    let response;
+    
+    try {
+      response = await FeeInvoices.getReportGrouped(exportParams);
+      if (response.data?.studentGroups) {
+        // Flatten all student groups for export
+        response.data.studentGroups.forEach(group => {
+          group.invoices.forEach(invoice => {
+            allInvoices.push(invoice);
+          });
+        });
+      } else {
+        allInvoices = response.data?.invoices || [];
+      }
+    } catch (error) {
+      console.log(`⚠️ Grouped endpoint failed for ${operation}, trying flat endpoint...`);
+      response = await FeeInvoices.getReport(exportParams);
+      allInvoices = response.data?.invoices || [];
+    }
+    
+    if (allInvoices.length === 0) {
+      throw new Error(`No data to ${operation}. Please check your filters.`);
+    }
+    
+    console.log(`📊 Fetched ${allInvoices.length} invoices for ${operation}`);
+    
+    // Log if we're in print mode
+    if (response.data?.pagination?.is_print_mode) {
+      console.log(`📊 Backend returned all data in print mode for ${operation}`);
+    }
+    
+    return {
+      invoices: allInvoices,
+      response: response,
+      totalStudents: response.data?.pagination?.total_students || 0,
+      totalInvoices: response.data?.pagination?.total_invoices || 0
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error fetching data for ${operation}:`, error);
+    throw error;
   }
 };
 
@@ -1845,13 +1971,14 @@ const printFeesReport = async () => {
       return;
     }
     
-    // Fetch all data for printing (similar to receipts page)
-    if (invoices.value.length === 0) {
-      showToast('No data to print. Please load some invoices first.', 'warning');
-      return;
-    } 
+    // Show loading state
+    isLoading.value = true;
     
-    const formattedData = invoices.value.map(invoice => formatInvoiceDataForExport(invoice));
+    try {
+      // Use common function to fetch all data
+      const { invoices: allInvoices } = await fetchAllDataForExport('printing');
+      
+      const formattedData = allInvoices.map(invoice => formatInvoiceDataForExport(invoice));
     
       const reportData = {
         title: 'Fee Invoices Report',
@@ -1874,19 +2001,30 @@ const printFeesReport = async () => {
           'Payment Method': filters.payment_method || 'All Methods',
           'Search': filters.student_search || 'None'
         },
-        totalRecords: invoices.value.length,
+        totalRecords: allInvoices.length, // Use the actual count of all invoices
         reportType: 'fees'
       };
     
-    await printReportCommon(reportData, {
-      showHeader: true,
-      showSummary: true,
-      showFilters: true,
-      showFooter: true,
-      autoPrint: true
-    });
+      await printReportCommon(reportData, {
+        showHeader: true,
+        showSummary: true,
+        showFilters: true,
+        showFooter: true,
+        autoPrint: true
+      });
+      
+    } catch (fetchError) {
+      console.error('❌ Error fetching data for printing:', fetchError);
+      showToast('Error fetching data for printing', 'error');
+      return;
+    }
+    
   } catch (error) {
+    console.error('❌ Error printing report:', error);
     showToast('Error printing report', 'error');
+  } finally {
+    // Always clear loading state
+    isLoading.value = false;
   }
 };
 
@@ -1924,6 +2062,13 @@ const validateColumnVisibility = (action = 'export') => {
 
 // Common method to validate data availability for exports
 const validateDataAvailability = (action = 'export') => {
+  // For print/download, we fetch all data regardless of current page
+  // So we don't need to check if current page has data
+  if (action === 'print' || action === 'export') {
+    return true; // Always allow print/export as we fetch all data
+  }
+  
+  // For other actions, check current page data
   if (invoices.value.length === 0) {
     showToast(`No data available to ${action}. Please load some invoices first.`, 'warning');
     return false;
@@ -1942,14 +2087,24 @@ const viewInvoice = (invoice) => {
 };
 
 const goToPage = (page) => {
-  if (page >= 1 && page <= totalPagesForGroups.value) {
+  console.log('🔄 goToPage called:', { page, totalPages: totalPagesForGroups.value, currentPage: currentPage.value });
+  if (page >= 1 && (totalPagesForGroups.value === 0 || page <= totalPagesForGroups.value)) {
     currentPage.value = page;
+    console.log('✅ Page change accepted, fetching new data...');
+    // Trigger API call to fetch new page data
+    fetchReport();
+  } else {
+    console.log('❌ Page change rejected:', { page, totalPages: totalPagesForGroups.value });
   }
 };
 
 const onPageSizeChange = (newPageSize) => {
+  console.log('🔄 onPageSizeChange called:', { newPageSize, currentPageSize: pageSize.value });
   pageSize.value = newPageSize;
   currentPage.value = 1; // Reset to first page when page size changes
+  console.log('✅ Page size changed, fetching new data...');
+  // Trigger API call to fetch data with new page size
+  fetchReport();
 };
 
 const formatCurrency = (amount) => {
@@ -2020,6 +2175,36 @@ const getClassName = (classId) => {
 const getSectionName = (sectionId) => {
   const section = sections.value.find(sec => sec.id === sectionId);
   return section ? section.name : `Section ${sectionId}`;
+};
+
+// Missing methods for enhanced active filters
+const getActiveFiltersCount = () => {
+  let count = 0;
+  if (filters.payment_model) count++;
+  if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) count++;
+  if (filters.status) count++;
+  if (filters.class_id) count++;
+  if (filters.section_id) count++;
+  return count;
+};
+
+const clearPaymentModel = () => {
+  filters.payment_model = '';
+  filters.selectedMonths = [];
+};
+
+const clearStatus = () => {
+  filters.status = '';
+};
+
+const clearClass = () => {
+  filters.class_id = '';
+  // Also clear section when class is cleared
+  filters.section_id = '';
+};
+
+const clearSection = () => {
+  filters.section_id = '';
 };
 
 // Dropdown functions

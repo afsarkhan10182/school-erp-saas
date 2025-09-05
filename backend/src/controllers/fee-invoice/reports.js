@@ -2,6 +2,7 @@ const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, 
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
+const { sequelize } = require('../../config/database');
 const XLSX = require('xlsx');
 const { createDateRange } = require('../../utils/dateUtils');
 
@@ -24,7 +25,7 @@ const getStudentFullName = (student) => {
 // Get fee collection summary
 const getFeeCollectionSummary = async (req, res, next) => {
   try {
-    const { academic_year, class_name, from_date, to_date, status, branch_id, search, section, payment_model, months } = req.query;
+    const { academic_year, class_name, class_id, from_date, to_date, status, branch_id, search, section, section_id, stream_id, payment_model, months } = req.query;
 
     const whereClause = {
       school_id: req.schoolId,
@@ -58,16 +59,28 @@ const getFeeCollectionSummary = async (req, res, next) => {
     
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
-      whereClause.created_at = {
-        [Op.between]: [fromDateTime, toDateTime],
-      };
+      
+      // Filter by both invoice_date and due_date to capture all relevant invoices
+      // This matches the same logic used in getFeeInvoiceReport for consistency
+      whereClause[Op.or] = [
+        {
+          invoice_date: {
+            [Op.between]: [fromDateTime, toDateTime],
+          }
+        },
+        {
+          due_date: {
+            [Op.between]: [fromDateTime, toDateTime],
+          }
+        }
+      ];
     }
 
 
 
     // Build a subquery for student filtering
     let studentSubquery = null;
-    if (search || class_name || section) {
+    if (search || class_name || class_id || section || section_id || stream_id) {
       const studentWhereClause = {};
       if (search) {
         studentWhereClause[Op.or] = [
@@ -83,8 +96,21 @@ const getFeeCollectionSummary = async (req, res, next) => {
           },
         ];
       }
-      if (class_name) studentWhereClause.current_class = class_name;
-      if (section) studentWhereClause.section = section;
+      
+      // Handle class filtering
+      if (class_id) {
+        studentWhereClause.class_id = class_id;
+      }
+      
+      // Handle section filtering
+      if (section_id) {
+        studentWhereClause.section_id = section_id;
+      }
+      
+      // Handle stream filtering
+      if (stream_id) {
+        studentWhereClause.stream_id = stream_id;
+      }
       
       // Handle student branch filtering based on user role
       if (req.user.role === 'branch_admin') {
@@ -99,50 +125,47 @@ const getFeeCollectionSummary = async (req, res, next) => {
       };
     }
 
-    // Get summary statistics
-    const totalInvoices = await FeeInvoice.count({
-      where: whereClause,
-      include: studentSubquery ? [studentSubquery] : [],
-    });
-
-    const paidInvoices = await FeeInvoice.count({
-      where: { ...whereClause, status: 'paid' },
-      include: studentSubquery ? [studentSubquery] : [],
-    });
-
-    const overdueInvoices = await FeeInvoice.count({
-      where: { ...whereClause, status: 'overdue' },
-      include: studentSubquery ? [studentSubquery] : [],
-    });
-
-    const partialPaidInvoices = await FeeInvoice.count({
-      where: { ...whereClause, status: 'partial_paid' },
-      include: studentSubquery ? [studentSubquery] : [],
-    });
-
-    // Get amount statistics - use separate query without include to avoid GROUP BY issues
-    const amountStats = await FeeInvoice.findAll({
+    // Get all summary statistics in a single optimized query
+    const summaryStats = await FeeInvoice.findAll({
       where: whereClause,
       include: studentSubquery ? [studentSubquery] : [],
       attributes: [
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('total_amount')), 'total_amount'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('paid_amount')), 'total_paid'],
-        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('balance_amount')), 'total_balance'],
+        [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.col('"FeeInvoice"."id"')), 'total_invoices'],
+        [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN \"FeeInvoice\".\"status\" = 'paid' THEN 1 END")), 'paid_count'],
+        [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN \"FeeInvoice\".\"status\" = 'overdue' THEN 1 END")), 'overdue_count'],
+        [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN \"FeeInvoice\".\"status\" = 'partial_paid' THEN 1 END")), 'partial_count'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."total_amount"')), 'total_amount'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."paid_amount"')), 'total_paid'],
+        [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.col('"FeeInvoice"."balance_amount"')), 'total_balance'],
       ],
       raw: true,
     });
 
-    const totalAmount = parseFloat(amountStats[0]?.total_amount || 0);
-    const totalPaid = parseFloat(amountStats[0]?.total_paid || 0);
-    const totalBalance = parseFloat(amountStats[0]?.total_balance || 0);
+    const stats = summaryStats[0] || {};
+    const totalInvoices = parseInt(stats.total_invoices || 0);
+    const totalAmount = parseFloat(stats.total_amount || 0);
+    const totalPaid = parseFloat(stats.total_paid || 0);
+    const totalBalance = parseFloat(stats.total_balance || 0);
 
     const summary = {
       totalAmount,
       totalCollected: totalPaid,
       totalPending: totalBalance,
       collectionRate: totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0,
-      totalInvoices
+      totalInvoices,
+      // Additional breakdown for better insights
+      paidInvoices: parseInt(stats.paid_count || 0),
+      overdueInvoices: parseInt(stats.overdue_count || 0),
+      partialPaidInvoices: parseInt(stats.partial_count || 0),
     };
+
+    logger.debug('Fee collection summary generated with optimized single query', {
+      totalInvoices,
+      totalAmount,
+      totalPaid,
+      totalBalance,
+      collectionRate: summary.collectionRate
+    });
 
     return res.status(200).json({ success: true, data: summary });
   } catch (error) {
@@ -207,7 +230,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
       query: req.query
     });
 
-    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id, payment_model, months } = req.query;
+    const { page = 1, limit = 10, search, status, class_name, section, from_date, to_date, branch_id, payment_model, months, class_id, section_id, stream_id } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
@@ -231,18 +254,74 @@ const getFeeInvoiceReport = async (req, res, next) => {
     }
     
     // Add months filtering for monthly payments
+    // When months are selected, automatically set the date range to cover those months
+    // Month mapping: 1=January, 2=February, 3=March, ..., 6=June, ..., 12=December
+    let monthBasedDateRange = null;
     if (payment_model === 'monthly' && months && months.length > 0) {
       // Convert months to array if it's a string
       const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
-      whereClause.month = {
-        [Op.in]: monthsArray
+      
+      // Get current year or extract from existing date range
+      let targetYear = new Date().getFullYear();
+      if (from_date) {
+        targetYear = new Date(from_date).getFullYear();
+      }
+      
+      // Calculate date range for selected months
+      const monthDates = monthsArray.map(month => {
+        const startDate = new Date(targetYear, month - 1, 1); // month - 1 because JS months are 0-indexed
+        const endDate = new Date(targetYear, month, 0); // Last day of the month
+        
+        // Format dates properly
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        
+        return {
+          month,
+          monthName: ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December'][month],
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate)
+        };
+      });
+      
+      // Set the date range to cover all selected months
+      const earliestStart = monthDates.reduce((earliest, current) => 
+        current.startDate < earliest ? current.startDate : earliest, monthDates[0].startDate);
+      const latestEnd = monthDates.reduce((latest, current) => 
+        current.endDate > latest ? current.endDate : latest, monthDates[0].endDate);
+      
+      monthBasedDateRange = {
+        from_date: earliestStart,
+        to_date: latestEnd,
+        months: monthDates
       };
+      
+      // Override the date range with month-based range
+      from_date = earliestStart;
+      to_date = latestEnd;
+      
+      logger.debug('Monthly payment filtering applied with date range:', {
+        payment_model,
+        selectedMonths: monthsArray,
+        monthDetails: monthDates,
+        calculatedDateRange: {
+          from_date: earliestStart,
+          to_date: latestEnd
+        }
+      });
     }
     
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       
       // Filter by both invoice_date and due_date to capture all relevant invoices
+      // Note: This OR condition is necessary for business logic but can be expensive
+      // Consider adding composite indexes on (invoice_date, due_date) for better performance
       whereClause[Op.or] = [
         {
           invoice_date: {
@@ -263,7 +342,15 @@ const getFeeInvoiceReport = async (req, res, next) => {
       limit,
       offset,
       payment_model,
-      months
+      months,
+      class_id,
+      section_id,
+      stream_id,
+      monthBasedDateRange: monthBasedDateRange ? {
+        from_date: monthBasedDateRange.from_date,
+        to_date: monthBasedDateRange.to_date,
+        selectedMonths: monthBasedDateRange.months.map(m => `${m.month} (${m.monthName})`)
+      } : null
     });
 
     const includeClause = [
@@ -284,6 +371,9 @@ const getFeeInvoiceReport = async (req, res, next) => {
       },
     ];
 
+    // Note: Monthly filtering is now handled by date range calculation above
+    // No need for separate FeePayment include since we're filtering by date range
+
     // Add student filters
     if (search) {
       includeClause[0].where[Op.or] = [
@@ -301,6 +391,21 @@ const getFeeInvoiceReport = async (req, res, next) => {
     }
     if (class_name) includeClause[0].where.current_class = class_name;
     if (section) includeClause[0].where.section = section;
+    
+    // Handle class_id filtering (from URL parameters)
+    if (class_id) {
+      includeClause[0].where.class_id = class_id;
+    }
+    
+    // Handle section_id filtering (from URL parameters)
+    if (section_id) {
+      includeClause[0].where.section_id = section_id;
+    }
+    
+    // Handle stream_id filtering (from URL parameters)
+    if (stream_id) {
+      includeClause[0].where.stream_id = stream_id;
+    }
     
     // Handle student branch filtering based on user role
     if (req.user.role === 'branch_admin') {
@@ -1219,10 +1324,315 @@ const getFeeStats = async (req, res, next) => {
   }
 };
 
+// GET endpoint to retrieve fee invoice report grouped by students with pagination
+const getFeeInvoiceReportGrouped = async (req, res, next) => {
+  try {
+    logger.debug('getFeeInvoiceReportGrouped: Request received', {
+      userRole: req.user?.role,
+      userSchoolId: req.user?.school_id,
+      schoolId: req.schoolId,
+      query: req.query
+    });
+
+    const { page, limit, search, status, class_name, section, from_date, to_date, branch_id, payment_model, months, class_id, section_id, stream_id } = req.query;
+    
+    // Handle pagination: if no page/limit provided, return all data (useful for printing)
+    const isPrintMode = !page && !limit;
+    const pageNum = page ? parseInt(page) : 1;
+    const limitNum = limit ? parseInt(limit) : 10;
+    const offset = isPrintMode ? 0 : (pageNum - 1) * limitNum;
+
+    const whereClause = {
+      school_id: req.schoolId,
+    };
+
+    // Handle branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      whereClause.branch_id = branch_id;
+    }
+
+    if (status) whereClause.status = status;
+    
+    // Add payment model filtering
+    if (payment_model) {
+      whereClause.payment_model = payment_model;
+    }
+    
+    // Add months filtering for monthly payments
+    // When months are selected, automatically set the date range to cover those months
+    // Month mapping: 1=January, 2=February, 3=March, ..., 6=June, ..., 12=December
+    let monthBasedDateRange = null;
+    if (payment_model === 'monthly' && months && months.length > 0) {
+      // Convert months to array if it's a string
+      const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
+      
+      // Get current year or extract from existing date range
+      let targetYear = new Date().getFullYear();
+      if (from_date) {
+        targetYear = new Date(from_date).getFullYear();
+      }
+      
+      // Calculate date range for selected months
+      const monthDates = monthsArray.map(month => {
+        const startDate = new Date(targetYear, month - 1, 1); // month - 1 because JS months are 0-indexed
+        const endDate = new Date(targetYear, month, 0); // Last day of the month
+        
+        // Format dates properly
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        
+        return {
+          month,
+          monthName: ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                     'July', 'August', 'September', 'October', 'November', 'December'][month],
+          startDate: formatDate(startDate),
+          endDate: formatDate(endDate)
+        };
+      });
+      
+      // Set the date range to cover all selected months
+      const earliestStart = monthDates.reduce((earliest, current) => 
+        current.startDate < earliest ? current.startDate : earliest, monthDates[0].startDate);
+      const latestEnd = monthDates.reduce((latest, current) => 
+        current.endDate > latest ? current.endDate : latest, monthDates[0].endDate);
+      
+      monthBasedDateRange = {
+        from_date: earliestStart,
+        to_date: latestEnd,
+        months: monthDates
+      };
+      
+      // Override the date range with month-based range
+      from_date = earliestStart;
+      to_date = latestEnd;
+      
+      logger.debug('Monthly payment filtering applied with date range:', {
+        payment_model,
+        selectedMonths: monthsArray,
+        monthDetails: monthDates,
+        calculatedDateRange: {
+          from_date: earliestStart,
+          to_date: latestEnd
+        }
+      });
+    }
+    
+    if (from_date && to_date) {
+      const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
+      
+      // Filter by both invoice_date and due_date to capture all relevant invoices
+      whereClause[Op.or] = [
+        {
+          invoice_date: {
+            [Op.between]: [fromDateTime, toDateTime],
+          }
+        },
+        {
+          due_date: {
+            [Op.between]: [fromDateTime, toDateTime],
+          }
+        }
+      ];
+    }
+
+    logger.debug('getFeeInvoiceReportGrouped: Query parameters', {
+      whereClause,
+      page,
+      limit,
+      offset,
+      payment_model,
+      months,
+      class_id,
+      section_id,
+      stream_id,
+      monthBasedDateRange: monthBasedDateRange ? {
+        from_date: monthBasedDateRange.from_date,
+        to_date: monthBasedDateRange.to_date,
+        selectedMonths: monthBasedDateRange.months.map(m => `${m.month} (${m.monthName})`)
+      } : null
+    });
+
+    // Build student filtering for the include clause
+    const studentWhereClause = {};
+    if (search) {
+      studentWhereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
+      ];
+    }
+    if (class_name) studentWhereClause.current_class = class_name;
+    if (section) studentWhereClause.section = section;
+    
+    // Handle class_id filtering (from URL parameters)
+    if (class_id) {
+      studentWhereClause.class_id = class_id;
+    }
+    
+    // Handle section_id filtering (from URL parameters)
+    if (section_id) {
+      studentWhereClause.section_id = section_id;
+    }
+    
+    // Handle stream_id filtering (from URL parameters)
+    if (stream_id) {
+      studentWhereClause.stream_id = stream_id;
+    }
+    
+    // Handle student branch filtering based on user role
+    if (req.user.role === 'branch_admin') {
+      studentWhereClause.branch_id = req.user.branch_id;
+    }
+
+    // First, get all unique students that match the criteria
+    const studentsWithInvoices = await FeeInvoice.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          where: studentWhereClause,
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
+        },
+      ],
+      attributes: ['student_id'],
+      group: ['"FeeInvoice"."student_id"', '"student"."id"'],
+      raw: false,
+    });
+
+    // Extract unique student IDs
+    const studentIds = [...new Set(studentsWithInvoices.map(item => item.student_id))];
+    
+    logger.debug('getFeeInvoiceReportGrouped: Found students', {
+      totalStudents: studentIds.length,
+      studentIds: studentIds.slice(0, 5) // Log first 5 for debugging
+    });
+
+    // Paginate the student IDs (or get all if in print mode)
+    const paginatedStudentIds = isPrintMode ? studentIds : studentIds.slice(offset, offset + limitNum);
+    
+    // Now get all invoices for the paginated students
+    const studentWhereClausePaginated = {
+      ...studentWhereClause,
+      id: {
+        [Op.in]: paginatedStudentIds
+      }
+    };
+
+    const { count: totalInvoices, rows: invoices } = await FeeInvoice.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          where: studentWhereClausePaginated,
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
+        },
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+            },
+          ],
+        },
+      ],
+      order: [['student', 'first_name', 'ASC']],
+    });
+
+    // Group invoices by student
+    const groupedInvoices = {};
+    invoices.forEach(invoice => {
+      const studentId = invoice.student_id;
+      if (!groupedInvoices[studentId]) {
+        const student = invoice.student;
+        groupedInvoices[studentId] = {
+          studentId: studentId,
+          studentName: student ? `${student.first_name || ''} ${student.last_name || ''}`.trim() : 'Unknown Student',
+          studentPhoto: student?.photo || null,
+          admissionNumber: student?.admission_number || 'N/A',
+          rollNumber: student?.roll_number || 'N/A',
+          className: student?.current_class || 'N/A',
+          section: student?.section || 'N/A',
+          student: invoice.student, // Keep original for backward compatibility
+          invoices: [],
+          totalAmount: 0,
+          paidCount: 0,
+          pendingCount: 0,
+          overdueCount: 0
+        };
+      }
+      
+      groupedInvoices[studentId].invoices.push(invoice);
+      groupedInvoices[studentId].totalAmount += parseFloat(invoice.total_amount || 0);
+      
+      // Count by status
+      if (invoice.status === 'paid') {
+        groupedInvoices[studentId].paidCount++;
+      } else if (invoice.status === 'sent' || invoice.status === 'partial_paid' || invoice.status === 'overdue') {
+        groupedInvoices[studentId].pendingCount++;
+      }
+      
+      // Count overdue
+      if (new Date() > new Date(invoice.due_date)) {
+        groupedInvoices[studentId].overdueCount++;
+      }
+    });
+
+    const studentGroups = Object.values(groupedInvoices);
+    const totalPages = isPrintMode ? 1 : Math.ceil(studentIds.length / limitNum);
+
+    logger.debug('getFeeInvoiceReportGrouped: Response prepared', {
+      totalStudents: studentIds.length,
+      paginatedStudents: studentGroups.length,
+      totalInvoices: totalInvoices,
+      currentPage: pageNum,
+      totalPages,
+      isPrintMode
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        studentGroups,
+        pagination: {
+          current_page: pageNum,
+          total_pages: totalPages,
+          total_students: studentIds.length,
+          total_invoices: totalInvoices,
+          per_page: isPrintMode ? studentIds.length : limitNum,
+          has_next: isPrintMode ? false : pageNum < totalPages,
+          has_prev: isPrintMode ? false : pageNum > 1,
+          is_print_mode: isPrintMode,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching grouped fee invoice report:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   getFeeCollectionSummary,
   exportFeeInvoicesReportLegacy,
   getFeeInvoiceReport,
+  getFeeInvoiceReportGrouped,
   exportFeeInvoicesReport,
   getFeeStats,
 }; 

@@ -39,6 +39,7 @@ module.exports = {
   getFeeCollectionSummary: reports.getFeeCollectionSummary,
   exportFeeInvoicesReportLegacy: reports.exportFeeInvoicesReportLegacy,
   getFeeInvoiceReport: reports.getFeeInvoiceReport,
+  getFeeInvoiceReportGrouped: reports.getFeeInvoiceReportGrouped,
   exportFeeInvoicesReport: reports.exportFeeInvoicesReport,
   getFeeStats: reports.getFeeStats,
 

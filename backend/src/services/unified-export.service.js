@@ -475,6 +475,7 @@ class UnifiedExportService {
       // Calculate summary values using helper functions
       const totalRecords = data.length;
       let totalAmount = 0;
+      let totalCollected = 0;
       let summaryLabel = 'TOTAL RECORDS';
       let amountLabel = 'TOTAL AMOUNT';
       
@@ -485,6 +486,7 @@ class UnifiedExportService {
         amountLabel = 'TOTAL COLLECTED';
       } else if (reportType === 'fees') {
         totalAmount = data.reduce((sum, row) => sum + this.parseAmount(row.total_amount), 0);
+        totalCollected = data.reduce((sum, row) => sum + this.parseAmount(row.paid_amount), 0);
         summaryLabel = 'TOTAL INVOICES';
         amountLabel = 'TOTAL FEES';
       } else if (reportType === 'students') {
@@ -496,13 +498,18 @@ class UnifiedExportService {
       }
       
       // Summary cards - matching the image styling
-      const cardWidth = 180;
+      const cardWidth = 160;
       const cardHeight = 70;
-      const cardSpacing = 30;
+      const cardSpacing = 20;
       const startX = 50;
       
+      // Determine number of cards based on report type
+      const isFeesReport = reportType === 'fees' && totalCollected > 0;
+      const numCards = isFeesReport ? 3 : 2;
+      const totalWidth = cardWidth * numCards + cardSpacing * (numCards - 1);
+      
       // Summary section background
-      doc.rect(startX, summaryY, cardWidth * 2 + cardSpacing, cardHeight)
+      doc.rect(startX, summaryY, totalWidth, cardHeight)
         .fillColor('#f9f9f9')
         .fill()
         .strokeColor('#dee2e6')
@@ -520,19 +527,43 @@ class UnifiedExportService {
         
         const formattedAmount = this.formatCurrency(totalAmount);
         
-        doc.fontSize(24)
+        doc.fontSize(20)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
           .text(formattedAmount, startX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
         
-        doc.fontSize(11)
+        doc.fontSize(10)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
           .text(amountLabel, startX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
       }
       
-      // Total Records Card - SECOND
-      const recordsCardX = startX + cardWidth + cardSpacing;
+      // Total Collected Card (for fees reports) - SECOND
+      let recordsCardX = startX + cardWidth + cardSpacing;
+      if (isFeesReport) {
+        doc.rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
+          .fillColor('#ffffff')
+          .fill()
+          .strokeColor('#dee2e6')
+          .lineWidth(1)
+          .stroke();
+        
+        const formattedCollected = this.formatCurrency(totalCollected);
+        
+        doc.fontSize(20)
+          .font('Helvetica-Bold')
+          .fillColor('#2c3e50')
+          .text(formattedCollected, recordsCardX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
+        
+        doc.fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#2c3e50')
+          .text('TOTAL COLLECTED', recordsCardX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
+        
+        recordsCardX = startX + (cardWidth + cardSpacing) * 2;
+      }
+      
+      // Total Records Card - LAST
       doc.rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
         .fillColor('#ffffff')
         .fill()
@@ -540,12 +571,12 @@ class UnifiedExportService {
         .lineWidth(1)
         .stroke();
       
-      doc.fontSize(28)
+      doc.fontSize(24)
         .font('Helvetica-Bold')
         .fillColor('#2c3e50')
         .text(totalRecords.toString(), recordsCardX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
       
-      doc.fontSize(11)
+      doc.fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#2c3e50')
         .text(summaryLabel, recordsCardX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
