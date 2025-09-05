@@ -561,6 +561,28 @@
                     </div>
                   </div>
                   <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Receipt Logo</label>
+                    <div class="flex items-center gap-3">
+                      <input 
+                        type="file" 
+                        @change="handleReceiptLogoUpload" 
+                        accept="image/*" 
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                      />
+                      <div v-if="receiptSettings.receiptLogo" class="flex-shrink-0">
+                        <img 
+                          :src="getImageUrl(receiptSettings.receiptLogo)" 
+                          alt="Receipt Logo" 
+                          class="w-16 h-10 object-contain rounded border-2 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Trust Name</label>
+                    <input v-model="receiptSettings.trustName" type="text" class="input-field" placeholder="HAJI OMAR MOOSA EDUCATIONAL TRUST" />
+                  </div>
+                  <div>
                     <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Footer Text</label>
                     <textarea v-model="receiptSettings.receiptFooter" rows="2" class="input-field" placeholder="Footer text for receipts"></textarea>
                   </div>
@@ -573,7 +595,11 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div class="flex items-center">
                     <input v-model="receiptSettings.showSchoolLogo" type="checkbox" id="showLogo" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
-                    <label for="showLogo" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Logo</label>
+                    <label for="showLogo" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show School Logo</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="receiptSettings.showReceiptLogo" type="checkbox" id="showReceiptLogo" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="showReceiptLogo" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Receipt Logo</label>
                   </div>
                   <div class="flex items-center">
                     <input v-model="receiptSettings.showSchoolAddress" type="checkbox" id="showAddress" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
@@ -892,9 +918,13 @@ const attendanceSettings = reactive({
 const receiptSettings = reactive({
   schoolName: '',
   schoolLogo: '',
-  schoolLogoFile: null, // Store the actual file for upload
+  schoolLogoFile: null,
+  receiptLogo: '',
+  receiptLogoFile: null,
+  trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
   defaultReceiptTitle: 'Fee Receipt',
   showSchoolLogo: true,
+  showReceiptLogo: true,
   showSchoolAddress: true,
   showSchoolContact: true,
   showBranchInfo: true,
@@ -1233,6 +1263,21 @@ const handleSchoolLogoUpload = (event) => {
   }
 };
 
+const handleReceiptLogoUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      receiptSettings.receiptLogo = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    // Store the file for upload
+    receiptSettings.receiptLogoFile = file;
+  }
+};
+
 const handleBranchLogoUpload = (event, branch) => {
   const file = event.target.files[0];
   if (file) {
@@ -1249,12 +1294,12 @@ const handleBranchLogoUpload = (event, branch) => {
 };
 
 const getImageUrl = (filename) => {
-  // If it's a data URL (preview), return as is
-  if (filename.startsWith('data:')) {
-    return filename;
-  }
-  // If it's a filename, construct the uploads URL
-  return filename ? `/uploads/logos/${filename}` : '';
+  if (!filename) return '';
+  if (filename.startsWith('data:')) return filename;
+  const config = useRuntimeConfig();
+  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
+  const backendBase = apiBase.replace('/api', '');
+  return `${backendBase}/uploads/logos/${filename}`;
 };
 
 const saveReceiptSettings = async () => {
@@ -1283,6 +1328,11 @@ const saveReceiptSettings = async () => {
     // Add school logo if uploaded
     if (receiptSettings.schoolLogoFile) {
       formData.append('schoolLogo', receiptSettings.schoolLogoFile);
+    }
+    
+    // Add receipt logo if uploaded
+    if (receiptSettings.receiptLogoFile) {
+      formData.append('receiptLogo', receiptSettings.receiptLogoFile);
     }
     
     // Add branches data

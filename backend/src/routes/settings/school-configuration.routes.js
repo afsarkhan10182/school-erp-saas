@@ -33,6 +33,7 @@ router.put('/receipt-settings',
   authorize(['school_admin', 'super_admin']),
   uploadFields([
     { name: 'schoolLogo', maxCount: 1 },
+    { name: 'receiptLogo', maxCount: 1 },
     { name: 'branchLogos', maxCount: 10 } // Allow multiple branch logos
   ]),
   ReceiptSettingsController.updateReceiptSettings

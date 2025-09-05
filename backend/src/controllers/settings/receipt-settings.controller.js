@@ -1,5 +1,73 @@
 const { logger } = require('../../utils/logger');
 const ApiError = require('../../utils/ApiError');
+const fs = require('fs');
+const path = require('path');
+const { resolveUploadsPath } = require('../../utils/pathHelper');
+
+// Helper function to delete old logo files
+const deleteOldLogoFile = (filename) => {
+  if (!filename) return;
+  try {
+    const logoPath = path.join(resolveUploadsPath('logos'), filename);
+    if (fs.existsSync(logoPath)) {
+      fs.unlinkSync(logoPath);
+      logger.info(`Deleted old logo file: ${filename}`);
+    }
+  } catch (error) {
+    logger.warn(`Failed to delete old logo file ${filename}:`, error.message);
+  }
+};
+
+// Helper function to clean up orphaned logo files
+const cleanupOrphanedLogos = async () => {
+  try {
+    const { School, Branch } = require('../../models');
+    
+    // Get all schools and their logo filenames
+    const schools = await School.findAll({
+      attributes: ['receipt_settings']
+    });
+    
+    // Get all branches and their logo filenames
+    const branches = await Branch.findAll({
+      attributes: ['receipt_logo']
+    });
+    
+    // Collect all valid logo filenames
+    const validLogos = new Set();
+    
+    schools.forEach(school => {
+      const settings = school.receipt_settings || {};
+      if (settings.schoolLogo) validLogos.add(settings.schoolLogo);
+      if (settings.receiptLogo) validLogos.add(settings.receiptLogo);
+    });
+    
+    branches.forEach(branch => {
+      if (branch.receipt_logo) validLogos.add(branch.receipt_logo);
+    });
+    
+    // Get all files in logos directory
+    const logosDir = resolveUploadsPath('logos');
+    if (fs.existsSync(logosDir)) {
+      const files = fs.readdirSync(logosDir);
+      
+      // Delete orphaned files
+      files.forEach(file => {
+        if (!validLogos.has(file)) {
+          const filePath = path.join(logosDir, file);
+          try {
+            fs.unlinkSync(filePath);
+            logger.info(`Deleted orphaned logo file: ${file}`);
+          } catch (error) {
+            logger.warn(`Failed to delete orphaned logo file ${file}:`, error.message);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    logger.error('Error cleaning up orphaned logos:', error);
+  }
+};
 
 /**
  * Get receipt settings for a school
@@ -41,8 +109,11 @@ const getReceiptSettings = async (req, res, next) => {
     let receiptSettings = {
       schoolName: school.name,
       schoolLogo: school.logo || '',
+      receiptLogo: '',
+      trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
       defaultReceiptTitle: 'Fee Receipt',
       showSchoolLogo: true,
+      showReceiptLogo: true,
       showSchoolAddress: true,
       showSchoolContact: true,
       showBranchInfo: true,
@@ -95,6 +166,7 @@ const updateReceiptSettings = async (req, res, next) => {
     // Handle uploaded files
     const uploadedFiles = req.files || {};
     const schoolLogoFile = uploadedFiles.schoolLogo?.[0];
+    const receiptLogoFile = uploadedFiles.receiptLogo?.[0];
     const branchLogoFiles = uploadedFiles.branchLogos || [];
 
     if (!receiptSettings) {
@@ -113,12 +185,26 @@ const updateReceiptSettings = async (req, res, next) => {
       throw new ApiError(404, 'School not found');
     }
 
+    // Get current settings to check for old logo files
+    const currentSettings = school.receipt_settings || {};
+    
+    // Delete old logo files if new ones are being uploaded
+    if (schoolLogoFile && currentSettings.schoolLogo) {
+      deleteOldLogoFile(currentSettings.schoolLogo);
+    }
+    if (receiptLogoFile && currentSettings.receiptLogo) {
+      deleteOldLogoFile(currentSettings.receiptLogo);
+    }
+
     // Save receipt settings to school
     const updatedReceiptSettings = {
       schoolName: receiptSettings.schoolName || school.name,
       schoolLogo: schoolLogoFile ? schoolLogoFile.filename : (receiptSettings.schoolLogo || ''),
+      receiptLogo: receiptLogoFile ? receiptLogoFile.filename : (receiptSettings.receiptLogo || ''),
+      trustName: receiptSettings.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
       defaultReceiptTitle: receiptSettings.defaultReceiptTitle || 'Fee Receipt',
       showSchoolLogo: receiptSettings.showSchoolLogo !== false,
+      showReceiptLogo: receiptSettings.showReceiptLogo !== false,
       showSchoolAddress: receiptSettings.showSchoolAddress !== false,
       showSchoolContact: receiptSettings.showSchoolContact !== false,
       showBranchInfo: receiptSettings.showBranchInfo !== false,
@@ -133,11 +219,19 @@ const updateReceiptSettings = async (req, res, next) => {
     if (branches && Array.isArray(branches)) {
       for (const branchData of branches) {
         if (branchData.id) {
+          // Get current branch to check for old logo
+          const currentBranch = await Branch.findByPk(branchData.id);
+          
           // Find if there's a logo file for this branch
           const branchLogoFile = branchLogoFiles.find(file => 
             file.fieldname === `branchLogos` && 
             file.originalname === branchData.receiptLogo
           );
+          
+          // Delete old branch logo if new one is being uploaded
+          if (branchLogoFile && currentBranch?.receipt_logo) {
+            deleteOldLogoFile(currentBranch.receipt_logo);
+          }
           
           await Branch.update(
             {
@@ -156,6 +250,9 @@ const updateReceiptSettings = async (req, res, next) => {
         }
       }
     }
+
+    // Clean up orphaned logo files
+    await cleanupOrphanedLogos();
 
     logger.info(`Receipt settings updated for school ${schoolId}`);
 

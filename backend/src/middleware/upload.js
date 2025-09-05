@@ -23,7 +23,22 @@ try {
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, resolvedUploadDir);
+    let subDir = 'documents';
+    if (file.fieldname === 'schoolLogo' || file.fieldname === 'receiptLogo' || file.fieldname === 'branchLogos') {
+      subDir = 'logos';
+    }
+    
+    const fullPath = path.join(resolvedUploadDir, subDir);
+    
+    try {
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+      }
+    } catch (error) {
+      console.warn(`Warning: Could not create upload subdirectory at ${fullPath}:`, error.message);
+    }
+    
+    cb(null, fullPath);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

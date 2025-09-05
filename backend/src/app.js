@@ -87,12 +87,14 @@ class App {
     this.app.use(require('cookie-parser')());
 
     // Static files
-    // Ensure images and other assets in uploads can be consumed cross-origin (frontend dev server vs backend port)
+    const { resolveUploadsPath } = require('./utils/pathHelper');
+    const uploadDir = config.uploads?.dir || './uploads';
+    const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
+    
     this.app.use(
       '/uploads',
-      express.static(config.uploads.dir, {
+      express.static(resolvedUploadDir, {
         setHeaders: (res) => {
-          // Allow resources to be embedded/loaded cross-origin
           res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         },
       })

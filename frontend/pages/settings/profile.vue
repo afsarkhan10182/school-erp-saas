@@ -17,14 +17,14 @@
             <User class="inline-block w-4 h-4 mr-2" />
             Profile
           </button>
-          <button
+          <!-- <button
             v-if="canViewSubscription"
             @click="activeTab = 'subscription'"
             :class="tabButtonClasses(activeTab === 'subscription')"
           >
             <CreditCard class="inline-block w-4 h-4 mr-2" />
             Subscription
-          </button>
+          </button> -->
           <button
             @click="activeTab = 'password'"
             :class="tabButtonClasses(activeTab === 'password')"

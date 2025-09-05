@@ -31,10 +31,29 @@
       <div class="receipt" :class="{ 'receipt-print': isPrinting }">
         <!-- Header -->
         <div class="header">
-          <img v-if="receiptData.school_logo" :src="receiptData.school_logo" alt="School Logo" class="school-logo">
-          <div class="trust-name">{{ schoolData.trust_name || 'HAJI OMAR MOOSA EDUCATIONAL TRUST' }}</div>
-          <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
-          <div class="school-address">{{ receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.' }}</div>
+          <img 
+            v-if="receiptData.receipt_logo && receiptData.receipt_logo.trim() !== ''" 
+            :src="getImageUrl(receiptData.receipt_logo)" 
+            alt="Receipt Logo" 
+            class="receipt-logo"
+            @error="handleLogoError"
+          >
+          <div class="header-content">
+            <div class="trust-section">
+              <div class="trust-name">{{ receiptData.trust_name || schoolData.trust_name || 'HAJI OMAR MOOSA EDUCATIONAL TRUST' }}</div>
+            </div>
+            <div class="school-section">
+              <img 
+                v-if="receiptData.school_logo" 
+                :src="getImageUrl(receiptData.school_logo)" 
+                alt="School Logo" 
+                class="school-logo"
+                @error="handleLogoError"
+              >
+              <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
+              <div class="school-address">{{ receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.' }}</div>
+            </div>
+          </div>
         </div>
         
         <!-- Receipt Title -->
@@ -317,6 +336,19 @@ const formatCurrency = (amount) => {
   return parseFloat(amount).toLocaleString('en-IN')
 }
 
+const handleLogoError = (event) => {
+  event.target.style.display = 'none'
+}
+
+const getImageUrl = (filename) => {
+  if (!filename) return '';
+  if (filename.startsWith('data:')) return filename;
+  const config = useRuntimeConfig();
+  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
+  const backendBase = apiBase.replace('/api', '');
+  return `${backendBase}/uploads/logos/${filename}`;
+}
+
 
 
 const getMonthName = (month) => {
@@ -539,27 +571,57 @@ onMounted(() => {
 }
 
 .header {
-  text-align: center;
-  padding: 15px;
+  padding: 20px 15px;
   border-bottom: 2px solid #333;
   background: #f8f9fa;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
 }
 
-.school-logo {
+.receipt-logo {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  margin: 0 auto 10px;
-  display: block;
+  border: 2px solid #333;
+  object-fit: contain;
+  background: white;
+  flex-shrink: 0;
+}
+
+.school-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
   border: 2px solid #333;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.header-content {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.trust-section {
+  margin-bottom: 10px;
 }
 
 .trust-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: bold;
   color: #333;
   margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.school-section {
+  margin-top: 5px;
 }
 
 .school-name {
