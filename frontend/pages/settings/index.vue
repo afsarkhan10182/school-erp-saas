@@ -299,14 +299,365 @@
           </div>
 
           <!-- Fee Configuration Tab -->
-          <div v-if="activeTab === 'fees'" class="space-y-4 sm:space-y-6">
-            <div class="text-center py-12">
-              <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                <DollarSign class="w-12 h-12 text-gray-400" />
+          <div v-if="activeTab === 'fees'" class="space-y-6">
+            <!-- Loading State -->
+            <div v-if="loadingStates.fees" class="flex justify-center items-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading fee configuration...</span>
+            </div>
+            
+            <!-- Content -->
+            <div v-else class="space-y-6">
+              <!-- General Fee Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">General Fee Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Currency</label>
+                    <select v-model="feeSettings.defaultCurrency" class="input-field">
+                      <option value="INR">Indian Rupee (₹)</option>
+                      <option value="USD">US Dollar ($)</option>
+                      <option value="EUR">Euro (€)</option>
+                      <option value="GBP">British Pound (£)</option>
+                      <option value="AED">UAE Dirham (د.إ)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency Symbol</label>
+                    <input v-model="feeSettings.currencySymbol" type="text" class="input-field" placeholder="₹" maxlength="5" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Academic Year Start Month</label>
+                    <select v-model="feeSettings.academicYearStartMonth" class="input-field">
+                      <option value="1">January</option>
+                      <option value="2">February</option>
+                      <option value="3">March</option>
+                      <option value="4">April</option>
+                      <option value="5">May</option>
+                      <option value="6">June</option>
+                      <option value="7">July</option>
+                      <option value="8">August</option>
+                      <option value="9">September</option>
+                      <option value="10">October</option>
+                      <option value="11">November</option>
+                      <option value="12">December</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Payment Due Days</label>
+                    <input v-model="feeSettings.defaultPaymentDueDays" type="number" class="input-field" placeholder="15" min="1" max="90" />
+                  </div>
+                </div>
               </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Fee Configuration</h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm sm:text-base">Manage fee types, payment settings, and financial rules.</p>
-              <p class="text-sm text-gray-500 dark:text-gray-500">Coming Soon</p>
+
+              <!-- Fee Structure Defaults -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Fee Structure Defaults</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Payment Model</label>
+                    <select v-model="feeSettings.defaultPaymentModel" class="input-field">
+                      <option value="monthly">Monthly</option>
+                      <option value="installment">Installment</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annually">Annually</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Installments Count</label>
+                    <input v-model="feeSettings.defaultInstallmentsCount" type="number" class="input-field" placeholder="4" min="2" max="12" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Monthly Months</label>
+                    <input v-model="feeSettings.defaultMonthlyMonths" type="number" class="input-field" placeholder="12" min="1" max="12" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Late Fee Percentage</label>
+                    <div class="relative">
+                      <input v-model="feeSettings.lateFeePercentage" type="number" class="input-field pr-8" placeholder="5" min="0" max="50" step="0.1" />
+                      <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Payment Methods</label>
+                    <div class="space-y-2">
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentMethods.cash" type="checkbox" id="cash" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="cash" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Cash</label>
+                      </div>
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentMethods.bank_transfer" type="checkbox" id="bank_transfer" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="bank_transfer" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Bank Transfer</label>
+                      </div>
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentMethods.cheque" type="checkbox" id="cheque" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="cheque" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Cheque</label>
+                      </div>
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentMethods.online" type="checkbox" id="online" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="online" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Online Payment</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Payment Validation</label>
+                    <div class="space-y-2">
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentValidation.requireTransactionId" type="checkbox" id="requireTransactionId" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="requireTransactionId" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Require Transaction ID</label>
+                      </div>
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentValidation.allowPartialPayments" type="checkbox" id="allowPartialPayments" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="allowPartialPayments" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Allow Partial Payments</label>
+                      </div>
+                      <div class="flex items-center">
+                        <input v-model="feeSettings.paymentValidation.autoGenerateReceipts" type="checkbox" id="autoGenerateReceipts" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="autoGenerateReceipts" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Auto-generate Receipts</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fee Categories & Types -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Fee Categories & Types</h3>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block font-medium mb-2 text-gray-700 dark:text-gray-300">Default Fee Categories</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Tuition Fees</label>
+                        <input v-model="feeSettings.defaultCategories.tuition" type="text" class="input-field" placeholder="Tuition Fees" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Transportation</label>
+                        <input v-model="feeSettings.defaultCategories.transportation" type="text" class="input-field" placeholder="Transportation Fees" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Library</label>
+                        <input v-model="feeSettings.defaultCategories.library" type="text" class="input-field" placeholder="Library Fees" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Laboratory</label>
+                        <input v-model="feeSettings.defaultCategories.laboratory" type="text" class="input-field" placeholder="Laboratory Fees" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-2 text-gray-700 dark:text-gray-300">Fee Type Options</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">One-time</label>
+                        <input v-model="feeSettings.feeTypeOptions.oneTime" type="text" class="input-field" placeholder="One-time" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Recurring</label>
+                        <input v-model="feeSettings.feeTypeOptions.recurring" type="text" class="input-field" placeholder="Recurring" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Variable</label>
+                        <input v-model="feeSettings.feeTypeOptions.variable" type="text" class="input-field" placeholder="Variable" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">Optional</label>
+                        <input v-model="feeSettings.feeTypeOptions.optional" type="text" class="input-field" placeholder="Optional" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Invoice & Receipt Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Invoice & Receipt Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Invoice Number Prefix</label>
+                    <input v-model="feeSettings.invoiceSettings.prefix" type="text" class="input-field" placeholder="INV" maxlength="10" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Receipt Number Prefix</label>
+                    <input v-model="feeSettings.invoiceSettings.receiptPrefix" type="text" class="input-field" placeholder="RCP" maxlength="10" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Auto-generate Invoice Numbers</label>
+                    <div class="flex items-center">
+                      <input v-model="feeSettings.invoiceSettings.autoGenerateNumbers" type="checkbox" id="autoGenerateNumbers" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                      <label for="autoGenerateNumbers" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enable automatic numbering</label>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Invoice Due Date Calculation</label>
+                    <select v-model="feeSettings.invoiceSettings.dueDateCalculation" class="input-field">
+                      <option value="fixed_days">Fixed days from invoice date</option>
+                      <option value="month_end">End of month</option>
+                      <option value="next_month">Next month same date</option>
+                      <option value="custom">Custom calculation</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="flex justify-end">
+                <button 
+                  @click="saveFeeSettings" 
+                  class="btn-primary"
+                  :disabled="isSavingFees"
+                >
+                  <span v-if="isSavingFees">Saving...</span>
+                  <span v-else>Save Fee Configuration</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Receipt Customization Tab -->
+          <div v-if="activeTab === 'receipts'" class="space-y-6">
+            <!-- Loading State -->
+            <div v-if="loadingStates.receipts" class="flex justify-center items-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading receipt settings...</span>
+            </div>
+            
+            <!-- Content -->
+            <div v-else class="space-y-6">
+              <!-- Basic Receipt Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">School Name</label>
+                    <input v-model="receiptSettings.schoolName" type="text" class="input-field" placeholder="School name for receipts" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Receipt Title</label>
+                    <input v-model="receiptSettings.defaultReceiptTitle" type="text" class="input-field" placeholder="Fee Receipt" />
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">School Logo</label>
+                    <div class="flex items-center gap-3">
+                      <input 
+                        type="file" 
+                        @change="handleSchoolLogoUpload" 
+                        accept="image/*" 
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                      />
+                      <div v-if="receiptSettings.schoolLogo" class="flex-shrink-0">
+                        <img 
+                          :src="getImageUrl(receiptSettings.schoolLogo)" 
+                          alt="School Logo" 
+                          class="w-12 h-12 object-cover rounded border-2 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Footer Text</label>
+                    <textarea v-model="receiptSettings.receiptFooter" rows="2" class="input-field" placeholder="Footer text for receipts"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Display Options -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Display Options</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div class="flex items-center">
+                    <input v-model="receiptSettings.showSchoolLogo" type="checkbox" id="showLogo" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="showLogo" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Logo</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="receiptSettings.showSchoolAddress" type="checkbox" id="showAddress" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="showAddress" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Address</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="receiptSettings.showSchoolContact" type="checkbox" id="showContact" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="showContact" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Contact</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="receiptSettings.showBranchInfo" type="checkbox" id="showBranch" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="showBranch" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Show Branch</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Branch Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Branch Settings</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Customize each branch's receipt appearance</p>
+                
+                <div v-for="branch in branches" :key="branch.id" class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4">
+                  <h4 class="font-medium text-gray-900 dark:text-white mb-3">{{ branch.name }}</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Display Name</label>
+                      <input 
+                        v-model="branch.receiptName" 
+                        type="text" 
+                        class="input-field" 
+                        :placeholder="`${branch.name} Receipt`" 
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Logo</label>
+                      <div class="flex items-center gap-3">
+                        <input 
+                          type="file" 
+                          @change="(event) => handleBranchLogoUpload(event, branch)" 
+                          accept="image/*" 
+                          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                        />
+                        <div v-if="branch.receiptLogo" class="flex-shrink-0">
+                          <img 
+                            :src="getImageUrl(branch.receiptLogo)" 
+                            alt="Branch Logo" 
+                            class="w-10 h-10 object-cover rounded border-2 border-gray-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Address</label>
+                      <input 
+                        v-model="branch.receiptAddress" 
+                        type="text" 
+                        class="input-field" 
+                        :placeholder="branch.address || 'Branch address'" 
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Contact</label>
+                      <input 
+                        v-model="branch.receiptContact" 
+                        type="text" 
+                        class="input-field" 
+                        :placeholder="branch.phone || 'Branch contact'" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="flex justify-end">
+                <button 
+                  @click="saveReceiptSettings" 
+                  class="btn-primary"
+                  :disabled="isSavingReceipts"
+                >
+                  <span v-if="isSavingReceipts">Saving...</span>
+                  <span v-else>Save Receipt Settings</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -430,6 +781,7 @@ import {
   Building2,
   GraduationCap,
   DollarSign,
+  Receipt,
   Settings,
   Bell,
   Shield,
@@ -448,12 +800,15 @@ const { showToast } = useToast();
 const activeTab = ref('school');
 const isSaving = ref(false);
 const isSavingAcademic = ref(false);
+const isSavingReceipts = ref(false);
+const isSavingFees = ref(false);
 
 // Loading states for each tab
 const loadingStates = reactive({
   school: false,
   academic: false,
   fees: false,
+  receipts: false,
   system: false,
   notifications: false,
   security: false,
@@ -468,13 +823,8 @@ const dataCache = reactive({
   school: null,
   academic: null,
   fees: null,
-  system: null,
-  notifications: null,
-  security: null,
-  integrations: null,
-  backup: null,
-  profile: null,
-  modules: null
+  receipts: null,
+  system: null
 });
 
 // School Configuration Data
@@ -538,6 +888,64 @@ const attendanceSettings = reactive({
   }
 });
 
+// Receipt Customization Data
+const receiptSettings = reactive({
+  schoolName: '',
+  schoolLogo: '',
+  schoolLogoFile: null, // Store the actual file for upload
+  defaultReceiptTitle: 'Fee Receipt',
+  showSchoolLogo: true,
+  showSchoolAddress: true,
+  showSchoolContact: true,
+  showBranchInfo: true,
+  receiptFooter: '',
+  branchSpecificSettings: []
+});
+
+const currentBranch = ref(null);
+const branches = ref([]);
+
+// Fee Configuration Data
+const feeSettings = reactive({
+  defaultCurrency: 'INR',
+  currencySymbol: '₹',
+  academicYearStartMonth: 6,
+  defaultPaymentDueDays: 15,
+  defaultPaymentModel: 'monthly',
+  defaultInstallmentsCount: 4,
+  defaultMonthlyMonths: 12,
+  lateFeePercentage: 5.0,
+  paymentMethods: {
+    cash: true,
+    bank_transfer: true,
+    cheque: true,
+    online: false
+  },
+  paymentValidation: {
+    requireTransactionId: false,
+    allowPartialPayments: true,
+    autoGenerateReceipts: true
+  },
+  defaultCategories: {
+    tuition: 'Tuition Fees',
+    transportation: 'Transportation Fees',
+    library: 'Library Fees',
+    laboratory: 'Laboratory Fees'
+  },
+  feeTypeOptions: {
+    oneTime: 'One-time',
+    recurring: 'Recurring',
+    variable: 'Variable',
+    optional: 'Optional'
+  },
+  invoiceSettings: {
+    prefix: 'INV',
+    receiptPrefix: 'RCP',
+    autoGenerateNumbers: true,
+    dueDateCalculation: 'fixed_days'
+  }
+});
+
 // Computed properties
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
 
@@ -558,6 +966,11 @@ const settingsTabs = computed(() => {
       id: 'fees',
       name: 'Fee Configuration',
       icon: DollarSign
+    },
+    {
+      id: 'receipts',
+      name: 'Receipt Customization',
+      icon: Receipt
     },
     {
       id: 'system',
@@ -642,8 +1055,28 @@ const loadTabData = async (tabName) => {
         break;
 
       case 'fees':
-        // TODO: Implement when fee settings endpoint is ready
-        dataCache.fees = true;
+        response = await api.get('/school/configuration/fee-settings');
+        if (response.data.success) {
+          Object.assign(feeSettings, response.data.data.feeSettings || {});
+          dataCache.fees = true;
+        }
+        break;
+
+      case 'receipts':
+        response = await api.get('/school/configuration/receipt-settings');
+        if (response.data.success) {
+          const settings = response.data.data.receiptSettings || {};
+          Object.assign(receiptSettings, {
+            ...settings,
+            schoolLogoFile: null // Reset file property on load
+          });
+          // Add file property to each branch for logo uploads
+          branches.value = (response.data.data.branches || []).map(branch => ({
+            ...branch,
+            receiptLogoFile: null
+          }));
+          dataCache.receipts = true;
+        }
         break;
 
       case 'system':
@@ -781,6 +1214,142 @@ const saveAcademicSettings = async () => {
     }
   } finally {
     isSavingAcademic.value = false;
+  }
+};
+
+// Image upload handling methods
+const handleSchoolLogoUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      receiptSettings.schoolLogo = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    // Store the file for upload
+    receiptSettings.schoolLogoFile = file;
+  }
+};
+
+const handleBranchLogoUpload = (event, branch) => {
+  const file = event.target.files[0];
+  if (file) {
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      branch.receiptLogo = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    // Store the file for upload
+    branch.receiptLogoFile = file;
+  }
+};
+
+const getImageUrl = (filename) => {
+  // If it's a data URL (preview), return as is
+  if (filename.startsWith('data:')) {
+    return filename;
+  }
+  // If it's a filename, construct the uploads URL
+  return filename ? `/uploads/logos/${filename}` : '';
+};
+
+const saveReceiptSettings = async () => {
+  isSavingReceipts.value = true;
+  try {
+    // Check if user is authenticated
+    if (!authStore.isLoggedIn) {
+      showToast('Please log in to save settings', 'error');
+      return;
+    }
+
+    // Check if user has required role
+    if (!authStore.isSchoolAdmin && !authStore.isSuperAdmin) {
+      showToast('You do not have permission to save settings', 'error');
+      return;
+    }
+
+    const api = createApiInstance();
+    
+    // Create FormData for file uploads
+    const formData = new FormData();
+    
+    // Add receipt settings
+    formData.append('receiptSettings', JSON.stringify(receiptSettings));
+    
+    // Add school logo if uploaded
+    if (receiptSettings.schoolLogoFile) {
+      formData.append('schoolLogo', receiptSettings.schoolLogoFile);
+    }
+    
+    // Add branches data
+    formData.append('branches', JSON.stringify(branches.value));
+    
+    // Add branch logos if uploaded
+    branches.value.forEach(branch => {
+      if (branch.receiptLogoFile) {
+        formData.append('branchLogos', branch.receiptLogoFile);
+      }
+    });
+    
+    const response = await api.put('/school/configuration/receipt-settings', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    if (response.data.success) {
+      showToast('Receipt settings saved successfully', 'success');
+      // Clear cache to ensure fresh data on next load
+      dataCache.receipts = null;
+    }
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      showToast('Authentication required to save settings', 'error');
+    } else {
+      showToast('Failed to save receipt settings', 'error');
+    }
+  } finally {
+    isSavingReceipts.value = false;
+  }
+};
+
+const saveFeeSettings = async () => {
+  isSavingFees.value = true;
+  try {
+    // Check if user is authenticated
+    if (!authStore.isLoggedIn) {
+      showToast('Please log in to save settings', 'error');
+      return;
+    }
+
+    // Check if user has required role
+    if (!authStore.isSchoolAdmin && !authStore.isSuperAdmin) {
+      showToast('You do not have permission to save settings', 'error');
+      return;
+    }
+
+    const api = createApiInstance();
+          const response = await api.put('/school/configuration/fee-settings', {
+      feeSettings
+    });
+    
+    if (response.data.success) {
+      showToast('Fee configuration saved successfully', 'success');
+      // Clear cache to ensure fresh data on next load
+      dataCache.fees = null;
+    }
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      showToast('Authentication required to save settings', 'error');
+    } else {
+      showToast('Failed to save fee configuration', 'error');
+    }
+  } finally {
+    isSavingFees.value = false;
   }
 };
 

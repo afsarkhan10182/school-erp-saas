@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { examTypeApi } from '~/api/exam-types'
+import { examTypeApi } from '~/api/academic/exam-types'
 import { useToast } from '~/composables/useToast'
 
 // Props

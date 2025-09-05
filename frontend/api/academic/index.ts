@@ -8,6 +8,7 @@ export { AcademicCalendar } from './academic-calendar';
 export { Academic } from './academic';
 export { examTypeApi as ExamTypes } from './exam-types';
 export { examApi as Exams } from './exams';
+export { subjectTeacherApi as SubjectTeachers } from './subject-teachers';
 
 // Re-export types
 export type { ClassParams, ClassData } from './classes';

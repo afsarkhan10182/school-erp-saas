@@ -136,6 +136,48 @@ const Branch = sequelize.define('Branch', {
       key: 'id',
     },
   },
+  // Receipt customization fields
+  receipt_name: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Custom name to display on receipts for this branch',
+    validate: {
+      len: {
+        args: [0, 100],
+        msg: 'Receipt name must be between 0 and 100 characters'
+      }
+    }
+  },
+  receipt_logo: {
+    type: DataTypes.STRING(500), // Optimized for URL storage
+    allowNull: true,
+    comment: 'Custom logo URL to display on receipts for this branch',
+    validate: {
+      isUrl: {
+        msg: 'Receipt logo must be a valid URL'
+      },
+      len: {
+        args: [0, 500],
+        msg: 'Receipt logo URL must be between 0 and 500 characters'
+      }
+    }
+  },
+  receipt_address: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Custom address to display on receipts for this branch'
+  },
+  receipt_contact: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Custom contact to display on receipts for this branch',
+    validate: {
+      len: {
+        args: [0, 100],
+        msg: 'Receipt contact must be between 0 and 100 characters'
+      }
+    }
+  },
 }, {
   tableName: 'branches',
   timestamps: true,

@@ -185,6 +185,52 @@ const School = sequelize.define('School', {
       key: 'id',
     },
   },
+  // Receipt customization settings
+  receipt_settings: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+    comment: 'Custom receipt settings for the school',
+    validate: {
+      isValidReceiptSettings(value) {
+        if (value && typeof value === 'object') {
+          const requiredFields = ['schoolName', 'defaultReceiptTitle'];
+          for (const field of requiredFields) {
+            if (!value[field]) {
+              throw new Error(`Receipt settings must include ${field}`);
+            }
+          }
+        }
+      }
+    }
+  },
+  // Fee configuration settings
+  fee_settings: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+    comment: 'Custom fee configuration settings for the school',
+    validate: {
+      isValidFeeSettings(value) {
+        if (value && typeof value === 'object') {
+          const requiredFields = ['defaultCurrency', 'defaultPaymentModel'];
+          for (const field of requiredFields) {
+            if (!value[field]) {
+              throw new Error(`Fee settings must include ${field}`);
+            }
+          }
+          // Validate currency
+          if (value.defaultCurrency && !['INR', 'USD', 'EUR', 'GBP', 'AED'].includes(value.defaultCurrency)) {
+            throw new Error('Invalid currency specified');
+          }
+          // Validate late fee percentage
+          if (value.lateFeePercentage && (value.lateFeePercentage < 0 || value.lateFeePercentage > 50)) {
+            throw new Error('Late fee percentage must be between 0 and 50');
+          }
+        }
+      }
+    }
+  },
   // Simple module disable/enable
   disabled_modules: {
     type: DataTypes.JSON,

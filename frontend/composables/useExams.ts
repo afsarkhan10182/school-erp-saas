@@ -1,5 +1,5 @@
 import { ref, reactive, computed, readonly } from 'vue';
-import { examApi, type Exam, type ExamFilters, type ExamResult, type ExamResultData } from '~/api/exams';
+import { examApi, type Exam, type ExamFilters, type ExamResult, type ExamResultData } from '~/api/academic/exams';
 import { useToast } from '~/composables/useToast';
 
 export interface ExamState {

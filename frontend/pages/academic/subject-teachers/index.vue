@@ -197,7 +197,7 @@ import { useAcademics } from '~/composables/useAcademics'
 import { Subjects, SubjectTeachers } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Pagination from '~/components/Pagination.vue'
-import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue'
+// import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue'
 import { Plus, BookOpen, CheckCircle, XCircle, Users } from 'lucide-vue-next'
 
 // Composables

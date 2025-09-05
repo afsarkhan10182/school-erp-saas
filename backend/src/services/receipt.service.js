@@ -132,7 +132,35 @@ const generateReceiptData = async (paymentId) => {
       await payment.update({ receipt_number: receiptNumber });
     }
 
-    // Build receipt data structure
+    // Get receipt customization settings
+    let receiptCustomization = {
+      schoolName: school.name,
+      schoolLogo: school.logo_url || '',
+      showSchoolLogo: true,
+      showSchoolAddress: true,
+      showSchoolContact: true,
+      showBranchInfo: true,
+      receiptFooter: '',
+      defaultReceiptTitle: 'Fee Receipt'
+    };
+
+    // Use custom receipt settings if available (JSONB fields are automatically parsed)
+    if (school.receipt_settings && Object.keys(school.receipt_settings).length > 0) {
+      receiptCustomization = { ...receiptCustomization, ...school.receipt_settings };
+    }
+
+    // Get branch-specific receipt settings
+    let branchReceiptSettings = {};
+    if (student.branch) {
+      branchReceiptSettings = {
+        name: student.branch.receipt_name || student.branch.name,
+        logo: student.branch.receipt_logo || '',
+        address: student.branch.receipt_address || student.branch.address || '',
+        contact: student.branch.receipt_contact || student.branch.phone || ''
+      };
+    }
+
+    // Build receipt data structure with customization
     const receiptData = {
       receipt_number: receiptNumber,
       invoice_number: invoice.invoice_number, // Keep invoice number for reference
@@ -147,16 +175,27 @@ const generateReceiptData = async (paymentId) => {
       payment_date: payment.payment_date,
       remaining_balance: remainingBalance,
       remaining_months: remainingMonths,
-      school_name: school.name,
-      school_address: school.address,
-      school_logo: school.logo_url,
-      branch_name: student.branch?.name || null,
-      branch_code: student.branch?.code || null,
-      branch: student.branch ? {
+      // School information with customization
+      school_name: receiptCustomization.schoolName || school.name,
+      school_address: receiptCustomization.showSchoolAddress ? (receiptCustomization.schoolAddress || school.address) : null,
+      school_logo: receiptCustomization.showSchoolLogo ? (receiptCustomization.schoolLogo || school.logo_url) : null,
+      school_contact: receiptCustomization.showSchoolContact ? (school.phone || school.email) : null,
+      // Branch information with customization
+      branch_name: receiptCustomization.showBranchInfo ? (branchReceiptSettings.name || student.branch?.name) : null,
+      branch_code: receiptCustomization.showBranchInfo ? (student.branch?.code) : null,
+      branch: receiptCustomization.showBranchInfo && student.branch ? {
         id: student.branch.id,
-        name: student.branch.name,
-        code: student.branch.code
+        name: branchReceiptSettings.name || student.branch.name,
+        code: student.branch.code,
+        logo: branchReceiptSettings.logo,
+        address: branchReceiptSettings.address,
+        contact: branchReceiptSettings.contact
       } : null,
+      // Receipt customization settings
+      receipt_title: receiptCustomization.defaultReceiptTitle,
+      receipt_footer: receiptCustomization.receiptFooter,
+      customization: receiptCustomization,
+      // Fee information
       fee_type_name: feeStructure?.feeType?.name || 'Tuition Fees',
       academic_year: invoice.academic_year,
       total_fees: parseFloat(invoice.total_amount),
