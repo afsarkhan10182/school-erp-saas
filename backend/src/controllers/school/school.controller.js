@@ -314,12 +314,12 @@ class SchoolController {
     });
   });
 
-  // Get school module settings (read-only for School Admin)
+  // Get school module settings (read-only for School Admin and Branch Admin)
   static getSchoolModules = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    // School admin can only view their own school's modules
-    if (req.user.role === 'school_admin' && req.user.school_id !== id) {
+    // School admin and branch admin can only view their own school's modules
+    if ((req.user.role === 'school_admin' || req.user.role === 'branch_admin') && req.user.school_id !== id) {
       throw new ApiError(403, 'You can only view your own school modules');
     }
 
