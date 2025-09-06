@@ -197,25 +197,25 @@
             <div v-if="filters.payment_model === 'monthly'" class="col-span-1">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select Months
-                <span v-if="filters.selectedMonths.length > 0" class="ml-2 text-xs text-indigo-600 dark:text-indigo-400">
-                  ({{ filters.selectedMonths.length }} selected)
+                <span v-if="academicYearInfo.academicYear" class="ml-2 text-xs text-indigo-600 dark:text-indigo-400">
+                  ({{ academicYearInfo.academicYear }})
                 </span>
               </label>
               
-              <!-- Month Selection Grid - Ultra Compact -->
-              <div class="grid grid-cols-6 gap-1 mb-2">
+              <!-- Month Selection Grid - Academic Year Layout -->
+              <div class="grid grid-cols-3 gap-2 mb-2">
                 <button
                   v-for="month in availableMonths" 
                   :key="month.value"
                   @click="toggleMonth(month.value)"
                   :class="[
-                    'px-1.5 py-1 text-xs font-medium rounded border transition-all duration-200 cursor-pointer',
+                    'px-2 py-1.5 text-xs font-medium rounded border transition-all duration-200 cursor-pointer',
                     filters.selectedMonths.includes(month.value)
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300'
                   ]"
                 >
-                  {{ month.label.slice(0, 3) }}
+                  {{ month.label }}
                 </button>
               </div>
               
@@ -235,35 +235,6 @@
                 </button>
               </div>
               
-              <!-- Selected Months Display - Ultra Compact -->
-              <div v-if="filters.selectedMonths.length > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded p-1.5">
-                <div class="flex items-center justify-between mb-1">
-                  <div class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
-                    ✓ {{ filters.selectedMonths.length }} month{{ filters.selectedMonths.length !== 1 ? 's' : '' }} selected
-                  </div>
-                </div>
-                <div class="flex flex-wrap gap-1">
-                  <span 
-                    v-for="monthValue in filters.selectedMonths" 
-                    :key="monthValue"
-                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                  >
-                    {{ getMonthLabel(monthValue) }}
-                    <button 
-                      @click="removeMonth(monthValue)" 
-                      class="ml-1 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors duration-200"
-                      type="button"
-                    >
-                      ×
-                    </button>
-                  </span>
-                </div>
-              </div>
-              
-              <!-- No Months Selected Message - Ultra Compact -->
-              <div v-else class="text-center py-1.5 text-gray-500 dark:text-gray-400 text-xs bg-gray-50 dark:bg-gray-700 rounded">
-                Click months above to select
-              </div>
             </div>
             <!-- School dropdown for super admin -->
             <div v-if="authStore.user?.role === 'super_admin'">
@@ -413,8 +384,8 @@
         
         <!-- Simple Active Filters Display -->
         <div v-if="hasActiveFilters" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-          <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
+          <div class="ml-2 mb-2 flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Active filters:</span>
             
             <!-- Payment Model Filter -->
             <span 
@@ -730,12 +701,15 @@ import {
   Printer
 } from 'lucide-vue-next';
 import { FeeInvoices, Invoices, Schools, Branches, Classes, Streams, Sections, FeeTypes } from '~/api';
+import { Dashboard } from '~/api/shared/dashboard';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/Pagination.vue';
-
+import { 
+  formatMonthsForAPI
+} from '~/utils/academicYearUtils';
 
 // Get auth store and toast
 const authStore = useAuthStore();
@@ -767,21 +741,12 @@ const totalInvoices = ref(0); // Track total invoices from backend
 const totalStudentGroups = ref(0); // Track total students from backend
 const studentGroups = ref([]); // Store the paginated student groups from backend
 
-// Available months for monthly payment filtering
-const availableMonths = ref([
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' }
-]);
+// Available months for monthly payment filtering (will be loaded from academic year)
+const availableMonths = ref([]);
+const academicYearInfo = ref({
+  academicYear: '2025-2026',
+  startingMonth: 6
+});
 
 // Available columns for selection
 const availableColumns = ref([
@@ -1076,8 +1041,6 @@ const resetFilters = () => {
 };
 
 const handleDateRangeChange = () => {
-  console.log('📅 handleDateRangeChange called with dateRange:', filters.dateRange);
-  
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
@@ -1093,7 +1056,6 @@ const handleDateRangeChange = () => {
     case 'today':
       filters.fromDate = formatDate(today);
       filters.toDate = formatDate(today);
-      console.log('📅 Today filter set:', { fromDate: filters.fromDate, toDate: filters.toDate });
       break;
     case 'yesterday':
       const yesterday = new Date(today);
@@ -1119,24 +1081,14 @@ const handleDateRangeChange = () => {
       break;
     case 'custom':
       // Keep existing fromDate and toDate values
-      console.log('📅 Custom filter - keeping existing values:', { fromDate: filters.fromDate, toDate: filters.toDate });
       break;
     default:
       filters.fromDate = '';
       filters.toDate = '';
-      console.log('📅 Default filter set:', { fromDate: filters.fromDate, toDate: filters.toDate });
   }
-  
-  console.log('📅 Final filter values after handleDateRangeChange:', {
-    dateRange: filters.dateRange,
-    fromDate: filters.fromDate,
-    toDate: filters.toDate
-  });
 };
 
 const handlePaymentModelChange = () => {
-  console.log('💰 Payment model changed to:', filters.payment_model);
-  console.log('💰 Current selectedMonths:', filters.selectedMonths);
   
   // Clear month selection when payment model changes
   if (filters.payment_model !== 'monthly') {
@@ -1193,6 +1145,22 @@ const clearAllMonths = () => {
   filters.selectedMonths = [];
 };
 
+// Fetch academic year months
+const fetchAcademicYearMonths = async () => {
+  try {
+    const response = await Dashboard.getAcademicYearMonths();
+    if (response.success) {
+      availableMonths.value = response.data.months;
+      academicYearInfo.value = {
+        academicYear: response.data.academicYear,
+        startingMonth: response.data.startingMonth
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching academic year months:', error);
+  }
+};
+
 const onSchoolChange = async () => {
   // Reset branch, class, and section when school changes
   filters.branch_id = '';
@@ -1243,11 +1211,16 @@ const onStreamChange = async () => {
 
 const fetchMonthlyPaymentStatus = async () => {
   try {
-    console.log('📅 Fetching monthly payment status...');
+    // Get the correct year(s) for the selected months using utility
+    const monthParams = formatMonthsForAPI(
+      filters.selectedMonths, 
+      academicYearInfo.value.startingMonth, 
+      academicYearInfo.value.academicYear
+    );
     
     const params = {
-      months: Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths,
-      year: new Date().getFullYear(),
+      months: monthParams.months,
+      year: monthParams.year,
       school_id: filters.school_id || undefined,
       branch_id: filters.branch_id || undefined,
       class_id: filters.class_id || undefined,
@@ -1258,8 +1231,6 @@ const fetchMonthlyPaymentStatus = async () => {
       limit: pageSize.value,
     };
     
-    console.log('📅 Frontend params before cleanup:', params);
-    console.log('📅 selectedMonths:', filters.selectedMonths, 'type:', typeof filters.selectedMonths);
     
     // Remove undefined values
     Object.keys(params).forEach(key => {
@@ -1268,20 +1239,10 @@ const fetchMonthlyPaymentStatus = async () => {
       }
     });
     
-    console.log('📅 Frontend params after cleanup:', params);
-    
-    console.log('📅 Monthly payment status params:', params);
     
     const response = await FeeInvoices.getMonthlyPaymentStatus(params);
     
     if (response.success) {
-      console.log('📅 Monthly payment status response:', response);
-      console.log('📅 Response data structure:', {
-        hasData: !!response.data,
-        dataLength: response.data?.length,
-        firstStudent: response.data?.[0],
-        pagination: response.pagination
-      });
       
       // Transform the data to match the expected format
       const transformedData = response.data.map(studentData => ({
@@ -1313,11 +1274,6 @@ const fetchMonthlyPaymentStatus = async () => {
       
       studentGroups.value = transformedData;
       
-      console.log('📅 Transformed data stored in studentGroups:', {
-        studentGroupsLength: studentGroups.value.length,
-        firstStudent: studentGroups.value[0],
-        firstStudentInvoices: studentGroups.value[0]?.invoices?.length
-      });
       
       // Update pagination info
       if (response.pagination) {
@@ -1327,14 +1283,11 @@ const fetchMonthlyPaymentStatus = async () => {
       
       // Don't update summary data here - let the summary API handle it
       // The summary API provides totals for all students, not just the current page
-      console.log('📅 Monthly payment status data loaded, summary will be handled by summary API');
-      
-      console.log('📅 Monthly payment status loaded successfully');
     } else {
       throw new Error(response.message || 'Failed to fetch monthly payment status');
     }
   } catch (error) {
-    console.error('📅 Error fetching monthly payment status:', error);
+    console.error('Error fetching monthly payment status:', error);
     
     if (error.code === 'ECONNABORTED') {
       showToast('Request timeout - please try again or select fewer months', 'error');
@@ -1390,7 +1343,6 @@ const fetchReportSummary = async () => {
     // Add month filter for monthly payments
     if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
       params.months = Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths;
-      console.log('📅 Adding months filter:', params.months);
     }
 
     // Remove undefined values
@@ -1522,7 +1474,6 @@ const fetchReport = async () => {
     // Add month filter for monthly payments
     if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
       params.months = filters.selectedMonths;
-      console.log('📅 Adding months filter:', filters.selectedMonths);
     }
     
     // Add stream_id if a specific stream is selected
@@ -2074,9 +2025,16 @@ const fetchAllDataForExport = async (operation = 'export') => {
     if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
       try {
         console.log(`📊 Using monthly payment status API for ${operation}`);
+        // Get the correct year(s) for the selected months using utility
+        const monthParams = formatMonthsForAPI(
+          filters.selectedMonths, 
+          academicYearInfo.value.startingMonth, 
+          academicYearInfo.value.academicYear
+        );
+        
         const monthlyParams = {
-          months: Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths,
-          year: new Date().getFullYear(),
+          months: monthParams.months,
+          year: monthParams.year,
           school_id: filters.school_id || undefined,
           branch_id: filters.branch_id || undefined,
           class_id: filters.class_id || undefined,
@@ -2461,10 +2419,8 @@ watch(filters, (newFilters) => {
 // Watch selectedMonths to auto-trigger filtering when months change
 watch(() => filters.selectedMonths, (newMonths, oldMonths) => {
   if (filters.payment_model === 'monthly' && newMonths.length !== oldMonths.length) {
-    console.log('📅 Months selection changed:', { old: oldMonths, new: newMonths });
     // Auto-trigger filtering when months are selected/deselected
     if (newMonths.length > 0) {
-      console.log('📅 Auto-triggering filter for selected months');
       // Small delay to avoid rapid API calls
       setTimeout(() => {
         if (filters.selectedMonths.length > 0) {
@@ -2491,7 +2447,8 @@ onMounted(async () => {
       fetchClasses(),
       fetchStreams(),
       fetchSections(),
-      fetchFeeTypes()
+      fetchFeeTypes(),
+      fetchAcademicYearMonths()
     ]);
     
     // Set default date range

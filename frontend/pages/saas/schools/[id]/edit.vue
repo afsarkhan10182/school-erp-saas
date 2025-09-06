@@ -125,6 +125,17 @@
             </p>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Payment Model</label>
+            <select v-model="form.schoolData.default_payment_model" class="input-field">
+              <option value="class_based">Class-based (Default)</option>
+              <option value="monthly">Monthly</option>
+              <option value="term_based">Term-based</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Default payment model for new fee structures
+            </p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Type</label>
             <select v-model="form.schoolData.academic_year_start" class="input-field">
               <option value="academic">Academic Year (Custom starting month)</option>
@@ -468,7 +479,8 @@ const form = ref({
     currency: 'INR',
     currency_symbol: '₹',
     starting_month: 6, // Default to June
-    academic_year_start: 'academic' // Default to Academic Year
+    academic_year_start: 'academic', // Default to Academic Year
+    default_payment_model: 'class_based' // Default payment model
   },
   subscriptionData: {
     plan_code: '',
@@ -661,7 +673,8 @@ const loadSchool = async () => {
       currency: school.currency || 'INR',
       currency_symbol: school.settings?.currency_symbol || '₹',
       starting_month: school.starting_month || 6, // Default to June
-      academic_year_start: school.academic_year_start || 'academic' // Default to Academic Year
+      academic_year_start: school.academic_year_start || 'academic', // Default to Academic Year
+      default_payment_model: school.fee_settings?.defaultPaymentModel || 'class_based' // Default payment model
     };
     
     form.value.subscriptionData = {

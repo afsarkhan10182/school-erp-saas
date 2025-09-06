@@ -139,6 +139,17 @@
             </p>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Payment Model</label>
+            <select v-model="form.schoolData.default_payment_model" class="input-field">
+              <option value="class_based">Class-based (Default)</option>
+              <option value="monthly">Monthly</option>
+              <option value="term_based">Term-based</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Default payment model for new fee structures
+            </p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Type</label>
             <select v-model="form.schoolData.academic_year_start" class="input-field">
               <option value="academic">Academic Year (Custom starting month)</option>
@@ -475,6 +486,7 @@ const form = ref({
     currency_symbol: '₹',
     starting_month: 6,
     academic_year_start: 'academic',
+    default_payment_model: 'class_based',
     timezone: 'Asia/Kolkata',
     locale: 'en-IN',
     date_format: 'DD/MM/YYYY',

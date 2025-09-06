@@ -27,27 +27,33 @@ export const Dashboard = {
     return response.data;
   },
 
-  getStudentsChartData: async () => {
+  getStudentsChartData: async (params?: DashboardParams) => {
     const api = createApiInstance();
-    const response = await api.get('/dashboard/students-chart');
+    const response = await api.get('/dashboard/students-chart', { params });
     return response.data;
   },
 
-  getFeesChartData: async () => {
+  getFeesChartData: async (params?: DashboardParams) => {
     const api = createApiInstance();
-    const response = await api.get('/dashboard/fees-chart');
+    const response = await api.get('/dashboard/fees-chart', { params });
     return response.data;
   },
 
-  getStudentDistributionData: async () => {
+  getStudentDistributionData: async (params?: DashboardParams) => {
     const api = createApiInstance();
-    const response = await api.get('/dashboard/student-distribution');
+    const response = await api.get('/dashboard/student-distribution', { params });
     return response.data;
   },
 
   getFeeTrendData: async (params?: DashboardParams) => {
     const api = createApiInstance();
     const response = await api.get('/dashboard/fee-trend', { params });
+    return response.data;
+  },
+
+  getAcademicYearMonths: async () => {
+    const api = createApiInstance();
+    const response = await api.get('/dashboard/academic-year-months');
     return response.data;
   }
 };

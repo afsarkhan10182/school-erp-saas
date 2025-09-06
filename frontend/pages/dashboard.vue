@@ -631,7 +631,10 @@ const fetchDashboardData = async () => {
         branch_id: selectedBranch.value,
         new_students_days: dashboardConfig.newStudentsDays
       }),
-      Dashboard.getRecentActivities({ limit: dashboardConfig.activitiesLimit })
+      Dashboard.getRecentActivities({ 
+        limit: dashboardConfig.activitiesLimit,
+        branch_id: selectedBranch.value
+      })
     ]);
 
     // Handle stats response
@@ -656,12 +659,17 @@ const fetchDashboardData = async () => {
     loading.value = false;
     await nextTick(); // Wait for DOM update
 
-    // Fetch chart data
+    // Fetch chart data with branch context
+    const chartParams = {};
+    if (selectedBranch.value) {
+      chartParams.branch_id = selectedBranch.value;
+    }
+    
     const [studentsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] = await Promise.allSettled([
-      Dashboard.getStudentsChartData(),
-              Dashboard.getFeesChartData(),
-              Dashboard.getStudentDistributionData(),
-              Dashboard.getFeeTrendData({ months: dashboardConfig.feeTrendMonths })
+      Dashboard.getStudentsChartData(chartParams),
+      Dashboard.getFeesChartData(chartParams),
+      Dashboard.getStudentDistributionData(chartParams),
+      Dashboard.getFeeTrendData({ ...chartParams, months: dashboardConfig.feeTrendMonths })
     ]);
 
     // Extract data from successful responses

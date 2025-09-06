@@ -185,6 +185,43 @@
                 </div>
               </div>
 
+              <!-- Academic Year Configuration -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Academic Year Configuration</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Academic Year Starting Month</label>
+                    <select v-model="academicSettings.startingMonth" class="input-field">
+                      <option value="1">January</option>
+                      <option value="2">February</option>
+                      <option value="3">March</option>
+                      <option value="4">April</option>
+                      <option value="5">May</option>
+                      <option value="6">June (Default)</option>
+                      <option value="7">July</option>
+                      <option value="8">August</option>
+                      <option value="9">September</option>
+                      <option value="10">October</option>
+                      <option value="11">November</option>
+                      <option value="12">December</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      This determines when the academic year starts and how payment months are calculated
+                    </p>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Academic Year Type</label>
+                    <select v-model="academicSettings.academicYearStart" class="input-field">
+                      <option value="academic">Academic Year (Custom starting month)</option>
+                      <option value="calendar">Calendar Year (January-December)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      How academic years are calculated and displayed
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <!-- Term Settings -->
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Term Configuration</h3>
@@ -357,11 +394,13 @@
                   <div>
                     <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Payment Model</label>
                     <select v-model="feeSettings.defaultPaymentModel" class="input-field">
+                      <option value="class_based">Class-based (Default)</option>
                       <option value="monthly">Monthly</option>
-                      <option value="installment">Installment</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="annually">Annually</option>
+                      <option value="term_based">Term-based</option>
                     </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Default payment model for new fee structures
+                    </p>
                   </div>
                   <div>
                     <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Installments Count</label>
@@ -889,6 +928,11 @@ const termSettings = reactive({
   termDuration: 12
 });
 
+const academicSettings = reactive({
+  startingMonth: 6,
+  academicYearStart: 'academic'
+});
+
 const gradingSystem = reactive({
   scale: 'percentage',
   passingPercentage: 40
@@ -1080,6 +1124,7 @@ const loadTabData = async (tabName) => {
           Object.assign(termSettings, response.data.data.termSettings || {});
           Object.assign(gradingSystem, response.data.data.gradingSystem || {});
           Object.assign(attendanceSettings, response.data.data.attendanceSettings || {});
+          Object.assign(academicSettings, response.data.data.academicSettings || {});
           dataCache.academic = true; // Mark as loaded
         }
         break;
@@ -1228,7 +1273,8 @@ const saveAcademicSettings = async () => {
       academicYear,
       termSettings,
       gradingSystem,
-      attendanceSettings
+      attendanceSettings,
+      academicSettings
     });
     
     if (response.data.success) {
