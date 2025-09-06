@@ -52,12 +52,15 @@ const getFeeCollectionSummary = async (req, res, next) => {
     if (payment_model === 'monthly' && months && months.length > 0) {
       // Convert months to array if it's a string
       const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
+      
+      // Filter by specific months for monthly payment model
       whereClause.month = {
         [Op.in]: monthsArray
       };
     }
     
-    if (from_date && to_date) {
+    // Only apply date range filtering for non-monthly payment models
+    if (from_date && to_date && payment_model !== 'monthly') {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       
       // Filter by both invoice_date and due_date to capture all relevant invoices
@@ -254,69 +257,19 @@ const getFeeInvoiceReport = async (req, res, next) => {
     }
     
     // Add months filtering for monthly payments
-    // When months are selected, automatically set the date range to cover those months
-    // Month mapping: 1=January, 2=February, 3=March, ..., 6=June, ..., 12=December
-    let monthBasedDateRange = null;
+    // For monthly payments, filter by individual month invoices instead of date range
     if (payment_model === 'monthly' && months && months.length > 0) {
       // Convert months to array if it's a string
       const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
       
-      // Get current year or extract from existing date range
-      let targetYear = new Date().getFullYear();
-      if (from_date) {
-        targetYear = new Date(from_date).getFullYear();
-      }
-      
-      // Calculate date range for selected months
-      const monthDates = monthsArray.map(month => {
-        const startDate = new Date(targetYear, month - 1, 1); // month - 1 because JS months are 0-indexed
-        const endDate = new Date(targetYear, month, 0); // Last day of the month
-        
-        // Format dates properly
-        const formatDate = (date) => {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-        
-        return {
-          month,
-          monthName: ['', 'January', 'February', 'March', 'April', 'May', 'June', 
-                     'July', 'August', 'September', 'October', 'November', 'December'][month],
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        };
-      });
-      
-      // Set the date range to cover all selected months
-      const earliestStart = monthDates.reduce((earliest, current) => 
-        current.startDate < earliest ? current.startDate : earliest, monthDates[0].startDate);
-      const latestEnd = monthDates.reduce((latest, current) => 
-        current.endDate > latest ? current.endDate : latest, monthDates[0].endDate);
-      
-      monthBasedDateRange = {
-        from_date: earliestStart,
-        to_date: latestEnd,
-        months: monthDates
+      // Filter by specific months for monthly payment model
+      whereClause.month = {
+        [Op.in]: monthsArray
       };
-      
-      // Override the date range with month-based range
-      from_date = earliestStart;
-      to_date = latestEnd;
-      
-      logger.debug('Monthly payment filtering applied with date range:', {
-        payment_model,
-        selectedMonths: monthsArray,
-        monthDetails: monthDates,
-        calculatedDateRange: {
-          from_date: earliestStart,
-          to_date: latestEnd
-        }
-      });
     }
     
-    if (from_date && to_date) {
+    // Only apply date range filtering for non-monthly payment models
+    if (from_date && to_date && payment_model !== 'monthly') {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       
       // Filter by both invoice_date and due_date to capture all relevant invoices
@@ -345,12 +298,7 @@ const getFeeInvoiceReport = async (req, res, next) => {
       months,
       class_id,
       section_id,
-      stream_id,
-      monthBasedDateRange: monthBasedDateRange ? {
-        from_date: monthBasedDateRange.from_date,
-        to_date: monthBasedDateRange.to_date,
-        selectedMonths: monthBasedDateRange.months.map(m => `${m.month} (${m.monthName})`)
-      } : null
+      stream_id
     });
 
     const includeClause = [
@@ -1324,6 +1272,256 @@ const getFeeStats = async (req, res, next) => {
   }
 };
 
+// GET endpoint to retrieve month-wise payment status for monthly payments
+const getMonthlyPaymentStatus = async (req, res, next) => {
+  try {
+    const { months, year, class_id, section_id, stream_id, branch_id, search, page, limit } = req.query;
+    
+    // Debug logging
+    logger.debug('getMonthlyPaymentStatus: Raw query params:', { 
+      months, 
+      monthsType: typeof months, 
+      monthsIsArray: Array.isArray(months),
+      year, 
+      page, 
+      limit,
+      fullQuery: req.query
+    });
+    
+    // Convert months to array - handle both array and string formats
+    let monthsArray = [];
+    if (Array.isArray(months)) {
+      monthsArray = months.map(m => parseInt(m.toString().trim())).filter(m => !isNaN(m));
+    } else if (typeof months === 'string' && months.trim()) {
+      monthsArray = months.split(',').map(m => parseInt(m.trim())).filter(m => !isNaN(m));
+    }
+    
+    logger.debug('getMonthlyPaymentStatus: Parsed monthsArray:', monthsArray);
+    
+    if (!monthsArray || monthsArray.length === 0) {
+      throw new ApiError(400, 'Months are required for monthly payment status');
+    }
+    
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    // Handle pagination: if no page/limit provided, return all data (useful for printing)
+    const isPrintMode = !page && !limit;
+    const pageNum = page ? parseInt(page) : 1;
+    const limitNum = limit ? parseInt(limit) : 10;
+    const offset = isPrintMode ? 0 : (pageNum - 1) * limitNum;
+    
+    const whereClause = {
+      school_id: req.schoolId,
+      payment_model: 'monthly',
+      month: {
+        [Op.in]: monthsArray
+      },
+      year: currentYear
+    };
+    
+    // Handle branch filtering
+    if (req.user.role === 'branch_admin') {
+      whereClause.branch_id = req.user.branch_id;
+    } else if (branch_id) {
+      whereClause.branch_id = branch_id;
+    }
+    
+    logger.debug('getMonthlyPaymentStatus: Starting query with whereClause:', whereClause);
+    
+    // Get total count of unique students with monthly invoices
+    const totalStudents = await FeeInvoice.count({
+      where: whereClause,
+      distinct: true,
+      col: 'student_id'
+    });
+    
+    logger.debug('getMonthlyPaymentStatus: Found', totalStudents, 'total students with monthly invoices');
+    
+    if (totalStudents === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 0,
+          totalStudents: 0,
+          limit: limitNum,
+          hasNext: false,
+          hasPrev: false
+        },
+        meta: {
+          selectedMonths: monthsArray,
+          year: currentYear,
+          monthNames: monthsArray.map(m => ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                                           'July', 'August', 'September', 'October', 'November', 'December'][m])
+        }
+      });
+    }
+    
+    // Get all monthly invoices for the selected months (we'll paginate after grouping)
+    const monthlyInvoices = await FeeInvoice.findAll({
+      where: whereClause,
+      attributes: [
+        'id', 'invoice_number', 'student_id', 'fee_structure_id', 'academic_year',
+        'class_name', 'section', 'fee_type_name', 'invoice_date', 'due_date',
+        'amount', 'base_amount', 'discount_amount', 'tax_amount', 'total_amount',
+        'paid_amount', 'balance_amount', 'status', 'payment_status', 'payment_model',
+        'month', 'year', 'installment_number', 'total_installments'
+      ],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
+          where: {},
+        },
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          attributes: ['id', 'name', 'fee_type_id', 'class_name', 'section'],
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+              attributes: ['id', 'name'],
+            },
+          ],
+        },
+        {
+          model: FeePayment,
+          as: 'payments',
+          attributes: ['id', 'payment_amount', 'payment_date', 'payment_method', 'payment_status'],
+          order: [['created_at', 'DESC']],
+          limit: 5, // Limit to last 5 payments per invoice
+        },
+      ],
+      order: [['student_id', 'ASC'], ['month', 'ASC']],
+      limit: 5000, // Reasonable limit to prevent memory issues
+    });
+    
+    logger.debug('getMonthlyPaymentStatus: Query completed, found', monthlyInvoices.length, 'invoices');
+    
+    // Group by student and month to show payment status
+    const studentMonthStatus = {};
+    
+    monthlyInvoices.forEach(invoice => {
+      const studentId = invoice.student_id;
+      const month = invoice.month;
+      const monthName = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December'][month];
+      
+      if (!studentMonthStatus[studentId]) {
+        studentMonthStatus[studentId] = {
+          student: invoice.student,
+          months: {},
+          totalAmount: 0,
+          totalPaid: 0,
+          totalPending: 0
+        };
+      }
+      
+      const isPaid = parseFloat(invoice.paid_amount) >= parseFloat(invoice.total_amount);
+      const isPartial = parseFloat(invoice.paid_amount) > 0 && !isPaid;
+      
+      studentMonthStatus[studentId].months[month] = {
+        month,
+        monthName,
+        invoice: invoice,
+        amount: parseFloat(invoice.total_amount),
+        paid: parseFloat(invoice.paid_amount),
+        balance: parseFloat(invoice.balance_amount),
+        status: isPaid ? 'paid' : (isPartial ? 'partial' : 'pending'),
+        dueDate: invoice.due_date,
+        payments: invoice.payments || []
+      };
+      
+      studentMonthStatus[studentId].totalAmount += parseFloat(invoice.total_amount);
+      studentMonthStatus[studentId].totalPaid += parseFloat(invoice.paid_amount);
+      studentMonthStatus[studentId].totalPending += parseFloat(invoice.balance_amount);
+    });
+    
+    // Convert to array format and limit to requested number of students
+    const allStudents = Object.values(studentMonthStatus).map(studentData => ({
+      student: studentData.student,
+      months: monthsArray.map(month => {
+        const monthData = studentData.months[month];
+        if (monthData) {
+          return monthData;
+        } else {
+          // Month not found - might not be generated yet
+          const monthName = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'][month];
+          return {
+            month,
+            monthName,
+            invoice: null,
+            amount: 0,
+            paid: 0,
+            balance: 0,
+            status: 'not_generated',
+            dueDate: null,
+            payments: []
+          };
+        }
+      }),
+      summary: {
+        totalAmount: studentData.totalAmount,
+        totalPaid: studentData.totalPaid,
+        totalPending: studentData.totalPending,
+        paidMonths: Object.values(studentData.months).filter(m => m.status === 'paid').length,
+        partialMonths: Object.values(studentData.months).filter(m => m.status === 'partial').length,
+        pendingMonths: Object.values(studentData.months).filter(m => m.status === 'pending').length
+      }
+    }));
+    
+    // Apply pagination to students (or get all if in print mode)
+    const paginatedStudents = isPrintMode ? allStudents : allStudents.slice(offset, offset + limitNum);
+    
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalStudents / limitNum);
+    const hasNext = pageNum < totalPages;
+    const hasPrev = pageNum > 1;
+    
+    res.json({
+      success: true,
+      data: paginatedStudents,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalStudents,
+        limit: limitNum,
+        hasNext,
+        hasPrev,
+        is_print_mode: isPrintMode
+      },
+      meta: {
+        selectedMonths: monthsArray,
+        year: currentYear,
+        monthNames: monthsArray.map(m => ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                                         'July', 'August', 'September', 'October', 'November', 'December'][m])
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error in getMonthlyPaymentStatus:', {
+      message: error.message,
+      stack: error.stack,
+      whereClause: typeof whereClause !== 'undefined' ? whereClause : 'not defined',
+      monthsArray: typeof monthsArray !== 'undefined' ? monthsArray : 'not defined'
+    });
+    
+    if (error.name === 'SequelizeTimeoutError') {
+      return res.status(408).json({
+        success: false,
+        message: 'Query timeout - please try with fewer months or contact support',
+        error: 'TIMEOUT'
+      });
+    }
+    
+    return next(error);
+  }
+};
+
 // GET endpoint to retrieve fee invoice report grouped by students with pagination
 const getFeeInvoiceReportGrouped = async (req, res, next) => {
   try {
@@ -1361,69 +1559,26 @@ const getFeeInvoiceReportGrouped = async (req, res, next) => {
     }
     
     // Add months filtering for monthly payments
-    // When months are selected, automatically set the date range to cover those months
-    // Month mapping: 1=January, 2=February, 3=March, ..., 6=June, ..., 12=December
-    let monthBasedDateRange = null;
+    // For monthly payments, filter by individual month invoices instead of date range
     if (payment_model === 'monthly' && months && months.length > 0) {
       // Convert months to array if it's a string
       const monthsArray = Array.isArray(months) ? months : months.split(',').map(m => parseInt(m.trim()));
       
-      // Get current year or extract from existing date range
-      let targetYear = new Date().getFullYear();
-      if (from_date) {
-        targetYear = new Date(from_date).getFullYear();
-      }
-      
-      // Calculate date range for selected months
-      const monthDates = monthsArray.map(month => {
-        const startDate = new Date(targetYear, month - 1, 1); // month - 1 because JS months are 0-indexed
-        const endDate = new Date(targetYear, month, 0); // Last day of the month
-        
-        // Format dates properly
-        const formatDate = (date) => {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-        
-        return {
-          month,
-          monthName: ['', 'January', 'February', 'March', 'April', 'May', 'June', 
-                     'July', 'August', 'September', 'October', 'November', 'December'][month],
-          startDate: formatDate(startDate),
-          endDate: formatDate(endDate)
-        };
-      });
-      
-      // Set the date range to cover all selected months
-      const earliestStart = monthDates.reduce((earliest, current) => 
-        current.startDate < earliest ? current.startDate : earliest, monthDates[0].startDate);
-      const latestEnd = monthDates.reduce((latest, current) => 
-        current.endDate > latest ? current.endDate : latest, monthDates[0].endDate);
-      
-      monthBasedDateRange = {
-        from_date: earliestStart,
-        to_date: latestEnd,
-        months: monthDates
+      // Filter by specific months for monthly payment model
+      whereClause.month = {
+        [Op.in]: monthsArray
       };
       
-      // Override the date range with month-based range
-      from_date = earliestStart;
-      to_date = latestEnd;
+      // Temporarily removing year filtering to test month filtering
       
-      logger.debug('Monthly payment filtering applied with date range:', {
+      logger.debug('Monthly payment filtering applied by month:', {
         payment_model,
-        selectedMonths: monthsArray,
-        monthDetails: monthDates,
-        calculatedDateRange: {
-          from_date: earliestStart,
-          to_date: latestEnd
-        }
+        selectedMonths: monthsArray
       });
     }
     
-    if (from_date && to_date) {
+    // Only apply date range filtering for non-monthly payment models
+    if (from_date && to_date && payment_model !== 'monthly') {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       
       // Filter by both invoice_date and due_date to capture all relevant invoices
@@ -1450,12 +1605,7 @@ const getFeeInvoiceReportGrouped = async (req, res, next) => {
       months,
       class_id,
       section_id,
-      stream_id,
-      monthBasedDateRange: monthBasedDateRange ? {
-        from_date: monthBasedDateRange.from_date,
-        to_date: monthBasedDateRange.to_date,
-        selectedMonths: monthBasedDateRange.months.map(m => `${m.month} (${m.monthName})`)
-      } : null
+      stream_id
     });
 
     // Build student filtering for the include clause
@@ -1633,6 +1783,7 @@ module.exports = {
   exportFeeInvoicesReportLegacy,
   getFeeInvoiceReport,
   getFeeInvoiceReportGrouped,
+  getMonthlyPaymentStatus,
   exportFeeInvoicesReport,
   getFeeStats,
 }; 

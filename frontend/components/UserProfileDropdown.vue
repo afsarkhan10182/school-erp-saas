@@ -118,7 +118,7 @@ const isOpen = ref(false);
 // Helper function for uploads URL
 const uploadsUrl = (filename) => {
   const config = useRuntimeConfig()
-  return filename ? `${config.public.apiBase?.replace('/api','')}/uploads/${filename}` : ''
+  return filename ? `${config.public.apiBase?.replace('/api','')}/uploads/profile-images/${filename}` : ''
 }
 
 // Computed properties

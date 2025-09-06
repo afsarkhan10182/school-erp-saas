@@ -97,3 +97,6 @@ yarn-error.log*
 # Logs
 logs
 *.log
+
+restore_essential_system_data.sql
+fresh_start.sh

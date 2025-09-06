@@ -76,7 +76,17 @@ class SchoolService {
       const school = await School.create({
         ...basicData,
         ...planData,
-        settings
+        settings,
+        // Initialize receipt settings with required fields
+        receipt_settings: {
+          schoolName: basicData.name,
+          defaultReceiptTitle: 'Fee Receipt'
+        },
+        // Initialize fee settings with required fields
+        fee_settings: {
+          defaultCurrency: basicData.currency || 'INR',
+          defaultPaymentModel: 'class_based'
+        }
       });
       
       // Clear cache using base service

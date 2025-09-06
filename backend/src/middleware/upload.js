@@ -26,6 +26,8 @@ const storage = multer.diskStorage({
     let subDir = 'documents';
     if (file.fieldname === 'schoolLogo' || file.fieldname === 'receiptLogo' || file.fieldname === 'branchLogos') {
       subDir = 'logos';
+    } else if (file.fieldname === 'profile_image' || file.fieldname === 'student_profile_picture' || file.fieldname === 'guardian_picture') {
+      subDir = 'profile-images';
     }
     
     const fullPath = path.join(resolvedUploadDir, subDir);

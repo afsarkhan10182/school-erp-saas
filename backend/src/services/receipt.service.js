@@ -413,8 +413,9 @@ const generateReceiptHtml = (data, schoolData) => {
   const getLogoUrl = (filename) => {
     if (!filename) return '';
     if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-    return `${baseUrl}/uploads/logos/${filename}`;
+    const baseUrl = process.env.NUXT_PUBLIC_API_BASE;
+    const backendBase = baseUrl?.replace('/api', '');
+    return `${backendBase}/uploads/logos/${filename}`;
   };
   
   return `

@@ -71,7 +71,7 @@
           
           <button
             @click="printFeesReport"
-            :disabled="isLoading || invoices.length === 0"
+            :disabled="isLoading || (invoices.length === 0 && studentGroups.length === 0)"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@
           <div class="relative download-dropdown">
             <button
               @click="toggleDownloadDropdown"
-              :disabled="isLoading || invoices.length === 0"
+              :disabled="isLoading || (invoices.length === 0 && studentGroups.length === 0)"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +150,8 @@
             </button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div>
+            <!-- Date Range Filter - Only show for installment mode -->
+            <div v-if="filters.payment_model !== 'monthly'">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
               <div class="relative group">
                 <select v-model="filters.dateRange" @change="handleDateRangeChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
@@ -168,11 +169,11 @@
                 </div>
               </div>
             </div>
-            <div v-if="filters.dateRange === 'custom'">
+            <div v-if="filters.dateRange === 'custom' && filters.payment_model !== 'monthly'">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
               <input v-model="filters.fromDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
-            <div v-if="filters.dateRange === 'custom'">
+            <div v-if="filters.dateRange === 'custom' && filters.payment_model !== 'monthly'">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
               <input v-model="filters.toDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
             </div>
@@ -536,7 +537,7 @@
                       <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Detailed Fee Management Report</h3>
           <div class="flex space-x-3">
             <span class="text-sm text-gray-500 dark:text-gray-400">
-              {{ groupedInvoices.length > 0 ? `${invoices.length} invoices` : 'No records' }}
+              {{ (groupedInvoices.length > 0 || studentGroups.length > 0) ? `${totalInvoicesCount} invoices` : 'No records' }}
             </span>
           </div>
         </div>
@@ -550,7 +551,7 @@
         </div>
         
         <!-- Empty state -->
-        <div v-else-if="invoices.length === 0 && !isLoading" class="flex items-center justify-center py-12">
+        <div v-else-if="(invoices.length === 0 && studentGroups.length === 0) && !isLoading" class="flex items-center justify-center py-12">
           <div class="text-center">
             <div class="text-gray-400 dark:text-gray-500 mb-4">
               <Search class="h-12 w-12 mx-auto" />
@@ -712,7 +713,7 @@
             total: totalStudentGroups
           }"
           item-label="students"
-          :additional-info="`${invoices.length} total invoices`"
+          :additional-info="`${totalInvoicesCount} total invoices`"
           @page-changed="goToPage"
           @page-size-changed="onPageSizeChange"
         />
@@ -960,11 +961,25 @@ const groupedInvoices = computed(() => {
   return result;
 });
 
+// Total invoices count (works for both regular invoices and student groups)
+const totalInvoicesCount = computed(() => {
+  if (studentGroups.value.length > 0) {
+    // For monthly payment status, count invoices from student groups
+    return studentGroups.value.reduce((total, group) => total + (group.invoices?.length || 0), 0);
+  }
+  // For regular reports, use invoices array
+  return invoices.value.length;
+});
+
 // Paginated grouped results for display
 const paginatedGroupedInvoices = computed(() => {
   // If we have backend paginated student groups, use them directly
   if (studentGroups.value.length > 0) {
-    console.log('📊 Using backend paginated student groups:', studentGroups.value.length);
+    console.log('📊 Using backend paginated student groups:', {
+      length: studentGroups.value.length,
+      firstGroup: studentGroups.value[0],
+      firstGroupInvoices: studentGroups.value[0]?.invoices?.length
+    });
     return studentGroups.value;
   }
   
@@ -1039,8 +1054,14 @@ const resetFilters = () => {
     selectedMonths: [],
   });
   handleDateRangeChange();
+  
+  // Reset pagination when resetting filters
+  currentPage.value = 1;
+  totalStudentGroups.value = 0;
+  
   // Clear the results when resetting filters
   invoices.value = [];
+  studentGroups.value = [];
   totalItems.value = 0;
   
   // Clear summary data
@@ -1122,10 +1143,22 @@ const handlePaymentModelChange = () => {
     filters.selectedMonths = [];
   }
   
+  // Clear date range when switching to monthly mode
+  if (filters.payment_model === 'monthly') {
+    filters.dateRange = 'today';
+    filters.fromDate = '';
+    filters.toDate = '';
+  }
+  
   console.log('💰 After clearing, selectedMonths:', filters.selectedMonths);
+  
+  // Reset pagination when payment model changes
+  currentPage.value = 1;
+  totalStudentGroups.value = 0;
   
   // Clear existing data to force refresh with new payment model
   invoices.value = [];
+  studentGroups.value = [];
   summaryData.value = {
     totalAmount: 0,
     totalCollected: 0,
@@ -1208,6 +1241,113 @@ const onStreamChange = async () => {
   await fetchSections();
 };
 
+const fetchMonthlyPaymentStatus = async () => {
+  try {
+    console.log('📅 Fetching monthly payment status...');
+    
+    const params = {
+      months: Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths,
+      year: new Date().getFullYear(),
+      school_id: filters.school_id || undefined,
+      branch_id: filters.branch_id || undefined,
+      class_id: filters.class_id || undefined,
+      section_id: filters.section_id || undefined,
+      stream_id: filters.stream_id || undefined,
+      search: filters.student_search || undefined,
+      page: currentPage.value,
+      limit: pageSize.value,
+    };
+    
+    console.log('📅 Frontend params before cleanup:', params);
+    console.log('📅 selectedMonths:', filters.selectedMonths, 'type:', typeof filters.selectedMonths);
+    
+    // Remove undefined values
+    Object.keys(params).forEach(key => {
+      if (params[key] === undefined) {
+        delete params[key];
+      }
+    });
+    
+    console.log('📅 Frontend params after cleanup:', params);
+    
+    console.log('📅 Monthly payment status params:', params);
+    
+    const response = await FeeInvoices.getMonthlyPaymentStatus(params);
+    
+    if (response.success) {
+      console.log('📅 Monthly payment status response:', response);
+      console.log('📅 Response data structure:', {
+        hasData: !!response.data,
+        dataLength: response.data?.length,
+        firstStudent: response.data?.[0],
+        pagination: response.pagination
+      });
+      
+      // Transform the data to match the expected format
+      const transformedData = response.data.map(studentData => ({
+        student: studentData.student,
+        studentId: studentData.student.id, // Add studentId for UI compatibility
+        studentName: `${studentData.student.first_name || ''} ${studentData.student.last_name || ''}`.trim(),
+        rollNumber: studentData.student.roll_number || 'N/A',
+        admissionNumber: studentData.student.admission_number || 'N/A',
+        className: studentData.student.current_class || 'N/A',
+        studentPhoto: studentData.student.photo || null,
+        invoices: studentData.months.map(monthData => ({
+          id: monthData.invoice?.id || `month-${monthData.month}`,
+          invoice_number: monthData.invoice?.invoice_number || `Month ${monthData.monthName}`,
+          fee_type_name: monthData.invoice?.fee_type_name || 'Monthly Fee',
+          total_amount: monthData.amount,
+          paid_amount: monthData.paid,
+          balance_amount: monthData.balance,
+          status: monthData.status === 'paid' ? 'paid' : 
+                  monthData.status === 'partial' ? 'partial_paid' : 
+                  monthData.status === 'not_generated' ? 'draft' : 'sent',
+          due_date: monthData.dueDate,
+          month: monthData.month,
+          monthName: monthData.monthName,
+          payment_model: 'monthly',
+          is_monthly_status: true
+        })),
+        summary: studentData.summary
+      }));
+      
+      studentGroups.value = transformedData;
+      
+      console.log('📅 Transformed data stored in studentGroups:', {
+        studentGroupsLength: studentGroups.value.length,
+        firstStudent: studentGroups.value[0],
+        firstStudentInvoices: studentGroups.value[0]?.invoices?.length
+      });
+      
+      // Update pagination info
+      if (response.pagination) {
+        totalStudentGroups.value = response.pagination.totalStudents;
+        // totalPages is computed from totalStudentGroups and pageSize
+      }
+      
+      // Don't update summary data here - let the summary API handle it
+      // The summary API provides totals for all students, not just the current page
+      console.log('📅 Monthly payment status data loaded, summary will be handled by summary API');
+      
+      console.log('📅 Monthly payment status loaded successfully');
+    } else {
+      throw new Error(response.message || 'Failed to fetch monthly payment status');
+    }
+  } catch (error) {
+    console.error('📅 Error fetching monthly payment status:', error);
+    
+    if (error.code === 'ECONNABORTED') {
+      showToast('Request timeout - please try again or select fewer months', 'error');
+    } else if (error.response?.status === 408) {
+      showToast('Query timeout - please try with fewer months', 'error');
+    } else if (error.response?.data?.message) {
+      showToast(`Error: ${error.response.data.message}`, 'error');
+    } else {
+      showToast('Error fetching monthly payment status', 'error');
+    }
+  }
+};
+
 const fetchReportSummary = async () => {
   try {
     console.log('🔍 Starting fetchReportSummary...');
@@ -1222,12 +1362,14 @@ const fetchReportSummary = async () => {
       payment_model: filters.payment_model || undefined,
     };
     
-    // Only add date parameters if they are set and not empty
-    if (filters.fromDate && filters.fromDate.trim() !== '') {
-      params.from_date = filters.fromDate;
-    }
-    if (filters.toDate && filters.toDate.trim() !== '') {
-      params.to_date = filters.toDate;
+    // Only add date parameters if they are set and not empty, and not in monthly mode
+    if (filters.payment_model !== 'monthly') {
+      if (filters.fromDate && filters.fromDate.trim() !== '') {
+        params.from_date = filters.fromDate;
+      }
+      if (filters.toDate && filters.toDate.trim() !== '') {
+        params.to_date = filters.toDate;
+      }
     }
 
     // Only add class_id if a specific class is selected (not "All Classes")
@@ -1247,8 +1389,8 @@ const fetchReportSummary = async () => {
 
     // Add month filter for monthly payments
     if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
-      params.months = filters.selectedMonths;
-      console.log('📅 Adding months filter:', filters.selectedMonths);
+      params.months = Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths;
+      console.log('📅 Adding months filter:', params.months);
     }
 
     // Remove undefined values
@@ -1339,6 +1481,12 @@ const fetchReport = async () => {
     // Clear previous student groups to ensure fresh data
     studentGroups.value = [];
     
+    // For monthly payments, use the new month-wise payment status endpoint
+    if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
+      await fetchMonthlyPaymentStatus();
+      return;
+    }
+    
     const params = {
       // Use proper pagination for student-grouped data
       page: currentPage.value,
@@ -1351,12 +1499,14 @@ const fetchReport = async () => {
       payment_model: filters.payment_model || undefined,
     };
     
-    // Only add date parameters if they are set and not empty
-    if (filters.fromDate && filters.fromDate.trim() !== '') {
-      params.from_date = filters.fromDate;
-    }
-    if (filters.toDate && filters.toDate.trim() !== '') {
-      params.to_date = filters.toDate;
+    // Only add date parameters if they are set and not empty, and not in monthly mode
+    if (filters.payment_model !== 'monthly') {
+      if (filters.fromDate && filters.fromDate.trim() !== '') {
+        params.from_date = filters.fromDate;
+      }
+      if (filters.toDate && filters.toDate.trim() !== '') {
+        params.to_date = filters.toDate;
+      }
     }
     
     // Only add class_id if a specific class is selected (not "All Classes")
@@ -1849,7 +1999,8 @@ const downloadReport = async (format) => {
         payment_method: filters.payment_method,
         search: filters.student_search,
         payment_model: filters.payment_model,
-        months: filters.selectedMonths
+        months: filters.selectedMonths,
+        year: filters.year || new Date().getFullYear()
       };
 
       // Remove undefined values
@@ -1919,22 +2070,89 @@ const fetchAllDataForExport = async (operation = 'export') => {
     let allInvoices = [];
     let response;
     
-    try {
-      response = await FeeInvoices.getReportGrouped(exportParams);
-      if (response.data?.studentGroups) {
-        // Flatten all student groups for export
-        response.data.studentGroups.forEach(group => {
-          group.invoices.forEach(invoice => {
-            allInvoices.push(invoice);
-          });
+    // Handle monthly payments differently
+    if (filters.payment_model === 'monthly' && filters.selectedMonths.length > 0) {
+      try {
+        console.log(`📊 Using monthly payment status API for ${operation}`);
+        const monthlyParams = {
+          months: Array.isArray(filters.selectedMonths) ? filters.selectedMonths.join(',') : filters.selectedMonths,
+          year: new Date().getFullYear(),
+          school_id: filters.school_id || undefined,
+          branch_id: filters.branch_id || undefined,
+          class_id: filters.class_id || undefined,
+          section_id: filters.section_id || undefined,
+          stream_id: filters.stream_id || undefined,
+          search: filters.student_search || undefined,
+          // No page/limit for export - get all data
+        };
+        
+        // Remove undefined values
+        Object.keys(monthlyParams).forEach(key => {
+          if (monthlyParams[key] === undefined) {
+            delete monthlyParams[key];
+          }
         });
-      } else {
+        
+        response = await FeeInvoices.getMonthlyPaymentStatus(monthlyParams);
+        
+        if (response.success && response.data) {
+          // Flatten monthly payment data for export
+          // response.data is an array of student objects with months array
+          response.data.forEach(studentData => {
+            if (studentData.months && Array.isArray(studentData.months)) {
+              studentData.months.forEach(monthData => {
+                // Only include months that have actual invoice data
+                if (monthData.invoice) {
+                  const exportInvoice = {
+                    id: monthData.invoice.id,
+                    invoice_number: monthData.invoice.invoice_number,
+                    fee_type_name: monthData.invoice.fee_type_name || 'Monthly Fee',
+                    total_amount: monthData.amount,
+                    paid_amount: monthData.paid,
+                    balance_amount: monthData.balance,
+                    status: monthData.status === 'paid' ? 'paid' : 
+                            monthData.status === 'partial' ? 'partial_paid' : 
+                            monthData.status === 'not_generated' ? 'draft' : 'sent',
+                    due_date: monthData.dueDate,
+                    month: monthData.month,
+                    monthName: monthData.monthName,
+                    payment_model: 'monthly',
+                    student: studentData.student,
+                    // Add other fields that might be expected by the export
+                    invoice_date: monthData.invoice.invoice_date,
+                    created_at: monthData.invoice.created_at,
+                    updated_at: monthData.invoice.updated_at
+                  };
+                  
+                  allInvoices.push(exportInvoice);
+                }
+              });
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Monthly payment export failed:`, error);
+        throw new Error(`Failed to fetch monthly payment data for ${operation}`);
+      }
+    } else {
+      // Handle regular (installment/all) payments
+      try {
+        response = await FeeInvoices.getReportGrouped(exportParams);
+        if (response.data?.studentGroups) {
+          // Flatten all student groups for export
+          response.data.studentGroups.forEach(group => {
+            group.invoices.forEach(invoice => {
+              allInvoices.push(invoice);
+            });
+          });
+        } else {
+          allInvoices = response.data?.invoices || [];
+        }
+      } catch (error) {
+        console.log(`⚠️ Grouped endpoint failed for ${operation}, trying flat endpoint...`);
+        response = await FeeInvoices.getReport(exportParams);
         allInvoices = response.data?.invoices || [];
       }
-    } catch (error) {
-      console.log(`⚠️ Grouped endpoint failed for ${operation}, trying flat endpoint...`);
-      response = await FeeInvoices.getReport(exportParams);
-      allInvoices = response.data?.invoices || [];
     }
     
     if (allInvoices.length === 0) {

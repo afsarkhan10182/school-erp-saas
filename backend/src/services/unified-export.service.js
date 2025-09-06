@@ -229,10 +229,20 @@ class UnifiedExportService {
     const { FeeInvoice, Student, FeeStructure, FeeType } = require('../models');
     const { Op } = require('sequelize');
 
+    // Handle monthly payments differently
+    if (filters.payment_model === 'monthly' && filters.months && filters.months.length > 0) {
+      return await this.getMonthlyFeesData(filters, user, schoolId);
+    }
+
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
 
     if (filters.status) whereClause.status = filters.status;
+    
+    // Add payment model filter
+    if (filters.payment_model) {
+      whereClause.payment_model = filters.payment_model;
+    }
     
     // Add date filters for invoice_date or due_date
     if (filters.from_date && filters.to_date) {
@@ -279,6 +289,162 @@ class UnifiedExportService {
       branch: invoice.student.branch?.name || '',
       fee_type: invoice.feeStructure.feeType.name,
     }));
+  }
+
+  /**
+   * Get monthly fees data for export
+   */
+  async getMonthlyFeesData(filters, user, schoolId) {
+    const { FeeInvoice, Student, FeeStructure, FeeType, FeePayment } = require('../models');
+    const { Op } = require('sequelize');
+
+    // Parse months parameter - handle both array and comma-separated string formats
+    let monthsArray = [];
+    if (filters.months) {
+      if (Array.isArray(filters.months)) {
+        monthsArray = filters.months.map(m => parseInt(m));
+      } else if (typeof filters.months === 'string') {
+        monthsArray = filters.months.split(',').map(m => parseInt(m.trim()));
+      }
+    }
+    
+    if (monthsArray.length === 0) {
+      throw new Error('Months are required for monthly payment export');
+    }
+    
+    const currentYear = filters.year ? parseInt(filters.year) : new Date().getFullYear();
+    
+    const whereClause = {
+      school_id: schoolId,
+      payment_model: 'monthly',
+      month: {
+        [Op.in]: monthsArray
+      },
+      year: currentYear
+    };
+    
+    // Handle branch filtering
+    if (user.role === 'branch_admin') {
+      whereClause.branch_id = user.branch_id;
+    } else if (filters.branch_id) {
+      whereClause.branch_id = filters.branch_id;
+    }
+    
+    // Add student filters
+    const studentWhereClause = {};
+    if (filters.search) {
+      studentWhereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${filters.search}%` } },
+        { last_name: { [Op.iLike]: `%${filters.search}%` } },
+        { admission_number: { [Op.iLike]: `%${filters.search}%` } }
+      ];
+    }
+    if (filters.class_id) studentWhereClause.current_class = filters.class_id;
+    if (filters.section_id) studentWhereClause.section = filters.section_id;
+    if (filters.stream_id) studentWhereClause.stream = filters.stream_id;
+
+    // Get all monthly invoices
+    const monthlyInvoices = await FeeInvoice.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          where: studentWhereClause,
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
+        },
+        {
+          model: FeeStructure,
+          as: 'feeStructure',
+          include: [
+            {
+              model: FeeType,
+              as: 'feeType',
+              attributes: ['id', 'name'],
+            },
+          ],
+        },
+        {
+          model: FeePayment,
+          as: 'payments',
+          attributes: ['id', 'payment_amount', 'payment_date', 'payment_method', 'payment_status'],
+          order: [['created_at', 'DESC']],
+          limit: 5,
+        },
+      ],
+      order: [['student_id', 'ASC'], ['month', 'ASC']],
+      limit: 5000, // Reasonable limit to prevent memory issues
+    });
+    
+    // Group by student and month to show payment status
+    const studentMonthStatus = {};
+    
+    monthlyInvoices.forEach(invoice => {
+      const studentId = invoice.student_id;
+      const month = invoice.month;
+      const monthName = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December'][month];
+      
+      if (!studentMonthStatus[studentId]) {
+        studentMonthStatus[studentId] = {
+          student: invoice.student,
+          months: {},
+          totalAmount: 0,
+          totalPaid: 0,
+          totalPending: 0
+        };
+      }
+      
+      const isPaid = parseFloat(invoice.paid_amount) >= parseFloat(invoice.total_amount);
+      const isPartial = parseFloat(invoice.paid_amount) > 0 && !isPaid;
+      
+      studentMonthStatus[studentId].months[month] = {
+        month,
+        monthName,
+        invoice: invoice,
+        amount: parseFloat(invoice.total_amount),
+        paid: parseFloat(invoice.paid_amount),
+        balance: parseFloat(invoice.balance_amount),
+        status: isPaid ? 'paid' : (isPartial ? 'partial' : 'pending'),
+        dueDate: invoice.due_date,
+        payments: invoice.payments || []
+      };
+      
+      studentMonthStatus[studentId].totalAmount += parseFloat(invoice.total_amount);
+      studentMonthStatus[studentId].totalPaid += parseFloat(invoice.paid_amount);
+      studentMonthStatus[studentId].totalPending += parseFloat(invoice.balance_amount);
+    });
+    
+    // Convert to flat array format for export
+    const exportData = [];
+    Object.values(studentMonthStatus).forEach(studentData => {
+      monthsArray.forEach(month => {
+        const monthData = studentData.months[month];
+        if (monthData && monthData.invoice) {
+          exportData.push({
+            invoice_number: monthData.invoice.invoice_number,
+            invoice_date: monthData.invoice.invoice_date,
+            due_date: monthData.dueDate,
+            total_amount: monthData.amount,
+            paid_amount: monthData.paid,
+            remaining_amount: monthData.balance,
+            status: monthData.status === 'paid' ? 'paid' : 
+                    monthData.status === 'partial' ? 'partial_paid' : 'sent',
+            student_name: `${studentData.student.first_name} ${studentData.student.last_name || ''}`.trim(),
+            admission_number: studentData.student.admission_number,
+            class: studentData.student.current_class,
+            section: studentData.student.section,
+            branch: studentData.student.branch?.name || '',
+            fee_type: monthData.invoice.feeStructure?.feeType?.name || 'Monthly Fee',
+            month: month,
+            month_name: monthData.monthName,
+            payment_model: 'monthly'
+          });
+        }
+      });
+    });
+    
+    return exportData;
   }
 
   /**

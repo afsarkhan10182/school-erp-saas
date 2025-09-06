@@ -271,7 +271,7 @@ class UserController {
         // Delete the old profile image if it exists and is different
         if (oldProfileImage && oldProfileImage !== req.file.filename) {
           try {
-            const oldFilePath = resolveUploadsPath(oldProfileImage);
+            const oldFilePath = resolveUploadsPath('profile-images', oldProfileImage);
             await fs.unlink(oldFilePath);
             logger.info(`Deleted old profile image: ${oldProfileImage}`);
           } catch (error) {

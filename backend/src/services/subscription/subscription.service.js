@@ -619,6 +619,16 @@ class SubscriptionService {
         status: schoolStatus,
         created_by: userId,
         updated_by: userId,
+        // Initialize receipt settings with required fields
+        receipt_settings: {
+          schoolName: schoolData.name,
+          defaultReceiptTitle: 'Fee Receipt'
+        },
+        // Initialize fee settings with required fields
+        fee_settings: {
+          defaultCurrency: schoolData.currency || 'INR',
+          defaultPaymentModel: 'class_based'
+        }
       };
       
       const school = await School.create(schoolCreateData, { transaction });

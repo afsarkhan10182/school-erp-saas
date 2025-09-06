@@ -35,6 +35,9 @@ const exportReport = async (req, res, next) => {
       // Fees specific filters
       search,
       report_type: fee_report_type,
+      payment_model,
+      months,
+      year,
     } = requestData;
 
     // Extract and validate columns based on request method
@@ -98,6 +101,11 @@ const exportReport = async (req, res, next) => {
       
       // Fee report type
       report_type: fee_report_type,
+      
+      // Monthly payment filters
+      payment_model,
+      months,
+      year,
     };
 
     // Remove undefined values

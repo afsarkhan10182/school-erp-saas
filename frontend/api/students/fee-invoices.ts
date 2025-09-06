@@ -236,5 +236,25 @@ export const FeeInvoices = {
     const api = createApiInstance();
     const response = await api.get(`${endpoint}?${queryString}`, { responseType: 'blob' });
     return response;
+  },
+
+  // Monthly payment status endpoint
+  getMonthlyPaymentStatus: async (params?: {
+    months?: string | number[];
+    year?: number;
+    school_id?: string;
+    branch_id?: string;
+    class_id?: string;
+    section_id?: string;
+    stream_id?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const api = createApiInstance();
+    // Add cache-busting parameter
+    const cacheBustParams = { ...params, _t: Date.now() };
+    const response = await api.get('/fee-invoices/monthly-payment-status', { params: cacheBustParams });
+    return response.data;
   }
 };
