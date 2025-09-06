@@ -9,6 +9,8 @@ const {
   cancelInvoice,
   getFeeCollectionSummary,
   getFeeInvoiceReport,
+  getFeeInvoiceReportGrouped,
+  getMonthlyPaymentStatus,
   exportFeeInvoicesReport,
   applyLateFees,
   getFeeStats,
@@ -26,6 +28,7 @@ const {
   getGroupedStudentInvoices,
   getGroupedInvoices,
   getCombinedReceiptByGroupId,
+  getReceiptByNumber,
   getCollections,
   // On-demand receipt endpoints
   getReceiptData,
@@ -79,6 +82,9 @@ router.get('/grouped', requireRole('super_admin', 'school_admin', 'branch_admin'
 // GET endpoint to retrieve combined receipt for a receipt group
 router.get('/grouped-receipts/:receiptGroupId', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getCombinedReceiptByGroupId);
 
+// GET endpoint to retrieve receipt data by receipt number
+router.get('/receipt/:receiptNumber', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getReceiptByNumber);
+
 // GET endpoint to retrieve student fee ledger
 router.get('/student-ledger', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getStudentFeeLedger);
 
@@ -101,6 +107,12 @@ router.get('/receipts-report', requireRole('super_admin', 'school_admin', 'branc
 
 // GET endpoint to retrieve fee invoice report with pagination and filtering
 router.get('/report', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReport);
+
+// GET endpoint to retrieve fee invoice report grouped by students with pagination
+router.get('/report-grouped', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getFeeInvoiceReportGrouped);
+
+// GET endpoint to retrieve month-wise payment status for monthly payments
+router.get('/monthly-payment-status', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), getMonthlyPaymentStatus);
 
 // GET endpoint to export fee invoices report
 router.get('/export', requireRole('super_admin', 'school_admin', 'branch_admin', 'accountant'), exportFeeInvoicesReport);

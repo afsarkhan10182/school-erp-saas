@@ -58,7 +58,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
   max_students: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 100,
+    defaultValue: 100, // This should be configurable per plan
     validate: {
       min: { args: [-1], msg: 'Max students must be at least -1 (unlimited)' },
     },
@@ -66,7 +66,7 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
   max_staff: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 20,
+    defaultValue: 20, // This should be configurable per plan
     validate: {
       min: { args: [-1], msg: 'Max staff must be at least -1 (unlimited)' },
     },
@@ -74,16 +74,12 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
   max_branches: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 1,
+    defaultValue: 1, // This should be configurable per plan
     validate: {
       min: { args: [-1], msg: 'Max branches must be at least -1 (unlimited)' },
     },
   },
-  modules: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: false,
-    defaultValue: ['academics', 'attendance', 'fees'],
-  },
+  // Remove the hardcoded modules array - now managed through PlanModule relationship
   features: {
     type: DataTypes.JSONB,
     allowNull: false,
@@ -120,6 +116,30 @@ const SubscriptionPlan = sequelize.define('SubscriptionPlan', {
       key: 'id',
     },
   },
+  // Plan inheritance and overrides
+  parent_plan_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'subscription_plans',
+      key: 'id'
+    },
+    comment: 'If this is a custom plan based on another plan'
+  },
+  is_custom: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Whether this is a custom plan for specific school'
+  },
+  school_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'schools',
+      key: 'id'
+    },
+    comment: 'School this custom plan is created for'
+  },
 }, {
   tableName: 'subscription_plans',
   timestamps: true,
@@ -152,6 +172,20 @@ SubscriptionPlan.associate = (models) => {
   SubscriptionPlan.belongsTo(models.User, {
     foreignKey: 'updated_by',
     as: 'updatedBy',
+  });
+
+  // SubscriptionPlan has many Modules through PlanModule
+  SubscriptionPlan.belongsToMany(models.Module, {
+    through: models.PlanModule,
+    foreignKey: 'subscription_plan_id',
+    otherKey: 'module_id',
+    as: 'modules',
+  });
+
+  // SubscriptionPlan has many PlanModules
+  SubscriptionPlan.hasMany(models.PlanModule, {
+    foreignKey: 'subscription_plan_id',
+    as: 'planModules',
   });
 };
 

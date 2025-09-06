@@ -128,8 +128,7 @@ const School = sequelize.define('School', {
   },
   subscription_plan: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    defaultValue: 'trial',
+    allowNull: true, // Changed from false to true - no default
   },
   subscription_start_date: {
     type: DataTypes.DATE,
@@ -141,18 +140,15 @@ const School = sequelize.define('School', {
   },
   max_students: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 100,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   max_staff: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 20,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   max_branches: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
+    allowNull: true, // Changed from false to true - will be set from plan
   },
   current_academic_year_id: {
     type: DataTypes.UUID,
@@ -165,8 +161,8 @@ const School = sequelize.define('School', {
   },
   modules: {
     type: DataTypes.ARRAY(DataTypes.STRING),
-    allowNull: false,
-    defaultValue: ['academics', 'attendance', 'fees', 'exams', 'library'],
+    allowNull: true, // Changed from false to true - will be set from plan
+    defaultValue: [], // Empty array instead of hardcoded modules
   },
   is_active: {
     type: DataTypes.BOOLEAN,
@@ -188,6 +184,65 @@ const School = sequelize.define('School', {
       model: 'users',
       key: 'id',
     },
+  },
+  // Receipt customization settings
+  receipt_settings: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+    comment: 'Custom receipt settings for the school',
+    validate: {
+      isValidReceiptSettings(value) {
+        if (value && typeof value === 'object') {
+          const requiredFields = ['schoolName', 'defaultReceiptTitle'];
+          for (const field of requiredFields) {
+            if (!value[field]) {
+              throw new Error(`Receipt settings must include ${field}`);
+            }
+          }
+        }
+      }
+    }
+  },
+  // Fee configuration settings
+  fee_settings: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: {},
+    comment: 'Custom fee configuration settings for the school',
+    validate: {
+      isValidFeeSettings(value) {
+        if (value && typeof value === 'object') {
+          const requiredFields = ['defaultCurrency', 'defaultPaymentModel'];
+          for (const field of requiredFields) {
+            if (!value[field]) {
+              throw new Error(`Fee settings must include ${field}`);
+            }
+          }
+          // Validate currency
+          if (value.defaultCurrency && !['INR', 'USD', 'EUR', 'GBP', 'AED'].includes(value.defaultCurrency)) {
+            throw new Error('Invalid currency specified');
+          }
+          // Validate late fee percentage
+          if (value.lateFeePercentage && (value.lateFeePercentage < 0 || value.lateFeePercentage > 50)) {
+            throw new Error('Late fee percentage must be between 0 and 50');
+          }
+        }
+      }
+    }
+  },
+  // Simple module disable/enable
+  disabled_modules: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Modules that are disabled for this school'
+  },
+  modules_updated_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Timestamp when modules were last updated by super admin'
   },
 }, {
   tableName: 'schools',

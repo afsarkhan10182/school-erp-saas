@@ -375,7 +375,7 @@ import {
   GraduationCap,
   Calendar
 } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
@@ -549,7 +549,7 @@ const fetchInvoices = async () => {
     if (filters.status) params.status = filters.status;
     
     // Use the new student-based paginated endpoint
-    const response = await apiClient.invoices.getStudentSummary(params);
+    const response = await Invoices.getStudentSummary(params);
     
     // Extract student data from the response
     const studentsDataFromAPI = response.data.students || [];
@@ -614,17 +614,35 @@ const generateInvoices = async (formData) => {
     // Due date validation removed - it comes from fee structure
   }
 
+  // Close all accordions immediately when generating invoices
+  // This gives users a clean state and prevents stale data issues
+  if (invoiceTableRef.value) {
+    invoiceTableRef.value.closeAllAccordions();
+  }
+
   isGenerating.value = true;
   try {
     // Check if we have student_ids in formData for batching
     const studentIds = formData.student_ids || [];
     
+    // Declare variables for tracking invoice generation
+    let totalGenerated = 0;
+    let hasApiError = false;
+    let backendErrorMessage = '';
+    
     // If less than 50 students, use existing flow
     if (studentIds.length < 50) {
-      const response = await apiClient.feeInvoices.generateInvoices(formData);
+      const response = await FeeInvoices.generateInvoices(formData);
+      
+      // Check if the API response indicates no invoices were generated
+      if (!response.success || response.data.total_generated === 0) {
+        const errorMessage = response.message || 'No invoices generated';
+        showToast(`❌ ${errorMessage}`, 'error');
+        return;
+      }
       
       // Show detailed success information
-      const totalGenerated = response.data.total_generated || 0;
+      totalGenerated = response.data.total_generated || 0;
       const errors = response.data.errors || [];
       
       if (errors.length > 0) {
@@ -637,7 +655,6 @@ const generateInvoices = async (formData) => {
       const batchSize = 50;
       let total = studentIds.length;
       let completed = 0;
-      let totalGenerated = 0;
       let totalErrors = [];
 
       // Show initial message
@@ -653,7 +670,15 @@ const generateInvoices = async (formData) => {
             student_ids: batch
           };
           
-          const response = await apiClient.feeInvoices.generateInvoices(batchFormData);
+          const response = await FeeInvoices.generateInvoices(batchFormData);
+          
+          // Check if the API response indicates no invoices were generated
+          if (!response.success || response.data.total_generated === 0) {
+            hasApiError = true;
+            backendErrorMessage = response.message || 'No invoices generated for this batch';
+            showToast(`Batch ${Math.floor(i / batchSize) + 1} failed: ${backendErrorMessage}`, 'error');
+            break; // Stop processing further batches
+          }
           
           completed += batch.length;
           totalGenerated += response.data.total_generated || 0;
@@ -672,17 +697,21 @@ const generateInvoices = async (formData) => {
           }
         } catch (err) {
           console.error('Batch failed:', err);
-          completed += batch.length; // Count as processed even if failed
+          hasApiError = true;
+          backendErrorMessage = err.response?.data?.message || err.message || 'Unknown error';
           
           // Show more specific error message
           const batchNumber = Math.floor(i / batchSize) + 1;
-          const errorMessage = err.response?.data?.message || err.message || 'Unknown error';
-          showToast(`Error in invoice generation for ${batchNumber}: ${errorMessage}`, 'warning');
+          showToast(`Error in batch ${batchNumber}: ${backendErrorMessage}`, 'error');
+          break; // Stop processing further batches
         }
       }
 
-      // Show final result
-      if (totalErrors.length > 0) {
+      // Show final result based on whether there was an API error
+      if (hasApiError) {
+        const errorMsg = backendErrorMessage || 'Invoice generation stopped due to errors or already existing';
+        showToast(`${errorMsg}`, 'error');
+      } else if (totalErrors.length > 0) {
         showToast(`✅ Complete: Generated ${totalGenerated} invoices. ${totalErrors.length} students had existing invoices.`, 'warning');
       } else {
         showToast(`✅ Invoice generation complete: ${totalGenerated} invoices generated`, 'success');
@@ -691,48 +720,38 @@ const generateInvoices = async (formData) => {
     
     showGenerateModal.value = false;
     
-    // Store current expanded accordions before refreshing
-    const currentlyExpanded = invoiceTableRef.value ? invoiceTableRef.value.getExpandedStudents() : [];
-    
-    await fetchInvoices();
-    
-    // Clear cached student details so that when users expand accordions,
-    // they will see the newly generated invoices
-    if (invoiceTableRef.value) {
-      invoiceTableRef.value.clearStudentDetails();
+    // Only refresh invoices and perform post-processing if invoices were actually generated
+    if (totalGenerated > 0) {
+      await fetchInvoices();
       
-      // Restore expanded accordions after a short delay to ensure new data is loaded
-      if (currentlyExpanded.length > 0) {
-        setTimeout(() => {
-          currentlyExpanded.forEach(studentId => {
-            // Check if the student still exists in the new data
-            const studentExists = studentsData.value.some(student => student.student_id === studentId);
-            if (studentExists) {
-              invoiceTableRef.value.toggleStudent(studentId);
-            }
-          });
-        }, 100);
-      }
-      
-      // Highlight students who received new invoices (visual indicator)
-      if (formData.student_ids && formData.student_ids.length > 0) {
-        // Store the list of students who received new invoices for highlighting
-        const newInvoiceStudents = new Set(formData.student_ids);
+      // Clear cached student details so that when users expand accordions,
+      // they will see the newly generated invoices
+      if (invoiceTableRef.value) {
+        invoiceTableRef.value.clearStudentDetails();
         
-        // Pass this information to the InvoiceTable component
-        if (invoiceTableRef.value) {
-          invoiceTableRef.value.setNewInvoiceStudents(newInvoiceStudents);
+        // Highlight students who received new invoices (visual indicator)
+        if (formData.student_ids && formData.student_ids.length > 0) {
+          // Store the list of students who received new invoices for highlighting
+          const newInvoiceStudents = new Set(formData.student_ids);
+          
+          // Pass this information to the InvoiceTable component
+          if (invoiceTableRef.value) {
+            invoiceTableRef.value.setNewInvoiceStudents(newInvoiceStudents);
+          }
+        }
+        
+        // Show a helpful toast message
+        const newStudentsCount = formData.student_ids ? formData.student_ids.length : 0;
+        if (newStudentsCount > 0) {
+          const message = newStudentsCount === 1 
+            ? '1 student received new invoices. Click on the student row to view details.'
+            : `${newStudentsCount} students received new invoices. Click on student rows to view details.`;
+          showToast(message, 'success');
         }
       }
-      
-      // Show a helpful toast message
-      const newStudentsCount = formData.student_ids ? formData.student_ids.length : 0;
-      if (newStudentsCount > 0) {
-        const message = newStudentsCount === 1 
-          ? '1 student received new invoices. Click on the student row to view details.'
-          : `${newStudentsCount} students received new invoices. Click on student rows to view details.`;
-        showToast(message, 'success');
-      }
+    } else {
+      // If no invoices were generated, just close the modal and show error
+      showGenerateModal.value = false;
     }
   } catch (error) {
     if (error.response && error.response.data) {
@@ -774,7 +793,7 @@ const submitPayment = async () => {
     // Check if we have a selected invoice from the accordion
     if (invoice && invoice.invoice_number === paymentForm.invoice_number) {
       // Record payment for fee invoice (works for both installment and monthly)
-      response = await apiClient.feeInvoices.recordPayment(invoice.id, {
+              response = await FeeInvoices.recordPayment(invoice.id, {
         payment_amount: paymentForm.amount,
         payment_method: paymentForm.payment_method,
         notes: paymentForm.notes
@@ -859,6 +878,9 @@ const onBranchChange = async (branchId) => {
 
 const onClassChange = async (classId) => {
   console.log('🔍 onClassChange called with classId:', classId);
+  console.log('🔍 Current filters state:', { ...filters });
+  console.log('🔍 Current streams count:', streams.value.length);
+  console.log('🔍 Current sections count:', sections.value.length);
   
   // Reset section and stream filters when class changes
   filters.section = '';
@@ -869,24 +891,61 @@ const onClassChange = async (classId) => {
   const branchId = filters.branch_id || authStore.currentUser?.branch_id;
   
   console.log('🔍 Fetching streams/sections with:', { schoolId, branchId, classId });
+  console.log('🔍 filters.branch_id is empty?', !filters.branch_id);
   
   if (classId && classId !== '') {
     try {
-      const [streamsResult, sectionsResult] = await Promise.all([
-        fetchStreams(schoolId, branchId, classId),
-        fetchSections(schoolId, branchId, classId)
-      ]);
+      // If "All Branches" is selected (branch_id is empty), fetch streams/sections without branch filtering
+      // This allows users to see all available streams/sections for the class across all branches
+      if (!filters.branch_id) {
+        console.log('🔍 "All Branches" selected - fetching streams/sections without branch filtering');
+        const [streamsResult, sectionsResult] = await Promise.all([
+          fetchStreams(schoolId, null, classId),
+          fetchSections(schoolId, null, classId)
+        ]);
+        
+        console.log('🔍 Streams API response:', streamsResult);
+        console.log('🔍 Sections API response:', sectionsResult);
+      } else {
+        // Specific branch selected - fetch with branch filtering
+        console.log('🔍 Specific branch selected - fetching streams/sections with branch filtering');
+        const [streamsResult, sectionsResult] = await Promise.all([
+          fetchStreams(schoolId, branchId, classId),
+          fetchSections(schoolId, branchId, classId)
+        ]);
+        
+        console.log('🔍 Streams API response:', streamsResult);
+        console.log('🔍 Sections API response:', sectionsResult);
+      }
       
-      console.log('🔍 Streams fetched:', streams.value.length, 'items:', streams.value);
-      console.log('🔍 Sections fetched:', sections.value.length, 'items:', sections.value);
+      console.log('🔍 After API calls - Streams count:', streams.value.length, 'items:', streams.value);
+      console.log('🔍 After API calls - Sections count:', sections.value.length, 'items:', sections.value);
+      
+      // If no streams/sections found, log a warning
+      if (streams.value.length === 0) {
+        console.warn('⚠️ No streams found for class:', classId);
+      }
+      if (sections.value.length === 0) {
+        console.warn('⚠️ No sections found for class:', classId);
+      }
+      
     } catch (error) {
       console.error('❌ Error fetching streams/sections:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      // Clear streams and sections on error to prevent stale data
+      streams.value = [];
+      sections.value = [];
     }
   } else {
     // Clear streams and sections when no class is selected
     streams.value = [];
     sections.value = [];
-    console.log('🔍 Cleared streams and sections');
+    console.log('🔍 Cleared streams and sections - no class selected');
   }
 };
 
@@ -976,7 +1035,7 @@ const updateLocalInvoiceData = (invoiceId, paymentAmount) => {
       
       invoice.paid_amount = newPaidAmount;
       invoice.balance_amount = newBalanceAmount;
-      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial';
+      invoice.status = newBalanceAmount <= 0 ? 'paid' : 'partial_paid';
       
     }
   });
@@ -1073,7 +1132,7 @@ const onPaymentRecorded = async () => {
 const viewReceipt = async (invoice) => {
   isLoadingReceipt.value = true;
   try {
-    const response = await apiClient.feeInvoices.getInvoiceReceiptData(invoice.id);
+    const response = await FeeInvoices.getInvoiceReceiptData(invoice.id);
     
     if (response.data) {
       // For installment payments with multiple payments, show combined receipt
@@ -1103,7 +1162,7 @@ const viewReceipt = async (invoice) => {
 const viewPaymentReceipt = async (paymentItem) => {
   isLoadingReceipt.value = true;
   try {
-    const response = await apiClient.feeInvoices.getPaymentReceiptData(paymentItem.payment.id);
+    const response = await FeeInvoices.getPaymentReceiptData(paymentItem.payment.id);
     if (response.data) {
       selectedReceipt.value = {
         ...response.data,
@@ -1133,7 +1192,7 @@ const viewCombinedReceipt = async (combinedInvoice) => {
       // Use the receipt data directly from the payment response
       selectedReceipt.value = {
         ...receiptData,
-        receipt_number: combinedInvoice.receipt_group_id || combinedInvoice.id,
+        receipt_number: combinedInvoice.combined_receipt.receipt_number || combinedInvoice.receipt_number || combinedInvoice.receipt_group_id || combinedInvoice.id,
         payment_date: combinedInvoice.applied_payments?.[0]?.payment_date || new Date(),
         payment_amount: combinedInvoice.total_payment_amount,
         payment_method: combinedInvoice.payment_method || 'cash'
@@ -1142,7 +1201,7 @@ const viewCombinedReceipt = async (combinedInvoice) => {
     } else if (combinedInvoice.receipt_group_id) {
       // Fallback: fetch receipt data from API using receipt_group_id
       console.log('🔍 Fetching receipt for group ID:', combinedInvoice.receipt_group_id)
-      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(combinedInvoice.receipt_group_id);
       console.log('🔍 API Response:', response)
       if (response.data) {
         selectedReceipt.value = response.data;
@@ -1151,10 +1210,22 @@ const viewCombinedReceipt = async (combinedInvoice) => {
       } else {
         showToast('No receipt found for this combined invoice', 'error');
       }
+    } else if (combinedInvoice.receipt_number) {
+      // Try to fetch by receipt number
+      console.log('🔍 Fetching receipt for receipt number:', combinedInvoice.receipt_number)
+      const response = await FeeInvoices.getReceiptByNumber(combinedInvoice.receipt_number);
+      console.log('🔍 API Response:', response)
+      if (response.success && response.data) {
+        selectedReceipt.value = response.data;
+        console.log('🔍 Selected Receipt Data:', selectedReceipt.value)
+        showReceiptModal.value = true;
+      } else {
+        showToast('No receipt found for this receipt number', 'error');
+      }
     } else {
       // Last fallback: try with id
       console.log('🔍 Fetching receipt for ID:', combinedInvoice.id)
-      const response = await apiClient.feeInvoices.getCombinedReceipt(combinedInvoice.id);
+      const response = await FeeInvoices.getCombinedReceipt(combinedInvoice.id);
       console.log('🔍 API Response:', response)
       if (response.data) {
         selectedReceipt.value = response.data;
@@ -1625,7 +1696,7 @@ const installmentFeeStructures = ref([]);
 const fetchMonthlyFeeStructures = async () => {
   try {
     console.log('🔍 Fetching monthly fee structures...');
-    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'monthly' });
+    const response = await FeeStructures.getWithContext({ payment_model: 'monthly' });
     console.log('📊 Monthly fee structures response:', response);
     monthlyFeeStructures.value = response.data.fee_structures || [];
     console.log('✅ Loaded monthly fee structures:', monthlyFeeStructures.value.length);
@@ -1639,7 +1710,7 @@ const fetchMonthlyFeeStructures = async () => {
 const fetchInstallmentFeeStructures = async () => {
   try {
     console.log('🔍 Fetching installment fee structures...');
-    const response = await apiClient.feeStructures.getWithContext({ payment_model: 'installment' });
+    const response = await FeeStructures.getWithContext({ payment_model: 'installment' });
     console.log('📊 Installment fee structures response:', response);
     installmentFeeStructures.value = response.data.fee_structures || [];
     console.log('✅ Loaded installment fee structures:', installmentFeeStructures.value.length);
@@ -1719,20 +1790,20 @@ const fetchBranches = async () => {
     
     if (authStore.isSuperAdmin) {
       // Super admin can see all branches
-      response = await apiClient.branches.getAll();
-      branches.value = response.data?.branches || response.data || [];
+      response = await Branches.getForDropdown();
+      branches.value = response.data || [];
     } else if (authStore.isSchoolAdmin) {
       // School admin sees only their school's branches
-      response = await apiClient.branches.getBySchool(authStore.currentUser?.school_id);
-      branches.value = response.data?.branches || response.data || [];
+      response = await Branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
+      branches.value = response.data || [];
     } else if (authStore.isBranchAdmin) {
       // Branch admin sees only their branch
-      response = await apiClient.branches.getById(authStore.currentUser?.branch_id);
+      response = await Branches.getById(authStore.currentUser?.branch_id);
       branches.value = response.data ? [response.data] : [];
     } else {
       // Default fallback
-      response = await apiClient.branches.getAll();
-      branches.value = response.data?.branches || response.data || [];
+      response = await Branches.getForDropdown();
+      branches.value = response.data || [];
     }
     
   } catch (error) {
@@ -1799,7 +1870,7 @@ const loadSchoolData = async () => {
   try {
     const schoolId = authStore.currentUser?.school_id;
     if (schoolId) {
-      const response = await apiClient.schools.getById(schoolId);
+      const response = await Schools.getById(schoolId);
       if (response.data) {
         schoolData.value = response.data;
       }

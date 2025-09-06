@@ -690,7 +690,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
-import { apiClient } from '~/utils/api';
+import { Students, Schools, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 import Pagination from '~/components/Pagination.vue';
 import ReceiptViewer from '~/components/ReceiptViewer.vue';
@@ -743,13 +743,13 @@ const adjustmentForm = ref({
 // Fetch student details
 const fetchStudent = async () => {
   try {
-    const response = await apiClient.students.getById(studentId);
+    const response = await Students.getById(studentId);
     student.value = response.data;
     
     // Also fetch school data for receipt display
     if (response.data.school_id) {
       try {
-        const schoolResponse = await apiClient.schools.getById(response.data.school_id);
+        const schoolResponse = await Schools.getById(response.data.school_id);
         schoolData.value = schoolResponse.data;
       } catch (schoolError) {
         console.error('Error fetching school data:', schoolError);
@@ -775,7 +775,7 @@ const fetchLedger = async () => {
   
   isLoading.value = true;
   try {
-    const response = await apiClient.feeInvoices.getStudentLedger({
+    const response = await FeeInvoices.getStudentLedger({
       student_id: studentId,
       academic_year: filters.value.academic_year,
       status: filters.value.status,
@@ -805,7 +805,7 @@ const recordPayment = (invoice) => {
 const submitPayment = async () => {
   isSubmitting.value = true;
   try {
-    await apiClient.feeInvoices.recordPayment(selectedInvoice.value.id, paymentForm.value);
+    await FeeInvoices.recordPayment(selectedInvoice.value.id, paymentForm.value);
     showPaymentModal.value = false;
     await fetchLedger();
     showSuccess('Payment recorded successfully!');
@@ -838,7 +838,7 @@ const adjustInvoice = (invoice) => {
 const submitAdjustment = async () => {
   isSubmitting.value = true;
   try {
-    await apiClient.feeInvoices.adjustInvoice(selectedInvoice.value.id, adjustmentForm.value);
+    await FeeInvoices.adjustInvoice(selectedInvoice.value.id, adjustmentForm.value);
     showAdjustmentModal.value = false;
     await fetchLedger();
     showSuccess('Invoice adjusted successfully!');
@@ -858,7 +858,7 @@ const submitAdjustment = async () => {
 const showPaymentHistory = (invoice) => {
   selectedInvoice.value = invoice;
   isLoadingPayments.value = true;
-  apiClient.feeInvoices.getInvoicePayments(invoice.id)
+  FeeInvoices.getInvoicePayments(invoice.id)
     .then(response => {
       paymentHistory.value = response.data;
     })
@@ -885,7 +885,7 @@ const viewReceipt = async (payment) => {
   try {
     if (payment.is_grouped && payment.receipt_group_id) {
       // For grouped receipts, generate combined receipt on-demand
-      const response = await apiClient.feeInvoices.getCombinedReceipt(payment.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(payment.receipt_group_id);
       if (response.data) {
         // Merge the data properly, prioritizing the API response data
         selectedReceipt.value = {
@@ -905,7 +905,7 @@ const viewReceipt = async (payment) => {
       if (payment.payments && payment.payments.length > 0) {
         const firstPayment = payment.payments[0];
         try {
-          const response = await apiClient.feeInvoices.generateReceipt(firstPayment.id);
+          const response = await FeeInvoices.generateReceipt(firstPayment.id);
           if (response.data) {
             // Merge the data properly, prioritizing the API response data
             selectedReceipt.value = {
@@ -928,7 +928,7 @@ const viewReceipt = async (payment) => {
         // If no payments array, this is likely a payment object from payment history
         // Generate receipt for this specific payment
         try {
-          const response = await apiClient.feeInvoices.generateReceipt(payment.id);
+          const response = await FeeInvoices.generateReceipt(payment.id);
           console.log('API Response:', response);
           console.log('Response data:', response.data);
           if (response.data) {
@@ -974,13 +974,14 @@ const viewReceipt = async (payment) => {
 
 // Select receipt from list (for tab-like functionality)
 const selectReceiptFromList = async (receipt) => {
+  console.log('Selecting receipt from list:', receipt);
   selectedReceiptFromList.value = receipt;
   isLoadingReceiptContent.value = true;
   
   try {
-    if (receipt.is_grouped && receipt.receipt_group_id) {
+    if (receipt.is_grouped && receipt.invoice_id) {
       // For grouped receipts, generate combined receipt data on-demand
-      const response = await apiClient.feeInvoices.getCombinedReceipt(receipt.receipt_group_id);
+      const response = await FeeInvoices.getReceiptByNumber(receipt.invoice_id);
       if (response.data) {
         selectedReceiptFromList.value = {
           ...receipt,
@@ -992,7 +993,7 @@ const selectReceiptFromList = async (receipt) => {
       }
     } else if (receipt.payment_id) {
       // For individual payments, generate receipt data on-demand
-      const response = await apiClient.feeInvoices.generateReceipt(receipt.payment_id);
+      const response = await FeeInvoices.generateReceipt(receipt.payment_id);
       if (response.data) {
         selectedReceiptFromList.value = {
           ...receipt,
@@ -1004,7 +1005,7 @@ const selectReceiptFromList = async (receipt) => {
       }
     } else if (receipt.invoice_id || receipt.id) {
       // For individual invoices, generate receipt data on-demand
-      const response = await apiClient.feeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
+      const response = await FeeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
       if (response.data) {
         selectedReceiptFromList.value = {
           ...receipt,
@@ -1035,7 +1036,7 @@ const viewReceiptFromList = async (receipt) => {
   try {
     if (receipt.is_grouped && receipt.receipt_group_id) {
       // For grouped receipts, generate combined receipt data on-demand
-      const response = await apiClient.feeInvoices.getCombinedReceipt(receipt.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(receipt.receipt_group_id);
       if (response.data) {
         selectedReceipt.value = response.data;
         showReceiptModal.value = true;
@@ -1046,7 +1047,7 @@ const viewReceiptFromList = async (receipt) => {
       }
     } else if (receipt.payment_id) {
       // For individual payments, generate receipt data on-demand
-      const response = await apiClient.feeInvoices.generateReceipt(receipt.payment_id);
+      const response = await FeeInvoices.generateReceipt(receipt.payment_id);
       if (response.data) {
         selectedReceipt.value = {
           ...receipt,
@@ -1060,7 +1061,7 @@ const viewReceiptFromList = async (receipt) => {
       }
     } else if (receipt.invoice_id || receipt.id) {
       // For individual invoices, generate receipt data on-demand
-      const response = await apiClient.feeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
+      const response = await FeeInvoices.generateInvoiceReceipt(receipt.invoice_id || receipt.id);
       if (response.data) {
         selectedReceipt.value = {
           ...receipt,
@@ -1090,19 +1091,44 @@ const viewReceiptFromList = async (receipt) => {
 // View combined receipt for grouped payments
 const viewCombinedReceipt = async (invoice) => {
   try {
-    if (!invoice.receipt_group_id) {
-      showError('No receipt group ID found for this payment');
+    // First check if we have combined_receipt data (from smart payments)
+    if (invoice.combined_receipt) {
+      console.log('🔍 Using cached combined_receipt data:', invoice.combined_receipt);
+      selectedReceipt.value = invoice.combined_receipt;
+      showReceiptModal.value = true;
       return;
     }
     
-    const response = await apiClient.feeInvoices.getCombinedReceipt(invoice.receipt_group_id);
-    
-    if (response.data) {
-      selectedReceipt.value = response.data;
-      showReceiptModal.value = true;
-    } else {
-      showError('No receipt found for this combined payment');
+    // Check for receipt_group_id (for grouped receipts)
+    if (invoice.receipt_group_id) {
+      console.log('🔍 Fetching receipt for group ID:', invoice.receipt_group_id);
+      const response = await FeeInvoices.getCombinedReceipt(invoice.receipt_group_id);
+      
+      if (response.data) {
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showError('No receipt found for this combined payment');
+      }
+      return;
     }
+    
+    // Check for receipt_number (for individual receipts)
+    if (invoice.receipt_number) {
+      console.log('🔍 Fetching receipt for receipt number:', invoice.receipt_number);
+      const response = await FeeInvoices.getReceiptByNumber(invoice.receipt_number);
+      
+      if (response.success && response.data) {
+        selectedReceipt.value = response.data;
+        showReceiptModal.value = true;
+      } else {
+        showError('No receipt found for this receipt number');
+      }
+      return;
+    }
+    
+    // If none of the above, show error
+    showError('No receipt group ID or receipt number found for this payment');
   } catch (error) {
     console.error('Error generating combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
@@ -1121,7 +1147,7 @@ const fetchAllReceipts = async () => {
   isLoadingReceipts.value = true;
   try {
     // Fetch student ledger which includes both individual and grouped receipts
-    const ledgerResponse = await apiClient.feeInvoices.getStudentLedger({ 
+    const ledgerResponse = await FeeInvoices.getStudentLedger({ 
       student_id: studentId,
       academic_year: filters.value.academic_year || ''
     });

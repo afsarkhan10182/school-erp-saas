@@ -291,6 +291,10 @@ class AuthService {
 
       // TODO: Send email with reset link
       logger.info(`Password reset token generated for user ${user.id}`);
+      
+      // Log reset token for testing purposes (remove in production)
+      logger.info(`🔑 RESET TOKEN FOR TESTING: ${resetToken}`);
+      logger.info(`🔗 Reset URL: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${resetToken}`);
 
       return { message: 'If the email exists, a password reset link has been sent.' };
     } catch (error) {

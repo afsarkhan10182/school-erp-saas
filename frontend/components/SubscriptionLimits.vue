@@ -104,7 +104,7 @@
 
       <!-- Subscription Status -->
       <div v-if="usageData.subscription_status" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-600 rounded-lg p-4">
-        <div class="flex items-center">
+        <div class="flex items-center justify-between">
           <div class="flex-shrink-0">
             <svg v-if="usageData.subscription_status.status === 'lifetime'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -113,7 +113,7 @@
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
           </div>
-          <div class="ml-3">
+          <div class="ml-3 flex-1">
             <h3 class="text-sm font-medium" :class="{
               'text-green-800 dark:text-green-200': usageData.subscription_status.status === 'lifetime',
               'text-blue-800 dark:text-blue-200': usageData.subscription_status.status === 'active',
@@ -133,6 +133,11 @@
             }">
               {{ usageData.subscription_status.message }}
             </p>
+          </div>
+          <div v-if="['expiring_soon', 'expired'].includes(usageData.subscription_status.status)" class="ml-4">
+            <button @click="openRequestModal('renewal')" class="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+              Request Renewal
+            </button>
           </div>
         </div>
       </div>
@@ -165,7 +170,7 @@
                 </ul>
               </div>
               <button
-                @click="requestUpgrade(suggestion.plan_key)"
+                @click="openRequestModal('upgrade', suggestion.plan_key, suggestion.billing_cycle)"
                 class="ml-4 px-3 py-1 text-sm font-medium text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-600 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors"
               >
                 Request Upgrade
@@ -193,31 +198,109 @@
       </div>
     </div>
   </div>
+
+  <!-- Renewal/Upgrade Request Modal -->
+  <Modal :show="showRequestModal" @close="closeRequestModal">
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ modalTitle }}</h3>
+    </template>
+    <template #body>
+      <form @submit.prevent="submitRequest" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Request Type</label>
+        <select v-model="form.request_type" required class="input-field">
+          <option value="renewal">Renewal</option>
+          <option value="upgrade">Upgrade</option>
+          <option value="downgrade">Downgrade</option>
+          <option value="change_plan">Change Plan</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plan</label>
+        <select v-model="form.requested_plan_code" required class="input-field">
+          <option value="">Select Plan</option>
+          <option v-for="plan in activePlans" :key="plan.code" :value="plan.code">
+            {{ plan.name }} - ₹{{ plan.price }}/{{ plan.billing_cycle }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Billing Cycle</label>
+        <select v-model="form.billing_cycle" required class="input-field">
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+          <option value="lifetime">Lifetime</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
+        <textarea v-model="form.request_reason" rows="3" class="input-field" placeholder="Please explain why you need this change..."></textarea>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-4">
+        <button type="button" @click="closeRequestModal" class="btn-secondary">Cancel</button>
+        <button type="submit" :disabled="submitting" class="btn-primary">
+          <span v-if="submitting">Submitting...</span>
+          <span v-else>Submit Request</span>
+        </button>
+      </div>
+      </form>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Saas } from '~/api';
 import { useToast } from '~/composables/useToast';
+import { useAuthStore } from '~/stores/auth';
+import Modal from '~/components/Modal.vue';
 
 const { showSuccess, showError } = useToast();
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const error = ref(null);
 const usageData = ref(null);
+const activePlans = ref([]);
+const showRequestModal = ref(false);
+const submitting = ref(false);
+const form = ref({
+  request_type: 'renewal',
+  requested_plan_code: '',
+  billing_cycle: 'yearly',
+  request_reason: ''
+});
+const modalTitle = ref('Request Subscription Change');
 
 const fetchUsageData = async () => {
   loading.value = true;
   error.value = null;
   
   try {
-    const response = await apiClient.subscriptions.getUsage();
+    const response = await Saas.getUsage();
     usageData.value = response.data;
   } catch (err) {
-    console.error('Error fetching usage data:', err);
     error.value = err.response?.data?.message || 'Failed to load subscription data';
   } finally {
     loading.value = false;
+  }
+};
+
+const fetchActivePlans = async () => {
+  try {
+    if (authStore.isSuperAdmin) {
+      const resp = await Saas.getPlans({ is_active: true });
+      activePlans.value = resp?.data?.plans || [];
+    } else {
+      const resp = await Saas.getActivePlansForSchools();
+      activePlans.value = resp?.data?.plans || [];
+    }
+  } catch (err) {
+    activePlans.value = [];
   }
 };
 
@@ -230,15 +313,122 @@ const getUsageBarClass = (percentage, exceeded) => {
 
 const requestUpgrade = async (planKey) => {
   try {
-    await apiClient.subscriptions.createRenewalRequest({
-      requested_plan_code: planKey,
+    let requestedPlanCode = String(planKey);
+
+    // Super Admin can validate against active DB plans; School Admin cannot access this endpoint
+    if (authStore.isSuperAdmin) {
+      const plansResp = await Saas.getPlans({ is_active: true });
+      const activePlans = plansResp?.data?.plans || [];
+      const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
+      if (!match) {
+        showError('Requested plan is not available. Please contact the administrator.');
+        return;
+      }
+      requestedPlanCode = match.code;
+    }
+    else {
+      // School/Branch admin: use active plans endpoint allowed for them
+      const plansResp = await Saas.getActivePlansForSchools();
+      const activePlans = plansResp?.data?.plans || [];
+      const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
+      if (!match) {
+        showError('Requested plan is not available. Please contact the administrator.');
+        return;
+      }
+      requestedPlanCode = match.code;
+    }
+
+    await Saas.createRenewalRequest({
+      requested_plan_code: requestedPlanCode,
       request_type: 'upgrade',
       request_reason: 'Requested upgrade based on usage limits'
     });
     showSuccess('Upgrade request submitted successfully!');
   } catch (err) {
-    console.error('Error requesting upgrade:', err);
     showError(err.response?.data?.message || 'Failed to submit upgrade request');
+  }
+};
+
+const requestRenewal = async () => {
+  try {
+    const currentPlanCode = usageData.value?.current_plan;
+    if (!currentPlanCode) {
+      showError('No current plan detected for your school.');
+      return;
+    }
+
+    let requestedPlanCode = String(currentPlanCode);
+
+    // Super Admin can validate; School Admin cannot access plans endpoint
+    if (authStore.isSuperAdmin) {
+      const plansResp = await Saas.getPlans({ is_active: true });
+      const activePlans = plansResp?.data?.plans || [];
+      const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
+      if (!match) {
+        showError('Requested plan is not available. Please contact the administrator.');
+        return;
+      }
+      requestedPlanCode = match.code;
+    }
+    else {
+      const plansResp = await Saas.getActivePlansForSchools();
+      const activePlans = plansResp?.data?.plans || [];
+      const match = activePlans.find((p) => (p.code || '').toUpperCase() === requestedPlanCode.toUpperCase());
+      if (!match) {
+        showError('Requested plan is not available. Please contact the administrator.');
+        return;
+      }
+      requestedPlanCode = match.code;
+    }
+
+    await Saas.createRenewalRequest({
+      requested_plan_code: requestedPlanCode,
+      request_type: 'renewal',
+      request_reason: 'Renew current plan'
+    });
+    showSuccess('Renewal request submitted successfully!');
+  } catch (err) {
+    showError(err.response?.data?.message || 'Failed to submit renewal request');
+  }
+};
+
+const openRequestModal = async (type = 'renewal', preselectCode = '', preselectBilling = null) => {
+  await fetchActivePlans();
+  form.value.request_type = type;
+  form.value.requested_plan_code = preselectCode || (usageData.value?.current_plan || '');
+  form.value.billing_cycle = preselectBilling || 'yearly';
+  form.value.request_reason = '';
+  modalTitle.value = type === 'upgrade' ? 'Request Upgrade' : type === 'downgrade' ? 'Request Downgrade' : type === 'change_plan' ? 'Request Plan Change' : 'Request Renewal';
+  showRequestModal.value = true;
+};
+
+const closeRequestModal = () => {
+  showRequestModal.value = false;
+};
+
+const submitRequest = async () => {
+  submitting.value = true;
+  try {
+    // Validate selected code against active plans to ensure dynamic correctness
+    const match = activePlans.value.find((p) => (p.code || '').toUpperCase() === String(form.value.requested_plan_code).toUpperCase());
+    if (!match) {
+      showError('Please select a valid plan.');
+      return;
+    }
+
+    await Saas.createRenewalRequest({
+      requested_plan_code: match.code,
+      request_type: form.value.request_type,
+      billing_cycle: form.value.billing_cycle,
+      request_reason: form.value.request_reason
+    });
+    showSuccess('Request submitted successfully!');
+    showRequestModal.value = false;
+    await fetchUsageData();
+  } catch (err) {
+    showError(err.response?.data?.message || 'Failed to submit request');
+  } finally {
+    submitting.value = false;
   }
 };
 

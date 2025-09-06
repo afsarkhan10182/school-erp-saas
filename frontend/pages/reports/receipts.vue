@@ -62,7 +62,7 @@
           </div>
           
           <button
-            @click="printReport"
+            @click="printReceiptsReport"
             :disabled="isLoading || payments.length === 0"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -72,7 +72,7 @@
             Print Report
           </button>
           
-          <!-- Download As Dropdown -->
+          <!-- Download Dropdown -->
           <div class="relative download-dropdown">
             <button
               @click="toggleDownloadDropdown"
@@ -82,7 +82,7 @@
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Download As
+              Download
               <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -105,11 +105,11 @@
                   PDF
                 </button>
                 <button
-                  @click="downloadDetailedReport"
+                  @click="downloadExcelReport"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Excel
                 </button>
@@ -307,7 +307,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-              ₹{{ formatCurrency(summary.total_collected) }}
+              {{ formatCurrency(summary.total_collected) }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Collected</div>
           </div>
@@ -428,7 +428,7 @@
                 
                 <!-- Amount -->
                 <td v-if="isColumnVisible('payment_amount')" class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
-                  ₹{{ formatCurrency(payment.payment_amount) }}
+                  {{ formatCurrency(payment.payment_amount) }}
                 </td>
                 
                 <!-- Payment Method -->
@@ -463,11 +463,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { apiClient } from '~/utils/api';
+import { FeeInvoices, Schools, Branches, Classes } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useAuthStore } from '~/stores/auth';
+import { useExportService } from '~/composables/useExportService';
+import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/Pagination.vue';
 
 // Page metadata
@@ -478,6 +480,13 @@ definePageMeta({
 // Composables
 const { showToast } = useToast();
 const authStore = useAuthStore();
+const { 
+  generateReport,
+  isGenerating, 
+  generationProgress
+} = useExportService();
+
+const { printReport: printReportCommon } = usePrintReport();
 
 // State
 const isLoading = ref(false);
@@ -487,8 +496,6 @@ const summary = ref({
   total_receipts: 0,
   payment_methods: []
 });
-
-
 
 const pagination = ref({
   page: 1,
@@ -502,7 +509,6 @@ const pagination = ref({
 const showDownloadDropdown = ref(false); // Track download dropdown state
 const showColumnSelector = ref(false); // Track column selector state
 
-
 // Dropdown data
 const schools = ref([]);
 const branches = ref([]);
@@ -511,7 +517,7 @@ const sections = ref([]);
 
 // Available columns for selection
 const availableColumns = ref([
-  { key: 'invoice_number', label: 'Invoice No', visible: false }, // Hidden by default as per user's image
+  { key: 'invoice_number', label: 'Invoice No', visible: false },
   { key: 'receipt_number', label: 'Receipt No', visible: true },
   { key: 'payment_date', label: 'Date', visible: true },
   { key: 'student_name', label: 'Student Name', visible: true },
@@ -533,7 +539,7 @@ const userRole = computed(() => authStore.currentUser?.role || 'branch_admin');
 
 // Filters
 const filters = reactive({
-  dateRange: 'today',
+  dateRange: 'today', // Changed from 'month' to 'today'
   from_date: '',
   to_date: '',
   payment_method: '',
@@ -596,13 +602,19 @@ const handleDateRangeChange = () => {
   }
 };
 
-const fetchReceiptsData = async (page = 1) => {
-  isLoading.value = true;
+const fetchReceiptsData = async (page = 1, exportAll = false) => {
+  if (!exportAll) {
+    isLoading.value = true;
+  }
   try {
-    const params = {
-      page,
-      limit: pagination.value.per_page
-    };
+    const params = {};
+    
+    if (exportAll) {
+      params.export_all = true;
+    } else {
+      params.page = page;
+      params.limit = pagination.value.per_page;
+    }
 
     // Add filters
     if (filters.from_date) params.from_date = filters.from_date;
@@ -626,85 +638,55 @@ const fetchReceiptsData = async (page = 1) => {
     
     if (filters.search) params.search = filters.search;
 
-    const response = await apiClient.feeInvoices.getReceiptsReport(params);
+    const response = await FeeInvoices.getReceiptsReport(params);
     
     if (response.success) {
-      payments.value = response.data.payments || [];
-      summary.value = response.data.summary || {
+      const responsePayments = response.data.payments || [];
+      const responseSummary = response.data.summary || {
         total_collected: 0,
         total_receipts: 0,
         payment_methods: []
       };
       
-      // Ensure pagination data exists
-      const paginationData = response.data.pagination || {};
-      pagination.value = {
-        page: paginationData.current_page || 1,
-        current_page: paginationData.current_page || 1,
-        total: paginationData.total_records || 0,
-        total_records: paginationData.total_records || 0,
-        total_pages: paginationData.total_pages || 1,
-        per_page: paginationData.per_page || 10,
-        limit: paginationData.per_page || 10
-      };
+      if (exportAll) {
+        // For export/print, return the data directly
+        return responsePayments;
+      } else {
+        // For normal page display, update the reactive data
+        payments.value = responsePayments;
+        summary.value = responseSummary;
+        
+        // Ensure pagination data exists
+        const paginationData = response.data.pagination || {};
+        pagination.value = {
+          page: paginationData.current_page || 1,
+          current_page: paginationData.current_page || 1,
+          total: paginationData.total_records || 0,
+          total_records: paginationData.total_records || 0,
+          total_pages: paginationData.total_pages || 1,
+          per_page: paginationData.per_page || 10,
+          limit: paginationData.per_page || 10
+        };
+      }
     } else {
-      showToast('Error fetching receipts data', 'error');
+      if (exportAll) {
+        console.error('❌ Failed to fetch all receipts for print');
+        return [];
+      } else {
+        showToast('Error fetching receipts data', 'error');
+      }
     }
   } catch (error) {
     console.error('Error fetching receipts:', error);
-    showToast('Error fetching receipts data', 'error');
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Function to fetch ALL records for export/print (without pagination)
-const fetchAllReceiptsForExport = async () => {
-  try {
-    const params = {
-      // Don't send page and limit - backend should return all records
-      export_all: true
-    };
-
-    // Add filters
-    if (filters.from_date) params.from_date = filters.from_date;
-    if (filters.to_date) params.to_date = filters.to_date;
-    if (filters.payment_method) params.payment_method = filters.payment_method;
-    if (filters.school_id) params.school_id = filters.school_id;
-    if (filters.branch_id) params.branch_id = filters.branch_id;
-    
-    // Add class ID if selected
-    if (filters.class_id && filters.class_id !== '') {
-      params.class_id = filters.class_id;
-    }
-    
-    // Add section name if selected
-    if (filters.section_id && filters.section_id !== '') {
-      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
-      if (selectedSection) {
-        params.section = selectedSection.name;
-      }
-    }
-    
-    if (filters.search) params.search = filters.search;
-
-    const response = await apiClient.feeInvoices.getReceiptsReport(params);
-    
-    if (response.success) {
-      const allPayments = response.data.payments || [];
-      const exportSummary = response.data.summary || {
-        total_collected: 0,
-        total_receipts: 0,
-        payment_methods: []
-      };
-      
-      return { payments: allPayments, summary: exportSummary };
+    if (exportAll) {
+      return [];
     } else {
-      throw new Error('Failed to fetch all receipts data');
+      showToast('Error fetching receipts data', 'error');
     }
-  } catch (error) {
-    console.error('Error fetching all receipts for export:', error);
-    throw error;
+  } finally {
+    if (!exportAll) {
+      isLoading.value = false;
+    }
   }
 };
 
@@ -723,7 +705,7 @@ const handlePageSizeChange = (newPageSize) => {
 };
 
 const clearFilters = () => {
-  filters.dateRange = 'today';
+  filters.dateRange = 'today'; // Changed from 'month' to 'today'
   filters.from_date = '';
   filters.to_date = '';
   filters.payment_method = '';
@@ -772,7 +754,7 @@ const onClassChange = async () => {
 const fetchSchools = async () => {
   if (userRole.value === 'super_admin') {
     try {
-      const response = await apiClient.schools.getAll();
+      const response = await Schools.getAll();
       if (response.success) {
         schools.value = response.data.schools || [];
       }
@@ -786,58 +768,34 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-    const response = await apiClient.branches.getAll();
-    console.log('🌿 Branches API response:', response);
+            const response = await Branches.getForDropdown();
     
-    // Handle different response structures
-    let allBranches = [];
-    if (response.success) {
-      allBranches = response.data.branches || [];
-    } else if (response.data?.items) {
-      allBranches = response.data.items;
-    } else if (response.data?.branches) {
-      allBranches = response.data.branches;
-    } else if (Array.isArray(response.data)) {
-      allBranches = response.data;
-    }
-    
-    console.log('🌿 All branches before filtering:', allBranches.length, allBranches);
+    // Dropdown endpoint returns data directly as an array
+    let allBranches = response.data || [];
     
     // Apply role-based filtering
     const user = authStore.user;
-    console.log('👤 Current user:', user);
     
     if (user && user.role) {
-      console.log('🔒 Applying role-based filtering for role:', user.role);
-      
       if (user.role === 'super_admin') {
-        console.log('👑 Super admin user, filtering branches');
         // Super admin can see all branches, but filter by selected school if specified
         if (filters.school_id) {
-          console.log('🏫 Filtering branches by selected school:', filters.school_id);
           branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
         } else {
-          console.log('🏫 No school selected, showing no branches');
           branches.value = [];
         }
       } else if (user.role === 'school_admin') {
-        console.log('🏫 School admin user, filtering by school_id:', user.school_id);
         // School admin can see all branches in their school
         branches.value = allBranches.filter(branch => branch.school_id === user.school_id);
       } else if (user.role === 'branch_admin') {
-        console.log('🏢 Branch admin user, filtering by branch_id:', user.branch_id);
         // Branch admin can only see their own branch
         branches.value = allBranches.filter(branch => branch.id === user.branch_id);
       } else {
-        console.log('⚠️ Unknown user role, showing no branches');
         branches.value = [];
       }
     } else {
-      console.log('⚠️ No user or role information, showing no branches');
       branches.value = [];
     }
-    
-    console.log('🌿 Final branches loaded:', branches.value.length, 'items:', branches.value);
   } catch (error) {
     console.error('❌ Error fetching branches:', error);
     showToast('Error fetching branches', 'error');
@@ -854,8 +812,7 @@ const fetchClasses = async () => {
     if (filters.branch_id) {
       params.branch_id = filters.branch_id;
     }
-    const response = await apiClient.classes.getAll(params);
-    console.log('Classes response:', response);
+    const response = await Classes.getAll(params);
     
     // Handle different response structures
     if (response.success) {
@@ -869,8 +826,6 @@ const fetchClasses = async () => {
     } else {
       classes.value = [];
     }
-    
-    console.log('📚 Classes loaded:', classes.value.length, 'items:', classes.value);
   } catch (error) {
     console.error('Error fetching classes:', error);
     showToast('Error fetching classes', 'error');
@@ -880,185 +835,145 @@ const fetchClasses = async () => {
 
 
 
-// Export methods following fees report pattern
-const downloadPDFReport = async () => {
+// Unified download function following DRY principle
+const downloadReport = async (format) => {
   try {
-    // Close dropdown first
     closeDownloadDropdown();
     
-    // Generate PDF content
-    const pdfContent = generatePDFContent();
+    if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
+      return;
+    }
     
-    // Create a new window with the PDF content
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(pdfContent);
-    printWindow.document.close();
-    
-    // Wait for content to load, then trigger print
-    printWindow.onload = () => {
-      // Use browser's print to PDF functionality
-      printWindow.print();
-      
-      // Close the window after printing
-      setTimeout(() => {
-        printWindow.close();
-      }, 1000);
+    const exportFilters = {
+      from_date: filters.from_date,
+      to_date: filters.to_date,
+      payment_method: filters.payment_method,
+      school_id: filters.school_id,
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      section: filters.section_id ? sections.value.find(sec => sec.id === filters.section_id)?.name : undefined,
+      search: filters.search
     };
-    
-    showToast('PDF report opened for printing/download', 'success');
-  } catch (error) {
-    console.error('Error generating PDF report:', error);
-    showToast('Error generating PDF report', 'error');
-  }
-};
 
-const downloadDetailedReport = async () => {
-  try {
-    closeDownloadDropdown();
-    
-    // Fetch all records for Excel export
-    const { payments: allPayments, summary: excelSummary } = await fetchAllReceiptsForExport();
-    
-    if (allPayments.length === 0) {
-      showToast('No data found for the selected filters', 'warning');
-      return;
-    }
-    
-    // Build query string from filters
-    const queryParams = new URLSearchParams();
-    
-    // Add filters
-    if (filters.from_date) queryParams.append('from_date', filters.from_date);
-    if (filters.to_date) queryParams.append('to_date', filters.to_date);
-    if (filters.payment_method) queryParams.append('payment_method', filters.payment_method);
-    if (filters.school_id) queryParams.append('school_id', filters.school_id);
-    if (filters.branch_id) queryParams.append('branch_id', filters.branch_id);
-    if (filters.class_id) queryParams.append('class_id', filters.class_id);
-    if (filters.search) queryParams.append('search', filters.search);
-    
-    // Add selected columns for export
-    const selectedColumns = displayedColumns.value.map(col => col.key).join(',');
-    queryParams.append('columns', selectedColumns);
-    
-    // Add format parameter for Excel
-    queryParams.append('format', 'excel');
-    queryParams.append('report_type', 'receipts');
-    
-    const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
-    
-    if (!response || !response.data) {
-      throw new Error('No data received from server');
-    }
-    
-    if (response.status !== 200) {
-      throw new Error(`Server returned status ${response.status}: ${response.statusText}`);
-    }
-    
-    // Create and download Excel file
-    const blob = new Blob([response.data], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `receipts-report-${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showToast('Receipts report downloaded successfully', 'success');
-  } catch (error) {
-    console.error('Error downloading Excel report:', error);
-    showToast('Error downloading receipts report', 'error');
-  }
-};
-
-const downloadCSVReport = async () => {
-  try {
-    closeDownloadDropdown();
-    
-    // Fetch all records for CSV export
-    const { payments: allPayments, summary: csvSummary } = await fetchAllReceiptsForExport();
-    
-    if (allPayments.length === 0) {
-      showToast('No data found for the selected filters', 'warning');
-      return;
-    }
-    
-    // Try backend export first, fallback to frontend generation
-    try {
-      // Build query string from filters
-      const queryParams = new URLSearchParams();
-      
-      // Add filters
-      if (filters.from_date) queryParams.append('from_date', filters.from_date);
-      if (filters.to_date) queryParams.append('to_date', filters.to_date);
-      if (filters.payment_method) queryParams.append('payment_method', filters.payment_method);
-      if (filters.school_id) queryParams.append('school_id', filters.school_id);
-      if (filters.branch_id) queryParams.append('branch_id', filters.branch_id);
-      if (filters.class_id) queryParams.append('class_id', filters.class_id);
-      if (filters.search) queryParams.append('search', filters.search);
-      
-      // Add selected columns for export
-      const selectedColumns = displayedColumns.value.map(col => col.key).join(',');
-      queryParams.append('columns', selectedColumns);
-      
-      // Add format parameter for CSV
-      queryParams.append('format', 'csv');
-      queryParams.append('report_type', 'receipts');
-      
-      const response = await apiClient.feeInvoices.exportReport(queryParams.toString());
-      
-      if (response && response.data && response.status === 200) {
-        // Create and download CSV file from backend
-        const blob = new Blob([response.data], { 
-          type: 'text/csv;charset=utf-8;' 
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `receipts-report-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        showToast('Receipts report downloaded successfully', 'success');
-        return;
+    // Remove undefined values
+    Object.keys(exportFilters).forEach(key => {
+      if (exportFilters[key] === undefined || exportFilters[key] === '') {
+        delete exportFilters[key];
       }
-    } catch (backendError) {
-      console.warn('Backend CSV export failed, using frontend generation:', backendError);
-    }
-    
-    // Fallback to frontend CSV generation
-    const csvContent = generateCSV(allPayments, csvSummary);
-    const blob = new Blob([csvContent], { 
-      type: 'text/csv;charset=utf-8;' 
     });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `receipts-report-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+
+    const selectedColumns = displayedColumns.value.map(col => ({
+      key: col.key,
+      header: col.label
+    }));
     
-    showToast('Receipts report downloaded successfully', 'success');
+    await generateReport({
+      report_type: 'receipts',
+      format,
+      filters: exportFilters,
+      columns: selectedColumns
+    });
+    
   } catch (error) {
-    console.error('Error downloading CSV report:', error);
-    showToast('Error downloading receipts report', 'error');
+    showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
   }
 };
 
-// Utility functions (similar to fees report)
-const formatCurrency = (amount) => {
-  return parseFloat(amount || 0).toLocaleString('en-IN');
+const downloadPDFReport = () => downloadReport('pdf');
+const downloadExcelReport = () => downloadReport('excel');
+const downloadCSVReport = () => downloadReport('csv');
+
+
+// Import formatCurrency from exportConfig to avoid duplication
+import { formatCurrency } from '~/utils/exportConfig';
+
+// Import formatDate from exportConfig to avoid duplication
+import { formatDate } from '~/utils/exportConfig';
+
+// Common function to format payment data for exports
+const formatPaymentDataForExport = (payment) => {
+  const formattedPayment = {};
+  
+  // Use availableColumns configuration instead of manual checking
+  availableColumns.value.forEach(column => {
+    if (column.visible) {
+      const key = column.key;
+      
+      switch (key) {
+        case 'invoice_number':
+          if (payment.invoice?.invoice_number) {
+            formattedPayment[key] = payment.invoice.invoice_number;
+          } else if (payment.invoice?.id) {
+            formattedPayment[key] = payment.invoice.id;
+          } else {
+            formattedPayment[key] = 'N/A';
+          }
+          break;
+          
+        case 'receipt_number':
+          let receiptText = payment.receipt_number;
+          if (payment.month_count > 1) {
+            receiptText += ` (${payment.month_count} months)`;
+          }
+          formattedPayment[key] = receiptText;
+          break;
+          
+        case 'payment_date':
+          formattedPayment[key] = payment.payment_date;
+          break;
+          
+        case 'student_name':
+          if (payment.student && payment.student.name) {
+            formattedPayment[key] = payment.student.name;
+          } else {
+            formattedPayment[key] = 'Student data unavailable';
+          }
+          break;
+          
+        case 'branch':
+          formattedPayment[key] = payment.branch || 'N/A';
+          break;
+          
+        case 'class':
+          if (payment.student && payment.student.current_class) {
+            formattedPayment[key] = payment.student.current_class;
+          } else {
+            formattedPayment[key] = 'N/A';
+          }
+          break;
+          
+        case 'section':
+          if (payment.student && payment.student.section) {
+            formattedPayment[key] = payment.student.section;
+          } else {
+            formattedPayment[key] = 'N/A';
+          }
+          break;
+          
+        case 'payment_amount':
+          formattedPayment[key] = formatCurrency(payment.payment_amount);
+          break;
+          
+        case 'payment_method':
+          formattedPayment[key] = payment.payment_method;
+          break;
+          
+        case 'fee_type':
+          formattedPayment[key] = payment.fee_type || 'N/A';
+          break;
+          
+        default:
+          formattedPayment[key] = payment[key] || 'N/A';
+      }
+    }
+  });
+  
+  return formattedPayment;
 };
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-IN');
+// Reusable function to format all payments data for export
+const formatDataForExport = () => {
+  return payments.value.map(payment => formatPaymentDataForExport(payment));
 };
 
 const getPaymentMethodClass = (method) => {
@@ -1083,254 +998,47 @@ const getPaymentMethodText = (method) => {
   return texts[method] || method;
 };
 
-// Generate PDF content (similar to fees report)
-const generatePDFContent = (paymentsData = payments.value, summaryData = summary.value) => {
-  // Get current filter values for the report header
-  const getFilterText = () => {
-    const filterTexts = [];
-    
-    // Date range
-    if (filters.dateRange && filters.dateRange !== 'all_time') {
-      if (filters.dateRange === 'custom' && filters.from_date && filters.to_date) {
-        filterTexts.push(`Date Range: ${formatDate(filters.from_date)} to ${formatDate(filters.to_date)}`);
-      } else {
-        filterTexts.push(`Date Range: ${filters.dateRange.replace('_', ' ').toUpperCase()}`);
-      }
-    }
-    
-    // School (for super admin)
-    if (filters.school_id && authStore.user?.role === 'super_admin') {
-      const school = schools.value.find(s => s.id === filters.school_id);
-      if (school) filterTexts.push(`School: ${school.name}`);
-    }
-    
-    // Branch
-    if (filters.branch_id) {
-      const branch = branches.value.find(b => b.id === filters.branch_id);
-      if (branch) filterTexts.push(`Branch: ${branch.name}`);
-    }
-    
-    // Class
-    if (filters.class_id) {
-      const classItem = classes.value.find(c => c.id === filters.class_id);
-      if (classItem) filterTexts.push(`Class: ${classItem.name}`);
-    }
-    
-    // Payment method
-    if (filters.payment_method && filters.payment_method !== 'all') {
-      filterTexts.push(`Payment Method: ${filters.payment_method.toUpperCase()}`);
-    }
-    
-    // Student search
-    if (filters.search) {
-      filterTexts.push(`Student Search: ${filters.search}`);
-    }
-    
-    return filterTexts.length > 0 ? filterTexts.join(' | ') : 'All Records';
-  };
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Receipts Report</title>
-      <style>
-        @page {
-          size: A4;
-          margin: 1cm;
-        }
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 20px;
-          color: #333;
-          line-height: 1.4;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #333;
-          padding-bottom: 20px;
-        }
-        .school-name {
-          font-size: 28px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .report-title {
-          font-size: 24px;
-          margin-bottom: 8px;
-        }
-        .report-date {
-          font-size: 16px;
-          color: #666;
-        }
-        .filters {
-          margin-bottom: 25px;
-          padding: 15px;
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        .summary-cards {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
-          gap: 15px;
-        }
-        .summary-card {
-          flex: 1;
-          padding: 20px;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          text-align: center;
-          background-color: #fff;
-        }
-        .summary-value {
-          font-size: 28px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        .summary-label {
-          font-size: 14px;
-          color: #666;
-          font-weight: 500;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 25px;
-          font-size: 12px;
-        }
-        th, td {
-          border: 1px solid #dee2e6;
-          padding: 10px 8px;
-          text-align: left;
-        }
-        th {
-          background-color: #f8f9fa;
-          font-weight: bold;
-          color: #495057;
-        }
-        .footer {
-          margin-top: 30px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          border-top: 1px solid #dee2e6;
-          padding-top: 15px;
-        }
-        @media print {
-          body { margin: 0; padding: 15px; }
-          .no-print { display: none; }
-          .summary-cards { page-break-inside: avoid; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="school-name">School ERP System</div>
-        <div class="report-title">Receipts Report</div>
-        <div class="report-date">Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}</div>
-      </div>
-      
-      <div class="filters">
-        <strong>Applied Filters:</strong> ${getFilterText()}
-      </div>
-      
-      <div class="summary-cards">
-        <div class="summary-card">
-          <div class="summary-value">₹${formatCurrency(summaryData.total_collected)}</div>
-          <div class="summary-label">Total Collected</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-value">${summaryData.total_receipts}</div>
-          <div class="summary-label">Total Receipts</div>
-        </div>
-      </div>
-      
-      <table>
-        <thead>
-          <tr>
-            ${displayedColumns.value.map(col => `<th>${col.label}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${paymentsData.map(payment => `
-            <tr>
-                             ${displayedColumns.value.map(col => {
-                 switch(col.key) {
-                   case 'invoice_number':
-                     return `<td>${payment.invoice?.invoice_number || payment.invoice?.id || 'N/A'}</td>`;
-                   case 'receipt_number':
-                     return `<td>${payment.receipt_number || payment.id}</td>`;
-                   case 'payment_date':
-                     return `<td>${formatDate(payment.payment_date)}</td>`;
-                   case 'student_name':
-                     return `<td>${payment.student?.name || 'N/A'}</td>`;
-                   case 'branch':
-                     return `<td>${payment.branch || 'N/A'}</td>`;
-                   case 'class':
-                     return `<td>${payment.student?.current_class || 'N/A'}</td>`;
-                   case 'section':
-                     return `<td>${payment.student?.section || 'N/A'}</td>`;
-                   case 'payment_amount':
-                     return `<td>₹${formatCurrency(payment.payment_amount)}</td>`;
-                   case 'payment_method':
-                     return `<td>${getPaymentMethodText(payment.payment_method)}</td>`;
-                   case 'fee_type':
-                     return `<td>${payment.fee_type || 'N/A'}</td>`;
-                   default:
-                     return `<td>N/A</td>`;
-                 }
-               }).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      
-      <div class="footer">
-        Total Records: ${paymentsData.length} | Generated on: ${new Date().toLocaleString('en-IN')}
-      </div>
-    </body>
-    </html>
-  `;
-};
-
-const printReport = async () => {
+const printReceiptsReport = async () => {
   try {
-    // Fetch all records for printing
-    const { payments: allPayments, summary: printSummary } = await fetchAllReceiptsForExport();
-    
-    // Check if we have data to print
-    if (allPayments.length === 0) {
-      showToast('No data found for the selected filters', 'warning');
+    if (!validateColumnVisibility('print')) {
       return;
     }
     
-    // Generate PDF content with all records
-    const printContent = generatePDFContent(allPayments, printSummary);
+    const allReceiptsData = await fetchReceiptsData(1, true);
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      showToast('Please allow popups to print the report', 'error');
+    if (allReceiptsData.length === 0) {
+      showToast('No data to print. Please load some receipts first.', 'warning');
       return;
-    }
+    } 
     
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+    const formattedData = allReceiptsData.map(payment => formatPaymentDataForExport(payment));
     
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 1000);
+    const reportData = {
+      title: 'Receipts Report',
+      data: formattedData,
+      columns: displayedColumns.value.map(col => ({
+        key: col.key,
+        header: col.label
+      })),
+      filters: {
+        'Date Range': filters.dateRange,
+        'From Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.from_date),
+        'To Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.to_date),
+        'Payment Method': filters.payment_method || 'All Methods',
+        'Search': filters.search || 'None'
+      },
+      totalRecords: allReceiptsData.length,
+      reportType: 'receipts'
+    };
     
-    showToast('Print report generated successfully', 'success');
+    await printReportCommon(reportData, {
+      showHeader: true,
+      showSummary: true,
+      showFilters: true,
+      showFooter: true,
+      autoPrint: true
+    });
   } catch (error) {
-    console.error('Error printing report:', error);
     showToast('Error printing report', 'error');
   }
 };
@@ -1362,6 +1070,26 @@ const isColumnVisible = (columnKey) => {
   return column ? column.visible : false;
 };
 
+// Common method to validate column visibility for exports
+const validateColumnVisibility = (action = 'export') => {
+  // Check if any columns are visible
+  if (displayedColumns.value.length === 0) {
+    showToast(`No columns selected. Please select at least one column to ${action}.`, 'warning');
+    return false;
+  }
+  return true;
+};
+
+// Common method to validate data availability for exports
+const validateDataAvailability = (action = 'export') => {
+  // Check if there's data to export
+  if (payments.value.length === 0) {
+    showToast(`No data available to ${action}. Please load some receipts first.`, 'warning');
+    return false;
+  }
+  return true;
+};
+
 // Function to toggle column visibility
 const toggleColumnVisibility = (index) => {
   availableColumns.value[index].visible = !availableColumns.value[index].visible;
@@ -1380,101 +1108,6 @@ onMounted(() => {
     }
   });
 });
-
-const generateCSV = (paymentsData = payments.value, summaryData = summary.value) => {
-  // Generate summary section
-  const totalCollected = summaryData.total_collected || paymentsData.reduce((sum, payment) => sum + parseFloat(payment.payment_amount || 0), 0);
-  const totalReceipts = summaryData.total_receipts || paymentsData.length;
-
-  // Create summary rows
-  const summaryRows = [
-    ['Receipts Report Summary'],
-    [''],
-    ['Report Information'],
-    ['Generated on', new Date().toLocaleDateString('en-IN') + ' at ' + new Date().toLocaleTimeString('en-IN')],
-    [''],
-    ['Summary Totals'],
-    ['Total Receipts', totalReceipts.toString()],
-    ['Total Collected', `₹${totalCollected.toFixed(2)}`],
-    [''],
-    ['Applied Filters']
-  ];
-  
-  // Add filter information
-  if (filters.dateRange && filters.dateRange !== 'all_time') {
-    if (filters.dateRange === 'custom' && filters.from_date && filters.to_date) {
-      summaryRows.push(['Date Range', `${formatDate(filters.from_date)} to ${formatDate(filters.to_date)}`]);
-    } else {
-      summaryRows.push(['Date Range', filters.dateRange.replace('_', ' ').toUpperCase()]);
-    }
-  }
-  
-  if (filters.school_id && authStore.user?.role === 'super_admin') {
-    const school = schools.value.find(s => s.id === filters.school_id);
-    if (school) summaryRows.push(['School', school.name]);
-  }
-  
-  if (filters.branch_id) {
-    const branch = branches.value.find(b => b.id === filters.branch_id);
-    if (branch) summaryRows.push(['Branch', branch.name]);
-  }
-  
-  if (filters.class_id) {
-    const classItem = classes.value.find(c => c.id === filters.class_id);
-    if (classItem) summaryRows.push(['Class', classItem.name]);
-  }
-  
-  if (filters.payment_method && filters.payment_method !== 'all') {
-    summaryRows.push(['Payment Method', filters.payment_method.toUpperCase()]);
-  }
-  
-  if (filters.search) {
-    summaryRows.push(['Student Search', filters.search]);
-  }
-
-  summaryRows.push(['']);
-  summaryRows.push(['Detailed Receipts Data']);
-  summaryRows.push(['']);
-
-  // Data headers - only include visible columns
-  const headers = displayedColumns.value.map(col => col.label);
-  
-  // Data rows - only include visible columns
-  const dataRows = paymentsData.map(payment => 
-    displayedColumns.value.map(col => {
-      switch(col.key) {
-        case 'invoice_number':
-          return payment.invoice?.invoice_number || payment.invoice?.id || 'N/A';
-        case 'receipt_number':
-          return payment.receipt_number || payment.id || 'N/A';
-        case 'payment_date':
-          return formatDate(payment.payment_date) || 'N/A';
-        case 'student_name':
-          return payment.student?.name || 'N/A';
-        case 'branch':
-          return payment.branch || 'N/A';
-        case 'class':
-          return payment.student?.current_class || 'N/A';
-        case 'section':
-          return payment.student?.section || 'N/A';
-        case 'payment_amount':
-          return formatCurrency(payment.payment_amount) || '₹0';
-        case 'payment_method':
-          return getPaymentMethodText(payment.payment_method) || 'N/A';
-        case 'fee_type':
-          return payment.fee_type || 'N/A';
-        default:
-          return 'N/A';
-      }
-    })
-  );
-  
-  // Combine summary and data
-  const allRows = [...summaryRows, headers, ...dataRows];
-  
-  return allRows.map(row => row.map(cell => `"${cell || ''}"`).join(',')).join('\n');
-};
-
 
 
 const getPaymentMethodColor = (method) => {
@@ -1515,7 +1148,6 @@ const getMonthsCovered = (payment) => {
 // Initialize
 onMounted(async () => {
   handleDateRangeChange(); // Set default date range
-  
   // Load dropdown data based on user role
   if (userRole.value === 'super_admin') {
     await fetchSchools();
@@ -1532,3 +1164,4 @@ onMounted(async () => {
   fetchReceiptsData();
 });
 </script>
+

@@ -677,7 +677,7 @@ class SectionController {
 
       const sections = await Section.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'capacity', 'current_strength', 'stream_id'],
+        attributes: ['id', 'name', 'capacity', 'current_strength', 'stream_id', 'class_id'],
         include: [
           {
             model: Class,

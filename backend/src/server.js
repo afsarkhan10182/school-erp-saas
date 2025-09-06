@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('module-alias/register');
 const { logger } = require('./utils/logger');
 const { App } = require('./app');
 

@@ -253,6 +253,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
+import { Users, Schools, Branches } from '~/api';
 import PasswordInput from '~/components/PasswordInput.vue';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
@@ -501,7 +502,7 @@ const handleSubmit = async () => {
     }
     
     // Send the request
-    const response = await apiClient.users.create(payload);
+    const response = await Users.create(payload);
     
     // Check if password was auto-generated
     if (response.generatedPassword) {
@@ -585,7 +586,7 @@ const fetchSchools = async () => {
   
   isLoadingSchools.value = true;
   try {
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     // The API returns { success: true, data: { schools: [...], pagination: {...} } }
     schools.value = response.data?.schools || response.data?.data?.schools || [];
   } catch (error) {
@@ -606,10 +607,10 @@ const fetchBranches = async (schoolId = null) => {
   
   isLoadingBranches.value = true;
   try {
-    const response = await apiClient.branches.getBySchool(targetSchoolId);
+            const response = await Branches.getForDropdown({ school_id: targetSchoolId });
     
-    // The API returns { success: true, data: { branches: [...], pagination: {...} } }
-    branches.value = response.data?.branches || response.data?.data?.branches || [];
+    // The dropdown API returns { success: true, data: [...] }
+    branches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
     showError('Failed to fetch branches');

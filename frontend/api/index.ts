@@ -1,0 +1,8 @@
+// Main API Index - Export all API groups
+export * from './academic';
+export * from './administration';
+export * from './students';
+export * from './shared';
+
+// Legacy exports for backward compatibility
+export { createApiInstance } from '~/utils/api';

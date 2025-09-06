@@ -131,8 +131,8 @@ const Transaction = sequelize.define('Transaction', {
     { fields: ['created_at'] },
   ],
   hooks: {
-    beforeCreate: async (transaction) => {
-      // Generate transaction ID if not provided
+    // Generate a transaction_id early so validation passes
+    beforeValidate: async (transaction) => {
       if (!transaction.transaction_id) {
         const timestamp = Date.now();
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();

@@ -19,7 +19,6 @@ const FeePayment = sequelize.define('FeePayment', {
   receipt_number: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    unique: true,
     validate: {
       notEmpty: { msg: 'Receipt number is required' },
     },
@@ -129,7 +128,6 @@ const FeePayment = sequelize.define('FeePayment', {
   underscored: true,
   indexes: [
     { fields: ['payment_number'], unique: true },
-    { fields: ['receipt_number'], unique: true },
     { fields: ['invoice_id'] },
 
     { fields: ['student_id'] },

@@ -39,6 +39,8 @@ module.exports = {
   getFeeCollectionSummary: reports.getFeeCollectionSummary,
   exportFeeInvoicesReportLegacy: reports.exportFeeInvoicesReportLegacy,
   getFeeInvoiceReport: reports.getFeeInvoiceReport,
+  getFeeInvoiceReportGrouped: reports.getFeeInvoiceReportGrouped,
+  getMonthlyPaymentStatus: reports.getMonthlyPaymentStatus,
   exportFeeInvoicesReport: reports.exportFeeInvoicesReport,
   getFeeStats: reports.getFeeStats,
 
@@ -53,6 +55,7 @@ module.exports = {
   // Receipt operations
   getGroupedReceipts: receipts.getGroupedReceipts,
   getCombinedReceiptByGroupId: receipts.getCombinedReceiptByGroupId,
+  getReceiptByNumber: receipts.getReceiptByNumber,
   getReceiptForInvoice: receipts.getReceiptForInvoice,
   // On-demand receipt functions
   getReceiptData: receipts.getReceiptData,

@@ -354,12 +354,8 @@ const availableSections = computed(() => {
 });
 
 const availableStreams = computed(() => {
-  console.log('🔍 availableStreams computed - props.streams:', props.streams?.length || 0, 'items:', props.streams);
-  console.log('🔍 availableStreams computed - localFilters.class_id:', localFilters.class_id);
-  
   // If no class is selected, show all streams
   if (!localFilters.class_id) {
-    console.log('🔍 No class selected, returning all streams:', props.streams?.length || 0);
     return props.streams || [];
   }
   
@@ -370,15 +366,12 @@ const availableStreams = computed(() => {
     
     if (streamClassId) {
       const matches = streamClassId === localFilters.class_id;
-      console.log('🔍 Stream filtering - stream:', stream.name, 'streamClassId:', streamClassId, 'localFilters.class_id:', localFilters.class_id, 'matches:', matches);
       return matches;
     }
     // If no class info on stream, show it (fallback)
-    console.log('🔍 Stream has no class info, showing as fallback:', stream.name);
     return true;
   });
   
-  console.log('🔍 Filtered streams result:', filteredStreams.length, 'items:', filteredStreams.map(s => s.name));
   return filteredStreams;
 });
 
@@ -399,7 +392,12 @@ watch(() => props.filters, (newFilters) => {
 
 // Watch for streams changes
 watch(() => props.streams, (newStreams) => {
-  console.log('🔍 Streams prop changed:', newStreams?.length || 0, 'items:', newStreams);
+  console.log('🔍 InvoiceFilters: streams prop changed:', newStreams?.length, 'items:', newStreams);
+}, { immediate: true, deep: true });
+
+// Watch for sections changes
+watch(() => props.sections, (newSections) => {
+  console.log('🔍 InvoiceFilters: sections prop changed:', newSections?.length, 'items:', newSections);
 }, { immediate: true, deep: true });
 
 const onFilterChange = () => {

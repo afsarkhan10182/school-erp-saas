@@ -10,7 +10,7 @@
   <!-- Sidebar -->
   <div 
     :class="[
-      'sidebar-container fixed inset-y-0 left-0 z-[9999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      'sidebar-container fixed inset-y-0 left-0 z-[99999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
       sidebarClasses,
       'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
@@ -49,8 +49,20 @@
         </div>
       </template>
       
-      <!-- Actual navigation content -->
-      <nav v-else class="px-2 py-4 space-y-2">
+      <!-- Loading state for modules -->
+      <div v-if="modulesLoading" class="px-2 py-4 space-y-2">
+        <div class="animate-pulse">
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg mb-2"></div>
+          <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        </div>
+      </div>
+      
+
+      
+              <!-- Actual navigation content -->
+        <nav v-else class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
           <NuxtLink 
@@ -71,20 +83,33 @@
         <!-- Navigation Menu Items -->
         <template v-for="menuGroup in visibleMenuGroups" :key="menuGroup.id">
           <!-- Menu Group Header -->
-          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider sidebar-group-header">
             {{ menuGroup.title }}
           </div>
           
           <!-- Menu Items -->
           <template v-for="menuItem in menuGroup.items" :key="menuItem.id">
+            <!-- Direct Link Menu Item (no children or empty children, has path) -->
+            <NuxtLink 
+              v-if="(!menuItem.children || menuItem.children.length === 0) && menuItem.path" 
+              :to="menuItem.path" 
+              :class="navClass(menuItem.path)"
+              @click="handleMenuClick(menuItem.path, $event)"
+              @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+            >
+              <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+              <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
+            </NuxtLink>
+            
             <!-- Collapsible Menu -->
-            <div v-if="menuItem.children" class="space-y-1 relative group">
+            <div v-else-if="menuItem.children && menuItem.children.length > 0" class="space-y-1 relative group">
               <div 
                 :class="[navClass(''), menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
-                @click="open ? toggleMenu(menuItem.id) : null"
+                @click="toggleMenu(menuItem.id)"
               >
                 <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
                 <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
+                <!-- Chevron only for top-level collapsibles -->
                 <ChevronDown 
                   v-if="open || isMobile"
                   class="w-4 h-4 transition-transform duration-200" 
@@ -100,11 +125,11 @@
                 <div class="py-1">
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
-                    <div v-if="subItem.children" class="relative group/sub">
+                    <div v-if="subItem.children && subItem.children.length > 0" class="relative group/sub">
                       <div class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300">
                         <component :is="subItem.icon" class="w-4 h-4 mr-2" />
                         <span>{{ subItem.title }}</span>
-                        <ChevronDown class="w-3 h-3 ml-auto" />
+                        <!-- No chevron in hover menus for nested items -->
                       </div>
                       <!-- Nested hover menu -->
                       <div class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[180px] z-50 border border-gray-200 dark:border-gray-700">
@@ -149,14 +174,16 @@
                   <!-- Handle nested submenus -->
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
-                    <div v-if="subItem.children" class="space-y-1">
+                    <div v-if="subItem.children && subItem.children.length > 0" class="space-y-1">
                       <div 
                         :class="[navClass(''), subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
-                        @click="open ? toggleSubMenu(subItem.id) : null"
+                        @click="toggleSubMenu(subItem.id)"
                       >
                         <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                         <span class="flex-1">{{ subItem.title }}</span>
+                        <!-- Show chevron ONLY in expanded sidebar mode for nested submenus -->
                         <ChevronDown 
+                          v-if="open && subItem.children.length > 0"
                           class="w-4 h-4 transition-transform duration-200" 
                           :class="{ 'rotate-180': subMenuOpen === subItem.id }"
                         />
@@ -197,24 +224,6 @@
                 </div>
               </div>
             </div>
-            
-            <!-- Direct Link Menu -->
-            <div v-else class="relative group">
-              <NuxtLink 
-                :to="menuItem.path" 
-                :class="navClass(menuItem.path)"
-                @click="handleMenuClick(menuItem.path, $event)"
-                @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
-              >
-                <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
-                <span v-if="open || isMobile">{{ menuItem.title }}</span>
-              </NuxtLink>
-              <!-- Hover Menu for Collapsed State -->
-              <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700">
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ menuItem.title }}</span>
-              </div>
-            </div>
           </template>
         </template>
       </nav>
@@ -228,6 +237,7 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import { 
   Home, 
   School, 
@@ -270,6 +280,7 @@ const emit = defineEmits(['toggle']);
 // Use centralized composables
 const { isHydrated } = useHydrationState();
 const { isMobile } = useMobileDetection();
+const { loadUserModules, filterMenuByModules, isLoading: modulesLoading, userModules } = useModuleAccess();
 
 // Function to save sidebar state
 const saveSidebarState = (isOpen) => {
@@ -292,31 +303,31 @@ watch(() => props.open, (newValue) => {
   saveSidebarState(newValue);
 });
 
-// Role checks
-const isSuperAdmin = computed(() => props.user?.role === 'super_admin');
-const isSchoolAdmin = computed(() => props.user?.role === 'school_admin');
-const isBranchAdmin = computed(() => props.user?.role === 'branch_admin');
-const isAccountant = computed(() => props.user?.role === 'accountant');
-const isReceptionist = computed(() => props.user?.role === 'receptionist');
+// Role checks - use authStore for consistency
+const isSuperAdmin = computed(() => authStore.user?.role === 'super_admin');
+const isSchoolAdmin = computed(() => authStore.user?.role === 'school_admin');
+const isBranchAdmin = computed(() => authStore.user?.role === 'branch_admin');
+const isAccountant = computed(() => authStore.user?.role === 'accountant');
+const isReceptionist = computed(() => authStore.user?.role === 'receptionist');
 
 // Menu configuration
 const menuGroups = computed(() => {
   const groups = [];
 
-  // Platform & Subscription Management (Super Admin Only)
+  // SaaS Management (Super Admin Only)
   if (isSuperAdmin.value) {
     groups.push({
-      id: 'subscription',
-      title: 'Saas Subscription',
+      id: 'saas',
+      title: 'SaaS Management',
       items: [
         {
-          id: 'subscription-management',
-          title: 'School Subscription',
+          id: 'saas-management',
+          title: 'School Subscriptions',
           icon: CreditCard,
           children: [
-             { id: 'customer-overview', title: 'Overview', path: '/subscriptions', icon: BarChart3 },
-            { id: 'subscription-plans', title: 'Subscription Plans', path: '/subscriptions/plans', icon: List },
-            { id: 'renewal-requests', title: 'Renewal Requests', path: '/subscriptions/renewal-requests', icon: FileText },
+             { id: 'customer-overview', title: 'Overview', path: '/saas', icon: BarChart3 },
+            { id: 'subscription-plans', title: 'Subscription Plans', path: '/saas/plans', icon: List },
+            { id: 'renewal-requests', title: 'Renewal Requests', path: '/saas/renewal-requests', icon: FileText },
           ]
         },
       ]
@@ -342,10 +353,11 @@ const menuGroups = computed(() => {
           id: 'students',
           title: 'Students',
           icon: GraduationCap,
+          requiredModule: 'students',
           children: [
-            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus },
-            { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
-            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList },
+            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus, requiredModule: 'students' },
+            { id: 'all-students', title: 'All Students', path: '/students', icon: Users, requiredModule: 'students' },
+            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList, requiredModule: 'students' },
           ]
         }
       ]
@@ -359,8 +371,8 @@ const menuGroups = computed(() => {
       title: 'Academic Management',
       items: [
         {
-          id: 'academic',
-          title: 'Academic',
+          id: 'academic-setup',
+          title: 'Academic Setup',
           icon: BookOpen,
           children: [
             // Academic Years - only for super admin and school admin
@@ -369,7 +381,18 @@ const menuGroups = computed(() => {
             ] : []),
             { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
             { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
-            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users }
+            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
+            { id: 'subjects', title: 'Subjects', path: '/academic/subjects', icon: BookOpen, requiredModule: 'exams' },
+            { id: 'exam-types', title: 'Exam Types', path: '/academic/exam-types', icon: Tag, requiredModule: 'exams' },
+          ]
+        },
+        {
+          id: 'academic-operations',
+          title: 'Academic Operations',
+          icon: ClipboardList,
+          children: [
+            { id: 'exams', title: 'Exams', path: '/exams', icon: FileText, requiredModule: 'exams' },
+            { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList, requiredModule: 'attendance' },
           ]
         }
       ]
@@ -386,10 +409,11 @@ const menuGroups = computed(() => {
           id: 'fee-management',
           title: 'Fees',
           icon: DollarSign,
+          requiredModule: 'fees',
           children: [
-            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag },
-            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List },
-            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt }
+            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag, requiredModule: 'fees' },
+            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List, requiredModule: 'fees' },
+            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt, requiredModule: 'fees' }
           ]
         }
       ]
@@ -406,24 +430,29 @@ const menuGroups = computed(() => {
           id: 'reports',
           title: 'Reports',
           icon: BarChart3,
+          requiredModule: 'reports',
           children: [
             {
               id: 'fees',
               title: 'Fees',
               icon: DollarSign,
+              requiredModule: 'fees',
               children: [
-                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart },
-                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt },
+                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart, requiredModule: 'fees' },
+                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt, requiredModule: 'fees' },
               ]
             },
-            {
-              id: 'student',
-              title: 'Student',
-              icon: Users,
-              children: [
-                { id: 'student-reports', title: 'Student Reports', path: '#', icon: BarChart3 },
-              ]
-            }
+            // {
+            //   id: 'student',
+            //   title: 'Student',
+            //   icon: Users,
+            //   requiredModule: 'students',
+            //   children: [
+            //     { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3, requiredModule: 'students' },
+            //     { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
+            //     { id: 'exam-reports', title: 'Exam Reports', path: '/exams/report-cards', icon: FileText, requiredModule: 'exams' },
+            //   ]
+            // }
           ]
         }
       ]
@@ -445,26 +474,73 @@ const menuGroups = computed(() => {
 
   // Settings
   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    const settingsItems = [];
+    
+    // Super Admin gets full settings
+    if (isSuperAdmin.value) {
+      settingsItems.push(
+        { id: 'staff-list', title: 'User List', path: '/users', icon: Users },
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+      );
+    } 
+    // School Admin gets simplified settings
+    else if (isSchoolAdmin.value) {
+      settingsItems.push(
+        { id: 'staff-list', title: 'Staff List', path: '/users', icon: Users },
+        { id: 'settings-main', title: 'School Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+      );
+    }
+    // Branch Admin gets minimal settings
+    else {
+      settingsItems.push(
+        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
+        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+      );
+    }
+
     groups.push({
       id: 'settings',
       title: 'Settings',
-      items: [
-      ...(!isBranchAdmin.value ? [
-                { id: 'staff-list', title: isSuperAdmin.value ? 'User List' : 'Staff List', path: '/users', icon: Users },
-              ] : []),      
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User },
-        // { id: 'module-settings', title: 'Module Settings', path: '/settings/modules', icon: Settings },
-      ]
+      items: settingsItems
     });
   }
 
   return groups;
 });
 
-// Get visible menu groups based on user role
+// Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
-  return menuGroups.value;
+  console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
+  
+  // Super admin: show all menu groups
+  if (authStore.user?.role === 'super_admin') {
+    return menuGroups.value;
+  }
+  
+  // For non-super admins, filter based on modules
+  if (!userModules.value || userModules.value.length === 0) {
+    console.log('🔄 No user modules available');
+    return [];
+  }
+
+  // Use the improved filtering from useModuleAccess
+  const filtered = menuGroups.value
+    .map(group => {
+      const filteredItems = filterMenuByModules(group.items);
+      return {
+        ...group,
+        items: filteredItems
+      };
+    })
+    .filter(group => group.items.length > 0); // remove empty groups
+  
+  console.log('🔄 Filtered menu groups:', filtered);
+  return filtered;
 });
+
+
 
 const toggleMenu = (menu) => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;
@@ -490,14 +566,12 @@ const subNavClass = (path) => {
 };
 
 const handleMenuClick = (path, event) => {
-  // Handle middle click or Ctrl/Cmd + click to open in new tab
   if (event.button === 1 || ((event.ctrlKey || event.metaKey) && event.type === 'click')) {
     event.preventDefault();
     window.open($router.resolve(path).href, '_blank');
     return;
   }
 
-  // For normal clicks, close the sidebar if on mobile
   if (isMobile.value) {
     emit('toggle');
   }
@@ -512,44 +586,37 @@ let mql;
 
 // Computed sidebar classes to avoid hydration issues
 const sidebarClasses = computed(() => {
-  // On server, always render in a consistent collapsed state
-  if (import.meta.server) {
-    return 'w-16 translate-x-0'; // Stable collapsed state for SSR
-  }
-  
-  // On client, apply dynamic classes
   if (isMobile.value) {
     return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full';
-  } else {
-    return props.open ? 'w-64' : 'w-16';
   }
+  return props.open ? 'w-64' : 'w-16';
 });
 
 const checkMobile = () => {
   if (import.meta.client) {
     const newIsMobile = window.innerWidth < 768;
     if (newIsMobile !== isMobile.value) {
-      // On desktop (non-mobile), always keep the menu open
-      // On mobile, always close it initially
       emit('toggle', !newIsMobile);
-      
-      // Prevent body scroll when sidebar is open on mobile
-      if (newIsMobile && props.open) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
+      document.body.style.overflow = newIsMobile && props.open ? 'hidden' : '';
     }
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   if (import.meta.client) {
     checkMobile();
     mql = window.matchMedia('(max-width: 767px)');
     mql.addEventListener('change', checkMobile);
   }
+  
+  // Load user modules for menu filtering
+  await loadUserModules();
 });
+
+// Watch for module changes to update sidebar
+watch(userModules, (newModules) => {
+  console.log('🔄 Sidebar modules updated:', newModules);
+}, { deep: true });
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', checkMobile);
@@ -638,12 +705,64 @@ nav {
 }
 
 /* Prevent any content from appearing above sidebar */
-.z-\[9999\] {
-  z-index: 9999 !important;
+.z-\[99999\] {
+  z-index: 99999 !important;
+}
+
+/* Ensure sidebar stays on top during all states */
+.sidebar-container {
+  position: fixed !important;
+  z-index: 99999 !important;
+  isolation: isolate;
 }
 
 /* Ensure proper stacking context */
 .flex {
   position: relative;
+}
+
+/* Prevent overlapping during hydration */
+.sidebar-container {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Ensure proper mobile positioning */
+@media (max-width: 767px) {
+  .sidebar-container {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar-container.w-\[280px\].translate-x-0 {
+    transform: translateX(0);
+  }
+}
+
+/* Add transition delay to prevent flash during hydration */
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-container {
+    transition-delay: 0.05s;
+  }
+}
+
+/* FIX: Disable pointer events on overlapping labels when sidebar is collapsed */
+.sidebar-container:not(.w-64) .sidebar-group-header {
+  pointer-events: none;
+}
+
+/* Ensure menu items remain clickable when collapsed */
+.sidebar-container:not(.w-64) nav a,
+.sidebar-container:not(.w-64) nav button,
+.sidebar-container:not(.w-64) nav div[class*="flex items-center"] {
+  pointer-events: auto;
+}
+
+/* Ensure proper hover states for menu items */
+nav div[class*="flex items-center"]:hover {
+  background-color: rgb(243 244 246);
+}
+
+.dark nav div[class*="flex items-center"]:hover {
+  background-color: rgb(55 65 81);
 }
 </style>

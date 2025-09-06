@@ -292,7 +292,7 @@ import { useAuth } from '~/composables/useAuth'
 import { useSchools } from '~/composables/useSchools'
 import { useBranches } from '~/composables/useBranches'
 import { useAcademics } from '~/composables/useAcademics'
-import { fetchStreamsAPI, createStreamAPI, updateStreamAPI, deleteStreamAPI } from '~/api/streams'
+import { Streams } from '~/api'
 import Pagination from '~/components/Pagination.vue'
 
 // Composables
@@ -408,7 +408,7 @@ const loadStreams = async () => {
     }
     
     console.log('Streams API params:', params)
-    const response = await fetchStreamsAPI(params)
+    const response = await Streams.getAll(params)
     console.log('Streams API response:', response)
     
     if (response.success) {
@@ -506,8 +506,10 @@ const handleSubmit = async () => {
     console.log('🔍 User data:', user.value)
     
     const streamData = {
-      ...form,
-      school_id: userRole.value === 'super_admin' ? form.school_id : user.value?.school_id,
+      name: form.name,
+      code: form.code,
+      class_id: form.class_id,
+      school_id: (userRole.value === 'super_admin' ? form.school_id : user.value?.school_id) || '',
       branch_id: userRole.value === 'branch_admin' ? user.value?.branch_id : form.branch_id
     }
     
@@ -516,10 +518,10 @@ const handleSubmit = async () => {
     let response
     if (isEditing.value && editingStream.value) {
       console.log('🔍 Updating stream with ID:', editingStream.value.id)
-      response = await updateStreamAPI(editingStream.value.id, streamData)
+      response = await Streams.update(editingStream.value.id, streamData)
     } else {
       console.log('🔍 Creating new stream')
-      response = await createStreamAPI(streamData)
+      response = await Streams.create(streamData)
     }
     
     console.log('🔍 Stream API response:', response)
@@ -541,7 +543,12 @@ const handleSubmit = async () => {
 
 const toggleStatus = async (stream: any) => {
   try {
-    const response = await updateStreamAPI(stream.id, {
+    const response = await Streams.update(stream.id, {
+      name: stream.name,
+      code: stream.code,
+      class_id: stream.class_id,
+      school_id: stream.school_id,
+      branch_id: stream.branch_id,
       is_active: !stream.is_active
     })
     
@@ -563,7 +570,7 @@ const deleteStream = async (stream: any) => {
   }
   
   try {
-    const response = await deleteStreamAPI(stream.id)
+    const response = await Streams.delete(stream.id)
     
     if (response.success) {
       showToast('Stream deleted successfully', 'success')

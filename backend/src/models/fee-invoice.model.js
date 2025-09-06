@@ -178,10 +178,10 @@ status: {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
-  receipt_group_id: {
+  receipt_number: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: 'Groups multiple invoices under one receipt',
+    comment: 'Simple receipt number per class (RCP-{classcode}-{sequence})',
   },
   invoice_items: {
     type: DataTypes.JSONB,
@@ -201,6 +201,14 @@ status: {
     allowNull: true,
     references: {
       model: 'branches',
+      key: 'id',
+    },
+  },
+  stream_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'streams',
       key: 'id',
     },
   },
@@ -283,6 +291,12 @@ FeeInvoice.associate = (models) => {
   FeeInvoice.belongsTo(models.Branch, {
     foreignKey: 'branch_id',
     as: 'branch',
+  });
+
+  // FeeInvoice belongs to Stream
+  FeeInvoice.belongsTo(models.Stream, {
+    foreignKey: 'stream_id',
+    as: 'stream',
   });
 
   // FeeInvoice belongs to User (created_by)

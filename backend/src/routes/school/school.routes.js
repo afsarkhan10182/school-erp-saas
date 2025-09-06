@@ -35,7 +35,7 @@ router.get(
 
 router.get(
   '/my-school',
-  authorize(['school_admin']),
+  authorize(['school_admin', 'branch_admin']),
   SchoolController.getMySchool
 );
 
@@ -104,10 +104,10 @@ router.post(
   SchoolController.reactivateSchool
 );
 
-// Module management routes (Super Admin controls, School Admin view-only)
+// Module management routes (Super Admin controls, School Admin and Branch Admin view-only)
 router.get(
   '/:id/modules',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
   SchoolController.getSchoolModules
 );
 
@@ -120,7 +120,7 @@ router.put(
 // Subscription plan routes
 router.get(
   '/subscription-plans',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
   SchoolController.getSubscriptionPlans
 );
 

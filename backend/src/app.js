@@ -87,7 +87,18 @@ class App {
     this.app.use(require('cookie-parser')());
 
     // Static files
-    this.app.use('/uploads', express.static(config.uploads.dir));
+    const { resolveUploadsPath } = require('./utils/pathHelper');
+    const uploadDir = config.uploads?.dir || './uploads';
+    const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
+    
+    this.app.use(
+      '/uploads',
+      express.static(resolvedUploadDir, {
+        setHeaders: (res) => {
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        },
+      })
+    );
   }
 
   initializeRoutes() {

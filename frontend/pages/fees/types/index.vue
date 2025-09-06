@@ -287,7 +287,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { apiClient } from '~/utils/api';
+import { Schools, FeeTypes } from '~/api';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
@@ -346,7 +346,7 @@ const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
   
   try {
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
@@ -443,7 +443,7 @@ const fetchFeeTypes = async () => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    const response = await apiClient.feeTypes.getAll(params);
+    const response = await FeeTypes.getAll(params);
     feeTypes.value = response.data;
   } catch (error) {
     console.error('Error fetching fee types:', error);
@@ -513,9 +513,9 @@ const saveFeeType = async () => {
     }
 
     if (isEditing.value) {
-      await apiClient.feeTypes.update(editingId.value, feeTypeData);
+      await FeeTypes.update(editingId.value, feeTypeData);
     } else {
-      await apiClient.feeTypes.create(feeTypeData);
+              await FeeTypes.create(feeTypeData);
     }
 
     await fetchFeeTypes();
@@ -547,7 +547,7 @@ const saveFeeType = async () => {
 const deleteFeeType = async (id) => {
   if (confirm('Are you sure you want to delete this fee type?')) {
     try {
-      await apiClient.feeTypes.delete(id);
+      await FeeTypes.delete(id);
       await fetchFeeTypes();
     } catch (error) {
       console.error('Error deleting fee type:', error);

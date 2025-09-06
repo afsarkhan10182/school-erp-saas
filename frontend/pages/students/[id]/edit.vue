@@ -13,7 +13,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { apiClient } from '~/utils/api';
+import { Students } from '~/api';
 import { useToast } from '~/composables/useToast';
 
 const route = useRoute();
@@ -29,7 +29,7 @@ const fetchStudentData = async () => {
   
   loading.value = true;
   try {
-    const response = await apiClient.students.getById(studentId.value);
+    const response = await Students.getById(studentId.value);
     if (response.success) {
       studentData.value = response.data;
       

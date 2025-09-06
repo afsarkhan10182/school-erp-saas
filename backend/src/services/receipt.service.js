@@ -91,20 +91,7 @@ const generateReceiptData = async (paymentId) => {
       
       remainingMonths = Math.max(0, totalMonths - paidMonths);
       remainingBalance = remainingMonths * monthlyAmount;
-      
-      // Debug logging for receipt generation (commented out for performance)
-      // logger.info(`Receipt generation calculation:`, {
-      //   studentId: student.id,
-      //   invoiceId: invoice.id,
-      //   totalMonths,
-      //   monthlyAmount,
-      //   paidMonths,
-      //   remainingMonths,
-      //   remainingBalance,
-      //   invoiceMonth: invoice.month,
-      //   invoiceYear: invoice.year,
-      //   paymentAmount: payment.payment_amount
-      // });
+
     } else {
       // For installment payments
       remainingBalance = Math.max(0, parseFloat(invoice.total_amount) - parseFloat(invoice.paid_amount));
@@ -114,16 +101,8 @@ const generateReceiptData = async (paymentId) => {
     let receiptNumber = payment.receipt_number;
     if (!receiptNumber) {
       // Generate unique receipt number with RCP prefix
-      let classCode = 'GEN';
-      if (invoice.feeStructure?.class?.code) {
-        classCode = invoice.feeStructure.class.code;
-      } else if (invoice.feeStructure?.class_name) {
-        classCode = getClassCode(invoice.feeStructure);
-      } else if (invoice.student.current_class) {
-        const cleanName = invoice.student.current_class.replace(/^Class\s+/i, '').trim();
-        classCode = cleanName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        classCode = classCode.length >= 3 ? classCode : `${classCode}${'0'.repeat(3 - classCode.length)}`;
-      }
+      // Use the same class code logic as invoice generation to ensure consistency
+      const classCode = await getClassCode(invoice.feeStructure, invoice.student);
       
       const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: payment.school_id });
       receiptNumber = tempReceipt.receipt_number;
@@ -132,7 +111,38 @@ const generateReceiptData = async (paymentId) => {
       await payment.update({ receipt_number: receiptNumber });
     }
 
-    // Build receipt data structure
+    // Get receipt customization settings
+    let receiptCustomization = {
+      schoolName: school.name,
+      schoolLogo: school.logo_url || '',
+      receiptLogo: '',
+      trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      showSchoolLogo: true,
+      showReceiptLogo: true,
+      showSchoolAddress: true,
+      showSchoolContact: true,
+      showBranchInfo: true,
+      receiptFooter: '',
+      defaultReceiptTitle: 'Fee Receipt'
+    };
+
+    // Use custom receipt settings if available (JSONB fields are automatically parsed)
+    if (school.receipt_settings && Object.keys(school.receipt_settings).length > 0) {
+      receiptCustomization = { ...receiptCustomization, ...school.receipt_settings };
+    }
+
+    // Get branch-specific receipt settings
+    let branchReceiptSettings = {};
+    if (student.branch) {
+      branchReceiptSettings = {
+        name: student.branch.receipt_name || student.branch.name,
+        logo: student.branch.receipt_logo || '',
+        address: student.branch.receipt_address || student.branch.address || '',
+        contact: student.branch.receipt_contact || student.branch.phone || ''
+      };
+    }
+
+    // Build receipt data structure with customization
     const receiptData = {
       receipt_number: receiptNumber,
       invoice_number: invoice.invoice_number, // Keep invoice number for reference
@@ -147,16 +157,30 @@ const generateReceiptData = async (paymentId) => {
       payment_date: payment.payment_date,
       remaining_balance: remainingBalance,
       remaining_months: remainingMonths,
-      school_name: school.name,
-      school_address: school.address,
-      school_logo: school.logo_url,
-      branch_name: student.branch?.name || null,
-      branch_code: student.branch?.code || null,
-      branch: student.branch ? {
+      // School information with customization
+      school_name: receiptCustomization.schoolName || school.name,
+      school_address: receiptCustomization.showSchoolAddress ? (receiptCustomization.schoolAddress || school.address) : null,
+      school_logo: receiptCustomization.showSchoolLogo ? (receiptCustomization.schoolLogo || school.logo_url) : null,
+      school_contact: receiptCustomization.showSchoolContact ? (school.phone || school.email) : null,
+      // Trust information with customization
+      receipt_logo: receiptCustomization.showReceiptLogo ? (receiptCustomization.receiptLogo || null) : null,
+      trust_name: receiptCustomization.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      // Branch information with customization
+      branch_name: receiptCustomization.showBranchInfo ? (branchReceiptSettings.name || student.branch?.name) : null,
+      branch_code: receiptCustomization.showBranchInfo ? (student.branch?.code) : null,
+      branch: receiptCustomization.showBranchInfo && student.branch ? {
         id: student.branch.id,
-        name: student.branch.name,
-        code: student.branch.code
+        name: branchReceiptSettings.name || student.branch.name,
+        code: student.branch.code,
+        logo: branchReceiptSettings.logo,
+        address: branchReceiptSettings.address,
+        contact: branchReceiptSettings.contact
       } : null,
+      // Receipt customization settings
+      receipt_title: receiptCustomization.defaultReceiptTitle,
+      receipt_footer: receiptCustomization.receiptFooter,
+      customization: receiptCustomization,
+      // Fee information
       fee_type_name: feeStructure?.feeType?.name || 'Tuition Fees',
       academic_year: invoice.academic_year,
       total_fees: parseFloat(invoice.total_amount),
@@ -386,6 +410,14 @@ const generateReceiptHtml = (data, schoolData) => {
   const isMonthlyPayment = data.payment_model === 'monthly';
   const isCombinedPayment = data.payment_model === 'combined';
   
+  const getLogoUrl = (filename) => {
+    if (!filename) return '';
+    if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
+    const baseUrl = process.env.NUXT_PUBLIC_API_BASE;
+    const backendBase = baseUrl?.replace('/api', '');
+    return `${backendBase}/uploads/logos/${filename}`;
+  };
+  
   return `
     <!DOCTYPE html>
     <html>
@@ -407,24 +439,51 @@ const generateReceiptHtml = (data, schoolData) => {
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
-          text-align: center;
-          padding: 15px;
+          padding: 20px 15px;
           border-bottom: 2px solid #333;
           background: #f8f9fa;
+          position: relative;
+          display: flex;
+          align-items: flex-start;
+          gap: 15px;
         }
-        .school-logo {
+        .receipt-logo {
           width: 80px;
           height: 80px;
           border-radius: 50%;
-          margin: 0 auto 10px;
-          display: block;
           border: 2px solid #333;
+          object-fit: contain;
+          background: white;
+          flex-shrink: 0;
+        }
+        .school-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          border: 2px solid #333;
+          object-fit: cover;
+          flex-shrink: 0;
+        }
+        .header-content {
+          flex: 1;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .trust-section {
+          margin-bottom: 10px;
         }
         .trust-name {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: bold;
           color: #333;
           margin-bottom: 5px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .school-section {
+          margin-top: 5px;
         }
         .school-name {
           font-size: 16px;
@@ -521,11 +580,18 @@ const generateReceiptHtml = (data, schoolData) => {
     <body>
       <div class="receipt">
         <div class="header">
-          ${data.school_logo ? `<img src="${data.school_logo}" alt="School Logo" class="school-logo">` : ''}
-          <div class="trust-name">HAJI OMAR MOOSA EDUCATIONAL TRUST</div>
-          <div class="school-name">${data.school_name}</div>
-          <div class="school-type">${schoolType}</div>
-          <div class="school-address">${data.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
+          ${data.receipt_logo && data.receipt_logo.trim() !== '' ? `<img src="${getLogoUrl(data.receipt_logo)}" alt="Receipt Logo" class="receipt-logo" onerror="this.style.display='none'">` : ''}
+          <div class="header-content">
+            <div class="trust-section">
+              <div class="trust-name">${data.trust_name}</div>
+            </div>
+            <div class="school-section">
+              ${data.school_logo ? `<img src="${getLogoUrl(data.school_logo)}" alt="School Logo" class="school-logo" onerror="this.style.display='none'">` : ''}
+              <div class="school-name">${data.school_name}</div>
+              <div class="school-type">${schoolType}</div>
+              <div class="school-address">${data.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
+            </div>
+          </div>
         </div>
         
         <div class="receipt-title">${isCombinedPayment ? 'MULTIPLE PAYMENTS RECEIPT' : 'FEE RECEIPT'}</div>

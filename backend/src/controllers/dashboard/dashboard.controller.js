@@ -1,5 +1,5 @@
 const { User, School, Branch, FeeInvoice, Student } = require('../../models');
-const { Sequelize } = require('../../config/database');
+const { Sequelize, sequelize } = require('../../config/database');
 const SchoolService = require('../../services/school/school.service');
 const BranchService = require('../../services/school/branch.service');
 const { logger } = require('../../utils/logger');
@@ -42,47 +42,46 @@ class DashboardController {
           branchWhere.id = branch_id;
         }
         
-        const [totalStudents, totalBranches, newStudents, feeCollection, activeStudents, pendingFees, overdueFees] = await Promise.all([
-          Student.count({ where: schoolWhere }),
-          Branch.count({ where: branchWhere }),
-          // Count new students in last N days
-          Student.count({ 
-            where: { 
-              ...schoolWhere,
-              created_at: {
-                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
-              }
-            } 
-          }),
-          // Calculate fee collection for the school/branch
-          FeeInvoice.sum('paid_amount', { 
-            where: { 
-              ...schoolWhere,
-              status: 'paid'
-            } 
-          }),
-          // Count active students (students with status 'active' or null)
-          Student.count({ 
-            where: { 
-              ...schoolWhere,
-              status: { [Op.or]: ['active', null] }
-            } 
-          }),
-          // Count pending invoices (sent status)
-          FeeInvoice.count({ 
-            where: { 
-              ...schoolWhere,
-              status: 'sent'
-            } 
-          }),
-          // Count overdue invoices
-          FeeInvoice.count({ 
-            where: { 
-              ...schoolWhere,
-              status: 'overdue'
-            } 
-          })
-        ]);
+        // Calculate date for new students (last N days)
+        const newStudentsDate = new Date();
+        newStudentsDate.setDate(newStudentsDate.getDate() - parseInt(new_students_days));
+        const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        
+        // Optimized: Single query for all student statistics
+        const studentStats = await Student.findAll({
+          where: schoolWhere,
+          attributes: [
+            [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_students'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`)), 'new_students'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)), 'active_students']
+          ],
+          raw: true
+        });
+
+        // Optimized: Single query for all fee statistics
+        const feeStats = await FeeInvoice.findAll({
+          where: schoolWhere,
+          attributes: [
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)), 'pending_fees'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)), 'overdue_fees'],
+            [Sequelize.fn('SUM', Sequelize.literal(`CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`)), 'fee_collection']
+          ],
+          raw: true
+        });
+
+        // Get branch count
+        const totalBranches = await Branch.count({ where: branchWhere });
+        
+        // Extract results
+        const studentData = studentStats[0] || {};
+        const feeData = feeStats[0] || {};
+        
+        const totalStudents = parseInt(studentData.total_students || 0);
+        const newStudents = parseInt(studentData.new_students || 0);
+        const activeStudents = parseInt(studentData.active_students || 0);
+        const pendingFees = parseInt(feeData.pending_fees || 0);
+        const overdueFees = parseInt(feeData.overdue_fees || 0);
+        const feeCollection = parseFloat(feeData.fee_collection || 0);
         
         stats = {
           totalStudents,
@@ -99,58 +98,47 @@ class DashboardController {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
         
-        const [totalStudents, newStudents, feeCollection, overdueFees, activeStudents, pendingFees, totalInvoices, paidInvoices] = await Promise.all([
-          Student.count({ where: { branch_id: user.branch_id } }),
-          Student.count({ 
-            where: { 
-              branch_id: user.branch_id,
-              created_at: {
-                [Op.gte]: new Date(Date.now() - new_students_days * 24 * 60 * 60 * 1000)
-              }
-            } 
-          }),
-          // Calculate fee collection for the branch
-          FeeInvoice.sum('paid_amount', { 
-            where: { 
-              branch_id: user.branch_id,
-              status: 'paid'
-            } 
-          }),
-          // Count overdue invoices
-          FeeInvoice.count({ 
-            where: { 
-              branch_id: user.branch_id,
-              status: 'overdue'
-            } 
-          }),
-          // Count active students
-          Student.count({ 
-            where: { 
-              branch_id: user.branch_id,
-              status: { [Op.or]: ['active', null] }
-            } 
-          }),
-          // Count pending invoices (sent status)
-          FeeInvoice.count({ 
-            where: { 
-              branch_id: user.branch_id,
-              status: 'sent'
-            } 
-          }),
-          // Count total invoices
-          FeeInvoice.count({ 
-            where: { 
-              branch_id: user.branch_id
-            } 
-          }),
-          // Count paid invoices
-          FeeInvoice.count({ 
-            where: { 
-              branch_id: user.branch_id,
-              status: 'paid'
-            } 
-          })
-        ]);
+        // Calculate date for new students (last N days)
+        const newStudentsDate = new Date();
+        newStudentsDate.setDate(newStudentsDate.getDate() - parseInt(new_students_days));
+        const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        
+        // Optimized: Single query for all student statistics
+        const studentStats = await Student.findAll({
+          where: { branch_id: user.branch_id },
+          attributes: [
+            [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_students'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`)), 'new_students'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)), 'active_students']
+          ],
+          raw: true
+        });
+
+        // Optimized: Single query for all fee statistics
+        const feeStats = await FeeInvoice.findAll({
+          where: { branch_id: user.branch_id },
+          attributes: [
+            [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_invoices'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'paid' THEN 1 END`)), 'paid_invoices'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)), 'pending_fees'],
+            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)), 'overdue_fees'],
+            [Sequelize.fn('SUM', Sequelize.literal(`CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`)), 'fee_collection']
+          ],
+          raw: true
+        });
+        
+        // Extract results
+        const studentData = studentStats[0] || {};
+        const feeData = feeStats[0] || {};
+        
+        const totalStudents = parseInt(studentData.total_students || 0);
+        const newStudents = parseInt(studentData.new_students || 0);
+        const activeStudents = parseInt(studentData.active_students || 0);
+        const totalInvoices = parseInt(feeData.total_invoices || 0);
+        const paidInvoices = parseInt(feeData.paid_invoices || 0);
+        const pendingFees = parseInt(feeData.pending_fees || 0);
+        const overdueFees = parseInt(feeData.overdue_fees || 0);
+        const feeCollection = parseFloat(feeData.fee_collection || 0);
         
         stats = {
           totalStudents,
@@ -263,136 +251,141 @@ class DashboardController {
     try {
       const user = req.user;
       const limit = parseInt(req.query.limit) || 10;
+      const { branch_id } = req.query;
       const activities = [];
 
       if (user.role === 'super_admin') {
-        // Get recent activities across all schools - simplified without complex associations
-        const [recentStudents, recentPayments, recentUsers] = await Promise.all([
-          Student.findAll({
-            limit: Math.ceil(limit / 3),
-            order: [['created_at', 'DESC']],
-            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
-          }).catch(() => []),
-          FeeInvoice.findAll({
-            where: { status: 'paid' },
-            limit: Math.ceil(limit / 3),
-            order: [['last_payment_date', 'DESC']],
-            attributes: ['id', 'paid_amount', 'last_payment_date']
-          }).catch(() => []),
-          User.findAll({
-            limit: Math.ceil(limit / 3),
-            order: [['created_at', 'DESC']],
-            attributes: ['id', 'first_name', 'last_name', 'role', 'created_at']
-          }).catch(() => [])
-        ]);
-
-        recentStudents.forEach(student => {
-          activities.push({
-            id: `student_${student.id}`,
-            type: 'student_created',
-            title: 'New Student Created',
-            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
-            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
-          });
+        // Optimized: Single query using UNION for all recent activities
+        const recentActivities = await sequelize.query(`
+          (SELECT 
+            'student' as type,
+            id,
+            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as description,
+            created_at,
+            admission_number as extra_info
+          FROM students 
+          ORDER BY created_at DESC 
+          LIMIT ${Math.ceil(limit / 3)})
+          UNION ALL
+          (SELECT 
+            'payment' as type,
+            id,
+            CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
+            last_payment_date as created_at,
+            NULL as extra_info
+          FROM fee_invoices 
+          WHERE status = 'paid' 
+          ORDER BY last_payment_date DESC 
+          LIMIT ${Math.ceil(limit / 3)})
+          UNION ALL
+          (SELECT 
+            'user' as type,
+            id,
+            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''), ' (', role, ')') as description,
+            created_at,
+            role as extra_info
+          FROM users 
+          ORDER BY created_at DESC 
+          LIMIT ${Math.ceil(limit / 3)})
+          ORDER BY created_at DESC
+          LIMIT ${limit}
+        `, {
+          type: Sequelize.QueryTypes.SELECT
         });
 
-        recentPayments.forEach(payment => {
+        recentActivities.forEach(activity => {
+          const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
           activities.push({
-            id: `payment_${payment.id}`,
-            type: 'fee_payment',
-            title: 'Fee Payment Received',
-            description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
-          });
-        });
-
-        recentUsers.forEach(user => {
-          activities.push({
-            id: `user_${user.id}`,
-            type: 'user_created',
-            title: 'New User Created',
-            description: `${user.first_name} ${user.last_name} (${user.role})`,
-            created_at: user.created_at ? new Date(user.created_at).toISOString() : null
+            id: `${activity.type}_${activity.id}`,
+            type: activity.type === 'student' ? 'student_added' : 
+                  activity.type === 'payment' ? 'fee_paid' : 'user_created',
+            title: activity.type === 'student' ? 'New Student Created' :
+                   activity.type === 'payment' ? 'Fee Payment Received' : 'New User Created',
+            description: cleanDescription,
+            created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
 
       } else if (user.role === 'school_admin') {
-        // Get recent activities for the school
-        const [recentStudents, recentPayments] = await Promise.all([
-          Student.findAll({
-            where: { school_id: user.school_id },
-            limit: Math.ceil(limit / 2),
-            order: [['created_at', 'DESC']],
-            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
-          }).catch(() => []),
-          FeeInvoice.findAll({
-            where: { 
-              school_id: user.school_id,
-              status: 'paid'
-            },
-            limit: Math.ceil(limit / 2),
-            order: [['last_payment_date', 'DESC']],
-            attributes: ['id', 'paid_amount', 'last_payment_date']
-          }).catch(() => [])
-        ]);
-
-        recentStudents.forEach(student => {
-          activities.push({
-            id: `student_${student.id}`,
-            type: 'student_created',
-            title: 'New Student Created',
-            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
-            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
-          });
+        // Optimized: Single query using UNION for school activities
+        const schoolFilter = branch_id ? `AND branch_id = '${branch_id}'` : '';
+        const recentActivities = await sequelize.query(`
+          (SELECT 
+            'student' as type,
+            id,
+            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''), ' (', admission_number, ')') as description,
+            created_at,
+            admission_number as extra_info
+          FROM students 
+          WHERE school_id = '${user.school_id}' ${schoolFilter}
+          ORDER BY created_at DESC 
+          LIMIT ${Math.ceil(limit / 2)})
+          UNION ALL
+          (SELECT 
+            'payment' as type,
+            id,
+            CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
+            last_payment_date as created_at,
+            NULL as extra_info
+          FROM fee_invoices 
+          WHERE school_id = '${user.school_id}' ${schoolFilter} AND status = 'paid'
+          ORDER BY last_payment_date DESC 
+          LIMIT ${Math.ceil(limit / 2)})
+          ORDER BY created_at DESC
+          LIMIT ${limit}
+        `, {
+          type: Sequelize.QueryTypes.SELECT
         });
 
-        recentPayments.forEach(payment => {
+        recentActivities.forEach(activity => {
+          const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
           activities.push({
-            id: `payment_${payment.id}`,
-            type: 'fee_payment',
-            title: 'Fee Payment Received',
-            description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
+            id: `${activity.type}_${activity.id}`,
+            type: activity.type === 'student' ? 'student_added' : 'fee_paid',
+            title: activity.type === 'student' ? 'New Student Created' : 'Fee Payment Received',
+            description: cleanDescription,
+            created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
 
       } else if (user.role === 'branch_admin') {
-        // Get recent activities for the branch
-        const [recentStudents, recentPayments] = await Promise.all([
-          Student.findAll({
-            where: { branch_id: user.branch_id },
-            limit: Math.ceil(limit / 2),
-            order: [['created_at', 'DESC']],
-            attributes: ['id', 'admission_number', 'first_name', 'last_name', 'created_at']
-          }).catch(() => []),
-          FeeInvoice.findAll({
-            where: { 
-              branch_id: user.branch_id,
-              status: 'paid'
-            },
-            limit: Math.ceil(limit / 2),
-            order: [['last_payment_date', 'DESC']],
-            attributes: ['id', 'paid_amount', 'last_payment_date']
-          }).catch(() => [])
-        ]);
-
-        recentStudents.forEach(student => {
-          activities.push({
-            id: `student_${student.id}`,
-            type: 'student_created',
-            title: 'New Student Created',
-            description: `${student.first_name} ${student.last_name} (${student.admission_number})`,
-            created_at: student.created_at ? new Date(student.created_at).toISOString() : null
-          });
+        // Optimized: Single query using UNION for branch activities
+        const recentActivities = await sequelize.query(`
+          (SELECT 
+            'student' as type,
+            id,
+            CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''), ' (', admission_number, ')') as description,
+            created_at,
+            admission_number as extra_info
+          FROM students 
+          WHERE branch_id = '${user.branch_id}'
+          ORDER BY created_at DESC 
+          LIMIT ${Math.ceil(limit / 2)})
+          UNION ALL
+          (SELECT 
+            'payment' as type,
+            id,
+            CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
+            last_payment_date as created_at,
+            NULL as extra_info
+          FROM fee_invoices 
+          WHERE branch_id = '${user.branch_id}' AND status = 'paid'
+          ORDER BY last_payment_date DESC 
+          LIMIT ${Math.ceil(limit / 2)})
+          ORDER BY created_at DESC
+          LIMIT ${limit}
+        `, {
+          type: Sequelize.QueryTypes.SELECT
         });
 
-        recentPayments.forEach(payment => {
+        recentActivities.forEach(activity => {
+          const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
           activities.push({
-            id: `payment_${payment.id}`,
-            type: 'fee_payment',
-            title: 'Fee Payment Received',
-            description: `₹${payment.paid_amount || 0} payment received`,
-            created_at: payment.last_payment_date ? new Date(payment.last_payment_date).toISOString() : null
+            id: `${activity.type}_${activity.id}`,
+            type: activity.type === 'student' ? 'student_added' : 'fee_paid',
+            title: activity.type === 'student' ? 'New Student Created' : 'Fee Payment Received',
+            description: cleanDescription,
+            created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
       }
@@ -418,9 +411,15 @@ class DashboardController {
   static async getStudentsChartData(req, res, next) {
     try {
       const user = req.user;
+      const { branch_id } = req.query;
       let where = {};
+      
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
+        // Add branch filter if provided
+        if (branch_id) {
+          where.branch_id = branch_id;
+        }
       } else if (user.role === 'branch_admin') {
         where.branch_id = user.branch_id;
       }
@@ -454,9 +453,15 @@ class DashboardController {
   static async getFeesChartData(req, res, next) {
     try {
       const user = req.user;
+      const { branch_id } = req.query;
       let where = {};
+      
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
+        // Add branch filter if provided
+        if (branch_id) {
+          where.branch_id = branch_id;
+        }
       } else if (user.role === 'branch_admin') {
         where.school_id = user.school_id;
         where.branch_id = user.branch_id;
@@ -509,9 +514,15 @@ class DashboardController {
   static async getStudentDistributionData(req, res, next) {
     try {
       const user = req.user;
+      const { branch_id } = req.query;
       let where = {};
+      
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
+        // Add branch filter if provided
+        if (branch_id) {
+          where.branch_id = branch_id;
+        }
       } else if (user.role === 'branch_admin') {
         where.school_id = user.school_id;
         where.branch_id = user.branch_id;
@@ -546,10 +557,15 @@ class DashboardController {
   static async getFeeTrendData(req, res, next) {
     try {
       const user = req.user;
-      const { months = 6 } = req.query;
+      const { months = 6, branch_id } = req.query;
       let where = {};
+      
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
+        // Add branch filter if provided
+        if (branch_id) {
+          where.branch_id = branch_id;
+        }
       } else if (user.role === 'branch_admin') {
         where.school_id = user.school_id;
         where.branch_id = user.branch_id;
@@ -585,6 +601,64 @@ class DashboardController {
       res.json({ success: true, data: { labels, data } });
     } catch (error) {
       logger.error('Error in DashboardController.getFeeTrendData:', error);
+      next(error);
+    }
+  }
+
+  static async getAcademicYearMonths(req, res, next) {
+    try {
+      console.log('📅 getAcademicYearMonths called by user:', req.user?.id, 'role:', req.user?.role);
+      const user = req.user;
+      const { getCurrentAcademicYearForSchool, getAcademicYearMonths } = require('../../utils/academicYearUtils');
+      
+      // Get current academic year for the school
+      const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
+      
+      if (!currentAcademicYear) {
+        return res.status(404).json({
+          success: false,
+          message: 'No current academic year found'
+        });
+      }
+      
+      // Get school's starting month (default to 6 for June)
+      const { School } = require('../../models');
+      const school = await School.findByPk(user.school_id, {
+        attributes: ['starting_month']
+      });
+      
+      const startingMonth = school?.starting_month || 6; // Default to June
+      
+      // Get academic year months
+      const academicMonths = getAcademicYearMonths(startingMonth, currentAcademicYear.name);
+      
+      console.log('📅 Academic year months generated:', {
+        startingMonth,
+        academicYear: currentAcademicYear.name,
+        months: academicMonths
+      });
+      
+      // Format for frontend - use calendar month numbers as values for backend compatibility
+      const formattedMonths = academicMonths.map(month => ({
+        value: month.month, // Calendar month number (1-12) for backend API
+        label: month.display, // Academic year display (e.g., "June 2025")
+        year: month.year,
+        academicMonth: month.academicMonth,
+        isCurrentMonth: month.isCurrentMonth
+      }));
+      
+      console.log('📅 Formatted months for frontend:', formattedMonths);
+      
+      res.json({
+        success: true,
+        data: {
+          academicYear: currentAcademicYear.name,
+          startingMonth: startingMonth,
+          months: formattedMonths
+        }
+      });
+    } catch (error) {
+      logger.error('Error in DashboardController.getAcademicYearMonths:', error);
       next(error);
     }
   }
@@ -638,38 +712,36 @@ class DashboardController {
         throw new ApiError(403, 'Access denied');
       }
 
-      // Get total collected and pending amounts
-      console.log('🔍 Dashboard query where clause:', JSON.stringify(where, null, 2));
+      // Get all summary statistics in a single optimized query
       
-      const [totalCollected, totalPending] = await Promise.all([
-        FeeInvoice.sum('paid_amount', { 
-          where: { 
-            ...where, 
-            status: { [Op.in]: ['paid', 'partial_paid'] } 
-          } 
-        }),
-        FeeInvoice.sum('balance_amount', { 
-          where: { 
-            ...where, 
-            status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
-          } 
-        })
-      ]);
-      
-      console.log('💰 Dashboard calculation results:');
-      console.log('   - Total Collected (paid invoices):', totalCollected);
-      console.log('   - Total Pending (balance_amount):', totalPending);
-      
-      // Also get all invoices for debugging
-      const allInvoices = await FeeInvoice.findAll({
+      const summaryStats = await FeeInvoice.findAll({
         where,
-        attributes: ['id', 'invoice_number', 'total_amount', 'paid_amount', 'balance_amount', 'status', 'academic_year'],
-        raw: true
+        attributes: [
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.col('id')), 'total_invoices'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'paid' THEN 1 END")), 'paid_count'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END")), 'pending_count'],
+          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'overdue' THEN 1 END")), 'overdue_count'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
+          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+        ],
+        raw: true,
       });
-      console.log('📋 All invoices found:', allInvoices.length);
-      allInvoices.forEach(inv => {
-        console.log(`   - ${inv.invoice_number}: paid=${inv.paid_amount}, balance=${inv.balance_amount}, status=${inv.status}`);
-      });
+
+      const stats = summaryStats[0] || {};
+      const totalInvoices = parseInt(stats.total_invoices || 0);
+      const paidInvoices = parseInt(stats.paid_count || 0);
+      const pendingInvoices = parseInt(stats.pending_count || 0);
+      const overdueInvoices = parseInt(stats.overdue_count || 0);
+      const totalCollected = parseFloat(stats.total_collected || 0);
+      const totalPending = parseFloat(stats.total_pending || 0);
+      
+      console.log('💰 Dashboard calculation results (optimized single query):');
+      console.log('   - Total Invoices:', totalInvoices);
+      console.log('   - Paid Invoices:', paidInvoices);
+      console.log('   - Pending Invoices:', pendingInvoices);
+      console.log('   - Overdue Invoices:', overdueInvoices);
+      console.log('   - Total Collected:', totalCollected);
+      console.log('   - Total Pending:', totalPending);
 
       // Get branch-wise breakdown for school admin and super admin
       let branchBreakdown = [];
@@ -679,53 +751,49 @@ class DashboardController {
           attributes: ['id', 'name']
         });
 
-        // Get fee data for each branch
-        const branchFeeData = await Promise.all(
-          branches.map(async (branch) => {
-            const branchWhereClause = { 
+        if (branches.length > 0) {
+          // Get all branch fee data in a single optimized query
+          const branchIds = branches.map(b => b.id);
+          const branchFeeData = await FeeInvoice.findAll({
+            where: { 
               ...where, 
-              branch_id: branch.id 
+              branch_id: { [Op.in]: branchIds } 
+            },
+            attributes: [
+              'branch_id',
+              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
+              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+            ],
+            group: ['branch_id'],
+            raw: true,
+          });
+
+          // Create a map for quick lookup
+          const branchStatsMap = {};
+          branchFeeData.forEach(stat => {
+            branchStatsMap[stat.branch_id] = {
+              total_collected: parseFloat(stat.total_collected || 0),
+              total_pending: parseFloat(stat.total_pending || 0)
             };
+          });
 
-            const [collected, pending] = await Promise.all([
-              FeeInvoice.sum('paid_amount', { 
-                where: { ...branchWhereClause, status: 'paid' } 
-              }),
-              FeeInvoice.sum('balance_amount', { 
-                where: { 
-                  ...branchWhereClause, 
-                  status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] } 
-                } 
-              })
-            ]);
-
-            return {
+          // Build branch breakdown with fee data
+          branchBreakdown = branches
+            .map(branch => ({
               id: branch.id,
               name: branch.name,
-              total_collected: parseFloat(collected || 0),
-              total_pending: parseFloat(pending || 0)
-            };
-          })
-        );
-
-        // Filter out branches with no fee data
-        branchBreakdown = branchFeeData.filter(branch => 
-          branch.total_collected > 0 || branch.total_pending > 0
-        );
+              total_collected: branchStatsMap[branch.id]?.total_collected || 0,
+              total_pending: branchStatsMap[branch.id]?.total_pending || 0
+            }))
+            .filter(branch => branch.total_collected > 0 || branch.total_pending > 0);
+        }
       }
 
-      // Get additional statistics
-      const [totalInvoices, paidInvoices, pendingInvoices, overdueInvoices] = await Promise.all([
-        FeeInvoice.count({ where }),
-        FeeInvoice.count({ where: { ...where, status: 'paid' } }),
-        FeeInvoice.count({ where: { ...where, status: { [Op.in]: ['sent', 'partial_paid'] } } }),
-        FeeInvoice.count({ where: { ...where, status: 'overdue' } })
-      ]);
-
+      // Build summary response with optimized data
       const summary = {
         academic_year: targetAcademicYear,
-        total_collected: parseFloat(totalCollected || 0),
-        total_pending: parseFloat(totalPending || 0),
+        total_collected: totalCollected,
+        total_pending: totalPending,
         total_invoices: totalInvoices,
         paid_invoices: paidInvoices,
         pending_invoices: pendingInvoices,
@@ -733,7 +801,6 @@ class DashboardController {
         collection_rate: totalInvoices > 0 ? ((paidInvoices / totalInvoices) * 100).toFixed(1) : 0,
         branch_breakdown: branchBreakdown
       };
-
       res.json({ success: true, data: summary });
     } catch (error) {
       logger.error('Error in DashboardController.getFeeCollectionSummary:', error);

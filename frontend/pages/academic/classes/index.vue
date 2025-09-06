@@ -271,7 +271,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Classes, Schools, Branches } from '~/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
@@ -331,7 +331,7 @@ const fetchSchools = async () => {
   if (authStore.user?.role !== 'super_admin') return;
   
   try {
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     availableSchools.value = response.data?.schools || [];
   } catch (error) {
     console.error('Error fetching schools:', error);
@@ -347,8 +347,8 @@ const fetchBranchesForSchool = async (schoolId) => {
   }
   
   try {
-    const response = await apiClient.branches.getBySchool(schoolId);
-    availableBranches.value = response.data?.branches || [];
+    const response = await Branches.getForDropdown({ school_id: schoolId });
+    availableBranches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching branches:', error);
     availableBranches.value = [];
@@ -366,9 +366,9 @@ const fetchBranchesForCurrentSchool = async () => {
       return;
     }
     
-    const response = await apiClient.branches.getBySchool(schoolId);
+    const response = await Branches.getForDropdown({ school_id: schoolId });
     
-    availableBranches.value = response.data?.branches || response.data?.items || [];
+    availableBranches.value = response.data || [];
     
     // Auto-select the only branch for School Admin if there's only one
     if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
@@ -408,7 +408,7 @@ const fetchClasses = async () => {
       params.branch_id = selectedBranchId.value;
     }
     
-    const response = await apiClient.classes.getAll(params);
+    const response = await Classes.getAll(params);
     classes.value = response.data || [];
   } catch (error) {
     console.error('Error fetching classes:', error);
@@ -519,9 +519,9 @@ const saveClass = async () => {
     // Branch admin doesn't need to specify branch_id - it's automatically their branch
 
     if (isEditing.value) {
-      await apiClient.classes.update(editingId.value, payload);
+      await Classes.update(editingId.value, payload);
     } else {
-      await apiClient.classes.create(payload);
+              await Classes.create(payload);
     }
 
     closeModal();
@@ -558,7 +558,7 @@ const saveClass = async () => {
 
 const toggleStatus = async (classItem) => {
   try {
-    await apiClient.classes.update(classItem.id, {
+          await Classes.update(classItem.id, {
       is_active: !classItem.is_active
     });
     await fetchClasses();
@@ -585,7 +585,7 @@ const deleteClass = async (id) => {
   }
   
   try {
-    await apiClient.classes.delete(id);
+    await Classes.delete(id);
     await fetchClasses();
     
     // Show success message

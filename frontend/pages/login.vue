@@ -90,11 +90,21 @@
             </div>
 
             <div class="flex items-center justify-between">
-              <label class="flex items-center">
-                <input type="checkbox" class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-400">
-                <span class="ml-2 text-sm text-white/70">Remember me</span>
+              <label class="flex items-center cursor-pointer hover:opacity-80 transition-opacity duration-200">
+                <input 
+                  v-model="form.rememberMe" 
+                  type="checkbox" 
+                  class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-400 cursor-pointer"
+                >
+                <span class="ml-2 text-sm text-white/70 select-none">Remember me</span>
               </label>
-              <a href="#" class="text-sm text-blue-300 hover:text-blue-200 transition-colors">Forgot password?</a>
+              <button 
+                type="button"
+                @click="showForgotPassword = true"
+                class="text-sm text-blue-300 hover:text-blue-200 transition-colors cursor-pointer"
+              >
+                Forgot password?
+              </button>
             </div>
 
             <button
@@ -121,13 +131,71 @@
       </div>
       </div>
     </ClientOnly>
+
+    <!-- Forgot Password Modal -->
+    <div v-if="showForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-white text-lg font-semibold">Reset Password</h3>
+          <button 
+            @click="showForgotPassword = false"
+            class="text-white/70 hover:text-white transition-colors"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+        
+        <p class="text-white/70 text-sm mb-4">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
+
+        <form @submit.prevent="handleForgotPassword" class="space-y-4">
+          <div>
+            <label class="block text-white/80 text-sm font-medium mb-2">Email Address</label>
+            <input
+              v-model="forgotPasswordForm.email"
+              type="email"
+              required
+              class="w-full px-4 py-3 bg-white/15 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent focus:bg-white/20 transition-all duration-300"
+              placeholder="Enter your email"
+            />
+          </div>
+
+          <div v-if="forgotPasswordMessage" class="p-3 rounded-lg text-sm" :class="forgotPasswordMessage.type === 'success' ? 'bg-green-500/20 border border-green-500/30 text-green-200' : 'bg-red-500/20 border border-red-500/30 text-red-200'">
+            {{ forgotPasswordMessage.text }}
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              @click="showForgotPassword = false"
+              class="flex-1 py-3 px-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-medium rounded-xl hover:bg-white/20 transition-all duration-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="forgotPasswordLoading"
+              class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span v-if="!forgotPasswordLoading">Send Reset Link</span>
+              <span v-else class="flex items-center justify-center">
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                Sending...
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { Mail, Lock, Sun, Moon } from 'lucide-vue-next';
+import { ref, reactive, onMounted } from 'vue';
+import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
+import { Auth } from '~/api';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -136,16 +204,23 @@ definePageMeta({ layout: 'login' });
 
 const form = reactive({
   email: '',
-  password: ''
+  password: '',
+  rememberMe: false
+});
+
+const forgotPasswordForm = reactive({
+  email: ''
 });
 
 const error = ref('');
 const loading = ref(false);
-const checkingAuth = ref(false); // Only show loading if we have cached data to check
+const checkingAuth = ref(false);
+const showForgotPassword = ref(false);
+const forgotPasswordLoading = ref(false);
+const forgotPasswordMessage = ref(null);
+
 const router = useRouter();
 const { login } = useAuth();
-
-
 
 const isDark = ref(false);
 
@@ -169,12 +244,50 @@ const toggleTheme = () => {
   applyTheme();
 };
 
+// Note: "Remember Me" is now handled by cookie expiry on the backend
+// No need to store credentials locally - the backend manages session persistence
+
+// Handle forgot password
+const handleForgotPassword = async () => {
+  forgotPasswordLoading.value = true;
+  forgotPasswordMessage.value = null;
+
+  try {
+    const response = await Auth.forgotPassword(forgotPasswordForm.email);
+
+    if (response.success) {
+      forgotPasswordMessage.value = {
+        type: 'success',
+        text: 'Password reset link has been sent to your email address.'
+      };
+      forgotPasswordForm.email = '';
+      setTimeout(() => {
+        showForgotPassword.value = false;
+        forgotPasswordMessage.value = null;
+      }, 3000);
+    } else {
+      forgotPasswordMessage.value = {
+        type: 'error',
+        text: response.message || 'Failed to send reset link. Please try again.'
+      };
+    }
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    forgotPasswordMessage.value = {
+      type: 'error',
+      text: 'Network error. Please check your connection and try again.'
+    };
+  } finally {
+    forgotPasswordLoading.value = false;
+  }
+};
+
 // Check authentication on component mount
 const checkExistingAuth = async () => {
   const authStore = useAuthStore();
   
   // First, check if we have any cached data or if user is already logged in
-  const savedUser = localStorage.getItem('auth-user');
+  const savedUser = sessionStorage.getItem('auth-user');
   const hasAuthData = authStore.isLoggedIn || authStore.currentUser || savedUser;
   
   // Only show "Checking authentication..." if we have data to check
@@ -247,7 +360,11 @@ const handleLogin = async () => {
   loading.value = true;
 
   try {
-    const result = await login({ email: form.email, password: form.password });
+    const result = await login({ 
+      email: form.email, 
+      password: form.password,
+      rememberMe: form.rememberMe 
+    });
     if (result.success) {
       // Login successful - let the useAuth composable handle navigation
       // No need to navigate here as useAuth will do it
@@ -261,10 +378,6 @@ const handleLogin = async () => {
     loading.value = false;
   }
 };
-
-useHead({
-  title: 'Login - School ERP'
-});
 </script>
 
 <style scoped>

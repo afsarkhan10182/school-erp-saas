@@ -1,4 +1,4 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../../models');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
 const ApiError = require('../../utils/ApiError');
 const { logger } = require('../../utils/logger');
 const { Op } = require('sequelize');
@@ -370,14 +370,11 @@ const getGroupedReceipts = async (req, res, next) => {
 };
 
 // Generate combined receipt for multiple invoices (smart payment)
-const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMethod, transactionId, school, student, receiptGroupId, paymentDate = null) => {
+const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMethod, transactionId, school, student, receiptNumber, branch = null, paymentDate = null) => {
   try {
     if (!invoices || invoices.length === 0) {
       throw new Error('No invoices provided for combined receipt');
     }
-
-    // Use the provided receipt group ID instead of generating a new one
-    const receiptNumber = receiptGroupId || `RCP-GROUP-${invoices.map(inv => inv.invoice_number).join('-')}`;
     
     // Calculate totals
     const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
@@ -436,6 +433,9 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
     // Get branch information from the first invoice
     const branch = invoices[0].branch;
     
+    // Get receipt settings from school data
+    const receiptSettings = school.receipt_settings || {};
+    
     // Create receipt data
     const receiptData = {
       receipt_number: receiptNumber,
@@ -445,14 +445,18 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       admission_number: student.admission_number,
       class_name: student.current_class,
       section: student.section,
-      school_name: school.name,
+      school_name: receiptSettings.schoolName || school.name,
       school_address: school.address,
+      school_logo: null, // Don't use school logo for receipts
+      trust_name: receiptSettings.trustName || 'School Trust',
       branch_name: branch?.name || null,
       branch_code: branch?.code || null,
+      receipt_logo: receiptSettings.receiptLogo || branch?.receipt_logo,
       branch: branch ? {
         id: branch.id,
         name: branch.name,
-        code: branch.code
+        code: branch.code,
+        receipt_logo: branch.receipt_logo
       } : null,
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: paymentMethod,
@@ -474,11 +478,11 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       remaining_balance: monthlyFeeAmount > 0 ? remainingMonths * monthlyFeeAmount : totalAmount - totalPaid,
       total_months: totalMonths,
       months_paid: totalPaidMonthsAfterThisReceipt,
-      receipt_group_id: receiptGroupId // Add receipt_group_id to the receipt data
+      receipt_number: receiptNumber // Add receipt_number to the receipt data
     };
 
     // Generate HTML receipt (for internal use only - PDF, email, etc.)
-    const receiptHtml = generateCombinedReceiptHtml(receiptData, school);
+    const receiptHtml = generateCombinedReceiptHtml(receiptData, school, branch);
 
     // Note: Receipt data storage is handled in the service layer to avoid circular references
 
@@ -493,15 +497,29 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
 };
 
 // Generate HTML for combined receipt
-const generateCombinedReceiptHtml = (data, school) => {
+const generateCombinedReceiptHtml = (data, school, branch = null) => {
   const paidMonthsText = data.paid_months.map(pm => 
     `${getMonthName(pm.month)} ${pm.year}`
   ).join(', ');
 
+  // Use the same logo URL handling as the receipt service
+  const getLogoUrl = (filename) => {
+    if (!filename) return '';
+    if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
+    const baseUrl = process.env.NUXT_PUBLIC_API_BASE;
+    const backendBase = baseUrl?.replace('/api', '');
+    return `${backendBase}/uploads/logos/${filename}`;
+  };
+
   return `
     <div class="receipt" style="width: 400px; background: white; border: 1px solid #ddd; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
       <div class="header" style="text-align: center; padding: 15px; border-bottom: 2px solid #333; background: #f8f9fa;">
-        <div class="trust-name" style="font-size: 18px; font-weight: bold; color: #000;">${school.trust_name || 'School Trust'}</div>
+        ${(data.receipt_logo || data.school_logo) ? `
+          <div class="logo-container" style="margin-bottom: 10px;">
+            <img src="${getLogoUrl(data.receipt_logo || data.school_logo)}" alt="School Logo" style="max-height: 60px; max-width: 200px; object-fit: contain;" onerror="this.style.display='none'" />
+          </div>
+        ` : ''}
+        <div class="trust-name" style="font-size: 18px; font-weight: bold; color: #000;">${data.trust_name || school.trust_name || 'School Trust'}</div>
         <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000;">${school.name}</div>
         <div class="school-type" style="font-size: 14px; color: #000;">${school.school_type || 'Educational Institution'}</div>
         <div class="school-address" style="font-size: 12px; color: #000;">${data.school_address || school.address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
@@ -512,7 +530,11 @@ const generateCombinedReceiptHtml = (data, school) => {
         
         <div style="margin-bottom: 15px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span class="info-label" style="font-weight: bold; color: #000;">Invoice No:</span>
+            <span class="info-label" style="font-weight: bold; color: #000;">Receipt No:</span>
+            <span class="info-value" style="color: #000;">${data.receipt_number || 'N/A'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span class="info-label" style="font-weight: bold; color: #000;">Invoice Reference:</span>
             <span class="info-value" style="color: #000;">${data.invoice_number || 'N/A'}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
@@ -615,15 +637,15 @@ const getMonthName = (month) => {
 // Get combined receipt for a specific receipt group
 const getCombinedReceiptByGroupId = async (req, res, next) => {
   try {
-    const { receiptGroupId } = req.params;
+    const { receiptNumber } = req.params;
 
-    if (!receiptGroupId) {
-      throw new ApiError(400, 'Receipt group ID is required');
+    if (!receiptNumber) {
+      throw new ApiError(400, 'Receipt number is required');
     }
 
     // Build where clause based on user role
     const whereClause = {
-      receipt_group_id: receiptGroupId,
+      receipt_number: receiptNumber,
       school_id: req.schoolId,
     };
 
@@ -677,7 +699,7 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
     for (const invoice of invoices) {
       if (invoice.payments && invoice.payments.length > 0) {
         for (const payment of invoice.payments) {
-          if (payment.receipt_data && payment.receipt_data.receipt_group_id === receiptGroupId) {
+          if (payment.receipt_data && payment.receipt_data.receipt_number === receiptGroupId) {
             storedReceiptData = payment.receipt_data;
             break;
           }
@@ -1086,17 +1108,17 @@ const getReceiptsReport = async (req, res, next) => {
       order: [['payment_date', 'DESC']],
     });
 
-    // Group by receipt_group_id if exists, otherwise show individual
+    // Group by receipt_number if exists, otherwise show individual
     const groupedReceipts = {};
     const individualReceipts = [];
 
     allPayments.forEach(payment => {
-      const receiptGroupId = payment.invoice?.receipt_group_id;
+      const receiptGroupId = payment.invoice?.receipt_number;
       
       if (receiptGroupId) {
         if (!groupedReceipts[receiptGroupId]) {
           groupedReceipts[receiptGroupId] = {
-            receipt_group_id: receiptGroupId,
+            receipt_number: receiptGroupId,
             payments: [],
             total_amount: 0,
             payment_date: payment.payment_date,
@@ -1133,8 +1155,8 @@ const getReceiptsReport = async (req, res, next) => {
       const invoiceIds = [...new Set(group.payments.map(p => p.invoice?.id).filter(Boolean))];
       
       return {
-        id: group.receipt_group_id,
-        receipt_number: group.receipt_group_id,
+        id: group.receipt_number,
+        receipt_number: group.receipt_number,
         payment_date: group.payment_date,
         payment_amount: group.total_amount,
         payment_method: group.payment_method,
@@ -1258,12 +1280,103 @@ const getReceiptsReport = async (req, res, next) => {
   }
 };
 
+// Get receipt data by receipt number
+const getReceiptByNumber = async (req, res, next) => {
+  try {
+    const { receiptNumber } = req.params;
+
+    if (!receiptNumber) {
+      throw new ApiError(400, 'Receipt number is required');
+    }
+
+    // Find payments with the given receipt number
+    const payments = await FeePayment.findAll({
+      where: {
+        receipt_number: receiptNumber,
+        school_id: req.schoolId,
+      },
+      include: [
+        {
+          model: FeeInvoice,
+          as: 'invoice',
+          include: [
+            {
+              model: Student,
+              as: 'student',
+              include: [
+                {
+                  model: Branch,
+                  as: 'branch',
+                  attributes: ['id', 'name', 'code'],
+                },
+              ],
+            },
+            {
+              model: FeeStructure,
+              as: 'feeStructure',
+              include: [
+                {
+                  model: FeeType,
+                  as: 'feeType',
+                },
+                {
+                  model: Class,
+                  as: 'class',
+                  attributes: ['id', 'name', 'code'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      order: [['payment_date', 'DESC']],
+    });
+
+    if (!payments || payments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found',
+      });
+    }
+
+    // Check if any payment has stored receipt data
+    let receiptData = null;
+    for (const payment of payments) {
+      if (payment.receipt_data) {
+        receiptData = payment.receipt_data;
+        break;
+      }
+    }
+
+    if (receiptData) {
+      // Return stored receipt data
+      return res.status(200).json({
+        success: true,
+        data: receiptData,
+      });
+    } else {
+      // Generate receipt data on-demand
+      const { generateReceiptData } = require('../../services/receipt.service');
+      const generatedData = await generateReceiptData(payments[0].id);
+      
+      return res.status(200).json({
+        success: true,
+        data: generatedData,
+      });
+    }
+  } catch (error) {
+    logger.error('Error fetching receipt by number:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   getReceiptForInvoice,
   getEnhancedPaymentReceipts,
   getGroupedReceipts,
   generateCombinedReceipt,
   getCombinedReceiptByGroupId,
+  getReceiptByNumber,
   // New on-demand endpoints
   getReceiptData,
   getCombinedReceiptData,

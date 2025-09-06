@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
-import { apiClient } from '~/utils/api';
+import { Saas, Schools } from '~/api';
 
 interface Module {
-  id: string;
+  key: string;
   name: string;
   description: string;
+  icon: string;
+  features: string[];
   enabled: boolean;
   config?: any;
 }
@@ -25,66 +27,12 @@ interface ModulesState {
   modules: Module[];
   roles: Role[];
   isLoading: boolean;
+  availableModules: Module[];
 }
 
 export const useModulesStore = defineStore('modules', {
   state: (): ModulesState => ({
-    modules: [
-      {
-        id: 'fees',
-        name: 'Fees Management',
-        description: 'Manage student fees, invoices, and payment tracking',
-        enabled: true,
-      },
-      {
-        id: 'attendance',
-        name: 'Attendance Tracking',
-        description: 'Track student and staff attendance',
-        enabled: false,
-      },
-      {
-        id: 'exams',
-        name: 'Exam Management',
-        description: 'Manage exams, grades, and academic performance',
-        enabled: false,
-      },
-      {
-        id: 'library',
-        name: 'Library Management',
-        description: 'Manage library books and lending system',
-        enabled: false,
-      },
-      {
-        id: 'transport',
-        name: 'Transport Management',
-        description: 'Manage school transportation and routes',
-        enabled: false,
-      },
-      {
-        id: 'hostel',
-        name: 'Hostel Management',
-        description: 'Manage hostel facilities and accommodations',
-        enabled: false,
-      },
-      {
-        id: 'timetable',
-        name: 'Timetable Management',
-        description: 'Create and manage class schedules and timetables',
-        enabled: false,
-      },
-      {
-        id: 'communication',
-        name: 'Communication Hub',
-        description: 'Internal messaging and notification system',
-        enabled: false,
-      },
-      {
-        id: 'inventory',
-        name: 'Inventory Management',
-        description: 'Track school supplies and equipment',
-        enabled: false,
-      },
-    ],
+    modules: [],
     roles: [
       {
         id: 'school_admin',
@@ -160,27 +108,30 @@ export const useModulesStore = defineStore('modules', {
       },
     ],
     isLoading: false,
+    availableModules: [],
   }),
 
   getters: {
     getModules: (state) => () => state.modules,
     getRoles: (state) => () => state.roles,
-    getModuleById: (state) => (id: string) => state.modules.find(m => m.id === id),
+    getModuleById: (state) => (id: string) => state.modules.find(m => m.key === id),
     getEnabledModules: (state) => state.modules.filter(m => m.enabled),
     isModuleEnabled: (state) => (moduleId: string) => {
-      const module = state.modules.find(m => m.id === moduleId);
+      const module = state.modules.find(m => m.key === moduleId);
       return module?.enabled || false;
     },
+    getAvailableModules: (state) => state.availableModules,
   },
 
   actions: {
     async fetchModules() {
       this.isLoading = true;
       try {
-        // TODO: Replace with actual API call when backend is ready
-        // const response = await apiClient.modules.getAll();
-        // this.modules = response.data.modules;
-        // this.roles = response.data.roles;
+        // Fetch available modules from API
+        const response = await Saas.getAvailableModules();
+        if (response.success) {
+          this.availableModules = response.data;
+        }
       } catch (error) {
         console.error('Error fetching modules:', error);
       } finally {
@@ -188,15 +139,29 @@ export const useModulesStore = defineStore('modules', {
       }
     },
 
+    async fetchSchoolModules(schoolId: string) {
+      this.isLoading = true;
+      try {
+        const response = await Schools.getModules(schoolId);
+        if (response.success) {
+          this.modules = response.data.modules || [];
+        }
+      } catch (error) {
+        console.error('Error fetching school modules:', error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     toggleModule(moduleId: string, enabled: boolean) {
-      const module = this.modules.find(m => m.id === moduleId);
+      const module = this.modules.find(m => m.key === moduleId);
       if (module) {
         module.enabled = enabled;
       }
     },
 
     updateModuleConfig(moduleId: string, config: any) {
-      const module = this.modules.find(m => m.id === moduleId);
+      const module = this.modules.find(m => m.key === moduleId);
       if (module) {
         module.config = { ...module.config, ...config };
       }
@@ -226,7 +191,6 @@ export const useModulesStore = defineStore('modules', {
           roles: this.roles,
         }));
       } catch (error) {
-        console.error('Error saving module settings:', error);
         throw error;
       }
     },

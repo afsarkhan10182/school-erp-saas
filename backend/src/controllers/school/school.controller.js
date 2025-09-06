@@ -289,7 +289,15 @@ class SchoolController {
       if (modules) {
         updatedModules = modules;
       } else if (subscription_plan) {
-        updatedModules = ModuleConfig.getModulesForPlan(subscription_plan);
+        // Always pull modules from DB plan to avoid drift
+        const { SubscriptionPlan } = require('../../models');
+        const plan = await SubscriptionPlan.findOne({
+          where: { code: subscription_plan, is_active: true }
+        });
+        if (!plan) {
+          throw new ApiError(400, 'Invalid subscription plan');
+        }
+        updatedModules = plan.modules;
       }
       
       if (updatedModules) {
@@ -306,12 +314,12 @@ class SchoolController {
     });
   });
 
-  // Get school module settings (read-only for School Admin)
+  // Get school module settings (read-only for School Admin and Branch Admin)
   static getSchoolModules = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    // School admin can only view their own school's modules
-    if (req.user.role === 'school_admin' && req.user.school_id !== id) {
+    // School admin and branch admin can only view their own school's modules
+    if ((req.user.role === 'school_admin' || req.user.role === 'branch_admin') && req.user.school_id !== id) {
       throw new ApiError(403, 'You can only view your own school modules');
     }
 
@@ -320,12 +328,83 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    // Import module configuration
-    const { ModuleConfig } = require('../../utils/moduleConfig');
+    const { Module, SubscriptionPlan } = require('../../models');
+    
+    // Get school's subscription plan with modules
+    const subscriptionPlan = await SubscriptionPlan.findOne({
+      where: { code: school.subscription_plan, is_active: true },
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { 
+            attributes: ['is_required', 'is_enabled', 'sort_order'],
+            as: 'planModule'
+          },
+          attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core'],
+          where: { is_active: true },
+          required: false
+        }
+      ]
+    });
 
-    // Get modules for display
-    const modulesForDisplay = ModuleConfig.getModulesForDisplay(school);
-    const planComparison = ModuleConfig.getPlanComparison(school.subscription_plan);
+    // Get all available modules for comparison
+    const allModules = await Module.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core']
+    });
+
+    // Get enabled modules for this school
+    const enabledModules = subscriptionPlan?.modules || [];
+    const enabledModuleCodes = enabledModules.map(m => m.code);
+    
+    // Get school's disabled modules
+    const disabledModules = school.disabled_modules || [];
+
+    // Create modules for display
+    const modulesForDisplay = allModules.map(module => {
+      const isInPlan = enabledModuleCodes.includes(module.code);
+      const isDisabled = disabledModules.includes(module.code);
+      const isEnabled = isInPlan && !isDisabled;
+      
+      return {
+        id: module.id,
+        key: module.code,
+        code: module.code,
+        name: module.name,
+        description: module.description,
+        icon: module.icon,
+        category: module.category,
+        is_core: module.is_core,
+        enabled: isEnabled,
+        canEnable: req.user.role === 'super_admin', // Only super admin can enable/disable
+        upgradeRequired: !isInPlan
+      };
+    });
+
+    // Get available subscription plans for upgrade
+    const availablePlans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: ['code', 'name', 'description', 'price', 'billing_cycle'],
+      include: [
+        {
+          model: Module,
+          as: 'modules',
+          through: { attributes: [] },
+          attributes: ['code', 'name', 'description', 'icon'],
+          where: { is_active: true },
+          required: false
+        }
+      ]
+    });
+
+    // Mark the current plan
+    const plansWithCurrentFlag = availablePlans.map(plan => ({
+      ...plan.toJSON(),
+      isCurrentPlan: plan.code === school.subscription_plan
+    }));
 
     res.json({
       success: true,
@@ -333,35 +412,36 @@ class SchoolController {
       data: {
         modules: modulesForDisplay,
         subscription_plan: school.subscription_plan,
-        plan_comparison: planComparison,
+        plan_comparison: plansWithCurrentFlag,
         can_upgrade: req.user.role === 'school_admin',
+        modules_updated_at: school.modules_updated_at,
       },
     });
   });
 
-  // Get available subscription plans (for upgrade requests)
+  // Get available subscription plans (for upgrade requests) - from DB only
   static getSubscriptionPlans = asyncHandler(async (req, res) => {
-    const { ModuleConfig } = require('../../utils/moduleConfig');
-    
-    const plans = ModuleConfig.getAllSubscriptionPlans();
-    const planDetails = Object.entries(plans).map(([key, plan]) => ({
-      key,
-      name: plan.name,
-      description: plan.description,
-      price: plan.price,
-      modules: plan.modules.map(moduleKey => ({
-        key: moduleKey,
-        ...ModuleConfig.getModuleDescription(moduleKey),
-      })),
-      max_students: plan.max_students,
-      max_branches: plan.max_branches,
-      max_staff: plan.max_staff,
-    }));
+    const { SubscriptionPlan } = require('../../models');
+    const plans = await SubscriptionPlan.findAll({
+      where: { is_active: true },
+      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      attributes: [
+        'code',
+        'name',
+        'description',
+        'price',
+        'billing_cycle',
+        'modules',
+        'max_students',
+        'max_branches',
+        'max_staff',
+      ],
+    });
 
     res.json({
       success: true,
       message: 'Subscription plans retrieved successfully',
-      data: planDetails,
+      data: plans,
     });
   });
 
@@ -385,38 +465,25 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { ModuleConfig } = require('../../utils/moduleConfig');
     const { SubscriptionPlan } = require('../../models');
     
-    // First try to get requested plan from database
-    let requestedPlanDetails = null;
-    if (requested_plan) {
-      requestedPlanDetails = await SubscriptionPlan.findOne({
-        where: { code: requested_plan, is_active: true }
-      });
-    }
-
-    // If not found in database, fall back to ModuleConfig
-    if (!requestedPlanDetails) {
-      requestedPlanDetails = ModuleConfig.getSubscriptionPlan(requested_plan);
-    }
+    // Get requested plan from database
+    const requestedPlanDetails = requested_plan
+      ? await SubscriptionPlan.findOne({
+          where: { code: requested_plan, is_active: true }
+        })
+      : null;
 
     if (!requestedPlanDetails) {
       throw new ApiError(400, 'Invalid subscription plan');
     }
 
-    // Get current plan details
-    let currentPlanDetails = null;
-    if (school.subscription_plan) {
-      currentPlanDetails = await SubscriptionPlan.findOne({
-        where: { code: school.subscription_plan, is_active: true }
-      });
-    }
-
-    // If not found in database, fall back to ModuleConfig
-    if (!currentPlanDetails) {
-      currentPlanDetails = ModuleConfig.getSubscriptionPlan(school.subscription_plan);
-    }
+    // Get current plan details from database
+    const currentPlanDetails = school.subscription_plan
+      ? await SubscriptionPlan.findOne({
+          where: { code: school.subscription_plan, is_active: true }
+        })
+      : null;
 
     if (!currentPlanDetails) {
       throw new ApiError(400, 'Invalid current subscription plan');

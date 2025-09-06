@@ -605,12 +605,12 @@
 <script setup>
 import { ref, onMounted, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { apiClient } from '~/utils/api';
+import { Schools, FeeStructures, FeeTypes } from '~/api';
 import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
-import { fetchStreamsAPI } from '~/api/streams';
+import { Streams } from '~/api';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // SSR-safe window check
@@ -848,7 +848,7 @@ const loadStreamsForClasses = async () => {
         is_active: 'true'
       };
       
-      const response = await fetchStreamsAPI(params);
+      const response = await Streams.getAll(params);
       if (response.data && response.data.length > 0) {
         allStreams.push(...response.data);
       }
@@ -1013,7 +1013,7 @@ const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
   
   try {
-    const response = await apiClient.schools.getAll();
+    const response = await Schools.getAll();
     
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
@@ -1117,7 +1117,7 @@ const fetchFeeStructures = async () => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    const response = await apiClient.feeStructures.getAll(params);
+    const response = await FeeStructures.getAll(params);
     feeStructures.value = response.data;
   } catch (error) {
     console.error('Error fetching fee structures:', error);
@@ -1136,7 +1136,7 @@ const fetchFeeTypes = async () => {
     if (selectedBranchId.value) {
       params.branch_id = selectedBranchId.value;
     }
-    const response = await apiClient.feeTypes.getAll(params);
+    const response = await FeeTypes.getAll(params);
     feeTypes.value = response.data.filter(type => type.is_active);
   } catch (error) {
     console.error('Error fetching fee types:', error);
@@ -1391,10 +1391,10 @@ const saveFeeStructure = async () => {
 
 
     if (isEditing.value) {
-      await apiClient.feeStructures.update(editingId.value, feeStructureData);
+      await FeeStructures.update(editingId.value, feeStructureData);
       showSuccess('Fee structure updated successfully!');
     } else {
-      await apiClient.feeStructures.create(feeStructureData);
+      await FeeStructures.create(feeStructureData);
       showSuccess('Fee structure created successfully!');
     }
 
@@ -1421,7 +1421,7 @@ const saveFeeStructure = async () => {
 const deleteFeeStructure = async (id) => {
   if (confirm('Are you sure you want to delete this fee structure?')) {
     try {
-      await apiClient.feeStructures.delete(id);
+      await FeeStructures.delete(id);
       showSuccess('Fee structure deleted successfully!');
       await fetchFeeStructures();
     } catch (error) {

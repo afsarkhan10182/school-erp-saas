@@ -144,7 +144,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import { apiClient } from '~/utils/api';
+import { Users } from '~/api';
 import PasswordInput from '~/components/PasswordInput.vue';
 
 const authStore = useAuthStore();
@@ -184,7 +184,7 @@ const fetchUser = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const res = await apiClient.users.getById(route.params.id);
+    const res = await Users.getById(route.params.id);
     if (res.success) {
       // Map backend field names to form fields
       form.value = {
@@ -269,7 +269,7 @@ const handleSubmit = async () => {
       updateData.password = form.value.password;
     }
     
-    const res = await apiClient.users.update(route.params.id, updateData);
+    const res = await Users.update(route.params.id, updateData);
     if (res.success) {
       success.value = true;
       showSuccess('User updated successfully!');

@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { apiClient } from '~/utils/api';
+import { Schools, Saas } from '~/api';
 
 export function useSchools() {
   const schools = ref<any[]>([]);
@@ -13,7 +13,7 @@ export function useSchools() {
     try {
       if (includeSubscriptions) {
         // Use subscription endpoint for enhanced data
-        const response = await apiClient.subscriptions.getSchoolsWithSubscriptions();
+        const response = await Saas.getSchoolsWithSubscriptions();
         if (response.success) {
           schools.value = response.data.schools || [];
         } else {
@@ -21,7 +21,7 @@ export function useSchools() {
         }
       } else {
         // Use regular school endpoint for basic data
-        const response = await apiClient.schools.getAll();
+        const response = await Schools.getAll();
         if (response.success) {
           // Type assertion to handle actual API response structure
           const responseData = response.data as any;
@@ -42,7 +42,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.schools.create(schoolData);
+      const response = await Schools.create(schoolData);
       if (!response.success) {
         error.value = response.message || 'Failed to create school.';
         return null;
@@ -61,7 +61,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.schools.update(id, schoolData);
+      const response = await Schools.update(id, schoolData);
       if (!response.success) {
         error.value = response.message || 'Failed to update school.';
         return null;
@@ -80,7 +80,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.schools.delete(id);
+      const response = await Schools.delete(id);
       if (!response.success) {
         error.value = response.message || 'Failed to delete school.';
         return false;
@@ -99,7 +99,7 @@ export function useSchools() {
     loading.value = true;
     error.value = '';
     try {
-      const response = await apiClient.schools.getById(id);
+      const response = await Schools.getById(id);
       if (!response.success) {
         error.value = response.message || 'Failed to fetch school.';
         return null;

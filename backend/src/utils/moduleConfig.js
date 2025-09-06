@@ -1,6 +1,21 @@
 const { logger } = require('./logger');
 
-// Define all available modules in the system
+// ⚠️ DEPRECATED: This file is deprecated in favor of database-driven modules
+// All module data should now come from the 'modules' table in the database
+// Use the Module model and related APIs instead
+
+// This file is kept for backward compatibility but should not be used for new features
+// The database-driven approach provides:
+// - Dynamic module management
+// - Better scalability
+// - Industry-standard architecture
+// - No hardcoded values
+
+// For new implementations, use:
+// - GET /api/subscriptions/available-modules
+// - GET /api/subscriptions/modules (super admin)
+// - Module model and PlanModule relationships
+
 const AVAILABLE_MODULES = {
   STUDENTS: 'students',
   FEES: 'fees',
@@ -11,9 +26,10 @@ const AVAILABLE_MODULES = {
   HR: 'hr',
   REPORTS: 'reports',
   SETTINGS: 'settings',
+  TIMETABLES: 'timetables',
 };
 
-// Module descriptions for UI
+// Module descriptions for UI (DEPRECATED - use database)
 const MODULE_DESCRIPTIONS = {
   [AVAILABLE_MODULES.STUDENTS]: {
     name: 'Student Management',
@@ -69,9 +85,15 @@ const MODULE_DESCRIPTIONS = {
     icon: '⚙️',
     features: ['School settings', 'User management', 'System preferences']
   },
+  [AVAILABLE_MODULES.TIMETABLES]: {
+    name: 'Timetables',
+    description: 'Manage class and subject schedules',
+    icon: '⏰',
+    features: ['Class timetable', 'Subject timetable', 'Conflict detection']
+  },
 };
 
-// Subscription plans and their included modules
+// Subscription plans and their included modules (DEPRECATED - use database)
 const SUBSCRIPTION_PLANS = {
   TRIAL: {
     name: 'Trial',
@@ -101,6 +123,7 @@ const SUBSCRIPTION_PLANS = {
       AVAILABLE_MODULES.FEES,
       AVAILABLE_MODULES.ATTENDANCE,
       AVAILABLE_MODULES.EXAMS,
+      AVAILABLE_MODULES.TIMETABLES,
       AVAILABLE_MODULES.SETTINGS,
       AVAILABLE_MODULES.REPORTS,
     ],
@@ -194,67 +217,72 @@ const getPaymentMonthDisplay = (monthNumber, startingMonth = 6) => {
 
 class ModuleConfig {
   /**
-   * Get all available modules
+   * Get all available modules (DEPRECATED - use database)
    */
   static getAllModules() {
+    logger.warn('ModuleConfig.getAllModules() is deprecated. Use database-driven modules instead.');
     return AVAILABLE_MODULES;
   }
 
   /**
-   * Get module description
+   * Get module description (DEPRECATED - use database)
    */
   static getModuleDescription(moduleKey) {
+    logger.warn('ModuleConfig.getModuleDescription() is deprecated. Use database-driven modules instead.');
     return MODULE_DESCRIPTIONS[moduleKey] || null;
   }
 
   /**
-   * Get all module descriptions
+   * Get all module descriptions (DEPRECATED - use database)
    */
   static getAllModuleDescriptions() {
+    logger.warn('ModuleConfig.getAllModuleDescriptions() is deprecated. Use database-driven modules instead.');
     return MODULE_DESCRIPTIONS;
   }
 
   /**
-   * Get subscription plan details
+   * Get subscription plan details (DEPRECATED - use database)
    */
   static getSubscriptionPlan(planKey) {
+    logger.warn('ModuleConfig.getSubscriptionPlan() is deprecated. Use database-driven plans instead.');
     return SUBSCRIPTION_PLANS[planKey.toUpperCase()] || null;
   }
 
   /**
-   * Get all subscription plans
+   * Get all subscription plans (DEPRECATED - use database)
    */
   static getAllSubscriptionPlans() {
+    logger.warn('ModuleConfig.getAllSubscriptionPlans() is deprecated. Use database-driven plans instead.');
     return SUBSCRIPTION_PLANS;
   }
 
   /**
-   * Get modules for a subscription plan
+   * Get modules for a subscription plan (DEPRECATED - use database)
    */
   static getModulesForPlan(planKey) {
+    logger.warn('ModuleConfig.getModulesForPlan() is deprecated. Use database-driven plans instead.');
     const plan = this.getSubscriptionPlan(planKey);
     return plan ? plan.modules : [];
   }
 
   /**
-   * Check if a module is enabled for a school
+   * Check if a module is enabled for a school (DEPRECATED - use database)
    */
   static isModuleEnabled(school, moduleKey) {
+    logger.warn('ModuleConfig.isModuleEnabled() is deprecated. Use database-driven module checking instead.');
     if (!school || !moduleKey) {
       return false;
     }
 
-    // Get modules from school data
     const schoolModules = school.modules || [];
-    
-    // Check if module is in the school's enabled modules
     return schoolModules.includes(moduleKey);
   }
 
   /**
-   * Get enabled modules for a school
+   * Get enabled modules for a school (DEPRECATED - use database)
    */
   static getEnabledModules(school) {
+    logger.warn('ModuleConfig.getEnabledModules() is deprecated. Use database-driven modules instead.');
     if (!school) {
       return [];
     }
@@ -266,9 +294,10 @@ class ModuleConfig {
   }
 
   /**
-   * Get disabled modules for a school
+   * Get disabled modules for a school (DEPRECATED - use database)
    */
   static getDisabledModules(school) {
+    logger.warn('ModuleConfig.getDisabledModules() is deprecated. Use database-driven modules instead.');
     if (!school) {
       return Object.values(AVAILABLE_MODULES);
     }
@@ -280,9 +309,10 @@ class ModuleConfig {
   }
 
   /**
-   * Get modules that can be upgraded to
+   * Get modules that can be upgraded to (DEPRECATED - use database)
    */
   static getUpgradeableModules(school) {
+    logger.warn('ModuleConfig.getUpgradeableModules() is deprecated. Use database-driven modules instead.');
     if (!school) {
       return [];
     }
@@ -295,9 +325,10 @@ class ModuleConfig {
   }
 
   /**
-   * Validate module list
+   * Validate module list (DEPRECATED - use database)
    */
   static validateModules(modules) {
+    logger.warn('ModuleConfig.validateModules() is deprecated. Use database-driven validation instead.');
     if (!Array.isArray(modules)) {
       return false;
     }
@@ -307,9 +338,10 @@ class ModuleConfig {
   }
 
   /**
-   * Get modules for display in UI (with descriptions)
+   * Get modules for display in UI (DEPRECATED - use database)
    */
   static getModulesForDisplay(school) {
+    logger.warn('ModuleConfig.getModulesForDisplay() is deprecated. Use database-driven modules instead.');
     const enabledModules = this.getEnabledModules(school);
     const disabledModules = this.getDisabledModules(school);
 
@@ -346,9 +378,10 @@ class ModuleConfig {
   }
 
   /**
-   * Get subscription plan comparison for upgrade
+   * Get subscription plan comparison for upgrade (DEPRECATED - use database)
    */
   static getPlanComparison(currentPlan) {
+    logger.warn('ModuleConfig.getPlanComparison() is deprecated. Use database-driven plans instead.');
     const plans = this.getAllSubscriptionPlans();
     const comparison = [];
 
@@ -377,7 +410,7 @@ module.exports = {
   SUBSCRIPTION_PLANS,
   ModuleConfig,
   
-  // Academic year utilities
+  // Academic year utilities (still useful)
   getAcademicYearMonths,
   getCurrentAcademicMonth,
   getCurrentAcademicYear,

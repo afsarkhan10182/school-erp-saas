@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginCredentials, AuthResponse } from '~/types';
-import { apiClient } from '~/utils/api';
+import { Auth } from '~/api';
 
 interface AuthState {
   user: User | null;
@@ -36,11 +36,11 @@ export const useAuthStore = defineStore('auth', () => {
   // Helper function to clear all auth data
   const clearAuthData = () => {
     if (import.meta.client) {
-      // Clear user data from localStorage
-      localStorage.removeItem('auth-user');
-      localStorage.removeItem('current-branch');
-      localStorage.removeItem('current-school');
-      localStorage.removeItem('last-auth-check');
+      // Clear user data from sessionStorage (for incognito isolation)
+      sessionStorage.removeItem('auth-user');
+      sessionStorage.removeItem('current-branch');
+      sessionStorage.removeItem('current-school');
+      sessionStorage.removeItem('last-auth-check');
       
       // Clear any theme or other auth-related data
       localStorage.removeItem('theme');
@@ -56,9 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
   // Refresh auth state from storage (for cross-tab sync)
   const refreshFromStorage = () => {
     if (import.meta.client) {
-      const savedUser = localStorage.getItem('auth-user');
-      const savedBranch = localStorage.getItem('current-branch');
-      const savedSchool = localStorage.getItem('current-school');
+      const savedUser = sessionStorage.getItem('auth-user');
+      const savedBranch = sessionStorage.getItem('current-branch');
+      const savedSchool = sessionStorage.getItem('current-school');
       
       if (savedUser) {
         user.value = JSON.parse(savedUser);
@@ -85,10 +85,10 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       // Since we use HTTP-only cookies, we can't read the token directly
-      // Instead, we check if we have user data in localStorage
-      const savedUser = localStorage.getItem('auth-user');
-      const savedBranch = localStorage.getItem('current-branch');
-      const savedSchool = localStorage.getItem('current-school');
+      // Instead, we check if we have user data in sessionStorage
+      const savedUser = sessionStorage.getItem('auth-user');
+      const savedBranch = sessionStorage.getItem('current-branch');
+      const savedSchool = sessionStorage.getItem('current-school');
 
       if (savedUser) {
         // Set user data immediately
@@ -154,7 +154,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true;
       
-      const response = await apiClient.auth.login(credentials);
+      const response = await Auth.login(credentials);
       
       if (response.success) {
         const { user: userData } = response.data;
@@ -171,20 +171,20 @@ export const useAuthStore = defineStore('auth', () => {
           currentBranch.value = { id: userData.branch_id, name: userData.branch_name };
         }
         
-        // Save user data to localStorage (tokens are handled by secure cookies)
+        // Save user data to sessionStorage (tokens are handled by secure cookies)
         if (import.meta.client) {
-          localStorage.setItem('auth-user', JSON.stringify(userData));
+          sessionStorage.setItem('auth-user', JSON.stringify(userData));
           if (currentSchool.value) {
-            localStorage.setItem('current-school', JSON.stringify(currentSchool.value));
+            sessionStorage.setItem('current-school', JSON.stringify(currentSchool.value));
           }
           if (currentBranch.value) {
-            localStorage.setItem('current-branch', JSON.stringify(currentBranch.value));
+            sessionStorage.setItem('current-branch', JSON.stringify(currentBranch.value));
           }
           
           // Signal other tabs about successful login
-          localStorage.setItem('auth-action', 'login');
+          sessionStorage.setItem('auth-action', 'login');
           setTimeout(() => {
-            localStorage.removeItem('auth-action');
+            sessionStorage.removeItem('auth-action');
           }, 100);
         }
         
@@ -250,7 +250,7 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       // Call logout endpoint to invalidate tokens on server
-      await apiClient.auth.logout();
+      await Auth.logout();
     } catch (error: any) {
       // Handle specific error cases
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -267,14 +267,20 @@ export const useAuthStore = defineStore('auth', () => {
       availableBranches.value = [];
       lastAuthCheck.value = 0;
       
+      // Clear module cache
+      if (import.meta.client) {
+        const { clearModuleCache } = useModuleAccess();
+        clearModuleCache();
+      }
+      
       // Clear localStorage and cookies
       clearAuthData();
       
       // Signal other tabs about logout (before navigation)
       if (import.meta.client) {
-        localStorage.setItem('auth-action', 'logout');
+        sessionStorage.setItem('auth-action', 'logout');
         setTimeout(() => {
-          localStorage.removeItem('auth-action');
+          sessionStorage.removeItem('auth-action');
         }, 100);
       }
       
@@ -294,7 +300,7 @@ export const useAuthStore = defineStore('auth', () => {
   const silentLogout = async () => {
     try {
       // Call logout endpoint to invalidate tokens on server
-      await apiClient.auth.logout();
+      await Auth.logout();
     } catch (error: any) {
       // Handle specific error cases silently
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -309,14 +315,20 @@ export const useAuthStore = defineStore('auth', () => {
       availableBranches.value = [];
       lastAuthCheck.value = 0;
       
+      // Clear module cache
+      if (import.meta.client) {
+        const { clearModuleCache } = useModuleAccess();
+        clearModuleCache();
+      }
+      
       // Clear localStorage and cookies (this will also clear the refresh timer)
       clearAuthData();
       
       // Signal other tabs about logout (without navigation)
       if (import.meta.client) {
-        localStorage.setItem('auth-action', 'logout');
+        sessionStorage.setItem('auth-action', 'logout');
         setTimeout(() => {
-          localStorage.removeItem('auth-action');
+          sessionStorage.removeItem('auth-action');
         }, 100);
       }
     }
@@ -325,14 +337,14 @@ export const useAuthStore = defineStore('auth', () => {
   // Check authentication
   const checkAuth = async (): Promise<boolean> => {
     try {
-      const response = await apiClient.auth.me();
+      const response = await Auth.me();
       if (response.success && response.data) {
         user.value = response.data;
         lastAuthCheck.value = Date.now();
         
-        // Update localStorage
+        // Update sessionStorage
         if (import.meta.client) {
-          localStorage.setItem('auth-user', JSON.stringify(response.data));
+          sessionStorage.setItem('auth-user', JSON.stringify(response.data));
         }
         return true;
       } else {
@@ -349,7 +361,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (user.value) {
       user.value = { ...user.value, ...userData };
       if (import.meta.client) {
-        localStorage.setItem('auth-user', JSON.stringify(user.value));
+        sessionStorage.setItem('auth-user', JSON.stringify(user.value));
       }
     }
   };
@@ -358,7 +370,7 @@ export const useAuthStore = defineStore('auth', () => {
   const setCurrentBranch = (branch: any) => {
     currentBranch.value = branch;
     if (import.meta.client) {
-      localStorage.setItem('current-branch', JSON.stringify(branch));
+      sessionStorage.setItem('current-branch', JSON.stringify(branch));
     }
   };
 
@@ -380,7 +392,7 @@ export const useAuthStore = defineStore('auth', () => {
   const setCurrentSchool = (school: any) => {
     currentSchool.value = school;
     if (import.meta.client) {
-      localStorage.setItem('current-school', JSON.stringify(school));
+      sessionStorage.setItem('current-school', JSON.stringify(school));
     }
   };
 
@@ -405,6 +417,10 @@ export const useAuthStore = defineStore('auth', () => {
         availableBranches.value = [];
         lastAuthCheck.value = 0;
         
+        // Clear module cache
+        const { clearModuleCache } = useModuleAccess();
+        clearModuleCache();
+        
         // Clear cookies
         const accessToken = useCookie('accessToken');
         const refreshToken = useCookie('refreshToken');
@@ -416,7 +432,7 @@ export const useAuthStore = defineStore('auth', () => {
           navigateTo('/login');
         }
       } else if (action === 'login') {
-        // Refresh auth state from localStorage
+        // Refresh auth state from sessionStorage
         refreshFromStorage();
         
         // Navigate to dashboard if on login page
@@ -427,11 +443,11 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Clean up the action flag
       setTimeout(() => {
-        localStorage.removeItem('auth-action');
+        sessionStorage.removeItem('auth-action');
       }, 100);
     }
     
-    // Handle direct localStorage changes
+    // Handle direct sessionStorage changes
     else if (event.key === 'auth-user') {
       if (event.newValue === null) {
         // User data was cleared in another tab

@@ -179,5 +179,6 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
  *         description: Forbidden - Access denied
  */
 router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
+router.get('/academic-year-months', DashboardController.getAcademicYearMonths);
 
 module.exports = router; 

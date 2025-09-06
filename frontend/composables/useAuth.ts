@@ -3,7 +3,7 @@ import { useAuthStore } from '~/stores/auth';
 export const useAuth = () => {
   const authStore = useAuthStore();
 
-  const login = async (credentials: { email: string; password: string }) => {
+  const login = async (credentials: { email: string; password: string; rememberMe?: boolean }) => {
     try {
       const result = await authStore.login(credentials);
       

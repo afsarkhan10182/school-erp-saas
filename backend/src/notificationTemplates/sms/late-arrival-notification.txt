@@ -1,0 +1,11 @@
+Dear Parent,
+
+{{studentName}} arrived LATE to school on {{date}} at {{arrivalTime}}.
+
+Please ensure punctuality to avoid missing important activities.
+
+Contact {{schoolName}} if you have any questions.
+Phone: {{schoolPhone}}
+
+Thank you,
+{{schoolName}}
