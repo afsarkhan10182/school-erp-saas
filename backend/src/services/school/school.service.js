@@ -85,7 +85,7 @@ class SchoolService {
         // Initialize fee settings with required fields
         fee_settings: {
           defaultCurrency: basicData.currency || 'INR',
-          defaultPaymentModel: 'class_based'
+          defaultPaymentModel: basicData.default_payment_model || 'class_based'
         }
       });
       
@@ -161,7 +161,7 @@ class SchoolService {
       const school = await BaseService.validateEntityExists(School, id, 'School');
 
       // Handle file uploads and settings using base service
-      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, ...basicData } = updateData;
+      const { system_logo, text_logo, printing_logo, report_card_design, currency_symbol, subscription_plan, default_payment_model, ...basicData } = updateData;
       
       // Update settings if new values are provided
       const currentSettings = school.settings || {};
@@ -170,6 +170,15 @@ class SchoolService {
         ...(currency_symbol && { currency_symbol }),
         ...BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design })
       };
+
+      // Update fee settings if default_payment_model is provided
+      let feeSettings = school.fee_settings || {};
+      if (default_payment_model) {
+        feeSettings = {
+          ...feeSettings,
+          defaultPaymentModel: default_payment_model
+        };
+      }
 
       // If subscription plan is being changed, validate and sync with plan
       let planData = {};
@@ -200,7 +209,8 @@ class SchoolService {
       await school.update({
         ...basicData,
         ...planData,
-        settings: newSettings
+        settings: newSettings,
+        fee_settings: feeSettings
       });
       
       // Clear cache using base service

@@ -1358,6 +1358,31 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
       });
     }
     
+    // Build student filtering for the include clause
+    const studentWhereClause = {};
+    if (search) {
+      studentWhereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { 
+          admission_number: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        },
+        { 
+          email: { 
+            [Op.and]: [
+              { [Op.not]: null },
+              { [Op.iLike]: `%${search}%` }
+            ]
+          } 
+        }
+      ];
+    }
+
     // Get all monthly invoices for the selected months (we'll paginate after grouping)
     const monthlyInvoices = await FeeInvoice.findAll({
       where: whereClause,
@@ -1373,7 +1398,7 @@ const getMonthlyPaymentStatus = async (req, res, next) => {
           model: Student,
           as: 'student',
           attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
-          where: {},
+          where: studentWhereClause,
         },
         {
           model: FeeStructure,
