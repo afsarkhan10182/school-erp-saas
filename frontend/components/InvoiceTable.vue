@@ -231,6 +231,17 @@
                   </table>
                 </div>
               </div>
+              
+              <!-- No invoices found in accordion -->
+              <div v-else class="text-center py-8">
+                <div class="text-gray-400 dark:text-gray-500 mb-2">
+                  <svg class="h-8 w-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400">No invoices found for this student</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">This might be due to current filters</p>
+              </div>
             </div>
           </div>
         </div>
@@ -258,7 +269,7 @@
 
 <script setup>
 import { Calendar, CreditCard } from 'lucide-vue-next';
-import { ref, computed, onBeforeUnmount } from 'vue';
+import { ref, computed, onBeforeUnmount, watch } from 'vue';
 import { Students } from '~/api';
 
 const props = defineProps({
@@ -292,6 +303,12 @@ const props = defineProps({
 // Props received
 
 const emit = defineEmits(['view-invoice', 'record-payment', 'generate-receipt', 'view-receipt', 'view-combined-receipt']);
+
+// Watch for filter changes and close all accordions
+watch(() => props.currentFilters, () => {
+  expandedStudents.value = [];
+  studentDetails.value = {};
+}, { deep: true });
 
 // Expose methods to parent component
 const clearStudentDetails = (studentId) => {
@@ -508,7 +525,6 @@ const loadStudentDetails = async (studentId) => {
       })
     );
     
-    console.log('🔍 Loading student details with filters:', filteredParams);
     const response = await Students.getInvoiceBreakdown(studentId, filteredParams);
     
     if (response.success && response.data) {
