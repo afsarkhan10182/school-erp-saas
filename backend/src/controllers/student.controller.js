@@ -1845,15 +1845,16 @@ const getStudentInvoiceBreakdown = async (req, res, next) => {
       }
     });
 
-    // Debug logging to help identify issues
-    console.log('🔍 Invoice Breakdown Debug:', {
-      totalInvoices: invoices.length,
-      groupedInvoices: Object.keys(groupedInvoices).length,
-      ungroupedInvoices: ungroupedInvoices.length,
-      paidInvoices: invoices.filter(inv => inv.status === 'paid').length,
-      paidInUngrouped: ungroupedInvoices.filter(inv => inv.status === 'paid').length,
-      paidInGrouped: Object.values(groupedInvoices).reduce((sum, group) => sum + group.invoices.filter(inv => inv.status === 'paid').length, 0)
+    // After grouping, move single-invoice groups back to ungrouped
+    Object.keys(groupedInvoices).forEach(receiptNumber => {
+      const group = groupedInvoices[receiptNumber];
+      if (group.invoices.length === 1) {
+        // Single invoice with receipt_number should be ungrouped
+        ungroupedInvoices.push(group.invoices[0]);
+        delete groupedInvoices[receiptNumber];
+      }
     });
+
 
     // Helper function to get month name
     const getMonthName = (month) => {

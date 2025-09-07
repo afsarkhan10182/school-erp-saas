@@ -44,7 +44,7 @@
             </div>
             <div class="school-section">
               <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
-              <div class="school-address">{{ receiptData.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.' }}</div>
+              <div class="school-address">{{ receiptData.school_address}}</div>
             </div>
           </div>
         </div>

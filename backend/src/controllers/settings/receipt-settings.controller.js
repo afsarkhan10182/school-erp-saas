@@ -4,17 +4,37 @@ const fs = require('fs');
 const path = require('path');
 const { resolveUploadsPath } = require('../../utils/pathHelper');
 
-// Helper function to delete old logo files
-const deleteOldLogoFile = (filename) => {
+// Helper function to archive old logo files (move to archive folder instead of deleting)
+const archiveOldLogoFile = (filename) => {
   if (!filename) return;
   try {
     const logoPath = path.join(resolveUploadsPath('logos'), filename);
+    const archiveDir = path.join(resolveUploadsPath('logos'), 'archive');
+    
+    // Create archive directory if it doesn't exist
+    if (!fs.existsSync(archiveDir)) {
+      fs.mkdirSync(archiveDir, { recursive: true });
+    }
+    
     if (fs.existsSync(logoPath)) {
-      fs.unlinkSync(logoPath);
-      logger.info(`Deleted old logo file: ${filename}`);
+      const archivePath = path.join(archiveDir, filename);
+      
+      // If file already exists in archive, add timestamp to avoid conflicts
+      if (fs.existsSync(archivePath)) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const nameWithoutExt = path.parse(filename).name;
+        const ext = path.parse(filename).ext;
+        const newFilename = `${nameWithoutExt}_${timestamp}${ext}`;
+        const newArchivePath = path.join(archiveDir, newFilename);
+        fs.renameSync(logoPath, newArchivePath);
+        logger.info(`Archived old logo file: ${filename} -> ${newFilename}`);
+      } else {
+        fs.renameSync(logoPath, archivePath);
+        logger.info(`Archived old logo file: ${filename}`);
+      }
     }
   } catch (error) {
-    logger.warn(`Failed to delete old logo file ${filename}:`, error.message);
+    logger.warn(`Failed to archive old logo file ${filename}:`, error.message);
   }
 };
 
@@ -46,20 +66,23 @@ const cleanupOrphanedLogos = async () => {
       if (branch.receipt_logo) validLogos.add(branch.receipt_logo);
     });
     
-    // Get all files in logos directory
+    // Get all files in logos directory (excluding archive folder)
     const logosDir = resolveUploadsPath('logos');
     if (fs.existsSync(logosDir)) {
-      const files = fs.readdirSync(logosDir);
+      const files = fs.readdirSync(logosDir).filter(file => {
+        const filePath = path.join(logosDir, file);
+        return fs.statSync(filePath).isFile(); // Only process files, not directories
+      });
       
-      // Delete orphaned files
+      // Archive orphaned files instead of deleting them
       files.forEach(file => {
         if (!validLogos.has(file)) {
           const filePath = path.join(logosDir, file);
           try {
-            fs.unlinkSync(filePath);
-            logger.info(`Deleted orphaned logo file: ${file}`);
+            archiveOldLogoFile(file);
+            logger.info(`Archived orphaned logo file: ${file}`);
           } catch (error) {
-            logger.warn(`Failed to delete orphaned logo file ${file}:`, error.message);
+            logger.warn(`Failed to archive orphaned logo file ${file}:`, error.message);
           }
         }
       });
@@ -188,19 +211,19 @@ const updateReceiptSettings = async (req, res, next) => {
     // Get current settings to check for old logo files
     const currentSettings = school.receipt_settings || {};
     
-    // Delete old logo files if new ones are being uploaded
+    // Archive old logo files if new ones are being uploaded
     if (schoolLogoFile && currentSettings.schoolLogo) {
-      deleteOldLogoFile(currentSettings.schoolLogo);
+      archiveOldLogoFile(currentSettings.schoolLogo);
     }
     if (receiptLogoFile && currentSettings.receiptLogo) {
-      deleteOldLogoFile(currentSettings.receiptLogo);
+      archiveOldLogoFile(currentSettings.receiptLogo);
     }
 
     // Save receipt settings to school
     const updatedReceiptSettings = {
       schoolName: receiptSettings.schoolName || school.name,
-      schoolLogo: schoolLogoFile ? schoolLogoFile.filename : (receiptSettings.schoolLogo || ''),
-      receiptLogo: receiptLogoFile ? receiptLogoFile.filename : (receiptSettings.receiptLogo || ''),
+      schoolLogo: schoolLogoFile ? schoolLogoFile.filename : (receiptSettings.schoolLogo !== undefined ? receiptSettings.schoolLogo : currentSettings.schoolLogo || ''),
+      receiptLogo: receiptLogoFile ? receiptLogoFile.filename : (receiptSettings.receiptLogo !== undefined ? receiptSettings.receiptLogo : currentSettings.receiptLogo || ''),
       trustName: receiptSettings.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
       defaultReceiptTitle: receiptSettings.defaultReceiptTitle || 'Fee Receipt',
       showSchoolLogo: receiptSettings.showSchoolLogo !== false,
@@ -228,15 +251,15 @@ const updateReceiptSettings = async (req, res, next) => {
             file.originalname === branchData.receiptLogo
           );
           
-          // Delete old branch logo if new one is being uploaded
+          // Archive old branch logo if new one is being uploaded
           if (branchLogoFile && currentBranch?.receipt_logo) {
-            deleteOldLogoFile(currentBranch.receipt_logo);
+            archiveOldLogoFile(currentBranch.receipt_logo);
           }
           
           await Branch.update(
             {
               receipt_name: branchData.receiptName || `${branchData.name} Receipt`,
-              receipt_logo: branchLogoFile ? branchLogoFile.filename : (branchData.receiptLogo || ''),
+              receipt_logo: branchLogoFile ? branchLogoFile.filename : (branchData.receiptLogo !== undefined ? branchData.receiptLogo : (currentBranch?.receipt_logo || '')),
               receipt_address: branchData.receiptAddress || branchData.address || '',
               receipt_contact: branchData.receiptContact || branchData.phone || ''
             },
