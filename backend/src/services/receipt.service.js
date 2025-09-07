@@ -589,7 +589,7 @@ const generateReceiptHtml = (data, schoolData) => {
               ${data.school_logo ? `<img src="${getLogoUrl(data.school_logo)}" alt="School Logo" class="school-logo" onerror="this.style.display='none'">` : ''}
               <div class="school-name">${data.school_name}</div>
               <div class="school-type">${schoolType}</div>
-              <div class="school-address">${data.school_address || '27, 5th Nizampura, Kotergate, Opp. Ram Bhavan Hotel, Bhiwandi.'}</div>
+              <div class="school-address">${data.school_address}</div>
             </div>
           </div>
         </div>
