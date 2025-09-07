@@ -28,6 +28,7 @@
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 @input="debouncedSearch"
                 @focus="searchStudents"
+                @keydown="handleKeydown"
               />
               <!-- Clear button when student is selected -->
               <button
@@ -48,12 +49,22 @@
           </div>
 
           <!-- Student Results -->
-          <div v-if="searchResults.length > 0" class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative">
+          <div 
+            v-if="searchResults.length > 0" 
+            ref="searchResultsContainer"
+            class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative"
+          >
             <div
-              v-for="student in searchResults"
+              v-for="(student, index) in searchResults"
               :key="student.id"
+              :ref="el => setStudentItemRef(el, index)"
               @click="selectStudent(student)"
-              class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0"
+              :class="[
+                'px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0',
+                index === selectedIndex 
+                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              ]"
             >
               <div class="font-medium">{{ getStudentFullName(student) }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
@@ -271,7 +282,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
 import { Students, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
@@ -295,6 +306,9 @@ const studentDues = ref(null);
 const isLoading = ref(false);
 const isSubmitting = ref(false);
 const lastPaymentReceipt = ref(null);
+const selectedIndex = ref(-1); // Track selected item index for keyboard navigation
+const searchResultsContainer = ref(null);
+const studentItemRefs = ref([]);
 
 // Payment form
 const paymentForm = ref({
@@ -319,6 +333,8 @@ const debouncedSearch = () => {
 const searchStudents = async () => {
   if (!searchQuery.value.trim()) {
     searchResults.value = [];
+    selectedIndex.value = -1;
+    studentItemRefs.value = [];
     return;
   }
 
@@ -328,8 +344,102 @@ const searchStudents = async () => {
       limit: 10
     });
     searchResults.value = response.data || [];
+    selectedIndex.value = -1; // Reset selection when new results come in
+    studentItemRefs.value = []; // Clear refs for new results
   } catch (error) {
     searchResults.value = [];
+    selectedIndex.value = -1;
+    studentItemRefs.value = [];
+  }
+};
+
+// Set student item refs for scrolling (Vue 3 template ref pattern)
+const setStudentItemRef = (el, index) => {
+  if (el) {
+    studentItemRefs.value[index] = el;
+  } else {
+    // Clean up ref when element is removed
+    delete studentItemRefs.value[index];
+  }
+};
+
+// Scroll selected item into view (cross-browser compatible)
+const scrollToSelectedItem = () => {
+  if (selectedIndex.value >= 0 && studentItemRefs.value[selectedIndex.value] && searchResultsContainer.value) {
+    const selectedElement = studentItemRefs.value[selectedIndex.value];
+    const container = searchResultsContainer.value;
+    
+    if (!selectedElement || !container) return;
+    
+    // Get element and container positions
+    const elementRect = selectedElement.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // Check if element is visible in container
+    const isElementVisible = elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom;
+    
+    if (!isElementVisible) {
+      // Use scrollIntoView with fallback for older browsers
+      if (selectedElement.scrollIntoView) {
+        try {
+          selectedElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest'
+          });
+        } catch (error) {
+          // Fallback for browsers that don't support smooth scrolling
+          selectedElement.scrollIntoView(false);
+        }
+      } else {
+        // Manual scroll calculation as fallback
+        const elementTop = selectedElement.offsetTop;
+        const containerTop = container.scrollTop;
+        const containerHeight = container.clientHeight;
+        const elementHeight = selectedElement.offsetHeight;
+        
+        if (elementTop < containerTop) {
+          container.scrollTop = elementTop;
+        } else if (elementTop + elementHeight > containerTop + containerHeight) {
+          container.scrollTop = elementTop + elementHeight - containerHeight;
+        }
+      }
+    }
+  }
+};
+
+// Handle keyboard navigation
+const handleKeydown = (event) => {
+  if (searchResults.value.length === 0) return;
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      selectedIndex.value = Math.min(selectedIndex.value + 1, searchResults.value.length - 1);
+      // Use nextTick to ensure DOM is updated before scrolling
+      nextTick(() => {
+        scrollToSelectedItem();
+      });
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      selectedIndex.value = Math.max(selectedIndex.value - 1, -1);
+      // Use nextTick to ensure DOM is updated before scrolling
+      nextTick(() => {
+        scrollToSelectedItem();
+      });
+      break;
+    case 'Enter':
+      event.preventDefault();
+      if (selectedIndex.value >= 0 && selectedIndex.value < searchResults.value.length) {
+        selectStudent(searchResults.value[selectedIndex.value]);
+      }
+      break;
+    case 'Escape':
+      event.preventDefault();
+      searchResults.value = [];
+      selectedIndex.value = -1;
+      break;
   }
 };
 
@@ -347,6 +457,8 @@ const clearSelection = () => {
   studentDues.value = null;
   searchQuery.value = '';
   searchResults.value = [];
+  selectedIndex.value = -1;
+  studentItemRefs.value = [];
   lastPaymentReceipt.value = null;
 };
 
@@ -354,6 +466,8 @@ const clearSelection = () => {
 const selectStudent = async (student) => {
   selectedStudent.value = student;
   searchResults.value = []; // Clear search results
+  selectedIndex.value = -1; // Reset selection index
+  studentItemRefs.value = []; // Clear refs
   searchQuery.value = getStudentFullName(student);
   
   await loadStudentDues(student.id);
@@ -562,6 +676,8 @@ watch(() => props.show, (newValue) => {
     searchResults.value = [];
     selectedStudent.value = null;
     studentDues.value = null;
+    selectedIndex.value = -1;
+    studentItemRefs.value = [];
     paymentForm.value = {
       amount: '',
       payment_method: 'cash',
