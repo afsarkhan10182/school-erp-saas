@@ -1,6 +1,6 @@
-const { getRedisClient } = require('../config/redis');
-const { logger } = require('../utils/logger');
-const RedisUtils = require('../utils/redis-utils');
+const { getRedisClient } = require('~/config/redis');
+const { logger } = require('~/utils/logger');
+const RedisUtils = require('~/utils/redis-utils');
 
 /**
  * Redis-based session management middleware

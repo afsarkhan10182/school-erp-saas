@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
-const { logger } = require('../utils/logger');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
 
 // Helper function to normalize fee structure fields based on payment model
 const normalizeFeeStructure = (feeStructure) => {

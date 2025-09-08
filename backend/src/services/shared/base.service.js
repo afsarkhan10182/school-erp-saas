@@ -1,5 +1,5 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 class BaseService {
   /**
@@ -345,7 +345,7 @@ class BaseService {
    */
   static async getFromCache(cacheKey, fetchFunction, ttl = 600) {
     try {
-      const RedisUtils = require('../../utils/redis-utils');
+      const RedisUtils = require('~/utils/redis-utils');
       const cachedData = await RedisUtils.get(cacheKey);
       
       if (cachedData) {
@@ -374,7 +374,7 @@ class BaseService {
    */
   static async clearCache(keys) {
     try {
-      const RedisUtils = require('../../utils/redis-utils');
+      const RedisUtils = require('~/utils/redis-utils');
       
       if (Array.isArray(keys)) {
         for (const key of keys) {

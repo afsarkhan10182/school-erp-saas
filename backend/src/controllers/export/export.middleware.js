@@ -1,5 +1,5 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 /**
  * Validate export request parameters

@@ -1,11 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
-const { User, School, Branch } = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { getRedisClient } = require('../../config/redis');
-const RedisUtils = require('../../utils/redis-utils');
+const { User, School, Branch } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { getRedisClient } = require('~/config/redis');
+const RedisUtils = require('~/utils/redis-utils');
 
 const ROLES = User.ROLES;
 

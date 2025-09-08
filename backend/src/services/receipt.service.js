@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../utils/logger');
-const { resolveUploadsPath } = require('../utils/pathHelper');
-const { generateUniqueReceiptNumber, getClassCode } = require('../controllers/fee-invoice/core');
+const { logger } = require('~/utils/logger');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
+const { generateUniqueReceiptNumber, getClassCode } = require('~/controllers/fee-invoice/core');
 
 /**
  * Generate receipt data on-demand from payment ID
@@ -11,7 +11,7 @@ const { generateUniqueReceiptNumber, getClassCode } = require('../controllers/fe
  */
 const generateReceiptData = async (paymentId) => {
   try {
-    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('../models');
+    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('~/models');
     
     // Fetch payment with all related data from database
     const payment = await FeePayment.findByPk(paymentId, {
@@ -221,7 +221,7 @@ const generateReceiptData = async (paymentId) => {
  */
 const generateCombinedReceiptData = async (paymentIds) => {
   try {
-    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('../models');
+    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, School, Branch, Class } = require('~/models');
     
     // Fetch all payments with related data
     const payments = await FeePayment.findAll({
@@ -758,7 +758,7 @@ const getMonthName = (month) => {
  */
 const calculatePaidMonths = async (studentId, feeStructureId, academicYear, currentInvoices = null, asOfDate = null) => {
   try {
-    const { FeePayment, FeeInvoice } = require('../models');
+    const { FeePayment, FeeInvoice } = require('~/models');
     
     // Build where clause for paid invoices
     const whereClause = {

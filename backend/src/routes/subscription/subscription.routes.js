@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { authorize } = require('../../middleware/auth');
-const { verifyToken } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
-const SubscriptionController = require('../../controllers/subscription/subscription.controller');
-const renewalRequestValidation = require('../../validations/renewal-request.validation');
-const { uploadFields } = require('../../middleware/upload');
+const { authorize } = require('~/middleware/auth');
+const { verifyToken } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const SubscriptionController = require('~/controllers/subscription/subscription.controller');
+const renewalRequestValidation = require('~/validations/renewal-request.validation');
+const { uploadFields } = require('~/middleware/upload');
 
 router.use(verifyToken);
 

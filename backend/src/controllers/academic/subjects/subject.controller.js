@@ -4,6 +4,8 @@ const { logger } = require('~/utils/logger');
 const ApiError = require('~/utils/ApiError');
 const { apiResponse } = require('~/utils/apiResponse');
 const SubjectService = require('~/services/academic/subject.service');
+const CommonService = require('~/services/shared/common.service');
+const QueryService = require('~/services/shared/query.service');
 
 class SubjectController {
   // Get all subjects with filtering and pagination
@@ -22,126 +24,59 @@ class SubjectController {
         sort_order = 'ASC'
       } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
-      let whereClause = {};
+      // Get pagination parameters using common service
+      const { offset, limit: actualLimit } = CommonService.getPaginationParams({ page, limit });
+      
+      // Build role-based where clause using common service
+      let whereClause = CommonService.buildRoleBasedWhere(req.user);
 
-      // Role-based access control
-      if (req.user.role === 'super_admin') {
-        // Super admin can see all subjects
-        logger.debug('getAllSubjects: Super admin - no additional constraints');
-      } else if (req.user.role === 'school_admin') {
-        whereClause.school_id = req.user.school_id;
-        logger.debug('getAllSubjects: School admin - filtering by school_id:', req.user.school_id);
-      } else if (req.user.role === 'branch_admin') {
-        whereClause.school_id = req.user.school_id;
-        whereClause.branch_id = req.user.branch_id;
-        logger.debug('getAllSubjects: Branch admin - filtering by school_id:', req.user.school_id, 'and branch_id:', req.user.branch_id);
-      } else {
-        logger.warn('getAllSubjects: Access denied for role:', req.user.role);
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      // Add search filter
-      if (search) {
-        whereClause[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
-          { description: { [Op.iLike]: `%${search}%` } },
-        ];
-      }
-
-      // Add is_active filter
+      // Add filters
       if (is_active !== '') {
         whereClause.is_active = is_active === 'true';
       }
 
-      // Add class_id filter
       if (class_id) {
         whereClause.class_id = class_id;
       }
 
-      // Add school_id filter
       if (school_id) {
         whereClause.school_id = school_id;
       }
 
-      // Add branch_id filter
       if (branch_id) {
         whereClause.branch_id = branch_id;
       }
 
-      // Add category filter
       if (category) {
         whereClause.category = category;
       }
 
-      // Build include array with safe associations
-      const includeArray = [];
-      
-      // Include associations safely
-      includeArray.push({
-        model: School,
-        as: 'school',
-        attributes: ['id', 'name', 'code'],
-        required: false,
-      });
-      
-      includeArray.push({
-        model: Branch,
-        as: 'branch',
-        attributes: ['id', 'name', 'code'],
-        required: false,
-      });
-      
-      includeArray.push({
-        model: Class,
-        as: 'class',
-        attributes: ['id', 'name', 'code'],
-        required: false,
-      });
-      
-      includeArray.push({
-        model: User,
-        as: 'createdBy',
-        attributes: ['id', 'first_name', 'last_name'],
-        required: false,
-      });
-      
-      includeArray.push({
-        model: User,
-        as: 'updatedBy',
-        attributes: ['id', 'first_name', 'last_name'],
-        required: false,
-      });
+      // Build optimized search query
+      if (search) {
+        whereClause = QueryService.buildOptimizedSearchQuery(search, ['name', 'code', 'description'], whereClause);
+      }
 
-      const { count, rows } = await Subject.findAndCountAll({
-        where: whereClause,
-        include: includeArray,
-        order: [[sort_by, sort_order.toUpperCase()]],
-        limit: parseInt(limit),
+      // Get optimized query configuration
+      const queryConfig = QueryService.getSubjectQuery(whereClause, {
+        limit: actualLimit,
         offset: offset,
+        order: [[sort_by, sort_order.toUpperCase()]]
       });
 
-      const totalPages = Math.ceil(count / parseInt(limit));
+      // Execute optimized query
+      const { count, rows } = await QueryService.executeOptimizedQuery(Subject, queryConfig);
+
+      // Calculate pagination metadata using common service
+      const paginationMeta = CommonService.calculatePaginationMeta(count, parseInt(page), actualLimit);
 
       logger.info(`getAllSubjects: Retrieved ${rows.length} subjects out of ${count} total`);
 
-      return res.status(200).json({
-        success: true,
-        message: 'Subjects retrieved successfully',
-        data: {
+      return res.status(200).json(
+        CommonService.formatSuccessResponse('Subjects retrieved successfully', {
           subjects: rows,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total: count,
-            totalPages: totalPages,
-          },
-        },
-      });
+          pagination: paginationMeta
+        })
+      );
     } catch (error) {
       logger.error('Error in getAllSubjects:', error);
       return next(error);
@@ -444,7 +379,7 @@ class SubjectController {
       }
 
       // Check if subject is being used in exams or attendance sessions
-      const { Exam, AttendanceSession } = require('../../../models');
+      const { Exam, AttendanceSession } = require('~/models');
       
       const examCount = await Exam.count({ where: { subject_id: id } });
       const attendanceCount = await AttendanceSession.count({ where: { subject_id: id } });

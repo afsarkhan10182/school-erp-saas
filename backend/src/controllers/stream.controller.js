@@ -1,8 +1,8 @@
 const { Op } = require('sequelize');
-const { Stream, Class, School, Branch, User } = require('../models');
-const { logger } = require('../utils/logger');
-const ApiError = require('../utils/ApiError');
-const { apiResponse } = require('../utils/apiResponse');
+const { Stream, Class, School, Branch, User } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { apiResponse } = require('~/utils/apiResponse');
 
 class StreamController {
   static async getAllStreams(req, res, next) {

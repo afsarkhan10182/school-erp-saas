@@ -1,7 +1,7 @@
 const ejs = require('ejs');
 const fs = require('fs').promises;
 const path = require('path');
-const { logger } = require('../logger');
+const { logger } = require('~/utils/logger');
 
 class TemplateEngine {
   constructor() {

@@ -1,4 +1,4 @@
-const { getRedisClient, isRedisAvailable } = require('../config/redis');
+const { getRedisClient, isRedisAvailable } = require('~/config/redis');
 const { logger } = require('./logger');
 
 // In-memory cache fallback

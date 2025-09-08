@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const AuthService = require('../../services/auth/auth.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const AuthService = require('~/services/auth/auth.service');
 const jwt = require('jsonwebtoken');
 
 class AuthController {
@@ -223,7 +223,7 @@ class AuthController {
   static async getCurrentUser(req, res, next) {
     try {
       // Return full user profile instead of just JWT claims
-      const fullUser = await require('../../services/user/user.service').getUserById(req.user.id, req.user);
+      const fullUser = await require('~/services/user/user.service').getUserById(req.user.id, req.user);
       res.json({
         success: true,
         data: fullUser,

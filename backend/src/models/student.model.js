@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
-const { logger } = require('../utils/logger');
-const { ModuleConfig } = require('../utils/moduleConfig');
-const ApiError = require('../utils/ApiError');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
+const { ModuleConfig } = require('~/utils/moduleConfig');
+const ApiError = require('~/utils/ApiError');
 
 const Student = sequelize.define('Student', {
   id: {

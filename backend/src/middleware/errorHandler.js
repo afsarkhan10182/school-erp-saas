@@ -1,7 +1,7 @@
-const { logger } = require('../utils/logger');
+const { logger } = require('~/utils/logger');
 const { ValidationError } = require('sequelize');
 const { JsonWebTokenError, TokenExpiredError } = require('jsonwebtoken');
-const { error: errorResponse } = require('../utils/apiResponse');
+const { error: errorResponse } = require('~/utils/apiResponse');
 // HTTP Status codes as constants
 const HTTP_STATUS = {
   BAD_REQUEST: 400,

@@ -1,15 +1,15 @@
-const { sequelize } = require('../../config/database');
+const { sequelize } = require('~/config/database');
 const { Op } = require('sequelize');
-const { User, School, Branch } = require('../../models');
-const SchoolService = require('../../services/school/school.service');
-const AuthService = require('../../services/auth/auth.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { success, error, asyncHandler } = require('../../utils/apiResponse');
-const { validate } = require('../../middleware/validate');
-const { verifyToken, authorize } = require('../../middleware/auth');
-const RedisUtils = require('../../utils/redis-utils');
-const { RoleManager, ROLES } = require('../../utils/roleManager');
+const { User, School, Branch } = require('~/models');
+const SchoolService = require('~/services/school/school.service');
+const AuthService = require('~/services/auth/auth.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const RedisUtils = require('~/utils/redis-utils');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
 
 class SchoolController {
   static createSchool = asyncHandler(async (req, res) => {
@@ -245,7 +245,7 @@ class SchoolController {
     }
 
     // Import module configuration
-    const { ModuleConfig } = require('../../utils/moduleConfig');
+    const { ModuleConfig } = require('~/utils/moduleConfig');
 
     // Validate modules if provided
     if (modules && !ModuleConfig.validateModules(modules)) {
@@ -258,7 +258,7 @@ class SchoolController {
     
     if (subscription_plan && subscription_plan !== school.subscription_plan) {
       // Get the plan details from the database
-      const { SubscriptionPlan } = require('../../models');
+      const { SubscriptionPlan } = require('~/models');
       const plan = await SubscriptionPlan.findOne({
         where: { code: subscription_plan, is_active: true },
       });
@@ -290,7 +290,7 @@ class SchoolController {
         updatedModules = modules;
       } else if (subscription_plan) {
         // Always pull modules from DB plan to avoid drift
-        const { SubscriptionPlan } = require('../../models');
+        const { SubscriptionPlan } = require('~/models');
         const plan = await SubscriptionPlan.findOne({
           where: { code: subscription_plan, is_active: true }
         });
@@ -328,7 +328,7 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { Module, SubscriptionPlan } = require('../../models');
+    const { Module, SubscriptionPlan } = require('~/models');
     
     // Get school's subscription plan with modules
     const subscriptionPlan = await SubscriptionPlan.findOne({
@@ -421,7 +421,7 @@ class SchoolController {
 
   // Get available subscription plans (for upgrade requests) - from DB only
   static getSubscriptionPlans = asyncHandler(async (req, res) => {
-    const { SubscriptionPlan } = require('../../models');
+    const { SubscriptionPlan } = require('~/models');
     const plans = await SubscriptionPlan.findAll({
       where: { is_active: true },
       order: [['sort_order', 'ASC'], ['name', 'ASC']],
@@ -465,7 +465,7 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { SubscriptionPlan } = require('../../models');
+    const { SubscriptionPlan } = require('~/models');
     
     // Get requested plan from database
     const requestedPlanDetails = requested_plan

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const StreamController = require('../controllers/stream.controller');
-const { verifyToken, requireRole, authorize } = require('../middleware/auth');
+const StreamController = require('~/controllers/stream.controller');
+const { verifyToken, requireRole, authorize } = require('~/middleware/auth');
 
 // Apply authentication middleware to all routes
 router.use(verifyToken);

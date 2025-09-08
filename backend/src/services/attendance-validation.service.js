@@ -1,5 +1,5 @@
-const { School, AcademicCalendar } = require('../models');
-const ApiError = require('../utils/ApiError');
+const { School, AcademicCalendar } = require('~/models');
+const ApiError = require('~/utils/ApiError');
 
 /**
  * Default Attendance Configuration Example

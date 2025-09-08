@@ -3,7 +3,7 @@
  * Handles calculations for academic year months, payment sequences, and validation
  */
 
-const { AcademicYear } = require('../models');
+const { AcademicYear } = require('~/models');
 const { logger } = require('./logger');
 
 /**
@@ -15,7 +15,7 @@ const getCurrentAcademicYearForSchool = async (schoolId = null) => {
   try {
     if (schoolId) {
       // First try to get the school's linked academic year
-      const { School } = require('../models');
+      const { School } = require('~/models');
       const school = await School.findByPk(schoolId, {
         include: [{
           model: AcademicYear,
@@ -366,7 +366,7 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
  */
 const syncSchoolsToCurrentAcademicYear = async () => {
   try {
-    const { School, AcademicYear } = require('../models');
+    const { School, AcademicYear } = require('~/models');
     
     // Get the current global academic year
     const currentYear = await AcademicYear.findOne({

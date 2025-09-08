@@ -1,7 +1,7 @@
-const { School } = require('../../models');
-const { logger } = require('../../utils/logger');
-const { success, error, asyncHandler } = require('../../utils/apiResponse');
-const ApiError = require('../../utils/ApiError');
+const { School } = require('~/models');
+const { logger } = require('~/utils/logger');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
 
 class InvoiceModeController {
   // Get invoice mode settings

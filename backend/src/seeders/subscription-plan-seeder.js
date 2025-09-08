@@ -1,5 +1,5 @@
-const { SubscriptionPlan, Module, PlanModule } = require('../models');
-const { logger } = require('../utils/logger');
+const { SubscriptionPlan, Module, PlanModule } = require('~/models');
+const { logger } = require('~/utils/logger');
 
 const defaultPlans = [
   {

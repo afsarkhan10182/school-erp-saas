@@ -61,13 +61,13 @@
           @change="clearError('category')"
         >
           <option value="">Select Category</option>
-          <option value="core">Core</option>
-          <option value="elective">Elective</option>
-          <option value="extra_curricular">Extra Curricular</option>
-          <option value="language">Language</option>
-          <option value="science">Science</option>
-          <option value="arts">Arts</option>
-          <option value="commerce">Commerce</option>
+          <option 
+            v-for="category in subjectCategories" 
+            :key="category.value" 
+            :value="category.value"
+          >
+            {{ category.label }}
+          </option>
         </select>
         <div v-if="errors.category" class="mt-1 text-sm text-red-600 dark:text-red-400">
           {{ errors.category }}
@@ -199,6 +199,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
+import { validationRules, commonSchemas, validateForm } from '~/utils/validators'
+import { useConfig } from '~/composables/useConfig'
 
 // Props
 const props = defineProps({
@@ -217,6 +219,7 @@ const emit = defineEmits(['submit', 'cancel'])
 
 // Composables
 const { showToast } = useToast()
+const { subjectCategories } = useConfig()
 
 // Reactive data
 const isSubmitting = ref(false)
@@ -233,97 +236,72 @@ const form = reactive({
   class_id: ''
 })
 
-// Validation rules
-const validationRules = {
-  name: (value) => {
-    if (!value || value.trim().length === 0) {
-      return 'Subject name is required'
+// Validation schema using common utilities
+const validationSchema = {
+  name: [
+    (val) => validationRules.required(val, 'Subject name'),
+    (val) => validationRules.minLength(val, 2, 'Subject name'),
+    (val) => validationRules.maxLength(val, 100, 'Subject name')
+  ],
+  code: [
+    ...commonSchemas.code,
+    (val) => validationRules.required(val, 'Subject code')
+  ],
+  category: [
+    (val) => validationRules.required(val, 'Category'),
+    (val) => {
+      const validCategories = subjectCategories.value.map(cat => cat.value)
+      return validCategories.includes(val) ? null : 'Invalid category selected'
     }
-    if (value.trim().length < 2) {
-      return 'Subject name must be at least 2 characters'
+  ],
+  credit_hours: [
+    (val) => {
+      if (val && (val < 1 || val > 10)) {
+        return 'Credit hours must be between 1 and 10'
+      }
+      return null
     }
-    if (value.trim().length > 100) {
-      return 'Subject name must not exceed 100 characters'
+  ],
+  description: [commonSchemas.description[0]], // maxLength
+  class_id: [
+    (val) => {
+      if (val && !validationRules.uuid(val)) {
+        return 'Invalid class ID format'
+      }
+      return null
     }
-    return null
-  },
-  code: (value) => {
-    if (!value || value.trim().length === 0) {
-      return 'Subject code is required'
-    }
-    if (value.trim().length < 2) {
-      return 'Subject code must be at least 2 characters'
-    }
-    if (value.trim().length > 20) {
-      return 'Subject code must not exceed 20 characters'
-    }
-    if (!/^[A-Za-z0-9_-]+$/.test(value)) {
-      return 'Subject code can only contain letters, numbers, hyphens, and underscores'
-    }
-    return null
-  },
-  category: (value) => {
-    if (!value) {
-      return 'Category is required'
-    }
-    const validCategories = ['core', 'elective', 'extra_curricular', 'language', 'science', 'arts', 'commerce']
-    if (!validCategories.includes(value)) {
-      return 'Invalid category selected'
-    }
-    return null
-  },
-  credit_hours: (value) => {
-    if (value && (value < 1 || value > 10)) {
-      return 'Credit hours must be between 1 and 10'
-    }
-    return null
-  },
-  description: (value) => {
-    if (value && value.length > 500) {
-      return 'Description must not exceed 500 characters'
-    }
-    return null
-  },
-  class_id: (value) => {
-    if (value && !isValidUUID(value)) {
-      return 'Invalid class ID format'
-    }
-    return null
-  }
+  ]
 }
 
 // Methods
 const validateField = (fieldName) => {
   const value = form[fieldName]
-  const error = validationRules[fieldName] ? validationRules[fieldName](value) : null
+  const rules = validationSchema[fieldName] || []
   
-  if (error) {
-    errors.value[fieldName] = error
-  } else {
-    delete errors.value[fieldName]
+  for (const rule of rules) {
+    const error = rule(value)
+    if (error) {
+      errors.value[fieldName] = error
+      return
+    }
   }
+  
+  delete errors.value[fieldName]
 }
 
-const validateForm = () => {
-  const fieldNames = Object.keys(validationRules)
-  fieldNames.forEach(fieldName => {
-    validateField(fieldName)
-  })
-  
-  return Object.keys(errors.value).length === 0
+const validateFormData = () => {
+  const formErrors = validateForm(form, validationSchema)
+  errors.value = formErrors
+  return Object.keys(formErrors).length === 0
 }
 
 const clearError = (fieldName) => {
   delete errors.value[fieldName]
 }
 
-const isValidUUID = (uuid) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  return uuidRegex.test(uuid)
-}
 
 const handleSubmit = async () => {
-  if (!validateForm()) {
+  if (!validateFormData()) {
     showToast('Please fix the validation errors', 'error')
     return
   }

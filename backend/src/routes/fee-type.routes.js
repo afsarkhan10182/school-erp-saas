@@ -6,8 +6,8 @@ const {
   updateFeeType,
   deleteFeeType,
   restoreFeeType,
-} = require('../controllers/fee-type.controller');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('../middleware/auth');
+} = require('~/controllers/fee-type.controller');
+const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('~/middleware/auth');
 const router = express.Router();
 
 // Middleware to ensure authentication

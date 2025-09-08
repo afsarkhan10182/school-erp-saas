@@ -1,7 +1,7 @@
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
-const { AttendanceSession, AttendanceRecord, Student, Class, Section, School, Branch } = require('../models');
-const { logger } = require('../utils/logger');
+const { AttendanceSession, AttendanceRecord, Student, Class, Section, School, Branch } = require('~/models');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 
 class AttendanceExportService {

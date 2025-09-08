@@ -96,6 +96,13 @@ export const subjectTeacherApi = {
     const api = createApiInstance();
     const response = await api.get<ApiResponse<SubjectTeacher[]>>(`/subject-teachers/teacher/${teacherId}`, { params });
     return response.data;
+  },
+
+  // Get teacher workload data
+  getWorkload: async (filters: SubjectTeacherFilters = {}) => {
+    const api = createApiInstance();
+    const response = await api.get<ApiResponse<{ workload: any[], stats: any }>>('/subject-teachers/workload', { params: filters });
+    return response.data;
   }
 };
 

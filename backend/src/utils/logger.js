@@ -1,7 +1,7 @@
 const winston = require('winston');
 const { combine, timestamp, printf, colorize, json } = winston.format;
 const path = require('path');
-const config = require('../config/config');
+const config = require('~/config/config');
 const fs = require('fs');
 const { resolveBackendPath } = require('./pathHelper');
 // Create logs directory if it doesn't exist

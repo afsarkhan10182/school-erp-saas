@@ -10,10 +10,10 @@ const {
   exportStudentReport,
   bulkImportStudents,
   getStudentInvoiceBreakdown,
-} = require('../controllers/student.controller');
-const { verifyToken, setSchoolContext, authorize } = require('../middleware/auth');
-const { uploadFields, uploadSingle, uploadCSV } = require('../middleware/upload');
-const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
+} = require('~/controllers/student.controller');
+const { verifyToken, setSchoolContext, authorize } = require('~/middleware/auth');
+const { uploadFields, uploadSingle, uploadCSV } = require('~/middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
 const router = express.Router();
 
 

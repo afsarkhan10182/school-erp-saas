@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { sequelize } = require('../../config/database');
+const { sequelize } = require('~/config/database');
 const { 
   School, 
   User, 
@@ -8,10 +8,10 @@ const {
   SubscriptionRenewalRequest,
   Module,
   PlanModule
-} = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const RedisUtils = require('../../utils/redis-utils');
+} = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const RedisUtils = require('~/utils/redis-utils');
 
 class SubscriptionLifecycleService {
   

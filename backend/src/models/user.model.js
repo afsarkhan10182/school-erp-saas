@@ -1,11 +1,11 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sequelize } = require('../config/database');
-const { logger } = require('../utils/logger');
-const { ModuleConfig } = require('../utils/moduleConfig');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
+const { ModuleConfig } = require('~/utils/moduleConfig');
 
-const { ROLES } = require('../utils/roleManager');
+const { ROLES } = require('~/utils/roleManager');
 
 const User = sequelize.define('User', {
   id: {

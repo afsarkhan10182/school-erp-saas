@@ -1,11 +1,11 @@
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const { User, School, Branch } = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const RedisUtils = require('../../utils/redis-utils');
-const { RoleManager, ROLES } = require('../../utils/roleManager');
-const BaseService = require('../shared/base.service');
+const { User, School, Branch } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const RedisUtils = require('~/utils/redis-utils');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
+const BaseService = require('~/services/shared/base.service');
 
 class UserService {
   static async createUser(userData) {

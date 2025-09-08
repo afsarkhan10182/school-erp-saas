@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorize } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
-const SchoolController = require('../../controllers/school/school.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const SchoolController = require('~/controllers/school/school.controller');
 const {
   createSchoolValidator,
   updateSchoolValidator,
-} = require('../../validations/school.validation');
-const { uploadFields } = require('../../middleware/upload');
+} = require('~/validations/school.validation');
+const { uploadFields } = require('~/middleware/upload');
 
 // All routes require authentication
 router.use(verifyToken);

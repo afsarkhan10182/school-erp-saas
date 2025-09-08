@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
-const apiResponse = require('../utils/apiResponse');
-const { safeMiddleware } = require('./robust');
-const { logger } = require('../utils/logger');
+const apiResponse = require('~/utils/apiResponse');
+const { safeMiddleware } = require('~/middleware/robust');
+const { logger } = require('~/utils/logger');
 
 // Test if validationError is available
 if (!apiResponse.validationError) {

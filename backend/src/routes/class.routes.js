@@ -7,8 +7,8 @@ const {
   deleteClass,
   getClassesForDropdown,
   getClassStats,
-} = require('../controllers/class.controller');
-const { verifyToken, authorize } = require('../middleware/auth');
+} = require('~/controllers/class.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 const router = express.Router();
 

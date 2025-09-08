@@ -4,7 +4,7 @@ const { stringify } = require('csv-stringify/sync');
 const fs = require('fs');
 const path = require('path');
 
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 class UnifiedExportService {
   constructor() {
@@ -108,7 +108,7 @@ class UnifiedExportService {
    * Get receipts data for export
    */
   async getReceiptsData(filters, user, schoolId) {
-    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, Branch } = require('../models');
+    const { FeePayment, FeeInvoice, Student, FeeStructure, FeeType, Branch } = require('~/models');
 
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
@@ -226,7 +226,7 @@ class UnifiedExportService {
    * Get fees data for export
    */
   async getFeesData(filters, user, schoolId) {
-    const { FeeInvoice, Student, FeeStructure, FeeType } = require('../models');
+    const { FeeInvoice, Student, FeeStructure, FeeType } = require('~/models');
     const { Op } = require('sequelize');
 
     // Handle monthly payments differently
@@ -295,7 +295,7 @@ class UnifiedExportService {
    * Get monthly fees data for export
    */
   async getMonthlyFeesData(filters, user, schoolId) {
-    const { FeeInvoice, Student, FeeStructure, FeeType, FeePayment } = require('../models');
+    const { FeeInvoice, Student, FeeStructure, FeeType, FeePayment } = require('~/models');
     const { Op } = require('sequelize');
 
     // Parse months parameter - handle both array and comma-separated string formats
@@ -451,7 +451,7 @@ class UnifiedExportService {
    * Get students data for export
    */
   async getStudentsData(filters, user, schoolId) {
-    const { Student, Parent } = require('../models');
+    const { Student, Parent } = require('~/models');
 
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
@@ -500,7 +500,7 @@ class UnifiedExportService {
    * Get attendance data for export
    */
   async getAttendanceData(filters, user, schoolId) {
-    const { AttendanceRecord, Student, Class, Section } = require('../models');
+    const { AttendanceRecord, Student, Class, Section } = require('~/models');
 
     // Build where clause using helper
     const whereRec = this.buildWhereClause(filters, user, schoolId);

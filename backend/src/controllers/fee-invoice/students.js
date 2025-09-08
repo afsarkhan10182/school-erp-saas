@@ -1,9 +1,9 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class, Stream, sequelize } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class, Stream, sequelize } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 const { generateCombinedReceipt } = require('./receipts');
-const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('../../utils/academicYearUtils');
+const { getAvailablePaymentMonths, getEarliestPendingMonth, getMonthName } = require('~/utils/academicYearUtils');
 const { generateUniqueInvoiceNumber, getClassCode, generateUniqueReceiptNumber } = require('./core');
 
 // Helper function to get student full name

@@ -1,8 +1,8 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 const fs = require('fs');
 const path = require('path');
-const { resolveUploadsPath } = require('../../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 // Helper function to archive old logo files (move to archive folder instead of deleting)
 const archiveOldLogoFile = (filename) => {
@@ -41,7 +41,7 @@ const archiveOldLogoFile = (filename) => {
 // Helper function to clean up orphaned logo files
 const cleanupOrphanedLogos = async () => {
   try {
-    const { School, Branch } = require('../../models');
+    const { School, Branch } = require('~/models');
     
     // Get all schools and their logo filenames
     const schools = await School.findAll({
@@ -97,7 +97,7 @@ const cleanupOrphanedLogos = async () => {
  */
 const getReceiptSettings = async (req, res, next) => {
   try {
-    const { School, Branch } = require('../../models');
+    const { School, Branch } = require('~/models');
     
     // Get school ID from context or user
     const schoolId = req.schoolId || req.user?.school_id;
@@ -183,7 +183,7 @@ const getReceiptSettings = async (req, res, next) => {
  */
 const updateReceiptSettings = async (req, res, next) => {
   try {
-    const { School, Branch } = require('../../models');
+    const { School, Branch } = require('~/models');
     const { receiptSettings, branches } = req.body;
     
     // Handle uploaded files

@@ -1,7 +1,7 @@
-const { School, Student, User, Branch, SubscriptionPlan } = require('../models');
-const ApiError = require('../utils/ApiError');
-const { logger } = require('../utils/logger');
-const SchoolService = require('../services/school/school.service');
+const { School, Student, User, Branch, SubscriptionPlan } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
+const SchoolService = require('~/services/school/school.service');
 
 /**
  * Middleware to validate subscription limits before creating resources

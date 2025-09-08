@@ -1,10 +1,10 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
-const { sequelize } = require('../../config/database');
+const { sequelize } = require('~/config/database');
 const XLSX = require('xlsx');
-const { createDateRange } = require('../../utils/dateUtils');
+const { createDateRange } = require('~/utils/dateUtils');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {

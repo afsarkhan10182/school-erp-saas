@@ -6,10 +6,10 @@ const {
   updateSection,
   deleteSection,
   getSectionsForDropdown,
-} = require('../controllers/section.controller');
-const { verifyToken, authorize } = require('../middleware/auth');
-const { validate } = require('../middleware/validate');
-const { createSectionValidator, updateSectionValidator } = require('../validations/section.validation');
+} = require('~/controllers/section.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const { createSectionValidator, updateSectionValidator } = require('~/validations/section.validation');
 
 const router = express.Router();
 

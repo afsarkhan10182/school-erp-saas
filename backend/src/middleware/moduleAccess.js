@@ -1,7 +1,7 @@
-const SubscriptionLifecycleService = require('../services/subscription/subscription-lifecycle.service');
-const { logger } = require('../utils/logger');
-const ApiError = require('../utils/ApiError');
-const RedisUtils = require('../utils/redis-utils');
+const SubscriptionLifecycleService = require('~/services/subscription/subscription-lifecycle.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const RedisUtils = require('~/utils/redis-utils');
 
 /**
  * Middleware to check if the current user's school has access to a specific module
@@ -71,7 +71,7 @@ const checkResourceLimit = (resourceType) => {
 
       // Get current count based on resource type
       let currentCount = 0;
-      const { School, Student, User, Branch } = require('../models');
+      const { School, Student, User, Branch } = require('~/models');
 
       switch (resourceType) {
         case 'students':
@@ -140,7 +140,7 @@ const requireActiveSubscription = () => {
         subscriptionStatus = cachedStatus;
       } else {
         // Get from database
-        const { School } = require('../models');
+        const { School } = require('~/models');
         const school = await School.findByPk(schoolId);
         
         if (!school) {
@@ -197,7 +197,7 @@ const requireFeatureAccess = (featureName) => {
       }
 
       // Get school's subscription plan features
-      const { School, SubscriptionPlan } = require('../models');
+      const { School, SubscriptionPlan } = require('~/models');
       const school = await School.findByPk(schoolId);
       
       if (!school) {
@@ -250,7 +250,7 @@ const validatePlanCompatibility = (operation) => {
         return next(new ApiError(403, 'School context required for plan compatibility check'));
       }
 
-      const { School, SubscriptionPlan } = require('../models');
+      const { School, SubscriptionPlan } = require('~/models');
       const school = await School.findByPk(schoolId);
       
       if (!school) {

@@ -1,10 +1,10 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
-const { generateInstallmentReceipt } = require('../../services/receipt.service');
+const { generateInstallmentReceipt } = require('~/services/receipt.service');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
-const { createDateRange } = require('../../utils/dateUtils');
+const { createDateRange } = require('~/utils/dateUtils');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {
@@ -66,7 +66,7 @@ const getReceiptForInvoice = async (req, res, next) => {
       const payment = invoice.payments[0];
       
       // Use the new on-demand approach
-      const { generateReceiptData } = require('../../services/receipt.service');
+      const { generateReceiptData } = require('~/services/receipt.service');
       const receiptData = await generateReceiptData(payment.id);
 
       return res.status(200).json({
@@ -102,7 +102,7 @@ const getReceiptForInvoice = async (req, res, next) => {
       
       for (const payment of invoice.payments) {
         // Use the new on-demand approach for each payment
-        const { generateReceiptData } = require('../../services/receipt.service');
+        const { generateReceiptData } = require('~/services/receipt.service');
         const receiptData = await generateReceiptData(payment.id);
         
         paymentsWithReceipts.push({
@@ -401,7 +401,7 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       totalMonths = feeStructure?.total_months || 12;
       monthlyFeeAmount = parseFloat(feeStructure?.monthly_payment_amount || 0);
       
-      const { calculatePaidMonths } = require('../../services/receipt.service');
+      const { calculatePaidMonths } = require('~/services/receipt.service');
       
       // Calculate total paid months across all fee structures for this student
       // If paymentDate is provided, calculate historical state; otherwise include current receipt
@@ -830,7 +830,7 @@ const getReceiptData = async (req, res, next) => {
     }
 
     // Generate receipt data on-demand
-    const { generateReceiptData } = require('../../services/receipt.service');
+    const { generateReceiptData } = require('~/services/receipt.service');
     const receiptData = await generateReceiptData(paymentId);
 
     return res.status(200).json({
@@ -899,7 +899,7 @@ const getCombinedReceiptData = async (req, res, next) => {
     }
 
     // Generate combined receipt data on-demand
-    const { generateCombinedReceiptData: generateReceiptData } = require('../../services/receipt.service');
+    const { generateCombinedReceiptData: generateReceiptData } = require('~/services/receipt.service');
     const receiptData = await generateReceiptData(paymentIds);
 
     return res.status(200).json({
@@ -957,7 +957,7 @@ const getInvoiceReceiptData = async (req, res, next) => {
 
     // If there's only one payment, return its receipt data
     if (invoice.payments.length === 1) {
-      const { generateReceiptData } = require('../../services/receipt.service');
+      const { generateReceiptData } = require('~/services/receipt.service');
       const receiptData = await generateReceiptData(invoice.payments[0].id);
 
       return res.status(200).json({
@@ -967,7 +967,7 @@ const getInvoiceReceiptData = async (req, res, next) => {
     } else {
       // Multiple payments - return combined receipt data
       const paymentIds = invoice.payments.map(payment => payment.id);
-      const { generateCombinedReceiptData: generateReceiptData } = require('../../services/receipt.service');
+      const { generateCombinedReceiptData: generateReceiptData } = require('~/services/receipt.service');
       const receiptData = await generateReceiptData(paymentIds);
 
       return res.status(200).json({
@@ -1356,7 +1356,7 @@ const getReceiptByNumber = async (req, res, next) => {
       });
     } else {
       // Generate receipt data on-demand
-      const { generateReceiptData } = require('../../services/receipt.service');
+      const { generateReceiptData } = require('~/services/receipt.service');
       const generatedData = await generateReceiptData(payments[0].id);
       
       return res.status(200).json({

@@ -135,7 +135,7 @@ const isValidAadhaar = (aadhaar) => {
  * @returns {Promise<string>} - Generated admission number
  */
 const generateAdmissionNumber = async (schoolId, academicYear) => {
-  const { Student } = require('../models');
+  const { Student } = require('~/models');
   
   // Get the last admission number for this school and academic year
   const lastStudent = await Student.findOne({
@@ -166,7 +166,7 @@ const generateAdmissionNumber = async (schoolId, academicYear) => {
  * @returns {Promise<string>} - Generated roll number
  */
 const generateRollNumber = async (classId, sectionId) => {
-  const { Student } = require('../models');
+  const { Student } = require('~/models');
   
   // Get the last roll number for this class and section
   const lastStudent = await Student.findOne({

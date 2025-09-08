@@ -163,29 +163,26 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            {{ isEditing ? 'Edit Assignment' : 'Create Assignment' }}
-          </h3>
-          
-          <!-- Form will be added in the next step -->
-          <div class="text-center text-gray-500 dark:text-gray-400">
-            Form coming in next step...
-          </div>
-          
-          <div class="flex justify-end space-x-3 mt-6">
-            <button 
-              @click="showCreateModal = false"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Modal :show="showCreateModal" @close="closeModal">
+      <template #header>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Assignment' : 'Create Assignment' }}
+        </h3>
+      </template>
+      
+      <template #body>
+        <SubjectTeacherForm 
+          :assignment="editingAssignment"
+          :subjects="subjectOptions"
+          :teachers="teacherOptions"
+          :classes="classOptions"
+          :sections="sectionOptions"
+          :academic-years="academicYearOptions"
+          @submit="handleAssignmentSubmit"
+          @cancel="closeModal"
+        />
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -194,23 +191,25 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from '~/composables/useToast'
 import { useDropdowns } from '~/composables/useDropdowns'
 import { useAcademics } from '~/composables/useAcademics'
-import { Subjects, SubjectTeachers } from '~/api'
+import { Subjects, SubjectTeachers, Users } from '~/api'
 import Modal from '~/components/Modal.vue'
 import Pagination from '~/components/Pagination.vue'
-// import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue'
-import { Plus, BookOpen, CheckCircle, XCircle, Users } from 'lucide-vue-next'
+import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue'
+import { Plus, BookOpen, CheckCircle, XCircle, Users as UsersIcon } from 'lucide-vue-next'
 
 // Composables
 const { showToast } = useToast()
-const { classOptions, loadClasses } = useDropdowns()
+const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns()
 const { academicYears, fetchAcademicYears } = useAcademics()
 
 // Reactive data
 const loading = ref(false)
 const assignments = ref([])
 const subjectOptions = ref([])
+const teacherOptions = ref([])
 const showCreateModal = ref(false)
 const isEditing = ref(false)
+const editingAssignment = ref(null)
 
 // Filters
 const filters = ref({
@@ -253,6 +252,42 @@ const loadSubjects = async () => {
   }
 }
 
+const loadTeachers = async () => {
+  try {
+    const response = await Users.getAll({ role: 'teacher' })
+    teacherOptions.value = (response.data.users || response.data.rows || []).map(teacher => ({
+      value: teacher.id,
+      label: `${teacher.first_name} ${teacher.last_name} (${teacher.email})`
+    }))
+  } catch (error) {
+    console.error('Error loading teachers:', error)
+  }
+}
+
+
+const handleAssignmentSubmit = async (assignmentData) => {
+  try {
+    if (editingAssignment.value) {
+      await SubjectTeachers.update(editingAssignment.value.id, assignmentData)
+      showToast('Assignment updated successfully', 'success')
+    } else {
+      await SubjectTeachers.create(assignmentData)
+      showToast('Assignment created successfully', 'success')
+    }
+    closeModal()
+    loadAssignments()
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Failed to save assignment', 'error')
+    console.error('Error in handleAssignmentSubmit:', error)
+  }
+}
+
+const closeModal = () => {
+  showCreateModal.value = false
+  editingAssignment.value = null
+  isEditing.value = false
+}
+
 const clearFilters = () => {
   filters.value = {
     subject_id: '',
@@ -263,8 +298,9 @@ const clearFilters = () => {
 }
 
 const editAssignment = (assignment) => {
-  // This will be implemented in the next step
-  console.log('Edit assignment:', assignment)
+  isEditing.value = true
+  editingAssignment.value = assignment
+  showCreateModal.value = true
 }
 
 const deleteAssignment = async (assignment) => {
@@ -284,8 +320,10 @@ const deleteAssignment = async (assignment) => {
 onMounted(async () => {
   await Promise.all([
     loadClasses(),
+    loadSections(),
     fetchAcademicYears(),
-    loadSubjects()
+    loadSubjects(),
+    loadTeachers()
   ])
   await loadAssignments()
 })

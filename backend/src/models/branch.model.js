@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
-const { logger } = require('../utils/logger');
-const { ModuleConfig } = require('../utils/moduleConfig');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
+const { ModuleConfig } = require('~/utils/moduleConfig');
 
 const Branch = sequelize.define('Branch', {
   id: {

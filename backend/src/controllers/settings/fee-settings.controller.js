@@ -1,12 +1,12 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 /**
  * Get fee settings for a school
  */
 const getFeeSettings = async (req, res, next) => {
   try {
-    const { School } = require('../../models');
+    const { School } = require('~/models');
     
     // Get school ID from context or user
     const schoolId = req.schoolId || req.user?.school_id;
@@ -92,7 +92,7 @@ const getFeeSettings = async (req, res, next) => {
  */
 const updateFeeSettings = async (req, res, next) => {
   try {
-    const { School } = require('../../models');
+    const { School } = require('~/models');
     const { feeSettings } = req.body;
 
     if (!feeSettings) {

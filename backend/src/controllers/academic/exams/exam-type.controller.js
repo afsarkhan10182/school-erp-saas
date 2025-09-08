@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
-const ApiError = require('../../../utils/ApiError');
-const { success, error, asyncHandler } = require('../../../utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
 const { ExamType } = require('~/models');
 const { logger } = require('~/utils/logger');
 const ExamTypeService = require('~/services/academic/exam-type.service');

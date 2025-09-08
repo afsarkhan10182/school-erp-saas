@@ -1,9 +1,9 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
-const { getAcademicYearMonths, validatePaymentSequence } = require('../../utils/academicYearUtils');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
+const { getAcademicYearMonths, validatePaymentSequence } = require('~/utils/academicYearUtils');
 const { Op } = require('sequelize');
-const { sequelize } = require('../../config/database');
+const { sequelize } = require('~/config/database');
 
 // Helper function to get student full name
 const getStudentFullName = (student) => {

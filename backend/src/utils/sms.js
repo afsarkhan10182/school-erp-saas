@@ -1,4 +1,4 @@
-const config = require('../config/config');
+const config = require('~/config/config');
 const logger = require('./logger');
 const ApiError = require('./ApiError');
 const httpStatus = require('http-status');

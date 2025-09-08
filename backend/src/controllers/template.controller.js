@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
 const httpStatus = require('http-status');
-const { logger } = require('../utils/logger');
+const { logger } = require('~/utils/logger');
 
 // Generate Excel template for attendance bulk import
 const generateAttendanceTemplate = async (req, res, next) => {

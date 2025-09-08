@@ -1,8 +1,8 @@
-const { AcademicYear, School } = require('../../models');
-const { logger } = require('../../utils/logger');
-const { success, error, asyncHandler } = require('../../utils/apiResponse');
-const ApiError = require('../../utils/ApiError');
-const { verifyToken, authorize } = require('../../middleware/auth');
+const { AcademicYear, School } = require('~/models');
+const { logger } = require('~/utils/logger');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 class AcademicSettingsController {
   // Get academic settings

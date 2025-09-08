@@ -1,6 +1,6 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core');
 

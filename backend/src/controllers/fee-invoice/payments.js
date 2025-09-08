@@ -1,8 +1,8 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
-const { validatePaymentSequence, getEarliestPendingMonth } = require('../../utils/academicYearUtils');
+const { validatePaymentSequence, getEarliestPendingMonth } = require('~/utils/academicYearUtils');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core');
 
 // Calculate late fees based on due date
@@ -279,7 +279,7 @@ const recordPayment = async (req, res, next) => {
     await invoice.update(updateData);
 
     // Generate receipt data AFTER invoice update to get correct remaining balance
-    const { generateReceiptData } = require('../../services/receipt.service');
+    const { generateReceiptData } = require('~/services/receipt.service');
     const receiptData = await generateReceiptData(payment.id);
     
     logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`);

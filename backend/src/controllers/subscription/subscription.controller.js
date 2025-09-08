@@ -1,6 +1,6 @@
-const SubscriptionService = require('../../services/subscription/subscription.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const SubscriptionService = require('~/services/subscription/subscription.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 class SubscriptionController {
   // Get all subscription plans
@@ -739,7 +739,7 @@ class SubscriptionController {
         });
       }
 
-      const { Module } = require('../../models');
+      const { Module } = require('~/models');
       
       const modules = await Module.findAll({
         order: [['sort_order', 'ASC'], ['name', 'ASC']],
@@ -778,7 +778,7 @@ class SubscriptionController {
         });
       }
 
-      const { Module } = require('../../models');
+      const { Module } = require('~/models');
       const module = await Module.create({
         ...req.body,
         created_by: req.user.id,
@@ -807,7 +807,7 @@ class SubscriptionController {
       }
 
       const { id } = req.params;
-      const { Module } = require('../../models');
+      const { Module } = require('~/models');
       
       const module = await Module.findByPk(id);
       if (!module) {
@@ -842,7 +842,7 @@ class SubscriptionController {
         return res.status(403).json({ success: false, message: 'Not authorized to access module information' });
       }
 
-      const { Module } = require('../../models');
+      const { Module } = require('~/models');
       
       // Fetch all active modules from database
       const modules = await Module.findAll({

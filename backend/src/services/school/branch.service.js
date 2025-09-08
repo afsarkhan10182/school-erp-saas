@@ -1,9 +1,9 @@
-const { Branch, School, User } = require('../../models');
+const { Branch, School, User } = require('~/models');
 const { Op } = require('sequelize');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
-const { RoleManager, ROLES } = require('../../utils/roleManager');
-const BaseService = require('../shared/base.service');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
+const BaseService = require('~/services/shared/base.service');
 
 class BranchService {
   // Create a new branch

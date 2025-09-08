@@ -1,5 +1,5 @@
-const { Class, School, Branch, User, Section, Stream } = require('../models');
-const { logger } = require('../utils/logger');
+const { Class, School, Branch, User, Section, Stream } = require('~/models');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
 

@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorize } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
-const BranchController = require('../../controllers/school/branch.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const BranchController = require('~/controllers/school/branch.controller');
 const {
   createBranchValidator,
   updateBranchValidator,
-} = require('../../validations/branch.validation');
-const { uploadFields } = require('../../middleware/upload');
-const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
+} = require('~/validations/branch.validation');
+const { uploadFields } = require('~/middleware/upload');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
 
 // All routes require authentication
 router.use(verifyToken);

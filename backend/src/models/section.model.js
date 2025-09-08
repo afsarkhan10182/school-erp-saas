@@ -1,6 +1,6 @@
 const { DataTypes, Op } = require('sequelize');
-const { sequelize } = require('../config/database');
-const { logger } = require('../utils/logger');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
 
 const Section = sequelize.define('Section', {
   id: {

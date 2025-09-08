@@ -1,5 +1,5 @@
-const BranchService = require('../../services/school/branch.service');
-const { logger } = require('../../utils/logger');
+const BranchService = require('~/services/school/branch.service');
+const { logger } = require('~/utils/logger');
 
 class BranchController {
   // Create a new branch (Super Admin or School Admin)

@@ -1,4 +1,4 @@
-const ApiError = require('../utils/ApiError');
+const ApiError = require('~/utils/ApiError');
 
 function hasPermission(user, permission) {
   if (!user || !Array.isArray(user.permissions)) return false;

@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorize } = require('../../middleware/auth');
-const { uploadSingle } = require('../../middleware/upload');
-const { validate } = require('../../middleware/validate');
-const { validateRoleAssignment } = require('../../middleware/roleValidation');
-const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
-const UserController = require('../../controllers/user/user.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { uploadSingle } = require('~/middleware/upload');
+const { validate } = require('~/middleware/validate');
+const { validateRoleAssignment } = require('~/middleware/roleValidation');
+const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
+const UserController = require('~/controllers/user/user.controller');
 const {
   createUserValidator,
   updateUserValidator,
-} = require('../../validations/user.validation');
+} = require('~/validations/user.validation');
 
 // All routes require authentication
 router.use(verifyToken);

@@ -8,9 +8,9 @@ const {
   deleteFeeStructure,
   cloneFeeStructure,
   getFeeStructuresWithContext,
-} = require('../controllers/fee-structure.controller');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('../middleware/auth');
-const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
+} = require('~/controllers/fee-structure.controller');
+const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('~/middleware/auth');
+const { validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication

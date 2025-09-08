@@ -1,6 +1,6 @@
-const { RoleManager, ROLES } = require('../utils/roleManager');
-const ApiError = require('../utils/ApiError');
-const { logger } = require('../utils/logger');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 
 /**
  * Middleware to validate if a user has the required role or higher

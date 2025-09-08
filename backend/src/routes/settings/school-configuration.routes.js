@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const SchoolConfigurationController = require('../../controllers/settings/school-configuration.controller');
-const ReceiptSettingsController = require('../../controllers/settings/receipt-settings.controller');
-const FeeSettingsController = require('../../controllers/settings/fee-settings.controller');
-const { verifyToken, authorize, setSchoolContext } = require('../../middleware/auth');
-const { uploadFields } = require('../../middleware/upload');
+const SchoolConfigurationController = require('~/controllers/settings/school-configuration.controller');
+const ReceiptSettingsController = require('~/controllers/settings/receipt-settings.controller');
+const FeeSettingsController = require('~/controllers/settings/fee-settings.controller');
+const { verifyToken, authorize, setSchoolContext } = require('~/middleware/auth');
+const { uploadFields } = require('~/middleware/upload');
 
 // Apply authentication middleware to all routes
 router.use(verifyToken);

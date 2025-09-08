@@ -1,5 +1,5 @@
-const { getRedisClient, isRedisEnabled } = require('../config/redis');
-const { logger } = require('../utils/logger');
+const { getRedisClient, isRedisEnabled } = require('~/config/redis');
+const { logger } = require('~/utils/logger');
 const { safeMiddleware, robustMiddleware } = require('./robust');
 
 /**

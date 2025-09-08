@@ -1,9 +1,9 @@
 const { Op } = require('sequelize');
-const { sequelize } = require('../../config/database');
-const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student, Module, PlanModule } = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const RedisUtils = require('../../utils/redis-utils');
+const { sequelize } = require('~/config/database');
+const { School, User, SubscriptionPlan, Transaction, SubscriptionRenewalRequest, Branch, AcademicYear, Student, Module, PlanModule } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const RedisUtils = require('~/utils/redis-utils');
 const bcrypt = require('bcryptjs');
 
 class SubscriptionService {

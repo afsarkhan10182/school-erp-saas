@@ -1,7 +1,7 @@
-const { sendEmail } = require('../utils/email');
-const { sendAttendanceNotificationSMS } = require('../utils/sms');
-const logger = require('../utils/logger');
-const { Student, Parent, School, Branch, Class, Section } = require('../models');
+const { sendEmail } = require('~/utils/email');
+const { sendAttendanceNotificationSMS } = require('~/utils/sms');
+const logger = require('~/utils/logger');
+const { Student, Parent, School, Branch, Class, Section } = require('~/models');
 const { Op } = require('sequelize');
 
 /**

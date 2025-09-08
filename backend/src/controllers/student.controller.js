@@ -1,14 +1,14 @@
-const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section, Stream, Branch } = require('../models');
+const { Student, Parent, StudentParent, FeeStructure, FeeInvoice, FeeType, AcademicYear, Class, Section, Stream, Branch } = require('~/models');
 const { Op } = require('sequelize');
-const ApiError = require('../utils/ApiError');
-const { logger } = require('../utils/logger');
-const { sequelize } = require('../config/database');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
+const { sequelize } = require('~/config/database');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
-const { sanitizeEnumFields } = require('../utils/studentUtils');
-const { getCurrentAcademicYearForSchool } = require('../utils/academicYearUtils');
+const { sanitizeEnumFields } = require('~/utils/studentUtils');
+const { getCurrentAcademicYearForSchool } = require('~/utils/academicYearUtils');
 const fs = require('fs').promises;
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 // Utility function to handle ENUM validation errors
 const handleEnumValidationError = (error) => {

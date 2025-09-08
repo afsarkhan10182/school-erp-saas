@@ -79,6 +79,12 @@ const ROLE_PERMISSIONS = {
     'manage_attendance',
     'manage_grades',
     'view_reports',
+    'view_subjects',
+    'view_subject_teachers',
+    'view_class_subject_mappings',
+    'view_academic_calendar',
+    'view_timetable',
+    'view_exams',
   ],
   [ROLES.LIBRARIAN]: [
     'view_branch_data',

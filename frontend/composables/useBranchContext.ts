@@ -1,11 +1,11 @@
-import { ref, computed, watch } from 'vue';
-import { useAuthStore } from '~/stores/auth';
-import { Branches } from '~/api';
+import { ref, computed, watch } from "vue";
+import { useAuthStore } from "~/stores/auth";
+import { Branches } from "~/api/administration/branches";
 
 export const useBranchContext = () => {
   const authStore = useAuthStore();
   const loading = ref(false);
-  const error = ref('');
+  const error = ref("");
 
   // Computed properties
   const currentBranch = computed(() => authStore.currentBranch);
@@ -13,7 +13,7 @@ export const useBranchContext = () => {
   const currentSchool = computed(() => authStore.currentSchool);
   const canSwitchBranches = computed(() => {
     const role = authStore.userRole;
-    return role === 'super_admin' || role === 'school_admin';
+    return role === "super_admin" || role === "school_admin";
   });
 
   // Fetch branches for the current user
@@ -23,17 +23,19 @@ export const useBranchContext = () => {
     }
 
     loading.value = true;
-    error.value = '';
+    error.value = "";
 
     try {
       let response;
-      
+
       if (authStore.isSuperAdmin) {
         // Super admin can see all branches
         response = await Branches.getForDropdown();
       } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
-                  response = await Branches.getForDropdown({ school_id: authStore.currentSchool.id });
+        response = await Branches.getForDropdown({
+          school_id: authStore.currentSchool.id,
+        });
       } else {
         // Other roles can only see their assigned branch
         if (authStore.currentBranch) {
@@ -45,17 +47,17 @@ export const useBranchContext = () => {
       if (response.success) {
         const branches = response.data || [];
         authStore.setAvailableBranches(branches);
-        
+
         // Set current branch if not already set
         if (!authStore.currentBranch && branches.length > 0) {
           authStore.setCurrentBranch(branches[0]);
         }
       } else {
-        error.value = response.message || 'Failed to fetch branches';
+        error.value = response.message || "Failed to fetch branches";
       }
     } catch (err: any) {
-      console.error('Error fetching branches:', err);
-      error.value = err.message || 'Failed to fetch branches';
+      console.error("Error fetching branches:", err);
+      error.value = err.message || "Failed to fetch branches";
     } finally {
       loading.value = false;
     }
@@ -66,25 +68,27 @@ export const useBranchContext = () => {
     if (!canSwitchBranches.value) return false;
 
     loading.value = true;
-    error.value = '';
+    error.value = "";
 
     try {
       const success = await authStore.switchBranch(branchId);
       if (success) {
         // Emit event to notify other components about branch change
         if (import.meta.client) {
-          window.dispatchEvent(new CustomEvent('branch-changed', {
-            detail: { branch: authStore.currentBranch }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("branch-changed", {
+              detail: { branch: authStore.currentBranch },
+            })
+          );
         }
         return true;
       } else {
-        error.value = 'Failed to switch branch';
+        error.value = "Failed to switch branch";
         return false;
       }
     } catch (err: any) {
-      console.error('Error switching branch:', err);
-      error.value = err.message || 'Failed to switch branch';
+      console.error("Error switching branch:", err);
+      error.value = err.message || "Failed to switch branch";
       return false;
     } finally {
       loading.value = false;
@@ -104,7 +108,7 @@ export const useBranchContext = () => {
   const hasBranchAccess = (branchId: string) => {
     if (authStore.isSuperAdmin) return true;
     if (authStore.isSchoolAdmin) {
-      return authStore.availableBranches.some(b => b.id === branchId);
+      return authStore.availableBranches.some((b) => b.id === branchId);
     }
     return authStore.currentBranch?.id === branchId;
   };
@@ -117,26 +121,29 @@ export const useBranchContext = () => {
   };
 
   // Watch for auth changes and update branch context
-  watch(() => authStore.isLoggedIn, (isLoggedIn) => {
-    if (isLoggedIn) {
-      initializeBranchContext();
-    } else {
-      authStore.setAvailableBranches([]);
-      authStore.setCurrentBranch(null);
+  watch(
+    () => authStore.isLoggedIn,
+    (isLoggedIn) => {
+      if (isLoggedIn) {
+        initializeBranchContext();
+      } else {
+        authStore.setAvailableBranches([]);
+        authStore.setCurrentBranch(null);
+      }
     }
-  });
+  );
 
   return {
     // State
     loading,
     error,
-    
+
     // Computed
     currentBranch,
     availableBranches,
     currentSchool,
     canSwitchBranches,
-    
+
     // Methods
     fetchBranches,
     switchBranch,
@@ -144,4 +151,4 @@ export const useBranchContext = () => {
     hasBranchAccess,
     initializeBranchContext,
   };
-}; 
+};

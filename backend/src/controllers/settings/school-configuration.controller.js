@@ -1,8 +1,8 @@
-const { School, User } = require('../../models');
-const { logger } = require('../../utils/logger');
-const { success, error, asyncHandler } = require('../../utils/apiResponse');
-const ApiError = require('../../utils/ApiError');
-const { verifyToken, authorize } = require('../../middleware/auth');
+const { School, User } = require('~/models');
+const { logger } = require('~/utils/logger');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 class SchoolConfigurationController {
   // Get school configuration

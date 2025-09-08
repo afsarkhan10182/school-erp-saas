@@ -1,6 +1,6 @@
-const { logger } = require('../utils/logger');
-const { safeAsyncHandler, withTimeout } = require('../utils/apiResponse');
-const ApiError = require('../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const { safeAsyncHandler, withTimeout } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
 const httpStatus = require('http-status');
 
 /**

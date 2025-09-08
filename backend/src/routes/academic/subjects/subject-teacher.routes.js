@@ -8,6 +8,7 @@ const {
   getSubjectTeachersBySubject,
   getSubjectTeachersByTeacher,
   getSubjectTeachersForDropdown,
+  getTeacherWorkload,
 } = require('~/controllers/academic/subjects/subject-teacher.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
@@ -47,6 +48,16 @@ router.get('/',
 router.get('/dropdown', 
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectTeachersForDropdown
+);
+
+/**
+ * @route   GET /api/subject-teachers/workload
+ * @desc    Get teacher workload data
+ * @access  Private (school_admin, branch_admin)
+ */
+router.get('/workload', 
+  authorize(['school_admin', 'branch_admin']),
+  getTeacherWorkload
 );
 
 /**

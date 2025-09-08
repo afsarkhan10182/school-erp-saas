@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const AcademicSettingsController = require('../../controllers/settings/academic-settings.controller');
-const { verifyToken, authorize } = require('../../middleware/auth');
+const AcademicSettingsController = require('~/controllers/settings/academic-settings.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 // Apply authentication middleware to all routes
 router.use(verifyToken);

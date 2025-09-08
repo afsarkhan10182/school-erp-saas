@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { GradingSystem, GradeScale } = require('~/models');
-const BaseService = require('../shared/base.service');
+const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
 

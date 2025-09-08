@@ -1,9 +1,9 @@
-const { User, School, Branch, FeeInvoice, Student } = require('../../models');
-const { Sequelize, sequelize } = require('../../config/database');
-const SchoolService = require('../../services/school/school.service');
-const BranchService = require('../../services/school/branch.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { User, School, Branch, FeeInvoice, Student } = require('~/models');
+const { Sequelize, sequelize } = require('~/config/database');
+const SchoolService = require('~/services/school/school.service');
+const BranchService = require('~/services/school/branch.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 const { Op } = require('sequelize');
 
 class DashboardController {
@@ -609,7 +609,7 @@ class DashboardController {
     try {
       console.log('📅 getAcademicYearMonths called by user:', req.user?.id, 'role:', req.user?.role);
       const user = req.user;
-      const { getCurrentAcademicYearForSchool, getAcademicYearMonths } = require('../../utils/academicYearUtils');
+      const { getCurrentAcademicYearForSchool, getAcademicYearMonths } = require('~/utils/academicYearUtils');
       
       // Get current academic year for the school
       const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
@@ -622,7 +622,7 @@ class DashboardController {
       }
       
       // Get school's starting month (default to 6 for June)
-      const { School } = require('../../models');
+      const { School } = require('~/models');
       const school = await School.findByPk(user.school_id, {
         attributes: ['starting_month']
       });
@@ -672,7 +672,7 @@ class DashboardController {
       // Get current academic year from database if not provided
       let targetAcademicYear = academic_year;
       if (!targetAcademicYear) {
-        const { getCurrentAcademicYearForSchool } = require('../../utils/academicYearUtils');
+        const { getCurrentAcademicYearForSchool } = require('~/utils/academicYearUtils');
         const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
         targetAcademicYear = currentAcademicYear ? currentAcademicYear.name : null;
         

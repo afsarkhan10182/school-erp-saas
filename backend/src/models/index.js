@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/database');
+const { sequelize } = require('~/config/database');
 const User = require('./user.model');
 const School = require('./school.model');
 const Branch = require('./branch.model');
@@ -18,6 +18,7 @@ const AcademicYear = require('./academic/academic-year.model');
 
 // Academic models
 const AcademicCalendar = require('./academic/academic-calendar.model');
+const Term = require('./academic/term.model');
 const Class = require('./class.model');
 const Section = require('./section.model');
 const Stream = require('./stream.model');
@@ -52,6 +53,7 @@ const models = {
   FeePayment,
   AcademicYear,
   AcademicCalendar,
+  Term,
   Class,
   Section,
   Stream,

@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database');
-const { logger } = require('../../../utils/logger');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
 const GradingService = require('~/services/academic/grading.service');
 
 const ExamResult = sequelize.define('ExamResult', {

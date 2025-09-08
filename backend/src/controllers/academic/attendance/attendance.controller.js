@@ -631,7 +631,7 @@ const bulkImportFile = async (req, res, next) => {
               classWhere.branch_id = branchId;
             }
             
-            const classRecord = await require('../../../models').Class.findOne({
+            const classRecord = await require('~/models').Class.findOne({
               where: classWhere
             });
             if (classRecord) {
@@ -654,7 +654,7 @@ const bulkImportFile = async (req, res, next) => {
               sectionWhere.branch_id = branchId;
             }
             
-            const sectionRecord = await require('../../../models').Section.findOne({
+            const sectionRecord = await require('~/models').Section.findOne({
               where: sectionWhere
             });
             if (sectionRecord) {
@@ -689,7 +689,7 @@ const bulkImportFile = async (req, res, next) => {
               }
             }
 
-            const studentRecord = await require('../../../models').Student.findOne({ where: studentWhere });
+            const studentRecord = await require('~/models').Student.findOne({ where: studentWhere });
             if (studentRecord) {
               student_id = studentRecord.id;
             } else {

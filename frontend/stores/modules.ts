@@ -1,5 +1,6 @@
-import { defineStore } from 'pinia';
-import { Saas, Schools } from '~/api';
+import { defineStore } from "pinia";
+import { Saas } from "~/api/administration/saas";
+import { Schools } from "~/api/administration/schools";
 
 interface Module {
   key: string;
@@ -30,80 +31,98 @@ interface ModulesState {
   availableModules: Module[];
 }
 
-export const useModulesStore = defineStore('modules', {
+export const useModulesStore = defineStore("modules", {
   state: (): ModulesState => ({
     modules: [],
     roles: [
       {
-        id: 'school_admin',
-        name: 'School Admin',
+        id: "school_admin",
+        name: "School Admin",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: true },
-          { id: 'manage_students', name: 'Manage Students', enabled: true },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: true },
-          { id: 'view_reports', name: 'View Reports', enabled: true },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: true },
-          { id: 'system_settings', name: 'System Settings', enabled: true },
+          { id: "manage_fees", name: "Manage Fees", enabled: true },
+          { id: "manage_students", name: "Manage Students", enabled: true },
+          { id: "manage_staff", name: "Manage Staff", enabled: true },
+          { id: "view_reports", name: "View Reports", enabled: true },
+          { id: "manage_modules", name: "Manage Modules", enabled: true },
+          { id: "system_settings", name: "System Settings", enabled: true },
         ],
       },
       {
-        id: 'branch_admin',
-        name: 'Branch Admin',
+        id: "branch_admin",
+        name: "Branch Admin",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: true },
-          { id: 'manage_students', name: 'Manage Students', enabled: true },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
-          { id: 'view_reports', name: 'View Reports', enabled: true },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
+          { id: "manage_fees", name: "Manage Fees", enabled: true },
+          { id: "manage_students", name: "Manage Students", enabled: true },
+          { id: "manage_staff", name: "Manage Staff", enabled: false },
+          { id: "view_reports", name: "View Reports", enabled: true },
+          { id: "manage_modules", name: "Manage Modules", enabled: false },
+          { id: "system_settings", name: "System Settings", enabled: false },
         ],
       },
       {
-        id: 'accountant',
-        name: 'Accountant',
+        id: "accountant",
+        name: "Accountant",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: true },
-          { id: 'manage_students', name: 'Manage Students', enabled: false },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
-          { id: 'view_reports', name: 'View Reports', enabled: true },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
+          { id: "manage_fees", name: "Manage Fees", enabled: true },
+          { id: "manage_students", name: "Manage Students", enabled: false },
+          { id: "manage_staff", name: "Manage Staff", enabled: false },
+          { id: "view_reports", name: "View Reports", enabled: true },
+          { id: "manage_modules", name: "Manage Modules", enabled: false },
+          { id: "system_settings", name: "System Settings", enabled: false },
         ],
       },
       {
-        id: 'teacher',
-        name: 'Teacher',
+        id: "teacher",
+        name: "Teacher",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
-          { id: 'manage_students', name: 'Manage Students', enabled: true },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
-          { id: 'view_reports', name: 'View Reports', enabled: true },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
+          { id: "manage_fees", name: "Manage Fees", enabled: false },
+          { id: "manage_students", name: "Manage Students", enabled: true },
+          { id: "manage_staff", name: "Manage Staff", enabled: false },
+          { id: "view_reports", name: "View Reports", enabled: true },
+          { id: "manage_modules", name: "Manage Modules", enabled: false },
+          { id: "system_settings", name: "System Settings", enabled: false },
+          { id: "view_subjects", name: "View Subjects", enabled: true },
+          {
+            id: "view_subject_teachers",
+            name: "View Subject Teachers",
+            enabled: true,
+          },
+          {
+            id: "view_class_subject_mappings",
+            name: "View Class-Subject Mappings",
+            enabled: true,
+          },
+          {
+            id: "view_academic_calendar",
+            name: "View Academic Calendar",
+            enabled: true,
+          },
+          { id: "view_timetable", name: "View Timetable", enabled: true },
+          { id: "view_exams", name: "View Exams", enabled: true },
         ],
       },
       {
-        id: 'librarian',
-        name: 'Librarian',
+        id: "librarian",
+        name: "Librarian",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
-          { id: 'manage_students', name: 'Manage Students', enabled: false },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
-          { id: 'view_reports', name: 'View Reports', enabled: true },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
+          { id: "manage_fees", name: "Manage Fees", enabled: false },
+          { id: "manage_students", name: "Manage Students", enabled: false },
+          { id: "manage_staff", name: "Manage Staff", enabled: false },
+          { id: "view_reports", name: "View Reports", enabled: true },
+          { id: "manage_modules", name: "Manage Modules", enabled: false },
+          { id: "system_settings", name: "System Settings", enabled: false },
         ],
       },
       {
-        id: 'receptionist',
-        name: 'Receptionist',
+        id: "receptionist",
+        name: "Receptionist",
         permissions: [
-          { id: 'manage_fees', name: 'Manage Fees', enabled: false },
-          { id: 'manage_students', name: 'Manage Students', enabled: true },
-          { id: 'manage_staff', name: 'Manage Staff', enabled: false },
-          { id: 'view_reports', name: 'View Reports', enabled: false },
-          { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
+          { id: "manage_fees", name: "Manage Fees", enabled: false },
+          { id: "manage_students", name: "Manage Students", enabled: true },
+          { id: "manage_staff", name: "Manage Staff", enabled: false },
+          { id: "view_reports", name: "View Reports", enabled: false },
+          { id: "manage_modules", name: "Manage Modules", enabled: false },
+          { id: "system_settings", name: "System Settings", enabled: false },
         ],
       },
     ],
@@ -114,10 +133,11 @@ export const useModulesStore = defineStore('modules', {
   getters: {
     getModules: (state) => () => state.modules,
     getRoles: (state) => () => state.roles,
-    getModuleById: (state) => (id: string) => state.modules.find(m => m.key === id),
-    getEnabledModules: (state) => state.modules.filter(m => m.enabled),
+    getModuleById: (state) => (id: string) =>
+      state.modules.find((m) => m.key === id),
+    getEnabledModules: (state) => state.modules.filter((m) => m.enabled),
     isModuleEnabled: (state) => (moduleId: string) => {
-      const module = state.modules.find(m => m.key === moduleId);
+      const module = state.modules.find((m) => m.key === moduleId);
       return module?.enabled || false;
     },
     getAvailableModules: (state) => state.availableModules,
@@ -133,7 +153,7 @@ export const useModulesStore = defineStore('modules', {
           this.availableModules = response.data;
         }
       } catch (error) {
-        console.error('Error fetching modules:', error);
+        console.error("Error fetching modules:", error);
       } finally {
         this.isLoading = false;
       }
@@ -147,30 +167,34 @@ export const useModulesStore = defineStore('modules', {
           this.modules = response.data.modules || [];
         }
       } catch (error) {
-        console.error('Error fetching school modules:', error);
+        console.error("Error fetching school modules:", error);
       } finally {
         this.isLoading = false;
       }
     },
 
     toggleModule(moduleId: string, enabled: boolean) {
-      const module = this.modules.find(m => m.key === moduleId);
+      const module = this.modules.find((m) => m.key === moduleId);
       if (module) {
         module.enabled = enabled;
       }
     },
 
     updateModuleConfig(moduleId: string, config: any) {
-      const module = this.modules.find(m => m.key === moduleId);
+      const module = this.modules.find((m) => m.key === moduleId);
       if (module) {
         module.config = { ...module.config, ...config };
       }
     },
 
-    updateRolePermission(roleId: string, permissionId: string, enabled: boolean) {
-      const role = this.roles.find(r => r.id === roleId);
+    updateRolePermission(
+      roleId: string,
+      permissionId: string,
+      enabled: boolean
+    ) {
+      const role = this.roles.find((r) => r.id === roleId);
       if (role) {
-        const permission = role.permissions.find(p => p.id === permissionId);
+        const permission = role.permissions.find((p) => p.id === permissionId);
         if (permission) {
           permission.enabled = enabled;
         }
@@ -184,12 +208,15 @@ export const useModulesStore = defineStore('modules', {
         //   modules: this.modules,
         //   roles: this.roles,
         // });
-        
+
         // For now, just save to localStorage
-        localStorage.setItem('moduleSettings', JSON.stringify({
-          modules: this.modules,
-          roles: this.roles,
-        }));
+        localStorage.setItem(
+          "moduleSettings",
+          JSON.stringify({
+            modules: this.modules,
+            roles: this.roles,
+          })
+        );
       } catch (error) {
         throw error;
       }
@@ -197,14 +224,14 @@ export const useModulesStore = defineStore('modules', {
 
     loadModuleSettings() {
       try {
-        const saved = localStorage.getItem('moduleSettings');
+        const saved = localStorage.getItem("moduleSettings");
         if (saved) {
           const settings = JSON.parse(saved);
           this.modules = settings.modules || this.modules;
           this.roles = settings.roles || this.roles;
         }
       } catch (error) {
-        console.error('Error loading module settings:', error);
+        console.error("Error loading module settings:", error);
       }
     },
   },

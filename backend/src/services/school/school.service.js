@@ -1,9 +1,9 @@
 const { Op } = require('sequelize');
-const { School, User, Branch } = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const RedisUtils = require('../../utils/redis-utils');
-const BaseService = require('../shared/base.service');
+const { School, User, Branch } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const RedisUtils = require('~/utils/redis-utils');
+const BaseService = require('~/services/shared/base.service');
 
 class SchoolService {
   static async isModuleEnabled(school, moduleName) {
@@ -11,7 +11,7 @@ class SchoolService {
       return false;
     }
 
-    const { SubscriptionPlan, Module } = require('../../models');
+    const { SubscriptionPlan, Module } = require('~/models');
     
     // Get school's subscription plan with modules
     const subscriptionPlan = await SubscriptionPlan.findOne({
@@ -50,7 +50,7 @@ class SchoolService {
       // If subscription plan is provided, validate and sync with plan
       let planData = {};
       if (subscription_plan) {
-        const { SubscriptionPlan } = require('../../models');
+        const { SubscriptionPlan } = require('~/models');
         const plan = await SubscriptionPlan.findOne({
           where: { code: subscription_plan, is_active: true }
         });
@@ -183,7 +183,7 @@ class SchoolService {
       // If subscription plan is being changed, validate and sync with plan
       let planData = {};
       if (subscription_plan && subscription_plan !== school.subscription_plan) {
-        const { SubscriptionPlan } = require('../../models');
+        const { SubscriptionPlan } = require('~/models');
         const plan = await SubscriptionPlan.findOne({
           where: { code: subscription_plan, is_active: true }
         });

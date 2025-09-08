@@ -36,9 +36,9 @@ const {
   getInvoiceReceiptData,
   getStudentFeeInvoiceSummary,
   getReceiptsReport
-} = require('../controllers/fee-invoice');
-const { verifyToken, setSchoolContext, requireRole } = require('../middleware/auth');
-const { validateModuleAccess, checkSubscriptionStatus } = require('../middleware/subscriptionValidation');
+} = require('~/controllers/fee-invoice');
+const { verifyToken, setSchoolContext, requireRole } = require('~/middleware/auth');
+const { validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication

@@ -1,6 +1,6 @@
-const { FeeType, Branch } = require('../models');
-const ApiError = require('../utils/ApiError');
-const { logger } = require('../utils/logger');
+const { FeeType, Branch } = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 
 // Create a new fee type
 const createFeeType = async (req, res, next) => {

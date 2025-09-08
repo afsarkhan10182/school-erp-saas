@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { checkSchema } = require('express-validator');
-const AuthController = require('../../controllers/auth/auth.controller');
-const { verifyToken } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
+const AuthController = require('~/controllers/auth/auth.controller');
+const { verifyToken } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
 const {
   registerValidator,
   loginValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
   schoolAdminRegisterValidator,
-} = require('../../validations/auth.validation');
+} = require('~/validations/auth.validation');
 
 // Public routes
 router.post(

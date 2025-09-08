@@ -1,15 +1,16 @@
-import { ref } from 'vue';
-import { Schools, Saas } from '~/api';
+import { ref } from "vue";
+import { Schools } from "~/api/administration/schools";
+import { Saas } from "~/api/administration/saas";
 
 export function useSchools() {
   const schools = ref<any[]>([]);
   const loading = ref(false);
-  const error = ref('');
+  const error = ref("");
 
   // Enhanced fetchSchools that can optionally get subscription details
   const fetchSchools = async (includeSubscriptions = false) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       if (includeSubscriptions) {
         // Use subscription endpoint for enhanced data
@@ -17,7 +18,8 @@ export function useSchools() {
         if (response.success) {
           schools.value = response.data.schools || [];
         } else {
-          error.value = response.message || 'Failed to fetch schools with subscriptions.';
+          error.value =
+            response.message || "Failed to fetch schools with subscriptions.";
         }
       } else {
         // Use regular school endpoint for basic data
@@ -27,12 +29,12 @@ export function useSchools() {
           const responseData = response.data as any;
           schools.value = responseData?.schools || responseData?.items || [];
         } else {
-          error.value = response.message || 'Failed to fetch schools.';
+          error.value = response.message || "Failed to fetch schools.";
         }
       }
     } catch (e) {
-      console.error('Error fetching schools:', e);
-      error.value = 'Network error.';
+      console.error("Error fetching schools:", e);
+      error.value = "Network error.";
     } finally {
       loading.value = false;
     }
@@ -40,17 +42,17 @@ export function useSchools() {
 
   const createSchool = async (schoolData: any) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Schools.create(schoolData);
       if (!response.success) {
-        error.value = response.message || 'Failed to create school.';
+        error.value = response.message || "Failed to create school.";
         return null;
       }
       return response.data;
     } catch (e) {
-      console.error('Error creating school:', e);
-      error.value = 'Network error.';
+      console.error("Error creating school:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -59,17 +61,17 @@ export function useSchools() {
 
   const updateSchool = async (id: string, schoolData: any) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Schools.update(id, schoolData);
       if (!response.success) {
-        error.value = response.message || 'Failed to update school.';
+        error.value = response.message || "Failed to update school.";
         return null;
       }
       return response.data;
     } catch (e) {
-      console.error('Error updating school:', e);
-      error.value = 'Network error.';
+      console.error("Error updating school:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -78,17 +80,17 @@ export function useSchools() {
 
   const deleteSchool = async (id: string) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Schools.delete(id);
       if (!response.success) {
-        error.value = response.message || 'Failed to delete school.';
+        error.value = response.message || "Failed to delete school.";
         return false;
       }
       return true;
     } catch (e) {
-      console.error('Error deleting school:', e);
-      error.value = 'Network error.';
+      console.error("Error deleting school:", e);
+      error.value = "Network error.";
       return false;
     } finally {
       loading.value = false;
@@ -97,17 +99,17 @@ export function useSchools() {
 
   const getSchoolById = async (id: string) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Schools.getById(id);
       if (!response.success) {
-        error.value = response.message || 'Failed to fetch school.';
+        error.value = response.message || "Failed to fetch school.";
         return null;
       }
       return response.data;
     } catch (e) {
-      console.error('Error fetching school:', e);
-      error.value = 'Network error.';
+      console.error("Error fetching school:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -122,6 +124,6 @@ export function useSchools() {
     createSchool,
     updateSchool,
     deleteSchool,
-    getSchoolById
+    getSchoolById,
   };
-} 
+}

@@ -1,31 +1,31 @@
-import { ref } from 'vue';
-import { Branches } from '~/api';
+import { ref } from "vue";
+import { Branches } from "~/api/administration/branches";
 
 export function useBranches() {
   const branches = ref<any[]>([]);
   const loading = ref(false);
-  const error = ref('');
+  const error = ref("");
 
   // Fetch all branches for a school
   const fetchBranches = async (schoolId: string) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Branches.getForDropdown({ school_id: schoolId });
-      
+
       if (response.success) {
         // Dropdown endpoint returns data directly as an array
         branches.value = response.data || [];
         return branches.value;
       } else {
-        error.value = response.message || 'Failed to fetch branches.';
-        console.error('❌ Branches API error:', response.message);
+        error.value = response.message || "Failed to fetch branches.";
+        console.error("❌ Branches API error:", response.message);
         branches.value = [];
         return [];
       }
     } catch (e) {
-      console.error('❌ Error fetching branches:', e);
-      error.value = 'Network error while fetching branches.';
+      console.error("❌ Error fetching branches:", e);
+      error.value = "Network error while fetching branches.";
       branches.value = [];
       return [];
     } finally {
@@ -36,18 +36,18 @@ export function useBranches() {
   // Fetch all branches (optionally with filters)
   const fetchAllBranches = async (params = {}) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Branches.getForDropdown(params);
       if (response.success) {
         // Dropdown endpoint returns data directly as an array
         branches.value = response.data || [];
       } else {
-        error.value = response.message || 'Failed to fetch branches.';
+        error.value = response.message || "Failed to fetch branches.";
       }
     } catch (e) {
-      console.error('Error fetching all branches:', e);
-      error.value = 'Network error.';
+      console.error("Error fetching all branches:", e);
+      error.value = "Network error.";
     } finally {
       loading.value = false;
     }
@@ -56,22 +56,25 @@ export function useBranches() {
   // Create a branch (with file upload support)
   const createBranch = async (formData: FormData) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       // For FormData, we need to use direct fetch since axios doesn't handle it well
       const config = useRuntimeConfig();
       const apiBase = config.public.apiBase;
-      
+
       // Don't set Authorization header - let cookies be sent automatically
       const res = await fetch(`${apiBase}/branches`, {
-        method: 'POST',
-        credentials: 'include', // Include cookies automatically
-        body: formData
+        method: "POST",
+        credentials: "include", // Include cookies automatically
+        body: formData,
       });
       const data = await res.json();
       if (!data.success) {
         // Collect detailed validation errors if present
-        const fieldErrors = (data.fieldErrors || []) as Array<{ field?: string; message?: string }>;
+        const fieldErrors = (data.fieldErrors || []) as Array<{
+          field?: string;
+          message?: string;
+        }>;
         const errorMap = data.errors || {};
         const collected: string[] = [];
 
@@ -80,23 +83,26 @@ export function useBranches() {
             if (fe?.message) collected.push(fe.message);
           });
         }
-        if (errorMap && typeof errorMap === 'object') {
+        if (errorMap && typeof errorMap === "object") {
           Object.values(errorMap).forEach((val: any) => {
             if (Array.isArray(val)) {
               collected.push(...val);
-            } else if (typeof val === 'string') {
+            } else if (typeof val === "string") {
               collected.push(val);
             }
           });
         }
 
-        error.value = collected.length > 0 ? collected.join(', ') : (data.message || 'Failed to create branch.');
+        error.value =
+          collected.length > 0
+            ? collected.join(", ")
+            : data.message || "Failed to create branch.";
         return null;
       }
       return data.data;
     } catch (e) {
-      console.error('Error creating branch:', e);
-      error.value = 'Network error.';
+      console.error("Error creating branch:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -106,17 +112,17 @@ export function useBranches() {
   // Get branch by ID
   const getBranchById = async (branchId: string) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Branches.getById(branchId);
       if (!response.success) {
-        error.value = response.message || 'Failed to fetch branch.';
+        error.value = response.message || "Failed to fetch branch.";
         return null;
       }
       return response.data;
     } catch (e) {
-      console.error('Error fetching branch:', e);
-      error.value = 'Network error.';
+      console.error("Error fetching branch:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -126,27 +132,27 @@ export function useBranches() {
   // Update a branch (with file upload support)
   const updateBranch = async (branchId: string, formData: FormData) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       // For FormData, we need to use direct fetch since axios doesn't handle it well
       const config = useRuntimeConfig();
       const apiBase = config.public.apiBase;
-      
+
       // Don't set Authorization header - let cookies be sent automatically
       const res = await fetch(`${apiBase}/branches/${branchId}`, {
-        method: 'PUT',
-        credentials: 'include', // Include cookies automatically
-        body: formData
+        method: "PUT",
+        credentials: "include", // Include cookies automatically
+        body: formData,
       });
       const data = await res.json();
       if (!data.success) {
-        error.value = data.message || 'Failed to update branch.';
+        error.value = data.message || "Failed to update branch.";
         return null;
       }
       return data.data;
     } catch (e) {
-      console.error('Error updating branch:', e);
-      error.value = 'Network error.';
+      console.error("Error updating branch:", e);
+      error.value = "Network error.";
       return null;
     } finally {
       loading.value = false;
@@ -156,17 +162,17 @@ export function useBranches() {
   // Delete a branch
   const deleteBranch = async (branchId: string) => {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     try {
       const response = await Branches.delete(branchId);
       if (!response.success) {
-        error.value = response.message || 'Failed to delete branch.';
+        error.value = response.message || "Failed to delete branch.";
         return false;
       }
       return true;
     } catch (e) {
-      console.error('Error deleting branch:', e);
-      error.value = 'Network error.';
+      console.error("Error deleting branch:", e);
+      error.value = "Network error.";
       return false;
     } finally {
       loading.value = false;
@@ -182,6 +188,6 @@ export function useBranches() {
     createBranch,
     getBranchById,
     updateBranch,
-    deleteBranch
+    deleteBranch,
   };
-} 
+}

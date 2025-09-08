@@ -1,7 +1,7 @@
-const ApiError = require('../utils/ApiError');
+const ApiError = require('~/utils/ApiError');
 const httpStatus = require('http-status');
-const config = require('../config/config');
-const logger = require('../utils/logger');
+const config = require('~/config/config');
+const logger = require('~/utils/logger');
 
 /**
  * Middleware that handles 404 Not Found errors.

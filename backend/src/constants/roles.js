@@ -11,6 +11,7 @@ const ACADEMIC_SUPER_ADMIN_ROLES = ['school_admin', 'super_admin'];
 // Subject management roles
 const SUBJECT_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
 const SUBJECT_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
+const SUBJECT_READ_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
 
 // Exam management roles
 const EXAM_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
@@ -36,6 +37,7 @@ module.exports = {
   ACADEMIC_SUPER_ADMIN_ROLES,
   SUBJECT_ROLES,
   SUBJECT_ADMIN_ROLES,
+  SUBJECT_READ_ROLES,
   EXAM_ROLES,
   EXAM_ADMIN_ROLES,
   TIMETABLE_ROLES,

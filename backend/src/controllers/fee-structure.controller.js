@@ -1,7 +1,7 @@
-const { FeeStructure, FeeType, AcademicYear, Class, Branch, Stream } = require('../models');
+const { FeeStructure, FeeType, AcademicYear, Class, Branch, Stream } = require('~/models');
 const { Op } = require('sequelize');
-const ApiError = require('../utils/ApiError');
-const { logger } = require('../utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 
 /**
  * Validate fee structure to ensure one payment model per class per academic year

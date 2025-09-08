@@ -363,7 +363,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { ref, reactive, onMounted, watch, computed, defineAsyncComponent } from 'vue';
 import { 
   Plus, 
   CreditCard, 
@@ -379,12 +379,15 @@ import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
-import QuickCollectFeeModal from '~/components/QuickCollectFeeModal.vue';
+// Strategic imports: Direct for always-present, Async for on-demand
 import InvoiceFilters from '~/components/InvoiceFilters.vue';
 import InvoiceTable from '~/components/InvoiceTable.vue';
-import GenerateInvoicesModal from '~/components/GenerateInvoicesModal.vue';
 import Pagination from '~/components/Pagination.vue';
-import ReceiptViewer from '~/components/ReceiptViewer.vue';
+
+// Async imports for modal components (only loaded when needed)
+const QuickCollectFeeModal = defineAsyncComponent(() => import('~/components/QuickCollectFeeModal.vue'));
+const GenerateInvoicesModal = defineAsyncComponent(() => import('~/components/GenerateInvoicesModal.vue'));
+const ReceiptViewer = defineAsyncComponent(() => import('~/components/ReceiptViewer.vue'));
 
 // Composables
 const { showToast } = useToast();

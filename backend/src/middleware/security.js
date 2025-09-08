@@ -1,7 +1,7 @@
 const helmet = require('helmet');
 const hpp = require('hpp');
 const cors = require('cors');
-const config = require('../config/config');
+const config = require('~/config/config');
 
 /**
  * Security middleware that sets various HTTP headers

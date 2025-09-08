@@ -1,9 +1,9 @@
-const UserService = require('../../services/user/user.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { RoleManager, ROLES } = require('../../utils/roleManager');
+const UserService = require('~/services/user/user.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
 const fs = require('fs').promises;
-const { resolveUploadsPath } = require('../../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 class UserController {
   // Create a new user with role-based access control

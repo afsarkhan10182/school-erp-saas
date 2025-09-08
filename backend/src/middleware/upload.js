@@ -1,10 +1,10 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const config = require('../config/config');
-const ApiError = require('../utils/ApiError');
+const config = require('~/config/config');
+const ApiError = require('~/utils/ApiError');
 const httpStatus = require('http-status');
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 // Ensure upload directory exists
 const uploadDir = config.uploads?.dir || './uploads';

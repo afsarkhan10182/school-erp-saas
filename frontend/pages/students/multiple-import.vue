@@ -3,15 +3,23 @@
     <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Multiple Import</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Import multiple students from CSV file</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          Multiple Import
+        </h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">
+          Import multiple students from CSV file
+        </p>
       </div>
 
       <!-- Instructions Card -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6"
+      >
         <div class="p-6">
           <div class="flex justify-between items-start mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Instructions:</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              Instructions:
+            </h2>
             <div class="relative" data-dropdown="download">
               <button
                 @click="showDownloadDropdown = !showDownloadDropdown"
@@ -19,23 +27,42 @@
               >
                 <Download class="w-4 h-4 mr-2" />
                 Download Student Sample Data
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                <svg
+                  class="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
                 </svg>
               </button>
-              
+
               <!-- Dropdown Menu -->
-              <div v-if="showDownloadDropdown" class="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
+              <div
+                v-if="showDownloadDropdown"
+                class="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]"
+              >
                 <div class="py-1">
                   <button
-                    @click="downloadTemplate('required'); showDownloadDropdown = false"
+                    @click="
+                      downloadTemplate('required');
+                      showDownloadDropdown = false;
+                    "
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   >
                     <Download class="w-4 h-4" />
                     Mandatory/Required Fields only
                   </button>
                   <button
-                    @click="downloadTemplate('complete'); showDownloadDropdown = false"
+                    @click="
+                      downloadTemplate('complete');
+                      showDownloadDropdown = false;
+                    "
                     class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   >
                     <Download class="w-4 h-4" />
@@ -45,31 +72,62 @@
               </div>
             </div>
           </div>
-          
-          <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
+
+          <ol
+            class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400"
+          >
             <li>Choose your preferred template:</li>
             <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-              <li><strong>Download Required Fields:</strong> Contains only mandatory fields with sample data for quick imports</li>
-              <li><strong>Download Complete Template:</strong> Contains all fields (mandatory + optional) with sample data for reference</li>
+              <li>
+                <strong>Download Required Fields:</strong> Contains only
+                mandatory fields with sample data for quick imports
+              </li>
+              <li>
+                <strong>Download Complete Template:</strong> Contains all fields
+                (mandatory + optional) with sample data for reference
+              </li>
             </ul>
-            <li>Open the downloaded CSV file and carefully fill the details of the students.</li>
-            <li>For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD (e.g., 2005-06-15).</li>
-            <li><strong>Mandatory Student Fields:</strong> FirstName, Gender, Birthday, AdmissionDate, AdmissionNumber</li>
-            <li><strong>Mandatory Guardian Fields:</strong> GuardianName, GuardianRelation, GuardianMobileNo, GuardianAddress</li>
-            <li><strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion, Caste, FatherName, MotherName</li>
-            <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
+            <li>
+              Open the downloaded CSV file and carefully fill the details of the
+              students.
+            </li>
+            <li>
+              For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD
+              (e.g., 2005-06-15).
+            </li>
+            <li>
+              <strong>Mandatory Student Fields:</strong> FirstName, Gender,
+              Birthday, AdmissionDate, AdmissionNumber
+            </li>
+            <li>
+              <strong>Mandatory Guardian Fields:</strong> GuardianName,
+              GuardianRelation, GuardianMobileNo, GuardianAddress
+            </li>
+            <li>
+              <strong>Optional Fields:</strong> LastName, Roll, BloodGroup,
+              Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream,
+              PreviousExams, MotherTongue, Religion, Caste, FatherName,
+              MotherName
+            </li>
+            <li>
+              Do not import duplicate "Roll Number" or "Admission Number".
+            </li>
             <li>For "Gender" use: male, female, other</li>
-            </ol>
+          </ol>
         </div>
       </div>
 
       <!-- Import Form -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
         <div class="p-6">
           <form @submit.prevent="handleSubmit" class="space-y-6">
             <!-- School Selection (Super Admin Only) -->
             <div v-if="authStore.currentUser?.role === 'super_admin'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 School <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
@@ -83,13 +141,20 @@
 
             <!-- Branch Selection -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Branch <span class="text-red-500">*</span>
               </label>
               <!-- Show read-only branch info for branch admin -->
-              <div v-if="authStore.currentUser?.role === 'branch_admin'" class="mt-1">
-                <div class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white">
-                  {{ userBranch?.name || 'Current Branch' }}
+              <div
+                v-if="authStore.currentUser?.role === 'branch_admin'"
+                class="mt-1"
+              >
+                <div
+                  class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white"
+                >
+                  {{ userBranch?.name || "Current Branch" }}
                 </div>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Branch admin can only import students to their assigned branch
@@ -100,22 +165,35 @@
                 v-else
                 v-model="form.branch_id"
                 :options="branchOptions"
-                :placeholder="authStore.currentUser?.role === 'super_admin' ? (form.school_id ? 'Select Branch' : 'Select School First') : 'Select Branch'"
+                :placeholder="
+                  authStore.currentUser?.role === 'super_admin'
+                    ? form.school_id
+                      ? 'Select Branch'
+                      : 'Select School First'
+                    : 'Select Branch'
+                "
                 :loading="branchesLoading"
-                :disabled="authStore.currentUser?.role === 'super_admin' && !form.school_id"
+                :disabled="
+                  authStore.currentUser?.role === 'super_admin' &&
+                  !form.school_id
+                "
                 @update:model-value="onBranchChange"
               />
             </div>
 
             <!-- Class Selection -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Class <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
                 v-model="form.class_id"
                 :options="classOptions"
-                :placeholder="form.branch_id ? 'Select Class' : 'First Select The Branch'"
+                :placeholder="
+                  form.branch_id ? 'Select Class' : 'First Select The Branch'
+                "
                 :loading="academicsLoading"
                 :disabled="!form.branch_id"
                 @update:model-value="onClassChange"
@@ -124,13 +202,17 @@
 
             <!-- Stream Selection - Only if class has streams -->
             <div v-if="hasStreams">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Stream <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
                 v-model="form.stream_id"
                 :options="streamOptions"
-                :placeholder="form.class_id ? 'Select Stream' : 'Select Class First'"
+                :placeholder="
+                  form.class_id ? 'Select Stream' : 'Select Class First'
+                "
                 :loading="streamsLoading"
                 :disabled="!form.class_id"
                 @update:model-value="onStreamChange"
@@ -139,13 +221,17 @@
 
             <!-- Section Selection - Only if class/stream has sections -->
             <div v-if="hasSections">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Section
               </label>
               <EnhancedDropdown
                 v-model="form.section_id"
                 :options="sectionOptions"
-                :placeholder="form.class_id ? 'Select Section' : 'Select Class First'"
+                :placeholder="
+                  form.class_id ? 'Select Section' : 'Select Class First'
+                "
                 :loading="sectionsLoading"
                 :disabled="!form.class_id"
                 @update:model-value="onSectionChange"
@@ -154,7 +240,9 @@
 
             <!-- File Upload -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Select CSV File <span class="text-red-500">*</span>
               </label>
               <div
@@ -165,10 +253,12 @@
                 @drop="handleFileDrop"
                 class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer transition-all duration-200 ease-in-out drag-zone"
                 :class="{
-                  'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 scale-105 shadow-lg drag-over': isDragOver,
-                  'hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700/50': !isDragOver
+                  'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 scale-105 shadow-lg drag-over':
+                    isDragOver,
+                  'hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700/50':
+                    !isDragOver,
                 }"
-                style="min-height: 120px;"
+                style="min-height: 120px"
               >
                 <div class="space-y-1 text-center">
                   <!-- Upload Icon -->
@@ -187,7 +277,7 @@
                       stroke-linejoin="round"
                     />
                   </svg>
-                  
+
                   <!-- Drop Icon -->
                   <svg
                     v-else
@@ -204,19 +294,23 @@
                       stroke-linejoin="round"
                     />
                   </svg>
-                  
+
                   <div class="flex text-sm text-gray-600 dark:text-gray-400">
-                    <span class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                      {{ isDragOver ? 'Drop your CSV file here' : 'Upload a file' }}
+                    <span
+                      class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                    >
+                      {{
+                        isDragOver ? "Drop your CSV file here" : "Upload a file"
+                      }}
                     </span>
                     <p v-if="!isDragOver" class="pl-1">or drag and drop</p>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ isDragOver ? 'Release to upload' : 'CSV files only' }}
+                    {{ isDragOver ? "Release to upload" : "CSV files only" }}
                   </p>
                 </div>
               </div>
-              
+
               <!-- Hidden file input -->
               <input
                 ref="fileInput"
@@ -225,13 +319,15 @@
                 accept=".csv,text/csv"
                 @change="handleFileSelect"
                 multiple="false"
-                style="position: absolute; opacity: 0; pointer-events: none;"
+                style="position: absolute; opacity: 0; pointer-events: none"
               />
-              
+
               <!-- Selected File Display -->
               <div v-if="selectedFile" class="mt-2 flex items-center space-x-2">
                 <CheckCircle class="w-5 h-5 text-green-500" />
-                <span class="text-sm text-gray-600 dark:text-gray-400">{{ selectedFile.name }}</span>
+                <span class="text-sm text-gray-600 dark:text-gray-400">{{
+                  selectedFile.name
+                }}</span>
                 <button
                   @click="removeFile"
                   type="button"
@@ -242,8 +338,6 @@
               </div>
             </div>
 
-
-
             <!-- Submit Button -->
             <div class="flex justify-end">
               <button
@@ -252,9 +346,25 @@
                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="loading" class="flex items-center">
-                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Importing Students...
                 </span>
@@ -265,35 +375,59 @@
         </div>
       </div>
 
-
-
       <!-- Results Modal -->
       <Modal :show="showResults" @close="showResults = false">
         <template #header>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Import Results</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            Import Results
+          </h3>
         </template>
-        
+
         <template #body>
           <div class="space-y-4">
-            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Records:</span>
-              <span class="text-sm text-gray-900 dark:text-white">{{ importResults.total }}</span>
+            <div
+              class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+            >
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Total Records:</span
+              >
+              <span class="text-sm text-gray-900 dark:text-white">{{
+                importResults.total
+              }}</span>
             </div>
-            
-            <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <span class="text-sm font-medium text-green-700 dark:text-green-300">Successfully Imported:</span>
-              <span class="text-sm text-green-900 dark:text-green-100">{{ importResults.successful }}</span>
+
+            <div
+              class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"
+            >
+              <span
+                class="text-sm font-medium text-green-700 dark:text-green-300"
+                >Successfully Imported:</span
+              >
+              <span class="text-sm text-green-900 dark:text-green-100">{{
+                importResults.successful
+              }}</span>
             </div>
-            
-            <div class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <span class="text-sm font-medium text-red-700 dark:text-red-300">Failed:</span>
-              <span class="text-sm text-red-900 dark:text-red-100">{{ importResults.failed }}</span>
+
+            <div
+              class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg"
+            >
+              <span class="text-sm font-medium text-red-700 dark:text-red-300"
+                >Failed:</span
+              >
+              <span class="text-sm text-red-900 dark:text-red-100">{{
+                importResults.failed
+              }}</span>
             </div>
           </div>
 
           <!-- Error Details -->
-          <div v-if="importResults.errors && importResults.errors.length > 0" class="mt-6">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Error Details:</h4>
+          <div
+            v-if="importResults.errors && importResults.errors.length > 0"
+            class="mt-6"
+          >
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+              Error Details:
+            </h4>
             <div class="max-h-60 overflow-y-auto space-y-2">
               <div
                 v-for="error in importResults.errors"
@@ -301,22 +435,31 @@
                 class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
               >
                 <div class="text-sm text-red-700 dark:text-red-300">
-                  <span class="font-medium">Row {{ error.row }}:</span> {{ error.error }}
+                  <span class="font-medium">Row {{ error.row }}:</span>
+                  {{ error.error }}
                 </div>
                 <!-- Show the data that caused the error -->
-                <div v-if="error.data" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                <div
+                  v-if="error.data"
+                  class="mt-2 text-xs text-gray-600 dark:text-gray-400"
+                >
                   <details>
-                    <summary class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
+                    <summary
+                      class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200"
+                    >
                       View Data
                     </summary>
-                    <pre class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-x-auto">{{ JSON.stringify(error.data, null, 2) }}</pre>
+                    <pre
+                      class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-x-auto"
+                      >{{ JSON.stringify(error.data, null, 2) }}</pre
+                    >
                   </details>
                 </div>
               </div>
             </div>
           </div>
         </template>
-        
+
         <template #footer>
           <button
             @click="showResults = false"
@@ -331,36 +474,44 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useAuthStore } from '~/stores/auth';
-import { useBranches } from '~/composables/useBranches';
-import { useAcademics } from '~/composables/useAcademics';
-import { useSchools } from '~/composables/useSchools';
-import { useToast } from '~/composables/useToast';
-import { Students } from '~/api';
-import { Streams } from '~/api';
-import { Download, CheckCircle, X } from 'lucide-vue-next';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
+import { useAuthStore } from "~/stores/auth";
+import { useBranches } from "~/composables/useBranches";
+import { useAcademics } from "~/composables/useAcademics";
+import { useSchools } from "~/composables/useSchools";
+import { useToast } from "~/composables/useToast";
+import { Students } from "~/api";
+import { Streams } from "~/api";
+import { Download, CheckCircle, X } from "lucide-vue-next";
+import EnhancedDropdown from "~/components/EnhancedDropdown.vue";
+import Modal from "~/components/Modal.vue";
 
 // Meta
 definePageMeta({
   // Global auth middleware handles authentication
-  title: 'Multiple Import',
+  title: "Multiple Import",
 });
 
 const authStore = useAuthStore();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
-const { 
-  classes, 
-  sections, 
+const {
+  classes,
+  sections,
   academicYears,
   currentAcademicYear,
   loading: academicsLoading,
-  fetchClasses, 
+  fetchClasses,
   fetchSections,
   fetchAcademicYears,
-  getCurrentAcademicYear
+  getCurrentAcademicYear,
 } = useAcademics();
 const { showSuccess, showError, showWarning } = useToast();
 
@@ -381,48 +532,48 @@ const streams = ref([]);
 
 // Form data
 const form = reactive({
-  school_id: '',
-  branch_id: '',
-  class_id: '',
-  stream_id: '',
-  section_id: '',
-  academic_year_id: '', // Will be auto-populated with current academic year
+  school_id: "",
+  branch_id: "",
+  class_id: "",
+  stream_id: "",
+  section_id: "",
+  academic_year_id: "", // Will be auto-populated with current academic year
 });
 
 // Computed properties
 const canSubmit = computed(() => {
   const hasBasicFields = form.branch_id && form.class_id && selectedFile.value;
-  
-  if (authStore.currentUser?.role === 'super_admin') {
+
+  if (authStore.currentUser?.role === "super_admin") {
     if (!form.school_id) return false;
   }
-  
+
   // Stream is required if class has streams
   if (hasStreams.value && !form.stream_id) {
     return false;
   }
-  
+
   return hasBasicFields;
 });
 
 const schoolOptions = computed(() => {
-  return schools.value.map(school => ({
+  return schools.value.map((school) => ({
     value: school.id,
-    label: school.name
+    label: school.name,
   }));
 });
 
 const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
+  return branches.value.map((branch) => ({
     value: branch.id,
-    label: branch.name
+    label: branch.name,
   }));
 });
 
 const classOptions = computed(() => {
-  return classes.value.map(cls => ({
+  return classes.value.map((cls) => ({
     value: cls.id,
-    label: cls.name
+    label: cls.name,
   }));
 });
 
@@ -441,49 +592,53 @@ const hasSections = computed(() => {
 // Active streams for the selected class
 const activeStreams = computed(() => {
   if (!form.class_id) return [];
-  return streams.value.filter(stream => stream.class_id === form.class_id && stream.is_active !== false);
+  return streams.value.filter(
+    (stream) => stream.class_id === form.class_id && stream.is_active !== false
+  );
 });
 
 // Active sections filtered by stream (if stream is selected)
 const activeSectionsFiltered = computed(() => {
   let filteredSections = sections.value;
-  
+
   // If a stream is selected, filter sections by stream
   if (form.stream_id) {
-    filteredSections = filteredSections.filter(section => section.stream_id === form.stream_id);
+    filteredSections = filteredSections.filter(
+      (section) => section.stream_id === form.stream_id
+    );
   }
-  
+
   return filteredSections;
 });
 
 const streamOptions = computed(() => {
-  return activeStreams.value.map(stream => ({
+  return activeStreams.value.map((stream) => ({
     value: stream.id,
-    label: `${stream.name} (${stream.code})`
+    label: `${stream.name} (${stream.code})`,
   }));
 });
 
 const sectionOptions = computed(() => {
-  return activeSectionsFiltered.value.map(section => ({
+  return activeSectionsFiltered.value.map((section) => ({
     value: section.id,
-    label: section.name
+    label: section.name,
   }));
 });
 
 // Methods
 const onSchoolChange = async () => {
-  form.branch_id = '';
-  form.class_id = '';
-  form.section_id = '';
+  form.branch_id = "";
+  form.class_id = "";
+  form.section_id = "";
   branches.value = [];
   classes.value = [];
   sections.value = [];
   branchesLoading.value = true;
-  
+
   if (form.school_id) {
     try {
       await fetchBranches(form.school_id);
-      
+
       // Auto-select branch if there's only one
       if (branches.value.length === 1) {
         form.branch_id = branches.value[0].id;
@@ -491,7 +646,7 @@ const onSchoolChange = async () => {
         await onBranchChange();
       }
     } catch (error) {
-      showError('Failed to load branches. Please try again.');
+      showError("Failed to load branches. Please try again.");
     } finally {
       branchesLoading.value = false;
     }
@@ -501,18 +656,21 @@ const onSchoolChange = async () => {
 };
 
 const onBranchChange = async () => {
-  form.class_id = '';
-  form.section_id = '';
+  form.class_id = "";
+  form.section_id = "";
   classes.value = [];
   sections.value = [];
   academicsLoading.value = true;
-  
+
   if (form.branch_id) {
     try {
-      const schoolId = authStore.currentUser?.role === 'super_admin' ? form.school_id : authStore.currentUser?.school_id;
-      
+      const schoolId =
+        authStore.currentUser?.role === "super_admin"
+          ? form.school_id
+          : authStore.currentUser?.school_id;
+
       await fetchClasses(schoolId, form.branch_id);
-      
+
       // Auto-select class if there's only one
       if (classes.value.length === 1) {
         form.class_id = classes.value[0].id;
@@ -520,7 +678,7 @@ const onBranchChange = async () => {
         await onClassChange();
       }
     } catch (error) {
-      showError('Failed to load classes. Please try again.');
+      showError("Failed to load classes. Please try again.");
     } finally {
       academicsLoading.value = false;
     }
@@ -535,30 +693,30 @@ const loadStreamsForClass = async (classId) => {
     streams.value = [];
     return;
   }
-  
+
   streamsLoading.value = true;
   try {
     const params = {
       class_id: classId,
-      is_active: 'true'
+      is_active: "true",
     };
-    
+
     // Add role-based filters
-    if (authStore.currentUser?.role === 'super_admin') {
+    if (authStore.currentUser?.role === "super_admin") {
       if (form.school_id) params.school_id = form.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === 'school_admin') {
+    } else if (authStore.currentUser?.role === "school_admin") {
       params.school_id = authStore.currentUser?.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === 'branch_admin') {
+    } else if (authStore.currentUser?.role === "branch_admin") {
       params.school_id = authStore.currentUser?.school_id;
       params.branch_id = authStore.currentUser?.branch_id;
     }
-    
+
     const response = await Streams.getAll(params);
     streams.value = response.data || [];
   } catch (error) {
-    console.error('Error loading streams:', error);
+    console.error("Error loading streams:", error);
     streams.value = [];
   } finally {
     streamsLoading.value = false;
@@ -566,33 +724,39 @@ const loadStreamsForClass = async (classId) => {
 };
 
 const onClassChange = async () => {
-  form.stream_id = '';
-  form.section_id = '';
+  form.stream_id = "";
+  form.section_id = "";
   streams.value = [];
   sections.value = [];
   streamsLoading.value = true;
   sectionsLoading.value = true;
-  
+
   if (form.class_id) {
     try {
       // Load streams for the selected class
       await loadStreamsForClass(form.class_id);
-      
-      const schoolId = authStore.currentUser?.role === 'super_admin' ? form.school_id : authStore.currentUser?.school_id;
-      
+
+      const schoolId =
+        authStore.currentUser?.role === "super_admin"
+          ? form.school_id
+          : authStore.currentUser?.school_id;
+
       await fetchSections(schoolId, form.branch_id, form.class_id);
-      
+
       // If no sections found and we're super admin, try without branch_id
-      if (sections.value.length === 0 && authStore.currentUser?.role === 'super_admin') {
+      if (
+        sections.value.length === 0 &&
+        authStore.currentUser?.role === "super_admin"
+      ) {
         await fetchSections(schoolId, null, form.class_id);
       }
-      
+
       // Auto-select section if there's only one
       if (sections.value.length === 1) {
         form.section_id = sections.value[0].id;
       }
     } catch (error) {
-      showError('Failed to load streams/sections. Please try again.');
+      showError("Failed to load streams/sections. Please try again.");
     } finally {
       streamsLoading.value = false;
       sectionsLoading.value = false;
@@ -605,7 +769,7 @@ const onClassChange = async () => {
 
 const onStreamChange = () => {
   // Clear section when stream changes
-  form.section_id = '';
+  form.section_id = "";
 };
 
 const onSectionChange = () => {
@@ -626,15 +790,15 @@ const triggerFileInput = () => {
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
-  
+
   if (file) {
-    if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+    if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
       selectedFile.value = file;
     } else {
-      showError('Please select a valid CSV file');
+      showError("Please select a valid CSV file");
       // Reset the input
       if (fileInput.value) {
-        fileInput.value.value = '';
+        fileInput.value.value = "";
       }
     }
   }
@@ -644,10 +808,10 @@ const handleDragOver = (event) => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = true;
-  
+
   // Set dataTransfer effect to allow drop
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'copy';
+    event.dataTransfer.dropEffect = "copy";
   }
 };
 
@@ -655,22 +819,22 @@ const handleDragEnter = (event) => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = true;
-  
+
   // Set dataTransfer effect to allow drop
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'copy';
+    event.dataTransfer.dropEffect = "copy";
   }
 };
 
 const handleDragLeave = (event) => {
   event.preventDefault();
   event.stopPropagation();
-  
+
   // Only set isDragOver to false if we're leaving the drop zone entirely
   const rect = event.currentTarget.getBoundingClientRect();
   const x = event.clientX;
   const y = event.clientY;
-  
+
   if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
     isDragOver.value = false;
   }
@@ -680,19 +844,19 @@ const handleFileDrop = (event) => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = false;
-  
+
   // Check if we have files in the dataTransfer
   if (!event.dataTransfer.files || event.dataTransfer.files.length === 0) {
     // Try to get files from items
     if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
       const items = Array.from(event.dataTransfer.items);
-      
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        
-        if (item.kind === 'file') {
+
+        if (item.kind === "file") {
           const file = item.getAsFile();
-          
+
           if (file) {
             handleDroppedFile(file);
             return;
@@ -700,27 +864,27 @@ const handleFileDrop = (event) => {
         }
       }
     }
-    
-    showError('No file found in drop event');
+
+    showError("No file found in drop event");
     return;
   }
-  
+
   const files = event.dataTransfer.files;
-  
+
   if (files.length > 0) {
     const file = files[0];
     handleDroppedFile(file);
   } else {
-    showError('No file found in drop event');
+    showError("No file found in drop event");
   }
 };
 
 const handleDroppedFile = (file) => {
   // Check if it's a CSV file
-  if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+  if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
     // Set the selected file
     selectedFile.value = file;
-    
+
     // Update the file input value for consistency
     if (fileInput.value) {
       try {
@@ -732,58 +896,58 @@ const handleDroppedFile = (file) => {
         // Fallback: just set the selected file without updating input
       }
     }
-    
+
     // Show success message
     showSuccess(`File "${file.name}" selected successfully!`);
   } else {
-    showError('Please drop a valid CSV file');
+    showError("Please drop a valid CSV file");
   }
 };
 
 const removeFile = () => {
   selectedFile.value = null;
   if (fileInput.value) {
-    fileInput.value.value = '';
+    fileInput.value.value = "";
   }
 };
 
-
-
-const downloadTemplate = async (type = 'complete') => {
+const downloadTemplate = async (type = "complete") => {
   try {
     const config = useRuntimeConfig();
     const response = await Students.getImportTemplate(type);
-    
+
     if (!response.ok) {
-      throw new Error('Failed to download template');
+      throw new Error("Failed to download template");
     }
-    
+
     // Create blob from response
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
-    
+
     // Create download link
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    
+
     // Set filename based on type
-    if (type === 'required') {
-      a.download = 'Student-Import-Template-Required-Fields.csv';
+    if (type === "required") {
+      a.download = "Student-Import-Template-Required-Fields.csv";
     } else {
-      a.download = 'Student-Import-Template-Complete-with-Sample-Data.csv';
+      a.download = "Student-Import-Template-Complete-with-Sample-Data.csv";
     }
-    
-    a.style.display = 'none';
+
+    a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    
+
     // Show success message
-    showSuccess(`${type === 'required' ? 'Required fields' : 'Complete'} template downloaded successfully!`);
+    showSuccess(
+      `${type === "required" ? "Required fields" : "Complete"} template downloaded successfully!`
+    );
   } catch (error) {
-    console.error('Error downloading template:', error);
-    showError('Failed to download template file. Please try again.');
+    console.error("Error downloading template:", error);
+    showError("Failed to download template file. Please try again.");
   }
 };
 
@@ -793,31 +957,31 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     const formData = new FormData();
-    formData.append('csv_file', selectedFile.value);
-    
+    formData.append("csv_file", selectedFile.value);
+
     // Set branch_id based on user role
-    if (authStore.currentUser?.role === 'branch_admin') {
-      formData.append('branch_id', authStore.currentUser?.branch_id);
+    if (authStore.currentUser?.role === "branch_admin") {
+      formData.append("branch_id", authStore.currentUser?.branch_id);
     } else {
-      formData.append('branch_id', form.branch_id);
+      formData.append("branch_id", form.branch_id);
     }
-    
-    formData.append('class_id', form.class_id);
-    formData.append('stream_id', form.stream_id);
-    formData.append('section_id', form.section_id);
-    formData.append('academic_year_id', form.academic_year_id);
+
+    formData.append("class_id", form.class_id);
+    formData.append("stream_id", form.stream_id);
+    formData.append("section_id", form.section_id);
+    formData.append("academic_year_id", form.academic_year_id);
 
     // Add school_id for super admin
-    if (authStore.currentUser?.role === 'super_admin') {
-      formData.append('school_id', form.school_id);
+    if (authStore.currentUser?.role === "super_admin") {
+      formData.append("school_id", form.school_id);
     }
 
     const response = await Students.bulkImport(formData);
-  
+
     if (response.success) {
       importResults.value = response.data;
       showResults.value = true;
-      
+
       // Check if there were any failures
       if (response.data.failed > 0) {
         // Show warning if some failed, success if all succeeded
@@ -832,40 +996,45 @@ const handleSubmit = async () => {
         // All successful
         showSuccess(response.message);
       }
-      
+
       // Reset form only if all imports were successful
       if (response.data.failed === 0) {
         selectedFile.value = null;
         if (fileInput.value) {
-          fileInput.value.value = '';
+          fileInput.value.value = "";
         }
       }
     } else {
-      showError(response.message || 'Import failed');
+      showError(response.message || "Import failed");
     }
   } catch (error) {
-    console.error('Error importing students:', error);
-    showError(error.response?.data?.message || 'Import failed. Please try again.');
+    console.error("Error importing students:", error);
+    showError(
+      error.response?.data?.message || "Import failed. Please try again."
+    );
   } finally {
     loading.value = false;
   }
 };
 
-// Initialize data
-onMounted(async () => {
+// Initialize form data
+async function initializeForm() {
   // Fetch and auto-select current academic year
-  const schoolId = authStore.currentUser?.role === 'super_admin' ? null : authStore.currentUser?.school_id;
+  const schoolId =
+    authStore.currentUser?.role === "super_admin"
+      ? null
+      : authStore.currentUser?.school_id;
   await fetchAcademicYears(schoolId);
-  
+
   // Auto-select current academic year
   if (currentAcademicYear.value) {
     form.academic_year_id = currentAcademicYear.value.id;
   }
 
-  if (authStore.currentUser?.role === 'super_admin') {
+  if (authStore.currentUser?.role === "super_admin") {
     // Load schools for super admin
     await fetchSchools();
-    
+
     // Auto-select school if there's only one
     if (schools.value.length === 1) {
       form.school_id = schools.value[0].id;
@@ -874,11 +1043,13 @@ onMounted(async () => {
   } else {
     // For school admin and branch admin, load branches directly
     await fetchBranches(authStore.currentUser?.school_id);
-    
-    if (authStore.currentUser?.role === 'branch_admin') {
+
+    if (authStore.currentUser?.role === "branch_admin") {
       // For branch admin, set their assigned branch
       form.branch_id = authStore.currentUser?.branch_id;
-      userBranch.value = branches.value.find(b => b.id === authStore.currentUser?.branch_id);
+      userBranch.value = branches.value.find(
+        (b) => b.id === authStore.currentUser?.branch_id
+      );
       await onBranchChange();
     } else {
       // For school admin, auto-select branch if there's only one
@@ -896,13 +1067,21 @@ onMounted(async () => {
       showDownloadDropdown.value = false;
     }
   };
-  
-  document.addEventListener('click', handleClickOutside);
+
+  // Use nextTick to ensure DOM is ready
+  await nextTick();
+  document.addEventListener("click", handleClickOutside);
 
   // Cleanup event listener
+
   onBeforeUnmount(() => {
-    document.removeEventListener('click', handleClickOutside);
+    document.removeEventListener("click", handleClickOutside);
   });
+}
+
+// Initialize data
+onMounted(() => {
+  initializeForm();
 });
 </script>
 
@@ -914,7 +1093,8 @@ onMounted(async () => {
 
 /* Drag and drop animations */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -938,7 +1118,9 @@ onMounted(async () => {
 
 /* Enhanced shadow for drag over state */
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Improved drag and drop zone styling */
@@ -956,13 +1138,18 @@ onMounted(async () => {
 }
 
 .drag-zone::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 30%, rgba(99, 102, 241, 0.1) 50%, transparent 70%);
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(99, 102, 241, 0.1) 50%,
+    transparent 70%
+  );
   background-size: 200% 200%;
   animation: shimmer 2s infinite;
   opacity: 0;
@@ -1025,4 +1212,4 @@ input[type="file"] {
 .dark .loading-overlay {
   background: rgba(0, 0, 0, 0.8);
 }
-</style> 
+</style>

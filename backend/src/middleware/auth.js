@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
-const { logger } = require('../utils/logger');
-const { getRedisClient } = require('../config/redis');
-const ApiError = require('../utils/ApiError');
-const { robustMiddleware, safeMiddleware } = require('./robust');
+const { logger } = require('~/utils/logger');
+const { getRedisClient } = require('~/config/redis');
+const ApiError = require('~/utils/ApiError');
+const { robustMiddleware, safeMiddleware } = require('~/middleware/robust');
 
 const verifyToken = async (req, res, next) => {
   try {
