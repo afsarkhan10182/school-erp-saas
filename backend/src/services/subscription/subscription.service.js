@@ -826,10 +826,16 @@ class SubscriptionService {
 
   // Get school transactions
   static async getSchoolTransactions(schoolId, params = {}) {
-    const { page = 1, limit = 10, payment_status, payment_method } = params;
+    const { page = 1, limit = 10, payment_status, payment_method, payment_only = true } = params;
     const offset = (page - 1) * limit;
     
     const whereClause = { school_id: schoolId };
+    
+    // Filter out module management activities - only show actual payments
+    if (payment_only) {
+      whereClause.amount = { [Op.gt]: 0 }; // Only transactions with amount > 0
+      whereClause.description = { [Op.notLike]: 'Module %' }; // Exclude module enable/disable activities
+    }
     
     if (payment_status) {
       whereClause.payment_status = payment_status;
@@ -870,6 +876,58 @@ class SubscriptionService {
     if (rows.length > 0) {
       logger.info(`First transaction created_at: ${rows[0].created_at}`);
     }
+    
+    return {
+      transactions: rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit),
+      },
+    };
+  }
+
+  // Get all school transactions (including module activities) - for audit purposes
+  static async getAllSchoolTransactions(schoolId, params = {}) {
+    const { page = 1, limit = 10, payment_status, payment_method } = params;
+    const offset = (page - 1) * limit;
+    
+    const whereClause = { school_id: schoolId };
+    
+    if (payment_status) {
+      whereClause.payment_status = payment_status;
+    }
+    
+    if (payment_method) {
+      whereClause.payment_method = payment_method;
+    }
+    
+    const { count, rows } = await Transaction.findAndCountAll({
+      where: whereClause,
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      attributes: [
+        'id', 'transaction_id', 'amount', 'currency', 'payment_method', 
+        'payment_status', 'transaction_status', 'billing_cycle', 
+        'subscription_start_date', 'subscription_end_date', 'description', 
+        'gateway_transaction_id', 'gateway_name', 'receipt_url', 'notes', 
+        'is_manual', 'created_at', 'updated_at'
+      ],
+      include: [
+        {
+          model: SubscriptionPlan,
+          as: 'subscriptionPlan',
+          attributes: ['id', 'name', 'code', 'price', 'billing_cycle'],
+        },
+        {
+          model: User,
+          as: 'createdBy',
+          attributes: ['id', 'first_name', 'last_name', 'email'],
+        },
+      ],
+    });
     
     return {
       transactions: rows,
@@ -1445,8 +1503,13 @@ class SubscriptionService {
         branches: branchCount
       });
 
+      // Get disabled modules for this school
+      const disabledModules = school.disabled_modules || [];
+      
       return {
         current_plan: school.subscription_plan,
+        subscription_start_date: school.subscription_start_date,
+        subscription_end_date: school.subscription_end_date,
         plan_details: {
           name: plan.name,
           description: plan.description,
@@ -1461,7 +1524,7 @@ class SubscriptionService {
             icon: module.icon,
             category: module.category,
             is_core: module.is_core,
-            is_enabled: module.planModule?.is_enabled ?? true,
+            is_enabled: (module.planModule?.is_enabled ?? true) && !disabledModules.includes(module.code),
             is_required: module.planModule?.is_required ?? false
           })) : [],
           price: plan.price,

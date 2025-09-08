@@ -34,7 +34,7 @@ const templateRoutes = require('./template.routes');
 const exportRoutes = require('./export.routes');
 
 // Settings routes
-const { schoolConfigurationRoutes, academicSettingsRoutes } = require('./settings');
+const settingsRoutes = require('./settings/settings.routes');
 
 const router = express.Router();
 
@@ -86,8 +86,7 @@ router.use('/templates', templateRoutes);
 
 // Export routes
 router.use('/export', exportRoutes);
-// Settings routes
-router.use('/school/configuration', schoolConfigurationRoutes);
-router.use('/academic/settings', academicSettingsRoutes);
+// Settings routes - consolidated namespace
+router.use('/settings', settingsRoutes);
 
 module.exports = router;

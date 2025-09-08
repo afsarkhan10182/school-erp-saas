@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto py-8 max-w-7xl">
-    <!-- Header -->
-    <div class="mb-6 flex justify-between items-center">
+    <!-- Header (only show if title is provided) -->
+    <div v-if="title" class="mb-6 flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
           {{ title }}
@@ -84,28 +84,30 @@
                 <span class="text-gray-600 dark:text-gray-400">Start Date:</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ formatDate(school?.subscription_start_date) }}</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">End Date:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ formatDate(school?.subscription_end_date) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Days Remaining:</span>
-                <span :class="daysRemainingClass" class="font-medium">{{ daysRemaining }}</span>
-              </div>
-              <div v-if="school?.plan_details?.billing_cycle !== 'lifetime'" class="flex justify-between items-center">
-                <span class="text-gray-600 dark:text-gray-400">Progress:</span>
-                <div class="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    :class="progressBarClass" 
-                    class="h-2 rounded-full transition-all duration-300"
-                    :style="{ width: subscriptionProgress + '%' }"
-                  ></div>
+              <div v-if="school?.plan_details?.billing_cycle !== 'lifetime'">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">End Date:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">{{ formatDate(school?.subscription_end_date) }}</span>
                 </div>
-                <span class="text-xs text-gray-500">{{ Math.round(subscriptionProgress) }}%</span>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Days Remaining:</span>
+                  <span :class="daysRemainingClass" class="font-medium">{{ daysRemaining }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600 dark:text-gray-400">Progress:</span>
+                  <div class="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      :class="progressBarClass" 
+                      class="h-2 rounded-full transition-all duration-300"
+                      :style="{ width: subscriptionProgress + '%' }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-500">{{ Math.round(subscriptionProgress) }}%</span>
+                </div>
               </div>
               <div v-else class="flex justify-between items-center">
-                <span class="text-gray-600 dark:text-gray-400">Duration:</span>
-                <span class="text-xs text-gray-500 font-medium">Lifetime</span>
+                <span class="text-gray-600 dark:text-gray-400">Plan Type:</span>
+                <span class="text-xs text-gray-500 font-medium">Lifetime Access</span>
               </div>
             </div>
           </div>
@@ -118,20 +120,20 @@
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Max Students:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_students || 'N/A' }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_students === -1 ? 'Unlimited' : school?.max_students || 'N/A' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Max Staff:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_staff || 'N/A' }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_staff === -1 ? 'Unlimited' : school?.max_staff || 'N/A' }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600 dark:text-gray-400">Max Branches:</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_branches || 'N/A' }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ school?.max_branches === -1 ? 'Unlimited' : school?.max_branches || 'N/A' }}</span>
               </div>
               <div v-if="school?.current_usage" class="pt-2 border-t border-gray-200 dark:border-gray-600">
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Current Usage:</span>
-                  <span class="font-medium text-gray-900 dark:text-white">{{ school.current_usage.students || 0 }}/{{ school?.max_students || 0 }}</span>
+                  <span class="font-medium text-gray-900 dark:text-white">{{ school.current_usage.students || 0 }}/{{ school?.max_students === -1 ? '∞' : school?.max_students || 0 }}</span>
                 </div>
               </div>
             </div>
@@ -145,17 +147,15 @@
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ modulesSectionTitle }}
           </h2>
-          <div v-if="user?.role === 'super_admin'" class="flex gap-2">
-            <NuxtLink :to="`/saas/schools/${schoolId}/modules`" class="btn-secondary text-sm">
-              🔧 Manage Modules
-            </NuxtLink>
-          </div>
         </div>
         
         <div v-if="availableModules.length === 0" class="text-center py-8">
-          <div class="text-gray-400 mb-2">No modules available</div>
-          <div class="text-sm text-gray-500">
-            {{ user?.role === 'super_admin' ? 'This school has no modules enabled.' : 'Contact your administrator to enable modules.' }}
+          <div class="text-gray-400 mb-2">📦 No modules configured</div>
+          <div class="text-sm text-gray-500 mb-4">
+            {{ user?.role === 'super_admin' ? 'This school has no modules enabled. Use the "Manage Modules" button above to configure modules.' : 'Contact your administrator to enable modules.' }}
+          </div>
+          <div v-if="user?.role === 'super_admin'" class="text-xs text-gray-400">
+            Modules are configured based on the subscription plan and can be individually enabled/disabled.
           </div>
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -252,8 +252,11 @@
             View All
           </NuxtLink>
         </div>
-        <div v-if="transactions.length === 0" class="text-center py-8 text-gray-500">
-          No transactions found
+        <div v-if="transactions.length === 0" class="text-center py-8">
+          <div class="text-gray-400 mb-2">📋 No subscription payments yet</div>
+          <div class="text-sm text-gray-500">
+            {{ school?.plan_details?.billing_cycle === 'lifetime' ? 'This is a lifetime plan with no recurring payments.' : 'Subscription payments will appear here once made.' }}
+          </div>
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -732,27 +735,99 @@ const availableModules = computed(() => {
     return [];
   }
   
+  // Module definitions with proper details
+  const moduleDefinitions: Record<string, any> = {
+    'students': {
+      name: 'Student Management',
+      description: 'Admit students, manage profiles, class assignments, and student records',
+      icon: '👥',
+      is_core: true
+    },
+    'fees': {
+      name: 'Fee Management',
+      description: 'Fee types, structures, invoices, payments, and collections',
+      icon: '💰',
+      is_core: true
+    },
+    'attendance': {
+      name: 'Attendance Management',
+      description: 'Track student and staff attendance with reports and notifications',
+      icon: '📊',
+      is_core: false
+    },
+    'exams': {
+      name: 'Examination Management',
+      description: 'Create and manage exams, results, and grade reports',
+      icon: '📝',
+      is_core: false
+    },
+    'hr': {
+      name: 'HR Management',
+      description: 'Manage staff, payroll, and human resources',
+      icon: '👨‍💼',
+      is_core: false
+    },
+    'transport': {
+      name: 'Transport Management',
+      description: 'Manage school transport, routes, and vehicle tracking',
+      icon: '🚌',
+      is_core: false
+    },
+    'library': {
+      name: 'Library Management',
+      description: 'Manage books, borrowing, and library operations',
+      icon: '📚',
+      is_core: false
+    },
+    'settings': {
+      name: 'System Settings',
+      description: 'Configure school settings, academic years, and system preferences',
+      icon: '⚙️',
+      is_core: true
+    },
+    'reports': {
+      name: 'Reports & Analytics',
+      description: 'Generate reports, analytics, and insights',
+      icon: '📈',
+      is_core: false
+    }
+  };
+  
   // Transform modules to display format with proper interface
   return modules.map((module: any) => {
     if (typeof module === 'string') {
+      const moduleDef = moduleDefinitions[module] || {
+        name: module.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        description: 'Module description',
+        icon: '📦',
+        is_core: false
+      };
+      
       return {
         id: module,
         code: module,
-        name: module.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        name: moduleDef.name,
         enabled: true, // Default to enabled for string modules
-        is_core: false,
-        icon: '📦',
-        description: 'Module description'
+        is_core: moduleDef.is_core,
+        icon: moduleDef.icon,
+        description: moduleDef.description
       };
     } else if (typeof module === 'object') {
+      const moduleDef = moduleDefinitions[module.code || module.id || module.name] || {
+        name: module.name || module.code || module.id,
+        description: module.description || 'Module description',
+        icon: module.icon || '📦',
+        is_core: module.is_core || false
+      };
+      
       return {
         id: module.code || module.id || module.name,
         code: module.code || module.id || module.name,
-        name: module.name || module.code || module.id,
-        enabled: module.enabled !== false, // Default to true if not explicitly disabled
-        is_core: module.is_core || false,
-        icon: module.icon || '📦',
-        description: module.description || 'Module description'
+        name: moduleDef.name,
+        enabled: module.is_enabled !== false, // Use is_enabled from database
+        is_core: moduleDef.is_core,
+        icon: moduleDef.icon,
+        description: moduleDef.description
       };
     }
     return { 
@@ -780,11 +855,17 @@ const statusClass = (status: string | undefined) => {
   const classes: Record<string, string> = {
     completed: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
     success: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    lifetime: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
     processing: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    trial: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    expiring_soon: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
     initiated: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
     failed: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
     cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+    expired: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+    suspended: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
     refunded: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
   };
   
@@ -803,6 +884,12 @@ const formatStatus = (status: string | undefined) => {
     success: 'Success',
     processing: 'Processing',
     initiated: 'Initiated',
+    active: 'Active',
+    trial: 'Trial',
+    expired: 'Expired',
+    lifetime: 'Lifetime',
+    expiring_soon: 'Expiring Soon',
+    suspended: 'Suspended'
   };
   
   return statuses[status] || status.charAt(0).toUpperCase() + status.slice(1);
@@ -901,24 +988,29 @@ const loadData = async () => {
         availablePlans.value = plansResponse.data.plans;
       }
     } else {
-      // School admin: use the simple usage endpoint
-      const schoolResponse = await fetchSchoolSubscriptionDetails();
-      if (schoolResponse) {
-        // Transform the data to match the expected format
+      // School admin: use the database-driven usage endpoint
+      const usageResponse = await fetchSchoolSubscriptionDetails();
+      if (usageResponse) {
+        // Transform the database-driven data to match the expected format
         school.value = {
           id: schoolId,
           name: user.value?.school_name || 'My School',
           code: user.value?.school_id || '',
-          status: schoolResponse.subscription_status?.status || 'active',
-          subscription_plan: schoolResponse.current_plan,
-          subscription_start_date: new Date().toISOString(),
-          subscription_end_date: new Date().toISOString(),
-          max_students: schoolResponse.plan_details?.max_students,
-          max_staff: schoolResponse.plan_details?.max_staff,
-          max_branches: schoolResponse.plan_details?.max_branches,
-          current_usage: schoolResponse.current_usage,
-          plan_details: schoolResponse.plan_details,
-          modules: schoolResponse.plan_details?.modules || []
+          status: usageResponse.subscription_status?.status || 'active',
+          subscription_plan: usageResponse.current_plan,
+          subscription_start_date: usageResponse.subscription_start_date || new Date().toISOString(),
+          subscription_end_date: usageResponse.subscription_end_date || new Date().toISOString(),
+          max_students: usageResponse.plan_details?.max_students,
+          max_staff: usageResponse.plan_details?.max_staff,
+          max_branches: usageResponse.plan_details?.max_branches,
+          current_usage: usageResponse.current_usage,
+          plan_details: {
+            name: usageResponse.plan_details?.name,
+            price: usageResponse.plan_details?.price,
+            billing_cycle: usageResponse.plan_details?.billing_cycle,
+            modules: usageResponse.plan_details?.modules || []
+          },
+          modules: usageResponse.plan_details?.modules || []
         };
         
         // Load renewal requests for school admin
@@ -952,8 +1044,6 @@ const loadData = async () => {
     if (transactionsResponse) {
       transactions.value = transactionsResponse.data.transactions;
     }
-    
-
     
     // Emit data loaded event
     if (school.value) {

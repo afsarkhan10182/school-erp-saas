@@ -1,33 +1,96 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
+    <!-- Scroll Progress Bar -->
+    <div class="fixed top-0 left-0 w-full h-1 bg-gray-200 dark:bg-gray-700 z-50">
+      <div 
+        class="h-full bg-indigo-600 transition-all duration-150 ease-out"
+        :style="{ width: `${scrollProgress}%` }"
+      ></div>
+    </div>
+    
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <!-- Enhanced Header with Breadcrumb -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          Manage your school configuration and system preferences
-        </p>
-      </div>
-
-      <!-- Settings Navigation -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center space-x-4">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Settings Section:</label>
-            <select 
-              v-model="activeTab" 
-              :disabled="loadingStates[activeTab]"
-              class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option v-for="tab in settingsTabs" :key="tab.id" :value="tab.id">
-                {{ tab.name }}
-              </option>
-            </select>
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <span>Dashboard</span>
+          <ChevronRight class="h-4 w-4" />
+          <span class="text-gray-900 dark:text-white font-medium">Settings</span>
+        </nav>
+        
+        <!-- Main Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+              <Settings class="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-indigo-600" />
+              Settings
+            </h1>
+            <p class="mt-1 sm:mt-2 text-sm text-gray-700 dark:text-gray-300">
+              Manage your school configuration and system preferences
+            </p>
+          </div>
+          
+          <!-- Quick Stats -->
+          <div class="flex items-center space-x-4 sm:space-x-6">
+            <div class="text-center">
+              <div class="text-lg sm:text-2xl font-bold text-indigo-600">{{ settingsTabs.length }}</div>
+              <div class="text-xs text-gray-500">Sections</div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg sm:text-2xl font-bold text-green-600">{{ completedSections }}</div>
+              <div class="text-xs text-gray-500">Configured</div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Settings Content -->
-        <div class="space-y-6">
+      <!-- Clean Tab Navigation -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <!-- Tab Header -->
+        <div class="border-b border-gray-200 dark:border-gray-700">
+          <nav class="flex space-x-1 sm:space-x-4 px-2 sm:px-6 overflow-x-auto scrollbar-hide" aria-label="Settings tabs">
+            <button
+              v-for="tab in settingsTabs"
+              :key="tab.id"
+              @click="activeTab = tab.id"
+              :disabled="loadingStates[tab.id]"
+              :class="[
+                'group relative inline-flex items-center py-3 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+                activeTab === tab.id
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
+                loadingStates[tab.id] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              ]"
+            >
+              <component
+                :is="tab.icon"
+                :class="[
+                  'mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-200',
+                  activeTab === tab.id
+                    ? 'text-indigo-500 dark:text-indigo-400'
+                    : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-400'
+                ]"
+              />
+              <span class="hidden sm:inline">{{ tab.name }}</span>
+              
+              <!-- Status indicators -->
+              <span
+                v-if="loadingStates[tab.id]"
+                class="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600"
+              ></span>
+              <CheckCircle
+                v-else-if="getTabProgress(tab.id) === 100"
+                class="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500"
+              />
+            </button>
+          </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-4 sm:p-6">
+          <!-- Settings Content with transition -->
+          <transition name="tab-fade" mode="out-in">
+            <div key="activeTab" class="space-y-4 sm:space-y-6">
           <!-- School Information Tab -->
           <div v-if="activeTab === 'school'" class="space-y-6">
             <!-- Loading State -->
@@ -350,35 +413,11 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">General Fee Settings</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Currency</label>
-                    <select v-model="feeSettings.defaultCurrency" class="input-field">
-                      <option value="INR">Indian Rupee (₹)</option>
-                      <option value="USD">US Dollar ($)</option>
-                      <option value="EUR">Euro (€)</option>
-                      <option value="GBP">British Pound (£)</option>
-                      <option value="AED">UAE Dirham (د.إ)</option>
-                    </select>
-                  </div>
-                  <div>
                     <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency Symbol</label>
                     <input v-model="feeSettings.currencySymbol" type="text" class="input-field" placeholder="₹" maxlength="5" />
-                  </div>
-                  <div>
-                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Academic Year Start Month</label>
-                    <select v-model="feeSettings.academicYearStartMonth" class="input-field">
-                      <option value="1">January</option>
-                      <option value="2">February</option>
-                      <option value="3">March</option>
-                      <option value="4">April</option>
-                      <option value="5">May</option>
-                      <option value="6">June</option>
-                      <option value="7">July</option>
-                      <option value="8">August</option>
-                      <option value="9">September</option>
-                      <option value="10">October</option>
-                      <option value="11">November</option>
-                      <option value="12">December</option>
-                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Currency is set in School Information tab
+                    </p>
                   </div>
                   <div>
                     <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Payment Due Days</label>
@@ -559,12 +598,12 @@
             </div>
           </div>
 
-          <!-- Receipt Customization Tab -->
-          <div v-if="activeTab === 'receipts'" class="space-y-6">
+          <!-- Branding & Receipt Tab -->
+          <div v-if="activeTab === 'branding'" class="space-y-6">
             <!-- Loading State -->
-            <div v-if="loadingStates.receipts" class="flex justify-center items-center py-12">
+            <div v-if="loadingStates.branding" class="flex justify-center items-center py-12">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading receipt settings...</span>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading branding settings...</span>
             </div>
             
             <!-- Content -->
@@ -715,26 +754,114 @@
               <!-- Save Button -->
               <div class="flex justify-end">
                 <button 
-                  @click="saveReceiptSettings" 
+                  @click="saveBrandingSettings" 
                   class="btn-primary"
-                  :disabled="isSavingReceipts"
+                  :disabled="isSavingBranding"
                 >
-                  <span v-if="isSavingReceipts">Saving...</span>
-                  <span v-else>Save Receipt Settings</span>
+                  <span v-if="isSavingBranding">Saving...</span>
+                  <span v-else>Save Branding Settings</span>
                 </button>
               </div>
             </div>
           </div>
 
           <!-- System Preferences Tab -->
-          <div v-if="activeTab === 'system'" class="space-y-4 sm:space-y-6">
-            <div class="text-center py-12">
-              <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                <Settings class="w-12 h-12 text-gray-400" />
+          <div v-if="activeTab === 'system'" class="space-y-6">
+            <!-- Loading State -->
+            <div v-if="loadingStates.system" class="flex justify-center items-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <span class="ml-3 text-gray-600 dark:text-gray-400">Loading system preferences...</span>
               </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">System Preferences</h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm sm:text-base">Configure system settings, appearance, and general preferences.</p>
-              <p class="text-sm text-gray-500 dark:text-gray-500">Coming Soon</p>
+            
+            <!-- Content -->
+            <div v-else class="space-y-6">
+              <!-- Language & Localization -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Language & Localization</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Language</label>
+                    <select v-model="systemSettings.defaultLanguage" class="input-field">
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="hi">Hindi</option>
+                      <option value="ar">Arabic</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Time Format</label>
+                    <select v-model="systemSettings.timeFormat" class="input-field">
+                      <option value="12h">12 Hour (AM/PM)</option>
+                      <option value="24h">24 Hour</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Appearance Settings -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Theme</label>
+                    <select v-model="systemSettings.defaultTheme" class="input-field">
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                      <option value="auto">Auto (System)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Default Pagination Size</label>
+                    <select v-model="systemSettings.defaultPaginationSize" class="input-field">
+                      <option value="10">10 rows</option>
+                      <option value="25">25 rows</option>
+                      <option value="50">50 rows</option>
+                      <option value="100">100 rows</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Module Management -->
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Module Management</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Enable or disable system modules based on your school's needs</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.hostel" type="checkbox" id="hostel" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="hostel" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Hostel Management</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.transport" type="checkbox" id="transport" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="transport" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Transport Management</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.library" type="checkbox" id="library" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="library" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Library Management</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.inventory" type="checkbox" id="inventory" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="inventory" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Inventory Management</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.cafeteria" type="checkbox" id="cafeteria" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="cafeteria" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Cafeteria Management</label>
+                  </div>
+                  <div class="flex items-center">
+                    <input v-model="systemSettings.enabledModules.visitors" type="checkbox" id="visitors" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                    <label for="visitors" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Visitor Management</label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="flex justify-end">
+                <button @click="saveSystemSettings" class="btn-primary" :disabled="isSavingSystem">
+                  {{ isSavingSystem ? 'Saving...' : 'Save System Preferences' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -785,60 +912,113 @@
               <p class="text-sm text-gray-500 dark:text-gray-500">Coming Soon</p>
             </div>
           </div>
-
-          <!-- User Profile Tab -->
-          <div v-if="activeTab === 'profile'" class="space-y-4 sm:space-y-6">
-            <div class="text-center py-12">
-              <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                <User class="w-12 h-12 text-gray-400" />
               </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">User Profile</h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm sm:text-base">Manage your personal profile and preferences.</p>
-              <p class="text-sm text-gray-500 dark:text-gray-500">Coming Soon</p>
-            </div>
-          </div>
-
-          <!-- Module Management Tab -->
-          <div v-if="activeTab === 'modules'" class="space-y-4 sm:space-y-6">
-            <div class="text-center py-12">
-              <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-6">
-                <Puzzle class="w-12 h-12 text-gray-400" />
-              </div>
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Module Management</h3>
-              <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm sm:text-base">Manage system modules and subscriptions.</p>
-              <p class="text-sm text-gray-500 dark:text-gray-500">Coming Soon</p>
-            </div>
-          </div>
+          </transition>
         </div>
       </div>
 
       <!-- Quick Actions -->
       <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <button @click="exportSettings" class="btn-secondary">
-            <Download class="w-4 h-4 mr-2" />
-            <span class="hidden sm:inline">Export Settings</span>
-            <span class="sm:hidden">Export</span>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-4">
+          <div>
+            <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+              <Zap class="h-5 w-5 sm:h-6 sm:w-6 mr-2 text-indigo-600" />
+              Quick Actions
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage your settings efficiently</p>
+          </div>
+          <div class="flex items-center space-x-2 text-sm text-gray-500">
+            <Clock class="h-4 w-4" />
+            <span>Last saved: {{ lastSavedTime }}</span>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <button @click="exportSettings" class="group bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-all duration-200 hover:shadow-sm">
+            <div class="flex flex-col items-center text-center">
+              <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors mb-2">
+                <Download class="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div class="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">Export</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Download</div>
+            </div>
           </button>
-          <button @click="importSettings" class="btn-secondary">
-            <Upload class="w-4 h-4 mr-2" />
-            <span class="hidden sm:inline">Import Settings</span>
-            <span class="sm:hidden">Import</span>
+          
+          <button @click="importSettings" class="group bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm">
+            <div class="flex flex-col items-center text-center">
+              <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors mb-2">
+                <Upload class="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div class="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">Import</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Upload</div>
+            </div>
           </button>
-          <button @click="resetToDefaults" class="btn-secondary sm:col-span-2 lg:col-span-1">
-            <RotateCcw class="w-4 h-4 mr-2" />
-            <span class="hidden sm:inline">Reset to Defaults</span>
-            <span class="sm:hidden">Reset</span>
+          
+          <button @click="resetToDefaults" class="group bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-500 transition-all duration-200 hover:shadow-sm">
+            <div class="flex flex-col items-center text-center">
+              <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors mb-2">
+                <RotateCcw class="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div class="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">Reset</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Defaults</div>
+            </div>
+          </button>
+          
+          <button @click="showSettingsHelp" class="group bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-200 hover:shadow-sm">
+            <div class="flex flex-col items-center text-center">
+              <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors mb-2">
+                <HelpCircle class="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div class="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">Help</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Assistance</div>
+            </div>
           </button>
         </div>
       </div>
+
+      <!-- Scroll to Top Button -->
+      <transition name="fade">
+        <div v-if="showScrollButton" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+          <button
+            @click="scrollToTop"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 sm:p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            title="Scroll to top"
+          >
+            <ChevronUp class="h-4 w-4 sm:h-6 sm:w-6" />
+          </button>
+        </div>
+      </transition>
+
+      <!-- Progress Notification -->
+      <transition name="slide-up">
+        <div
+          v-if="completedSections > 0"
+          class="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 max-w-xs sm:max-w-sm"
+        >
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <CheckCircle class="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
+            </div>
+            <div class="ml-2 sm:ml-3">
+              <p class="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">
+                {{ completedSections }}/{{ settingsTabs.length }} configured
+              </p>
+              <div class="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
+                <div
+                  class="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                  :style="{ width: `${(completedSections / settingsTabs.length) * 100}%` }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { createApiInstance } from '~/utils/api';
@@ -855,7 +1035,14 @@ import {
   Upload,
   RotateCcw,
   User,
-  Puzzle
+  Puzzle,
+  ChevronRight,
+  CheckCircle,
+  AlertCircle,
+  Zap,
+  Clock,
+  HelpCircle,
+  ChevronUp
 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
@@ -865,22 +1052,33 @@ const { showToast } = useToast();
 const activeTab = ref('school');
 const isSaving = ref(false);
 const isSavingAcademic = ref(false);
-const isSavingReceipts = ref(false);
+const isSavingBranding = ref(false);
 const isSavingFees = ref(false);
+const isSavingSystem = ref(false);
+const lastSavedTime = ref('Never');
+const tabProgress = reactive({
+  school: 0,
+  academic: 0,
+  fees: 0,
+  branding: 0,
+  system: 0,
+  notifications: 0,
+  security: 0,
+  integrations: 0,
+  backup: 0
+});
 
 // Loading states for each tab
 const loadingStates = reactive({
   school: false,
   academic: false,
   fees: false,
-  receipts: false,
+  branding: false,
   system: false,
   notifications: false,
   security: false,
   integrations: false,
-  backup: false,
-  profile: false,
-  modules: false
+  backup: false
 });
 
 // Data cache to avoid reloading
@@ -888,7 +1086,7 @@ const dataCache = reactive({
   school: null,
   academic: null,
   fees: null,
-  receipts: null,
+  branding: null,
   system: null
 });
 
@@ -981,9 +1179,7 @@ const branches = ref([]);
 
 // Fee Configuration Data
 const feeSettings = reactive({
-  defaultCurrency: 'INR',
   currencySymbol: '₹',
-  academicYearStartMonth: 6,
   defaultPaymentDueDays: 15,
   defaultPaymentModel: 'monthly',
   defaultInstallmentsCount: 4,
@@ -1020,8 +1216,67 @@ const feeSettings = reactive({
   }
 });
 
+// System Settings Data
+const systemSettings = reactive({
+  defaultLanguage: 'en',
+  timeFormat: '12h',
+  defaultTheme: 'light',
+  defaultPaginationSize: 25,
+  enabledModules: {
+    hostel: false,
+    transport: false,
+    library: false,
+    inventory: false,
+    cafeteria: false,
+    visitors: true
+  }
+});
+
 // Computed properties
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
+
+const completedSections = computed(() => {
+  return Object.values(tabProgress).filter(progress => progress === 100).length;
+});
+
+// Methods
+const getTabProgress = (tabId) => {
+  return tabProgress[tabId] || 0;
+};
+
+const updateLastSavedTime = () => {
+  const now = new Date();
+  lastSavedTime.value = now.toLocaleTimeString();
+};
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Show/hide scroll button based on scroll position
+const showScrollButton = ref(false);
+const scrollProgress = ref(0);
+
+const handleScroll = () => {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const scrollPercent = (scrollTop / docHeight) * 100;
+  
+  showScrollButton.value = scrollTop > 300;
+  scrollProgress.value = Math.min(scrollPercent, 100);
+};
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
+
+const showSettingsHelp = () => {
+  showToast('Help documentation will be available soon!', 'info');
+};
 
 // Settings tabs configuration
 const settingsTabs = computed(() => {
@@ -1038,12 +1293,12 @@ const settingsTabs = computed(() => {
     },
     {
       id: 'fees',
-      name: 'Fee Configuration',
+      name: 'Fee & Finance Settings',
       icon: DollarSign
     },
     {
-      id: 'receipts',
-      name: 'Receipt Customization',
+      id: 'branding',
+      name: 'Branding & Receipt',
       icon: Receipt
     },
     {
@@ -1070,19 +1325,8 @@ const settingsTabs = computed(() => {
       id: 'backup',
       name: 'Backup & Export',
       icon: Download
-    },
-    {
-      id: 'profile',
-      name: 'User Profile',
-      icon: User
     }
   ];
-
-  // Add module management for super admin
-  if (isSuperAdmin.value) {
-    // Module management is now handled through subscription plans
-    // No separate module management needed
-  }
 
   return tabs;
 });
@@ -1108,7 +1352,7 @@ const loadTabData = async (tabName) => {
 
     switch (tabName) {
       case 'school':
-        response = await api.get('/school/configuration');
+        response = await api.get('/settings/school');
         if (response.data.success) {
           Object.assign(schoolInfo, response.data.data.schoolInfo || {});
           Object.assign(contactInfo, response.data.data.contactInfo || {});
@@ -1118,7 +1362,7 @@ const loadTabData = async (tabName) => {
         break;
 
       case 'academic':
-        response = await api.get('/academic/settings');
+        response = await api.get('/settings/academic');
         if (response.data.success) {
           Object.assign(academicYear, response.data.data.academicYear || {});
           Object.assign(termSettings, response.data.data.termSettings || {});
@@ -1130,15 +1374,15 @@ const loadTabData = async (tabName) => {
         break;
 
       case 'fees':
-        response = await api.get('/school/configuration/fee-settings');
+        response = await api.get('/settings/fee');
         if (response.data.success) {
           Object.assign(feeSettings, response.data.data.feeSettings || {});
           dataCache.fees = true;
         }
         break;
 
-      case 'receipts':
-        response = await api.get('/school/configuration/receipt-settings');
+      case 'branding':
+        response = await api.get('/settings/branding');
         if (response.data.success) {
           const settings = response.data.data.receiptSettings || {};
           Object.assign(receiptSettings, {
@@ -1150,13 +1394,16 @@ const loadTabData = async (tabName) => {
             ...branch,
             receiptLogoFile: null
           }));
-          dataCache.receipts = true;
+          dataCache.branding = true;
         }
         break;
 
       case 'system':
-        // TODO: Implement when system settings endpoint is ready
+        response = await api.get('/settings/system');
+        if (response.data.success) {
+          Object.assign(systemSettings, response.data.data.systemSettings || {});
         dataCache.system = true;
+        }
         break;
 
       case 'notifications':
@@ -1177,16 +1424,6 @@ const loadTabData = async (tabName) => {
       case 'backup':
         // TODO: Implement when backup endpoint is ready
         dataCache.backup = true;
-        break;
-
-      case 'profile':
-        // TODO: Implement when profile endpoint is ready
-        dataCache.profile = true;
-        break;
-
-      case 'modules':
-        // TODO: Implement when modules endpoint is ready
-        dataCache.modules = true;
         break;
 
       default:
@@ -1229,7 +1466,7 @@ const saveSchoolSettings = async () => {
     }
 
     const api = createApiInstance();
-    const response = await api.put('/school/configuration', {
+    const response = await api.put('/settings/school', {
       schoolInfo,
       contactInfo,
       operationalSettings
@@ -1239,6 +1476,9 @@ const saveSchoolSettings = async () => {
       showToast('School settings saved successfully', 'success');
       // Clear cache to ensure fresh data on next load
       dataCache.school = null;
+      // Update progress and last saved time
+      tabProgress.school = 100;
+      updateLastSavedTime();
     }
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -1269,7 +1509,7 @@ const saveAcademicSettings = async () => {
     }
 
     const api = createApiInstance();
-    const response = await api.put('/academic/settings', {
+    const response = await api.put('/settings/academic', {
       academicYear,
       termSettings,
       gradingSystem,
@@ -1281,6 +1521,9 @@ const saveAcademicSettings = async () => {
       showToast('Academic settings saved successfully', 'success');
       // Clear cache to ensure fresh data on next load
       dataCache.academic = null;
+      // Update progress and last saved time
+      tabProgress.academic = 100;
+      updateLastSavedTime();
     }
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -1348,8 +1591,8 @@ const getImageUrl = (filename) => {
   return `${backendBase}/uploads/logos/${filename}`;
 };
 
-const saveReceiptSettings = async () => {
-  isSavingReceipts.value = true;
+const saveBrandingSettings = async () => {
+  isSavingBranding.value = true;
   try {
     // Check if user is authenticated
     if (!authStore.isLoggedIn) {
@@ -1391,25 +1634,28 @@ const saveReceiptSettings = async () => {
       }
     });
     
-    const response = await api.put('/school/configuration/receipt-settings', formData, {
+    const response = await api.put('/settings/branding', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
     
     if (response.data.success) {
-      showToast('Receipt settings saved successfully', 'success');
+      showToast('Branding settings saved successfully', 'success');
       // Clear cache to ensure fresh data on next load
-      dataCache.receipts = null;
+      dataCache.branding = null;
+      // Update progress and last saved time
+      tabProgress.branding = 100;
+      updateLastSavedTime();
     }
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {
       showToast('Authentication required to save settings', 'error');
     } else {
-      showToast('Failed to save receipt settings', 'error');
+      showToast('Failed to save branding settings', 'error');
     }
   } finally {
-    isSavingReceipts.value = false;
+    isSavingBranding.value = false;
   }
 };
 
@@ -1429,7 +1675,7 @@ const saveFeeSettings = async () => {
     }
 
     const api = createApiInstance();
-          const response = await api.put('/school/configuration/fee-settings', {
+    const response = await api.put('/settings/fee', {
       feeSettings
     });
     
@@ -1437,6 +1683,9 @@ const saveFeeSettings = async () => {
       showToast('Fee configuration saved successfully', 'success');
       // Clear cache to ensure fresh data on next load
       dataCache.fees = null;
+      // Update progress and last saved time
+      tabProgress.fees = 100;
+      updateLastSavedTime();
     }
   } catch (error) {
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -1449,7 +1698,44 @@ const saveFeeSettings = async () => {
   }
 };
 
+const saveSystemSettings = async () => {
+  isSavingSystem.value = true;
+  try {
+    // Check if user is authenticated
+    if (!authStore.isLoggedIn) {
+      showToast('Please log in to save settings', 'error');
+      return;
+    }
 
+    // Check if user has required role
+    if (!authStore.isSchoolAdmin && !authStore.isSuperAdmin) {
+      showToast('You do not have permission to save settings', 'error');
+      return;
+    }
+
+    const api = createApiInstance();
+    const response = await api.put('/settings/system', {
+      systemSettings
+    });
+    
+    if (response.data.success) {
+      showToast('System preferences saved successfully', 'success');
+      // Clear cache to ensure fresh data on next load
+      dataCache.system = null;
+      // Update progress and last saved time
+      tabProgress.system = 100;
+      updateLastSavedTime();
+    }
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      showToast('Authentication required to save settings', 'error');
+    } else {
+      showToast('Failed to save system preferences', 'error');
+    }
+  } finally {
+    isSavingSystem.value = false;
+  }
+};
 
 const importSettings = () => {
   showToast('Import functionality will be implemented', 'info');
@@ -1567,5 +1853,127 @@ watch(() => authStore.isLoggedIn, (isLoggedIn) => {
 
 .btn-primary {
   @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Tab transition animations */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* GitHub-style tab improvements */
+.tab-fade-enter-active {
+  transition-delay: 0.1s;
+}
+
+/* Enhanced animations */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Enhanced hover effects */
+.group:hover .group-hover\:scale-105 {
+  transform: scale(1.05);
+}
+
+.group:hover .group-hover\:scale-110 {
+  transform: scale(1.1);
+}
+
+/* Floating action button animation */
+.fixed button:hover {
+  animation: bounce 0.6s ease-in-out;
+}
+
+/* Progress indicator animation */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced focus states */
+button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Slide up transition for notifications */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Fade transition for scroll button */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
