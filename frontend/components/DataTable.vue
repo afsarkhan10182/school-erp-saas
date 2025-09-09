@@ -10,8 +10,8 @@
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-700">
           <tr>
-            <th 
-              v-for="column in columns" 
+            <th
+              v-for="column in columns"
               :key="column.key"
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
             >
@@ -20,13 +20,13 @@
           </tr>
         </thead>
         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          <tr 
-            v-for="(item, index) in paginatedItems" 
-            :key="index" 
+          <tr
+            v-for="(item, index) in paginatedItems"
+            :key="index"
             class="hover:bg-gray-50 dark:hover:bg-gray-700"
           >
-            <td 
-              v-for="column in columns" 
+            <td
+              v-for="column in columns"
               :key="column.key"
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
             >
@@ -37,10 +37,7 @@
                 {{ formatDate(item[column.key]) }}
               </span>
               <span v-else-if="column.key === 'status'">
-                <StatusBadge 
-                  :status="item[column.key]" 
-                  :type="getStatusType(item)"
-                />
+                <StatusBadge :status="item[column.key]" :type="getStatusType(item)" />
               </span>
               <span v-else>
                 {{ item[column.key] || '-' }}
@@ -50,9 +47,9 @@
         </tbody>
       </table>
     </div>
-    
+
     <!-- Pagination using common component -->
-    <Pagination 
+    <Pagination
       v-if="pagination && pagination.total > 0"
       :pagination="pagination"
       @page-changed="$emit('page-change', $event)"
@@ -63,9 +60,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import StatusBadge from '~/components/ui/StatusBadge.vue'
-import Pagination from '~/components/Pagination.vue'
+import { computed } from 'vue';
+import StatusBadge from '~/components/ui/StatusBadge.vue';
+import Pagination from '~/components/Pagination.vue';
 
 const props = defineProps({
   items: {
@@ -103,16 +100,21 @@ const getNestedValue = (obj, path) => {
   }, obj);
 };
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('en-IN');
-}
+};
 
-const getStatusType = (item) => {
+const getStatusType = item => {
   // Determine status badge type based on item context
-  if (item.attendance_type !== undefined || item.session_id !== undefined || (item.status && ['present', 'absent', 'late', 'excused'].includes(item.status))) return 'attendance'
-  if (item.invoice_id !== undefined) return 'invoice'
-  if (item.payment_id !== undefined) return 'payment'
-  return 'general'
-}
+  if (
+    item.attendance_type !== undefined ||
+    item.session_id !== undefined ||
+    (item.status && ['present', 'absent', 'late', 'excused'].includes(item.status))
+  )
+    return 'attendance';
+  if (item.invoice_id !== undefined) return 'invoice';
+  if (item.payment_id !== undefined) return 'payment';
+  return 'general';
+};
 </script>

@@ -41,9 +41,9 @@
           </label>
           <select v-model="filters.class_id" class="input-field" @change="loadMappings">
             <option value="">All Classes</option>
-            <option 
-              v-for="classOption in classOptions" 
-              :key="classOption.value" 
+            <option
+              v-for="classOption in classOptions"
+              :key="classOption.value"
               :value="classOption.value"
             >
               {{ classOption.label }}
@@ -58,11 +58,7 @@
           </label>
           <select v-model="filters.academic_year" class="input-field" @change="loadMappings">
             <option value="">All Years</option>
-            <option 
-              v-for="year in academicYearOptions" 
-              :key="year.value" 
-              :value="year.value"
-            >
+            <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
               {{ year.label }}
             </option>
           </select>
@@ -108,34 +104,54 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Name
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Code
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Class
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Academic Year
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Subjects
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Credit Hours
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Status
                 </th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="mapping in mappings" :key="mapping.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr
+                v-for="mapping in mappings"
+                :key="mapping.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ mapping.name }}
@@ -145,7 +161,9 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                  >
                     {{ mapping.code }}
                   </span>
                 </td>
@@ -164,8 +182,16 @@
                   <div class="text-sm text-gray-900 dark:text-white">
                     {{ mapping.subjects?.length || 0 }} subjects
                   </div>
-                  <div v-if="mapping.subjects?.length" class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ mapping.subjects.slice(0, 2).map(s => s.name).join(', ') }}
+                  <div
+                    v-if="mapping.subjects?.length"
+                    class="text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    {{
+                      mapping.subjects
+                        .slice(0, 2)
+                        .map(s => s.name)
+                        .join(', ')
+                    }}
                     <span v-if="mapping.subjects.length > 2">...</span>
                   </div>
                 </td>
@@ -217,9 +243,9 @@
           {{ isEditing ? 'Edit Class-Subject Mapping' : 'Create Class-Subject Mapping' }}
         </h3>
       </template>
-      
+
       <template #body>
-        <ClassSubjectMappingForm 
+        <ClassSubjectMappingForm
           :mapping="editingMapping"
           :class-options="classOptions"
           :subject-options="subjectOptions"
@@ -233,42 +259,42 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useToast } from '~/composables/useToast'
-import { useDropdowns } from '~/composables/useDropdowns'
-import { useAcademics } from '~/composables/useAcademics'
-import { useFormatters } from '~/composables/useFormatters'
-import { classSubjectMappingApi } from '~/api/academic/class-subject-mapping'
-import { subjectApi } from '~/api/academic/subjects'
-import Modal from '~/components/Modal.vue'
-import Pagination from '~/components/Pagination.vue'
-import ClassSubjectMappingForm from '~/components/forms/ClassSubjectMappingForm.vue'
-import { Plus, BookOpen, Edit, Trash2 } from 'lucide-vue-next'
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { useDropdowns } from '~/composables/useDropdowns';
+import { useAcademics } from '~/composables/useAcademics';
+import { useFormatters } from '~/composables/useFormatters';
+import { classSubjectMappingApi } from '~/api/academic/class-subject-mapping';
+import { subjectApi } from '~/api/academic/subjects';
+import Modal from '~/components/Modal.vue';
+import Pagination from '~/components/Pagination.vue';
+import ClassSubjectMappingForm from '~/components/forms/ClassSubjectMappingForm.vue';
+import { Plus, BookOpen, Edit, Trash2 } from 'lucide-vue-next';
 
 // Composables
-const { showToast } = useToast()
-const { getStatusBadgeClass } = useFormatters()
-const { 
-  classes: classOptions, 
+const { showToast } = useToast();
+const { getStatusBadgeClass } = useFormatters();
+const {
+  classes: classOptions,
   loadClasses,
   subjects: subjectOptions,
   loadSubjects
-} = useDropdowns()
-const { academicYears, fetchAcademicYears } = useAcademics()
+} = useDropdowns();
+const { academicYears, fetchAcademicYears } = useAcademics();
 
 // Reactive data
-const loading = ref(false)
-const mappings = ref([])
-const showCreateModal = ref(false)
-const isEditing = ref(false)
-const editingMapping = ref(null)
+const loading = ref(false);
+const mappings = ref([]);
+const showCreateModal = ref(false);
+const isEditing = ref(false);
+const editingMapping = ref(null);
 
 // Filters
 const filters = ref({
   search: '',
   class_id: '',
   academic_year: ''
-})
+});
 
 // Pagination
 const pagination = ref({
@@ -276,121 +302,116 @@ const pagination = ref({
   limit: 10,
   total: 0,
   totalPages: 0
-})
+});
 
 // Computed
 const academicYearOptions = computed(() => {
   return academicYears.value.map(year => ({
     value: year.name,
     label: year.name + (year.is_current ? ' (Current)' : '')
-  }))
-})
+  }));
+});
 
 // Methods
 const loadMappings = async () => {
   try {
-    loading.value = true
+    loading.value = true;
     const response = await classSubjectMappingApi.getAll({
       ...filters.value,
       page: pagination.value.page,
       limit: pagination.value.limit
-    })
-    
-    mappings.value = response.data.mappings
-    pagination.value = response.data.pagination
+    });
+
+    mappings.value = response.data.mappings;
+    pagination.value = response.data.pagination;
   } catch (error) {
-    showToast('Failed to load class-subject mappings', 'error')
-    console.error('Error loading mappings:', error)
+    showToast('Failed to load class-subject mappings', 'error');
+    console.error('Error loading mappings:', error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const debouncedSearch = debounce(() => {
-  pagination.value.page = 1
-  loadMappings()
-}, 500)
+  pagination.value.page = 1;
+  loadMappings();
+}, 500);
 
 const resetFilters = () => {
   filters.value = {
     search: '',
     class_id: '',
     academic_year: ''
-  }
-  pagination.value.page = 1
-  loadMappings()
-}
+  };
+  pagination.value.page = 1;
+  loadMappings();
+};
 
-const handlePageChange = (page) => {
-  pagination.value.page = page
-  loadMappings()
-}
+const handlePageChange = page => {
+  pagination.value.page = page;
+  loadMappings();
+};
 
-const editMapping = (mapping) => {
-  isEditing.value = true
-  editingMapping.value = mapping
-  showCreateModal.value = true
-}
+const editMapping = mapping => {
+  isEditing.value = true;
+  editingMapping.value = mapping;
+  showCreateModal.value = true;
+};
 
-const deleteMapping = async (mapping) => {
+const deleteMapping = async mapping => {
   if (!confirm(`Are you sure you want to delete the mapping "${mapping.name}"?`)) {
-    return
+    return;
   }
 
   try {
-    await classSubjectMappingApi.delete(mapping.id)
-    showToast('Class-subject mapping deleted successfully', 'success')
-    loadMappings()
+    await classSubjectMappingApi.delete(mapping.id);
+    showToast('Class-subject mapping deleted successfully', 'success');
+    loadMappings();
   } catch (error) {
-    showToast('Failed to delete class-subject mapping', 'error')
-    console.error('Error deleting mapping:', error)
+    showToast('Failed to delete class-subject mapping', 'error');
+    console.error('Error deleting mapping:', error);
   }
-}
+};
 
-const handleMappingSubmit = async (formData) => {
+const handleMappingSubmit = async formData => {
   try {
     if (isEditing.value) {
-      await classSubjectMappingApi.update(editingMapping.value.id, formData)
-      showToast('Class-subject mapping updated successfully', 'success')
+      await classSubjectMappingApi.update(editingMapping.value.id, formData);
+      showToast('Class-subject mapping updated successfully', 'success');
     } else {
-      await classSubjectMappingApi.create(formData)
-      showToast('Class-subject mapping created successfully', 'success')
+      await classSubjectMappingApi.create(formData);
+      showToast('Class-subject mapping created successfully', 'success');
     }
-    
-    closeModal()
-    loadMappings()
+
+    closeModal();
+    loadMappings();
   } catch (error) {
-    showToast(`Failed to ${isEditing.value ? 'update' : 'create'} class-subject mapping`, 'error')
-    console.error('Error submitting mapping:', error)
+    showToast(`Failed to ${isEditing.value ? 'update' : 'create'} class-subject mapping`, 'error');
+    console.error('Error submitting mapping:', error);
   }
-}
+};
 
 const closeModal = () => {
-  showCreateModal.value = false
-  isEditing.value = false
-  editingMapping.value = null
-}
+  showCreateModal.value = false;
+  isEditing.value = false;
+  editingMapping.value = null;
+};
 
 // Debounce utility
 function debounce(func, wait) {
-  let timeout
+  let timeout;
   return function executedFunction(...args) {
     const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 // Initialize
 onMounted(async () => {
-  await Promise.all([
-    loadClasses(),
-    loadSubjects(),
-    fetchAcademicYears(),
-    loadMappings()
-  ])
-})
+  await Promise.all([loadClasses(), loadSubjects(), fetchAcademicYears(), loadMappings()]);
+});
 </script>

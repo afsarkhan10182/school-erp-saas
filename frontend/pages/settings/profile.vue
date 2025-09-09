@@ -4,16 +4,15 @@
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Profile & Settings</h1>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage your profile and subscription settings</p>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+          Manage your profile and subscription settings
+        </p>
       </div>
 
       <!-- Tab Navigation -->
       <div class="mb-6">
         <nav class="flex space-x-8 border-b border-gray-200 dark:border-gray-700">
-          <button
-            @click="activeTab = 'profile'"
-            :class="tabButtonClasses(activeTab === 'profile')"
-          >
+          <button @click="activeTab = 'profile'" :class="tabButtonClasses(activeTab === 'profile')">
             <User class="inline-block w-4 h-4 mr-2" />
             Profile
           </button>
@@ -41,31 +40,34 @@
           <form @submit.prevent="updateProfile">
             <!-- Profile Picture -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Picture</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Profile Picture</label
+              >
               <div class="flex items-center space-x-4">
                 <div class="flex-shrink-0">
-                  <img 
-                    v-if="form.profilePreview || user?.profile_image" 
-                    :src="form.profilePreview || uploadsUrl(user?.profile_image)" 
+                  <img
+                    v-if="form.profilePreview || user?.profile_image"
+                    :src="form.profilePreview || uploadsUrl(user?.profile_image)"
                     :key="user?.profile_image || 'default'"
-                    alt="Profile" 
+                    alt="Profile"
                     class="h-16 w-16 rounded-full object-cover"
                   />
-                  <div v-else class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                  <div
+                    v-else
+                    class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"
+                  >
                     <User class="h-8 w-8 text-gray-400" />
                   </div>
-                  
-
                 </div>
                 <div>
-                  <input 
+                  <input
                     ref="fileInput"
-                    type="file" 
-                    accept="image/*" 
-                    class="hidden" 
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
                     @change="onFileChange"
                   />
-                  <button 
+                  <button
                     type="button"
                     @click="$refs.fileInput.click()"
                     :disabled="loading"
@@ -82,20 +84,24 @@
             <!-- Personal Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
-                <input 
-                  v-model="form.first_name" 
-                  type="text" 
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >First Name *</label
+                >
+                <input
+                  v-model="form.first_name"
+                  type="text"
                   required
                   :class="inputClasses"
                   placeholder="Enter first name"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
-                <input 
-                  v-model="form.last_name" 
-                  type="text" 
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Last Name *</label
+                >
+                <input
+                  v-model="form.last_name"
+                  type="text"
                   required
                   :class="inputClasses"
                   placeholder="Enter last name"
@@ -105,20 +111,24 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
-                <input 
-                  v-model="form.email" 
-                  type="email" 
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Email *</label
+                >
+                <input
+                  v-model="form.email"
+                  type="email"
                   required
                   :class="inputClasses"
                   placeholder="Enter email address"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                <input 
-                  v-model="form.phone" 
-                  type="tel" 
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Phone Number</label
+                >
+                <input
+                  v-model="form.phone"
+                  type="tel"
                   :class="inputClasses"
                   placeholder="Enter phone number"
                   @input="form.phone = form.phone.replace(/[^\d+]/g, '')"
@@ -128,10 +138,12 @@
 
             <!-- Role Information (Read-only) -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-              <input 
-                :value="formatRole(user?.role)" 
-                type="text" 
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Role</label
+              >
+              <input
+                :value="formatRole(user?.role)"
+                type="text"
                 readonly
                 :class="readonlyInputClasses"
               />
@@ -139,33 +151,23 @@
 
             <!-- School Information (Read-only) -->
             <div v-if="user?.school_name" class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School</label>
-              <input 
-                :value="user.school_name" 
-                type="text" 
-                readonly
-                :class="readonlyInputClasses"
-              />
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >School</label
+              >
+              <input :value="user.school_name" type="text" readonly :class="readonlyInputClasses" />
             </div>
 
             <!-- Branch Information (Read-only) -->
             <div v-if="user?.branch_name" class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch</label>
-              <input 
-                :value="user.branch_name" 
-                type="text" 
-                readonly
-                :class="readonlyInputClasses"
-              />
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Branch</label
+              >
+              <input :value="user.branch_name" type="text" readonly :class="readonlyInputClasses" />
             </div>
 
             <!-- Submit Button -->
             <div class="flex justify-end">
-              <button 
-                type="submit" 
-                :disabled="loading"
-                :class="submitButtonClasses('blue')"
-              >
+              <button type="submit" :disabled="loading" :class="submitButtonClasses('blue')">
                 <Loader2 v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4" />
                 {{ loading ? 'Updating...' : 'Update Profile' }}
               </button>
@@ -175,9 +177,12 @@
       </div>
 
       <!-- Subscription Tab -->
-      <div v-else-if="activeTab === 'subscription' && canViewSubscription" class="bg-white dark:bg-gray-800 shadow rounded-lg">
+      <div
+        v-else-if="activeTab === 'subscription' && canViewSubscription"
+        class="bg-white dark:bg-gray-800 shadow rounded-lg"
+      >
         <div class="px-4 py-5 sm:p-6">
-          <SubscriptionDetails 
+          <SubscriptionDetails
             :school-id="authStore.user.school_id"
             title="My Plan"
             subtitle="Your subscription overview"
@@ -198,10 +203,12 @@
         <div class="px-4 py-5 sm:p-6">
           <form @submit.prevent="changePassword">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Change Password</h3>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Current Password *</label
+                >
                 <input
                   v-model="passwordForm.currentPassword"
                   type="password"
@@ -211,7 +218,9 @@
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >New Password *</label
+                >
                 <input
                   v-model="passwordForm.newPassword"
                   type="password"
@@ -221,9 +230,11 @@
                 />
               </div>
             </div>
-            
+
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Confirm New Password *</label
+              >
               <input
                 v-model="passwordForm.confirmPassword"
                 type="password"
@@ -232,10 +243,10 @@
                 placeholder="Confirm new password"
               />
             </div>
-            
+
             <div class="flex justify-end">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 :disabled="changingPassword"
                 :class="submitButtonClasses('red')"
               >
@@ -251,24 +262,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next'
-import { useAuthStore } from '~/stores/auth'
-import { useToast } from '~/composables/useToast'
-import SubscriptionDetails from '~/components/SubscriptionDetails.vue'
-import { Users } from '~/api'
+import { ref, computed, onMounted } from 'vue';
+import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
+import { useAuthStore } from '~/stores/auth';
+import { useToast } from '~/composables/useToast';
+import SubscriptionDetails from '~/components/SubscriptionDetails.vue';
+import { Users } from '~/api';
 
 // Page meta
 definePageMeta({
   layout: 'default'
-})
+});
 
-const authStore = useAuthStore()
-const { showSuccess, showError } = useToast()
+const authStore = useAuthStore();
+const { showSuccess, showError } = useToast();
 
 // Tab management
-const route = useRoute()
-const activeTab = ref(route.query.tab === 'subscription' ? 'subscription' : 'profile')
+const route = useRoute();
+const activeTab = ref(route.query.tab === 'subscription' ? 'subscription' : 'profile');
 
 // Form data
 const form = ref({
@@ -277,46 +288,48 @@ const form = ref({
   email: '',
   phone: '',
   profile_image: null
-})
+});
 
-const loading = ref(false)
-const changingPassword = ref(false)
-const imageUploading = ref(false)
-const user = computed(() => authStore.user)
-
-
+const loading = ref(false);
+const changingPassword = ref(false);
+const imageUploading = ref(false);
+const user = computed(() => authStore.user);
 
 // Password form data
 const passwordForm = ref({
   currentPassword: '',
   newPassword: '',
   confirmPassword: ''
-})
+});
 
 // Check if user can view subscription
 const canViewSubscription = computed(() => {
-  return ['school_admin', 'branch_admin'].includes(user.value?.role)
-})
+  return ['school_admin', 'branch_admin'].includes(user.value?.role);
+});
 
 // Common CSS classes
-const inputClasses = computed(() => 
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white'
-)
+const inputClasses = computed(
+  () =>
+    'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white'
+);
 
-const readonlyInputClasses = computed(() => 
-  'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-)
+const readonlyInputClasses = computed(
+  () =>
+    'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+);
 
-const tabButtonClasses = computed(() => (isActive) => [
+const tabButtonClasses = computed(() => isActive => [
   'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
   isActive
     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-])
+]);
 
-const submitButtonClasses = computed(() => (color = 'blue') => 
-  `inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-${color}-600 hover:bg-${color}-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${color}-500 disabled:opacity-50 disabled:cursor-not-allowed`
-)
+const submitButtonClasses = computed(
+  () =>
+    (color = 'blue') =>
+      `inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-${color}-600 hover:bg-${color}-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${color}-500 disabled:opacity-50 disabled:cursor-not-allowed`
+);
 
 // Initialize form with user data
 const initializeForm = () => {
@@ -328,64 +341,64 @@ const initializeForm = () => {
       phone: user.value.phone || '',
       profile_image: null,
       profilePreview: null
-    }
+    };
   }
-}
+};
 
 onMounted(() => {
-  initializeForm()
-})
+  initializeForm();
+});
 
 // File upload handling
-const onFileChange = (event) => {
-  const file = event.target.files[0]
+const onFileChange = event => {
+  const file = event.target.files[0];
   if (file) {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showError('Image size should be less than 5MB')
-      return
+      showError('Image size should be less than 5MB');
+      return;
     }
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      showError('Please select a valid image file')
-      return
+      showError('Please select a valid image file');
+      return;
     }
-    
-    form.value.profile_image = file
+
+    form.value.profile_image = file;
     // Create preview
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      form.value.profilePreview = e.target.result
-    }
-    reader.readAsDataURL(file)
+    const reader = new FileReader();
+    reader.onload = e => {
+      form.value.profilePreview = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
-}
+};
 
 // Update profile
 const updateProfile = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const formData = new FormData()
-    formData.append('first_name', form.value.first_name)
-    formData.append('last_name', form.value.last_name)
-    formData.append('email', form.value.email)
-    formData.append('phone', form.value.phone)
-    
+    const formData = new FormData();
+    formData.append('first_name', form.value.first_name);
+    formData.append('last_name', form.value.last_name);
+    formData.append('email', form.value.email);
+    formData.append('phone', form.value.phone);
+
     if (form.value.profile_image) {
-      formData.append('profile_image', form.value.profile_image)
+      formData.append('profile_image', form.value.profile_image);
     }
 
-          await Users.updateProfile(formData)
+    await Users.updateProfile(formData);
 
     // Small delay to ensure server processes the image upload
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Update auth store with latest user data
-    await authStore.checkAuth()
-    
+    await authStore.checkAuth();
+
     // Update auth store with latest user data
-    
+
     // Update form data with the latest user data
     if (authStore.user) {
       form.value = {
@@ -395,70 +408,72 @@ const updateProfile = async () => {
         phone: authStore.user.phone || '',
         profile_image: null,
         profilePreview: null
-      }
+      };
     }
-    
-    showSuccess('Profile updated successfully')
+
+    showSuccess('Profile updated successfully');
   } catch (error) {
-    showError(error.data?.message || 'Failed to update profile')
+    showError(error.data?.message || 'Failed to update profile');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Helper functions
-const formatRole = (role) => {
+const formatRole = role => {
   const roleMap = {
-    'super_admin': 'Super Admin',
-    'school_admin': 'School Admin',
-    'branch_admin': 'Branch Admin',
-    'teacher': 'Teacher',
-    'accountant': 'Accountant',
-    'receptionist': 'Receptionist'
-  }
-  return roleMap[role] || role
-}
+    super_admin: 'Super Admin',
+    school_admin: 'School Admin',
+    branch_admin: 'Branch Admin',
+    teacher: 'Teacher',
+    accountant: 'Accountant',
+    receptionist: 'Receptionist'
+  };
+  return roleMap[role] || role;
+};
 
-const uploadsUrl = (filename) => {
-  const config = useRuntimeConfig()
-  return filename ? `${config.public.apiBase?.replace('/api','')}/uploads/profile-images/${filename}` : ''
-}
+const uploadsUrl = filename => {
+  const config = useRuntimeConfig();
+  return filename
+    ? `${config.public.apiBase?.replace('/api', '')}/uploads/profile-images/${filename}`
+    : '';
+};
 
 // Change password function
 const changePassword = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    showError('New passwords do not match')
-    return
+    showError('New passwords do not match');
+    return;
   }
-  
-  changingPassword.value = true
+
+  changingPassword.value = true;
   try {
-          await Users.changePassword({
+    await Users.changePassword({
       currentPassword: passwordForm.value.currentPassword,
       newPassword: passwordForm.value.newPassword
-    })
-    
+    });
+
     // Reset form
     passwordForm.value = {
       currentPassword: '',
       newPassword: '',
       confirmPassword: ''
-    }
-    
-    showSuccess('Password changed successfully')
+    };
+
+    showSuccess('Password changed successfully');
   } catch (error) {
-    showError(error.data?.message || 'Failed to change password')
+    showError(error.data?.message || 'Failed to change password');
   } finally {
-    changingPassword.value = false
+    changingPassword.value = false;
   }
-}
+};
 
 // Subscription event handlers
-const handleDataLoaded = (data) => {
+const handleDataLoaded = data => {
   // Data loaded successfully
-}
+};
 
-const handleRenewalRequested = (data) => {
-  showSuccess('Renewal request submitted successfully')
-}
-</script> 
+const handleRenewalRequested = data => {
+  showSuccess('Renewal request submitted successfully');
+};
+</script>

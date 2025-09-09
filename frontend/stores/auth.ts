@@ -1,7 +1,7 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import type { User, LoginCredentials, AuthResponse } from "~/types";
-import { Auth } from "~/api/shared/auth";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import type { User, LoginCredentials, AuthResponse } from '~/types';
+import { Auth } from '~/api/shared/auth';
 
 interface AuthState {
   user: User | null;
@@ -14,7 +14,7 @@ interface AuthState {
   currentSchool: any | null;
 }
 
-export const useAuthStore = defineStore("auth", () => {
+export const useAuthStore = defineStore('auth', () => {
   // State - Remove token storage from Pinia store
   const user = ref<User | null>(null);
   const isLoading = ref(false);
@@ -28,27 +28,27 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoggedIn = computed(() => !!user.value);
   const isAuthenticated = computed(() => isLoggedIn.value);
   const userRole = computed(() => user.value?.role || null);
-  const isSuperAdmin = computed(() => user.value?.role === "super_admin");
-  const isSchoolAdmin = computed(() => user.value?.role === "school_admin");
-  const isBranchAdmin = computed(() => user.value?.role === "branch_admin");
+  const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
+  const isSchoolAdmin = computed(() => user.value?.role === 'school_admin');
+  const isBranchAdmin = computed(() => user.value?.role === 'branch_admin');
   const currentUser = computed(() => user.value);
 
   // Helper function to clear all auth data
   const clearAuthData = () => {
     if (import.meta.client) {
       // Clear user data from sessionStorage (for incognito isolation)
-      sessionStorage.removeItem("auth-user");
-      sessionStorage.removeItem("current-branch");
-      sessionStorage.removeItem("current-school");
-      sessionStorage.removeItem("last-auth-check");
+      sessionStorage.removeItem('auth-user');
+      sessionStorage.removeItem('current-branch');
+      sessionStorage.removeItem('current-school');
+      sessionStorage.removeItem('last-auth-check');
 
       // Clear any theme or other auth-related data
-      localStorage.removeItem("theme");
+      localStorage.removeItem('theme');
     }
 
     // Clear auth token cookies
-    const accessToken = useCookie("accessToken");
-    const refreshToken = useCookie("refreshToken");
+    const accessToken = useCookie('accessToken');
+    const refreshToken = useCookie('refreshToken');
     accessToken.value = null;
     refreshToken.value = null;
   };
@@ -56,9 +56,9 @@ export const useAuthStore = defineStore("auth", () => {
   // Refresh auth state from storage (for cross-tab sync)
   const refreshFromStorage = () => {
     if (import.meta.client) {
-      const savedUser = sessionStorage.getItem("auth-user");
-      const savedBranch = sessionStorage.getItem("current-branch");
-      const savedSchool = sessionStorage.getItem("current-school");
+      const savedUser = sessionStorage.getItem('auth-user');
+      const savedBranch = sessionStorage.getItem('current-branch');
+      const savedSchool = sessionStorage.getItem('current-school');
 
       if (savedUser) {
         user.value = JSON.parse(savedUser);
@@ -86,9 +86,9 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       // Since we use HTTP-only cookies, we can't read the token directly
       // Instead, we check if we have user data in sessionStorage
-      const savedUser = sessionStorage.getItem("auth-user");
-      const savedBranch = sessionStorage.getItem("current-branch");
-      const savedSchool = sessionStorage.getItem("current-school");
+      const savedUser = sessionStorage.getItem('auth-user');
+      const savedBranch = sessionStorage.getItem('current-branch');
+      const savedSchool = sessionStorage.getItem('current-school');
 
       if (savedUser) {
         // Set user data immediately
@@ -100,23 +100,23 @@ export const useAuthStore = defineStore("auth", () => {
         setTimeout(async () => {
           try {
             // Skip verification on login page
-            if (window.location.pathname === "/login") {
+            if (window.location.pathname === '/login') {
               return;
             }
 
             const isValid = await Promise.race([
               checkAuth(),
               new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Auth check timeout")), 5000)
-              ),
+                setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+              )
             ]);
 
             if (!isValid) {
               await silentLogout();
 
               // Redirect to login if not already there
-              if (window.location.pathname !== "/login") {
-                await navigateTo("/login");
+              if (window.location.pathname !== '/login') {
+                await navigateTo('/login');
               }
             }
           } catch (error) {
@@ -139,7 +139,7 @@ export const useAuthStore = defineStore("auth", () => {
         }
       }
     } catch (error) {
-      console.error("❌ Error during auth initialization:", error);
+      console.error('❌ Error during auth initialization:', error);
       user.value = null;
       currentBranch.value = null;
       currentSchool.value = null;
@@ -168,37 +168,31 @@ export const useAuthStore = defineStore("auth", () => {
         if (userData.school_id) {
           currentSchool.value = {
             id: userData.school_id,
-            name: userData.school_name,
+            name: userData.school_name
           };
         }
 
         if (userData.branch_id) {
           currentBranch.value = {
             id: userData.branch_id,
-            name: userData.branch_name,
+            name: userData.branch_name
           };
         }
 
         // Save user data to sessionStorage (tokens are handled by secure cookies)
         if (import.meta.client) {
-          sessionStorage.setItem("auth-user", JSON.stringify(userData));
+          sessionStorage.setItem('auth-user', JSON.stringify(userData));
           if (currentSchool.value) {
-            sessionStorage.setItem(
-              "current-school",
-              JSON.stringify(currentSchool.value)
-            );
+            sessionStorage.setItem('current-school', JSON.stringify(currentSchool.value));
           }
           if (currentBranch.value) {
-            sessionStorage.setItem(
-              "current-branch",
-              JSON.stringify(currentBranch.value)
-            );
+            sessionStorage.setItem('current-branch', JSON.stringify(currentBranch.value));
           }
 
           // Signal other tabs about successful login
-          sessionStorage.setItem("auth-action", "login");
+          sessionStorage.setItem('auth-action', 'login');
           setTimeout(() => {
-            sessionStorage.removeItem("auth-action");
+            sessionStorage.removeItem('auth-action');
           }, 100);
         }
 
@@ -206,7 +200,7 @@ export const useAuthStore = defineStore("auth", () => {
 
         // Brief wait for cookies to be set
         if (import.meta.client) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Ensure initialization is complete
@@ -217,37 +211,34 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: false, error: response.message };
       }
     } catch (error: any) {
-      console.error("🔐 Login error:", error);
+      console.error('🔐 Login error:', error);
 
       // Handle specific error cases
       if (error.response?.status === 401) {
         return {
           success: false,
-          error:
-            "Invalid email or password. Please check your credentials and try again.",
+          error: 'Invalid email or password. Please check your credentials and try again.'
         };
       } else if (error.response?.status === 429) {
         return {
           success: false,
-          error:
-            "Too many login attempts. Please wait a moment before trying again.",
+          error: 'Too many login attempts. Please wait a moment before trying again.'
         };
       } else if (error.response?.status >= 500) {
         return {
           success: false,
-          error: "Server error. Please try again later.",
+          error: 'Server error. Please try again later.'
         };
       } else if (!error.response) {
         return {
           success: false,
-          error: "Network error. Please check your connection and try again.",
+          error: 'Network error. Please check your connection and try again.'
         };
       }
 
       return {
         success: false,
-        error:
-          error.response?.data?.message || "Login failed. Please try again.",
+        error: error.response?.data?.message || 'Login failed. Please try again.'
       };
     } finally {
       isLoading.value = false;
@@ -295,15 +286,15 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Signal other tabs about logout (before navigation)
       if (import.meta.client) {
-        sessionStorage.setItem("auth-action", "logout");
+        sessionStorage.setItem('auth-action', 'logout');
         setTimeout(() => {
-          sessionStorage.removeItem("auth-action");
+          sessionStorage.removeItem('auth-action');
         }, 100);
       }
 
       // Force redirect to login page to ensure clean state
       if (import.meta.client) {
-        await navigateTo("/login");
+        await navigateTo('/login');
       }
 
       // Reset logout flag after a delay
@@ -343,9 +334,9 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Signal other tabs about logout (without navigation)
       if (import.meta.client) {
-        sessionStorage.setItem("auth-action", "logout");
+        sessionStorage.setItem('auth-action', 'logout');
         setTimeout(() => {
-          sessionStorage.removeItem("auth-action");
+          sessionStorage.removeItem('auth-action');
         }, 100);
       }
     }
@@ -361,14 +352,14 @@ export const useAuthStore = defineStore("auth", () => {
 
         // Update sessionStorage
         if (import.meta.client) {
-          sessionStorage.setItem("auth-user", JSON.stringify(response.data));
+          sessionStorage.setItem('auth-user', JSON.stringify(response.data));
         }
         return true;
       } else {
         return false;
       }
     } catch (error) {
-      console.error("❌ Auth check error:", error);
+      console.error('❌ Auth check error:', error);
       return false;
     }
   };
@@ -378,7 +369,7 @@ export const useAuthStore = defineStore("auth", () => {
     if (user.value) {
       user.value = { ...user.value, ...userData };
       if (import.meta.client) {
-        sessionStorage.setItem("auth-user", JSON.stringify(user.value));
+        sessionStorage.setItem('auth-user', JSON.stringify(user.value));
       }
     }
   };
@@ -387,7 +378,7 @@ export const useAuthStore = defineStore("auth", () => {
   const setCurrentBranch = (branch: any) => {
     currentBranch.value = branch;
     if (import.meta.client) {
-      sessionStorage.setItem("current-branch", JSON.stringify(branch));
+      sessionStorage.setItem('current-branch', JSON.stringify(branch));
     }
   };
 
@@ -396,7 +387,7 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const switchBranch = async (branchId: string) => {
-    const branch = availableBranches.value.find((b) => b.id === branchId);
+    const branch = availableBranches.value.find(b => b.id === branchId);
     if (branch) {
       setCurrentBranch(branch);
       // You might want to refresh some data here based on the new branch context
@@ -409,7 +400,7 @@ export const useAuthStore = defineStore("auth", () => {
   const setCurrentSchool = (school: any) => {
     currentSchool.value = school;
     if (import.meta.client) {
-      sessionStorage.setItem("current-school", JSON.stringify(school));
+      sessionStorage.setItem('current-school', JSON.stringify(school));
     }
   };
 
@@ -420,13 +411,13 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Cross-tab synchronization using storage events
   const handleStorageChange = (event: StorageEvent) => {
-    if (!event.key?.startsWith("auth-") && event.key !== "auth-action") return;
+    if (!event.key?.startsWith('auth-') && event.key !== 'auth-action') return;
 
     // Handle auth action events (login/logout from other tabs)
-    if (event.key === "auth-action") {
+    if (event.key === 'auth-action') {
       const action = event.newValue;
 
-      if (action === "logout") {
+      if (action === 'logout') {
         // Clear local state immediately without calling server logout
         user.value = null;
         currentBranch.value = null;
@@ -439,33 +430,33 @@ export const useAuthStore = defineStore("auth", () => {
         clearModuleCache();
 
         // Clear cookies
-        const accessToken = useCookie("accessToken");
-        const refreshToken = useCookie("refreshToken");
+        const accessToken = useCookie('accessToken');
+        const refreshToken = useCookie('refreshToken');
         accessToken.value = null;
         refreshToken.value = null;
 
         // Navigate to login if not already there
-        if (window.location.pathname !== "/login") {
-          navigateTo("/login");
+        if (window.location.pathname !== '/login') {
+          navigateTo('/login');
         }
-      } else if (action === "login") {
+      } else if (action === 'login') {
         // Refresh auth state from sessionStorage
         refreshFromStorage();
 
         // Navigate to dashboard if on login page
-        if (window.location.pathname === "/login") {
-          navigateTo("/dashboard");
+        if (window.location.pathname === '/login') {
+          navigateTo('/dashboard');
         }
       }
 
       // Clean up the action flag
       setTimeout(() => {
-        sessionStorage.removeItem("auth-action");
+        sessionStorage.removeItem('auth-action');
       }, 100);
     }
 
     // Handle direct sessionStorage changes
-    else if (event.key === "auth-user") {
+    else if (event.key === 'auth-user') {
       if (event.newValue === null) {
         // User data was cleared in another tab
         if (user.value) {
@@ -487,7 +478,7 @@ export const useAuthStore = defineStore("auth", () => {
   // Initialize storage event listener on client side
   if (import.meta.client) {
     // Add storage event listener for cross-tab sync
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
 
     // Initialize auth
     initializeAuth();
@@ -496,7 +487,7 @@ export const useAuthStore = defineStore("auth", () => {
   // Cleanup function for storage event listener
   const cleanup = () => {
     if (import.meta.client) {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
     }
   };
 
@@ -533,6 +524,6 @@ export const useAuthStore = defineStore("auth", () => {
     initializeAuth,
     clearAuthData,
     refreshFromStorage,
-    cleanup,
+    cleanup
   };
 });

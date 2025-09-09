@@ -5,15 +5,15 @@
  * Following Rule #4: Follow Nuxt.js Standards - Use composables for shared logic
  */
 
-import { 
-  importCSV, 
-  downloadCSVTemplate, 
-  exportToCSV, 
-  csvValidators, 
+import {
+  importCSV,
+  downloadCSVTemplate,
+  exportToCSV,
+  csvValidators,
   csvTransformers,
   type CSVImportOptions,
-  type CSVImportResult 
-} from '~/utils/csvImport'
+  type CSVImportResult
+} from '~/utils/csvImport';
 
 export const useCSVImport = () => {
   return {
@@ -22,5 +22,5 @@ export const useCSVImport = () => {
     exportToCSV,
     csvValidators,
     csvTransformers
-  }
-}
+  };
+};

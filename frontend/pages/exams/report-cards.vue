@@ -3,9 +3,7 @@
     <!-- Header -->
     <div class="flex justify-between items-start">
       <div class="space-y-2">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          Report Cards
-        </h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Report Cards</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400">
           Generate and download student report cards
         </p>
@@ -19,8 +17,7 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <!-- Class -->
         <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Class</label
           >
           <select
@@ -37,8 +34,7 @@
 
         <!-- Section -->
         <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Section</label
           >
           <select
@@ -55,8 +51,7 @@
 
         <!-- Academic Year -->
         <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Academic Year</label
           >
           <select
@@ -112,12 +107,8 @@
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-          Students
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {{ students.length }} students found
-        </p>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Students</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ students.length }} students found</p>
       </div>
 
       <div class="overflow-x-auto">
@@ -141,9 +132,7 @@
               </th>
             </tr>
           </thead>
-          <tbody
-            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-          >
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr
               v-for="student in students"
               :key="student.id"
@@ -151,9 +140,7 @@
             >
               <td class="px-6 py-4 whitespace-nowrap">
                 <div>
-                  <div
-                    class="text-sm font-medium text-gray-900 dark:text-white"
-                  >
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ student.first_name }} {{ student.last_name }}
                   </div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">
@@ -165,10 +152,7 @@
                 <div class="text-sm text-gray-900 dark:text-white">
                   {{ getClassName(student.class_id) }}
                 </div>
-                <div
-                  v-if="student.section_id"
-                  class="text-sm text-gray-500 dark:text-gray-400"
-                >
+                <div v-if="student.section_id" class="text-sm text-gray-500 dark:text-gray-400">
                   Section {{ getSectionName(student.section_id) }}
                 </div>
               </td>
@@ -204,22 +188,18 @@
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         ></path>
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-        No students found
-      </h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        Select a class to view students.
-      </p>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No students found</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Select a class to view students.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useToast } from "~/composables/useToast";
-import { useDropdowns } from "~/composables/useDropdowns";
-import { Exams } from "~/api/academic/exams";
-import { Students } from "~/api/students/students";
+import { ref, computed, onMounted } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { useDropdowns } from '~/composables/useDropdowns';
+import { Exams } from '~/api/academic/exams';
+import { Students } from '~/api/students/students';
 
 // Composables
 const { showToast } = useToast();
@@ -231,9 +211,9 @@ const students = ref([]);
 
 // Filters
 const filters = ref({
-  class_id: "",
-  section_id: "",
-  academic_year: "",
+  class_id: '',
+  section_id: '',
+  academic_year: ''
 });
 
 // Academic years (last 5 years + next 2 years)
@@ -248,11 +228,7 @@ const academicYears = computed(() => {
 
 // Computed
 const canGenerate = computed(() => {
-  return (
-    filters.value.class_id &&
-    filters.value.academic_year &&
-    students.value.length > 0
-  );
+  return filters.value.class_id && filters.value.academic_year && students.value.length > 0;
 });
 
 // Methods
@@ -267,12 +243,12 @@ const loadStudents = async () => {
     const response = await Students.getAll({
       class_id: filters.value.class_id,
       section_id: filters.value.section_id,
-      limit: 1000,
+      limit: 1000
     });
     students.value = response.data.students;
   } catch (error) {
-    showToast("error", "Failed to load students");
-    console.error("Error loading students:", error);
+    showToast('error', 'Failed to load students');
+    console.error('Error loading students:', error);
   } finally {
     loading.value = false;
   }
@@ -289,10 +265,10 @@ const generateReportCards = async () => {
       await generateIndividualReportCard(student, false);
     }
 
-    showToast("success", "Report cards generated successfully");
+    showToast('success', 'Report cards generated successfully');
   } catch (error) {
-    showToast("error", "Failed to generate report cards");
-    console.error("Error generating report cards:", error);
+    showToast('error', 'Failed to generate report cards');
+    console.error('Error generating report cards:', error);
   } finally {
     loading.value = false;
   }
@@ -301,15 +277,15 @@ const generateReportCards = async () => {
 const generateIndividualReportCard = async (student, showSuccess = true) => {
   try {
     const response = await Exams.generateReportCard(student.id, {
-      academic_year: filters.value.academic_year,
+      academic_year: filters.value.academic_year
     });
 
     // Download the PDF
     const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.setAttribute(
-      "download",
+      'download',
       `report-card-${student.admission_number}-${filters.value.academic_year}.pdf`
     );
     document.body.appendChild(link);
@@ -318,25 +294,25 @@ const generateIndividualReportCard = async (student, showSuccess = true) => {
     window.URL.revokeObjectURL(url);
 
     if (showSuccess) {
-      showToast("success", "Report card generated successfully");
+      showToast('success', 'Report card generated successfully');
     }
   } catch (error) {
     showToast(
-      "error",
+      'error',
       `Failed to generate report card for ${student.first_name} ${student.last_name}`
     );
-    console.error("Error generating report card:", error);
+    console.error('Error generating report card:', error);
   }
 };
 
-const getClassName = (classId) => {
-  const cls = classes.value.find((c) => c.id === classId);
-  return cls ? cls.name : "Unknown";
+const getClassName = classId => {
+  const cls = classes.value.find(c => c.id === classId);
+  return cls ? cls.name : 'Unknown';
 };
 
-const getSectionName = (sectionId) => {
-  const sec = sections.value.find((s) => s.id === sectionId);
-  return sec ? sec.name : "Unknown";
+const getSectionName = sectionId => {
+  const sec = sections.value.find(s => s.id === sectionId);
+  return sec ? sec.name : 'Unknown';
 };
 
 // Lifecycle

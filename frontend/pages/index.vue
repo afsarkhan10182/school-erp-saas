@@ -8,10 +8,12 @@
       <p class="text-gray-600 dark:text-gray-400 mb-8">
         {{ authStore.isInitializing ? 'Verifying session...' : 'Loading...' }}
       </p>
-      
+
       <!-- Subtle loading indicator -->
       <div v-if="authStore.isInitializing" class="flex justify-center">
-        <div class="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <div
+          class="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"
+        ></div>
       </div>
     </div>
   </div>
@@ -37,7 +39,7 @@ onMounted(async () => {
       checkInit();
     });
   }
-  
+
   // Redirect based on auth status
   if (authStore.isLoggedIn) {
     await navigateTo('/dashboard');
@@ -45,4 +47,4 @@ onMounted(async () => {
     await navigateTo('/login');
   }
 });
-</script> 
+</script>

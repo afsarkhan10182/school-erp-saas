@@ -142,19 +142,21 @@ export const examApi = {
   // Get exam results
   getResults: async (examId: string) => {
     const api = createApiInstance();
-    const response = await api.get<ApiResponse<{
-      exam: Exam;
-      results: ExamResult[];
-      summary: {
-        total_students: number;
-        present_students: number;
-        absent_students: number;
-        average_percentage: number;
-        highest_percentage: number;
-        lowest_percentage: number;
-        grade_distribution: Record<string, number>;
-      };
-    }>>(`/exams/${examId}/results`);
+    const response = await api.get<
+      ApiResponse<{
+        exam: Exam;
+        results: ExamResult[];
+        summary: {
+          total_students: number;
+          present_students: number;
+          absent_students: number;
+          average_percentage: number;
+          highest_percentage: number;
+          lowest_percentage: number;
+          grade_distribution: Record<string, number>;
+        };
+      }>
+    >(`/exams/${examId}/results`);
     return response.data;
   },
 
@@ -178,12 +180,15 @@ export const examApi = {
   },
 
   // Get student exam history
-  getStudentHistory: async (studentId: string, params?: {
-    page?: number;
-    limit?: number;
-    academic_year?: string;
-    exam_type?: string;
-  }) => {
+  getStudentHistory: async (
+    studentId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      academic_year?: string;
+      exam_type?: string;
+    }
+  ) => {
     const api = createApiInstance();
     const response = await api.get<PaginatedResponse<ExamResult>>(
       `/exams/student/${studentId}/history`,
@@ -193,10 +198,13 @@ export const examApi = {
   },
 
   // Generate report card
-  generateReportCard: async (studentId: string, params?: {
-    academic_year?: string;
-    exam_types?: string;
-  }) => {
+  generateReportCard: async (
+    studentId: string,
+    params?: {
+      academic_year?: string;
+      exam_types?: string;
+    }
+  ) => {
     const api = createApiInstance();
     const response = await api.get(`/exams/student/${studentId}/report-card`, {
       params,

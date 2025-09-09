@@ -4,20 +4,20 @@
  * Following Rule #4: Follow Nuxt.js Standards - Use composables for shared logic
  */
 
-import { 
-  formatDate, 
-  formatCurrency, 
-  getInitials, 
-  formatPhone, 
-  truncateText, 
-  formatFileSize, 
-  generateId, 
-  isValidEmail, 
-  isValidPhone, 
-  isValidUUID, 
-  calculateAge, 
-  getStatusBadgeClass 
-} from '~/utils/formatters'
+import {
+  formatDate,
+  formatCurrency,
+  getInitials,
+  formatPhone,
+  truncateText,
+  formatFileSize,
+  generateId,
+  isValidEmail,
+  isValidPhone,
+  isValidUUID,
+  calculateAge,
+  getStatusBadgeClass
+} from '~/utils/formatters';
 
 export const useFormatters = () => {
   return {
@@ -33,5 +33,5 @@ export const useFormatters = () => {
     isValidUUID,
     calculateAge,
     getStatusBadgeClass
-  }
-}
+  };
+};

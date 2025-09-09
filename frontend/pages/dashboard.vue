@@ -2,18 +2,26 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Module Access Error Alert -->
-      <div v-if="$route.query.error === 'module_access_denied'" class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+      <div
+        v-if="$route.query.error === 'module_access_denied'"
+        class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+      >
         <div class="flex">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clip-rule="evenodd"
+              />
             </svg>
           </div>
           <div class="ml-3">
             <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Module Access Denied</h3>
             <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-              You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong>. 
-              This feature requires a higher subscription plan. Please contact your administrator to upgrade your subscription.
+              You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong
+              >. This feature requires a higher subscription plan. Please contact your administrator
+              to upgrade your subscription.
             </p>
           </div>
         </div>
@@ -23,7 +31,8 @@
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening today.
+          Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening
+          today.
         </p>
       </div>
 
@@ -36,12 +45,14 @@
       <!-- Dashboard Content -->
       <div v-else class="space-y-8">
         <!-- Row 1: Quick Stats + Branch Filter -->
-        <div :class="[
-          'grid gap-6',
-          branches.length > 1 
-            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-6' 
-            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-        ]">
+        <div
+          :class="[
+            'grid gap-6',
+            branches.length > 1
+              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-6'
+              : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+          ]"
+        >
           <!-- Total Students -->
           <div class="stat-card bg-blue-500 text-white">
             <Users class="w-6 h-6" />
@@ -52,7 +63,9 @@
           <!-- New Students -->
           <div class="stat-card bg-green-500 text-white">
             <UserPlus class="w-6 h-6" />
-            <p class="mt-1 text-xs font-medium">New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)</p>
+            <p class="mt-1 text-xs font-medium">
+              New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
+            </p>
             <p class="text-2xl font-bold">{{ stats.newStudents || 0 }}</p>
           </div>
 
@@ -67,7 +80,9 @@
           <div class="stat-card bg-red-500 text-white">
             <AlertTriangle class="w-6 h-6" />
             <p class="mt-1 text-xs font-medium">Pending Fees</p>
-            <p class="text-2xl font-bold">{{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}</p>
+            <p class="text-2xl font-bold">
+              {{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}
+            </p>
           </div>
 
           <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
@@ -75,15 +90,17 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
-                <select 
-                  v-model="selectedBranch" 
+                <select
+                  v-model="selectedBranch"
                   @change="onBranchChange"
                   class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   :disabled="loadingBranches"
                 >
                   <option value="">All Branches</option>
                   <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-                  <option v-else-if="branches.length === 0" value="" disabled>No branches available</option>
+                  <option v-else-if="branches.length === 0" value="" disabled>
+                    No branches available
+                  </option>
                   <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
                     {{ branch.name }}
                   </option>
@@ -103,75 +120,103 @@
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
                 Fee Collection Summary
-                <span v-if="loadingAcademicYears" class="text-gray-500 dark:text-gray-400">(Loading...)</span>
-                <span v-else-if="feeCollectionSummary.academic_year" class="text-gray-900 dark:text-white">({{ feeCollectionSummary.academic_year }})</span>
+                <span v-if="loadingAcademicYears" class="text-gray-500 dark:text-gray-400"
+                  >(Loading...)</span
+                >
+                <span
+                  v-else-if="feeCollectionSummary.academic_year"
+                  class="text-gray-900 dark:text-white"
+                  >({{ feeCollectionSummary.academic_year }})</span
+                >
                 <span v-else class="text-gray-500 dark:text-gray-400">(No data)</span>
               </h2>
               <div class="flex items-center space-x-2">
-                <select 
-                  v-model="selectedAcademicYear" 
+                <select
+                  v-model="selectedAcademicYear"
                   :disabled="loadingAcademicYears || academicYears.length === 0"
                   class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option v-if="loadingAcademicYears" value="">Loading academic years...</option>
-                  <option v-else-if="academicYears.length === 0" value="">No academic years available</option>
+                  <option v-else-if="academicYears.length === 0" value="">
+                    No academic years available
+                  </option>
                   <option v-for="year in academicYears" :key="year.id" :value="year.name">
                     {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
                   </option>
                 </select>
               </div>
             </div>
-            
+
             <div v-if="loadingFeeSummary" class="flex items-center justify-center py-8">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading fee summary...</span>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+                >Loading fee summary...</span
+              >
             </div>
-            
+
             <div v-else class="space-y-6">
               <!-- Summary Cards -->
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div
+                  class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4"
+                >
                   <div class="flex items-center">
                     <CheckCircle class="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
-                    <span class="text-sm font-medium text-green-800 dark:text-green-200">Total Collected</span>
+                    <span class="text-sm font-medium text-green-800 dark:text-green-200"
+                      >Total Collected</span
+                    >
                   </div>
                   <p class="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
                     ₹{{ formatCurrency(feeCollectionSummary.total_collected || 0) }}
                   </p>
                 </div>
-                
-                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+
+                <div
+                  class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+                >
                   <div class="flex items-center">
                     <AlertTriangle class="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
-                    <span class="text-sm font-medium text-red-800 dark:text-red-200">Total Pending</span>
+                    <span class="text-sm font-medium text-red-800 dark:text-red-200"
+                      >Total Pending</span
+                    >
                   </div>
                   <p class="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">
                     ₹{{ formatCurrency(feeCollectionSummary.total_pending || 0) }}
                   </p>
                 </div>
               </div>
-              
+
               <!-- Fee Collection Chart -->
               <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
                 <canvas ref="feesChart"></canvas>
               </div>
-              
+
               <!-- Additional Stats -->
-              <div class="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div
+                class="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+              >
                 <div class="text-center">
-                  <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ feeCollectionSummary.total_invoices || 0 }}</p>
+                  <p class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ feeCollectionSummary.total_invoices || 0 }}
+                  </p>
                   <p class="text-xs text-gray-600 dark:text-gray-400">Total Invoices</p>
                 </div>
                 <div class="text-center">
-                  <p class="text-lg font-semibold text-green-600 dark:text-green-400">{{ feeCollectionSummary.paid_invoices || 0 }}</p>
+                  <p class="text-lg font-semibold text-green-600 dark:text-green-400">
+                    {{ feeCollectionSummary.paid_invoices || 0 }}
+                  </p>
                   <p class="text-xs text-gray-600 dark:text-gray-400">Paid</p>
                 </div>
                 <div class="text-center">
-                  <p class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">{{ feeCollectionSummary.pending_invoices || 0 }}</p>
+                  <p class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
+                    {{ feeCollectionSummary.pending_invoices || 0 }}
+                  </p>
                   <p class="text-xs text-gray-600 dark:text-gray-400">Pending</p>
                 </div>
                 <div class="text-center">
-                  <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">{{ feeCollectionSummary.collection_rate || 0 }}%</p>
+                  <p class="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                    {{ feeCollectionSummary.collection_rate || 0 }}%
+                  </p>
                   <p class="text-xs text-gray-600 dark:text-gray-400">Collection Rate</p>
                 </div>
               </div>
@@ -180,16 +225,20 @@
 
           <!-- Student Distribution + Monthly Trends -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Student Distribution & Trends</h2>
-            
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Student Distribution & Trends
+            </h2>
+
             <!-- Student Distribution Chart -->
             <div class="mb-6">
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Student Distribution</h3>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Student Distribution
+              </h3>
               <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-48">
                 <canvas ref="studentDistributionChart"></canvas>
               </div>
             </div>
-            
+
             <!-- Monthly Trends -->
             <div>
               <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Monthly Trends</h3>
@@ -204,7 +253,9 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Fee Collection Trend (6 months) -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)</h2>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)
+            </h2>
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-64">
               <canvas ref="feeTrendChart"></canvas>
             </div>
@@ -212,33 +263,56 @@
 
           <!-- Upcoming Events + Recent Activities -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Recent Activities</h2>
-            
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Recent Activities
+            </h2>
+
             <!-- Recent Activities Section -->
             <div class="space-y-4">
               <div v-if="loadingActivities" class="flex items-center justify-center py-8">
                 <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading activities...</span>
+                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+                  >Loading activities...</span
+                >
               </div>
-              
+
               <div v-else-if="recentActivities.length === 0" class="text-center py-8">
-                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div
+                  class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <svg
+                    class="w-8 h-8 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <p class="text-gray-500 dark:text-gray-400">No recent activities</p>
               </div>
-              
+
               <div v-else class="space-y-3">
-                <div 
-                  v-for="activity in recentActivities" 
-                  :key="activity.id" 
+                <div
+                  v-for="activity in recentActivities"
+                  :key="activity.id"
                   class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <div class="flex-shrink-0">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center" :class="getActivityIcon(activity.type).bg">
-                      <component :is="getActivityIcon(activity.type).icon" class="w-4 h-4" :class="getActivityIcon(activity.type).text" />
+                    <div
+                      class="w-8 h-8 rounded-full flex items-center justify-center"
+                      :class="getActivityIcon(activity.type).bg"
+                    >
+                      <component
+                        :is="getActivityIcon(activity.type).icon"
+                        class="w-4 h-4"
+                        :class="getActivityIcon(activity.type).text"
+                      />
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
@@ -269,11 +343,11 @@ import { useToast } from '~/composables/useToast';
 import Chart from 'chart.js/auto';
 
 // Icons
-import { 
-  Users, 
-  UserPlus, 
-  DollarSign, 
-  AlertTriangle, 
+import {
+  Users,
+  UserPlus,
+  DollarSign,
+  AlertTriangle,
   CheckCircle,
   Activity,
   BookOpen,
@@ -296,18 +370,10 @@ const dashboardConfig = {
 };
 
 // Academic data
-const { 
-  academicYears, 
-  currentAcademicYear,
-  fetchAcademicYears 
-} = useAcademics();
+const { academicYears, currentAcademicYear, fetchAcademicYears } = useAcademics();
 
 // Branch data
-const { 
-  branches, 
-  loading: loadingBranches,
-  fetchBranches 
-} = useBranches();
+const { branches, loading: loadingBranches, fetchBranches } = useBranches();
 
 // Reactive data
 const loading = ref(true);
@@ -335,17 +401,17 @@ let studentDistributionChartInstance = null;
 let feeTrendChartInstance = null;
 
 // Format currency
-const formatCurrency = (amount) => {
+const formatCurrency = amount => {
   if (!amount) return '0';
   return new Intl.NumberFormat('en-IN').format(amount);
 };
 
 // Format date
-const formatDate = (dateString) => {
+const formatDate = dateString => {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -353,13 +419,13 @@ const formatDate = (dateString) => {
 };
 
 // Get module name from route path
-const getModuleName = (routePath) => {
+const getModuleName = routePath => {
   if (!routePath) return 'the requested module';
-  
+
   const moduleMap = {
     '/fees': 'Fee Management',
     '/fees/types': 'Fee Types',
-    '/fees/structures': 'Fee Structures', 
+    '/fees/structures': 'Fee Structures',
     '/fees/invoices': 'Fee Invoices',
     '/fees/collections': 'Fee Collections',
     '/reports/fees': 'Fee Reports',
@@ -382,14 +448,14 @@ const getModuleName = (routePath) => {
     '/transport': 'Transport Management',
     '/reports/transport': 'Transport Reports',
     '/reports': 'Reports',
-    '/reports/advanced': 'Advanced Reports',
+    '/reports/advanced': 'Advanced Reports'
   };
-  
+
   return moduleMap[routePath] || 'the requested module';
 };
 
 // Get activity icon
-const getActivityIcon = (type) => {
+const getActivityIcon = type => {
   const icons = {
     student_added: {
       icon: UserPlus,
@@ -417,7 +483,7 @@ const getActivityIcon = (type) => {
       text: 'text-gray-600 dark:text-gray-400'
     }
   };
-  
+
   return icons[type] || icons.default;
 };
 
@@ -428,19 +494,21 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
     if (studentsChartInstance) {
       studentsChartInstance.destroy();
     }
-    
+
     studentsChartInstance = new Chart(studentsChart.value.getContext('2d'), {
       type: 'line',
       data: {
         labels: studentsData.labels || [],
-        datasets: [{
-          label: 'Students',
-          data: studentsData.data || [],
-          borderColor: 'rgb(147, 51, 234)',
-          backgroundColor: 'rgba(147, 51, 234, 0.1)',
-          tension: 0.4,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: 'Students',
+            data: studentsData.data || [],
+            borderColor: 'rgb(147, 51, 234)',
+            backgroundColor: 'rgba(147, 51, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -478,26 +546,24 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
     if (feesChartInstance) {
       feesChartInstance.destroy();
     }
-    
+
     feesChartInstance = new Chart(feesChart.value.getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: feesData.labels || [],
-        datasets: [{
-          data: feesData.data || [],
-          backgroundColor: [
-            'rgba(16, 185, 129, 0.8)',
-            'rgba(245, 158, 11, 0.8)',
-            'rgba(239, 68, 68, 0.8)'
-          ],
-          borderColor: [
-            'rgb(16, 185, 129)',
-            'rgb(245, 158, 11)',
-            'rgb(239, 68, 68)'
-          ],
-          borderWidth: 2,
-          hoverOffset: 4
-        }]
+        datasets: [
+          {
+            data: feesData.data || [],
+            backgroundColor: [
+              'rgba(16, 185, 129, 0.8)',
+              'rgba(245, 158, 11, 0.8)',
+              'rgba(239, 68, 68, 0.8)'
+            ],
+            borderColor: ['rgb(16, 185, 129)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)'],
+            borderWidth: 2,
+            hoverOffset: 4
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -521,19 +587,21 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
     if (studentDistributionChartInstance) {
       studentDistributionChartInstance.destroy();
     }
-    
+
     studentDistributionChartInstance = new Chart(studentDistributionChart.value.getContext('2d'), {
       type: 'bar',
       data: {
         labels: studentDistributionData.labels || [],
-        datasets: [{
-          label: 'Students',
-          data: studentDistributionData.data || [],
-          backgroundColor: 'rgba(147, 51, 234, 0.8)',
-          borderColor: 'rgb(147, 51, 234)',
-          borderWidth: 1,
-          borderRadius: 4
-        }]
+        datasets: [
+          {
+            label: 'Students',
+            data: studentDistributionData.data || [],
+            backgroundColor: 'rgba(147, 51, 234, 0.8)',
+            borderColor: 'rgb(147, 51, 234)',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -571,19 +639,21 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
     if (feeTrendChartInstance) {
       feeTrendChartInstance.destroy();
     }
-    
+
     feeTrendChartInstance = new Chart(feeTrendChart.value.getContext('2d'), {
       type: 'line',
       data: {
         labels: feeTrendData.labels || [],
-        datasets: [{
-          label: 'Fee Collection',
-          data: feeTrendData.data || [],
-          borderColor: 'rgb(16, 185, 129)',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          tension: 0.4,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: 'Fee Collection',
+            data: feeTrendData.data || [],
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -601,7 +671,7 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
             },
             ticks: {
               color: '#6B7280',
-              callback: function(value) {
+              callback: function (value) {
                 return '₹' + value.toLocaleString();
               }
             }
@@ -624,14 +694,14 @@ const createCharts = (studentsData, feesData, studentDistributionData, feeTrendD
 const fetchDashboardData = async () => {
   try {
     loading.value = true;
-    
+
     // Fetch stats and activities in parallel
     const [statsResponse, activitiesResponse] = await Promise.allSettled([
-      Dashboard.getStats({ 
+      Dashboard.getStats({
         branch_id: selectedBranch.value,
         new_students_days: dashboardConfig.newStudentsDays
       }),
-      Dashboard.getRecentActivities({ 
+      Dashboard.getRecentActivities({
         limit: dashboardConfig.activitiesLimit,
         branch_id: selectedBranch.value
       })
@@ -664,19 +734,33 @@ const fetchDashboardData = async () => {
     if (selectedBranch.value) {
       chartParams.branch_id = selectedBranch.value;
     }
-    
-    const [studentsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] = await Promise.allSettled([
-      Dashboard.getStudentsChartData(chartParams),
-      Dashboard.getFeesChartData(chartParams),
-      Dashboard.getStudentDistributionData(chartParams),
-      Dashboard.getFeeTrendData({ ...chartParams, months: dashboardConfig.feeTrendMonths })
-    ]);
+
+    const [studentsResponse, feesResponse, studentDistributionResponse, feeTrendResponse] =
+      await Promise.allSettled([
+        Dashboard.getStudentsChartData(chartParams),
+        Dashboard.getFeesChartData(chartParams),
+        Dashboard.getStudentDistributionData(chartParams),
+        Dashboard.getFeeTrendData({ ...chartParams, months: dashboardConfig.feeTrendMonths })
+      ]);
 
     // Extract data from successful responses
-    const studentsData = studentsResponse.status === 'fulfilled' && studentsResponse.value.success ? studentsResponse.value.data : null;
-    const feesData = feesResponse.status === 'fulfilled' && feesResponse.value.success ? feesResponse.value.data : null;
-    const studentDistributionData = studentDistributionResponse.status === 'fulfilled' && studentDistributionResponse.value.success ? studentDistributionResponse.value.data : null;
-    const feeTrendData = feeTrendResponse.status === 'fulfilled' && feeTrendResponse.value.success ? feeTrendResponse.value.data : null;
+    const studentsData =
+      studentsResponse.status === 'fulfilled' && studentsResponse.value.success
+        ? studentsResponse.value.data
+        : null;
+    const feesData =
+      feesResponse.status === 'fulfilled' && feesResponse.value.success
+        ? feesResponse.value.data
+        : null;
+    const studentDistributionData =
+      studentDistributionResponse.status === 'fulfilled' &&
+      studentDistributionResponse.value.success
+        ? studentDistributionResponse.value.data
+        : null;
+    const feeTrendData =
+      feeTrendResponse.status === 'fulfilled' && feeTrendResponse.value.success
+        ? feeTrendResponse.value.data
+        : null;
 
     console.log('📊 Chart data loaded:', {
       studentsData,
@@ -687,7 +771,6 @@ const fetchDashboardData = async () => {
 
     // Create charts with available data
     createCharts(studentsData, feesData, studentDistributionData, feeTrendData);
-
   } catch (error) {
     loading.value = false;
   }
@@ -701,13 +784,13 @@ const createFeeChart = (data = null) => {
       console.warn('Fee chart canvas not found');
       return;
     }
-    
+
     // Destroy existing chart instance
     if (feesChartInstance) {
       feesChartInstance.destroy();
       feesChartInstance = null;
     }
-    
+
     const chartData = data || {
       labels: ['Paid', 'Pending', 'Overdue'],
       data: [
@@ -716,30 +799,28 @@ const createFeeChart = (data = null) => {
         feeCollectionSummary.value.overdue_invoices || 0
       ]
     };
-    
+
     // Check if all data is zero and show "No Data" message
     const hasData = chartData.data.some(value => value > 0);
-    
+
     try {
       feesChartInstance = new Chart(feesChart.value.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: hasData ? chartData.labels : ['No Data'],
-          datasets: [{
-            data: hasData ? chartData.data : [1],
-            backgroundColor: hasData ? [
-              'rgba(16, 185, 129, 0.8)',
-              'rgba(245, 158, 11, 0.8)',
-              'rgba(239, 68, 68, 0.8)'
-            ] : ['rgba(156, 163, 175, 0.3)'],
-            borderColor: hasData ? [
-              'rgb(16, 185, 129)',
-              'rgb(245, 158, 11)',
-              'rgb(239, 68, 68)'
-            ] : ['rgb(156, 163, 175)'],
-            borderWidth: 2,
-            hoverOffset: 4
-          }]
+          datasets: [
+            {
+              data: hasData ? chartData.data : [1],
+              backgroundColor: hasData
+                ? ['rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)']
+                : ['rgba(156, 163, 175, 0.3)'],
+              borderColor: hasData
+                ? ['rgb(16, 185, 129)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)']
+                : ['rgb(156, 163, 175)'],
+              borderWidth: 2,
+              hoverOffset: 4
+            }
+          ]
         },
         options: {
           responsive: true,
@@ -755,7 +836,7 @@ const createFeeChart = (data = null) => {
             },
             tooltip: {
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   if (!hasData) return 'No data available';
                   const label = context.label || '';
                   const value = context.parsed;
@@ -774,12 +855,14 @@ const createFeeChart = (data = null) => {
           type: 'doughnut',
           data: {
             labels: ['No Data'],
-            datasets: [{
-              data: [1],
-              backgroundColor: ['rgba(156, 163, 175, 0.3)'],
-              borderColor: ['rgb(156, 163, 175)'],
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                data: [1],
+                backgroundColor: ['rgba(156, 163, 175, 0.3)'],
+                borderColor: ['rgb(156, 163, 175)'],
+                borderWidth: 2
+              }
+            ]
           },
           options: {
             responsive: true,
@@ -810,22 +893,22 @@ const fetchFeeCollectionSummary = async () => {
     createFeeChart();
     return;
   }
-  
+
   loadingFeeSummary.value = true;
   try {
-    const params = { 
-      academic_year: selectedAcademicYear.value 
+    const params = {
+      academic_year: selectedAcademicYear.value
     };
-    
+
     // Add branch filter if selected
     if (selectedBranch.value) {
       params.branch_id = selectedBranch.value;
     }
-    
+
     const response = await Dashboard.getFeeCollectionSummary(params);
     if (response.success) {
       feeCollectionSummary.value = response.data;
-      
+
       // Create fee chart with the summary data
       createFeeChart();
     } else {
@@ -844,10 +927,10 @@ const fetchFeeCollectionSummary = async () => {
 const initializeAcademicYear = async () => {
   try {
     loadingAcademicYears.value = true;
-    
+
     // Fetch academic years
     await fetchAcademicYears();
-    
+
     // Set current academic year as default
     if (currentAcademicYear.value) {
       selectedAcademicYear.value = currentAcademicYear.value.name;
@@ -880,17 +963,17 @@ const shouldShowBranchFilter = computed(() => {
   if (authStore.isSuperAdmin) {
     return true;
   }
-  
+
   // School admin can see branch filter only if they have multiple branches
   if (authStore.isSchoolAdmin) {
     return branches.value.length > 1;
   }
-  
+
   // Branch admin should not see branch filter (they're fixed to one branch)
   if (authStore.isBranchAdmin) {
     return false;
   }
-  
+
   // Default: don't show for other roles
   return false;
 });
@@ -901,34 +984,38 @@ const availableBranches = computed(() => {
   if (authStore.isSuperAdmin) {
     return branches.value;
   }
-  
+
   // School admin sees only their school's branches
   if (authStore.isSchoolAdmin) {
     return branches.value.filter(branch => branch.school_id === authStore.currentUser?.school_id);
   }
-  
+
   // Branch admin sees only their branch (but filter shouldn't be shown anyway)
   if (authStore.isBranchAdmin) {
     return branches.value.filter(branch => branch.id === authStore.currentUser?.branch_id);
   }
-  
+
   return [];
 });
 
 // Watch for changes in selected academic year
-watch(selectedAcademicYear, (newValue) => {
+watch(selectedAcademicYear, newValue => {
   if (newValue) {
     fetchFeeCollectionSummary();
   }
 });
 
 // Watch for changes in fee collection summary data
-watch(feeCollectionSummary, () => {
-  createFeeChart();
-}, { deep: true });
+watch(
+  feeCollectionSummary,
+  () => {
+    createFeeChart();
+  },
+  { deep: true }
+);
 
 // Handle branch change
-const onBranchChange = async (event) => {
+const onBranchChange = async event => {
   const branchId = event.target.value;
   selectedBranch.value = branchId;
   // Refresh dashboard data with new branch filter
@@ -959,7 +1046,7 @@ onMounted(async () => {
   await fetchDashboardData();
   await initializeAcademicYear();
   await initializeBranches();
-  
+
   // Initialize fee chart after component is mounted
   setTimeout(() => {
     createFeeChart();

@@ -4,10 +4,12 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <!-- Payment Model Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Model</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Payment Model</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.payment_model" 
+            <select
+              v-model="localFilters.payment_model"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -16,8 +18,18 @@
               <option value="monthly">Monthly Payments</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -25,10 +37,12 @@
 
         <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
         <div v-if="shouldShowBranchFilter">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Branch</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.branch_id" 
+            <select
+              v-model="localFilters.branch_id"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -38,8 +52,18 @@
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -47,10 +71,12 @@
 
         <!-- Academic Year Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Year</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Academic Year</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.academic_year" 
+            <select
+              v-model="localFilters.academic_year"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -60,8 +86,18 @@
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -69,21 +105,37 @@
 
         <!-- Class Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Class</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.class_id" 
+            <select
+              v-model="localFilters.class_id"
               @change="onClassChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
               <option value="">All Classes</option>
-              <option v-for="classItem in availableClasses" :key="classItem.id" :value="classItem.id">
+              <option
+                v-for="classItem in availableClasses"
+                :key="classItem.id"
+                :value="classItem.id"
+              >
                 {{ classItem.name }}
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -91,10 +143,12 @@
 
         <!-- Section Filter -->
         <div v-if="localFilters.class_id">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Section</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.section" 
+            <select
+              v-model="localFilters.section"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -104,8 +158,18 @@
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -113,10 +177,12 @@
 
         <!-- Stream Filter -->
         <div v-if="localFilters.class_id">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Stream</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Stream</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.stream" 
+            <select
+              v-model="localFilters.stream"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -126,8 +192,18 @@
               </option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -135,10 +211,12 @@
 
         <!-- Status Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Status</label
+          >
           <div class="relative">
-            <select 
-              v-model="localFilters.status" 
+            <select
+              v-model="localFilters.status"
               @change="onFilterChange"
               class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
             >
@@ -151,8 +229,18 @@
               <option value="cancelled">Cancelled</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="h-5 w-5 text-gray-400 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -176,50 +264,56 @@
         <div class="flex items-center space-x-2">
           <span class="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
           <div class="flex flex-wrap gap-2">
-            <span 
-              v-if="localFilters.payment_model" 
+            <span
+              v-if="localFilters.payment_model"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
             >
               {{ getPaymentModelLabel(localFilters.payment_model) }}
-              <button @click="clearFilter('payment_model')" class="ml-1 hover:text-blue-600">×</button>
+              <button @click="clearFilter('payment_model')" class="ml-1 hover:text-blue-600">
+                ×
+              </button>
             </span>
-            <span 
-              v-if="localFilters.branch_id" 
+            <span
+              v-if="localFilters.branch_id"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
             >
               {{ getBranchName(localFilters.branch_id) }}
-              <button @click="clearFilter('branch_id')" class="ml-1 hover:text-indigo-600">×</button>
+              <button @click="clearFilter('branch_id')" class="ml-1 hover:text-indigo-600">
+                ×
+              </button>
             </span>
-            <span 
-              v-if="localFilters.academic_year" 
+            <span
+              v-if="localFilters.academic_year"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
             >
               {{ localFilters.academic_year }}
-              <button @click="clearFilter('academic_year')" class="ml-1 hover:text-green-600">×</button>
+              <button @click="clearFilter('academic_year')" class="ml-1 hover:text-green-600">
+                ×
+              </button>
             </span>
-            <span 
-              v-if="localFilters.class_id" 
+            <span
+              v-if="localFilters.class_id"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
             >
               {{ getClassName(localFilters.class_id) }}
               <button @click="clearFilter('class_id')" class="ml-1 hover:text-purple-600">×</button>
             </span>
-            <span 
-              v-if="localFilters.section" 
+            <span
+              v-if="localFilters.section"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
             >
               {{ localFilters.section }}
               <button @click="clearFilter('section')" class="ml-1 hover:text-orange-600">×</button>
             </span>
-            <span 
-              v-if="localFilters.stream" 
+            <span
+              v-if="localFilters.stream"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
             >
               {{ localFilters.stream }}
               <button @click="clearFilter('stream')" class="ml-1 hover:text-teal-600">×</button>
             </span>
-            <span 
-              v-if="localFilters.status" 
+            <span
+              v-if="localFilters.status"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
             >
               {{ getStatusLabel(localFilters.status) }}
@@ -285,17 +379,17 @@ const shouldShowBranchFilter = computed(() => {
   if (authStore.isSuperAdmin) {
     return true;
   }
-  
+
   // School admin can see branch filter only if they have multiple branches
   if (authStore.isSchoolAdmin) {
     return props.branches.length > 1;
   }
-  
+
   // Branch admin should not see branch filter (they're fixed to one branch)
   if (authStore.isBranchAdmin) {
     return false;
   }
-  
+
   // Default: don't show for other roles
   return false;
 });
@@ -305,17 +399,17 @@ const availableBranches = computed(() => {
   if (authStore.isSuperAdmin) {
     return props.branches;
   }
-  
+
   // School admin sees only their school's branches
   if (authStore.isSchoolAdmin) {
     return props.branches.filter(branch => branch.school_id === authStore.currentUser?.school_id);
   }
-  
+
   // Branch admin sees only their branch
   if (authStore.isBranchAdmin) {
     return props.branches.filter(branch => branch.id === authStore.currentUser?.branch_id);
   }
-  
+
   return [];
 });
 
@@ -324,7 +418,7 @@ const availableClasses = computed(() => {
   if (!localFilters.branch_id) {
     return props.classes || [];
   }
-  
+
   // Filter classes by selected branch
   return (props.classes || []).filter(classItem => {
     // If class has branch info, filter by it
@@ -341,7 +435,7 @@ const availableSections = computed(() => {
   if (!localFilters.class_id) {
     return props.sections || [];
   }
-  
+
   // Filter sections by selected class
   return (props.sections || []).filter(section => {
     // If section has class info, filter by it
@@ -358,12 +452,12 @@ const availableStreams = computed(() => {
   if (!localFilters.class_id) {
     return props.streams || [];
   }
-  
+
   // Filter streams by selected class
   const filteredStreams = (props.streams || []).filter(stream => {
     // Check for class_id (direct field) or class.id (nested object)
     const streamClassId = stream.class_id || stream.class?.id;
-    
+
     if (streamClassId) {
       const matches = streamClassId === localFilters.class_id;
       return matches;
@@ -371,7 +465,7 @@ const availableStreams = computed(() => {
     // If no class info on stream, show it (fallback)
     return true;
   });
-  
+
   return filteredStreams;
 });
 
@@ -382,23 +476,45 @@ const localFilters = reactive({
   class_id: '',
   section: '',
   stream: '',
-  status: '',
+  status: ''
 });
 
 // Initialize local filters with props
-watch(() => props.filters, (newFilters) => {
-  Object.assign(localFilters, newFilters);
-}, { immediate: true, deep: true });
+watch(
+  () => props.filters,
+  newFilters => {
+    Object.assign(localFilters, newFilters);
+  },
+  { immediate: true, deep: true }
+);
 
 // Watch for streams changes
-watch(() => props.streams, (newStreams) => {
-  console.log('🔍 InvoiceFilters: streams prop changed:', newStreams?.length, 'items:', newStreams);
-}, { immediate: true, deep: true });
+watch(
+  () => props.streams,
+  newStreams => {
+    console.log(
+      '🔍 InvoiceFilters: streams prop changed:',
+      newStreams?.length,
+      'items:',
+      newStreams
+    );
+  },
+  { immediate: true, deep: true }
+);
 
 // Watch for sections changes
-watch(() => props.sections, (newSections) => {
-  console.log('🔍 InvoiceFilters: sections prop changed:', newSections?.length, 'items:', newSections);
-}, { immediate: true, deep: true });
+watch(
+  () => props.sections,
+  newSections => {
+    console.log(
+      '🔍 InvoiceFilters: sections prop changed:',
+      newSections?.length,
+      'items:',
+      newSections
+    );
+  },
+  { immediate: true, deep: true }
+);
 
 const onFilterChange = () => {
   // If branch changed, reset class, section, and stream filters and emit branch change event
@@ -408,7 +524,7 @@ const onFilterChange = () => {
     localFilters.stream = '';
     emit('branch-change', localFilters.branch_id);
   }
-  
+
   emit('filter-change', { ...localFilters });
 };
 
@@ -416,10 +532,10 @@ const onClassChange = () => {
   // Reset section and stream filters when class changes
   localFilters.section = '';
   localFilters.stream = '';
-  
+
   // Emit class change event for parent component to handle
   emit('class-change', localFilters.class_id);
-  
+
   // Also emit filter change
   emit('filter-change', { ...localFilters });
 };
@@ -428,7 +544,7 @@ const applyFilters = () => {
   emit('filter-change', { ...localFilters });
 };
 
-const clearFilter = (filterName) => {
+const clearFilter = filterName => {
   localFilters[filterName] = '';
   emit('filter-change', { ...localFilters });
 };
@@ -440,7 +556,7 @@ const clearAllFilters = () => {
   emit('clear-filters');
 };
 
-const getPaymentModelLabel = (model) => {
+const getPaymentModelLabel = model => {
   const labels = {
     installment: 'Installment',
     monthly: 'Monthly'
@@ -448,17 +564,17 @@ const getPaymentModelLabel = (model) => {
   return labels[model] || model;
 };
 
-const getClassName = (classId) => {
+const getClassName = classId => {
   const classItem = availableClasses.value.find(c => c.id === classId);
   return classItem ? classItem.name : 'Unknown Class';
 };
 
-const getBranchName = (branchId) => {
+const getBranchName = branchId => {
   const branch = availableBranches.value.find(b => b.id === branchId);
   return branch ? branch.name : 'Unknown Branch';
 };
 
-const getStatusLabel = (status) => {
+const getStatusLabel = status => {
   const labels = {
     draft: 'Draft',
     sent: 'Unpaid', // 'sent' status represents unpaid invoices
@@ -469,4 +585,4 @@ const getStatusLabel = (status) => {
   };
   return labels[status] || status;
 };
-</script> 
+</script>

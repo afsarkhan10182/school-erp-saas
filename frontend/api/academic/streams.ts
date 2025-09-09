@@ -51,9 +51,13 @@ export const Streams = {
   },
 
   // Get streams for dropdown/select
-  getForDropdown: async (params?: { school_id?: string; branch_id?: string; class_id?: string }) => {
+  getForDropdown: async (params?: {
+    school_id?: string;
+    branch_id?: string;
+    class_id?: string;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/streams/dropdown', { params });
     return response.data;
   }
-}; 
+};

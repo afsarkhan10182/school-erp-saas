@@ -17,7 +17,7 @@ export interface User {
   updated_at?: string; // Changed from updatedAt to updated_at
 }
 
-export type UserRole = 
+export type UserRole =
   | 'super_admin'
   | 'school_admin'
   | 'branch_admin'
@@ -178,7 +178,7 @@ export interface DashboardStats {
   totalTeachers?: number;
   recentUsers?: User[];
   recentSchools?: School[];
-} 
+}
 
 export interface PreviousExamDetail {
   exam_name: string; // e.g., "SSC", "FYJC", "SYJC"
@@ -237,4 +237,4 @@ export interface Student {
   updated_by?: string;
   created_at?: string;
   updated_at?: string;
-} 
+}

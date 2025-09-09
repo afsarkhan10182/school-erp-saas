@@ -1,6 +1,6 @@
-import { ref } from "vue";
-import { useCookie } from "nuxt/app";
-import { Saas } from "~/api/administration/saas";
+import { ref } from 'vue';
+import { useCookie } from 'nuxt/app';
+import { Saas } from '~/api/administration/saas';
 
 export function useSubscriptions() {
   const schools = ref([]);
@@ -8,12 +8,12 @@ export function useSubscriptions() {
   const transactions = ref([]);
   const pagination = ref({ page: 1, limit: 10, total: 0, pages: 0 });
   const loading = ref(false);
-  const error = ref("");
+  const error = ref('');
 
   // Get schools with subscription details
   const fetchSchoolsWithSubscriptions = async (params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getSchoolsWithSubscriptions(params);
 
@@ -21,11 +21,11 @@ export function useSubscriptions() {
         schools.value = response.data.schools || [];
         return response;
       } else {
-        error.value = response.message || "Failed to fetch schools.";
+        error.value = response.message || 'Failed to fetch schools.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -35,17 +35,17 @@ export function useSubscriptions() {
   // Get single school with subscription details
   const getSchoolWithSubscription = async (id: string) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getSchoolWithSubscription(id);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch school.";
+        error.value = response.message || 'Failed to fetch school.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -55,18 +55,18 @@ export function useSubscriptions() {
   // Get all subscription plans
   const fetchPlans = async (params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getPlans(params);
       if (response.success) {
         plans.value = response.data.plans || [];
         return response;
       } else {
-        error.value = response.message || "Failed to fetch plans.";
+        error.value = response.message || 'Failed to fetch plans.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -76,17 +76,17 @@ export function useSubscriptions() {
   // Get available modules
   const fetchAvailableModules = async () => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getAvailableModules();
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch available modules.";
+        error.value = response.message || 'Failed to fetch available modules.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -96,17 +96,17 @@ export function useSubscriptions() {
   // Get single subscription plan by ID
   const getPlanById = async (id: string) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getPlanById(id);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch plan.";
+        error.value = response.message || 'Failed to fetch plan.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -116,16 +116,16 @@ export function useSubscriptions() {
   // Create subscription plan
   const createPlan = async (planData: any) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.createPlan(planData);
       if (!response.success) {
-        error.value = response.message || "Failed to create plan.";
+        error.value = response.message || 'Failed to create plan.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -135,16 +135,16 @@ export function useSubscriptions() {
   // Update subscription plan
   const updatePlan = async (id: string, planData: any) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.updatePlan(id, planData);
       if (!response.success) {
-        error.value = response.message || "Failed to update plan.";
+        error.value = response.message || 'Failed to update plan.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -154,16 +154,16 @@ export function useSubscriptions() {
   // Delete subscription plan
   const deletePlan = async (id: string) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.deletePlan(id);
       if (!response.success) {
-        error.value = response.message || "Failed to delete plan.";
+        error.value = response.message || 'Failed to delete plan.';
         return false;
       }
       return true;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return false;
     } finally {
       loading.value = false;
@@ -173,18 +173,18 @@ export function useSubscriptions() {
   // Create school with subscription
   const createSchoolWithSubscription = async (formData: FormData) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.createSchoolWithSubscription(formData);
 
       if (!response.success) {
         // Create an error object that mimics axios error structure
         const apiError = new Error(
-          response.message || "Failed to create school with subscription."
+          response.message || 'Failed to create school with subscription.'
         );
         (apiError as any).response = {
           data: response,
-          status: 400,
+          status: 400
         };
         throw apiError;
       }
@@ -198,22 +198,18 @@ export function useSubscriptions() {
   };
 
   // Update school subscription
-  const updateSchoolSubscription = async (
-    schoolId: string,
-    formData: FormData
-  ) => {
+  const updateSchoolSubscription = async (schoolId: string, formData: FormData) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.updateSchoolSubscription(schoolId, formData);
       if (!response.success) {
-        error.value =
-          response.message || "Failed to update school subscription.";
+        error.value = response.message || 'Failed to update school subscription.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -223,7 +219,7 @@ export function useSubscriptions() {
   // Get school transactions
   const fetchSchoolTransactions = async (schoolId: string, params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getSchoolTransactions(schoolId, params);
       if (response.success) {
@@ -232,15 +228,15 @@ export function useSubscriptions() {
           page: 1,
           limit: 10,
           total: transactions.value.length,
-          pages: 1,
+          pages: 1
         };
         return response;
       } else {
-        error.value = response.message || "Failed to fetch transactions.";
+        error.value = response.message || 'Failed to fetch transactions.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -250,7 +246,7 @@ export function useSubscriptions() {
   // Get my school transactions (for school admins)
   const fetchMyTransactions = async (params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getMyTransactions(params);
       if (response.success) {
@@ -259,15 +255,15 @@ export function useSubscriptions() {
           page: 1,
           limit: 10,
           total: transactions.value.length,
-          pages: 1,
+          pages: 1
         };
         return response;
       } else {
-        error.value = response.message || "Failed to fetch transactions.";
+        error.value = response.message || 'Failed to fetch transactions.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -277,16 +273,16 @@ export function useSubscriptions() {
   // Create manual transaction
   const createManualTransaction = async (transactionData: any) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.createManualTransaction(transactionData);
       if (!response.success) {
-        error.value = response.message || "Failed to create transaction.";
+        error.value = response.message || 'Failed to create transaction.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -296,17 +292,17 @@ export function useSubscriptions() {
   // Get subscription statistics
   const fetchSubscriptionStats = async () => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getSubscriptionStats();
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch statistics.";
+        error.value = response.message || 'Failed to fetch statistics.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -316,16 +312,16 @@ export function useSubscriptions() {
   // Suspend a school
   const suspendSchool = async (schoolId: string) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.suspendSchool(schoolId);
       if (!response.success) {
-        error.value = response.message || "Failed to suspend school.";
+        error.value = response.message || 'Failed to suspend school.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -335,16 +331,16 @@ export function useSubscriptions() {
   // Reactivate a school
   const reactivateSchool = async (schoolId: string) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.reactivateSchool(schoolId);
       if (!response.success) {
-        error.value = response.message || "Failed to reactivate school.";
+        error.value = response.message || 'Failed to reactivate school.';
         return null;
       }
       return response.data;
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -354,17 +350,17 @@ export function useSubscriptions() {
   // Get renewal requests (for super admin)
   const fetchRenewalRequests = async (params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch renewal requests.";
+        error.value = response.message || 'Failed to fetch renewal requests.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -374,17 +370,17 @@ export function useSubscriptions() {
   // Create renewal request (for school admins)
   const createRenewalRequest = async (requestData: any) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.createRenewalRequest(requestData);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to create renewal request.";
+        error.value = response.message || 'Failed to create renewal request.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -394,17 +390,17 @@ export function useSubscriptions() {
   // Review renewal request (for super admin)
   const reviewRenewalRequest = async (requestId: string, reviewData: any) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.reviewRenewalRequest(requestId, reviewData);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to review renewal request.";
+        error.value = response.message || 'Failed to review renewal request.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -414,17 +410,17 @@ export function useSubscriptions() {
   // Get school renewal requests (for school/branch admins)
   const fetchSchoolRenewalRequests = async (params = {}) => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getSchoolRenewalRequests(params);
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || "Failed to fetch renewal requests.";
+        error.value = response.message || 'Failed to fetch renewal requests.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -434,18 +430,17 @@ export function useSubscriptions() {
   // Get school subscription details (for school admins)
   const fetchSchoolSubscriptionDetails = async () => {
     loading.value = true;
-    error.value = "";
+    error.value = '';
     try {
       const response = await Saas.getUsage();
       if (response.success) {
         return response.data;
       } else {
-        error.value =
-          response.message || "Failed to fetch school subscription details.";
+        error.value = response.message || 'Failed to fetch school subscription details.';
         return null;
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || "Network error.";
+      error.value = e.response?.data?.message || 'Network error.';
       return null;
     } finally {
       loading.value = false;
@@ -457,7 +452,7 @@ export function useSubscriptions() {
       const response = await Saas.checkAllStatuses();
       return response.data;
     } catch (error) {
-      console.error("Error checking subscription statuses:", error);
+      console.error('Error checking subscription statuses:', error);
       throw error;
     }
   };
@@ -490,6 +485,6 @@ export function useSubscriptions() {
     createRenewalRequest,
     reviewRenewalRequest,
     fetchSchoolRenewalRequests,
-    checkAndUpdateAllStatuses,
+    checkAndUpdateAllStatuses
   };
 }

@@ -4,12 +4,7 @@
  * Following Rule #4: Follow Nuxt.js Standards - Use composables for shared logic
  */
 
-import { 
-  validationRules, 
-  validateField, 
-  validateForm, 
-  commonSchemas 
-} from '~/utils/validators'
+import { validationRules, validateField, validateForm, commonSchemas } from '~/utils/validators';
 
 export const useValidators = () => {
   return {
@@ -17,5 +12,5 @@ export const useValidators = () => {
     validateField,
     validateForm,
     commonSchemas
-  }
-}
+  };
+};

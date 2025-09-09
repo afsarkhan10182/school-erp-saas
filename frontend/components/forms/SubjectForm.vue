@@ -61,9 +61,9 @@
           @change="clearError('category')"
         >
           <option value="">Select Category</option>
-          <option 
-            v-for="category in subjectCategories" 
-            :key="category.value" 
+          <option
+            v-for="category in subjectCategories"
+            :key="category.value"
             :value="category.value"
           >
             {{ category.label }}
@@ -190,17 +190,17 @@
         :disabled="isSubmitting"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {{ isSubmitting ? 'Saving...' : (props.subject ? 'Update Subject' : 'Create Subject') }}
+        {{ isSubmitting ? 'Saving...' : props.subject ? 'Update Subject' : 'Create Subject' }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useToast } from '~/composables/useToast'
-import { validationRules, commonSchemas, validateForm } from '~/utils/validators'
-import { useConfig } from '~/composables/useConfig'
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { validationRules, commonSchemas, validateForm } from '~/utils/validators';
+import { useConfig } from '~/composables/useConfig';
 
 // Props
 const props = defineProps({
@@ -212,18 +212,18 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
-})
+});
 
 // Emits
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
-const { showToast } = useToast()
-const { subjectCategories } = useConfig()
+const { showToast } = useToast();
+const { subjectCategories } = useConfig();
 
 // Reactive data
-const isSubmitting = ref(false)
-const errors = ref({})
+const isSubmitting = ref(false);
+const errors = ref({});
 
 // Form data
 const form = reactive({
@@ -234,80 +234,76 @@ const form = reactive({
   credit_hours: 1,
   is_active: true,
   class_id: ''
-})
+});
 
 // Validation schema using common utilities
 const validationSchema = {
   name: [
-    (val) => validationRules.required(val, 'Subject name'),
-    (val) => validationRules.minLength(val, 2, 'Subject name'),
-    (val) => validationRules.maxLength(val, 100, 'Subject name')
+    val => validationRules.required(val, 'Subject name'),
+    val => validationRules.minLength(val, 2, 'Subject name'),
+    val => validationRules.maxLength(val, 100, 'Subject name')
   ],
-  code: [
-    ...commonSchemas.code,
-    (val) => validationRules.required(val, 'Subject code')
-  ],
+  code: [...commonSchemas.code, val => validationRules.required(val, 'Subject code')],
   category: [
-    (val) => validationRules.required(val, 'Category'),
-    (val) => {
-      const validCategories = subjectCategories.value.map(cat => cat.value)
-      return validCategories.includes(val) ? null : 'Invalid category selected'
+    val => validationRules.required(val, 'Category'),
+    val => {
+      const validCategories = subjectCategories.value.map(cat => cat.value);
+      return validCategories.includes(val) ? null : 'Invalid category selected';
     }
   ],
   credit_hours: [
-    (val) => {
+    val => {
       if (val && (val < 1 || val > 10)) {
-        return 'Credit hours must be between 1 and 10'
+        return 'Credit hours must be between 1 and 10';
       }
-      return null
+      return null;
     }
   ],
   description: [commonSchemas.description[0]], // maxLength
   class_id: [
-    (val) => {
+    val => {
       if (val && !validationRules.uuid(val)) {
-        return 'Invalid class ID format'
+        return 'Invalid class ID format';
       }
-      return null
+      return null;
     }
   ]
-}
+};
 
 // Methods
-const validateField = (fieldName) => {
-  const value = form[fieldName]
-  const rules = validationSchema[fieldName] || []
-  
+const validateField = fieldName => {
+  const value = form[fieldName];
+  const rules = validationSchema[fieldName] || [];
+
   for (const rule of rules) {
-    const error = rule(value)
+    const error = rule(value);
     if (error) {
-      errors.value[fieldName] = error
-      return
+      errors.value[fieldName] = error;
+      return;
     }
   }
-  
-  delete errors.value[fieldName]
-}
+
+  delete errors.value[fieldName];
+};
 
 const validateFormData = () => {
-  const formErrors = validateForm(form, validationSchema)
-  errors.value = formErrors
-  return Object.keys(formErrors).length === 0
-}
+  const formErrors = validateForm(form, validationSchema);
+  errors.value = formErrors;
+  return Object.keys(formErrors).length === 0;
+};
 
-const clearError = (fieldName) => {
-  delete errors.value[fieldName]
-}
-
+const clearError = fieldName => {
+  delete errors.value[fieldName];
+};
 
 const handleSubmit = async () => {
   if (!validateFormData()) {
-    showToast('Please fix the validation errors', 'error')
-    return
+    showToast('Please fix the validation errors', 'error');
+    return;
   }
 
-  isSubmitting.value = true
-  
+  isSubmitting.value = true;
+
   try {
     // Prepare form data
     const formData = {
@@ -318,16 +314,16 @@ const handleSubmit = async () => {
       credit_hours: form.credit_hours,
       is_active: form.is_active,
       class_id: form.class_id || null
-    }
+    };
 
-    emit('submit', formData)
+    emit('submit', formData);
   } catch (error) {
-    console.error('Error in form submission:', error)
-    showToast('An error occurred while saving', 'error')
+    console.error('Error in form submission:', error);
+    showToast('An error occurred while saving', 'error');
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const resetForm = () => {
   Object.assign(form, {
@@ -338,11 +334,11 @@ const resetForm = () => {
     credit_hours: 1,
     is_active: true,
     class_id: ''
-  })
-  errors.value = {}
-}
+  });
+  errors.value = {};
+};
 
-const populateForm = (subject) => {
+const populateForm = subject => {
   if (subject) {
     Object.assign(form, {
       name: subject.name || '',
@@ -352,21 +348,25 @@ const populateForm = (subject) => {
       credit_hours: subject.credit_hours || 1,
       is_active: subject.is_active !== undefined ? subject.is_active : true,
       class_id: subject.class_id || ''
-    })
+    });
   } else {
-    resetForm()
+    resetForm();
   }
-}
+};
 
 // Watchers
-watch(() => props.subject, (newSubject) => {
-  populateForm(newSubject)
-}, { immediate: true })
+watch(
+  () => props.subject,
+  newSubject => {
+    populateForm(newSubject);
+  },
+  { immediate: true }
+);
 
 // Lifecycle
 onMounted(() => {
-  populateForm(props.subject)
-})
+  populateForm(props.subject);
+});
 </script>
 
 <style scoped>

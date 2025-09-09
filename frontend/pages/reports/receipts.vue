@@ -22,12 +22,7 @@
               @click="toggleColumnSelector"
               class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
             >
-              <svg
-                class="w-4 h-4 mr-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -58,9 +53,7 @@
               class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
             >
               <div class="p-2">
-                <h3
-                  class="text-xs font-medium text-gray-900 dark:text-white mb-2"
-                >
+                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">
                   Select Columns
                 </h3>
                 <div class="space-y-1">
@@ -81,9 +74,7 @@
                     >
                   </label>
                 </div>
-                <div
-                  class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600"
-                >
+                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                   <button
                     @click="selectAllColumns"
                     class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-2 cursor-pointer"
@@ -106,12 +97,7 @@
             :disabled="isLoading || payments.length === 0"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg
-              class="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -129,12 +115,7 @@
               :disabled="isLoading || payments.length === 0"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg
-                class="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -170,12 +151,7 @@
                   @click="downloadPDFReport"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
-                  <svg
-                    class="mr-3 h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -189,12 +165,7 @@
                   @click="downloadExcelReport"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
-                  <svg
-                    class="mr-3 h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -208,12 +179,7 @@
                   @click="downloadCSVReport"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
-                  <svg
-                    class="mr-3 h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -234,9 +200,7 @@
         class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6"
       >
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-            Report Filters
-          </h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Report Filters</h2>
           <button
             @click="clearFilters"
             class="px-4 py-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50 transition-colors duration-200"
@@ -248,8 +212,7 @@
         <div class="flex flex-wrap items-end gap-3 mb-4">
           <!-- Date Range -->
           <div class="flex-1 min-w-[150px]">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Date Range *</label
             >
             <div class="relative group">
@@ -270,9 +233,7 @@
                 <option value="month">This Month</option>
                 <option value="custom">Custom Range</option>
               </select>
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
-              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg
                   class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
                   fill="none"
@@ -292,8 +253,7 @@
 
           <!-- Payment Method -->
           <div class="flex-1 min-w-[150px]">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Payment Method</label
             >
             <div class="relative group">
@@ -316,9 +276,7 @@
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="upi">UPI</option>
               </select>
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
-              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg
                   class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
                   fill="none"
@@ -338,8 +296,7 @@
 
           <!-- School dropdown for super admin -->
           <div v-if="userRole === 'super_admin'" class="flex-1 min-w-[150px]">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >School</label
             >
             <div class="relative group">
@@ -354,17 +311,11 @@
                 "
               >
                 <option value="">All Schools</option>
-                <option
-                  v-for="school in schools"
-                  :key="school.id"
-                  :value="school.id"
-                >
+                <option v-for="school in schools" :key="school.id" :value="school.id">
                   {{ school.name }}
                 </option>
               </select>
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
-              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg
                   class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
                   fill="none"
@@ -384,14 +335,10 @@
 
           <!-- Branch dropdown for super admin (when school selected) and school admin -->
           <div
-            v-if="
-              (userRole === 'super_admin' && filters.school_id) ||
-              userRole === 'school_admin'
-            "
+            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'school_admin'"
             class="flex-1 min-w-[150px]"
           >
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Branch</label
             >
             <div class="relative group">
@@ -406,17 +353,11 @@
                 "
               >
                 <option value="">All Branches</option>
-                <option
-                  v-for="branch in branches"
-                  :key="branch.id"
-                  :value="branch.id"
-                >
+                <option v-for="branch in branches" :key="branch.id" :value="branch.id">
                   {{ branch.name }}
                 </option>
               </select>
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
-              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg
                   class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
                   fill="none"
@@ -436,8 +377,7 @@
 
           <!-- Student Search -->
           <div class="flex-1 min-w-[200px]">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Student Search</label
             >
             <div class="relative">
@@ -492,8 +432,7 @@
 
           <!-- Class dropdown - show when branch is selected -->
           <div v-if="filters.branch_id" class="flex-1 min-w-[150px]">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Class</label
             >
             <div class="relative group">
@@ -508,17 +447,11 @@
                 "
               >
                 <option value="">All Classes</option>
-                <option
-                  v-for="classItem in classes"
-                  :key="classItem.id"
-                  :value="classItem.id"
-                >
+                <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
                   {{ classItem.name }}
                 </option>
               </select>
-              <div
-                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
-              >
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg
                   class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
                   fill="none"
@@ -538,8 +471,7 @@
 
           <!-- Apply Filter Button -->
           <div class="flex-shrink-0">
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >&nbsp;</label
             >
             <button
@@ -579,8 +511,7 @@
           class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
         >
           <div>
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >From Date</label
             >
             <input
@@ -590,8 +521,7 @@
             />
           </div>
           <div>
-            <label
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >To Date</label
             >
             <input
@@ -614,9 +544,7 @@
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">
               {{ formatCurrency(summary.total_collected) }}
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">
-              Total Collected
-            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Collected</div>
           </div>
           <div
             class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700"
@@ -624,9 +552,7 @@
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {{ summary.total_receipts }}
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">
-              Total Receipts
-            </div>
+            <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Receipts</div>
           </div>
         </div>
       </div>
@@ -642,9 +568,7 @@
         </div>
 
         <div class="overflow-x-auto">
-          <table
-            class="min-w-full divide-y divide-gray-200 dark:divide-gray-600"
-          >
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th
@@ -709,9 +633,7 @@
                 </th>
               </tr>
             </thead>
-            <tbody
-              class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600"
-            >
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
               <tr v-if="isLoading">
                 <td
                   :colspan="displayedColumns.length"
@@ -752,12 +674,7 @@
                     >
                       {{ payment.invoice.id }}
                     </span>
-                    <span
-                      v-else
-                      class="text-gray-500 dark:text-gray-400 italic"
-                    >
-                      N/A
-                    </span>
+                    <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                   </div>
                 </td>
 
@@ -804,15 +721,10 @@
                   v-if="isColumnVisible('branch')"
                   class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
                 >
-                  <span
-                    v-if="payment.branch"
-                    class="font-medium text-gray-900 dark:text-white"
-                  >
+                  <span v-if="payment.branch" class="font-medium text-gray-900 dark:text-white">
                     {{ payment.branch }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
 
                 <!-- Class -->
@@ -823,9 +735,7 @@
                   <span v-if="payment.student && payment.student.current_class">
                     {{ payment.student.current_class }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
 
                 <!-- Section -->
@@ -836,9 +746,7 @@
                   <span v-if="payment.student && payment.student.section">
                     {{ payment.student.section }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
 
                 <!-- Amount -->
@@ -867,7 +775,7 @@
                   v-if="isColumnVisible('fee_type')"
                   class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
                 >
-                  {{ payment.fee_type || "N/A" }}
+                  {{ payment.fee_type || 'N/A' }}
                 </td>
               </tr>
             </tbody>
@@ -888,19 +796,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
-import { FeeInvoices, Schools, Branches, Classes } from "~/api";
-import { useToast } from "~/composables/useToast";
-import { useAcademics } from "~/composables/useAcademics";
-import { useBranchContext } from "~/composables/useBranchContext";
-import { useAuthStore } from "~/stores/auth";
-import { useExportService } from "~/composables/useExportService";
-import { usePrintReport } from "~/composables/usePrintReport";
-import Pagination from "~/components/Pagination.vue";
+import { ref, reactive, onMounted, computed } from 'vue';
+import { FeeInvoices, Schools, Branches, Classes } from '~/api';
+import { useToast } from '~/composables/useToast';
+import { useAcademics } from '~/composables/useAcademics';
+import { useBranchContext } from '~/composables/useBranchContext';
+import { useAuthStore } from '~/stores/auth';
+import { useExportService } from '~/composables/useExportService';
+import { usePrintReport } from '~/composables/usePrintReport';
+import Pagination from '~/components/Pagination.vue';
 
 // Page metadata
 definePageMeta({
-  layout: "default",
+  layout: 'default'
 });
 
 // Composables
@@ -916,7 +824,7 @@ const payments = ref([]);
 const summary = ref({
   total_collected: 0,
   total_receipts: 0,
-  payment_methods: [],
+  payment_methods: []
 });
 
 const pagination = ref({
@@ -926,7 +834,7 @@ const pagination = ref({
   total: 0,
   total_records: 0,
   per_page: 10,
-  limit: 10,
+  limit: 10
 });
 const showDownloadDropdown = ref(false); // Track download dropdown state
 const showColumnSelector = ref(false); // Track column selector state
@@ -939,92 +847,88 @@ const sections = ref([]);
 
 // Available columns for selection
 const availableColumns = ref([
-  { key: "invoice_number", label: "Invoice No", visible: false },
-  { key: "receipt_number", label: "Receipt No", visible: true },
-  { key: "payment_date", label: "Date", visible: true },
-  { key: "student_name", label: "Student Name", visible: true },
-  { key: "branch", label: "Branch", visible: true },
-  { key: "class", label: "Class", visible: true },
-  { key: "section", label: "Section", visible: false },
-  { key: "payment_amount", label: "Amount", visible: true },
-  { key: "payment_method", label: "Method", visible: true },
-  { key: "fee_type", label: "Fee Type", visible: true },
+  { key: 'invoice_number', label: 'Invoice No', visible: false },
+  { key: 'receipt_number', label: 'Receipt No', visible: true },
+  { key: 'payment_date', label: 'Date', visible: true },
+  { key: 'student_name', label: 'Student Name', visible: true },
+  { key: 'branch', label: 'Branch', visible: true },
+  { key: 'class', label: 'Class', visible: true },
+  { key: 'section', label: 'Section', visible: false },
+  { key: 'payment_amount', label: 'Amount', visible: true },
+  { key: 'payment_method', label: 'Method', visible: true },
+  { key: 'fee_type', label: 'Fee Type', visible: true }
 ]);
 
 // Computed property to filter visible columns
 const displayedColumns = computed(() => {
-  return availableColumns.value.filter((col) => col.visible);
+  return availableColumns.value.filter(col => col.visible);
 });
 
 // User role for conditional filtering
-const userRole = computed(() => authStore.currentUser?.role || "branch_admin");
+const userRole = computed(() => authStore.currentUser?.role || 'branch_admin');
 
 // Filters
 const filters = reactive({
-  dateRange: "today", // Changed from 'month' to 'today'
-  from_date: "",
-  to_date: "",
-  payment_method: "",
-  school_id: "",
-  branch_id: "",
-  class_id: "",
-  section_id: "",
-  search: "",
+  dateRange: 'today', // Changed from 'month' to 'today'
+  from_date: '',
+  to_date: '',
+  payment_method: '',
+  school_id: '',
+  branch_id: '',
+  class_id: '',
+  section_id: '',
+  search: ''
 });
 
 // Methods
 const handleDateRangeChange = () => {
   const today = new Date();
 
-  const formatDate = (date) => {
+  const formatDate = date => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
   switch (filters.dateRange) {
-    case "today":
+    case 'today':
       filters.from_date = formatDate(today);
       filters.to_date = formatDate(today);
       break;
-    case "yesterday":
+    case 'yesterday':
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       filters.from_date = formatDate(yesterday);
       filters.to_date = formatDate(yesterday);
       break;
-    case "week":
+    case 'week':
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
       filters.from_date = formatDate(weekStart);
       filters.to_date = formatDate(today);
       break;
-    case "month":
+    case 'month':
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
       filters.from_date = formatDate(monthStart);
       filters.to_date = formatDate(today);
       break;
-    case "quarter":
-      const quarterStart = new Date(
-        today.getFullYear(),
-        Math.floor(today.getMonth() / 3) * 3,
-        1
-      );
+    case 'quarter':
+      const quarterStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
       filters.from_date = formatDate(quarterStart);
       filters.to_date = formatDate(today);
       break;
-    case "year":
+    case 'year':
       const yearStart = new Date(today.getFullYear(), 0, 1);
       filters.from_date = formatDate(yearStart);
       filters.to_date = formatDate(today);
       break;
-    case "custom":
+    case 'custom':
       // Keep existing values
       break;
     default:
-      filters.from_date = "";
-      filters.to_date = "";
+      filters.from_date = '';
+      filters.to_date = '';
   }
 };
 
@@ -1050,15 +954,13 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
     if (filters.branch_id) params.branch_id = filters.branch_id;
 
     // Add class ID if selected
-    if (filters.class_id && filters.class_id !== "") {
+    if (filters.class_id && filters.class_id !== '') {
       params.class_id = filters.class_id;
     }
 
     // Add section name if selected
-    if (filters.section_id && filters.section_id !== "") {
-      const selectedSection = sections.value.find(
-        (sec) => sec.id === filters.section_id
-      );
+    if (filters.section_id && filters.section_id !== '') {
+      const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
       if (selectedSection) {
         params.section = selectedSection.name;
       }
@@ -1073,7 +975,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
       const responseSummary = response.data.summary || {
         total_collected: 0,
         total_receipts: 0,
-        payment_methods: [],
+        payment_methods: []
       };
 
       if (exportAll) {
@@ -1093,23 +995,23 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
           total_records: paginationData.total_records || 0,
           total_pages: paginationData.total_pages || 1,
           per_page: paginationData.per_page || 10,
-          limit: paginationData.per_page || 10,
+          limit: paginationData.per_page || 10
         };
       }
     } else {
       if (exportAll) {
-        console.error("❌ Failed to fetch all receipts for print");
+        console.error('❌ Failed to fetch all receipts for print');
         return [];
       } else {
-        showToast("Error fetching receipts data", "error");
+        showToast('Error fetching receipts data', 'error');
       }
     }
   } catch (error) {
-    console.error("Error fetching receipts:", error);
+    console.error('Error fetching receipts:', error);
     if (exportAll) {
       return [];
     } else {
-      showToast("Error fetching receipts data", "error");
+      showToast('Error fetching receipts data', 'error');
     }
   } finally {
     if (!exportAll) {
@@ -1118,7 +1020,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
   }
 };
 
-const changePage = (page) => {
+const changePage = page => {
   if (page >= 1 && page <= pagination.value.total_pages) {
     pagination.value.current_page = page;
     pagination.value.page = page;
@@ -1126,37 +1028,37 @@ const changePage = (page) => {
   }
 };
 
-const handlePageSizeChange = (newPageSize) => {
+const handlePageSizeChange = newPageSize => {
   pagination.value.per_page = newPageSize;
   pagination.value.limit = newPageSize; // Also update limit for Pagination component
   fetchReceiptsData(1);
 };
 
 const clearFilters = () => {
-  filters.dateRange = "today"; // Changed from 'month' to 'today'
-  filters.from_date = "";
-  filters.to_date = "";
-  filters.payment_method = "";
-  filters.school_id = "";
-  filters.branch_id = "";
-  filters.class_id = "";
-  filters.section_id = "";
-  filters.search = "";
+  filters.dateRange = 'today'; // Changed from 'month' to 'today'
+  filters.from_date = '';
+  filters.to_date = '';
+  filters.payment_method = '';
+  filters.school_id = '';
+  filters.branch_id = '';
+  filters.class_id = '';
+  filters.section_id = '';
+  filters.search = '';
 
   handleDateRangeChange();
   fetchReceiptsData(1);
 };
 
 const clearSearch = () => {
-  filters.search = "";
+  filters.search = '';
   fetchReceiptsData(1);
 };
 
 // Dropdown change handlers
 const onSchoolChange = async () => {
   // Reset branch and class when school changes
-  filters.branch_id = "";
-  filters.class_id = "";
+  filters.branch_id = '';
+  filters.class_id = '';
 
   // Refetch branches for the selected school
   await fetchBranches();
@@ -1167,7 +1069,7 @@ const onSchoolChange = async () => {
 
 const onBranchChange = async () => {
   // Reset class when branch changes
-  filters.class_id = "";
+  filters.class_id = '';
 
   // Refetch dependent data
   await fetchClasses();
@@ -1180,15 +1082,15 @@ const onClassChange = async () => {
 
 // Dropdown data loading methods
 const fetchSchools = async () => {
-  if (userRole.value === "super_admin") {
+  if (userRole.value === 'super_admin') {
     try {
       const response = await Schools.getAll();
       if (response.success) {
         schools.value = response.data.schools || [];
       }
     } catch (error) {
-      console.error("Error loading schools:", error);
-      showToast("Error loading schools", "error");
+      console.error('Error loading schools:', error);
+      showToast('Error loading schools', 'error');
       schools.value = [];
     }
   }
@@ -1205,25 +1107,19 @@ const fetchBranches = async () => {
     const user = authStore.user;
 
     if (user && user.role) {
-      if (user.role === "super_admin") {
+      if (user.role === 'super_admin') {
         // Super admin can see all branches, but filter by selected school if specified
         if (filters.school_id) {
-          branches.value = allBranches.filter(
-            (branch) => branch.school_id === filters.school_id
-          );
+          branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
         } else {
           branches.value = [];
         }
-      } else if (user.role === "school_admin") {
+      } else if (user.role === 'school_admin') {
         // School admin can see all branches in their school
-        branches.value = allBranches.filter(
-          (branch) => branch.school_id === user.school_id
-        );
-      } else if (user.role === "branch_admin") {
+        branches.value = allBranches.filter(branch => branch.school_id === user.school_id);
+      } else if (user.role === 'branch_admin') {
         // Branch admin can only see their own branch
-        branches.value = allBranches.filter(
-          (branch) => branch.id === user.branch_id
-        );
+        branches.value = allBranches.filter(branch => branch.id === user.branch_id);
       } else {
         branches.value = [];
       }
@@ -1231,8 +1127,8 @@ const fetchBranches = async () => {
       branches.value = [];
     }
   } catch (error) {
-    console.error("❌ Error fetching branches:", error);
-    showToast("Error fetching branches", "error");
+    console.error('❌ Error fetching branches:', error);
+    showToast('Error fetching branches', 'error');
     branches.value = [];
   }
 };
@@ -1261,21 +1157,18 @@ const fetchClasses = async () => {
       classes.value = [];
     }
   } catch (error) {
-    console.error("Error fetching classes:", error);
-    showToast("Error fetching classes", "error");
+    console.error('Error fetching classes:', error);
+    showToast('Error fetching classes', 'error');
     classes.value = [];
   }
 };
 
 // Unified download function following DRY principle
-const downloadReport = async (format) => {
+const downloadReport = async format => {
   try {
     closeDownloadDropdown();
 
-    if (
-      !validateColumnVisibility("export") ||
-      !validateDataAvailability("export")
-    ) {
+    if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
       return;
     }
 
@@ -1287,65 +1180,65 @@ const downloadReport = async (format) => {
       branch_id: filters.branch_id,
       class_id: filters.class_id,
       section: filters.section_id
-        ? sections.value.find((sec) => sec.id === filters.section_id)?.name
+        ? sections.value.find(sec => sec.id === filters.section_id)?.name
         : undefined,
-      search: filters.search,
+      search: filters.search
     };
 
     // Remove undefined values
-    Object.keys(exportFilters).forEach((key) => {
-      if (exportFilters[key] === undefined || exportFilters[key] === "") {
+    Object.keys(exportFilters).forEach(key => {
+      if (exportFilters[key] === undefined || exportFilters[key] === '') {
         delete exportFilters[key];
       }
     });
 
-    const selectedColumns = displayedColumns.value.map((col) => ({
+    const selectedColumns = displayedColumns.value.map(col => ({
       key: col.key,
-      header: col.label,
+      header: col.label
     }));
 
     await generateReport({
-      report_type: "receipts",
+      report_type: 'receipts',
       format,
       filters: exportFilters,
-      columns: selectedColumns,
+      columns: selectedColumns
     });
   } catch (error) {
-    showToast(`Error downloading ${format.toUpperCase()} report`, "error");
+    showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
   }
 };
 
-const downloadPDFReport = () => downloadReport("pdf");
-const downloadExcelReport = () => downloadReport("excel");
-const downloadCSVReport = () => downloadReport("csv");
+const downloadPDFReport = () => downloadReport('pdf');
+const downloadExcelReport = () => downloadReport('excel');
+const downloadCSVReport = () => downloadReport('csv');
 
 // Import formatCurrency from exportConfig to avoid duplication
-import { formatCurrency } from "~/utils/formatters";
+import { formatCurrency } from '~/utils/formatters';
 
 // Import formatDate from formatters to avoid duplication
-import { formatDate } from "~/utils/formatters";
+import { formatDate } from '~/utils/formatters';
 
 // Common function to format payment data for exports
-const formatPaymentDataForExport = (payment) => {
+const formatPaymentDataForExport = payment => {
   const formattedPayment = {};
 
   // Use availableColumns configuration instead of manual checking
-  availableColumns.value.forEach((column) => {
+  availableColumns.value.forEach(column => {
     if (column.visible) {
       const key = column.key;
 
       switch (key) {
-        case "invoice_number":
+        case 'invoice_number':
           if (payment.invoice?.invoice_number) {
             formattedPayment[key] = payment.invoice.invoice_number;
           } else if (payment.invoice?.id) {
             formattedPayment[key] = payment.invoice.id;
           } else {
-            formattedPayment[key] = "N/A";
+            formattedPayment[key] = 'N/A';
           }
           break;
 
-        case "receipt_number":
+        case 'receipt_number':
           let receiptText = payment.receipt_number;
           if (payment.month_count > 1) {
             receiptText += ` (${payment.month_count} months)`;
@@ -1353,52 +1246,52 @@ const formatPaymentDataForExport = (payment) => {
           formattedPayment[key] = receiptText;
           break;
 
-        case "payment_date":
+        case 'payment_date':
           formattedPayment[key] = payment.payment_date;
           break;
 
-        case "student_name":
+        case 'student_name':
           if (payment.student && payment.student.name) {
             formattedPayment[key] = payment.student.name;
           } else {
-            formattedPayment[key] = "Student data unavailable";
+            formattedPayment[key] = 'Student data unavailable';
           }
           break;
 
-        case "branch":
-          formattedPayment[key] = payment.branch || "N/A";
+        case 'branch':
+          formattedPayment[key] = payment.branch || 'N/A';
           break;
 
-        case "class":
+        case 'class':
           if (payment.student && payment.student.current_class) {
             formattedPayment[key] = payment.student.current_class;
           } else {
-            formattedPayment[key] = "N/A";
+            formattedPayment[key] = 'N/A';
           }
           break;
 
-        case "section":
+        case 'section':
           if (payment.student && payment.student.section) {
             formattedPayment[key] = payment.student.section;
           } else {
-            formattedPayment[key] = "N/A";
+            formattedPayment[key] = 'N/A';
           }
           break;
 
-        case "payment_amount":
+        case 'payment_amount':
           formattedPayment[key] = formatCurrency(payment.payment_amount);
           break;
 
-        case "payment_method":
+        case 'payment_method':
           formattedPayment[key] = payment.payment_method;
           break;
 
-        case "fee_type":
-          formattedPayment[key] = payment.fee_type || "N/A";
+        case 'fee_type':
+          formattedPayment[key] = payment.fee_type || 'N/A';
           break;
 
         default:
-          formattedPayment[key] = payment[key] || "N/A";
+          formattedPayment[key] = payment[key] || 'N/A';
       }
     }
   });
@@ -1408,78 +1301,62 @@ const formatPaymentDataForExport = (payment) => {
 
 // Reusable function to format all payments data for export
 const formatDataForExport = () => {
-  return payments.value.map((payment) => formatPaymentDataForExport(payment));
+  return payments.value.map(payment => formatPaymentDataForExport(payment));
 };
 
-const getPaymentMethodClass = (method) => {
+const getPaymentMethodClass = method => {
   const classes = {
-    cash: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-    card: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    upi: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-    bank_transfer:
-      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
-    cheque:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+    cash: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    card: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    upi: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    bank_transfer: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    cheque: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
   };
-  return (
-    classes[method] ||
-    "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-  );
+  return classes[method] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
 };
 
-const getPaymentMethodText = (method) => {
+const getPaymentMethodText = method => {
   const texts = {
-    cash: "Cash",
-    card: "Card",
-    upi: "UPI",
-    bank_transfer: "Bank Transfer",
-    cheque: "Cheque",
+    cash: 'Cash',
+    card: 'Card',
+    upi: 'UPI',
+    bank_transfer: 'Bank Transfer',
+    cheque: 'Cheque'
   };
   return texts[method] || method;
 };
 
 const printReceiptsReport = async () => {
   try {
-    if (!validateColumnVisibility("print")) {
+    if (!validateColumnVisibility('print')) {
       return;
     }
 
     const allReceiptsData = await fetchReceiptsData(1, true);
 
     if (allReceiptsData.length === 0) {
-      showToast(
-        "No data to print. Please load some receipts first.",
-        "warning"
-      );
+      showToast('No data to print. Please load some receipts first.', 'warning');
       return;
     }
 
-    const formattedData = allReceiptsData.map((payment) =>
-      formatPaymentDataForExport(payment)
-    );
+    const formattedData = allReceiptsData.map(payment => formatPaymentDataForExport(payment));
 
     const reportData = {
-      title: "Receipts Report",
+      title: 'Receipts Report',
       data: formattedData,
-      columns: displayedColumns.value.map((col) => ({
+      columns: displayedColumns.value.map(col => ({
         key: col.key,
-        header: col.label,
+        header: col.label
       })),
       filters: {
-        "Date Range": filters.dateRange,
-        "From Date":
-          filters.dateRange === "all_time"
-            ? "All Time"
-            : formatDate(filters.from_date),
-        "To Date":
-          filters.dateRange === "all_time"
-            ? "All Time"
-            : formatDate(filters.to_date),
-        "Payment Method": filters.payment_method || "All Methods",
-        Search: filters.search || "None",
+        'Date Range': filters.dateRange,
+        'From Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.from_date),
+        'To Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.to_date),
+        'Payment Method': filters.payment_method || 'All Methods',
+        Search: filters.search || 'None'
       },
       totalRecords: allReceiptsData.length,
-      reportType: "receipts",
+      reportType: 'receipts'
     };
 
     await printReportCommon(reportData, {
@@ -1487,10 +1364,10 @@ const printReceiptsReport = async () => {
       showSummary: true,
       showFilters: true,
       showFooter: true,
-      autoPrint: true,
+      autoPrint: true
     });
   } catch (error) {
-    showToast("Error printing report", "error");
+    showToast('Error printing report', 'error');
   }
 };
 
@@ -1508,97 +1385,90 @@ const toggleColumnSelector = () => {
 };
 
 const selectAllColumns = () => {
-  availableColumns.value.forEach((col) => (col.visible = true));
+  availableColumns.value.forEach(col => (col.visible = true));
 };
 
 const deselectAllColumns = () => {
-  availableColumns.value.forEach((col) => (col.visible = false));
+  availableColumns.value.forEach(col => (col.visible = false));
 };
 
 // Helper function to check if a column is visible
-const isColumnVisible = (columnKey) => {
-  const column = availableColumns.value.find((col) => col.key === columnKey);
+const isColumnVisible = columnKey => {
+  const column = availableColumns.value.find(col => col.key === columnKey);
   return column ? column.visible : false;
 };
 
 // Common method to validate column visibility for exports
-const validateColumnVisibility = (action = "export") => {
+const validateColumnVisibility = (action = 'export') => {
   // Check if any columns are visible
   if (displayedColumns.value.length === 0) {
-    showToast(
-      `No columns selected. Please select at least one column to ${action}.`,
-      "warning"
-    );
+    showToast(`No columns selected. Please select at least one column to ${action}.`, 'warning');
     return false;
   }
   return true;
 };
 
 // Common method to validate data availability for exports
-const validateDataAvailability = (action = "export") => {
+const validateDataAvailability = (action = 'export') => {
   // Check if there's data to export
   if (payments.value.length === 0) {
-    showToast(
-      `No data available to ${action}. Please load some receipts first.`,
-      "warning"
-    );
+    showToast(`No data available to ${action}. Please load some receipts first.`, 'warning');
     return false;
   }
   return true;
 };
 
 // Function to toggle column visibility
-const toggleColumnVisibility = (index) => {
-  availableColumns.value[index].visible =
-    !availableColumns.value[index].visible;
+const toggleColumnVisibility = index => {
+  availableColumns.value[index].visible = !availableColumns.value[index].visible;
 };
 
 // Close dropdown when clicking outside
 onMounted(() => {
-  document.addEventListener("click", (event) => {
-    const dropdown = document.querySelector(".download-dropdown");
+  document.addEventListener('click', event => {
+    const dropdown = document.querySelector('.download-dropdown');
     if (dropdown && !dropdown.contains(event.target)) {
       closeDownloadDropdown();
     }
-    const columnSelector = document.querySelector(".column-selector-dropdown");
+    const columnSelector = document.querySelector('.column-selector-dropdown');
     if (columnSelector && !columnSelector.contains(event.target)) {
       showColumnSelector.value = false;
     }
   });
 });
 
-const getPaymentMethodColor = (method) => {
+const getPaymentMethodColor = method => {
   const colors = {
-    cash: "bg-green-500",
-    bank: "bg-blue-500",
-    online: "bg-cyan-500",
-    card: "bg-purple-500",
-    cheque: "bg-yellow-500",
-    wallet: "bg-orange-500",
-    bank_transfer: "bg-indigo-500",
-    upi: "bg-pink-500",
+    cash: 'bg-green-500',
+    bank: 'bg-blue-500',
+    online: 'bg-cyan-500',
+    card: 'bg-purple-500',
+    cheque: 'bg-yellow-500',
+    wallet: 'bg-orange-500',
+    bank_transfer: 'bg-indigo-500',
+    upi: 'bg-pink-500'
   };
-  return colors[method?.toLowerCase()] || "bg-gray-500";
+  return colors[method?.toLowerCase()] || 'bg-gray-500';
 };
 
-const getMonthsCovered = (payment) => {
+const getMonthsCovered = payment => {
   if (!payment.months || payment.months.length === 0) {
     return `${payment.month_count} months covered`;
   }
 
   const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
   ];
 
   const sortedMonths = payment.months
@@ -1606,23 +1476,23 @@ const getMonthsCovered = (payment) => {
       if (a.year !== b.year) return b.year - a.year;
       return b.month - a.month;
     })
-    .map((m) => `${monthNames[m.month - 1]} ${m.year}`);
+    .map(m => `${monthNames[m.month - 1]} ${m.year}`);
 
-  return `Months covered: ${sortedMonths.join(", ")}`;
+  return `Months covered: ${sortedMonths.join(', ')}`;
 };
 
 // Initialize
 onMounted(async () => {
   handleDateRangeChange(); // Set default date range
   // Load dropdown data based on user role
-  if (userRole.value === "super_admin") {
+  if (userRole.value === 'super_admin') {
     await fetchSchools();
   }
 
   await fetchBranches();
 
   // For branch admins, set their branch and load classes
-  if (userRole.value === "branch_admin" && branches.value.length > 0) {
+  if (userRole.value === 'branch_admin' && branches.value.length > 0) {
     filters.branch_id = branches.value[0].id;
     await fetchClasses();
   }

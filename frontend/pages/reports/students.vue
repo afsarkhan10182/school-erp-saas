@@ -1,21 +1,32 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  <div
+    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+  >
     <!-- Loading overlay for initial page load -->
-    <div v-if="isInitializing" class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center z-50">
+    <div
+      v-if="isInitializing"
+      class="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 flex items-center justify-center z-50"
+    >
       <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"
+        ></div>
         <p class="text-gray-600 dark:text-gray-300">Loading report data...</p>
       </div>
     </div>
-    
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div class="mb-4 sm:mb-0">
-          <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1
+            class="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+          >
             Student Reports
           </h1>
-          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Comprehensive student analytics and insights</p>
+          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">
+            Comprehensive student analytics and insights
+          </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
           <!-- Column Selector -->
@@ -25,30 +36,55 @@
               class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                />
               </svg>
               Columns
-              <svg class="ml-1 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showColumnSelector }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="ml-1 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showColumnSelector }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
-            
+
             <!-- Column Selector Dropdown -->
-            <div 
+            <div
               v-show="showColumnSelector"
               class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
             >
               <div class="p-2">
-                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">Select Columns</h3>
+                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">
+                  Select Columns
+                </h3>
                 <div class="space-y-1">
-                  <label v-for="(column, index) in availableColumns" :key="column.key" class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs">
+                  <label
+                    v-for="(column, index) in availableColumns"
+                    :key="column.key"
+                    class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs"
+                  >
                     <input
                       type="checkbox"
                       :checked="column.visible"
                       @change="toggleColumnVisibility(index)"
                       class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
                     />
-                    <span class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none">{{ column.label }}</span>
+                    <span
+                      class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                      >{{ column.label }}</span
+                    >
                   </label>
                 </div>
                 <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
@@ -68,7 +104,7 @@
               </div>
             </div>
           </div>
-          
+
           <button
             @click="printStudentsReport"
             :disabled="isLoading || pagination.total_records === 0 || isPrinting"
@@ -76,12 +112,23 @@
           >
             <Printer v-if="!isPrinting" class="-ml-1 mr-2 h-4 w-4" />
             <svg v-else class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             {{ isPrinting ? 'Printing...' : 'Print Report' }}
           </button>
-          
+
           <!-- Download Dropdown -->
           <div class="relative download-dropdown">
             <button
@@ -89,24 +136,57 @@
               :disabled="isLoading || pagination.total_records === 0 || isGenerating"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg v-if="!isGenerating" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                v-if="!isGenerating"
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               <svg v-else class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               {{ isGenerating ? 'Generating...' : 'Download' }}
-              <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="ml-2 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showDownloadDropdown }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
-            
+
             <!-- Dropdown Menu -->
-            <div 
+            <div
               v-show="showDownloadDropdown"
               class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
-              style="transform-origin: top right;"
+              style="transform-origin: top right"
             >
               <div class="py-1">
                 <button
@@ -114,7 +194,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   PDF
                 </button>
@@ -123,7 +208,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   Excel
                 </button>
@@ -132,7 +222,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   CSV
                 </button>
@@ -143,36 +238,52 @@
       </div>
 
       <!-- Export Progress Bar -->
-      <div v-if="isGenerating" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 mb-6 p-4">
+      <div
+        v-if="isGenerating"
+        class="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 mb-6 p-4"
+      >
         <div class="flex items-center justify-between mb-2">
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Generating Report...</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Generating Report...</span
+          >
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ generationProgress }}%</span>
         </div>
         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div 
+          <div
             class="bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
             :style="{ width: generationProgress + '%' }"
           ></div>
         </div>
       </div>
 
-            <!-- Creative Student Distribution Dashboard -->
-              <div v-if="pagination.total_records > 0 && !isLoading" class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6">
+      <!-- Creative Student Distribution Dashboard -->
+      <div
+        v-if="pagination.total_records > 0 && !isLoading"
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6"
+      >
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Student Distribution Analysis</h3>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+            Student Distribution Analysis
+          </h3>
           <div class="text-sm text-gray-500 dark:text-gray-400">
             {{ pagination.total_records }} students analyzed
           </div>
         </div>
 
         <!-- Enhanced Top Summary Bar with Trends -->
-        <div class="flex items-center justify-center mb-8 p-6 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg relative overflow-hidden">
+        <div
+          class="flex items-center justify-center mb-8 p-6 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg relative overflow-hidden"
+        >
           <!-- Background Pattern -->
           <div class="absolute inset-0 opacity-10">
-            <div class="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16"></div>
-            <div class="absolute bottom-0 right-0 w-24 h-24 bg-white rounded-full translate-x-12 translate-y-12"></div>
+            <div
+              class="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-16 -translate-y-16"
+            ></div>
+            <div
+              class="absolute bottom-0 right-0 w-24 h-24 bg-white rounded-full translate-x-12 translate-y-12"
+            ></div>
           </div>
-          
+
           <div class="flex items-center space-x-16 relative z-10">
             <!-- Classes -->
             <div class="text-center">
@@ -183,24 +294,35 @@
                 </span>
               </div>
               <div class="text-xs text-indigo-100">Classes</div>
-              <div class="text-xs text-indigo-200 mt-1">Avg: {{ Math.round(pagination.total_records / Object.keys(classDistribution).length) }}/class</div>
+              <div class="text-xs text-indigo-200 mt-1">
+                Avg:
+                {{
+                  Math.round(pagination.total_records / Object.keys(classDistribution).length)
+                }}/class
+              </div>
             </div>
-            
+
             <!-- Total Students with Trend -->
             <div class="text-center">
               <div class="text-3xl font-bold text-green-300 flex items-center justify-center">
                 {{ pagination.total_records }}
-                <span v-if="studentTrend > 0" class="ml-2 text-sm bg-green-500/30 px-2 py-1 rounded-full text-green-200">
+                <span
+                  v-if="studentTrend > 0"
+                  class="ml-2 text-sm bg-green-500/30 px-2 py-1 rounded-full text-green-200"
+                >
                   +{{ studentTrend }}
                 </span>
-                <span v-else-if="studentTrend < 0" class="ml-2 text-sm bg-red-500/30 px-2 py-1 rounded-full text-red-200">
+                <span
+                  v-else-if="studentTrend < 0"
+                  class="ml-2 text-sm bg-red-500/30 px-2 py-1 rounded-full text-red-200"
+                >
                   {{ studentTrend }}
                 </span>
               </div>
               <div class="text-xs text-indigo-100">Total Students</div>
               <div class="text-xs text-indigo-200 mt-1">{{ getTimeContextText() }}</div>
             </div>
-            
+
             <!-- Largest Group -->
             <div class="text-center">
               <div class="text-2xl font-bold text-pink-300">
@@ -209,7 +331,7 @@
               <div class="text-xs text-indigo-100">Largest Group</div>
               <div class="text-xs text-indigo-200 mt-1">{{ getLargestGroupName() }}</div>
             </div>
-            
+
             <!-- Inactive Students -->
             <div class="text-center">
               <div class="text-2xl font-bold text-orange-300">
@@ -220,7 +342,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Distribution Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Enhanced Class Distribution -->
@@ -228,23 +350,23 @@
             <div class="flex items-center justify-between">
               <h4 class="text-lg font-medium text-gray-900 dark:text-white">Class Distribution</h4>
               <div class="flex space-x-2">
-                <button 
+                <button
                   @click="sortClassBy = 'count'"
                   :class="[
                     'px-2 py-1 text-xs rounded-md transition-colors',
-                    sortClassBy === 'count' 
-                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' 
+                    sortClassBy === 'count'
+                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
                       : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   ]"
                 >
                   By Size
                 </button>
-                <button 
+                <button
                   @click="sortClassBy = 'name'"
                   :class="[
                     'px-2 py-1 text-xs rounded-md transition-colors',
-                    sortClassBy === 'name' 
-                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' 
+                    sortClassBy === 'name'
+                      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
                       : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   ]"
                 >
@@ -253,17 +375,22 @@
               </div>
             </div>
             <div class="space-y-3">
-              <div 
-                v-for="(count, className) in sortedClassDistribution" 
-                :key="className" 
+              <div
+                v-for="(count, className) in sortedClassDistribution"
+                :key="className"
                 class="group cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-all duration-200"
                 @click="filterByClass(className)"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getClassColor(className) }"></div>
+                    <div
+                      class="w-3 h-3 rounded-full"
+                      :style="{ backgroundColor: getClassColor(className) }"
+                    ></div>
                     <div>
-                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      <span
+                        class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+                      >
                         {{ className }}
                       </span>
                       <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -274,23 +401,33 @@
                   <div class="flex items-center space-x-3">
                     <div class="relative">
                       <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          class="h-2 rounded-full transition-all duration-700 ease-out" 
-                          :style="{ 
+                        <div
+                          class="h-2 rounded-full transition-all duration-700 ease-out"
+                          :style="{
                             width: `${(count / pagination.total_records) * 100}%`,
                             backgroundColor: getClassColor(className)
                           }"
                         ></div>
                       </div>
                       <!-- Hover Tooltip -->
-                      <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                        <div class="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                          {{ count }} students ({{ Math.round((count / pagination.total_records) * 100) }}%)
+                      <div
+                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                      >
+                        <div
+                          class="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap"
+                        >
+                          {{ count }} students ({{
+                            Math.round((count / pagination.total_records) * 100)
+                          }}%)
                         </div>
-                        <div class="w-2 h-2 bg-gray-900 transform rotate-45 absolute top-full left-1/2 -translate-x-1/2 -translate-y-1"></div>
+                        <div
+                          class="w-2 h-2 bg-gray-900 transform rotate-45 absolute top-full left-1/2 -translate-x-1/2 -translate-y-1"
+                        ></div>
                       </div>
                     </div>
-                    <span class="text-sm font-bold text-gray-900 dark:text-white w-8 text-right">{{ count }}</span>
+                    <span class="text-sm font-bold text-gray-900 dark:text-white w-8 text-right">{{
+                      count
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -301,22 +438,33 @@
           <div class="space-y-4">
             <h4 class="text-lg font-medium text-gray-900 dark:text-white">Status Distribution</h4>
             <div class="space-y-3">
-              <div v-for="(count, status) in statusDistribution" :key="status" class="flex items-center justify-between">
+              <div
+                v-for="(count, status) in statusDistribution"
+                :key="status"
+                class="flex items-center justify-between"
+              >
                 <div class="flex items-center space-x-3">
-                  <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getStatusColor(status) }"></div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ getStatusText(status) }}</span>
+                  <div
+                    class="w-3 h-3 rounded-full"
+                    :style="{ backgroundColor: getStatusColor(status) }"
+                  ></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{
+                    getStatusText(status)
+                  }}</span>
                 </div>
                 <div class="flex items-center space-x-3">
                   <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      class="h-2 rounded-full transition-all duration-700 ease-out" 
-                      :style="{ 
+                    <div
+                      class="h-2 rounded-full transition-all duration-700 ease-out"
+                      :style="{
                         width: `${(count / pagination.total_records) * 100}%`,
                         backgroundColor: getStatusColor(status)
                       }"
                     ></div>
                   </div>
-                  <span class="text-sm font-bold text-gray-900 dark:text-white w-8 text-right">{{ count }}</span>
+                  <span class="text-sm font-bold text-gray-900 dark:text-white w-8 text-right">{{
+                    count
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -325,11 +473,13 @@
 
         <!-- Enhanced Gender Distribution with Donut Charts -->
         <div class="mt-8">
-          <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-6">Gender Distribution</h4>
+          <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-6">
+            Gender Distribution
+          </h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div 
-              v-for="(count, gender) in genderDistribution" 
-              :key="gender" 
+            <div
+              v-for="(count, gender) in genderDistribution"
+              :key="gender"
               class="flex flex-col items-center group cursor-pointer hover:scale-105 transition-transform duration-200"
               @click="filterByGender(gender)"
             >
@@ -342,7 +492,11 @@
                     stroke="currentColor"
                     stroke-width="8"
                     fill="transparent"
-                    :class="count === 0 ? 'text-gray-300 dark:text-gray-600' : 'text-gray-200 dark:text-gray-700'"
+                    :class="
+                      count === 0
+                        ? 'text-gray-300 dark:text-gray-600'
+                        : 'text-gray-200 dark:text-gray-700'
+                    "
                   />
                   <circle
                     cx="50"
@@ -357,15 +511,21 @@
                   />
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
-                  <span class="text-lg font-bold" :style="{ color: getGenderColor(gender) }">{{ count }}</span>
+                  <span class="text-lg font-bold" :style="{ color: getGenderColor(gender) }">{{
+                    count
+                  }}</span>
                   <span class="text-xs font-medium" :style="{ color: getGenderColor(gender) }">
                     {{ Math.round((count / pagination.total_records) * 100) }}%
                   </span>
                 </div>
               </div>
-              <span 
+              <span
                 class="text-sm font-medium transition-colors"
-                :class="count === 0 ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'"
+                :class="
+                  count === 0
+                    ? 'text-gray-400 dark:text-gray-500'
+                    : 'text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
+                "
               >
                 {{ gender }}
               </span>
@@ -375,31 +535,48 @@
       </div>
 
       <!-- Actionable Insights Section -->
-      <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
+      <div
+        class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6"
+      >
         <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
           <Lightbulb class="w-5 h-5 mr-2 text-yellow-500" />
           Key Insights & Recommendations
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Largest Group Insight -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Largest Group</span>
-              <span class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full">Insight</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Largest Group</span
+              >
+              <span
+                class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full"
+                >Insight</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white">
               {{ getLargestClassInfo().name }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getLargestClassInfo().count }} students ({{ getLargestClassInfo().percentage }}% of total)
+              {{ getLargestClassInfo().count }} students ({{ getLargestClassInfo().percentage }}% of
+              total)
             </div>
           </div>
 
           <!-- Gender Balance Insight -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Gender Balance</span>
-              <span class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full">Balanced</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Gender Balance</span
+              >
+              <span
+                class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full"
+                >Balanced</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white">
               {{ getGenderBalanceInfo().ratio }}
@@ -410,10 +587,17 @@
           </div>
 
           <!-- Smallest Class Insight -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Smallest Class</span>
-              <span class="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full">Action</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Smallest Class</span
+              >
+              <span
+                class="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full"
+                >Action</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white">
               {{ getSmallestClassInfo().name }}
@@ -424,10 +608,17 @@
           </div>
 
           <!-- Status Overview -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Student Status</span>
-              <span class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full">Healthy</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Student Status</span
+              >
+              <span
+                class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full"
+                >Healthy</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white">
               {{ getStatusOverview().active }}% Active
@@ -438,10 +629,15 @@
           </div>
 
           <!-- Class Size Distribution -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Class Sizes</span>
-              <span class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full">Analysis</span>
+              <span
+                class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full"
+                >Analysis</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white">
               {{ getClassSizeInfo().average }} avg/class
@@ -452,10 +648,15 @@
           </div>
 
           <!-- Growth Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
+          >
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Growth Trend</span>
-              <span class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full">Trend</span>
+              <span
+                class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full"
+                >Trend</span
+              >
             </div>
             <div class="text-lg font-bold text-gray-900 dark:text-white flex items-center">
               <TrendingUp v-if="studentTrend > 0" class="w-4 h-4 mr-1 text-green-500" />
@@ -472,18 +673,30 @@
 
       <!-- Filters -->
 
-            <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8">
+      <!-- Filters -->
+      <div
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8"
+      >
         <div class="px-6 py-6">
           <div class="flex items-center justify-between mb-6">
             <div>
               <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Report Filters</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure filters to generate your student report</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Configure filters to generate your student report
+              </p>
             </div>
             <div class="flex items-center space-x-3">
-                          <div v-if="pagination.total_records > 0" class="text-sm text-gray-500 dark:text-gray-400">
-              <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ pagination.total_records }}</span> students found
-                <span v-if="paginatedStudents.length > 0" class="ml-2 text-gray-400">({{ paginatedStudents.length }} on this page)</span>
+              <div
+                v-if="pagination.total_records > 0"
+                class="text-sm text-gray-500 dark:text-gray-400"
+              >
+                <span class="font-medium text-indigo-600 dark:text-indigo-400">{{
+                  pagination.total_records
+                }}</span>
+                students found
+                <span v-if="paginatedStudents.length > 0" class="ml-2 text-gray-400"
+                  >({{ paginatedStudents.length }} on this page)</span
+                >
               </div>
               <button
                 @click="resetFilters"
@@ -496,9 +709,21 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Date Range</label
+              >
               <div class="relative group">
-                <select v-model="filters.dateRange" @change="handleDateRangeChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.dateRange"
+                  @change="handleDateRangeChange"
+                  :disabled="isLoading"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="all_time">All Time</option>
                   <option value="today">Today</option>
                   <option value="yesterday">Yesterday</option>
@@ -511,98 +736,257 @@
                   <option value="custom">Custom Range</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div v-if="filters.dateRange === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
-              <input v-model="filters.fromDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >From Date</label
+              >
+              <input
+                v-model="filters.fromDate"
+                type="date"
+                :disabled="isLoading"
+                class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
             </div>
             <div v-if="filters.dateRange === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
-              <input v-model="filters.toDate" type="date" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >To Date</label
+              >
+              <input
+                v-model="filters.toDate"
+                type="date"
+                :disabled="isLoading"
+                class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
             </div>
             <!-- School dropdown for super admin -->
             <div v-if="authStore.user?.role === 'super_admin'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >School</label
+              >
               <div class="relative group">
-                <select v-model="filters.school_id" @change="onSchoolChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.school_id"
+                  @change="onSchoolChange"
+                  :disabled="isLoading"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Schools</option>
-                  <option v-for="school in schools" :key="school.id" :value="school.id">{{ school.name }}</option>
+                  <option v-for="school in schools" :key="school.id" :value="school.id">
+                    {{ school.name }}
+                  </option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Branch</label
+              >
               <div class="relative group">
-                <select v-model="filters.branch_id" @change="onBranchChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.branch_id"
+                  @change="onBranchChange"
+                  :disabled="isLoading"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Branches</option>
-                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
+                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                    {{ branch.name }}
+                  </option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
-                <div v-if="isLoading" class="absolute inset-y-0 right-8 flex items-center pointer-events-none">
-                  <div class="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
+                <div
+                  v-if="isLoading"
+                  class="absolute inset-y-0 right-8 flex items-center pointer-events-none"
+                >
+                  <div
+                    class="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"
+                  ></div>
                 </div>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Class</label
+              >
               <div class="relative group">
-                <select v-model="filters.class_id" @change="onClassChange" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.class_id"
+                  @change="onClassChange"
+                  :disabled="isLoading"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Classes</option>
-                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">{{ classItem.name }}</option>
+                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
+                    {{ classItem.name }}
+                  </option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div v-if="showSectionDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Section</label
+              >
               <div class="relative group">
-                <select v-model="filters.section_id" :disabled="isLoading || !filters.class_id" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.section_id"
+                  :disabled="isLoading || !filters.class_id"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Sections</option>
-                  <option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option>
+                  <option v-for="section in sections" :key="section.id" :value="section.id">
+                    {{ section.name }}
+                  </option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div v-if="showStreamDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Stream</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Stream</label
+              >
               <div class="relative group">
-                <select v-model="filters.stream_id" @change="onStreamChange" :disabled="isLoading || !filters.class_id" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.stream_id"
+                  @change="onStreamChange"
+                  :disabled="isLoading || !filters.class_id"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Streams</option>
-                  <option v-for="stream in streams" :key="stream.id" :value="stream.id">{{ stream.name }}</option>
+                  <option v-for="stream in streams" :key="stream.id" :value="stream.id">
+                    {{ stream.name }}
+                  </option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Student Status</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Student Status</label
+              >
               <div class="relative group">
-                <select v-model="filters.status" :disabled="isLoading" class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                <select
+                  v-model="filters.status"
+                  :disabled="isLoading"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                  style="
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                  "
+                >
                   <option value="">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -611,17 +995,31 @@
                   <option value="dropped">Dropped</option>
                 </select>
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Students</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Search Students</label
+              >
               <div class="relative group">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" />
+                  <Search
+                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  />
                 </div>
                 <input
                   v-model="filters.student_search"
@@ -634,16 +1032,14 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Apply Filters Button -->
           <div class="mt-6 flex justify-between items-center">
             <div class="text-sm text-gray-500 dark:text-gray-400">
-                      <span v-if="pagination.total_records > 0">
-          {{ pagination.total_records }} students found with current filters
-        </span>
-              <span v-else-if="!isLoading">
-                No students found with current filters
+              <span v-if="pagination.total_records > 0">
+                {{ pagination.total_records }} students found with current filters
               </span>
+              <span v-else-if="!isLoading"> No students found with current filters </span>
             </div>
             <div class="flex space-x-3">
               <button
@@ -659,42 +1055,64 @@
                 class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
               >
                 <Search v-if="!isLoading" class="-ml-1 mr-2 h-4 w-4" />
-                <div v-else class="-ml-1 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <div
+                  v-else
+                  class="-ml-1 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                ></div>
                 {{ isLoading ? 'Loading...' : 'Apply Filters' }}
               </button>
             </div>
           </div>
         </div>
       </div>
-          
+
       <!-- Detailed Report Table -->
-      <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div class="px-6 py-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Complete Student List</h3>
-            <div class="flex space-x-3">
-              <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ pagination.total_records > 0 ? `${pagination.total_records} total students` : 'No records' }}
-              </span>
-            </div>
+      <div
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        <div
+          class="px-6 py-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700"
+        >
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Complete Student List</h3>
+          <div class="flex space-x-3">
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+              {{
+                pagination.total_records > 0
+                  ? `${pagination.total_records} total students`
+                  : 'No records'
+              }}
+            </span>
           </div>
-        
+        </div>
+
         <!-- Loading state for table -->
         <div v-if="isLoading" class="flex items-center justify-center py-12">
           <div class="text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <div
+              class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"
+            ></div>
             <p class="text-gray-600 dark:text-gray-300">Loading report data...</p>
           </div>
         </div>
-        
+
         <!-- Empty state -->
-        <div v-else-if="pagination.total_records === 0 && !isLoading" class="flex items-center justify-center py-12">
+        <div
+          v-else-if="pagination.total_records === 0 && !isLoading"
+          class="flex items-center justify-center py-12"
+        >
           <div class="text-center">
             <div class="text-gray-400 dark:text-gray-500 mb-4">
               <Search class="h-12 w-12 mx-auto" />
             </div>
-            <p class="text-gray-600 dark:text-gray-300">No students found for the selected filters</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Try adjusting your filters or date range</p>
-            <p class="text-xs text-gray-400 mt-1">Click "Apply Filters" to search with current settings</p>
+            <p class="text-gray-600 dark:text-gray-300">
+              No students found for the selected filters
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Try adjusting your filters or date range
+            </p>
+            <p class="text-xs text-gray-400 mt-1">
+              Click "Apply Filters" to search with current settings
+            </p>
             <div class="mt-4">
               <button
                 @click="resetFilters"
@@ -705,25 +1123,51 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Student Table -->
         <div v-else class="overflow-x-auto">
           <table class="min-w-full">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Admission Date</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Student
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Admission Date
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="student in paginatedStudents" :key="student.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
+              <tr
+                v-for="student in paginatedStudents"
+                :key="student.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-12 w-12">
-                      <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-gray-200 dark:border-gray-600">
+                      <div
+                        class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-gray-200 dark:border-gray-600"
+                      >
                         <span class="text-sm font-bold text-white">
                           {{ student.first_name?.charAt(0) }}{{ student.last_name?.charAt(0) }}
                         </span>
@@ -743,13 +1187,17 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ student.class?.name || student.class_name }}{{ student.section?.name ? `-${student.section.name}` : '' }}
+                  {{ student.class?.name || student.class_name
+                  }}{{ student.section?.name ? `-${student.section.name}` : '' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ formatDate(student.admission_date) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(student.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  <span
+                    :class="getStatusClass(student.status)"
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                  >
                     {{ getStatusText(student.status) }}
                   </span>
                 </td>
@@ -771,7 +1219,7 @@
             </tbody>
           </table>
         </div>
-        
+
         <!-- Pagination -->
         <Pagination
           v-if="pagination.total_records > 0"
@@ -788,10 +1236,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { 
-  Download, 
-  Users, 
-  UserPlus, 
+import {
+  Download,
+  Users,
+  UserPlus,
   UserMinus,
   Search,
   TrendingUp,
@@ -815,8 +1263,6 @@ const { showToast } = useToast();
 // Get print and export composables
 const { printReport: printReportUtil } = usePrintReport();
 const { generateReport, isGenerating } = useExportService();
-
-
 
 // State
 const completeStudentsData = ref([]); // Paginated data for table
@@ -866,8 +1312,6 @@ const availableColumns = ref([
   { key: 'gender', label: 'Gender', visible: true }
 ]);
 
-
-
 // Filters
 const filters = reactive({
   dateRange: 'all_time',
@@ -904,14 +1348,11 @@ const pageSize = computed(() => pagination.value.per_page);
 // Methods
 const loadData = async () => {
   if (isLoading.value) return;
-  
+
   isLoading.value = true;
   try {
     console.log('🔄 Loading student report data...');
-    await Promise.all([
-      loadReport(),
-      loadStats()
-    ]);
+    await Promise.all([loadReport(), loadStats()]);
     console.log('✅ Student report data loaded successfully');
   } catch (error) {
     console.error('❌ Error loading student report data:', error);
@@ -930,9 +1371,9 @@ const loadReport = async () => {
       search: filters.student_search || undefined,
       status: filters.status || undefined,
       school_id: filters.school_id || undefined,
-      branch_id: filters.branch_id || undefined,
+      branch_id: filters.branch_id || undefined
     };
-    
+
     // Map date parameters - backend expects from_date and to_date
     if (filters.fromDate && filters.fromDate.trim() !== '') {
       params.from_date = filters.fromDate;
@@ -962,16 +1403,16 @@ const loadReport = async () => {
         delete params[key];
       }
     });
-    
+
     console.log('📊 Student report API params:', params);
     const response = await Students.getReport(params);
-    
+
     console.log('📊 API response:', {
       success: response.success,
       dataLength: response.data?.length || 0,
       pagination: response.pagination
     });
-    
+
     if (response.success) {
       if (response.data && Array.isArray(response.data)) {
         // Store paginated data
@@ -997,14 +1438,13 @@ const loadReport = async () => {
     } else {
       completeStudentsData.value = [];
     }
-    
+
     console.log('📊 Data loaded:', {
       totalStudents: pagination.value.total_records,
       currentPage: pagination.value.current_page,
       pageSize: pagination.value.per_page,
       totalPages: pagination.value.total_pages
     });
-    
   } catch (error) {
     console.error('Error loading student report:', error);
     showToast('Error loading student report', 'error');
@@ -1019,7 +1459,7 @@ const loadStats = async () => {
       school_id: filters.school_id || undefined,
       branch_id: filters.branch_id || undefined,
       class_id: filters.class_id || undefined,
-      section_id: filters.section_id || undefined,
+      section_id: filters.section_id || undefined
     };
 
     // Remove undefined values
@@ -1099,7 +1539,7 @@ const loadStreams = async () => {
 
 const loadBranches = async () => {
   try {
-            const response = await Branches.getForDropdown();
+    const response = await Branches.getForDropdown();
     branches.value = response.data || [];
   } catch (error) {
     console.error('Error loading branches:', error);
@@ -1117,20 +1557,16 @@ const loadSchools = async () => {
   }
 };
 
-
-
-
-
-const viewStudent = (student) => {
+const viewStudent = student => {
   navigateTo(`/students/${student.id}`);
 };
 
-const viewFees = (student) => {
+const viewFees = student => {
   navigateTo(`/fees/invoices?student_id=${student.id}`);
 };
 
 // Pagination functions (server-side pagination - reload data when page changes)
-const handlePageChange = (page) => {
+const handlePageChange = page => {
   if (page >= 1 && page <= pagination.value.total_pages) {
     pagination.value.current_page = page;
     pagination.value.page = page;
@@ -1138,7 +1574,7 @@ const handlePageChange = (page) => {
   }
 };
 
-const handlePageSizeChange = (newPageSize) => {
+const handlePageSizeChange = newPageSize => {
   pagination.value.per_page = newPageSize;
   pagination.value.limit = newPageSize; // Also update limit for Pagination component
   pagination.value.current_page = 1; // Reset to first page when changing page size
@@ -1146,46 +1582,52 @@ const handlePageSizeChange = (newPageSize) => {
   loadData(); // Reload data with new page size
 };
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A';
   return new Date(date).toLocaleDateString('en-IN');
 };
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     inactive: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     transferred: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     graduated: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    dropped: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+    dropped: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
   };
   return classes[status] || classes.active;
 };
 
-
-
-const getStatusText = (status) => {
+const getStatusText = status => {
   const texts = {
     active: 'Active',
     inactive: 'Inactive',
     transferred: 'Transferred',
     graduated: 'Graduated',
-    dropped: 'Dropped',
+    dropped: 'Dropped'
   };
   return texts[status] || status;
 };
 
 // Chart helper functions
-const getClassColor = (className) => {
+const getClassColor = className => {
   const colors = [
-    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+    '#3B82F6',
+    '#10B981',
+    '#F59E0B',
+    '#EF4444',
+    '#8B5CF6',
+    '#06B6D4',
+    '#84CC16',
+    '#F97316',
+    '#EC4899',
+    '#6366F1'
   ];
   const index = className.charCodeAt(0) % colors.length;
   return colors[index];
 };
 
-const getStatusColor = (status) => {
+const getStatusColor = status => {
   const colors = {
     active: '#10B981',
     inactive: '#EF4444',
@@ -1196,7 +1638,7 @@ const getStatusColor = (status) => {
   return colors[status] || '#6B7280';
 };
 
-const getGenderColor = (gender) => {
+const getGenderColor = gender => {
   const colors = {
     Male: '#3B82F6',
     Female: '#EC4899',
@@ -1250,33 +1692,33 @@ const statusDistribution = computed(() => {
 const genderDistribution = computed(() => {
   // For now, use placeholder data since backend doesn't provide gender stats
   // This would need to be added to the backend stats endpoint
-  return { Male: Math.floor((stats.value.total || 0) * 0.52), Female: Math.floor((stats.value.total || 0) * 0.48) };
+  return {
+    Male: Math.floor((stats.value.total || 0) * 0.52),
+    Female: Math.floor((stats.value.total || 0) * 0.48)
+  };
 });
 
 // Sorted class distribution for display
 const sortedClassDistribution = computed(() => {
   const distribution = classDistribution.value;
   if (sortClassBy.value === 'count') {
-    return Object.fromEntries(
-      Object.entries(distribution).sort(([,a], [,b]) => b - a)
-    );
+    return Object.fromEntries(Object.entries(distribution).sort(([, a], [, b]) => b - a));
   } else {
-    return Object.fromEntries(
-      Object.entries(distribution).sort(([a], [b]) => a.localeCompare(b))
-    );
+    return Object.fromEntries(Object.entries(distribution).sort(([a], [b]) => a.localeCompare(b)));
   }
 });
 
 // Missing functions for insights section - use stats data for accurate insights
 const getLargestClassInfo = () => {
   const distribution = classDistribution.value;
-  const largestClass = Object.entries(distribution).reduce((max, [name, count]) => 
-    count > max.count ? { name, count } : max, { name: 'None', count: 0 }
+  const largestClass = Object.entries(distribution).reduce(
+    (max, [name, count]) => (count > max.count ? { name, count } : max),
+    { name: 'None', count: 0 }
   );
-  
+
   const totalStudents = summaryData.value.totalStudents;
   const percentage = totalStudents > 0 ? Math.round((largestClass.count / totalStudents) * 100) : 0;
-  
+
   return {
     name: largestClass.name,
     count: largestClass.count,
@@ -1286,10 +1728,11 @@ const getLargestClassInfo = () => {
 
 const getSmallestClassInfo = () => {
   const distribution = classDistribution.value;
-  const smallestClass = Object.entries(distribution).reduce((min, [name, count]) => 
-    count < min.count ? { name, count } : min, { name: 'None', count: Infinity }
+  const smallestClass = Object.entries(distribution).reduce(
+    (min, [name, count]) => (count < min.count ? { name, count } : min),
+    { name: 'None', count: Infinity }
   );
-  
+
   return {
     name: smallestClass.name,
     count: smallestClass.count
@@ -1301,12 +1744,12 @@ const getGenderBalanceInfo = () => {
   const total = distribution.Male + distribution.Female;
   const maleRatio = total > 0 ? Math.round((distribution.Male / total) * 100) : 0;
   const femaleRatio = total > 0 ? Math.round((distribution.Female / total) * 100) : 0;
-  
+
   let description = 'Balanced';
   if (Math.abs(maleRatio - femaleRatio) > 20) {
     description = maleRatio > femaleRatio ? 'Male dominated' : 'Female dominated';
   }
-  
+
   return {
     ratio: `${maleRatio}% M / ${femaleRatio}% F`,
     description
@@ -1316,19 +1759,31 @@ const getGenderBalanceInfo = () => {
 const getStatusOverview = () => {
   const distribution = statusDistribution.value;
   const total = summaryData.value.totalStudents;
-  const active = total > 0 ? Math.round((distribution.active || 0) / total * 100) : 0;
-  const inactive = total > 0 ? Math.round(((distribution.inactive || 0) + (distribution.graduated || 0) + (distribution.dropped || 0)) / total * 100) : 0;
-  
+  const active = total > 0 ? Math.round(((distribution.active || 0) / total) * 100) : 0;
+  const inactive =
+    total > 0
+      ? Math.round(
+          (((distribution.inactive || 0) +
+            (distribution.graduated || 0) +
+            (distribution.dropped || 0)) /
+            total) *
+            100
+        )
+      : 0;
+
   return { active, inactive };
 };
 
 const getClassSizeInfo = () => {
   const distribution = classDistribution.value;
   const counts = Object.values(distribution);
-  const average = counts.length > 0 ? Math.round(counts.reduce((sum, count) => sum + count, 0) / counts.length) : 0;
+  const average =
+    counts.length > 0
+      ? Math.round(counts.reduce((sum, count) => sum + count, 0) / counts.length)
+      : 0;
   const min = counts.length > 0 ? Math.min(...counts) : 0;
   const max = counts.length > 0 ? Math.max(...counts) : 0;
-  
+
   return { average, min, max };
 };
 
@@ -1336,12 +1791,22 @@ const getTimeContextText = () => {
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
-  
+
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
-  
+
   return `vs ${monthNames[month]} ${year}`;
 };
 
@@ -1355,8 +1820,9 @@ const studentTrend = computed(() => {
 // Missing functions referenced in template
 const getLargestGroupName = () => {
   const distribution = genderDistribution.value;
-  const maxGender = Object.entries(distribution).reduce((max, [name, count]) => 
-    count > max.count ? { name, count } : max, { name: 'None', count: 0 }
+  const maxGender = Object.entries(distribution).reduce(
+    (max, [name, count]) => (count > max.count ? { name, count } : max),
+    { name: 'None', count: 0 }
   );
   return maxGender.name;
 };
@@ -1371,7 +1837,7 @@ const getInactivePercentage = () => {
 const sortClassBy = ref('count');
 
 // Add missing filterByClass function
-const filterByClass = (className) => {
+const filterByClass = className => {
   filters.class_id = classes.value.find(c => c.name === className)?.id || '';
   loadData();
 };
@@ -1391,7 +1857,7 @@ const toggleColumnSelector = () => {
 };
 
 // Add missing click outside handler
-const handleClickOutside = (event) => {
+const handleClickOutside = event => {
   if (!event.target.closest('.download-dropdown')) {
     showDownloadDropdown.value = false;
   }
@@ -1412,20 +1878,20 @@ const downloadExcelReport = () => downloadReport('excel');
 const downloadCSVReport = () => downloadReport('csv');
 
 // Column management functions
-const toggleColumnVisibility = (index) => {
+const toggleColumnVisibility = index => {
   availableColumns.value[index].visible = !availableColumns.value[index].visible;
 };
 
 const selectAllColumns = () => {
-  availableColumns.value.forEach(column => column.visible = true);
+  availableColumns.value.forEach(column => (column.visible = true));
 };
 
 const deselectAllColumns = () => {
-  availableColumns.value.forEach(column => column.visible = false);
+  availableColumns.value.forEach(column => (column.visible = false));
 };
 
 // Common download function
-const downloadReport = async (format) => {
+const downloadReport = async format => {
   try {
     if (pagination.value.total_records === 0) {
       showToast('No data to export. Please load some students first.', 'warning');
@@ -1466,12 +1932,11 @@ const downloadReport = async (format) => {
     // Complete progress
     generationProgress.value = 100;
     clearInterval(progressInterval);
-    
+
     // Reset progress after a delay
     setTimeout(() => {
       generationProgress.value = 0;
     }, 2000);
-    
   } catch (error) {
     showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
     // Reset progress on error
@@ -1511,19 +1976,31 @@ const printStudentsReport = async () => {
         'Date Range': filters.dateRange,
         'From Date': filters.dateRange === 'custom' ? formatDate(filters.fromDate) : 'N/A',
         'To Date': filters.dateRange === 'custom' ? formatDate(filters.toDate) : 'N/A',
-        'School': filters.school_id ? schools.value.find(s => s.id === filters.school_id)?.name : 'All Schools',
-        'Branch': filters.branch_id ? branches.value.find(b => b.id === filters.branch_id)?.name : 'All Branches',
-        'Class': filters.class_id ? classes.value.find(c => c.id === filters.class_id)?.name : 'All Classes',
-        'Section': filters.section_id ? sections.value.find(s => s.id === filters.section_id)?.name : 'All Sections',
-        'Status': filters.status || 'All Status',
-        'Search': filters.student_search || 'None'
+        School: filters.school_id
+          ? schools.value.find(s => s.id === filters.school_id)?.name
+          : 'All Schools',
+        Branch: filters.branch_id
+          ? branches.value.find(b => b.id === filters.branch_id)?.name
+          : 'All Branches',
+        Class: filters.class_id
+          ? classes.value.find(c => c.id === filters.class_id)?.name
+          : 'All Classes',
+        Section: filters.section_id
+          ? sections.value.find(s => s.id === filters.section_id)?.name
+          : 'All Sections',
+        Status: filters.status || 'All Status',
+        Search: filters.student_search || 'None'
       },
       totalRecords: pagination.value.total_records,
       reportType: 'students'
     };
 
-    await printReportUtil(reportData, { showHeader: true, showSummary: true, showFilters: true, showFooter: true });
-    
+    await printReportUtil(reportData, {
+      showHeader: true,
+      showSummary: true,
+      showFilters: true,
+      showFooter: true
+    });
   } catch (error) {
     showToast('Error printing report', 'error');
   } finally {
@@ -1550,7 +2027,7 @@ const resetFilters = () => {
     per_page: 10,
     limit: 10
   };
-  
+
   // Clear summary data
   summaryData.value = {
     totalStudents: 0,
@@ -1563,14 +2040,10 @@ const resetFilters = () => {
   generationProgress.value = 0;
 };
 
-
-
-
-
 onMounted(async () => {
   try {
     console.log('🚀 Initializing student report page...');
-    
+
     // Wait for auth store to initialize
     if (authStore.isInitializing) {
       await new Promise(resolve => {
@@ -1584,7 +2057,7 @@ onMounted(async () => {
         checkInit();
       });
     }
-    
+
     await Promise.all([
       loadAcademicYears(),
       loadClasses(),
@@ -1593,15 +2066,15 @@ onMounted(async () => {
       loadBranches(),
       loadSchools()
     ]);
-    
+
     console.log('✅ Student report page initialized successfully');
-    
+
     // Initialize filters based on user role
     initializeFilters();
-    
+
     // Load initial data with default filters
     await loadData();
-    
+
     // Add click outside listener for dropdown
     document.addEventListener('click', handleClickOutside);
   } catch (error) {
@@ -1616,7 +2089,4 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
-
-
-
-</script> 
+</script>

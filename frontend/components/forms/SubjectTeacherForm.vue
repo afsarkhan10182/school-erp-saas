@@ -169,18 +169,20 @@
         :disabled="isSubmitting"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {{ isSubmitting ? 'Saving...' : (props.assignment ? 'Update Assignment' : 'Create Assignment') }}
+        {{
+          isSubmitting ? 'Saving...' : props.assignment ? 'Update Assignment' : 'Create Assignment'
+        }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useToast } from '~/composables/useToast'
-import { useDropdowns } from '~/composables/useDropdowns'
-import { useAcademics } from '~/composables/useAcademics'
-import { Subjects } from '~/api'
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { useDropdowns } from '~/composables/useDropdowns';
+import { useAcademics } from '~/composables/useAcademics';
+import { Subjects } from '~/api';
 
 // Props
 const props = defineProps({
@@ -208,19 +210,19 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
-})
+});
 
 // Emits
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
-const { showToast } = useToast()
-const { sectionOptions, loadSections } = useDropdowns()
-const { academicYears, fetchAcademicYears } = useAcademics()
+const { showToast } = useToast();
+const { sectionOptions, loadSections } = useDropdowns();
+const { academicYears, fetchAcademicYears } = useAcademics();
 
 // Reactive data
-const isSubmitting = ref(false)
-const errors = ref({})
+const isSubmitting = ref(false);
+const errors = ref({});
 
 // Form data
 const form = reactive({
@@ -230,86 +232,86 @@ const form = reactive({
   section_id: '',
   academic_year: '',
   is_primary: false
-})
+});
 
 // Computed
 const sections = computed(() => {
-  if (!form.class_id) return []
-  return sectionOptions.value.filter(section => section.class_id === form.class_id)
-})
+  if (!form.class_id) return [];
+  return sectionOptions.value.filter(section => section.class_id === form.class_id);
+});
 
 // Validation rules
 const validationRules = {
-  subject_id: (value) => {
+  subject_id: value => {
     if (!value) {
-      return 'Subject is required'
+      return 'Subject is required';
     }
-    return null
+    return null;
   },
-  teacher_id: (value) => {
+  teacher_id: value => {
     if (!value) {
-      return 'Teacher is required'
+      return 'Teacher is required';
     }
-    return null
+    return null;
   },
-  academic_year: (value) => {
+  academic_year: value => {
     if (!value) {
-      return 'Academic year is required'
+      return 'Academic year is required';
     }
-    return null
+    return null;
   },
-  class_id: (value) => {
+  class_id: value => {
     if (value && !isValidUUID(value)) {
-      return 'Invalid class ID format'
+      return 'Invalid class ID format';
     }
-    return null
+    return null;
   },
-  section_id: (value) => {
+  section_id: value => {
     if (value && !isValidUUID(value)) {
-      return 'Invalid section ID format'
+      return 'Invalid section ID format';
     }
-    return null
+    return null;
   }
-}
+};
 
 // Methods
-const validateField = (fieldName) => {
-  const value = form[fieldName]
-  const error = validationRules[fieldName] ? validationRules[fieldName](value) : null
-  
+const validateField = fieldName => {
+  const value = form[fieldName];
+  const error = validationRules[fieldName] ? validationRules[fieldName](value) : null;
+
   if (error) {
-    errors.value[fieldName] = error
+    errors.value[fieldName] = error;
   } else {
-    delete errors.value[fieldName]
+    delete errors.value[fieldName];
   }
-}
+};
 
 const validateForm = () => {
-  const fieldNames = Object.keys(validationRules)
+  const fieldNames = Object.keys(validationRules);
   fieldNames.forEach(fieldName => {
-    validateField(fieldName)
-  })
-  
-  return Object.keys(errors.value).length === 0
-}
+    validateField(fieldName);
+  });
 
-const clearError = (fieldName) => {
-  delete errors.value[fieldName]
-}
+  return Object.keys(errors.value).length === 0;
+};
 
-const isValidUUID = (uuid) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  return uuidRegex.test(uuid)
-}
+const clearError = fieldName => {
+  delete errors.value[fieldName];
+};
+
+const isValidUUID = uuid => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    showToast('Please fix the validation errors', 'error')
-    return
+    showToast('Please fix the validation errors', 'error');
+    return;
   }
 
-  isSubmitting.value = true
-  
+  isSubmitting.value = true;
+
   try {
     // Prepare form data
     const formData = {
@@ -319,16 +321,16 @@ const handleSubmit = async () => {
       section_id: form.section_id || null,
       academic_year: form.academic_year,
       is_primary: form.is_primary
-    }
+    };
 
-    emit('submit', formData)
+    emit('submit', formData);
   } catch (error) {
-    console.error('Error in form submission:', error)
-    showToast('An error occurred while saving', 'error')
+    console.error('Error in form submission:', error);
+    showToast('An error occurred while saving', 'error');
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const resetForm = () => {
   Object.assign(form, {
@@ -338,11 +340,11 @@ const resetForm = () => {
     section_id: '',
     academic_year: '',
     is_primary: false
-  })
-  errors.value = {}
-}
+  });
+  errors.value = {};
+};
 
-const populateForm = (assignment) => {
+const populateForm = assignment => {
   if (assignment) {
     Object.assign(form, {
       subject_id: assignment.subject_id || '',
@@ -351,25 +353,26 @@ const populateForm = (assignment) => {
       section_id: assignment.section_id || '',
       academic_year: assignment.academic_year || '',
       is_primary: assignment.is_primary || false
-    })
+    });
   } else {
-    resetForm()
+    resetForm();
   }
-}
+};
 
 // Watchers
-watch(() => props.assignment, (newAssignment) => {
-  populateForm(newAssignment)
-}, { immediate: true })
+watch(
+  () => props.assignment,
+  newAssignment => {
+    populateForm(newAssignment);
+  },
+  { immediate: true }
+);
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([
-    loadSections(),
-    fetchAcademicYears()
-  ])
-  populateForm(props.assignment)
-})
+  await Promise.all([loadSections(), fetchAcademicYears()]);
+  populateForm(props.assignment);
+});
 </script>
 
 <style scoped>

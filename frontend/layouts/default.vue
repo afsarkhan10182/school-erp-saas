@@ -1,14 +1,27 @@
 <template>
-  <div v-if="shouldRender" class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300">
+  <div
+    v-if="shouldRender"
+    class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300"
+  >
     <ClientOnly>
       <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="toggleSidebar" />
     </ClientOnly>
 
-    <div :class="mainContentClasses" class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300" :style="{ marginLeft: isHydrated ? undefined : '16rem' }">
+    <div
+      :class="mainContentClasses"
+      class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300"
+      :style="{ marginLeft: isHydrated ? undefined : '16rem' }"
+    >
       <ClientOnly>
-        <Header v-if="isLoggedIn" :user="user" :pageTitle="pageTitle" @logout="handleLogout" @toggle-mobile-sidebar="toggleSidebar" />
+        <Header
+          v-if="isLoggedIn"
+          :user="user"
+          :pageTitle="pageTitle"
+          @logout="handleLogout"
+          @toggle-mobile-sidebar="toggleSidebar"
+        />
       </ClientOnly>
-      
+
       <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900">
         <template v-if="!isHydrated">
           <div class="animate-pulse">
@@ -22,7 +35,7 @@
         </template>
       </main>
     </div>
-    
+
     <Toast />
   </div>
 </template>
@@ -74,7 +87,7 @@ const handleLogout = async () => {
 
 const pageTitle = computed(() => {
   if (!route?.path) return 'School ERP';
-  
+
   const path = route.path;
   const titleMap = {
     '/dashboard': 'Dashboard',
@@ -88,7 +101,7 @@ const pageTitle = computed(() => {
     '/settings': 'Settings',
     '/saas': 'Subscriptions'
   };
-  
+
   return titleMap[Object.keys(titleMap).find(key => path.startsWith(key))] || 'School ERP';
 });
 
@@ -123,7 +136,7 @@ const initializeSidebar = () => {
 onMounted(async () => {
   const themeCookie = useCookie('theme', { default: () => 'dark' });
   isDark.value = themeCookie.value === 'dark';
-  
+
   useHead({
     htmlAttrs: {
       class: isDark.value ? 'dark' : ''
@@ -155,18 +168,19 @@ onUnmounted(() => {
 
 <style scoped>
 @media (max-width: 768px) {
-  .ml-64, .ml-16 {
+  .ml-64,
+  .ml-16 {
     margin-left: 0 !important;
   }
-  
+
   .flex-1 {
     width: 100%;
   }
-  
+
   .p-6 {
     padding: 1rem;
   }
-  
+
   .min-h-screen {
     min-height: 100vh;
     overflow-x: hidden;
@@ -203,4 +217,4 @@ onUnmounted(() => {
 .main-content {
   isolation: isolate;
 }
-</style> 
+</style>

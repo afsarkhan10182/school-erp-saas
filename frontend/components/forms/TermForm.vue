@@ -57,11 +57,7 @@
         @change="clearError('academic_year_id')"
       >
         <option value="">Select Academic Year</option>
-        <option 
-          v-for="year in academicYearOptions" 
-          :key="year.value" 
-          :value="year.value"
-        >
+        <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
           {{ year.label }}
         </option>
       </select>
@@ -149,9 +145,25 @@
         class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span v-if="isSubmitting" class="flex items-center">
-          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg
+            class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
           {{ isEditing ? 'Updating...' : 'Creating...' }}
         </span>
@@ -164,9 +176,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useToast } from '~/composables/useToast'
-import { validationRules, commonSchemas, validateForm } from '~/utils/validators'
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useToast } from '~/composables/useToast';
+import { validationRules, commonSchemas, validateForm } from '~/utils/validators';
 
 // Props
 const props = defineProps({
@@ -178,17 +190,17 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
-})
+});
 
 // Emits
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
-const { showToast } = useToast()
+const { showToast } = useToast();
 
 // Reactive data
-const isSubmitting = ref(false)
-const errors = ref({})
+const isSubmitting = ref(false);
+const errors = ref({});
 
 // Form data
 const form = reactive({
@@ -198,82 +210,82 @@ const form = reactive({
   start_date: '',
   end_date: '',
   status: 'upcoming'
-})
+});
 
 // Computed
-const isEditing = computed(() => !!props.term)
+const isEditing = computed(() => !!props.term);
 
 // Validation schema using common utilities
 const validationSchema = {
   name: [
-    (val) => validationRules.required(val, 'Term name'),
-    (val) => validationRules.minLength(val, 2, 'Term name'),
-    (val) => validationRules.maxLength(val, 100, 'Term name')
+    val => validationRules.required(val, 'Term name'),
+    val => validationRules.minLength(val, 2, 'Term name'),
+    val => validationRules.maxLength(val, 100, 'Term name')
   ],
-  description: [(val) => validationRules.maxLength(val, 500, 'Description')],
+  description: [val => validationRules.maxLength(val, 500, 'Description')],
   academic_year_id: [
-    (val) => validationRules.required(val, 'Academic year'),
-    (val) => validationRules.uuid(val)
+    val => validationRules.required(val, 'Academic year'),
+    val => validationRules.uuid(val)
   ],
   start_date: [
-    (val) => validationRules.required(val, 'Start date'),
-    (val) => validationRules.date(val)
+    val => validationRules.required(val, 'Start date'),
+    val => validationRules.date(val)
   ],
   end_date: [
-    (val) => validationRules.required(val, 'End date'),
-    (val) => validationRules.date(val),
-    (val) => {
+    val => validationRules.required(val, 'End date'),
+    val => validationRules.date(val),
+    val => {
       if (val && form.start_date && new Date(val) <= new Date(form.start_date)) {
-        return 'End date must be after start date'
+        return 'End date must be after start date';
       }
-      return null
+      return null;
     }
   ],
   status: [
-    (val) => {
-      const validStatuses = ['upcoming', 'active', 'completed', 'cancelled']
+    val => {
+      const validStatuses = ['upcoming', 'active', 'completed', 'cancelled'];
       if (val && !validStatuses.includes(val)) {
-        return 'Invalid status'
+        return 'Invalid status';
       }
-      return null
+      return null;
     }
   ]
-}
+};
 
 // Methods
-const validateField = (fieldName) => {
-  const value = form[fieldName]
-  const rules = validationSchema[fieldName] || []
-  
+const validateField = fieldName => {
+  const value = form[fieldName];
+  const rules = validationSchema[fieldName] || [];
+
   for (const rule of rules) {
-    const error = rule(value)
+    const error = rule(value);
     if (error) {
-      errors.value[fieldName] = error
-      return
+      errors.value[fieldName] = error;
+      return;
     }
   }
-  
-  delete errors.value[fieldName]
-}
+
+  delete errors.value[fieldName];
+};
 
 const validateFormData = () => {
-  const formErrors = validateForm(form, validationSchema)
-  errors.value = formErrors
-  return Object.keys(formErrors).length === 0
-}
+  const formErrors = validateForm(form, validationSchema);
+  errors.value = formErrors;
+  return Object.keys(formErrors).length === 0;
+};
 
-const clearError = (fieldName) => {
-  delete errors.value[fieldName]
-}
+const clearError = fieldName => {
+  delete errors.value[fieldName];
+};
 
 const handleSubmit = async () => {
   if (!validateFormData()) {
-    showToast('Please fix the validation errors', 'error')
-    return
+    showToast('Please fix the validation errors', 'error');
+    return;
   }
 
-  isSubmitting.value = true
-  
+  isSubmitting.value = true;
+
   try {
     // Prepare form data
     const formData = {
@@ -283,50 +295,54 @@ const handleSubmit = async () => {
       start_date: form.start_date,
       end_date: form.end_date,
       status: form.status
-    }
+    };
 
-    emit('submit', formData)
+    emit('submit', formData);
   } catch (error) {
-    console.error('Error in form submission:', error)
-    showToast('An error occurred while processing the form', 'error')
+    console.error('Error in form submission:', error);
+    showToast('An error occurred while processing the form', 'error');
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const resetForm = () => {
-  form.name = ''
-  form.description = ''
-  form.academic_year_id = ''
-  form.start_date = ''
-  form.end_date = ''
-  form.status = 'upcoming'
-  errors.value = {}
-}
+  form.name = '';
+  form.description = '';
+  form.academic_year_id = '';
+  form.start_date = '';
+  form.end_date = '';
+  form.status = 'upcoming';
+  errors.value = {};
+};
 
 // Watch for prop changes
-watch(() => props.term, (newTerm) => {
-  if (newTerm) {
-    form.name = newTerm.name || ''
-    form.description = newTerm.description || ''
-    form.academic_year_id = newTerm.academic_year_id || ''
-    form.start_date = newTerm.start_date || ''
-    form.end_date = newTerm.end_date || ''
-    form.status = newTerm.status || 'upcoming'
-  } else {
-    resetForm()
-  }
-}, { immediate: true })
+watch(
+  () => props.term,
+  newTerm => {
+    if (newTerm) {
+      form.name = newTerm.name || '';
+      form.description = newTerm.description || '';
+      form.academic_year_id = newTerm.academic_year_id || '';
+      form.start_date = newTerm.start_date || '';
+      form.end_date = newTerm.end_date || '';
+      form.status = newTerm.status || 'upcoming';
+    } else {
+      resetForm();
+    }
+  },
+  { immediate: true }
+);
 
 // Initialize form
 onMounted(() => {
   if (props.term) {
-    form.name = props.term.name || ''
-    form.description = props.term.description || ''
-    form.academic_year_id = props.term.academic_year_id || ''
-    form.start_date = props.term.start_date || ''
-    form.end_date = props.term.end_date || ''
-    form.status = props.term.status || 'upcoming'
+    form.name = props.term.name || '';
+    form.description = props.term.description || '';
+    form.academic_year_id = props.term.academic_year_id || '';
+    form.start_date = props.term.start_date || '';
+    form.end_date = props.term.end_date || '';
+    form.status = props.term.status || 'upcoming';
   }
-})
+});
 </script>

@@ -1,11 +1,11 @@
-import { ref, computed, watch } from "vue";
-import { useAuthStore } from "~/stores/auth";
-import { Branches } from "~/api/administration/branches";
+import { ref, computed, watch } from 'vue';
+import { useAuthStore } from '~/stores/auth';
+import { Branches } from '~/api/administration/branches';
 
 export const useBranchContext = () => {
   const authStore = useAuthStore();
   const loading = ref(false);
-  const error = ref("");
+  const error = ref('');
 
   // Computed properties
   const currentBranch = computed(() => authStore.currentBranch);
@@ -13,7 +13,7 @@ export const useBranchContext = () => {
   const currentSchool = computed(() => authStore.currentSchool);
   const canSwitchBranches = computed(() => {
     const role = authStore.userRole;
-    return role === "super_admin" || role === "school_admin";
+    return role === 'super_admin' || role === 'school_admin';
   });
 
   // Fetch branches for the current user
@@ -23,7 +23,7 @@ export const useBranchContext = () => {
     }
 
     loading.value = true;
-    error.value = "";
+    error.value = '';
 
     try {
       let response;
@@ -34,7 +34,7 @@ export const useBranchContext = () => {
       } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
         response = await Branches.getForDropdown({
-          school_id: authStore.currentSchool.id,
+          school_id: authStore.currentSchool.id
         });
       } else {
         // Other roles can only see their assigned branch
@@ -53,11 +53,11 @@ export const useBranchContext = () => {
           authStore.setCurrentBranch(branches[0]);
         }
       } else {
-        error.value = response.message || "Failed to fetch branches";
+        error.value = response.message || 'Failed to fetch branches';
       }
     } catch (err: any) {
-      console.error("Error fetching branches:", err);
-      error.value = err.message || "Failed to fetch branches";
+      console.error('Error fetching branches:', err);
+      error.value = err.message || 'Failed to fetch branches';
     } finally {
       loading.value = false;
     }
@@ -68,7 +68,7 @@ export const useBranchContext = () => {
     if (!canSwitchBranches.value) return false;
 
     loading.value = true;
-    error.value = "";
+    error.value = '';
 
     try {
       const success = await authStore.switchBranch(branchId);
@@ -76,19 +76,19 @@ export const useBranchContext = () => {
         // Emit event to notify other components about branch change
         if (import.meta.client) {
           window.dispatchEvent(
-            new CustomEvent("branch-changed", {
-              detail: { branch: authStore.currentBranch },
+            new CustomEvent('branch-changed', {
+              detail: { branch: authStore.currentBranch }
             })
           );
         }
         return true;
       } else {
-        error.value = "Failed to switch branch";
+        error.value = 'Failed to switch branch';
         return false;
       }
     } catch (err: any) {
-      console.error("Error switching branch:", err);
-      error.value = err.message || "Failed to switch branch";
+      console.error('Error switching branch:', err);
+      error.value = err.message || 'Failed to switch branch';
       return false;
     } finally {
       loading.value = false;
@@ -100,7 +100,7 @@ export const useBranchContext = () => {
     return {
       branchId: authStore.currentBranch?.id,
       schoolId: authStore.currentSchool?.id,
-      canAccessAllBranches: authStore.isSuperAdmin,
+      canAccessAllBranches: authStore.isSuperAdmin
     };
   };
 
@@ -108,7 +108,7 @@ export const useBranchContext = () => {
   const hasBranchAccess = (branchId: string) => {
     if (authStore.isSuperAdmin) return true;
     if (authStore.isSchoolAdmin) {
-      return authStore.availableBranches.some((b) => b.id === branchId);
+      return authStore.availableBranches.some(b => b.id === branchId);
     }
     return authStore.currentBranch?.id === branchId;
   };
@@ -123,7 +123,7 @@ export const useBranchContext = () => {
   // Watch for auth changes and update branch context
   watch(
     () => authStore.isLoggedIn,
-    (isLoggedIn) => {
+    isLoggedIn => {
       if (isLoggedIn) {
         initializeBranchContext();
       } else {
@@ -149,6 +149,6 @@ export const useBranchContext = () => {
     switchBranch,
     getBranchContext,
     hasBranchAccess,
-    initializeBranchContext,
+    initializeBranchContext
   };
 };

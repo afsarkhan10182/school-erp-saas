@@ -16,7 +16,12 @@ export type { SectionParams, SectionData } from './sections';
 export type { StreamParams, StreamData } from './streams';
 export type { Subject, SubjectFilters, SubjectStats } from './subjects';
 export type { AcademicYearParams, AcademicYearData } from './academic-years';
-export type { AcademicCalendarEvent, AcademicCalendarFilters, CreateCalendarEventData, UpdateCalendarEventData } from './academic-calendar';
+export type {
+  AcademicCalendarEvent,
+  AcademicCalendarFilters,
+  CreateCalendarEventData,
+  UpdateCalendarEventData
+} from './academic-calendar';
 export type { AcademicParams } from './academic';
 export type { ExamType, ExamTypeFilters } from './exam-types';
 export type { Exam, ExamResult, ExamFilters, ExamResultData } from './exams';

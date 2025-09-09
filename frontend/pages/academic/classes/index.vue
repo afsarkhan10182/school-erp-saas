@@ -5,7 +5,9 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage academic classes for each branch</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+            Manage academic classes for each branch
+          </p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -21,24 +23,60 @@
       <!-- Classes List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Academic Classes</h3>
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+            Academic Classes
+          </h3>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Streams</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sections</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class Name
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Code
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Branch
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Streams
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Sections
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="classItem in classes" :key="classItem.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+              <tr
+                v-for="classItem in classes"
+                :key="classItem.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                >
                   {{ classItem.name }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -47,16 +85,21 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div v-if="classItem.branch" class="flex items-center">
                     <span class="font-medium">{{ classItem.branch?.name }}</span>
-                    <span v-if="classItem.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ classItem.branch.code }})</span>
+                    <span
+                      v-if="classItem.branch?.code"
+                      class="text-gray-500 dark:text-gray-400 ml-1"
+                      >({{ classItem.branch.code }})</span
+                    >
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <span v-if="classItem.has_stream" class="text-blue-600 dark:text-blue-400 font-medium">
+                  <span
+                    v-if="classItem.has_stream"
+                    class="text-blue-600 dark:text-blue-400 font-medium"
+                  >
                     {{ classItem.streams?.length || 0 }} streams
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400">
-                    No streams
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400"> No streams </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ classItem.sections?.length || 0 }} sections
@@ -64,8 +107,10 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
                     :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': classItem.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': !classItem.is_active,
+                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
+                        classItem.is_active,
+                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
+                        !classItem.is_active
                     }"
                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                   >
@@ -99,20 +144,32 @@
       </div>
 
       <!-- Create/Edit Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div
+        v-if="showModal"
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]"
+      >
+        <div
+          class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+        >
           <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {{ isEditing ? 'Edit Class' : 'Create New Class' }}
             </h3>
-            
+
             <form @submit.prevent="saveClass">
               <!-- School Selector for Super Admin -->
-              <div v-if="authStore.user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School & Branch</h4>
+              <div
+                v-if="authStore.user?.role === 'super_admin' && !isEditing"
+                class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+              >
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                  📍 Select School & Branch
+                </h4>
                 <div class="space-y-3">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >School *</label
+                    >
                     <select
                       v-model="selectedSchoolId"
                       required
@@ -120,67 +177,111 @@
                       @change="onSchoolChange"
                     >
                       <option value="">Select a school first</option>
-                      <option v-for="school in availableSchools" :key="school.id" :value="school.id">
+                      <option
+                        v-for="school in availableSchools"
+                        :key="school.id"
+                        :value="school.id"
+                      >
                         {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
                       </option>
                     </select>
                   </div>
                   <div v-if="selectedSchoolId">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Branch *</label
+                    >
                     <select
                       v-model="selectedBranchId"
                       required
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">Select a branch</option>
-                      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                      <option
+                        v-for="branch in availableBranches"
+                        :key="branch.id"
+                        :value="branch.id"
+                      >
                         {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
                       </option>
                     </select>
                   </div>
-                  <div v-if="!selectedSchoolId || !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                  <div
+                    v-if="!selectedSchoolId || !selectedBranchId"
+                    class="text-xs text-blue-600 dark:text-blue-400"
+                  >
                     ⚠️ Please select both school and branch before creating the class
                   </div>
                 </div>
               </div>
 
               <!-- Branch Selector for School Admin -->
-              <div v-if="authStore.user?.role === 'school_admin' && !isEditing && availableBranches.length > 1" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
-                    <select
-                      v-model="selectedBranchId"
-                      required
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="">Select a branch</option>
-                      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                        {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
-                      </option>
-                    </select>
+              <div
+                v-if="
+                  authStore.user?.role === 'school_admin' &&
+                  !isEditing &&
+                  availableBranches.length > 1
+                "
+                class="mb-4"
+              >
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Branch *</label
+                >
+                <select
+                  v-model="selectedBranchId"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select a branch</option>
+                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                    {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                  </option>
+                </select>
               </div>
 
               <!-- Branch Information Display for School Admin with Single Branch -->
-              <div v-if="authStore.user?.role === 'school_admin' && !isEditing && availableBranches.length === 1" class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">📍 Branch Information</h4>
+              <div
+                v-if="
+                  authStore.user?.role === 'school_admin' &&
+                  !isEditing &&
+                  availableBranches.length === 1
+                "
+                class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+              >
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                  📍 Branch Information
+                </h4>
                 <div class="text-sm text-blue-800 dark:text-blue-200">
                   <strong>{{ availableBranches[0].name }}</strong>
-                  <span v-if="availableBranches[0].code" class="text-blue-600 dark:text-blue-300"> ({{ availableBranches[0].code }})</span>
-                  <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1">This is your only branch - automatically selected</span>
+                  <span v-if="availableBranches[0].code" class="text-blue-600 dark:text-blue-300">
+                    ({{ availableBranches[0].code }})</span
+                  >
+                  <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1"
+                    >This is your only branch - automatically selected</span
+                  >
                 </div>
               </div>
 
               <!-- Branch Information Display for Edit Mode -->
-              <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Branch Information</h4>
+              <div
+                v-if="isEditing"
+                class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+              >
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                  📍 Branch Information
+                </h4>
                 <div class="space-y-2">
                   <div v-if="authStore.user?.role === 'super_admin'">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">School</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >School</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedSchoolName() }}
                     </p>
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Branch</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >Branch</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedBranchName() }}
                     </p>
@@ -189,7 +290,9 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class Name *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >Class Name *</label
+                >
                 <input
                   v-model="form.name"
                   type="text"
@@ -200,7 +303,9 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Code *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >Code *</label
+                >
                 <input
                   v-model="form.code"
                   type="text"
@@ -211,7 +316,9 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >Description</label
+                >
                 <textarea
                   v-model="form.description"
                   rows="3"
@@ -238,10 +345,13 @@
                     type="checkbox"
                     class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                   />
-                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">This class has streams</span>
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >This class has streams</span
+                  >
                 </label>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Enable this for classes that have different streams (e.g., Class 11, 12 with Science, Commerce, Arts)
+                  Enable this for classes that have different streams (e.g., Class 11, 12 with
+                  Science, Commerce, Arts)
                 </p>
               </div>
 
@@ -258,7 +368,7 @@
                   :disabled="isSubmitting"
                   class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
-                  {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
+                  {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
                 </button>
               </div>
             </form>
@@ -329,7 +439,7 @@ const getSelectedBranchName = () => {
 // Fetch schools for super admin
 const fetchSchools = async () => {
   if (authStore.user?.role !== 'super_admin') return;
-  
+
   try {
     const response = await Schools.getAll();
     availableSchools.value = response.data?.schools || [];
@@ -340,12 +450,12 @@ const fetchSchools = async () => {
 };
 
 // Fetch branches when school is selected
-const fetchBranchesForSchool = async (schoolId) => {
+const fetchBranchesForSchool = async schoolId => {
   if (!schoolId) {
     availableBranches.value = [];
     return;
   }
-  
+
   try {
     const response = await Branches.getForDropdown({ school_id: schoolId });
     availableBranches.value = response.data || [];
@@ -358,18 +468,18 @@ const fetchBranchesForSchool = async (schoolId) => {
 // Fetch branches for current user's school
 const fetchBranchesForCurrentSchool = async () => {
   if (authStore.user?.role === 'super_admin') return; // Super admin uses school selection
-  
+
   try {
     const schoolId = authStore.user?.school_id;
     if (!schoolId) {
       console.error('No school_id found for user:', authStore.user);
       return;
     }
-    
+
     const response = await Branches.getForDropdown({ school_id: schoolId });
-    
+
     availableBranches.value = response.data || [];
-    
+
     // Auto-select the only branch for School Admin if there's only one
     if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
@@ -402,12 +512,12 @@ const fetchClasses = async () => {
       sort_by: 'sort_order',
       sort_order: 'ASC'
     };
-    
+
     // Add branch filter if selected
     if (selectedBranchId.value) {
       params.branch_id = selectedBranchId.value;
     }
-    
+
     const response = await Classes.getAll(params);
     classes.value = response.data || [];
   } catch (error) {
@@ -424,11 +534,11 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-const editClass = async (classItem) => {
+const editClass = async classItem => {
   // Set editing mode first
   isEditing.value = true;
   editingId.value = classItem.id;
-  
+
   // Set school and branch context for super admin
   if (authStore.user?.role === 'super_admin') {
     selectedSchoolId.value = classItem.school_id;
@@ -441,17 +551,17 @@ const editClass = async (classItem) => {
       }
     }
   }
-  
+
   // Set branch context for all roles
   selectedBranchId.value = classItem.branch_id;
-  
+
   // Set form values
   form.name = classItem.name;
   form.code = classItem.code;
   form.description = classItem.description || '';
   form.is_active = classItem.is_active;
   form.has_stream = classItem.has_stream || false;
-  
+
   showModal.value = true;
 };
 
@@ -479,7 +589,7 @@ const saveClass = async () => {
         showWarning('Please select both school and branch first to create the class');
         return;
       }
-      
+
       payload.school_id = selectedSchoolId.value;
       payload.branch_id = selectedBranchId.value;
     }
@@ -491,7 +601,7 @@ const saveClass = async () => {
         showWarning('Please select a branch first to create the class');
         return;
       }
-      
+
       if (selectedBranchId.value) {
         payload.branch_id = selectedBranchId.value;
       } else if (availableBranches.length === 1) {
@@ -503,7 +613,7 @@ const saveClass = async () => {
         console.log('Branch context:', branchContext);
         console.log('Available branches:', availableBranches.value);
         console.log('Selected branch ID:', selectedBranchId.value);
-        
+
         if (branchContext?.branchId) {
           payload.branch_id = branchContext.branchId;
         } else if (authStore.user?.branch_id) {
@@ -521,12 +631,12 @@ const saveClass = async () => {
     if (isEditing.value) {
       await Classes.update(editingId.value, payload);
     } else {
-              await Classes.create(payload);
+      await Classes.create(payload);
     }
 
     closeModal();
     await fetchClasses();
-    
+
     // Show success message
     if (import.meta.client) {
       const event = new CustomEvent('show-toast', {
@@ -556,13 +666,13 @@ const saveClass = async () => {
   }
 };
 
-const toggleStatus = async (classItem) => {
+const toggleStatus = async classItem => {
   try {
-          await Classes.update(classItem.id, {
+    await Classes.update(classItem.id, {
       is_active: !classItem.is_active
     });
     await fetchClasses();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -579,15 +689,15 @@ const toggleStatus = async (classItem) => {
   }
 };
 
-const deleteClass = async (id) => {
+const deleteClass = async id => {
   if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
     return;
   }
-  
+
   try {
     await Classes.delete(id);
     await fetchClasses();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -617,15 +727,15 @@ const deleteClass = async (id) => {
 
 onMounted(async () => {
   fetchClasses();
-  
+
   // Fetch schools for super admin
   if (authStore.user?.role === 'super_admin') {
     fetchSchools();
   }
-  
+
   // Fetch branches for school admin
   if (authStore.user?.role === 'school_admin') {
     await fetchBranchesForCurrentSchool();
   }
 });
-</script> 
+</script>

@@ -13,7 +13,11 @@ export interface AttendanceSession {
 
 export interface AttendanceRecord {
   session_id: string;
-  records: Array<{ student_id: string; status: 'present' | 'absent' | 'late' | 'excused'; remarks?: string }>;
+  records: Array<{
+    student_id: string;
+    status: 'present' | 'absent' | 'late' | 'excused';
+    remarks?: string;
+  }>;
   publish?: boolean;
 }
 
@@ -49,7 +53,15 @@ export const Attendance = {
     return response.data;
   },
 
-  listSessions: async (params?: { page?: number; limit?: number; date_from?: string; date_to?: string; class_id?: string; section_id?: string; status?: 'draft' | 'published' }) => {
+  listSessions: async (params?: {
+    page?: number;
+    limit?: number;
+    date_from?: string;
+    date_to?: string;
+    class_id?: string;
+    section_id?: string;
+    status?: 'draft' | 'published';
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/attendance/sessions', { params });
     return response.data;
@@ -63,7 +75,9 @@ export const Attendance = {
 
   exportReport: async (queryString: string) => {
     const api = createApiInstance();
-    const response = await api.get(`/attendance/reports/export?${queryString}`, { responseType: 'blob' });
+    const response = await api.get(`/attendance/reports/export?${queryString}`, {
+      responseType: 'blob'
+    });
     return response;
   },
 
@@ -94,15 +108,17 @@ export const Attendance = {
   // Export reports
   exportPdfReport: async (queryParams: string) => {
     const api = createApiInstance();
-    const response = await api.get(`/attendance/reports/export/pdf?${queryParams}`, { responseType: 'blob' });
+    const response = await api.get(`/attendance/reports/export/pdf?${queryParams}`, {
+      responseType: 'blob'
+    });
     return response.data;
   },
 
   exportExcelReport: async (queryParams: string) => {
     const api = createApiInstance();
-    const response = await api.get(`/attendance/reports/export/excel?${queryParams}`, { responseType: 'blob' });
+    const response = await api.get(`/attendance/reports/export/excel?${queryParams}`, {
+      responseType: 'blob'
+    });
     return response.data;
   }
 };
-
-

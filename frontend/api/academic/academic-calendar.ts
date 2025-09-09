@@ -1,9 +1,9 @@
-import { createApiInstance } from "~/utils/api";
+import { createApiInstance } from '~/utils/api';
 
 export interface AcademicCalendarEvent {
   id: string;
   date: string;
-  day_type: "working" | "holiday" | "weekend" | "exam" | "event";
+  day_type: 'working' | 'holiday' | 'weekend' | 'exam' | 'event';
   description?: string;
   academic_year: string;
   school_id: string;
@@ -23,13 +23,12 @@ export interface AcademicCalendarFilters {
 
 export interface CreateCalendarEventData {
   date: string;
-  day_type: "working" | "holiday" | "weekend" | "exam" | "event";
+  day_type: 'working' | 'holiday' | 'weekend' | 'exam' | 'event';
   description?: string;
   academic_year: string;
 }
 
-export interface UpdateCalendarEventData
-  extends Partial<CreateCalendarEventData> {}
+export interface UpdateCalendarEventData extends Partial<CreateCalendarEventData> {}
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -49,33 +48,28 @@ export const AcademicCalendar = {
     const api = createApiInstance();
     const params = new URLSearchParams();
 
-    if (filters.academic_year)
-      params.append("academic_year", filters.academic_year);
-    if (filters.day_type) params.append("day_type", filters.day_type);
-    if (filters.start_date) params.append("start_date", filters.start_date);
-    if (filters.end_date) params.append("end_date", filters.end_date);
-    if (filters.page) params.append("page", filters.page.toString());
-    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.academic_year) params.append('academic_year', filters.academic_year);
+    if (filters.day_type) params.append('day_type', filters.day_type);
+    if (filters.start_date) params.append('start_date', filters.start_date);
+    if (filters.end_date) params.append('end_date', filters.end_date);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
 
     const response = await api.get(`/academic-calendar?${params.toString()}`);
     return response.data;
   },
 
   // Get calendar event by ID
-  async getById(
-    id: string
-  ): Promise<{ data: { event: AcademicCalendarEvent } }> {
+  async getById(id: string): Promise<{ data: { event: AcademicCalendarEvent } }> {
     const api = createApiInstance();
     const response = await api.get(`/academic-calendar/${id}`);
     return response.data;
   },
 
   // Create new calendar event
-  async create(
-    data: CreateCalendarEventData
-  ): Promise<{ data: { event: AcademicCalendarEvent } }> {
+  async create(data: CreateCalendarEventData): Promise<{ data: { event: AcademicCalendarEvent } }> {
     const api = createApiInstance();
-    const response = await api.post("/academic-calendar", data);
+    const response = await api.post('/academic-calendar', data);
     return response.data;
   },
 
@@ -97,17 +91,14 @@ export const AcademicCalendar = {
   },
 
   // Check if a date is a working day
-  async checkWorkingDay(params: {
-    date: string;
-    academic_year?: string;
-  }): Promise<{
+  async checkWorkingDay(params: { date: string; academic_year?: string }): Promise<{
     data: { isWorkingDay: boolean; dayType: string; description?: string };
   }> {
     const api = createApiInstance();
     const queryParams = new URLSearchParams();
-    queryParams.append("date", params.date);
+    queryParams.append('date', params.date);
     if (params.academic_year) {
-      queryParams.append("academic_year", params.academic_year);
+      queryParams.append('academic_year', params.academic_year);
     }
     const response = await api.get(
       `/academic-calendar/check-working-day?${queryParams.toString()}`
@@ -120,7 +111,7 @@ export const AcademicCalendar = {
     events: CreateCalendarEventData[]
   ): Promise<{ data: { events: AcademicCalendarEvent[] } }> {
     const api = createApiInstance();
-    const response = await api.post("/academic-calendar/bulk", { events });
+    const response = await api.post('/academic-calendar/bulk', { events });
     return response.data;
-  },
+  }
 };

@@ -4,14 +4,18 @@
  * Following Rule #4: Follow Nuxt.js Standards - Use composables for shared logic
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed } from 'vue';
 
 // Configuration state
 const config = ref({
   subjectCategories: [
     { value: 'core', label: 'Core', description: 'Core academic subjects' },
     { value: 'elective', label: 'Elective', description: 'Optional subjects' },
-    { value: 'extra_curricular', label: 'Extra Curricular', description: 'Non-academic activities' },
+    {
+      value: 'extra_curricular',
+      label: 'Extra Curricular',
+      description: 'Non-academic activities'
+    },
     { value: 'language', label: 'Language', description: 'Language subjects' },
     { value: 'science', label: 'Science', description: 'Science subjects' },
     { value: 'arts', label: 'Arts', description: 'Arts and humanities' },
@@ -94,101 +98,107 @@ const config = ref({
     defaultLanguage: 'en',
     timezone: 'Asia/Kolkata'
   }
-})
+});
 
 export const useConfig = () => {
   // Computed properties for easy access
-  const subjectCategories = computed(() => config.value.subjectCategories)
-  const dayTypes = computed(() => config.value.dayTypes)
-  const userRoles = computed(() => config.value.userRoles)
-  const statusOptions = computed(() => config.value.statusOptions)
-  const academicYear = computed(() => config.value.academicYear)
-  const grading = computed(() => config.value.grading)
-  const fees = computed(() => config.value.fees)
-  const attendance = computed(() => config.value.attendance)
-  const notifications = computed(() => config.value.notifications)
+  const subjectCategories = computed(() => config.value.subjectCategories);
+  const dayTypes = computed(() => config.value.dayTypes);
+  const userRoles = computed(() => config.value.userRoles);
+  const statusOptions = computed(() => config.value.statusOptions);
+  const academicYear = computed(() => config.value.academicYear);
+  const grading = computed(() => config.value.grading);
+  const fees = computed(() => config.value.fees);
+  const attendance = computed(() => config.value.attendance);
+  const notifications = computed(() => config.value.notifications);
 
   // Helper functions
   const getSubjectCategoryLabel = (value: string) => {
-    const category = subjectCategories.value.find(cat => cat.value === value)
-    return category ? category.label : value
-  }
+    const category = subjectCategories.value.find(cat => cat.value === value);
+    return category ? category.label : value;
+  };
 
   const getDayTypeLabel = (value: string) => {
-    const dayType = dayTypes.value.find(dt => dt.value === value)
-    return dayType ? dayType.label : value
-  }
+    const dayType = dayTypes.value.find(dt => dt.value === value);
+    return dayType ? dayType.label : value;
+  };
 
   const getUserRoleLabel = (value: string) => {
-    const role = userRoles.value.find(r => r.value === value)
-    return role ? role.label : value
-  }
+    const role = userRoles.value.find(r => r.value === value);
+    return role ? role.label : value;
+  };
 
-  const getStatusLabel = (value: string, type: 'general' | 'academic' | 'financial' = 'general') => {
-    const status = statusOptions.value[type]?.find(s => s.value === value)
-    return status ? status.label : value
-  }
+  const getStatusLabel = (
+    value: string,
+    type: 'general' | 'academic' | 'financial' = 'general'
+  ) => {
+    const status = statusOptions.value[type]?.find(s => s.value === value);
+    return status ? status.label : value;
+  };
 
-  const getStatusColor = (value: string, type: 'general' | 'academic' | 'financial' = 'general') => {
-    const status = statusOptions.value[type]?.find(s => s.value === value)
-    return status ? status.color : 'gray'
-  }
+  const getStatusColor = (
+    value: string,
+    type: 'general' | 'academic' | 'financial' = 'general'
+  ) => {
+    const status = statusOptions.value[type]?.find(s => s.value === value);
+    return status ? status.color : 'gray';
+  };
 
   const getGradeForMarks = (marks: number) => {
-    const gradeScale = grading.value.gradeScales.find(scale => 
-      marks >= scale.min_marks && marks <= scale.max_marks
-    )
-    return gradeScale ? gradeScale.grade : 'F'
-  }
+    const gradeScale = grading.value.gradeScales.find(
+      scale => marks >= scale.min_marks && marks <= scale.max_marks
+    );
+    return gradeScale ? gradeScale.grade : 'F';
+  };
 
   const getGradeDescription = (grade: string) => {
-    const gradeScale = grading.value.gradeScales.find(scale => scale.grade === grade)
-    return gradeScale ? gradeScale.description : ''
-  }
+    const gradeScale = grading.value.gradeScales.find(scale => scale.grade === grade);
+    return gradeScale ? gradeScale.description : '';
+  };
 
   const calculateAcademicYear = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const startingMonth = academicYear.value.startingMonth
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const startingMonth = academicYear.value.startingMonth;
 
     if (month >= startingMonth) {
-      return `${year}-${year + 1}`
+      return `${year}-${year + 1}`;
     } else {
-      return `${year - 1}-${year}`
+      return `${year - 1}-${year}`;
     }
-  }
+  };
 
   const getCurrentAcademicYear = () => {
-    return calculateAcademicYear(new Date())
-  }
+    return calculateAcademicYear(new Date());
+  };
 
   const isWorkingDay = (dayOfWeek: number) => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    const dayName = days[dayOfWeek]
-    return attendance.value.workingDays[dayName as keyof typeof attendance.value.workingDays]
-  }
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = days[dayOfWeek];
+    return attendance.value.workingDays[dayName as keyof typeof attendance.value.workingDays];
+  };
 
   const formatCurrency = (amount: number) => {
-    const currency = fees.value.currency
+    const currency = fees.value.currency;
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const calculateLateFee = (amount: number, daysOverdue: number) => {
     if (daysOverdue <= fees.value.dueDateGracePeriod) {
-      return 0
+      return 0;
     }
-    return (amount * fees.value.lateFeePercentage) / 100
-  }
+    return (amount * fees.value.lateFeePercentage) / 100;
+  };
 
   // Update configuration (for when loading from backend)
   const updateConfig = (newConfig: Partial<typeof config.value>) => {
-    config.value = { ...config.value, ...newConfig }
-  }
+    config.value = { ...config.value, ...newConfig };
+  };
 
   // Load configuration from backend
   const loadConfig = async () => {
@@ -196,16 +206,16 @@ export const useConfig = () => {
       // This would typically make an API call to get configuration
       // const response = await $fetch('/api/config')
       // updateConfig(response.data)
-      console.log('Configuration loaded from backend')
+      console.log('Configuration loaded from backend');
     } catch (error) {
-      console.error('Error loading configuration:', error)
+      console.error('Error loading configuration:', error);
     }
-  }
+  };
 
   return {
     // State
     config: readonly(config),
-    
+
     // Computed
     subjectCategories,
     dayTypes,
@@ -216,7 +226,7 @@ export const useConfig = () => {
     fees,
     attendance,
     notifications,
-    
+
     // Helper functions
     getSubjectCategoryLabel,
     getDayTypeLabel,
@@ -230,9 +240,9 @@ export const useConfig = () => {
     isWorkingDay,
     formatCurrency,
     calculateLateFee,
-    
+
     // Actions
     updateConfig,
     loadConfig
-  }
-}
+  };
+};

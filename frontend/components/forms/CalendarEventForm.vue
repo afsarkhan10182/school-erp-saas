@@ -113,15 +113,15 @@
         :disabled="isSubmitting"
         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {{ isSubmitting ? 'Saving...' : (props.event ? 'Update Event' : 'Create Event') }}
+        {{ isSubmitting ? 'Saving...' : props.event ? 'Update Event' : 'Create Event' }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
-import { useToast } from '~/composables/useToast'
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useToast } from '~/composables/useToast';
 
 // Props
 const props = defineProps({
@@ -133,17 +133,17 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
-})
+});
 
 // Emits
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
-const { showToast } = useToast()
+const { showToast } = useToast();
 
 // Reactive data
-const isSubmitting = ref(false)
-const errors = ref({})
+const isSubmitting = ref(false);
+const errors = ref({});
 
 // Form data
 const form = reactive({
@@ -151,77 +151,77 @@ const form = reactive({
   day_type: 'working',
   description: '',
   academic_year: ''
-})
+});
 
 // Validation rules
 const validationRules = {
-  date: (value) => {
+  date: value => {
     if (!value) {
-      return 'Date is required'
+      return 'Date is required';
     }
-    const date = new Date(value)
+    const date = new Date(value);
     if (isNaN(date.getTime())) {
-      return 'Invalid date format'
+      return 'Invalid date format';
     }
-    return null
+    return null;
   },
-  day_type: (value) => {
+  day_type: value => {
     if (!value) {
-      return 'Day type is required'
+      return 'Day type is required';
     }
-    const validTypes = ['working', 'holiday', 'weekend', 'exam', 'event']
+    const validTypes = ['working', 'holiday', 'weekend', 'exam', 'event'];
     if (!validTypes.includes(value)) {
-      return 'Invalid day type selected'
+      return 'Invalid day type selected';
     }
-    return null
+    return null;
   },
-  academic_year: (value) => {
+  academic_year: value => {
     if (!value) {
-      return 'Academic year is required'
+      return 'Academic year is required';
     }
-    return null
+    return null;
   },
-  description: (value) => {
+  description: value => {
     if (value && value.length > 255) {
-      return 'Description must not exceed 255 characters'
+      return 'Description must not exceed 255 characters';
     }
-    return null
+    return null;
   }
-}
+};
 
 // Methods
-const validateField = (fieldName) => {
-  const value = form[fieldName]
-  const error = validationRules[fieldName] ? validationRules[fieldName](value) : null
-  
+const validateField = fieldName => {
+  const value = form[fieldName];
+  const error = validationRules[fieldName] ? validationRules[fieldName](value) : null;
+
   if (error) {
-    errors.value[fieldName] = error
+    errors.value[fieldName] = error;
   } else {
-    delete errors.value[fieldName]
+    delete errors.value[fieldName];
   }
-}
+};
 
 const validateForm = () => {
-  const fieldNames = Object.keys(validationRules)
+  const fieldNames = Object.keys(validationRules);
   fieldNames.forEach(fieldName => {
-    validateField(fieldName)
-  })
-  
-  return Object.keys(errors.value).length === 0
-}
+    validateField(fieldName);
+  });
 
-const clearError = (fieldName) => {
-  delete errors.value[fieldName]
-}
+  return Object.keys(errors.value).length === 0;
+};
+
+const clearError = fieldName => {
+  delete errors.value[fieldName];
+};
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    showToast('Please fix the validation errors', 'error')
-    return
+    showToast('Please fix the validation errors', 'error');
+    return;
   }
 
-  isSubmitting.value = true
-  
+  isSubmitting.value = true;
+
   try {
     // Prepare form data
     const formData = {
@@ -229,16 +229,16 @@ const handleSubmit = async () => {
       day_type: form.day_type,
       description: form.description.trim() || null,
       academic_year: form.academic_year
-    }
+    };
 
-    emit('submit', formData)
+    emit('submit', formData);
   } catch (error) {
-    console.error('Error in form submission:', error)
-    showToast('An error occurred while saving', 'error')
+    console.error('Error in form submission:', error);
+    showToast('An error occurred while saving', 'error');
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const resetForm = () => {
   Object.assign(form, {
@@ -246,32 +246,36 @@ const resetForm = () => {
     day_type: 'working',
     description: '',
     academic_year: ''
-  })
-  errors.value = {}
-}
+  });
+  errors.value = {};
+};
 
-const populateForm = (event) => {
+const populateForm = event => {
   if (event) {
     Object.assign(form, {
       date: event.date || '',
       day_type: event.day_type || 'working',
       description: event.description || '',
       academic_year: event.academic_year || ''
-    })
+    });
   } else {
-    resetForm()
+    resetForm();
   }
-}
+};
 
 // Watchers
-watch(() => props.event, (newEvent) => {
-  populateForm(newEvent)
-}, { immediate: true })
+watch(
+  () => props.event,
+  newEvent => {
+    populateForm(newEvent);
+  },
+  { immediate: true }
+);
 
 // Lifecycle
 onMounted(() => {
-  populateForm(props.event)
-})
+  populateForm(props.event);
+});
 </script>
 
 <style scoped>

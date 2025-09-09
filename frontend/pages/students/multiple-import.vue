@@ -3,12 +3,8 @@
     <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-          Multiple Import
-        </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
-          Import multiple students from CSV file
-        </p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Multiple Import</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Import multiple students from CSV file</p>
       </div>
 
       <!-- Instructions Card -->
@@ -17,9 +13,7 @@
       >
         <div class="p-6">
           <div class="flex justify-between items-start mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              Instructions:
-            </h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Instructions:</h2>
             <div class="relative" data-dropdown="download">
               <button
                 @click="showDownloadDropdown = !showDownloadDropdown"
@@ -27,12 +21,7 @@
               >
                 <Download class="w-4 h-4 mr-2" />
                 Download Student Sample Data
-                <svg
-                  class="w-4 h-4 ml-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -73,45 +62,36 @@
             </div>
           </div>
 
-          <ol
-            class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400"
-          >
+          <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li>Choose your preferred template:</li>
             <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
               <li>
-                <strong>Download Required Fields:</strong> Contains only
-                mandatory fields with sample data for quick imports
+                <strong>Download Required Fields:</strong> Contains only mandatory fields with
+                sample data for quick imports
               </li>
               <li>
-                <strong>Download Complete Template:</strong> Contains all fields
-                (mandatory + optional) with sample data for reference
+                <strong>Download Complete Template:</strong> Contains all fields (mandatory +
+                optional) with sample data for reference
               </li>
             </ul>
+            <li>Open the downloaded CSV file and carefully fill the details of the students.</li>
             <li>
-              Open the downloaded CSV file and carefully fill the details of the
-              students.
+              For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD (e.g., 2005-06-15).
             </li>
             <li>
-              For dates (Birthday, AdmissionDate), use the format YYYY-MM-DD
-              (e.g., 2005-06-15).
+              <strong>Mandatory Student Fields:</strong> FirstName, Gender, Birthday, AdmissionDate,
+              AdmissionNumber
             </li>
             <li>
-              <strong>Mandatory Student Fields:</strong> FirstName, Gender,
-              Birthday, AdmissionDate, AdmissionNumber
+              <strong>Mandatory Guardian Fields:</strong> GuardianName, GuardianRelation,
+              GuardianMobileNo, GuardianAddress
             </li>
             <li>
-              <strong>Mandatory Guardian Fields:</strong> GuardianName,
-              GuardianRelation, GuardianMobileNo, GuardianAddress
+              <strong>Optional Fields:</strong> LastName, Roll, BloodGroup, Phone, City, State,
+              Address, StudentEmail, AadhaarNumber, Stream, PreviousExams, MotherTongue, Religion,
+              Caste, FatherName, MotherName
             </li>
-            <li>
-              <strong>Optional Fields:</strong> LastName, Roll, BloodGroup,
-              Phone, City, State, Address, StudentEmail, AadhaarNumber, Stream,
-              PreviousExams, MotherTongue, Religion, Caste, FatherName,
-              MotherName
-            </li>
-            <li>
-              Do not import duplicate "Roll Number" or "Admission Number".
-            </li>
+            <li>Do not import duplicate "Roll Number" or "Admission Number".</li>
             <li>For "Gender" use: male, female, other</li>
           </ol>
         </div>
@@ -125,9 +105,7 @@
           <form @submit.prevent="handleSubmit" class="space-y-6">
             <!-- School Selection (Super Admin Only) -->
             <div v-if="authStore.currentUser?.role === 'super_admin'">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 School <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
@@ -141,20 +119,15 @@
 
             <!-- Branch Selection -->
             <div>
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Branch <span class="text-red-500">*</span>
               </label>
               <!-- Show read-only branch info for branch admin -->
-              <div
-                v-if="authStore.currentUser?.role === 'branch_admin'"
-                class="mt-1"
-              >
+              <div v-if="authStore.currentUser?.role === 'branch_admin'" class="mt-1">
                 <div
                   class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white"
                 >
-                  {{ userBranch?.name || "Current Branch" }}
+                  {{ userBranch?.name || 'Current Branch' }}
                 </div>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Branch admin can only import students to their assigned branch
@@ -173,27 +146,20 @@
                     : 'Select Branch'
                 "
                 :loading="branchesLoading"
-                :disabled="
-                  authStore.currentUser?.role === 'super_admin' &&
-                  !form.school_id
-                "
+                :disabled="authStore.currentUser?.role === 'super_admin' && !form.school_id"
                 @update:model-value="onBranchChange"
               />
             </div>
 
             <!-- Class Selection -->
             <div>
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Class <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
                 v-model="form.class_id"
                 :options="classOptions"
-                :placeholder="
-                  form.branch_id ? 'Select Class' : 'First Select The Branch'
-                "
+                :placeholder="form.branch_id ? 'Select Class' : 'First Select The Branch'"
                 :loading="academicsLoading"
                 :disabled="!form.branch_id"
                 @update:model-value="onClassChange"
@@ -202,17 +168,13 @@
 
             <!-- Stream Selection - Only if class has streams -->
             <div v-if="hasStreams">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Stream <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
                 v-model="form.stream_id"
                 :options="streamOptions"
-                :placeholder="
-                  form.class_id ? 'Select Stream' : 'Select Class First'
-                "
+                :placeholder="form.class_id ? 'Select Stream' : 'Select Class First'"
                 :loading="streamsLoading"
                 :disabled="!form.class_id"
                 @update:model-value="onStreamChange"
@@ -221,17 +183,13 @@
 
             <!-- Section Selection - Only if class/stream has sections -->
             <div v-if="hasSections">
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Section
               </label>
               <EnhancedDropdown
                 v-model="form.section_id"
                 :options="sectionOptions"
-                :placeholder="
-                  form.class_id ? 'Select Section' : 'Select Class First'
-                "
+                :placeholder="form.class_id ? 'Select Section' : 'Select Class First'"
                 :loading="sectionsLoading"
                 :disabled="!form.class_id"
                 @update:model-value="onSectionChange"
@@ -240,9 +198,7 @@
 
             <!-- File Upload -->
             <div>
-              <label
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Select CSV File <span class="text-red-500">*</span>
               </label>
               <div
@@ -256,7 +212,7 @@
                   'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 scale-105 shadow-lg drag-over':
                     isDragOver,
                   'hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700/50':
-                    !isDragOver,
+                    !isDragOver
                 }"
                 style="min-height: 120px"
               >
@@ -299,14 +255,12 @@
                     <span
                       class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                     >
-                      {{
-                        isDragOver ? "Drop your CSV file here" : "Upload a file"
-                      }}
+                      {{ isDragOver ? 'Drop your CSV file here' : 'Upload a file' }}
                     </span>
                     <p v-if="!isDragOver" class="pl-1">or drag and drop</p>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ isDragOver ? "Release to upload" : "CSV files only" }}
+                    {{ isDragOver ? 'Release to upload' : 'CSV files only' }}
                   </p>
                 </div>
               </div>
@@ -328,11 +282,7 @@
                 <span class="text-sm text-gray-600 dark:text-gray-400">{{
                   selectedFile.name
                 }}</span>
-                <button
-                  @click="removeFile"
-                  type="button"
-                  class="text-red-500 hover:text-red-700"
-                >
+                <button @click="removeFile" type="button" class="text-red-500 hover:text-red-700">
                   <X class="w-4 h-4" />
                 </button>
               </div>
@@ -378,9 +328,7 @@
       <!-- Results Modal -->
       <Modal :show="showResults" @close="showResults = false">
         <template #header>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            Import Results
-          </h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Import Results</h3>
         </template>
 
         <template #body>
@@ -391,16 +339,13 @@
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
                 >Total Records:</span
               >
-              <span class="text-sm text-gray-900 dark:text-white">{{
-                importResults.total
-              }}</span>
+              <span class="text-sm text-gray-900 dark:text-white">{{ importResults.total }}</span>
             </div>
 
             <div
               class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg"
             >
-              <span
-                class="text-sm font-medium text-green-700 dark:text-green-300"
+              <span class="text-sm font-medium text-green-700 dark:text-green-300"
                 >Successfully Imported:</span
               >
               <span class="text-sm text-green-900 dark:text-green-100">{{
@@ -411,23 +356,14 @@
             <div
               class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg"
             >
-              <span class="text-sm font-medium text-red-700 dark:text-red-300"
-                >Failed:</span
-              >
-              <span class="text-sm text-red-900 dark:text-red-100">{{
-                importResults.failed
-              }}</span>
+              <span class="text-sm font-medium text-red-700 dark:text-red-300">Failed:</span>
+              <span class="text-sm text-red-900 dark:text-red-100">{{ importResults.failed }}</span>
             </div>
           </div>
 
           <!-- Error Details -->
-          <div
-            v-if="importResults.errors && importResults.errors.length > 0"
-            class="mt-6"
-          >
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              Error Details:
-            </h4>
+          <div v-if="importResults.errors && importResults.errors.length > 0" class="mt-6">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Error Details:</h4>
             <div class="max-h-60 overflow-y-auto space-y-2">
               <div
                 v-for="error in importResults.errors"
@@ -439,14 +375,9 @@
                   {{ error.error }}
                 </div>
                 <!-- Show the data that caused the error -->
-                <div
-                  v-if="error.data"
-                  class="mt-2 text-xs text-gray-600 dark:text-gray-400"
-                >
+                <div v-if="error.data" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
                   <details>
-                    <summary
-                      class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200"
-                    >
+                    <summary class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
                       View Data
                     </summary>
                     <pre
@@ -474,29 +405,22 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  nextTick,
-} from "vue";
-import { useAuthStore } from "~/stores/auth";
-import { useBranches } from "~/composables/useBranches";
-import { useAcademics } from "~/composables/useAcademics";
-import { useSchools } from "~/composables/useSchools";
-import { useToast } from "~/composables/useToast";
-import { Students } from "~/api";
-import { Streams } from "~/api";
-import { Download, CheckCircle, X } from "lucide-vue-next";
-import EnhancedDropdown from "~/components/EnhancedDropdown.vue";
-import Modal from "~/components/Modal.vue";
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useAuthStore } from '~/stores/auth';
+import { useBranches } from '~/composables/useBranches';
+import { useAcademics } from '~/composables/useAcademics';
+import { useSchools } from '~/composables/useSchools';
+import { useToast } from '~/composables/useToast';
+import { Students } from '~/api';
+import { Streams } from '~/api';
+import { Download, CheckCircle, X } from 'lucide-vue-next';
+import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import Modal from '~/components/Modal.vue';
 
 // Meta
 definePageMeta({
   // Global auth middleware handles authentication
-  title: "Multiple Import",
+  title: 'Multiple Import'
 });
 
 const authStore = useAuthStore();
@@ -511,7 +435,7 @@ const {
   fetchClasses,
   fetchSections,
   fetchAcademicYears,
-  getCurrentAcademicYear,
+  getCurrentAcademicYear
 } = useAcademics();
 const { showSuccess, showError, showWarning } = useToast();
 
@@ -532,19 +456,19 @@ const streams = ref([]);
 
 // Form data
 const form = reactive({
-  school_id: "",
-  branch_id: "",
-  class_id: "",
-  stream_id: "",
-  section_id: "",
-  academic_year_id: "", // Will be auto-populated with current academic year
+  school_id: '',
+  branch_id: '',
+  class_id: '',
+  stream_id: '',
+  section_id: '',
+  academic_year_id: '' // Will be auto-populated with current academic year
 });
 
 // Computed properties
 const canSubmit = computed(() => {
   const hasBasicFields = form.branch_id && form.class_id && selectedFile.value;
 
-  if (authStore.currentUser?.role === "super_admin") {
+  if (authStore.currentUser?.role === 'super_admin') {
     if (!form.school_id) return false;
   }
 
@@ -557,23 +481,23 @@ const canSubmit = computed(() => {
 });
 
 const schoolOptions = computed(() => {
-  return schools.value.map((school) => ({
+  return schools.value.map(school => ({
     value: school.id,
-    label: school.name,
+    label: school.name
   }));
 });
 
 const branchOptions = computed(() => {
-  return branches.value.map((branch) => ({
+  return branches.value.map(branch => ({
     value: branch.id,
-    label: branch.name,
+    label: branch.name
   }));
 });
 
 const classOptions = computed(() => {
-  return classes.value.map((cls) => ({
+  return classes.value.map(cls => ({
     value: cls.id,
-    label: cls.name,
+    label: cls.name
   }));
 });
 
@@ -593,7 +517,7 @@ const hasSections = computed(() => {
 const activeStreams = computed(() => {
   if (!form.class_id) return [];
   return streams.value.filter(
-    (stream) => stream.class_id === form.class_id && stream.is_active !== false
+    stream => stream.class_id === form.class_id && stream.is_active !== false
   );
 });
 
@@ -603,33 +527,31 @@ const activeSectionsFiltered = computed(() => {
 
   // If a stream is selected, filter sections by stream
   if (form.stream_id) {
-    filteredSections = filteredSections.filter(
-      (section) => section.stream_id === form.stream_id
-    );
+    filteredSections = filteredSections.filter(section => section.stream_id === form.stream_id);
   }
 
   return filteredSections;
 });
 
 const streamOptions = computed(() => {
-  return activeStreams.value.map((stream) => ({
+  return activeStreams.value.map(stream => ({
     value: stream.id,
-    label: `${stream.name} (${stream.code})`,
+    label: `${stream.name} (${stream.code})`
   }));
 });
 
 const sectionOptions = computed(() => {
-  return activeSectionsFiltered.value.map((section) => ({
+  return activeSectionsFiltered.value.map(section => ({
     value: section.id,
-    label: section.name,
+    label: section.name
   }));
 });
 
 // Methods
 const onSchoolChange = async () => {
-  form.branch_id = "";
-  form.class_id = "";
-  form.section_id = "";
+  form.branch_id = '';
+  form.class_id = '';
+  form.section_id = '';
   branches.value = [];
   classes.value = [];
   sections.value = [];
@@ -646,7 +568,7 @@ const onSchoolChange = async () => {
         await onBranchChange();
       }
     } catch (error) {
-      showError("Failed to load branches. Please try again.");
+      showError('Failed to load branches. Please try again.');
     } finally {
       branchesLoading.value = false;
     }
@@ -656,8 +578,8 @@ const onSchoolChange = async () => {
 };
 
 const onBranchChange = async () => {
-  form.class_id = "";
-  form.section_id = "";
+  form.class_id = '';
+  form.section_id = '';
   classes.value = [];
   sections.value = [];
   academicsLoading.value = true;
@@ -665,7 +587,7 @@ const onBranchChange = async () => {
   if (form.branch_id) {
     try {
       const schoolId =
-        authStore.currentUser?.role === "super_admin"
+        authStore.currentUser?.role === 'super_admin'
           ? form.school_id
           : authStore.currentUser?.school_id;
 
@@ -678,7 +600,7 @@ const onBranchChange = async () => {
         await onClassChange();
       }
     } catch (error) {
-      showError("Failed to load classes. Please try again.");
+      showError('Failed to load classes. Please try again.');
     } finally {
       academicsLoading.value = false;
     }
@@ -688,7 +610,7 @@ const onBranchChange = async () => {
 };
 
 // Load streams for the selected class
-const loadStreamsForClass = async (classId) => {
+const loadStreamsForClass = async classId => {
   if (!classId) {
     streams.value = [];
     return;
@@ -698,17 +620,17 @@ const loadStreamsForClass = async (classId) => {
   try {
     const params = {
       class_id: classId,
-      is_active: "true",
+      is_active: 'true'
     };
 
     // Add role-based filters
-    if (authStore.currentUser?.role === "super_admin") {
+    if (authStore.currentUser?.role === 'super_admin') {
       if (form.school_id) params.school_id = form.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === "school_admin") {
+    } else if (authStore.currentUser?.role === 'school_admin') {
       params.school_id = authStore.currentUser?.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === "branch_admin") {
+    } else if (authStore.currentUser?.role === 'branch_admin') {
       params.school_id = authStore.currentUser?.school_id;
       params.branch_id = authStore.currentUser?.branch_id;
     }
@@ -716,7 +638,7 @@ const loadStreamsForClass = async (classId) => {
     const response = await Streams.getAll(params);
     streams.value = response.data || [];
   } catch (error) {
-    console.error("Error loading streams:", error);
+    console.error('Error loading streams:', error);
     streams.value = [];
   } finally {
     streamsLoading.value = false;
@@ -724,8 +646,8 @@ const loadStreamsForClass = async (classId) => {
 };
 
 const onClassChange = async () => {
-  form.stream_id = "";
-  form.section_id = "";
+  form.stream_id = '';
+  form.section_id = '';
   streams.value = [];
   sections.value = [];
   streamsLoading.value = true;
@@ -737,17 +659,14 @@ const onClassChange = async () => {
       await loadStreamsForClass(form.class_id);
 
       const schoolId =
-        authStore.currentUser?.role === "super_admin"
+        authStore.currentUser?.role === 'super_admin'
           ? form.school_id
           : authStore.currentUser?.school_id;
 
       await fetchSections(schoolId, form.branch_id, form.class_id);
 
       // If no sections found and we're super admin, try without branch_id
-      if (
-        sections.value.length === 0 &&
-        authStore.currentUser?.role === "super_admin"
-      ) {
+      if (sections.value.length === 0 && authStore.currentUser?.role === 'super_admin') {
         await fetchSections(schoolId, null, form.class_id);
       }
 
@@ -756,7 +675,7 @@ const onClassChange = async () => {
         form.section_id = sections.value[0].id;
       }
     } catch (error) {
-      showError("Failed to load streams/sections. Please try again.");
+      showError('Failed to load streams/sections. Please try again.');
     } finally {
       streamsLoading.value = false;
       sectionsLoading.value = false;
@@ -769,7 +688,7 @@ const onClassChange = async () => {
 
 const onStreamChange = () => {
   // Clear section when stream changes
-  form.section_id = "";
+  form.section_id = '';
 };
 
 const onSectionChange = () => {
@@ -788,45 +707,45 @@ const triggerFileInput = () => {
   }
 };
 
-const handleFileSelect = (event) => {
+const handleFileSelect = event => {
   const file = event.target.files[0];
 
   if (file) {
-    if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
+    if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
       selectedFile.value = file;
     } else {
-      showError("Please select a valid CSV file");
+      showError('Please select a valid CSV file');
       // Reset the input
       if (fileInput.value) {
-        fileInput.value.value = "";
+        fileInput.value.value = '';
       }
     }
   }
 };
 
-const handleDragOver = (event) => {
+const handleDragOver = event => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = true;
 
   // Set dataTransfer effect to allow drop
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.dropEffect = 'copy';
   }
 };
 
-const handleDragEnter = (event) => {
+const handleDragEnter = event => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = true;
 
   // Set dataTransfer effect to allow drop
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.dropEffect = 'copy';
   }
 };
 
-const handleDragLeave = (event) => {
+const handleDragLeave = event => {
   event.preventDefault();
   event.stopPropagation();
 
@@ -840,7 +759,7 @@ const handleDragLeave = (event) => {
   }
 };
 
-const handleFileDrop = (event) => {
+const handleFileDrop = event => {
   event.preventDefault();
   event.stopPropagation();
   isDragOver.value = false;
@@ -854,7 +773,7 @@ const handleFileDrop = (event) => {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
 
-        if (item.kind === "file") {
+        if (item.kind === 'file') {
           const file = item.getAsFile();
 
           if (file) {
@@ -865,7 +784,7 @@ const handleFileDrop = (event) => {
       }
     }
 
-    showError("No file found in drop event");
+    showError('No file found in drop event');
     return;
   }
 
@@ -875,13 +794,13 @@ const handleFileDrop = (event) => {
     const file = files[0];
     handleDroppedFile(file);
   } else {
-    showError("No file found in drop event");
+    showError('No file found in drop event');
   }
 };
 
-const handleDroppedFile = (file) => {
+const handleDroppedFile = file => {
   // Check if it's a CSV file
-  if (file.type === "text/csv" || file.name.toLowerCase().endsWith(".csv")) {
+  if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
     // Set the selected file
     selectedFile.value = file;
 
@@ -900,24 +819,24 @@ const handleDroppedFile = (file) => {
     // Show success message
     showSuccess(`File "${file.name}" selected successfully!`);
   } else {
-    showError("Please drop a valid CSV file");
+    showError('Please drop a valid CSV file');
   }
 };
 
 const removeFile = () => {
   selectedFile.value = null;
   if (fileInput.value) {
-    fileInput.value.value = "";
+    fileInput.value.value = '';
   }
 };
 
-const downloadTemplate = async (type = "complete") => {
+const downloadTemplate = async (type = 'complete') => {
   try {
     const config = useRuntimeConfig();
     const response = await Students.getImportTemplate(type);
 
     if (!response.ok) {
-      throw new Error("Failed to download template");
+      throw new Error('Failed to download template');
     }
 
     // Create blob from response
@@ -925,17 +844,17 @@ const downloadTemplate = async (type = "complete") => {
     const url = window.URL.createObjectURL(blob);
 
     // Create download link
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
 
     // Set filename based on type
-    if (type === "required") {
-      a.download = "Student-Import-Template-Required-Fields.csv";
+    if (type === 'required') {
+      a.download = 'Student-Import-Template-Required-Fields.csv';
     } else {
-      a.download = "Student-Import-Template-Complete-with-Sample-Data.csv";
+      a.download = 'Student-Import-Template-Complete-with-Sample-Data.csv';
     }
 
-    a.style.display = "none";
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -943,11 +862,11 @@ const downloadTemplate = async (type = "complete") => {
 
     // Show success message
     showSuccess(
-      `${type === "required" ? "Required fields" : "Complete"} template downloaded successfully!`
+      `${type === 'required' ? 'Required fields' : 'Complete'} template downloaded successfully!`
     );
   } catch (error) {
-    console.error("Error downloading template:", error);
-    showError("Failed to download template file. Please try again.");
+    console.error('Error downloading template:', error);
+    showError('Failed to download template file. Please try again.');
   }
 };
 
@@ -957,23 +876,23 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     const formData = new FormData();
-    formData.append("csv_file", selectedFile.value);
+    formData.append('csv_file', selectedFile.value);
 
     // Set branch_id based on user role
-    if (authStore.currentUser?.role === "branch_admin") {
-      formData.append("branch_id", authStore.currentUser?.branch_id);
+    if (authStore.currentUser?.role === 'branch_admin') {
+      formData.append('branch_id', authStore.currentUser?.branch_id);
     } else {
-      formData.append("branch_id", form.branch_id);
+      formData.append('branch_id', form.branch_id);
     }
 
-    formData.append("class_id", form.class_id);
-    formData.append("stream_id", form.stream_id);
-    formData.append("section_id", form.section_id);
-    formData.append("academic_year_id", form.academic_year_id);
+    formData.append('class_id', form.class_id);
+    formData.append('stream_id', form.stream_id);
+    formData.append('section_id', form.section_id);
+    formData.append('academic_year_id', form.academic_year_id);
 
     // Add school_id for super admin
-    if (authStore.currentUser?.role === "super_admin") {
-      formData.append("school_id", form.school_id);
+    if (authStore.currentUser?.role === 'super_admin') {
+      formData.append('school_id', form.school_id);
     }
 
     const response = await Students.bulkImport(formData);
@@ -1001,17 +920,15 @@ const handleSubmit = async () => {
       if (response.data.failed === 0) {
         selectedFile.value = null;
         if (fileInput.value) {
-          fileInput.value.value = "";
+          fileInput.value.value = '';
         }
       }
     } else {
-      showError(response.message || "Import failed");
+      showError(response.message || 'Import failed');
     }
   } catch (error) {
-    console.error("Error importing students:", error);
-    showError(
-      error.response?.data?.message || "Import failed. Please try again."
-    );
+    console.error('Error importing students:', error);
+    showError(error.response?.data?.message || 'Import failed. Please try again.');
   } finally {
     loading.value = false;
   }
@@ -1021,9 +938,7 @@ const handleSubmit = async () => {
 async function initializeForm() {
   // Fetch and auto-select current academic year
   const schoolId =
-    authStore.currentUser?.role === "super_admin"
-      ? null
-      : authStore.currentUser?.school_id;
+    authStore.currentUser?.role === 'super_admin' ? null : authStore.currentUser?.school_id;
   await fetchAcademicYears(schoolId);
 
   // Auto-select current academic year
@@ -1031,7 +946,7 @@ async function initializeForm() {
     form.academic_year_id = currentAcademicYear.value.id;
   }
 
-  if (authStore.currentUser?.role === "super_admin") {
+  if (authStore.currentUser?.role === 'super_admin') {
     // Load schools for super admin
     await fetchSchools();
 
@@ -1044,12 +959,10 @@ async function initializeForm() {
     // For school admin and branch admin, load branches directly
     await fetchBranches(authStore.currentUser?.school_id);
 
-    if (authStore.currentUser?.role === "branch_admin") {
+    if (authStore.currentUser?.role === 'branch_admin') {
       // For branch admin, set their assigned branch
       form.branch_id = authStore.currentUser?.branch_id;
-      userBranch.value = branches.value.find(
-        (b) => b.id === authStore.currentUser?.branch_id
-      );
+      userBranch.value = branches.value.find(b => b.id === authStore.currentUser?.branch_id);
       await onBranchChange();
     } else {
       // For school admin, auto-select branch if there's only one
@@ -1061,7 +974,7 @@ async function initializeForm() {
   }
 
   // Add click outside handler for dropdown
-  const handleClickOutside = (event) => {
+  const handleClickOutside = event => {
     const dropdown = document.querySelector('[data-dropdown="download"]');
     if (dropdown && !dropdown.contains(event.target)) {
       showDownloadDropdown.value = false;
@@ -1070,12 +983,12 @@ async function initializeForm() {
 
   // Use nextTick to ensure DOM is ready
   await nextTick();
-  document.addEventListener("click", handleClickOutside);
+  document.addEventListener('click', handleClickOutside);
 
   // Cleanup event listener
 
   onBeforeUnmount(() => {
-    document.removeEventListener("click", handleClickOutside);
+    document.removeEventListener('click', handleClickOutside);
   });
 }
 
@@ -1138,18 +1051,13 @@ onMounted(() => {
 }
 
 .drag-zone::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(99, 102, 241, 0.1) 50%,
-    transparent 70%
-  );
+  background: linear-gradient(45deg, transparent 30%, rgba(99, 102, 241, 0.1) 50%, transparent 70%);
   background-size: 200% 200%;
   animation: shimmer 2s infinite;
   opacity: 0;
@@ -1180,7 +1088,7 @@ onMounted(() => {
 }
 
 /* File input styling */
-input[type="file"] {
+input[type='file'] {
   position: absolute !important;
   opacity: 0 !important;
   pointer-events: none !important;

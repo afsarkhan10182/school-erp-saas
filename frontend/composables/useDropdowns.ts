@@ -1,9 +1,9 @@
-import { ref, readonly } from "vue";
-import { Classes } from "~/api/academic/classes";
-import { Sections } from "~/api/academic/sections";
-import { Streams } from "~/api/academic/streams";
-import { useToast } from "~/composables/useToast";
-import { subjectApi } from "~/api/academic/subjects";
+import { ref, readonly } from 'vue';
+import { Classes } from '~/api/academic/classes';
+import { Sections } from '~/api/academic/sections';
+import { Streams } from '~/api/academic/streams';
+import { useToast } from '~/composables/useToast';
+import { subjectApi } from '~/api/academic/subjects';
 
 interface DropdownOption {
   label: string;
@@ -36,18 +36,18 @@ export const useDropdowns = () => {
       const response = await Classes.getAll({
         page: 1,
         limit: 100,
-        is_active: "true",
+        is_active: 'true'
       });
 
       const classes = response.data?.rows || response.data || [];
       classOptions.value = classes.map((cls: any) => ({
         label: cls.name,
-        value: cls.id,
+        value: cls.id
       }));
     } catch (err: any) {
-      error.value = "Failed to load classes";
-      console.error("Error loading classes:", err);
-      showToast("Failed to load classes", "error");
+      error.value = 'Failed to load classes';
+      console.error('Error loading classes:', err);
+      showToast('Failed to load classes', 'error');
     } finally {
       loading.value = false;
     }
@@ -64,7 +64,7 @@ export const useDropdowns = () => {
       const params: any = {
         page: 1,
         limit: 100,
-        is_active: "true",
+        is_active: 'true'
       };
 
       if (classId) {
@@ -76,12 +76,12 @@ export const useDropdowns = () => {
       const sections = response.data?.rows || response.data || [];
       sectionOptions.value = sections.map((section: any) => ({
         label: section.name,
-        value: section.id,
+        value: section.id
       }));
     } catch (err: any) {
-      error.value = "Failed to load sections";
-      console.error("Error loading sections:", err);
-      showToast("Failed to load sections", "error");
+      error.value = 'Failed to load sections';
+      console.error('Error loading sections:', err);
+      showToast('Failed to load sections', 'error');
     } finally {
       loading.value = false;
     }
@@ -98,18 +98,18 @@ export const useDropdowns = () => {
       const response = await Streams.getAll({
         page: 1,
         limit: 100,
-        is_active: "true",
+        is_active: 'true'
       });
 
       const streams = response.data?.rows || response.data || [];
       streamOptions.value = streams.map((stream: any) => ({
         label: stream.name,
-        value: stream.id,
+        value: stream.id
       }));
     } catch (err: any) {
-      error.value = "Failed to load streams";
-      console.error("Error loading streams:", err);
-      showToast("Failed to load streams", "error");
+      error.value = 'Failed to load streams';
+      console.error('Error loading streams:', err);
+      showToast('Failed to load streams', 'error');
     } finally {
       loading.value = false;
     }
@@ -136,12 +136,12 @@ export const useDropdowns = () => {
         value: subject.id,
         label: `${subject.name} (${subject.code})`,
         category: subject.category,
-        credit_hours: subject.credit_hours,
+        credit_hours: subject.credit_hours
       }));
     } catch (err: any) {
-      error.value = "Failed to load subjects";
-      console.error("Error loading subjects:", err);
-      showToast("Failed to load subjects", "error");
+      error.value = 'Failed to load subjects';
+      console.error('Error loading subjects:', err);
+      showToast('Failed to load subjects', 'error');
     } finally {
       loading.value = false;
     }
@@ -169,16 +169,16 @@ export const useDropdowns = () => {
    * Get class name by ID
    */
   const getClassName = (classId: string | number): string => {
-    const cls = classOptions.value.find((c) => c.value === classId);
-    return cls?.label || "Unknown Class";
+    const cls = classOptions.value.find(c => c.value === classId);
+    return cls?.label || 'Unknown Class';
   };
 
   /**
    * Get section name by ID
    */
   const getSectionName = (sectionId: string | number): string => {
-    const section = sectionOptions.value.find((s) => s.value === sectionId);
-    return section?.label || "Unknown Section";
+    const section = sectionOptions.value.find(s => s.value === sectionId);
+    return section?.label || 'Unknown Section';
   };
 
   return {
@@ -200,6 +200,6 @@ export const useDropdowns = () => {
 
     // Utilities
     getClassName,
-    getSectionName,
+    getSectionName
   };
 };

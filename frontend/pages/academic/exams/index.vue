@@ -28,8 +28,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Exams</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.total_exams || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Total Exams
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.total_exams || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -44,8 +48,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Exams</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.active_exams || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Active Exams
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.active_exams || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -60,8 +68,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Results</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.total_results || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Total Results
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.total_results || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -76,8 +88,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Avg Percentage</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.average_percentage || 0 }}%</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Avg Percentage
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.average_percentage || 0 }}%
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -115,7 +131,9 @@
                 class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Subjects</option>
-                <option v-for="subject in subjects" :key="subject.id" :value="subject.id">{{ subject.name }}</option>
+                <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+                  {{ subject.name }}
+                </option>
               </select>
 
               <!-- Status Filter -->
@@ -148,25 +166,59 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Exam</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subject</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Exam
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Subject
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="exam in exams" :key="exam.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr
+                v-for="exam in exams"
+                :key="exam.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ exam.name }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ exam.examType?.name }}</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ exam.name }}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ exam.examType?.name }}
+                    </div>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 dark:text-white">{{ exam.class?.name }}</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ exam.section?.name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ exam.section?.name }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ exam.subject?.name }}
@@ -175,7 +227,10 @@
                   {{ formatDate(exam.exam_date) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusBadgeClass(exam.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  <span
+                    :class="getStatusBadgeClass(exam.status)"
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                  >
                     {{ formatStatus(exam.status) }}
                   </span>
                 </td>
@@ -202,7 +257,8 @@
         <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div class="flex items-center justify-between">
             <div class="text-sm text-gray-700 dark:text-gray-300">
-              Showing {{ pagination.from || 0 }} to {{ pagination.to || 0 }} of {{ pagination.total || 0 }} results
+              Showing {{ pagination.from || 0 }} to {{ pagination.to || 0 }} of
+              {{ pagination.total || 0 }} results
             </div>
             <div class="flex items-center space-x-2">
               <button
@@ -212,7 +268,9 @@
               >
                 Previous
               </button>
-              <span class="px-3 py-1 text-sm">{{ pagination.page }} of {{ pagination.totalPages }}</span>
+              <span class="px-3 py-1 text-sm"
+                >{{ pagination.page }} of {{ pagination.totalPages }}</span
+              >
               <button
                 @click="changePage(pagination.page + 1)"
                 :disabled="pagination.page >= pagination.totalPages"
@@ -287,7 +345,9 @@
                 class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All sections</option>
-                <option v-for="section in sections" :key="section.id" :value="section.id">{{ section.name }}</option>
+                <option v-for="section in sections" :key="section.id" :value="section.id">
+                  {{ section.name }}
+                </option>
               </select>
             </div>
           </div>
@@ -303,7 +363,9 @@
                 class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All subjects</option>
-                <option v-for="subject in subjects" :key="subject.id" :value="subject.id">{{ subject.name }}</option>
+                <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+                  {{ subject.name }}
+                </option>
               </select>
             </div>
 
@@ -455,7 +517,17 @@ import { useToast } from '~/composables/useToast';
 import { Academic } from '~/api';
 
 // Composables
-const { exams, stats, pagination, filters, loadExams, loadStats, createExam, updateExam, deleteExam } = useExams();
+const {
+  exams,
+  stats,
+  pagination,
+  filters,
+  loadExams,
+  loadStats,
+  createExam,
+  updateExam,
+  deleteExam
+} = useExams();
 const { showToast } = useToast();
 
 // Reactive data
@@ -479,7 +551,7 @@ const examForm = ref({
   start_time: '',
   end_time: '',
   max_marks: 100,
-  weightage: 100.00,
+  weightage: 100.0,
   instructions: '',
   status: 'draft'
 });
@@ -509,13 +581,13 @@ const resetForm = () => {
     start_time: '',
     end_time: '',
     max_marks: 100,
-    weightage: 100.00,
+    weightage: 100.0,
     instructions: '',
     status: 'draft'
   };
 };
 
-const editExam = (exam) => {
+const editExam = exam => {
   editingExam.value = exam;
   examForm.value = {
     name: exam.name,
@@ -538,7 +610,7 @@ const editExam = (exam) => {
 const saveExam = async () => {
   try {
     loading.value = true;
-    
+
     if (editingExam.value) {
       await updateExam(editingExam.value.id, examForm.value);
       showToast('Exam updated successfully', 'success');
@@ -546,7 +618,7 @@ const saveExam = async () => {
       await createExam(examForm.value);
       showToast('Exam created successfully', 'success');
     }
-    
+
     closeNewExamModal();
     await loadExams();
     await loadStats();
@@ -557,9 +629,9 @@ const saveExam = async () => {
   }
 };
 
-const deleteExamFromAPI = async (examId) => {
+const deleteExamFromAPI = async examId => {
   if (!confirm('Are you sure you want to delete this exam?')) return;
-  
+
   try {
     await deleteExam(examId);
     showToast('Exam deleted successfully', 'success');
@@ -570,7 +642,7 @@ const deleteExamFromAPI = async (examId) => {
   }
 };
 
-const changePage = (page) => {
+const changePage = page => {
   filters.value.page = page;
   loadExams();
 };
@@ -580,7 +652,7 @@ const loadSections = async () => {
     sections.value = [];
     return;
   }
-  
+
   try {
     // Load sections for selected class
     const response = await Academic.getSections({ class_id: examForm.value.class_id });
@@ -596,7 +668,7 @@ const loadDropdownData = async () => {
       Academic.getClasses(),
       Academic.getSubjects()
     ]);
-    
+
     classes.value = classesRes.data || [];
     subjects.value = subjectsRes.data || [];
   } catch (error) {
@@ -604,15 +676,15 @@ const loadDropdownData = async () => {
   }
 };
 
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString();
 };
 
-const formatStatus = (status) => {
+const formatStatus = status => {
   return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-const getStatusBadgeClass = (status) => {
+const getStatusBadgeClass = status => {
   const classes = {
     draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
     scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -624,16 +696,16 @@ const getStatusBadgeClass = (status) => {
 };
 
 // Watchers
-watch(filters, () => {
-  loadExams();
-}, { deep: true });
+watch(
+  filters,
+  () => {
+    loadExams();
+  },
+  { deep: true }
+);
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([
-    loadExams(),
-    loadStats(),
-    loadDropdownData()
-  ]);
+  await Promise.all([loadExams(), loadStats(), loadDropdownData()]);
 });
 </script>
