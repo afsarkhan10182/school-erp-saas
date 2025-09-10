@@ -6,11 +6,14 @@ const {
   updateClassSubjectMapping,
   deleteClassSubjectMapping,
   getSubjectsByClass,
-  getClassesBySubject,
+  getClassesBySubject
 } = require('~/controllers/academic/subjects/class-subject-mapping.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createClassSubjectMappingValidator, updateClassSubjectMappingValidator } = require('~/validations/academic/class-subject-mapping.validation');
+const {
+  createClassSubjectMappingValidator,
+  updateClassSubjectMappingValidator
+} = require('~/validations/academic/class-subject-mapping.validation');
 
 const router = express.Router();
 
@@ -22,17 +25,15 @@ router.use(verifyToken);
  * @desc    Get all class-subject mappings with filtering and pagination
  * @access  Private (school_admin, branch_admin)
  */
-router.get('/', 
-  authorize(['school_admin', 'branch_admin']),
-  getAllClassSubjectMappings
-);
+router.get('/', authorize(['school_admin', 'branch_admin']), getAllClassSubjectMappings);
 
 /**
  * @route   GET /api/class-subject-mappings/class/:class_id
  * @desc    Get subjects for a specific class
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/class/:class_id', 
+router.get(
+  '/class/:class_id',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectsByClass
 );
@@ -42,7 +43,8 @@ router.get('/class/:class_id',
  * @desc    Get classes for a specific subject
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/subject/:subject_id', 
+router.get(
+  '/subject/:subject_id',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getClassesBySubject
 );
@@ -52,7 +54,8 @@ router.get('/subject/:subject_id',
  * @desc    Get class-subject mapping by ID
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/:id', 
+router.get(
+  '/:id',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getClassSubjectMappingById
 );
@@ -62,7 +65,8 @@ router.get('/:id',
  * @desc    Create new class-subject mapping
  * @access  Private (school_admin, branch_admin)
  */
-router.post('/', 
+router.post(
+  '/',
   authorize(['school_admin', 'branch_admin']),
   validate(createClassSubjectMappingValidator),
   createClassSubjectMapping
@@ -73,7 +77,8 @@ router.post('/',
  * @desc    Update class-subject mapping
  * @access  Private (school_admin, branch_admin)
  */
-router.put('/:id', 
+router.put(
+  '/:id',
   authorize(['school_admin', 'branch_admin']),
   validate(updateClassSubjectMappingValidator),
   updateClassSubjectMapping
@@ -84,9 +89,6 @@ router.put('/:id',
  * @desc    Delete class-subject mapping
  * @access  Private (school_admin, branch_admin)
  */
-router.delete('/:id', 
-  authorize(['school_admin', 'branch_admin']),
-  deleteClassSubjectMapping
-);
+router.delete('/:id', authorize(['school_admin', 'branch_admin']), deleteClassSubjectMapping);
 
 module.exports = router;

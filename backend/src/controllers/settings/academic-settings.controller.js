@@ -65,17 +65,19 @@ class AcademicSettingsController {
     const settings = school.settings || {};
 
     // Organize data into sections
-    const academicYear = currentAcademicYear ? {
-      name: currentAcademicYear.name,
-      startDate: currentAcademicYear.start_date,
-      endDate: currentAcademicYear.end_date,
-      status: currentAcademicYear.status
-    } : {
-      name: '',
-      startDate: '',
-      endDate: '',
-      status: 'active'
-    };
+    const academicYear = currentAcademicYear
+      ? {
+          name: currentAcademicYear.name,
+          startDate: currentAcademicYear.start_date,
+          endDate: currentAcademicYear.end_date,
+          status: currentAcademicYear.status
+        }
+      : {
+          name: '',
+          startDate: '',
+          endDate: '',
+          status: 'active'
+        };
 
     const termSettings = {
       numberOfTerms: settings.number_of_terms || 3,
@@ -160,18 +162,18 @@ class AcademicSettingsController {
 
     if (attendanceSettings) {
       settingsUpdate.minimum_attendance_percentage = attendanceSettings.minimumPercentage;
-      
+
       // Time settings
       if (attendanceSettings.timeSettings) {
         settingsUpdate.cutoff_time = attendanceSettings.timeSettings.cutoffTime;
       }
-      
+
       // Validation rules (minimal & essential)
       if (attendanceSettings.validationRules) {
         settingsUpdate.enforce_working_days = attendanceSettings.validationRules.enforceWorkingDays;
         settingsUpdate.enforce_cutoff_time = attendanceSettings.validationRules.enforceCutoffTime;
       }
-      
+
       // Working days configuration
       if (attendanceSettings.workingDays) {
         settingsUpdate.working_days = attendanceSettings.workingDays;
@@ -187,7 +189,7 @@ class AcademicSettingsController {
     // Update academic year if provided
     if (academicYear && academicYear.name) {
       let currentAcademicYear = null;
-      
+
       // Get current academic year through school's current_academic_year_id
       if (school.current_academic_year_id) {
         currentAcademicYear = await AcademicYear.findByPk(school.current_academic_year_id);
@@ -208,13 +210,15 @@ class AcademicSettingsController {
           name: academicYear.name,
           code: academicYear.name.replace(/\s+/g, '').toUpperCase(), // Generate code from name
           start_date: academicYear.startDate || new Date().toISOString().split('T')[0], // Default to today if not provided
-          end_date: academicYear.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year from now
+          end_date:
+            academicYear.endDate ||
+            new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year from now
           status: academicYear.status,
           is_current: true,
           created_by: user.id,
           updated_by: user.id
         });
-        
+
         // Update school to link to the new academic year
         await school.update({
           current_academic_year_id: newAcademicYear.id,

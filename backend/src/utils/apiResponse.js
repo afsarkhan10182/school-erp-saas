@@ -33,7 +33,7 @@ const successResponse = (
     success: true,
     message,
     ...(data !== null && { data }),
-    ...(Object.keys(metadata).length > 0 && { metadata }),
+    ...(Object.keys(metadata).length > 0 && { metadata })
   };
 
   return res.status(statusCode).json(response);
@@ -66,7 +66,7 @@ const errorResponse = (res, error, defaultError = {}) => {
     // Handle Mongoose validation errors
     statusCode = HTTP_STATUS.BAD_REQUEST;
     message = 'Validation Error';
-    Object.values(error.errors).forEach((err) => {
+    Object.values(error.errors).forEach(err => {
       errors[err.path] = err.message;
     });
   } else if (error.name === 'MongoError' && error.code === 11000) {
@@ -81,11 +81,14 @@ const errorResponse = (res, error, defaultError = {}) => {
   } else if (error.name === 'TokenExpiredError') {
     statusCode = HTTP_STATUS.UNAUTHORIZED;
     message = 'Token expired';
-  } else if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+  } else if (
+    error.name === 'SequelizeValidationError' ||
+    error.name === 'SequelizeUniqueConstraintError'
+  ) {
     // Handle Sequelize validation errors
     statusCode = HTTP_STATUS.BAD_REQUEST;
     message = 'Validation Error';
-    error.errors.forEach((err) => {
+    error.errors.forEach(err => {
       errors[err.path] = err.message;
     });
   } else if (error.response) {
@@ -98,7 +101,7 @@ const errorResponse = (res, error, defaultError = {}) => {
     statusCode = defaultError.statusCode || error.statusCode || statusCode;
     message = error.message || defaultError.message || message;
     errors = error.errors || defaultError.errors || {};
-    
+
     // In development, include the stack trace
     if (process.env.NODE_ENV === 'development') {
       stack = error.stack;
@@ -110,7 +113,7 @@ const errorResponse = (res, error, defaultError = {}) => {
   if (isNaN(statusCode) || statusCode < 100 || statusCode > 599) {
     statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
   }
-  
+
   // Log the error
   if (statusCode >= 500) {
     console.error('Server Error:', error);
@@ -121,7 +124,7 @@ const errorResponse = (res, error, defaultError = {}) => {
     success: false,
     message,
     ...(Object.keys(errors).length > 0 && { errors }),
-    ...(process.env.NODE_ENV === 'development' && { stack }),
+    ...(process.env.NODE_ENV === 'development' && { stack })
   };
 
   return res.status(statusCode).json(response);
@@ -133,18 +136,18 @@ const errorResponse = (res, error, defaultError = {}) => {
  * @param {Function} fn - Async route handler function
  * @returns {Function} - Wrapped route handler
  */
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch((err) => {
+const asyncHandler = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(err => {
     // Ensure we have a proper error object
     if (!err || typeof err !== 'object') {
       err = new Error(err || 'Unknown error');
     }
-    
+
     // If the error doesn't have a statusCode, set a default
     if (!err.statusCode) {
       err.statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
     }
-    
+
     // Pass the error to the next middleware instead of calling errorResponse directly
     // This ensures the global error handler processes it consistently
     next(err);
@@ -157,13 +160,13 @@ const asyncHandler = (fn) => (req, res, next) => {
  * @param {Function} fn - Async middleware function
  * @returns {Function} - Wrapped middleware
  */
-const safeAsyncHandler = (fn) => async (req, res, next) => {
+const safeAsyncHandler = fn => async (req, res, next) => {
   try {
     await Promise.resolve(fn(req, res, next));
   } catch (err) {
     // Log the error
     console.error('Safe async handler error:', err);
-    
+
     // If response hasn't been sent, send an error response
     if (!res.headersSent) {
       errorResponse(res, err);
@@ -182,7 +185,7 @@ const withTimeout = (fn, timeoutMs = 5000) => {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Operation timed out')), timeoutMs);
     });
-    
+
     return Promise.race([fn(...args), timeoutPromise]);
   };
 };
@@ -194,30 +197,30 @@ module.exports = {
   safeAsyncHandler,
   withTimeout,
   // Common responses
-  created: (res, data, message = 'Resource created successfully') => 
+  created: (res, data, message = 'Resource created successfully') =>
     successResponse(res, data, message, HTTP_STATUS.CREATED),
-  
-  noContent: (res, message = 'No content') => 
+
+  noContent: (res, message = 'No content') =>
     res.status(HTTP_STATUS.NO_CONTENT).json({ success: true, message }),
-  
-  badRequest: (res, message = 'Bad Request', errors = {}) => 
+
+  badRequest: (res, message = 'Bad Request', errors = {}) =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.BAD_REQUEST, errors }),
-  
-  unauthorized: (res, message = 'Unauthorized') => 
+
+  unauthorized: (res, message = 'Unauthorized') =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.UNAUTHORIZED }),
-  
-  forbidden: (res, message = 'Forbidden') => 
+
+  forbidden: (res, message = 'Forbidden') =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.FORBIDDEN }),
-  
-  notFound: (res, message = 'Resource not found') => 
+
+  notFound: (res, message = 'Resource not found') =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.NOT_FOUND }),
-  
-  conflict: (res, message = 'Conflict') => 
+
+  conflict: (res, message = 'Conflict') =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.CONFLICT }),
-  
-  internal: (res, message = 'Internal Server Error') => 
+
+  internal: (res, message = 'Internal Server Error') =>
     errorResponse(res, new Error(message), { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR }),
-  
+
   validationError: (res, errors = {}, message = 'Validation Error') => {
     // Enhanced validation error response with field-specific errors
     const response = {
@@ -231,7 +234,7 @@ module.exports = {
         message: errors[field]
       }))
     };
-    
+
     return res.status(HTTP_STATUS.UNPROCESSABLE_ENTITY).json(response);
-  },
+  }
 };

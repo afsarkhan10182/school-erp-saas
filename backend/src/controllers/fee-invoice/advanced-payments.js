@@ -1,14 +1,24 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const {
+  FeeInvoice,
+  FeeStructure,
+  FeeType,
+  Student,
+  Parent,
+  School,
+  FeePayment,
+  Branch,
+  Class
+} = require('~/models');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core');
 
 // Helper function to get student full name
-const getStudentFullName = (student) => {
+const getStudentFullName = student => {
   const firstName = student.first_name || '';
   const lastName = student.last_name || '';
-  
+
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
   } else if (firstName) {
@@ -28,7 +38,7 @@ const getBreakdown = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -41,7 +51,7 @@ const getBreakdown = async (req, res, next) => {
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeeStructure,
@@ -49,21 +59,21 @@ const getBreakdown = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
+              as: 'feeType'
             },
             {
               model: Class,
               as: 'class',
-              attributes: ['id', 'name', 'code'],
-            },
-          ],
+              attributes: ['id', 'name', 'code']
+            }
+          ]
         },
         {
           model: FeePayment,
           as: 'payments',
-          order: [['created_at', 'ASC']],
-        },
-      ],
+          order: [['created_at', 'ASC']]
+        }
+      ]
     });
 
     if (!invoice) {
@@ -85,14 +95,14 @@ const getBreakdown = async (req, res, next) => {
         section: invoice.section,
         academic_year: invoice.academic_year,
         due_date: invoice.due_date,
-        status: invoice.status,
+        status: invoice.status
       },
       student: {
         id: invoice.student.id,
         name: getStudentFullName(invoice.student),
         admission_number: invoice.student.admission_number,
         class: invoice.student.current_class,
-        section: invoice.student.section,
+        section: invoice.student.section
       },
       amounts: {
         base_amount: totalAmount - lateFeeAmount,
@@ -100,7 +110,7 @@ const getBreakdown = async (req, res, next) => {
         total_amount: totalAmount,
         paid_amount: paidAmount,
         balance_amount: balanceAmount,
-        collection_percentage: totalAmount > 0 ? ((paidAmount / totalAmount) * 100).toFixed(2) : 0,
+        collection_percentage: totalAmount > 0 ? ((paidAmount / totalAmount) * 100).toFixed(2) : 0
       },
       payments: invoice.payments.map(payment => ({
         id: payment.id,
@@ -110,14 +120,17 @@ const getBreakdown = async (req, res, next) => {
         payment_method: payment.payment_method,
         payment_date: payment.payment_date,
         transaction_id: payment.transaction_id,
-        created_at: payment.created_at,
+        created_at: payment.created_at
       })),
       summary: {
         total_payments: invoice.payments.length,
         payment_methods: [...new Set(invoice.payments.map(p => p.payment_method))],
         first_payment_date: invoice.payments.length > 0 ? invoice.payments[0].payment_date : null,
-        last_payment_date: invoice.payments.length > 0 ? invoice.payments[invoice.payments.length - 1].payment_date : null,
-      },
+        last_payment_date:
+          invoice.payments.length > 0
+            ? invoice.payments[invoice.payments.length - 1].payment_date
+            : null
+      }
     };
 
     return res.status(200).json({ success: true, data: breakdown });
@@ -137,7 +150,7 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       payment_date,
       transaction_id,
       installment_number,
-      notes,
+      notes
     } = req.body;
 
     if (!payment_amount || payment_amount <= 0) {
@@ -147,12 +160,12 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     const invoice = await FeeInvoice.findOne({
       where: {
         id,
-        school_id: req.schoolId,
+        school_id: req.schoolId
       },
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeeStructure,
@@ -160,16 +173,16 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
+              as: 'feeType'
             },
             {
               model: Class,
               as: 'class',
-              attributes: ['id', 'name', 'code'],
-            },
-          ],
-        },
-      ],
+              attributes: ['id', 'name', 'code']
+            }
+          ]
+        }
+      ]
     });
 
     if (!invoice) {
@@ -226,12 +239,12 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
         fee_type: invoice.feeStructure?.feeType?.name || 'Unknown',
         class_name: invoice.student?.current_class || invoice.class_name,
         section: invoice.student?.section || invoice.section,
-        installment_number: installment_number || 'Flexible',
+        installment_number: installment_number || 'Flexible'
       },
       notes: notes || `Flexible installment payment - ${installment_number || 'Custom'}`,
       school_id: req.schoolId,
       branch_id: req.branchId,
-      created_by: req.user.id,
+      created_by: req.user.id
     };
 
     const payment = await FeePayment.create(paymentData);
@@ -243,10 +256,12 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       balance_amount: Math.max(0, totalAmount - newPaidAmount),
       last_payment_date: payment_date || new Date(),
       status: newStatus,
-      updated_by: req.user.id,
+      updated_by: req.user.id
     });
 
-    logger.info(`Flexible installment payment recorded: ${payment_amount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`);
+    logger.info(
+      `Flexible installment payment recorded: ${payment_amount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`
+    );
 
     return res.status(200).json({
       success: true,
@@ -262,9 +277,9 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
         status: newStatus,
         installment_number: installment_number || 'Flexible',
         receipt: {
-          receipt_number: payment.receipt_number,
-        },
-      },
+          receipt_number: payment.receipt_number
+        }
+      }
     });
   } catch (error) {
     logger.error('Error recording flexible installment payment:', error);
@@ -274,5 +289,5 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
 
 module.exports = {
   getBreakdown,
-  recordFlexibleInstallmentPayment,
-}; 
+  recordFlexibleInstallmentPayment
+};

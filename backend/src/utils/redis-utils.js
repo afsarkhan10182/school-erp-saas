@@ -21,7 +21,7 @@ class RedisUtils {
         // Fallback to memory cache
         memoryCache.set(key, JSON.stringify(value));
         if (ttl) {
-          memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+          memoryCacheTTL.set(key, Date.now() + ttl * 1000);
         }
         logger.debug(`Memory: Set key ${key}`);
         return true;
@@ -32,7 +32,7 @@ class RedisUtils {
       try {
         memoryCache.set(key, JSON.stringify(value));
         if (ttl) {
-          memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+          memoryCacheTTL.set(key, Date.now() + ttl * 1000);
         }
         logger.debug(`Memory fallback: Set key ${key}`);
         return true;
@@ -176,7 +176,7 @@ class RedisUtils {
         return true;
       } else {
         // Fallback to memory cache
-        memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+        memoryCacheTTL.set(key, Date.now() + ttl * 1000);
         logger.debug(`Memory: Expire key ${key} for ${ttl}s`);
         return true;
       }
@@ -184,7 +184,7 @@ class RedisUtils {
       logger.warn(`Failed to expire cache key ${key}:`, error.message);
       // Fallback to memory cache
       try {
-        memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+        memoryCacheTTL.set(key, Date.now() + ttl * 1000);
         logger.debug(`Memory fallback: Expire key ${key} for ${ttl}s`);
         return true;
       } catch (fallbackError) {
@@ -495,4 +495,4 @@ class RedisUtils {
   }
 }
 
-module.exports = RedisUtils; 
+module.exports = RedisUtils;

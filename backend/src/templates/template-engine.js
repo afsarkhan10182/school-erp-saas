@@ -6,7 +6,7 @@ const { logger } = require('~/utils/logger');
 class TemplateEngine {
   constructor() {
     this.templateCache = new Map();
-    this.templateBasePath = path.join(__dirname, '../../notificationTemplates');
+    this.templateBasePath = path.join(__dirname);
   }
 
   /**
@@ -15,9 +15,11 @@ class TemplateEngine {
   getTemplatePath(templateType, templateName) {
     const validTypes = ['email', 'sms', 'reports', 'pdf'];
     if (!validTypes.includes(templateType)) {
-      throw new Error(`Invalid template type: ${templateType}. Valid types: ${validTypes.join(', ')}`);
+      throw new Error(
+        `Invalid template type: ${templateType}. Valid types: ${validTypes.join(', ')}`
+      );
     }
-    
+
     const extension = templateType === 'sms' ? 'txt' : 'ejs';
     return path.join(this.templateBasePath, templateType, `${templateName}.${extension}`);
   }
@@ -27,7 +29,7 @@ class TemplateEngine {
    */
   async loadTemplate(templateType, templateName) {
     const cacheKey = `${templateType}:${templateName}`;
-    
+
     if (this.templateCache.has(cacheKey)) {
       return this.templateCache.get(cacheKey);
     }
@@ -35,10 +37,10 @@ class TemplateEngine {
     try {
       const templatePath = this.getTemplatePath(templateType, templateName);
       const templateContent = await fs.readFile(templatePath, 'utf8');
-      
+
       this.templateCache.set(cacheKey, templateContent);
       logger.info(`Template loaded and cached: ${cacheKey}`);
-      
+
       return templateContent;
     } catch (error) {
       logger.error(`Error loading template ${cacheKey}:`, error);
@@ -52,7 +54,7 @@ class TemplateEngine {
   async renderTemplate(templateType, templateName, data = {}, options = {}) {
     try {
       const template = await this.loadTemplate(templateType, templateName);
-      
+
       const renderOptions = {
         ...options,
         root: this.templateBasePath,
@@ -77,14 +79,14 @@ class TemplateEngine {
    */
   renderSmsTemplate(template, data) {
     let rendered = template;
-    
+
     // Replace placeholders with data values
     Object.keys(data).forEach(key => {
       const placeholder = new RegExp(`{{${key}}}`, 'g');
       const value = data[key] || '';
       rendered = rendered.replace(placeholder, value);
     });
-    
+
     return rendered;
   }
 
@@ -109,7 +111,7 @@ class TemplateEngine {
   async listTemplates(templateType = null) {
     try {
       const templates = {};
-      
+
       if (templateType) {
         const typePath = path.join(this.templateBasePath, templateType);
         const files = await fs.readdir(typePath);
@@ -125,7 +127,7 @@ class TemplateEngine {
           }
         }
       }
-      
+
       return templates;
     } catch (error) {
       logger.error('Error listing templates:', error);
@@ -148,4 +150,3 @@ class TemplateEngine {
 }
 
 module.exports = TemplateEngine;
-

@@ -38,13 +38,7 @@ class ExamTypeService extends BaseService {
    */
   static async getAllExamTypes(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        is_active, 
-        branch_id 
-      } = params;
+      const { page = 1, limit = 10, search, is_active, branch_id } = params;
       const offset = (page - 1) * limit;
 
       const whereClause = {
@@ -249,18 +243,12 @@ class ExamTypeService extends BaseService {
         ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
       };
 
-      const [
-        totalExamTypes,
-        activeExamTypes,
-        examTypesByCategory
-      ] = await Promise.all([
+      const [totalExamTypes, activeExamTypes, examTypesByCategory] = await Promise.all([
         ExamType.count({ where: whereClause }),
         ExamType.count({ where: { ...whereClause, is_active: true } }),
         ExamType.findAll({
           where: whereClause,
-          attributes: [
-            [ExamType.sequelize.fn('COUNT', ExamType.sequelize.col('id')), 'count']
-          ],
+          attributes: [[ExamType.sequelize.fn('COUNT', ExamType.sequelize.col('id')), 'count']],
           raw: true
         })
       ]);
@@ -279,7 +267,7 @@ class ExamTypeService extends BaseService {
   static async bulkCreateExamTypes(examTypesData, userId) {
     return this.executeWithErrorHandling(async () => {
       const results = [];
-      
+
       for (const examTypeData of examTypesData) {
         try {
           const examType = await this.createExamType(examTypeData, userId);

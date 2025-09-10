@@ -1,9 +1,18 @@
 const express = require('express');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('~/middleware/auth');
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole
+} = require('~/middleware/auth');
 const { requireModuleAccess } = require('~/middleware/moduleAccess');
 const { validate } = require('~/middleware/validate');
+const { upload } = require('~/middleware/upload');
 const ExamController = require('~/controllers/academic/exams/exam.controller');
-const { createExamValidator, updateExamValidator } = require('~/validations/academic/exam.validation');
+const {
+  createExamValidator,
+  updateExamValidator
+} = require('~/validations/academic/exam.validation');
 const { EXAM_ROLES, EXAM_ADMIN_ROLES } = require('~/constants/roles');
 
 const router = express.Router();
@@ -25,9 +34,10 @@ router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess(
  * @access Private (EXAM_ROLES)
  * @body {string} name, {string} exam_type_id, {string} class_id, {string} section_id, {date} exam_date, {string} academic_year
  */
-router.post('/', 
-  requireRole(...EXAM_ROLES), 
-  validate(createExamValidator), 
+router.post(
+  '/',
+  requireRole(...EXAM_ROLES),
+  validate(createExamValidator),
   ExamController.createExam
 );
 
@@ -48,6 +58,14 @@ router.get('/', ExamController.getAllExams);
 router.get('/stats', ExamController.getExamStats);
 
 /**
+ * @route GET /api/exams/calculate-grade
+ * @desc Calculate grade based on percentage
+ * @access Private (EXAM_ROLES)
+ * @query {number} percentage - Percentage to calculate grade for
+ */
+router.get('/calculate-grade', ExamController.calculateGrade);
+
+/**
  * @route GET /api/exams/:id
  * @desc Get exam by ID
  * @access Private (EXAM_ROLES)
@@ -62,9 +80,10 @@ router.get('/:id', ExamController.getExamById);
  * @param {string} id - Exam ID
  * @body {string} name, {string} exam_type_id, {string} class_id, {string} section_id, {date} exam_date, {string} academic_year
  */
-router.put('/:id', 
-  requireRole(...EXAM_ROLES), 
-  validate(updateExamValidator), 
+router.put(
+  '/:id',
+  requireRole(...EXAM_ROLES),
+  validate(updateExamValidator),
   ExamController.updateExam
 );
 
@@ -74,10 +93,7 @@ router.put('/:id',
  * @access Private (EXAM_ADMIN_ROLES)
  * @param {string} id - Exam ID
  */
-router.delete('/:id', 
-  requireRole(...EXAM_ADMIN_ROLES), 
-  ExamController.deleteExam
-);
+router.delete('/:id', requireRole(...EXAM_ADMIN_ROLES), ExamController.deleteExam);
 
 // ===== EXAM RESULTS ROUTES (NESTED) =====
 
@@ -88,10 +104,7 @@ router.delete('/:id',
  * @param {string} id - Exam ID
  * @body {Array} results - Array of exam result objects
  */
-router.post('/:id/results', 
-  requireRole(...EXAM_ROLES), 
-  ExamController.bulkCreateResults
-);
+router.post('/:id/results', requireRole(...EXAM_ROLES), ExamController.bulkCreateResults);
 
 /**
  * @route GET /api/exams/:id/results
@@ -118,10 +131,7 @@ router.get('/:id/results/export', ExamController.exportExamResults);
  * @param {string} resultId - Result ID
  * @body {number} marks_obtained, {string} grade, {string} remarks
  */
-router.put('/:id/results/:resultId', 
-  requireRole(...EXAM_ROLES), 
-  ExamController.updateExamResult
-);
+router.put('/:id/results/:resultId', requireRole(...EXAM_ROLES), ExamController.updateExamResult);
 
 // ===== STUDENT EXAM ROUTES =====
 
@@ -144,5 +154,38 @@ router.get('/student/:studentId/history', ExamController.getStudentExamHistory);
  * @query {string} academic_year, {string} exam_types, {string} format, {boolean} auto_print
  */
 router.get('/student/:studentId/report-card', ExamController.generateReportCard);
+
+// ===== BULK MARKS ENTRY ROUTES =====
+
+/**
+ * @route POST /api/exams/:examId/upload-marks
+ * @desc Upload marks file (Excel/CSV)
+ * @access Private (EXAM_ROLES)
+ * @param {string} examId - Exam ID
+ * @body {File} file - Excel/CSV file with marks data
+ */
+router.post(
+  '/:examId/upload-marks',
+  requireRole(...EXAM_ROLES),
+  upload.single('file'),
+  ExamController.uploadMarksFile
+);
+
+/**
+ * @route GET /api/exams/:examId/template
+ * @desc Download marks template
+ * @access Private (EXAM_ROLES)
+ * @param {string} examId - Exam ID
+ */
+router.get('/:examId/template', requireRole(...EXAM_ROLES), ExamController.downloadMarksTemplate);
+
+/**
+ * @route PUT /api/exams/:examId/results/bulk
+ * @desc Bulk update exam results
+ * @access Private (EXAM_ROLES)
+ * @param {string} examId - Exam ID
+ * @body {Array} results - Array of result objects
+ */
+router.put('/:examId/results/bulk', requireRole(...EXAM_ROLES), ExamController.bulkUpdateResults);
 
 module.exports = router;

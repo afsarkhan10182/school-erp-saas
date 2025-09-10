@@ -22,18 +22,11 @@ export function useModuleAccess() {
     }
 
     const enabled = userModules.value.includes(moduleCode);
-    console.log(
-      `🔍 Module check: ${moduleCode} -> ${enabled} (available: ${userModules.value.join(', ')})`
-    );
     return enabled;
   };
 
   // Load user's enabled modules from their school's subscription plan
   const loadUserModules = async (forceRefresh = false) => {
-    console.log('🔄 Loading user modules...', {
-      forceRefresh,
-      userRole: authStore.user?.role
-    });
     // Skip if already loading
     if (globalIsLoading && !forceRefresh) {
       isLoading.value = true;
@@ -99,7 +92,6 @@ export function useModuleAccess() {
         const schoolId = authStore.user?.school_id;
 
         if (!schoolId) {
-          console.warn('No school ID found for user');
           globalUserModules = [];
           userModules.value = [];
           return;
@@ -116,9 +108,6 @@ export function useModuleAccess() {
           userModules.value = enabledModules;
           globalLastFetch = Date.now();
 
-          console.log('✅ Modules loaded successfully:', enabledModules);
-          console.log('🔍 Raw modules data:', response.data.modules);
-
           // Cache in sessionStorage
           if (import.meta.client) {
             sessionStorage.setItem('user-modules', JSON.stringify(enabledModules));
@@ -127,7 +116,6 @@ export function useModuleAccess() {
         }
       }
     } catch (error) {
-      console.error('Error loading user modules:', error);
       // Fallback: allow access if module loading fails
       globalUserModules = [];
       userModules.value = [];
@@ -271,22 +259,14 @@ export function useModuleAccess() {
         const serverTimestamp = response.data.modules_updated_at;
         const cachedTimestamp = sessionStorage.getItem('modules-updated-at');
 
-        console.log('🔍 Checking module updates:', {
-          serverTimestamp,
-          cachedTimestamp
-        });
-
         // If timestamp changed, clear cache and reload
         if (serverTimestamp !== cachedTimestamp) {
-          console.log('🔄 Module cache invalidated - timestamp changed');
           clearModuleCache();
           sessionStorage.setItem('modules-updated-at', serverTimestamp);
           await loadUserModules(true);
         }
       }
-    } catch (error) {
-      console.error('Error checking module updates:', error);
-    }
+    } catch (error) {}
   };
 
   // Setup module change detection (check once per session)
@@ -307,23 +287,17 @@ export function useModuleAccess() {
       const cached = sessionStorage.getItem('user-modules');
       const cachedTime = sessionStorage.getItem('user-modules-time');
 
-      console.log('🔧 Cache check:', { cached: !!cached, cachedTime });
-
       if (cached && cachedTime) {
         const cacheAge = Date.now() - parseInt(cachedTime);
-        console.log('🔧 Cache age:', cacheAge, 'ms (limit:', CACHE_DURATION, 'ms)');
 
         if (cacheAge < CACHE_DURATION) {
           globalUserModules = JSON.parse(cached);
           globalLastFetch = parseInt(cachedTime);
           userModules.value = globalUserModules;
-          console.log('🔧 Using cached modules:', globalUserModules);
           return true;
         } else {
-          console.log('🔧 Cache expired');
         }
       } else {
-        console.log('🔧 No cache found');
       }
     }
     return false;

@@ -159,11 +159,13 @@ class QueryService {
           model: require('~/models').StudentParent,
           as: 'studentParents',
           attributes: ['id', 'relationship'],
-          include: [{
-            model: require('~/models').Parent,
-            as: 'parent',
-            attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
-          }],
+          include: [
+            {
+              model: require('~/models').Parent,
+              as: 'parent',
+              attributes: ['id', 'first_name', 'last_name', 'email', 'phone']
+            }
+          ],
           required: false
         }
       ],
@@ -190,22 +192,26 @@ class QueryService {
           model: require('~/models').Student,
           as: 'student',
           attributes: ['id', 'first_name', 'last_name', 'admission_number'],
-          include: [{
-            model: require('~/models').Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code']
-          }],
+          include: [
+            {
+              model: require('~/models').Class,
+              as: 'class',
+              attributes: ['id', 'name', 'code']
+            }
+          ],
           required: true
         },
         {
           model: require('~/models').FeeStructure,
           as: 'feeStructure',
           attributes: ['id', 'name', 'academic_year'],
-          include: [{
-            model: require('~/models').FeeType,
-            as: 'feeTypes',
-            attributes: ['id', 'name', 'amount']
-          }],
+          include: [
+            {
+              model: require('~/models').FeeType,
+              as: 'feeTypes',
+              attributes: ['id', 'name', 'amount']
+            }
+          ],
           required: false
         },
         {
@@ -250,22 +256,26 @@ class QueryService {
           model: require('~/models').Student,
           as: 'student',
           attributes: ['id', 'first_name', 'last_name', 'admission_number'],
-          include: [{
-            model: require('~/models').Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code']
-          }],
+          include: [
+            {
+              model: require('~/models').Class,
+              as: 'class',
+              attributes: ['id', 'name', 'code']
+            }
+          ],
           required: true
         },
         {
           model: require('~/models').AttendanceSession,
           as: 'attendanceSession',
           attributes: ['id', 'date', 'period', 'subject_id'],
-          include: [{
-            model: require('~/models').Subject,
-            as: 'subject',
-            attributes: ['id', 'name', 'code']
-          }],
+          include: [
+            {
+              model: require('~/models').Subject,
+              as: 'subject',
+              attributes: ['id', 'name', 'code']
+            }
+          ],
           required: true
         },
         {
@@ -403,7 +413,12 @@ class QueryService {
    * @param {Object} additionalWhere - Additional where conditions
    * @returns {Object} Optimized date range query
    */
-  static buildOptimizedDateRangeQuery(startDate, endDate, dateField = 'created_at', additionalWhere = {}) {
+  static buildOptimizedDateRangeQuery(
+    startDate,
+    endDate,
+    dateField = 'created_at',
+    additionalWhere = {}
+  ) {
     const dateConditions = {};
 
     if (startDate && endDate) {
@@ -435,7 +450,7 @@ class QueryService {
   static async executeOptimizedQuery(Model, queryConfig) {
     try {
       const result = await Model.findAndCountAll(queryConfig);
-      
+
       logger.debug(`Optimized query executed successfully for ${Model.name}`, {
         count: result.count,
         rows: result.rows.length

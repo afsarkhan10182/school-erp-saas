@@ -30,7 +30,7 @@ class CacheService {
           return value;
         }
       }
-      
+
       // Fallback to memory cache
       const memoryValue = await this.memoryService.get(key);
       if (memoryValue !== null) {
@@ -48,11 +48,11 @@ class CacheService {
     try {
       // Set in both Redis and memory for redundancy
       const promises = [this.memoryService.set(key, value, ttl)];
-      
+
       if (this.isRedisAvailable) {
         promises.push(this.redisService.set(key, value, ttl));
       }
-      
+
       await Promise.allSettled(promises);
       logger.debug(`Cache set: ${key}`);
     } catch (error) {
@@ -65,11 +65,11 @@ class CacheService {
   async del(key) {
     try {
       const promises = [this.memoryService.del(key)];
-      
+
       if (this.isRedisAvailable) {
         promises.push(this.redisService.del(key));
       }
-      
+
       await Promise.allSettled(promises);
       logger.debug(`Cache deleted: ${key}`);
     } catch (error) {
@@ -92,11 +92,11 @@ class CacheService {
   async clear(pattern = '*') {
     try {
       const promises = [this.memoryService.clear(pattern)];
-      
+
       if (this.isRedisAvailable) {
         promises.push(this.redisService.clear(pattern));
       }
-      
+
       await Promise.allSettled(promises);
       logger.info(`Cache cleared for pattern: ${pattern}`);
     } catch (error) {
@@ -167,4 +167,4 @@ class CacheService {
 }
 
 // Export singleton instance
-module.exports = new CacheService(); 
+module.exports = new CacheService();

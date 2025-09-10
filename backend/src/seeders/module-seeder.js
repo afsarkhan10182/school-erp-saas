@@ -233,17 +233,17 @@ const defaultModules = [
 async function seedModules() {
   try {
     logger.info('🌱 Starting module seeding process...');
-    
+
     let createdCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
-    
+
     for (const moduleData of defaultModules) {
       try {
         const existingModule = await Module.findOne({
           where: { code: moduleData.code }
         });
-        
+
         if (!existingModule) {
           // Create new module
           await Module.create(moduleData);
@@ -251,7 +251,7 @@ async function seedModules() {
           createdCount++;
         } else {
           // Update existing module if needed (for version updates)
-          const needsUpdate = 
+          const needsUpdate =
             existingModule.name !== moduleData.name ||
             existingModule.description !== moduleData.description ||
             existingModule.icon !== moduleData.icon ||
@@ -260,13 +260,15 @@ async function seedModules() {
             existingModule.sort_order !== moduleData.sort_order ||
             JSON.stringify(existingModule.features) !== JSON.stringify(moduleData.features) ||
             JSON.stringify(existingModule.permissions) !== JSON.stringify(moduleData.permissions);
-          
+
           if (needsUpdate) {
             await existingModule.update(moduleData);
             logger.info(`🔄 Updated module: ${moduleData.name} (${moduleData.code})`);
             updatedCount++;
           } else {
-            logger.debug(`⏭️  Module already exists and up-to-date: ${moduleData.name} (${moduleData.code})`);
+            logger.debug(
+              `⏭️  Module already exists and up-to-date: ${moduleData.name} (${moduleData.code})`
+            );
             skippedCount++;
           }
         }
@@ -275,9 +277,11 @@ async function seedModules() {
         throw error;
       }
     }
-    
-    logger.info(`🎉 Module seeding completed! Created: ${createdCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}`);
-    
+
+    logger.info(
+      `🎉 Module seeding completed! Created: ${createdCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}`
+    );
+
     return {
       success: true,
       created: createdCount,
@@ -298,15 +302,15 @@ async function seedModules() {
 async function resetModules() {
   try {
     logger.warn('⚠️  Resetting all modules to default state...');
-    
+
     // Delete all existing modules
     await Module.destroy({ where: {} });
     logger.info('🗑️  Deleted all existing modules');
-    
+
     // Re-seed with defaults
     const result = await seedModules();
     logger.info('✅ Modules reset completed');
-    
+
     return result;
   } catch (error) {
     logger.error('❌ Error resetting modules:', error);
@@ -321,7 +325,7 @@ async function checkModulesSeeded() {
   try {
     const moduleCount = await Module.count();
     const expectedCount = defaultModules.length;
-    
+
     return {
       seeded: moduleCount >= expectedCount,
       count: moduleCount,
@@ -344,7 +348,7 @@ module.exports = {
 // Run seeder if this file is executed directly
 if (require.main === module) {
   const command = process.argv[2];
-  
+
   switch (command) {
     case 'seed':
       seedModules()
@@ -356,7 +360,7 @@ if (require.main === module) {
           process.exit(1);
         });
       break;
-      
+
     case 'reset':
       resetModules()
         .then(result => {
@@ -367,7 +371,7 @@ if (require.main === module) {
           process.exit(1);
         });
       break;
-      
+
     case 'check':
       checkModulesSeeded()
         .then(result => {
@@ -378,14 +382,14 @@ if (require.main === module) {
           process.exit(1);
         });
       break;
-      
+
     default:
       console.log(`
 🌱 Module Seeder - Usage:
   node module-seeder.js seed    - Seed modules (safe to run multiple times)
   node module-seeder.js reset   - Reset all modules to defaults (WARNING: destructive)
   node module-seeder.js check   - Check if modules are properly seeded`);
-      
+
       process.exit(0);
   }
 }

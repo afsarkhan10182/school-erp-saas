@@ -31,6 +31,7 @@ const termRoutes = require('./academic/term.routes');
 // Academic exam routes
 const examRoutes = require('./academic/exams/exam.routes');
 const examTypeRoutes = require('./academic/exams/exam-type.routes');
+const gradingSystemRoutes = require('./academic/grading-system.routes');
 
 // Academic timetable routes
 const timetableRoutes = require('./academic/timetable/timetable.routes');
@@ -39,6 +40,9 @@ const exportRoutes = require('./export.routes');
 
 // Settings routes
 const settingsRoutes = require('./settings/settings.routes');
+
+// Upload routes
+const uploadRoutes = require('./shared/uploads.routes');
 
 const router = express.Router();
 
@@ -59,7 +63,6 @@ router.use('/fee-types', feeTypeRoutes);
 router.use('/fee-structures', feeStructureRoutes);
 router.use('/fee-invoices', feeInvoiceRoutes);
 
-
 // Academic Management routes
 router.use('/academic-years', academicYearRoutes);
 router.use('/academic-calendar', academicCalendarRoutes);
@@ -79,6 +82,7 @@ router.use('/terms', termRoutes);
 // Academic exam routes
 router.use('/exams', examRoutes);
 router.use('/exam-types', examTypeRoutes);
+router.use('/grading-systems', gradingSystemRoutes);
 
 // Academic timetable routes
 router.use('/timetables', timetableRoutes);
@@ -96,5 +100,8 @@ router.use('/templates', templateRoutes);
 router.use('/export', exportRoutes);
 // Settings routes - consolidated namespace
 router.use('/settings', settingsRoutes);
+
+// Upload routes
+router.use('/uploads', uploadRoutes);
 
 module.exports = router;

@@ -1,9 +1,19 @@
 const express = require('express');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('~/middleware/auth');
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole
+} = require('~/middleware/auth');
 const { requireModuleAccess } = require('~/middleware/moduleAccess');
 const { validate } = require('~/middleware/validate');
 const TimetableController = require('~/controllers/academic/timetable/timetable.controller');
-const { createTimetableValidator, updateTimetableValidator, createTimetableSlotValidator, updateTimetableSlotValidator } = require('~/validations/academic/timetable.validation');
+const {
+  createTimetableValidator,
+  updateTimetableValidator,
+  createTimetableSlotValidator,
+  updateTimetableSlotValidator
+} = require('~/validations/academic/timetable.validation');
 const { TIMETABLE_ROLES, TIMETABLE_ADMIN_ROLES, TEACHER_ROLES } = require('~/constants/roles');
 
 const router = express.Router();
@@ -25,9 +35,10 @@ router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess(
  * @access Private (TIMETABLE_ROLES)
  * @body {string} name, {string} class_id, {string} section_id, {string} academic_year, {boolean} is_active
  */
-router.post('/', 
-  requireRole(...TIMETABLE_ROLES), 
-  validate(createTimetableValidator), 
+router.post(
+  '/',
+  requireRole(...TIMETABLE_ROLES),
+  validate(createTimetableValidator),
   TimetableController.createTimetable
 );
 
@@ -54,9 +65,10 @@ router.get('/:id', TimetableController.getTimetableById);
  * @param {string} id - Timetable ID
  * @body {string} name, {string} class_id, {string} section_id, {string} academic_year, {boolean} is_active
  */
-router.put('/:id', 
-  requireRole(...TIMETABLE_ROLES), 
-  validate(updateTimetableValidator), 
+router.put(
+  '/:id',
+  requireRole(...TIMETABLE_ROLES),
+  validate(updateTimetableValidator),
   TimetableController.updateTimetable
 );
 
@@ -66,10 +78,7 @@ router.put('/:id',
  * @access Private (TIMETABLE_ADMIN_ROLES)
  * @param {string} id - Timetable ID
  */
-router.delete('/:id', 
-  requireRole(...TIMETABLE_ADMIN_ROLES), 
-  TimetableController.deleteTimetable
-);
+router.delete('/:id', requireRole(...TIMETABLE_ADMIN_ROLES), TimetableController.deleteTimetable);
 
 // ===== TEACHER TIMETABLE ROUTES =====
 
@@ -78,10 +87,7 @@ router.delete('/:id',
  * @desc Get current teacher's timetable
  * @access Private (TEACHER_ROLES)
  */
-router.get('/my-timetable', 
-  requireRole(...TEACHER_ROLES), 
-  TimetableController.getMyTimetable
-);
+router.get('/my-timetable', requireRole(...TEACHER_ROLES), TimetableController.getMyTimetable);
 
 /**
  * @route GET /api/timetables/teacher/:teacherId
@@ -96,8 +102,9 @@ router.get('/teacher/:teacherId', TimetableController.getTeacherTimetable);
  * @desc Get all teacher timetables
  * @access Private (TIMETABLE_ADMIN_ROLES)
  */
-router.get('/teachers/all', 
-  requireRole(...TIMETABLE_ADMIN_ROLES), 
+router.get(
+  '/teachers/all',
+  requireRole(...TIMETABLE_ADMIN_ROLES),
   TimetableController.getAllTeacherTimetables
 );
 
@@ -110,9 +117,10 @@ router.get('/teachers/all',
  * @param {string} id - Timetable ID
  * @body {string} subject_id, {string} teacher_id, {number} day_of_week, {number} period_number, {string} start_time, {string} end_time
  */
-router.post('/:id/slots', 
-  requireRole(...TIMETABLE_ROLES), 
-  validate(createTimetableSlotValidator), 
+router.post(
+  '/:id/slots',
+  requireRole(...TIMETABLE_ROLES),
+  validate(createTimetableSlotValidator),
   TimetableController.addTimetableSlot
 );
 
@@ -124,9 +132,10 @@ router.post('/:id/slots',
  * @param {string} slotId - Slot ID
  * @body {string} subject_id, {string} teacher_id, {number} day_of_week, {number} period_number, {string} start_time, {string} end_time
  */
-router.put('/:id/slots/:slotId', 
-  requireRole(...TIMETABLE_ROLES), 
-  validate(updateTimetableSlotValidator), 
+router.put(
+  '/:id/slots/:slotId',
+  requireRole(...TIMETABLE_ROLES),
+  validate(updateTimetableSlotValidator),
   TimetableController.updateTimetableSlot
 );
 
@@ -137,8 +146,9 @@ router.put('/:id/slots/:slotId',
  * @param {string} id - Timetable ID
  * @param {string} slotId - Slot ID
  */
-router.delete('/:id/slots/:slotId', 
-  requireRole(...TIMETABLE_ADMIN_ROLES), 
+router.delete(
+  '/:id/slots/:slotId',
+  requireRole(...TIMETABLE_ADMIN_ROLES),
   TimetableController.deleteTimetableSlot
 );
 

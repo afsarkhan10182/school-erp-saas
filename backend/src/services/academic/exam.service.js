@@ -1,5 +1,18 @@
 const { Op, Sequelize } = require('sequelize');
-const { Exam, ExamResult, ExamType, ExamStatus, Subject, Class, Section, Student, School, User, GradingSystem, GradeScale } = require('~/models');
+const {
+  Exam,
+  ExamResult,
+  ExamType,
+  ExamStatus,
+  Subject,
+  Class,
+  Section,
+  Student,
+  School,
+  User,
+  GradingSystem,
+  GradeScale
+} = require('~/models');
 const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
@@ -33,7 +46,10 @@ class ExamService extends BaseService {
       });
 
       if (existingExam) {
-        throw new ApiError(400, 'An exam with this name already exists for this class/section/subject');
+        throw new ApiError(
+          400,
+          'An exam with this name already exists for this class/section/subject'
+        );
       }
 
       const exam = await Exam.create({
@@ -51,17 +67,17 @@ class ExamService extends BaseService {
    */
   static async getAllExams(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        class_id, 
-        section_id, 
-        subject_id, 
-        exam_type_id, 
-        academic_year, 
-        is_active, 
-        branch_id 
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        class_id,
+        section_id,
+        subject_id,
+        exam_type_id,
+        academic_year,
+        is_active,
+        branch_id
       } = params;
       const offset = (page - 1) * limit;
 
@@ -228,9 +244,12 @@ class ExamService extends BaseService {
         // Prevent updating critical fields if results exist
         const restrictedFields = ['subject_id', 'class_id', 'section_id', 'max_marks'];
         const restrictedUpdates = restrictedFields.filter(field => updateData[field] !== undefined);
-        
+
         if (restrictedUpdates.length > 0) {
-          throw new ApiError(400, `Cannot update ${restrictedUpdates.join(', ')} as exam has results`);
+          throw new ApiError(
+            400,
+            `Cannot update ${restrictedUpdates.join(', ')} as exam has results`
+          );
         }
       }
 
@@ -317,10 +336,13 @@ class ExamService extends BaseService {
       }
 
       // Calculate percentage and grade
-      const percentage = resultData.marks_obtained && exam.max_marks ? 
-        (resultData.marks_obtained / exam.max_marks) * 100 : null;
+      const percentage =
+        resultData.marks_obtained && exam.max_marks
+          ? (resultData.marks_obtained / exam.max_marks) * 100
+          : null;
 
-      const grade = percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
+      const grade =
+        percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
 
       const result = await ExamResult.create({
         ...resultData,
@@ -348,7 +370,9 @@ class ExamService extends BaseService {
             as: 'exam',
             where: {
               school_id: user.school_id,
-              ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+              ...(user.role === 'branch_admin' && {
+                branch_id: user.branch_id
+              })
             }
           }
         ]
@@ -360,10 +384,13 @@ class ExamService extends BaseService {
 
       // Recalculate percentage and grade if marks are updated
       if (updateData.marks_obtained !== undefined) {
-        const percentage = updateData.marks_obtained && result.exam.max_marks ? 
-          (updateData.marks_obtained / result.exam.max_marks) * 100 : null;
-        const grade = percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
-        
+        const percentage =
+          updateData.marks_obtained && result.exam.max_marks
+            ? (updateData.marks_obtained / result.exam.max_marks) * 100
+            : null;
+        const grade =
+          percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
+
         updateData.percentage = percentage;
         updateData.grade = grade;
       }
@@ -390,7 +417,9 @@ class ExamService extends BaseService {
             as: 'exam',
             where: {
               school_id: user.school_id,
-              ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+              ...(user.role === 'branch_admin' && {
+                branch_id: user.branch_id
+              })
             }
           }
         ]
@@ -539,10 +568,10 @@ class ExamService extends BaseService {
       return 'F';
     }
 
-    const gradeScale = gradingSystem.gradeScales.find(scale => 
-      percentage >= scale.min_percentage && percentage <= scale.max_percentage
+    const gradeScale = gradingSystem.gradeScales.find(
+      scale => percentage >= scale.min_percentage && percentage <= scale.max_percentage
     );
-    
+
     return gradeScale ? gradeScale.grade : 'F';
   }
 
@@ -561,26 +590,25 @@ class ExamService extends BaseService {
       if (filters.class_id) whereClause.class_id = filters.class_id;
       if (filters.subject_id) whereClause.subject_id = filters.subject_id;
 
-      const [
-        totalExams,
-        activeExams,
-        totalResults,
-        averagePercentage
-      ] = await Promise.all([
+      const [totalExams, activeExams, totalResults, averagePercentage] = await Promise.all([
         Exam.count({ where: whereClause }),
         Exam.count({ where: { ...whereClause, is_active: true } }),
         ExamResult.count({
-          include: [{
-            model: Exam,
-            as: 'exam',
-            where: whereClause
-          }]
+          include: [
+            {
+              model: Exam,
+              as: 'exam',
+              where: whereClause
+            }
+          ]
         }),
         ExamResult.findOne({
           attributes: [[Sequelize.fn('AVG', Sequelize.col('percentage')), 'avg_percentage']],
           where: {
             exam_id: {
-              [Op.in]: Sequelize.literal(`(SELECT id FROM exams WHERE school_id = '${user.school_id}'${user.role === 'branch_admin' ? ` AND branch_id = '${user.branch_id}'` : ''}${filters.academic_year ? ` AND academic_year = '${filters.academic_year}'` : ''}${filters.class_id ? ` AND class_id = '${filters.class_id}'` : ''}${filters.subject_id ? ` AND subject_id = '${filters.subject_id}'` : ''})`)
+              [Op.in]: Sequelize.literal(
+                `(SELECT id FROM exams WHERE school_id = '${user.school_id}'${user.role === 'branch_admin' ? ` AND branch_id = '${user.branch_id}'` : ''}${filters.academic_year ? ` AND academic_year = '${filters.academic_year}'` : ''}${filters.class_id ? ` AND class_id = '${filters.class_id}'` : ''}${filters.subject_id ? ` AND subject_id = '${filters.subject_id}'` : ''})`
+              )
             }
           },
           raw: true
@@ -632,6 +660,377 @@ class ExamService extends BaseService {
 
       return exams;
     }, 'Get Exams For Dropdown');
+  }
+
+  /**
+   * Upload marks file (Excel/CSV)
+   */
+  static async uploadMarksFile(examId, file, user) {
+    return this.executeWithErrorHandling(async () => {
+      // Validate exam exists
+      const exam = await Exam.findOne({
+        where: {
+          id: examId,
+          school_id: user.school_id,
+          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        },
+        include: [
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+
+      if (!exam) {
+        throw new ApiError(404, 'Exam not found');
+      }
+
+      // Get students for this exam
+      const students = await Student.findAll({
+        where: {
+          class_id: exam.class_id,
+          section_id: exam.section_id || null,
+          school_id: user.school_id,
+          status: 'active'
+        },
+        attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number']
+      });
+
+      // Process file based on extension
+      const fileExtension = file.originalname.split('.').pop().toLowerCase();
+      let records = [];
+
+      if (fileExtension === 'csv') {
+        records = await this.processCSVFile(file, students);
+      } else if (['xlsx', 'xls'].includes(fileExtension)) {
+        records = await this.processExcelFile(file, students);
+      } else {
+        throw new ApiError(400, 'Unsupported file format. Please upload CSV or Excel files.');
+      }
+
+      return {
+        records,
+        total: records.length,
+        exam: {
+          id: exam.id,
+          name: exam.name,
+          max_marks: exam.max_marks
+        }
+      };
+    }, 'Upload Marks File');
+  }
+
+  /**
+   * Download marks template
+   */
+  static async downloadMarksTemplate(examId, user) {
+    return this.executeWithErrorHandling(async () => {
+      // Validate exam exists
+      const exam = await Exam.findOne({
+        where: {
+          id: examId,
+          school_id: user.school_id,
+          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        },
+        include: [
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+
+      if (!exam) {
+        throw new ApiError(404, 'Exam not found');
+      }
+
+      // Get students for this exam
+      const students = await Student.findAll({
+        where: {
+          class_id: exam.class_id,
+          section_id: exam.section_id || null,
+          school_id: user.school_id,
+          status: 'active'
+        },
+        attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number'],
+        order: [
+          ['roll_number', 'ASC'],
+          ['first_name', 'ASC']
+        ]
+      });
+
+      // Generate Excel template
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Marks Entry');
+
+      // Add headers
+      worksheet.columns = [
+        { header: 'Admission Number', key: 'admission_number', width: 15 },
+        { header: 'Student Name', key: 'student_name', width: 25 },
+        { header: 'Roll Number', key: 'roll_number', width: 12 },
+        { header: 'Marks Obtained', key: 'marks_obtained', width: 15 },
+        { header: 'Is Absent', key: 'is_absent', width: 12 },
+        { header: 'Remarks', key: 'remarks', width: 30 }
+      ];
+
+      // Style headers
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+
+      // Add student data
+      students.forEach(student => {
+        worksheet.addRow({
+          admission_number: student.admission_number,
+          student_name: `${student.first_name} ${student.last_name}`,
+          roll_number: student.roll_number || '',
+          marks_obtained: '',
+          is_absent: false,
+          remarks: ''
+        });
+      });
+
+      // Add instructions
+      const instructionRow = students.length + 3;
+      worksheet.getCell(`A${instructionRow}`).value = 'Instructions:';
+      worksheet.getCell(`A${instructionRow}`).font = { bold: true };
+      worksheet.getCell(`A${instructionRow + 1}`).value =
+        '1. Fill in the "Marks Obtained" column with the marks for each student';
+      worksheet.getCell(`A${instructionRow + 2}`).value =
+        '2. Set "Is Absent" to TRUE if the student was absent';
+      worksheet.getCell(`A${instructionRow + 3}`).value =
+        '3. Add any remarks in the "Remarks" column';
+      worksheet.getCell(`A${instructionRow + 4}`).value =
+        `4. Maximum marks for this exam: ${exam.max_marks}`;
+      worksheet.getCell(`A${instructionRow + 5}`).value =
+        '5. Do not modify the "Admission Number" and "Student Name" columns';
+
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+      return buffer;
+    }, 'Download Marks Template');
+  }
+
+  /**
+   * Bulk update exam results
+   */
+  static async bulkUpdateResults(examId, results, user) {
+    return this.executeWithErrorHandling(async () => {
+      // Validate exam exists
+      const exam = await Exam.findOne({
+        where: {
+          id: examId,
+          school_id: user.school_id,
+          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        }
+      });
+
+      if (!exam) {
+        throw new ApiError(404, 'Exam not found');
+      }
+
+      const updatedResults = [];
+      const errors = [];
+
+      for (const resultData of results) {
+        try {
+          // Find existing result
+          const existingResult = await ExamResult.findOne({
+            where: {
+              exam_id: examId,
+              student_id: resultData.student_id
+            }
+          });
+
+          if (existingResult) {
+            // Update existing result
+            const percentage =
+              resultData.marks_obtained && exam.max_marks
+                ? (resultData.marks_obtained / exam.max_marks) * 100
+                : null;
+
+            const grade =
+              percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
+
+            await existingResult.update({
+              marks_obtained: resultData.marks_obtained || 0,
+              percentage,
+              grade,
+              is_absent: resultData.is_absent || false,
+              remarks: resultData.remarks || '',
+              updated_by: user.id
+            });
+
+            updatedResults.push(existingResult);
+          } else {
+            // Create new result
+            const percentage =
+              resultData.marks_obtained && exam.max_marks
+                ? (resultData.marks_obtained / exam.max_marks) * 100
+                : null;
+
+            const grade =
+              percentage !== null ? await this.calculateGrade(percentage, user.school_id) : null;
+
+            const newResult = await ExamResult.create({
+              exam_id: examId,
+              student_id: resultData.student_id,
+              marks_obtained: resultData.marks_obtained || 0,
+              percentage,
+              grade,
+              is_absent: resultData.is_absent || false,
+              remarks: resultData.remarks || '',
+              school_id: user.school_id,
+              branch_id: user.branch_id,
+              created_by: user.id,
+              updated_by: user.id
+            });
+
+            updatedResults.push(newResult);
+          }
+        } catch (error) {
+          errors.push({
+            student_id: resultData.student_id,
+            error: error.message
+          });
+        }
+      }
+
+      return {
+        updated: updatedResults.length,
+        errors: errors.length,
+        details: errors
+      };
+    }, 'Bulk Update Results');
+  }
+
+  /**
+   * Process CSV file
+   */
+  static async processCSVFile(file, students) {
+    const Papa = require('papaparse');
+    const fs = require('fs');
+    const path = require('path');
+
+    return new Promise((resolve, reject) => {
+      const results = [];
+      const tempPath = path.join(__dirname, '../../../uploads/temp', file.filename);
+
+      try {
+        const csvContent = fs.readFileSync(tempPath, 'utf-8');
+        const result = Papa.parse(csvContent, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: header => header.trim()
+        });
+
+        if (result.errors.length > 0) {
+          reject(new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`));
+          return;
+        }
+
+        for (const data of result.data) {
+          // Map CSV columns to our format
+          const record = {
+            admission_number: data['Admission Number'] || data['admission_number'],
+            student_name: data['Student Name'] || data['student_name'],
+            roll_number: data['Roll Number'] || data['roll_number'],
+            marks_obtained: parseFloat(data['Marks Obtained'] || data['marks_obtained']) || 0,
+            is_absent:
+              data['Is Absent'] === 'TRUE' ||
+              data['is_absent'] === 'true' ||
+              data['Is Absent'] === '1',
+            remarks: data['Remarks'] || data['remarks'] || ''
+          };
+
+          // Find matching student
+          const student = students.find(
+            s =>
+              s.admission_number === record.admission_number ||
+              `${s.first_name} ${s.last_name}`.toLowerCase() === record.student_name?.toLowerCase()
+          );
+
+          if (student) {
+            record.student_id = student.id;
+            results.push(record);
+          }
+        }
+
+        // Clean up temp file
+        fs.unlink(tempPath, () => {});
+        resolve(results);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Process Excel file
+   */
+  static async processExcelFile(file, students) {
+    const ExcelJS = require('exceljs');
+    const path = require('path');
+    const fs = require('fs');
+
+    const workbook = new ExcelJS.Workbook();
+    const tempPath = path.join(__dirname, '../../../uploads/temp', file.filename);
+
+    await workbook.xlsx.readFile(tempPath);
+    const worksheet = workbook.getWorksheet(1);
+
+    const results = [];
+    const headers = {};
+
+    // Get headers
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell, colNumber) => {
+      headers[cell.value] = colNumber;
+    });
+
+    // Process data rows
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+
+      const record = {
+        admission_number: row.getCell(headers['Admission Number'] || headers['admission_number'])
+          ?.value,
+        student_name: row.getCell(headers['Student Name'] || headers['student_name'])?.value,
+        roll_number: row.getCell(headers['Roll Number'] || headers['roll_number'])?.value,
+        marks_obtained:
+          parseFloat(row.getCell(headers['Marks Obtained'] || headers['marks_obtained'])?.value) ||
+          0,
+        is_absent:
+          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === true ||
+          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === 'TRUE' ||
+          row.getCell(headers['Is Absent'] || headers['is_absent'])?.value === '1',
+        remarks: row.getCell(headers['Remarks'] || headers['remarks'])?.value || ''
+      };
+
+      // Find matching student
+      const student = students.find(
+        s =>
+          s.admission_number === record.admission_number ||
+          `${s.first_name} ${s.last_name}`.toLowerCase() === record.student_name?.toLowerCase()
+      );
+
+      if (student) {
+        record.student_id = student.id;
+        results.push(record);
+      }
+    });
+
+    // Clean up temp file
+    fs.unlink(tempPath, () => {});
+
+    return results;
   }
 }
 

@@ -15,9 +15,15 @@ const {
   exportPDFReport,
   exportExcelReport,
   getSummary,
-  generateImportTemplate,
+  generateImportTemplate
 } = require('~/controllers/academic/attendance/attendance.controller');
-const { createAttendanceValidator, updateAttendanceValidator } = require('~/validations/academic/attendance.validation');
+
+// Import enhanced analytics controller
+const AttendanceAnalyticsController = require('~/controllers/academic/attendance/attendance-analytics.controller');
+const {
+  createAttendanceValidator,
+  updateAttendanceValidator
+} = require('~/validations/academic/attendance.validation');
 
 const router = express.Router();
 
@@ -38,6 +44,18 @@ router.post('/bulk-import', bulkImport);
 router.post('/notify-absentees', notifyAbsentees);
 router.post('/bulk-import/file', uploadCSV('file'), bulkImportFile);
 
+// Enhanced Analytics Routes
+router.get('/analytics', AttendanceAnalyticsController.getAttendanceAnalytics);
+router.get('/analytics/summary', AttendanceAnalyticsController.getAttendanceSummary);
+router.get('/analytics/trends', AttendanceAnalyticsController.getAttendanceTrends);
+router.get('/analytics/performance/classes', AttendanceAnalyticsController.getClassPerformance);
+router.get('/analytics/performance/students', AttendanceAnalyticsController.getStudentPerformance);
+router.get('/analytics/alerts', AttendanceAnalyticsController.getAttendanceAlerts);
+router.get('/analytics/export', AttendanceAnalyticsController.exportAttendanceAnalytics);
+router.get('/reports/detailed', AttendanceAnalyticsController.getDetailedReport);
+router.get(
+  '/student/:studentId/history',
+  AttendanceAnalyticsController.getStudentAttendanceHistory
+);
+
 module.exports = router;
-
-

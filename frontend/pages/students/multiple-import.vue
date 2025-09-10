@@ -832,15 +832,15 @@ const removeFile = () => {
 
 const downloadTemplate = async (type = 'complete') => {
   try {
-    const config = useRuntimeConfig();
     const response = await Students.getImportTemplate(type);
 
-    if (!response.ok) {
+    // Check if the response is successful (axios response structure)
+    if (response.status !== 200) {
       throw new Error('Failed to download template');
     }
 
-    // Create blob from response
-    const blob = await response.blob();
+    // For axios with responseType: 'blob', the data is already a blob
+    const blob = response.data;
     const url = window.URL.createObjectURL(blob);
 
     // Create download link

@@ -1,8 +1,19 @@
 const { Op } = require('sequelize');
-const { Student, Class, Section, Exam, ExamResult, Subject, School, User, GradingSystem, GradeScale } = require('~/models');
+const {
+  Student,
+  Class,
+  Section,
+  Exam,
+  ExamResult,
+  Subject,
+  School,
+  User,
+  GradingSystem,
+  GradeScale
+} = require('~/models');
 const { logger } = require('~/utils/logger');
 const ApiError = require('~/utils/ApiError');
-const TemplateEngine = require('~/utils/templates/template-engine');
+const TemplateEngine = require('~/templates/template-engine');
 
 class ReportCardService {
   constructor() {
@@ -14,7 +25,11 @@ class ReportCardService {
    */
   async generateReportCard(studentId, academicYear, examTypes = null, options = {}) {
     try {
-      const { includeAttendance = true, includeSubjectAnalysis = true, autoPrint = false } = options;
+      const {
+        includeAttendance = true,
+        includeSubjectAnalysis = true,
+        autoPrint = false
+      } = options;
 
       // Get student details with all necessary associations
       const student = await this.getStudentWithAssociations(studentId);
@@ -24,18 +39,24 @@ class ReportCardService {
 
       // Get academic data
       const academicData = await this.getAcademicData(studentId, academicYear, examTypes);
-      
+
       // Calculate performance metrics
-      const performanceData = await this.calculatePerformanceMetrics(academicData.results, academicData.exams, student.school_id);
-      
+      const performanceData = await this.calculatePerformanceMetrics(
+        academicData.results,
+        academicData.exams,
+        student.school_id
+      );
+
       // Generate subject analysis if requested
-      const subjectAnalysis = includeSubjectAnalysis ? 
-        this.generateSubjectAnalysis(academicData.results, academicData.exams) : {};
-      
+      const subjectAnalysis = includeSubjectAnalysis
+        ? this.generateSubjectAnalysis(academicData.results, academicData.exams)
+        : {};
+
       // Get attendance data if requested
-      const attendanceData = includeAttendance ? 
-        await this.getAttendanceData(studentId, academicYear) : null;
-      
+      const attendanceData = includeAttendance
+        ? await this.getAttendanceData(studentId, academicYear)
+        : null;
+
       // Generate remarks
       const remarks = this.generateRemarks(performanceData, attendanceData, subjectAnalysis);
 
@@ -67,20 +88,20 @@ class ReportCardService {
     return await Student.findOne({
       where: { id: studentId },
       include: [
-        { 
-          model: Class, 
-          as: 'class', 
-          attributes: ['id', 'name', 'code'] 
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code']
         },
-        { 
-          model: Section, 
-          as: 'sectionInfo', 
-          attributes: ['id', 'name'] 
+        {
+          model: Section,
+          as: 'sectionInfo',
+          attributes: ['id', 'name']
         },
-        { 
-          model: School, 
-          as: 'school', 
-          attributes: ['id', 'name', 'address', 'phone', 'email', 'logo_url'] 
+        {
+          model: School,
+          as: 'school',
+          attributes: ['id', 'name', 'address', 'phone', 'email', 'logo_url']
         }
       ]
     });
@@ -116,10 +137,10 @@ class ReportCardService {
     const exams = await Exam.findAll({
       where: examFilter,
       include: [
-        { 
-          model: Subject, 
-          as: 'subject', 
-          attributes: ['id', 'name', 'code', 'category'] 
+        {
+          model: Subject,
+          as: 'subject',
+          attributes: ['id', 'name', 'code', 'category']
         }
       ],
       order: [['exam_date', 'ASC']]
@@ -136,10 +157,10 @@ class ReportCardService {
           model: Exam,
           as: 'exam',
           include: [
-            { 
-              model: Subject, 
-              as: 'subject', 
-              attributes: ['id', 'name', 'code', 'category'] 
+            {
+              model: Subject,
+              as: 'subject',
+              attributes: ['id', 'name', 'code', 'category']
             }
           ]
         }
@@ -159,11 +180,11 @@ class ReportCardService {
     const absentExams = results.filter(r => r.is_absent).length;
 
     const validResults = results.filter(r => !r.is_absent && r.marks_obtained !== null);
-    
+
     const totalMarks = validResults.reduce((sum, r) => sum + parseFloat(r.marks_obtained), 0);
     const maxMarks = validResults.reduce((sum, r) => sum + parseFloat(r.exam.max_marks), 0);
     const averagePercentage = maxMarks > 0 ? (totalMarks / maxMarks) * 100 : 0;
-    
+
     // Get database-driven grading system
     const gradingSystem = await this.getGradingSystem(schoolId);
     const overallGrade = this.calculateGrade(averagePercentage, gradingSystem);
@@ -215,14 +236,54 @@ class ReportCardService {
       return {
         name: 'Default Grading System',
         gradeScales: [
-          { grade: 'A+', min_percentage: 90, max_percentage: 100, grade_points: 4.0 },
-          { grade: 'A', min_percentage: 80, max_percentage: 89, grade_points: 3.7 },
-          { grade: 'B+', min_percentage: 70, max_percentage: 79, grade_points: 3.3 },
-          { grade: 'B', min_percentage: 60, max_percentage: 69, grade_points: 3.0 },
-          { grade: 'C+', min_percentage: 50, max_percentage: 59, grade_points: 2.7 },
-          { grade: 'C', min_percentage: 40, max_percentage: 49, grade_points: 2.3 },
-          { grade: 'D', min_percentage: 35, max_percentage: 39, grade_points: 2.0 },
-          { grade: 'F', min_percentage: 0, max_percentage: 34, grade_points: 0.0 }
+          {
+            grade: 'A+',
+            min_percentage: 90,
+            max_percentage: 100,
+            grade_points: 4.0
+          },
+          {
+            grade: 'A',
+            min_percentage: 80,
+            max_percentage: 89,
+            grade_points: 3.7
+          },
+          {
+            grade: 'B+',
+            min_percentage: 70,
+            max_percentage: 79,
+            grade_points: 3.3
+          },
+          {
+            grade: 'B',
+            min_percentage: 60,
+            max_percentage: 69,
+            grade_points: 3.0
+          },
+          {
+            grade: 'C+',
+            min_percentage: 50,
+            max_percentage: 59,
+            grade_points: 2.7
+          },
+          {
+            grade: 'C',
+            min_percentage: 40,
+            max_percentage: 49,
+            grade_points: 2.3
+          },
+          {
+            grade: 'D',
+            min_percentage: 35,
+            max_percentage: 39,
+            grade_points: 2.0
+          },
+          {
+            grade: 'F',
+            min_percentage: 0,
+            max_percentage: 34,
+            grade_points: 0.0
+          }
         ]
       };
     }
@@ -234,10 +295,10 @@ class ReportCardService {
    * Calculate grade based on percentage using database-driven system
    */
   calculateGrade(percentage, gradingSystem) {
-    const gradeScale = gradingSystem.gradeScales.find(scale => 
-      percentage >= scale.min_percentage && percentage <= scale.max_percentage
+    const gradeScale = gradingSystem.gradeScales.find(
+      scale => percentage >= scale.min_percentage && percentage <= scale.max_percentage
     );
-    
+
     return gradeScale ? gradeScale.grade : 'F';
   }
 
@@ -260,7 +321,7 @@ class ReportCardService {
    */
   calculateSubjectPerformance(validResults) {
     const subjectPerformance = {};
-    
+
     validResults.forEach(result => {
       const subjectName = result.exam.subject.name;
       if (!subjectPerformance[subjectName]) {
@@ -290,7 +351,7 @@ class ReportCardService {
    */
   generateSubjectAnalysis(results, exams) {
     const subjectAnalysis = {};
-    
+
     // Group results by subject
     results.forEach(result => {
       const subjectName = result.exam.subject.name;
@@ -307,7 +368,7 @@ class ReportCardService {
           performance_trend: 'stable'
         };
       }
-      
+
       subjectAnalysis[subjectName].exams.push({
         exam_name: result.exam.name,
         exam_type: result.exam.exam_type,
@@ -318,7 +379,7 @@ class ReportCardService {
         grade: result.grade,
         rank: result.rank
       });
-      
+
       if (!result.is_absent) {
         subjectAnalysis[subjectName].total_marks += parseFloat(result.marks_obtained || 0);
         subjectAnalysis[subjectName].max_marks += parseFloat(result.exam.max_marks);
@@ -346,20 +407,20 @@ class ReportCardService {
       .filter(exam => exam.percentage !== null)
       .map(exam => exam.percentage)
       .sort((a, b) => new Date(a.exam_date) - new Date(b.exam_date));
-    
+
     if (percentages.length >= 2) {
       const firstHalf = percentages.slice(0, Math.ceil(percentages.length / 2));
       const secondHalf = percentages.slice(Math.ceil(percentages.length / 2));
       const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
       const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-      
+
       if (secondAvg > firstAvg + 5) {
         return 'improving';
       } else if (secondAvg < firstAvg - 5) {
         return 'declining';
       }
     }
-    
+
     return 'stable';
   }
 
@@ -388,40 +449,44 @@ class ReportCardService {
    */
   generateRemarks(performance, attendance, subjectAnalysis) {
     const remarks = [];
-    
+
     // Overall performance remarks
     if (performance.average_percentage >= 90) {
-      remarks.push("Excellent academic performance. Maintains high standards consistently.");
+      remarks.push('Excellent academic performance. Maintains high standards consistently.');
     } else if (performance.average_percentage >= 80) {
-      remarks.push("Very good academic performance. Shows strong understanding of subjects.");
+      remarks.push('Very good academic performance. Shows strong understanding of subjects.');
     } else if (performance.average_percentage >= 70) {
-      remarks.push("Good academic performance. Has potential for further improvement.");
+      remarks.push('Good academic performance. Has potential for further improvement.');
     } else if (performance.average_percentage >= 60) {
-      remarks.push("Satisfactory performance. Needs more focus and effort.");
+      remarks.push('Satisfactory performance. Needs more focus and effort.');
     } else {
-      remarks.push("Performance needs improvement. Requires additional support and guidance.");
+      remarks.push('Performance needs improvement. Requires additional support and guidance.');
     }
 
     // Attendance remarks
     if (attendance && attendance.attendance_percentage >= 95) {
-      remarks.push("Excellent attendance record. Shows great commitment to studies.");
+      remarks.push('Excellent attendance record. Shows great commitment to studies.');
     } else if (attendance && attendance.attendance_percentage >= 90) {
-      remarks.push("Good attendance record. Regular attendance contributes to learning.");
+      remarks.push('Good attendance record. Regular attendance contributes to learning.');
     } else if (attendance && attendance.attendance_percentage < 85) {
-      remarks.push("Attendance needs improvement. Regular attendance is crucial for academic success.");
+      remarks.push(
+        'Attendance needs improvement. Regular attendance is crucial for academic success.'
+      );
     }
 
     // Subject-specific remarks
-    const weakSubjects = Object.keys(performance.subject_performance)
-      .filter(subject => performance.subject_performance[subject].average_percentage < 60);
-    
+    const weakSubjects = Object.keys(performance.subject_performance).filter(
+      subject => performance.subject_performance[subject].average_percentage < 60
+    );
+
     if (weakSubjects.length > 0) {
       remarks.push(`Needs special attention in: ${weakSubjects.join(', ')}.`);
     }
 
-    const strongSubjects = Object.keys(performance.subject_performance)
-      .filter(subject => performance.subject_performance[subject].average_percentage >= 85);
-    
+    const strongSubjects = Object.keys(performance.subject_performance).filter(
+      subject => performance.subject_performance[subject].average_percentage >= 85
+    );
+
     if (strongSubjects.length > 0) {
       remarks.push(`Shows exceptional strength in: ${strongSubjects.join(', ')}.`);
     }
@@ -439,7 +504,7 @@ class ReportCardService {
         'report-card',
         reportCardData
       );
-      
+
       return htmlContent;
     } catch (error) {
       logger.error('Error generating PDF report card:', error);
@@ -452,9 +517,10 @@ class ReportCardService {
    */
   async generateReportCardInFormat(studentId, academicYear, format = 'html', options = {}) {
     const reportCardData = await this.generateReportCard(studentId, academicYear, null, options);
-    
+
     switch (format.toLowerCase()) {
       case 'html':
+        return await this.generateHTMLReportCard(reportCardData);
       case 'pdf':
         return await this.generatePDFReportCard(reportCardData);
       case 'json':
@@ -465,14 +531,142 @@ class ReportCardService {
   }
 
   /**
+   * Generate HTML report card
+   */
+  async generateHTMLReportCard(reportCardData) {
+    try {
+      const html = await this.templateEngine.renderTemplate('reports', 'report-card', {
+        ...reportCardData,
+        generatedAt: new Date().toLocaleDateString(),
+        schoolLogo: reportCardData.student.school?.logo_url || null
+      });
+      return html;
+    } catch (error) {
+      logger.error('Error generating HTML report card:', error);
+      // Fallback to basic HTML if template fails
+      return this.generateBasicHTMLReportCard(reportCardData);
+    }
+  }
+
+  /**
+   * Generate PDF report card using HTML template
+   */
+  async generatePDFReportCard(reportCardData) {
+    try {
+      const html = await this.generateHTMLReportCard(reportCardData);
+
+      // For now, return HTML - PDF generation can be implemented with puppeteer or similar
+      // This would require additional dependencies like puppeteer
+      return html;
+    } catch (error) {
+      logger.error('Error generating PDF report card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate basic HTML report card as fallback
+   */
+  generateBasicHTMLReportCard(data) {
+    const { student, academic_year, results, performance, remarks } = data;
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Card - ${student.first_name} ${student.last_name}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .student-info { margin-bottom: 30px; }
+        .results-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .results-table th, .results-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .results-table th { background-color: #f2f2f2; }
+        .summary { background-color: #f9f9f9; padding: 20px; border-radius: 5px; }
+        .grade { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>REPORT CARD</h1>
+        <h2>Academic Year: ${academic_year}</h2>
+    </div>
+    
+    <div class="student-info">
+        <h3>Student Information</h3>
+        <p><strong>Name:</strong> ${student.first_name} ${student.last_name}</p>
+        <p><strong>Admission Number:</strong> ${student.admission_number}</p>
+        <p><strong>Class:</strong> ${student.class?.name || 'N/A'}</p>
+        <p><strong>Section:</strong> ${student.section?.name || 'N/A'}</p>
+    </div>
+    
+    <table class="results-table">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Exam</th>
+                <th>Marks Obtained</th>
+                <th>Max Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${results
+              .map(
+                result => `
+                <tr>
+                    <td>${result.exam?.subject?.name || 'N/A'}</td>
+                    <td>${result.exam?.name || 'N/A'}</td>
+                    <td>${result.marks_obtained}</td>
+                    <td>${result.exam?.max_marks || 'N/A'}</td>
+                    <td>${result.percentage?.toFixed(2) || '0.00'}%</td>
+                    <td class="grade">${result.grade || 'N/A'}</td>
+                </tr>
+            `
+              )
+              .join('')}
+        </tbody>
+    </table>
+    
+    <div class="summary">
+        <h3>Performance Summary</h3>
+        <p><strong>Overall Percentage:</strong> ${performance?.overall_percentage?.toFixed(2) || '0.00'}%</p>
+        <p><strong>Overall Grade:</strong> ${performance?.overall_grade || 'N/A'}</p>
+        <p><strong>Rank:</strong> ${performance?.rank || 'N/A'}</p>
+        <p><strong>Total Exams:</strong> ${results.length}</p>
+        <p><strong>Passed:</strong> ${results.filter(r => r.percentage >= 35).length}</p>
+        <p><strong>Failed:</strong> ${results.filter(r => r.percentage < 35).length}</p>
+    </div>
+    
+    <div class="remarks">
+        <h3>Remarks</h3>
+        <p>${remarks || 'No remarks available.'}</p>
+    </div>
+    
+    <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #666;">
+        Generated on: ${new Date().toLocaleDateString()}
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
    * Bulk generate report cards for multiple students
    */
   async bulkGenerateReportCards(studentIds, academicYear, format = 'html', options = {}) {
     const results = [];
-    
+
     for (const studentId of studentIds) {
       try {
-        const reportCard = await this.generateReportCardInFormat(studentId, academicYear, format, options);
+        const reportCard = await this.generateReportCardInFormat(
+          studentId,
+          academicYear,
+          format,
+          options
+        );
         results.push({
           student_id: studentId,
           success: true,
@@ -487,10 +681,9 @@ class ReportCardService {
         });
       }
     }
-    
+
     return results;
   }
 }
 
 module.exports = ReportCardService;
-

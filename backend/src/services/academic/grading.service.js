@@ -62,14 +62,14 @@ class GradingService {
   static async calculateGrade(percentage, schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
       const gradingSystem = await this.getDefaultGradingSystem(schoolId);
-      
+
       if (!gradingSystem.gradeScales || gradingSystem.gradeScales.length === 0) {
         throw new ApiError(400, 'No grade scales found for the grading system');
       }
 
       // Find the appropriate grade based on percentage
-      const gradeScale = gradingSystem.gradeScales.find(scale => 
-        percentage >= scale.min_percentage && percentage <= scale.max_percentage
+      const gradeScale = gradingSystem.gradeScales.find(
+        scale => percentage >= scale.min_percentage && percentage <= scale.max_percentage
       );
 
       if (!gradeScale) {
@@ -96,7 +96,7 @@ class GradingService {
   static async calculateGradePoints(grade, schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
       const gradingSystem = await this.getDefaultGradingSystem(schoolId);
-      
+
       const gradeScale = await GradeScale.findOne({
         where: {
           grading_system_id: gradingSystem.id,
@@ -132,7 +132,7 @@ class GradingService {
   static async isPassing(percentage, schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
       const gradingSystem = await this.getDefaultGradingSystem(schoolId);
-      
+
       // Check if percentage meets the passing threshold
       return percentage >= gradingSystem.passing_percentage;
     }, 'Check Passing Status');
@@ -144,7 +144,7 @@ class GradingService {
   static async getGradingStats(schoolId) {
     return BaseService.executeWithErrorHandling(async () => {
       const gradingSystem = await this.getDefaultGradingSystem(schoolId);
-      
+
       const stats = {
         total_grades: gradingSystem.gradeScales.length,
         passing_grades: gradingSystem.gradeScales.filter(scale => scale.is_passing).length,

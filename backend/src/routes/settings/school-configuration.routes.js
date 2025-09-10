@@ -11,25 +11,29 @@ router.use(verifyToken);
 router.use(setSchoolContext);
 
 // Get school configuration
-router.get('/', 
-  authorize(['school_admin', 'super_admin']), 
+router.get(
+  '/',
+  authorize(['school_admin', 'super_admin']),
   SchoolConfigurationController.getSchoolConfiguration
 );
 
 // Update school configuration
-router.put('/', 
-  authorize(['school_admin', 'super_admin']), 
+router.put(
+  '/',
+  authorize(['school_admin', 'super_admin']),
   SchoolConfigurationController.updateSchoolConfiguration
 );
 
 // Get receipt settings
-router.get('/receipt-settings', 
-  authorize(['school_admin', 'super_admin']), 
+router.get(
+  '/receipt-settings',
+  authorize(['school_admin', 'super_admin']),
   ReceiptSettingsController.getReceiptSettings
 );
 
 // Update receipt settings
-router.put('/receipt-settings', 
+router.put(
+  '/receipt-settings',
   authorize(['school_admin', 'super_admin']),
   uploadFields([
     { name: 'schoolLogo', maxCount: 1 },
@@ -40,14 +44,16 @@ router.put('/receipt-settings',
 );
 
 // Get fee settings
-router.get('/fee-settings', 
-  authorize(['school_admin', 'super_admin']), 
+router.get(
+  '/fee-settings',
+  authorize(['school_admin', 'super_admin']),
   FeeSettingsController.getFeeSettings
 );
 
 // Update fee settings
-router.put('/fee-settings', 
-  authorize(['school_admin', 'super_admin']), 
+router.put(
+  '/fee-settings',
+  authorize(['school_admin', 'super_admin']),
   FeeSettingsController.updateFeeSettings
 );
 

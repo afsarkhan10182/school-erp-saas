@@ -14,15 +14,15 @@ const transporter = nodemailer.createTransport({
   secure: config.email.secure, // true for 465, false for other ports
   auth: {
     user: config.email.auth.user,
-    pass: config.email.auth.pass,
+    pass: config.email.auth.pass
   },
   // In development, log to console
   logger: config.env === 'development',
-  debug: config.env === 'development',
+  debug: config.env === 'development'
 });
 
 // Verify connection configuration
-transporter.verify((error) => {
+transporter.verify(error => {
   if (error) {
     logger.error('Error with email configuration:', error);
   } else {
@@ -38,7 +38,7 @@ transporter.verify((error) => {
  */
 const compileTemplate = async (templateName, data = {}) => {
   try {
-    const templatePath = path.join(__dirname, `../notificationTemplates/email/${templateName}.ejs`);
+    const templatePath = path.join(__dirname, `../templates/email/${templateName}.ejs`);
     const template = await fs.promises.readFile(templatePath, 'utf-8');
     return ejs.render(template, data);
   } catch (error) {
@@ -59,7 +59,7 @@ const compileTemplate = async (templateName, data = {}) => {
  * @param {Array} [options.attachments] - Array of attachments
  * @returns {Promise<Object>} - Result from nodemailer
  */
-const sendEmail = async (options) => {
+const sendEmail = async options => {
   try {
     const { to, subject, text, html, template, templateData = {}, attachments = [] } = options;
 
@@ -75,7 +75,7 @@ const sendEmail = async (options) => {
       subject,
       text,
       html: htmlContent,
-      attachments,
+      attachments
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -83,12 +83,9 @@ const sendEmail = async (options) => {
     return info;
   } catch (error) {
     logger.error('Error sending email:', error);
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to send email',
-      false,
-      { error: error.message }
-    );
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send email', false, {
+      error: error.message
+    });
   }
 };
 
@@ -101,7 +98,7 @@ const sendEmail = async (options) => {
  */
 const sendPasswordResetEmail = async (to, token, name) => {
   const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
-  
+
   return sendEmail({
     to,
     subject: 'Reset Your Password',
@@ -110,8 +107,8 @@ const sendPasswordResetEmail = async (to, token, name) => {
       name,
       resetUrl,
       appName: config.appName,
-      supportEmail: config.supportEmail,
-    },
+      supportEmail: config.supportEmail
+    }
   });
 };
 
@@ -124,7 +121,7 @@ const sendPasswordResetEmail = async (to, token, name) => {
  */
 const sendWelcomeEmail = async (to, name, password = null) => {
   const loginUrl = `${config.frontendUrl}/login`;
-  
+
   return sendEmail({
     to,
     subject: `Welcome to ${config.appName}!`,
@@ -134,8 +131,8 @@ const sendWelcomeEmail = async (to, name, password = null) => {
       loginUrl,
       password,
       appName: config.appName,
-      supportEmail: config.supportEmail,
-    },
+      supportEmail: config.supportEmail
+    }
   });
 };
 
@@ -143,5 +140,5 @@ module.exports = {
   sendEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
-  transporter,
+  transporter
 };

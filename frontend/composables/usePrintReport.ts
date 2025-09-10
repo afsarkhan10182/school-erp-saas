@@ -48,7 +48,6 @@ export const usePrintReport = () => {
         await showPrintPreview(htmlContent, reportData.title);
       }
     } catch (error) {
-      console.error('Print error:', error);
       throw new Error('Failed to print report');
     }
   };

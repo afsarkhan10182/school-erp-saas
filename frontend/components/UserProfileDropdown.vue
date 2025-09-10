@@ -11,7 +11,7 @@
       <!-- User Avatar -->
       <div v-if="props.user?.profile_image" class="w-8 h-8 rounded-full overflow-hidden">
         <img
-          :src="uploadsUrl(props.user.profile_image)"
+          :src="getProfileImageUrl(props.user.profile_image)"
           :key="props.user?.profile_image || 'default'"
           :alt="userName"
           class="w-full h-full object-cover"
@@ -48,7 +48,7 @@
         <div class="flex items-center space-x-3">
           <div v-if="props.user?.profile_image" class="w-10 h-10 rounded-full overflow-hidden">
             <img
-              :src="uploadsUrl(props.user.profile_image)"
+              :src="getProfileImageUrl(props.user.profile_image)"
               :key="props.user?.profile_image || 'default'"
               :alt="userName"
               class="w-full h-full object-cover"
@@ -135,13 +135,8 @@ const emit = defineEmits(['logout']);
 const authStore = useAuthStore();
 const isOpen = ref(false);
 
-// Helper function for uploads URL
-const uploadsUrl = filename => {
-  const config = useRuntimeConfig();
-  return filename
-    ? `${config.public.apiBase?.replace('/api', '')}/uploads/profile-images/${filename}`
-    : '';
-};
+// Import centralized image utilities
+import { getProfileImageUrl } from '~/utils/imageUtils';
 
 // Computed properties
 const userName = computed(() => {

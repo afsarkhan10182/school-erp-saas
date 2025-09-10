@@ -46,7 +46,6 @@ export const useDropdowns = () => {
       }));
     } catch (err: any) {
       error.value = 'Failed to load classes';
-      console.error('Error loading classes:', err);
       showToast('Failed to load classes', 'error');
     } finally {
       loading.value = false;
@@ -80,7 +79,6 @@ export const useDropdowns = () => {
       }));
     } catch (err: any) {
       error.value = 'Failed to load sections';
-      console.error('Error loading sections:', err);
       showToast('Failed to load sections', 'error');
     } finally {
       loading.value = false;
@@ -108,7 +106,6 @@ export const useDropdowns = () => {
       }));
     } catch (err: any) {
       error.value = 'Failed to load streams';
-      console.error('Error loading streams:', err);
       showToast('Failed to load streams', 'error');
     } finally {
       loading.value = false;
@@ -132,7 +129,7 @@ export const useDropdowns = () => {
       if (filters?.category) params.category = filters.category;
 
       const response = await subjectApi.getForDropdown(params);
-      subjectOptions.value = response.data.subjects.map((subject: any) => ({
+      subjectOptions.value = response.data.map((subject: any) => ({
         value: subject.id,
         label: `${subject.name} (${subject.code})`,
         category: subject.category,
@@ -140,7 +137,6 @@ export const useDropdowns = () => {
       }));
     } catch (err: any) {
       error.value = 'Failed to load subjects';
-      console.error('Error loading subjects:', err);
       showToast('Failed to load subjects', 'error');
     } finally {
       loading.value = false;

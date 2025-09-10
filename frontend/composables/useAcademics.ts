@@ -83,17 +83,12 @@ export function useAcademics() {
     loading.value = true;
     error.value = null;
     try {
-      console.log('🔍 fetchAcademicYears: Starting with schoolId:', schoolId);
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
 
-      console.log('🔍 fetchAcademicYears: Calling API with params:', params.toString());
       const response = await AcademicYears.getDropdown(params.toString());
-      console.log('🔍 fetchAcademicYears: API response:', response);
       academicYears.value = response.data || [];
-      console.log('🔍 fetchAcademicYears: Set academicYears.value:', academicYears.value);
     } catch (err) {
-      console.error('❌ useAcademics: Error fetching academic years:', err);
       error.value = 'Failed to fetch academic years';
       academicYears.value = [];
     } finally {
@@ -105,18 +100,13 @@ export function useAcademics() {
     loading.value = true;
     error.value = null;
     try {
-      console.log('🔍 fetchClasses: Starting with schoolId:', schoolId, 'branchId:', branchId);
       const params = new URLSearchParams();
       if (schoolId) params.append('school_id', schoolId);
       if (branchId) params.append('branch_id', branchId);
 
-      console.log('🔍 fetchClasses: Calling API with params:', params.toString());
       const response = await Classes.getDropdown(params.toString());
-      console.log('🔍 fetchClasses: API response:', response);
       classes.value = response.data || [];
-      console.log('🔍 fetchClasses: Set classes.value:', classes.value);
     } catch (err) {
-      console.error('❌ useAcademics: Error fetching classes:', err);
       error.value = 'Failed to fetch classes';
       classes.value = [];
     } finally {
@@ -140,7 +130,6 @@ export function useAcademics() {
       const response = await Streams.getForDropdown(params);
       streams.value = response.data || [];
     } catch (err) {
-      console.error('❌ useAcademics: Error fetching streams:', err);
       error.value = 'Failed to fetch streams';
       streams.value = [];
     } finally {
@@ -160,7 +149,6 @@ export function useAcademics() {
       const response = await Sections.getDropdown(params.toString());
       sections.value = response.data || [];
     } catch (err) {
-      console.error('Error fetching sections:', err);
       error.value = 'Failed to fetch sections';
     } finally {
       loading.value = false;
@@ -175,7 +163,6 @@ export function useAcademics() {
       const response = await AcademicYears.getCurrent(params.toString());
       return response.data;
     } catch (err) {
-      console.error('Error fetching current academic year:', err);
       return null;
     }
   };

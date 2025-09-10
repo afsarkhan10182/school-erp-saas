@@ -17,10 +17,10 @@ const sessionMiddleware = (ttl = 86400) => {
 
       const userId = req.user.id;
       const sessionKey = `session:${userId}`;
-      
+
       // Get or create session
       let session = await RedisUtils.get(sessionKey);
-      
+
       if (!session) {
         // Create new session
         session = {
@@ -40,10 +40,10 @@ const sessionMiddleware = (ttl = 86400) => {
 
       // Store session in Redis
       await RedisUtils.set(sessionKey, session, ttl);
-      
+
       // Add session to request
       req.session = session;
-      
+
       next();
     } catch (error) {
       logger.error('Session middleware error:', error);
@@ -58,7 +58,7 @@ const sessionMiddleware = (ttl = 86400) => {
  * @param {string} userId - User ID
  * @returns {Array} Active sessions
  */
-const getUserSessions = async (userId) => {
+const getUserSessions = async userId => {
   try {
     const sessionKey = `session:${userId}`;
     const session = await RedisUtils.get(sessionKey);
@@ -73,7 +73,7 @@ const getUserSessions = async (userId) => {
  * Invalidate all sessions for a user
  * @param {string} userId - User ID
  */
-const invalidateUserSessions = async (userId) => {
+const invalidateUserSessions = async userId => {
   try {
     const sessionKey = `session:${userId}`;
     await RedisUtils.del(sessionKey);
@@ -91,14 +91,14 @@ const getAllSessions = async () => {
   try {
     const sessionKeys = await RedisUtils.keys('session:*');
     const sessions = [];
-    
+
     for (const key of sessionKeys) {
       const session = await RedisUtils.get(key);
       if (session) {
         sessions.push(session);
       }
     }
-    
+
     return sessions;
   } catch (error) {
     logger.error('Error getting all sessions:', error);
@@ -113,14 +113,14 @@ const cleanupExpiredSessions = async () => {
   try {
     const sessionKeys = await RedisUtils.keys('session:*');
     let cleanedCount = 0;
-    
+
     for (const key of sessionKeys) {
       const session = await RedisUtils.get(key);
       if (session) {
         const lastActivity = new Date(session.lastActivity);
         const now = new Date();
         const hoursSinceActivity = (now - lastActivity) / (1000 * 60 * 60);
-        
+
         // Remove sessions inactive for more than 24 hours
         if (hoursSinceActivity > 24) {
           await RedisUtils.del(key);
@@ -128,7 +128,7 @@ const cleanupExpiredSessions = async () => {
         }
       }
     }
-    
+
     if (cleanedCount > 0) {
       logger.info(`Cleaned up ${cleanedCount} expired sessions`);
     }
@@ -143,4 +143,4 @@ module.exports = {
   invalidateUserSessions,
   getAllSessions,
   cleanupExpiredSessions
-}; 
+};

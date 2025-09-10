@@ -248,15 +248,15 @@ const uploadFile = async () => {
 
 const downloadTemplate = async () => {
   try {
-    // Remove loading toast - user can see button state
-
     const response = await Attendance.getImportTemplate();
 
-    if (!response.ok) {
+    // Check if the response is successful (axios response structure)
+    if (response.status !== 200) {
       throw new Error('Failed to generate template');
     }
 
-    const blob = await response.blob();
+    // For axios with responseType: 'blob', the data is already a blob
+    const blob = response.data;
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

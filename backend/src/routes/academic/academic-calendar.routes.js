@@ -8,11 +8,14 @@ const {
   updateCalendarEvent,
   deleteCalendarEvent,
   upsertCalendarEntry,
-  bulkCreateCalendar,
+  bulkCreateCalendar
 } = require('~/controllers/academic/academic-calendar.controller');
 const { verifyToken, authorize, setSchoolContext } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createAcademicCalendarValidator, updateAcademicCalendarValidator } = require('~/validations/academic/academic-calendar.validation');
+const {
+  createAcademicCalendarValidator,
+  updateAcademicCalendarValidator
+} = require('~/validations/academic/academic-calendar.validation');
 
 // Apply middleware
 router.use(verifyToken, setSchoolContext);
@@ -24,29 +27,47 @@ router.get('/check-working-day', checkWorkingDay);
 router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin']), getCalendar);
 
 // Get calendar event by ID (super admin, school admin, branch admin)
-router.get('/:id', authorize(['super_admin', 'school_admin', 'branch_admin']), getCalendarEventById);
+router.get(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  getCalendarEventById
+);
 
 // Create new calendar event (super admin, school admin, branch admin)
-router.post('/', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(createAcademicCalendarValidator), 
+router.post(
+  '/',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(createAcademicCalendarValidator),
   createCalendarEvent
 );
 
 // Update calendar event (super admin, school admin, branch admin)
-router.put('/:id', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(updateAcademicCalendarValidator), 
+router.put(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(updateAcademicCalendarValidator),
   updateCalendarEvent
 );
 
 // Delete calendar event (super admin, school admin, branch admin)
-router.delete('/:id', authorize(['super_admin', 'school_admin', 'branch_admin']), deleteCalendarEvent);
+router.delete(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  deleteCalendarEvent
+);
 
 // Create or update calendar entry (super admin, school admin, branch admin)
-router.post('/upsert', authorize(['super_admin', 'school_admin', 'branch_admin']), upsertCalendarEntry);
+router.post(
+  '/upsert',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  upsertCalendarEntry
+);
 
 // Bulk create calendar entries (super admin, school admin, branch admin)
-router.post('/bulk', authorize(['super_admin', 'school_admin', 'branch_admin']), bulkCreateCalendar);
+router.post(
+  '/bulk',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  bulkCreateCalendar
+);
 
 module.exports = router;

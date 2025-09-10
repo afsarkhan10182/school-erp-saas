@@ -14,6 +14,7 @@ This document explains the robust middleware system designed to prevent server h
 ## 📦 Available Middleware Wrappers
 
 ### 1. `robustMiddleware` - Full Protection
+
 ```javascript
 const { robustMiddleware } = require('./middleware/robust');
 
@@ -30,12 +31,14 @@ const criticalAuth = robustMiddleware(authFunction, {
 ```
 
 **Options:**
+
 - `timeout`: Maximum execution time (default: 30s)
 - `fallback`: Function to run if middleware fails
 - `critical`: Whether failure should stop the request
 - `name`: Name for logging
 
 ### 2. `safeMiddleware` - Never Throws
+
 ```javascript
 const { safeMiddleware } = require('./middleware/robust');
 
@@ -48,6 +51,7 @@ const loggingMiddleware = safeMiddleware((req, res, next) => {
 ```
 
 ### 3. `conditionalMiddleware` - Run Based on Conditions
+
 ```javascript
 const { conditionalMiddleware } = require('./middleware/robust');
 
@@ -59,6 +63,7 @@ const cacheMiddleware = conditionalMiddleware(
 ```
 
 ### 4. `retryMiddleware` - Automatic Retries
+
 ```javascript
 const { retryMiddleware } = require('./middleware/robust');
 
@@ -66,11 +71,12 @@ const databaseMiddleware = retryMiddleware(databaseOperation, {
   maxRetries: 3,
   delay: 1000, // 1 second
   backoff: 2, // Exponential backoff
-  retryCondition: (error) => error.code === 'ECONNRESET' // Only retry connection errors
+  retryCondition: error => error.code === 'ECONNRESET' // Only retry connection errors
 });
 ```
 
 ### 5. `circuitBreakerMiddleware` - Prevent Cascading Failures
+
 ```javascript
 const { circuitBreakerMiddleware } = require('./middleware/robust');
 
@@ -82,6 +88,7 @@ const externalApiMiddleware = circuitBreakerMiddleware(externalApiCall, {
 ```
 
 ### 6. `monitoredMiddleware` - Performance Tracking
+
 ```javascript
 const { monitoredMiddleware } = require('./middleware/robust');
 
@@ -95,59 +102,72 @@ const slowOperation = monitoredMiddleware(async (req, res, next) => {
 ## 🔧 Usage Examples
 
 ### Authentication Middleware
+
 ```javascript
 const { robustMiddleware } = require('./middleware/robust');
 
-const authMiddleware = robustMiddleware(async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    throw new Error('No token provided');
+const authMiddleware = robustMiddleware(
+  async (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      throw new Error('No token provided');
+    }
+
+    const user = await verifyToken(token);
+    req.user = user;
+    next();
+  },
+  {
+    name: 'Authentication',
+    critical: true,
+    timeout: 5000
   }
-  
-  const user = await verifyToken(token);
-  req.user = user;
-  next();
-}, {
-  name: 'Authentication',
-  critical: true,
-  timeout: 5000
-});
+);
 ```
 
 ### Database Middleware with Retry
+
 ```javascript
 const { retryMiddleware } = require('./middleware/robust');
 
-const dbMiddleware = retryMiddleware(async (req, res, next) => {
-  const connection = await getDatabaseConnection();
-  req.db = connection;
-  next();
-}, {
-  maxRetries: 3,
-  delay: 1000,
-  retryCondition: (error) => error.code === 'ECONNRESET'
-});
+const dbMiddleware = retryMiddleware(
+  async (req, res, next) => {
+    const connection = await getDatabaseConnection();
+    req.db = connection;
+    next();
+  },
+  {
+    maxRetries: 3,
+    delay: 1000,
+    retryCondition: error => error.code === 'ECONNRESET'
+  }
+);
 ```
 
 ### Cache Middleware with Circuit Breaker
+
 ```javascript
 const { circuitBreakerMiddleware } = require('./middleware/robust');
 
-const cacheMiddleware = circuitBreakerMiddleware(async (req, res, next) => {
-  const cached = await redis.get(req.originalUrl);
-  if (cached) {
-    return res.json(JSON.parse(cached));
+const cacheMiddleware = circuitBreakerMiddleware(
+  async (req, res, next) => {
+    const cached = await redis.get(req.originalUrl);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+    next();
+  },
+  {
+    failureThreshold: 3,
+    recoveryTimeout: 30000
   }
-  next();
-}, {
-  failureThreshold: 3,
-  recoveryTimeout: 30000
-});
+);
 ```
 
 ## 🛡️ Error Handling Best Practices
 
 ### 1. Always Use Wrappers
+
 ```javascript
 // ❌ Bad - can cause server hangs
 app.use(async (req, res, next) => {
@@ -156,13 +176,16 @@ app.use(async (req, res, next) => {
 });
 
 // ✅ Good - protected against hangs
-app.use(safeMiddleware(async (req, res, next) => {
-  await someAsyncOperation();
-  next();
-}, 'Some Operation'));
+app.use(
+  safeMiddleware(async (req, res, next) => {
+    await someAsyncOperation();
+    next();
+  }, 'Some Operation')
+);
 ```
 
 ### 2. Handle Errors Properly
+
 ```javascript
 // ❌ Bad - error might not be handled
 const middleware = async (req, res, next) => {
@@ -172,22 +195,26 @@ const middleware = async (req, res, next) => {
 };
 
 // ✅ Good - proper error handling
-const middleware = robustMiddleware(async (req, res, next) => {
-  try {
-    const result = await riskyOperation();
-    req.data = result;
-    next();
-  } catch (error) {
-    logger.error('Risky operation failed:', error);
-    next(new ApiError(500, 'Operation failed'));
+const middleware = robustMiddleware(
+  async (req, res, next) => {
+    try {
+      const result = await riskyOperation();
+      req.data = result;
+      next();
+    } catch (error) {
+      logger.error('Risky operation failed:', error);
+      next(new ApiError(500, 'Operation failed'));
+    }
+  },
+  {
+    name: 'Risky Operation',
+    critical: false
   }
-}, {
-  name: 'Risky Operation',
-  critical: false
-});
+);
 ```
 
 ### 3. Use Appropriate Timeouts
+
 ```javascript
 // For fast operations
 const fastMiddleware = robustMiddleware(operation, {
@@ -205,6 +232,7 @@ const slowMiddleware = robustMiddleware(operation, {
 ## 📊 Monitoring and Logging
 
 All middleware automatically logs:
+
 - Performance metrics (duration, memory usage)
 - Error details with stack traces
 - Request context (URL, method, IP)
@@ -212,6 +240,7 @@ All middleware automatically logs:
 - Retry attempts
 
 ### Example Log Output
+
 ```
 [INFO] Authentication middleware took 45ms to complete
 [WARN] Cache middleware failed but continuing
@@ -222,6 +251,7 @@ All middleware automatically logs:
 ## 🔄 Migration Guide
 
 ### From Basic Middleware
+
 ```javascript
 // Old way
 app.use(async (req, res, next) => {
@@ -230,13 +260,16 @@ app.use(async (req, res, next) => {
 });
 
 // New way
-app.use(safeMiddleware(async (req, res, next) => {
-  await someOperation();
-  next();
-}, 'Some Operation'));
+app.use(
+  safeMiddleware(async (req, res, next) => {
+    await someOperation();
+    next();
+  }, 'Some Operation')
+);
 ```
 
 ### From Error-Prone Middleware
+
 ```javascript
 // Old way
 app.use((req, res, next) => {
@@ -249,29 +282,35 @@ app.use((req, res, next) => {
 });
 
 // New way
-app.use(robustMiddleware((req, res, next) => {
-  someOperation();
-  next();
-}, {
-  name: 'Some Operation',
-  critical: false
-}));
+app.use(
+  robustMiddleware(
+    (req, res, next) => {
+      someOperation();
+      next();
+    },
+    {
+      name: 'Some Operation',
+      critical: false
+    }
+  )
+);
 ```
 
 ## 🎯 When to Use Each Wrapper
 
-| Wrapper | Use Case | Example |
-|---------|----------|---------|
-| `robustMiddleware` | Critical operations | Authentication, database writes |
-| `safeMiddleware` | Non-critical operations | Logging, metrics, caching |
-| `conditionalMiddleware` | Conditional logic | Feature flags, A/B testing |
-| `retryMiddleware` | Network operations | API calls, database connections |
-| `circuitBreakerMiddleware` | External services | Third-party APIs, microservices |
-| `monitoredMiddleware` | Performance tracking | Slow operations, bottlenecks |
+| Wrapper                    | Use Case                | Example                         |
+| -------------------------- | ----------------------- | ------------------------------- |
+| `robustMiddleware`         | Critical operations     | Authentication, database writes |
+| `safeMiddleware`           | Non-critical operations | Logging, metrics, caching       |
+| `conditionalMiddleware`    | Conditional logic       | Feature flags, A/B testing      |
+| `retryMiddleware`          | Network operations      | API calls, database connections |
+| `circuitBreakerMiddleware` | External services       | Third-party APIs, microservices |
+| `monitoredMiddleware`      | Performance tracking    | Slow operations, bottlenecks    |
 
 ## 🚨 Critical vs Non-Critical
 
 ### Critical Middleware
+
 - Authentication
 - Authorization
 - Database writes
@@ -279,6 +318,7 @@ app.use(robustMiddleware((req, res, next) => {
 - Security checks
 
 ### Non-Critical Middleware
+
 - Logging
 - Metrics collection
 - Caching
@@ -304,4 +344,4 @@ MIDDLEWARE_CIRCUIT_FAILURE_THRESHOLD=5
 MIDDLEWARE_CIRCUIT_RECOVERY_TIMEOUT=60000
 ```
 
-This system ensures your application is resilient, performant, and maintainable as it scales. 
+This system ensures your application is resilient, performant, and maintainable as it scales.

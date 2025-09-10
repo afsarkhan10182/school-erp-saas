@@ -21,7 +21,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
       totalAbsentees: absenteeData.length,
       emailsSent: 0,
       smsSent: 0,
-      errors: [],
+      errors: []
     };
 
     for (const absentee of absenteeData) {
@@ -31,23 +31,23 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
             {
               model: Parent,
               through: 'StudentParent',
-              attributes: ['id', 'name', 'email', 'phone', 'relationship'],
+              attributes: ['id', 'name', 'email', 'phone', 'relationship']
             },
             {
               model: Class,
-              attributes: ['name'],
+              attributes: ['name']
             },
             {
               model: Section,
-              attributes: ['name'],
-            },
-          ],
+              attributes: ['name']
+            }
+          ]
         });
 
         if (!student) {
           results.errors.push({
             student_id: absentee.student_id,
-            error: 'Student not found',
+            error: 'Student not found'
           });
           continue;
         }
@@ -67,7 +67,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
           remarks: absentee.remarks || '',
           schoolName: schoolInfo.schoolName,
           schoolPhone: schoolInfo.phone,
-          schoolEmail: schoolInfo.email,
+          schoolEmail: schoolInfo.email
         };
 
         // Send notifications to all parents/guardians
@@ -84,7 +84,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
                   student_id: absentee.student_id,
                   parent_id: parent.id,
                   type: 'email',
-                  error: emailError.message,
+                  error: emailError.message
                 });
               }
             }
@@ -96,7 +96,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
                   studentName: student.name,
                   date: sessionData.date,
                   status: 'absent',
-                  schoolName: schoolInfo.schoolName,
+                  schoolName: schoolInfo.schoolName
                 });
                 results.smsSent++;
               } catch (smsError) {
@@ -105,7 +105,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
                   student_id: absentee.student_id,
                   parent_id: parent.id,
                   type: 'sms',
-                  error: smsError.message,
+                  error: smsError.message
                 });
               }
             }
@@ -113,14 +113,14 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
         } else {
           results.errors.push({
             student_id: absentee.student_id,
-            error: 'No parent contact information found',
+            error: 'No parent contact information found'
           });
         }
       } catch (error) {
         logger.error('Error processing absentee notification:', error);
         results.errors.push({
           student_id: absentee.student_id,
-          error: error.message,
+          error: error.message
         });
       }
     }
@@ -142,7 +142,7 @@ const sendAbsenteeNotifications = async (absenteeData, sessionData) => {
  */
 const sendAbsenteeEmailNotification = async (parentEmail, notificationData, parentInfo) => {
   const subject = `Attendance Alert: ${notificationData.studentName} - ${notificationData.date}`;
-  
+
   return sendEmail({
     to: parentEmail,
     subject,
@@ -150,8 +150,8 @@ const sendAbsenteeEmailNotification = async (parentEmail, notificationData, pare
     templateData: {
       parentName: parentInfo.name,
       relationship: parentInfo.relationship || 'Parent/Guardian',
-      ...notificationData,
-    },
+      ...notificationData
+    }
   });
 };
 
@@ -167,7 +167,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
       totalLateStudents: lateStudentsData.length,
       emailsSent: 0,
       smsSent: 0,
-      errors: [],
+      errors: []
     };
 
     for (const lateStudent of lateStudentsData) {
@@ -177,17 +177,17 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
             {
               model: Parent,
               through: 'StudentParent',
-              attributes: ['id', 'name', 'email', 'phone', 'relationship'],
+              attributes: ['id', 'name', 'email', 'phone', 'relationship']
             },
             {
               model: Class,
-              attributes: ['name'],
+              attributes: ['name']
             },
             {
               model: Section,
-              attributes: ['name'],
-            },
-          ],
+              attributes: ['name']
+            }
+          ]
         });
 
         if (!student) continue;
@@ -204,7 +204,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
           remarks: lateStudent.remarks || '',
           schoolName: schoolInfo.schoolName,
           schoolPhone: schoolInfo.phone,
-          schoolEmail: schoolInfo.email,
+          schoolEmail: schoolInfo.email
         };
 
         // Send notifications to parents
@@ -219,7 +219,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
                   student_id: lateStudent.student_id,
                   parent_id: parent.id,
                   type: 'email',
-                  error: error.message,
+                  error: error.message
                 });
               }
             }
@@ -230,7 +230,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
                   studentName: student.name,
                   date: sessionData.date,
                   status: 'late',
-                  schoolName: schoolInfo.schoolName,
+                  schoolName: schoolInfo.schoolName
                 });
                 results.smsSent++;
               } catch (error) {
@@ -238,7 +238,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
                   student_id: lateStudent.student_id,
                   parent_id: parent.id,
                   type: 'sms',
-                  error: error.message,
+                  error: error.message
                 });
               }
             }
@@ -247,7 +247,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
       } catch (error) {
         results.errors.push({
           student_id: lateStudent.student_id,
-          error: error.message,
+          error: error.message
         });
       }
     }
@@ -268,7 +268,7 @@ const sendLateArrivalNotifications = async (lateStudentsData, sessionData) => {
  */
 const sendLateArrivalEmailNotification = async (parentEmail, notificationData, parentInfo) => {
   const subject = `Late Arrival Notice: ${notificationData.studentName} - ${notificationData.date}`;
-  
+
   return sendEmail({
     to: parentEmail,
     subject,
@@ -276,8 +276,8 @@ const sendLateArrivalEmailNotification = async (parentEmail, notificationData, p
     templateData: {
       parentName: parentInfo.name,
       relationship: parentInfo.relationship || 'Parent/Guardian',
-      ...notificationData,
-    },
+      ...notificationData
+    }
   });
 };
 
@@ -292,7 +292,7 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
     const results = {
       totalParents: 0,
       emailsSent: 0,
-      errors: [],
+      errors: []
     };
 
     // Get all students in the class with their parents
@@ -300,7 +300,7 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
       where: {
         class_id: sessionData.class_id,
         ...(sessionData.section_id && { section_id: sessionData.section_id }),
-        is_active: true,
+        is_active: true
       },
       include: [
         {
@@ -308,10 +308,10 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
           through: 'StudentParent',
           attributes: ['id', 'name', 'email', 'relationship'],
           where: {
-            email: { [Op.ne]: null },
-          },
-        },
-      ],
+            email: { [Op.ne]: null }
+          }
+        }
+      ]
     });
 
     const schoolInfo = await getSchoolInformation(classData.branch_id);
@@ -327,14 +327,14 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
                 studentName: student.name,
                 classData,
                 sessionData,
-                schoolInfo,
+                schoolInfo
               });
               results.emailsSent++;
             } catch (error) {
               results.errors.push({
                 student_id: student.id,
                 parent_id: parent.id,
-                error: error.message,
+                error: error.message
               });
             }
           }
@@ -342,8 +342,9 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
       }
     }
 
-    results.totalParents = students.reduce((total, student) => 
-      total + (student.Parents?.length || 0), 0
+    results.totalParents = students.reduce(
+      (total, student) => total + (student.Parents?.length || 0),
+      0
     );
 
     return results;
@@ -361,12 +362,12 @@ const sendAttendanceSummaryNotifications = async (classData, sessionData) => {
  */
 const sendAttendanceSummaryEmail = async (parentEmail, data) => {
   const subject = `Daily Attendance Summary - ${data.sessionData.date}`;
-  
+
   return sendEmail({
     to: parentEmail,
     subject,
     template: 'attendance-summary',
-    templateData: data,
+    templateData: data
   });
 };
 
@@ -375,22 +376,22 @@ const sendAttendanceSummaryEmail = async (parentEmail, data) => {
  * @param {string} branchId - Branch ID
  * @returns {Promise<Object>} - School information
  */
-const getSchoolInformation = async (branchId) => {
+const getSchoolInformation = async branchId => {
   try {
     const branch = await Branch.findByPk(branchId, {
       include: [
         {
           model: School,
-          attributes: ['name', 'email', 'phone'],
-        },
-      ],
+          attributes: ['name', 'email', 'phone']
+        }
+      ]
     });
 
     return {
       schoolName: branch?.School?.name || 'School',
       email: branch?.School?.email || 'school@example.com',
       phone: branch?.School?.phone || 'N/A',
-      branchName: branch?.name || 'Main Branch',
+      branchName: branch?.name || 'Main Branch'
     };
   } catch (error) {
     logger.error('Error getting school information:', error);
@@ -398,7 +399,7 @@ const getSchoolInformation = async (branchId) => {
       schoolName: 'School',
       email: 'school@example.com',
       phone: 'N/A',
-      branchName: 'Main Branch',
+      branchName: 'Main Branch'
     };
   }
 };
@@ -409,5 +410,5 @@ module.exports = {
   sendAttendanceSummaryNotifications,
   sendAbsenteeEmailNotification,
   sendLateArrivalEmailNotification,
-  sendAttendanceSummaryEmail,
+  sendAttendanceSummaryEmail
 };

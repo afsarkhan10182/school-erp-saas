@@ -47,15 +47,15 @@ class SubjectTeacherService extends BaseService {
    */
   static async getAllSubjectTeachers(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        subject_id, 
-        teacher_id, 
-        class_id, 
-        is_active, 
-        branch_id 
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        subject_id,
+        teacher_id,
+        class_id,
+        is_active,
+        branch_id
       } = params;
       const offset = (page - 1) * limit;
 
@@ -198,7 +198,10 @@ class SubjectTeacherService extends BaseService {
         });
 
         if (existingAssignment) {
-          throw new ApiError(400, 'This teacher is already assigned to this subject for this class');
+          throw new ApiError(
+            400,
+            'This teacher is already assigned to this subject for this class'
+          );
         }
       }
 
@@ -356,47 +359,43 @@ class SubjectTeacherService extends BaseService {
         ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
       };
 
-      const [
-        totalAssignments,
-        activeAssignments,
-        assignmentsBySubject,
-        assignmentsByTeacher
-      ] = await Promise.all([
-        SubjectTeacher.count({ where: whereClause }),
-        SubjectTeacher.count({ where: { ...whereClause, is_active: true } }),
-        SubjectTeacher.findAll({
-          where: whereClause,
-          attributes: [
-            'subject_id',
-            [SubjectTeacher.sequelize.fn('COUNT', SubjectTeacher.sequelize.col('id')), 'count']
-          ],
-          group: ['subject_id'],
-          include: [
-            {
-              model: Subject,
-              as: 'subject',
-              attributes: ['id', 'name']
-            }
-          ],
-          raw: true
-        }),
-        SubjectTeacher.findAll({
-          where: whereClause,
-          attributes: [
-            'teacher_id',
-            [SubjectTeacher.sequelize.fn('COUNT', SubjectTeacher.sequelize.col('id')), 'count']
-          ],
-          group: ['teacher_id'],
-          include: [
-            {
-              model: User,
-              as: 'teacher',
-              attributes: ['id', 'first_name', 'last_name']
-            }
-          ],
-          raw: true
-        })
-      ]);
+      const [totalAssignments, activeAssignments, assignmentsBySubject, assignmentsByTeacher] =
+        await Promise.all([
+          SubjectTeacher.count({ where: whereClause }),
+          SubjectTeacher.count({ where: { ...whereClause, is_active: true } }),
+          SubjectTeacher.findAll({
+            where: whereClause,
+            attributes: [
+              'subject_id',
+              [SubjectTeacher.sequelize.fn('COUNT', SubjectTeacher.sequelize.col('id')), 'count']
+            ],
+            group: ['subject_id'],
+            include: [
+              {
+                model: Subject,
+                as: 'subject',
+                attributes: ['id', 'name']
+              }
+            ],
+            raw: true
+          }),
+          SubjectTeacher.findAll({
+            where: whereClause,
+            attributes: [
+              'teacher_id',
+              [SubjectTeacher.sequelize.fn('COUNT', SubjectTeacher.sequelize.col('id')), 'count']
+            ],
+            group: ['teacher_id'],
+            include: [
+              {
+                model: User,
+                as: 'teacher',
+                attributes: ['id', 'first_name', 'last_name']
+              }
+            ],
+            raw: true
+          })
+        ]);
 
       return {
         total_assignments: totalAssignments,
@@ -413,7 +412,7 @@ class SubjectTeacherService extends BaseService {
   static async bulkCreateSubjectTeachers(assignmentsData, userId) {
     return this.executeWithErrorHandling(async () => {
       const results = [];
-      
+
       for (const assignmentData of assignmentsData) {
         try {
           const assignment = await this.createSubjectTeacher(assignmentData, userId);

@@ -49,7 +49,6 @@ export const useExamOptions = () => {
         }));
     } catch (err: any) {
       error.value = 'Failed to load exam types';
-      console.error('Error loading exam types:', err);
       showToast('Failed to load exam types', 'error');
     } finally {
       loading.value = false;
@@ -76,7 +75,6 @@ export const useExamOptions = () => {
         }));
     } catch (err: any) {
       error.value = 'Failed to load exam statuses';
-      console.error('Error loading exam statuses:', err);
       showToast('Failed to load exam statuses', 'error');
     } finally {
       loading.value = false;
@@ -94,7 +92,6 @@ export const useExamOptions = () => {
       await Promise.all([loadExamTypes(), loadExamStatuses()]);
     } catch (err: any) {
       error.value = 'Failed to load exam options';
-      console.error('Error loading exam options:', err);
       showToast('Failed to load exam options', 'error');
     } finally {
       loading.value = false;

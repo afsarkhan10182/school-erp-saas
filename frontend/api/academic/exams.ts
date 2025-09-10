@@ -197,6 +197,15 @@ export const examApi = {
     return response.data;
   },
 
+  // Calculate grade based on percentage
+  calculateGrade: async (percentage: number) => {
+    const api = createApiInstance();
+    const response = await api.get<
+      ApiResponse<{ grade: string; grade_points?: number; is_passing: boolean }>
+    >('/exams/calculate-grade', { params: { percentage } });
+    return response.data;
+  },
+
   // Generate report card
   generateReportCard: async (
     studentId: string,
@@ -211,6 +220,66 @@ export const examApi = {
       responseType: 'blob'
     });
     return response;
+  },
+
+  // Bulk marks entry
+  uploadMarksFile: async (examId: string, file: File) => {
+    const api = createApiInstance();
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/exams/${examId}/upload-marks`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  downloadMarksTemplate: async (examId: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/exams/${examId}/template`, {
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  bulkUpdateResults: async (examId: string, results: ExamResultData[]) => {
+    const api = createApiInstance();
+    const response = await api.put(`/exams/${examId}/results/bulk`, { results });
+    return response.data;
+  },
+
+  // Optimized exam results methods
+  processBulkResultsOptimized: async (examId: string, results: ExamResultData[]) => {
+    const api = createApiInstance();
+    const response = await api.post(`/exams/${examId}/results/bulk-optimized`, { results });
+    return response.data;
+  },
+
+  getExamStatistics: async (examId: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/exams/${examId}/results/statistics`);
+    return response.data;
+  },
+
+  getResultAnalytics: async (examId: string, period?: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/exams/${examId}/results/analytics`, {
+      params: { period }
+    });
+    return response.data;
+  },
+
+  getClassPerformance: async (examId: string, classId: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/exams/${examId}/results/class/${classId}/performance`);
+    return response.data;
+  },
+
+  getStudentPerformanceHistory: async (studentId: string, academicYear: string) => {
+    const api = createApiInstance();
+    const response = await api.get(`/students/${studentId}/performance-history`, {
+      params: { academic_year: academicYear }
+    });
+    return response.data;
   }
 };
 

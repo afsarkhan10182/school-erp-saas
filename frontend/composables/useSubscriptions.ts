@@ -452,7 +452,6 @@ export function useSubscriptions() {
       const response = await Saas.checkAllStatuses();
       return response.data;
     } catch (error) {
-      console.error('Error checking subscription statuses:', error);
       throw error;
     }
   };

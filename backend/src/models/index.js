@@ -70,7 +70,7 @@ const models = {
   Exam,
   ExamResult,
   ExamType,
-  ExamStatus,
+  ExamStatus
 };
 
 // Call associate function for each model if it exists
@@ -83,5 +83,5 @@ Object.keys(models).forEach(modelName => {
 // Export all models after associations are established
 module.exports = {
   sequelize,
-  ...models,
+  ...models
 };

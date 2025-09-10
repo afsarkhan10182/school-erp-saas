@@ -17,17 +17,11 @@ class TermController {
    */
   static async getAllTerms(req, res, next) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        academic_year_id = '',
-        status = '',
-        search = ''
-      } = req.query;
+      const { page = 1, limit = 10, academic_year_id = '', status = '', search = '' } = req.query;
 
       // Get pagination parameters using common service
       const { offset, limit: actualLimit } = CommonService.getPaginationParams({ page, limit });
-      
+
       // Build role-based where clause using common service
       let whereClause = CommonService.buildRoleBasedWhere(req.user);
 
@@ -42,7 +36,11 @@ class TermController {
 
       // Build optimized search query
       if (search) {
-        whereClause = QueryService.buildOptimizedSearchQuery(search, ['name', 'description'], whereClause);
+        whereClause = QueryService.buildOptimizedSearchQuery(
+          search,
+          ['name', 'description'],
+          whereClause
+        );
       }
 
       const { count, rows } = await Term.findAndCountAll({
@@ -74,7 +72,11 @@ class TermController {
       });
 
       // Calculate pagination metadata using common service
-      const paginationMeta = CommonService.calculatePaginationMeta(count, parseInt(page), actualLimit);
+      const paginationMeta = CommonService.calculatePaginationMeta(
+        count,
+        parseInt(page),
+        actualLimit
+      );
 
       logger.info(`getAllTerms: Retrieved ${rows.length} terms out of ${count} total`);
 
@@ -98,7 +100,7 @@ class TermController {
       const { id } = req.params;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -261,16 +263,10 @@ class TermController {
   static async updateTerm(req, res, next) {
     try {
       const { id } = req.params;
-      const {
-        name,
-        description,
-        start_date,
-        end_date,
-        status
-      } = req.body;
+      const { name, description, start_date, end_date, status } = req.body;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -357,7 +353,7 @@ class TermController {
       const { id } = req.params;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -386,9 +382,7 @@ class TermController {
       // Log the operation
       CommonService.logOperation('delete', 'term', id, req.user);
 
-      return res.status(200).json(
-        CommonService.formatSuccessResponse('Term deleted successfully')
-      );
+      return res.status(200).json(CommonService.formatSuccessResponse('Term deleted successfully'));
     } catch (error) {
       logger.error('Error in deleteTerm:', error);
       return next(error);
@@ -407,7 +401,7 @@ class TermController {
       }
 
       let whereClause = { academic_year_id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -448,7 +442,7 @@ class TermController {
       const { academic_year_id } = req.query;
 
       let whereClause = { status: 'active' };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;

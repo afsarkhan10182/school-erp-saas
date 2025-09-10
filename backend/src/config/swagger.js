@@ -13,41 +13,41 @@ const options = {
       description: 'API documentation for School ERP SaaS application',
       contact: {
         name: 'Support',
-        email: 'support@schoolexample.com',
+        email: 'support@schoolexample.com'
       },
       license: {
         name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT',
-      },
+        url: 'https://opensource.org/licenses/MIT'
+      }
     },
     servers: [
       {
         url: 'http://localhost:8000/api',
-        description: 'Development server',
+        description: 'Development server'
       },
       {
         url: 'https://api.schoolexample.com/api',
-        description: 'Production server',
-      },
+        description: 'Production server'
+      }
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
+          bearerFormat: 'JWT'
+        }
       },
       responses: {
         UnauthorizedError: {
-          description: 'Access token is missing or invalid',
+          description: 'Access token is missing or invalid'
         },
         BadRequest: {
           description: 'The request was invalid or cannot be served',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/Error',
+                $ref: '#/components/schemas/Error'
               },
               example: {
                 success: false,
@@ -56,41 +56,41 @@ const options = {
                   {
                     msg: 'Invalid email',
                     param: 'email',
-                    location: 'body',
-                  },
-                ],
-              },
-            },
-          },
+                    location: 'body'
+                  }
+                ]
+              }
+            }
+          }
         },
         NotFound: {
           description: 'The requested resource could not be found',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/Error',
+                $ref: '#/components/schemas/Error'
               },
               example: {
                 success: false,
-                message: 'Resource not found',
-              },
-            },
-          },
+                message: 'Resource not found'
+              }
+            }
+          }
         },
         ServerError: {
           description: 'Internal server error',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/Error',
+                $ref: '#/components/schemas/Error'
               },
               example: {
                 success: false,
-                message: 'Internal server error',
-              },
-            },
-          },
-        },
+                message: 'Internal server error'
+              }
+            }
+          }
+        }
       },
       schemas: {
         Error: {
@@ -98,11 +98,11 @@ const options = {
           properties: {
             success: {
               type: 'boolean',
-              example: false,
+              example: false
             },
             message: {
               type: 'string',
-              example: 'Error message',
+              example: 'Error message'
             },
             errors: {
               type: 'array',
@@ -111,11 +111,11 @@ const options = {
                 properties: {
                   msg: { type: 'string' },
                   param: { type: 'string' },
-                  location: { type: 'string' },
-                },
-              },
-            },
-          },
+                  location: { type: 'string' }
+                }
+              }
+            }
+          }
         },
         User: {
           type: 'object',
@@ -123,20 +123,20 @@ const options = {
             id: {
               type: 'string',
               format: 'uuid',
-              example: '123e4567-e89b-12d3-a456-426614174000',
+              example: '123e4567-e89b-12d3-a456-426614174000'
             },
             email: {
               type: 'string',
               format: 'email',
-              example: 'user@example.com',
+              example: 'user@example.com'
             },
             first_name: {
               type: 'string',
-              example: 'John',
+              example: 'John'
             },
             last_name: {
               type: 'string',
-              example: 'Doe',
+              example: 'Doe'
             },
             role: {
               type: 'string',
@@ -152,46 +152,46 @@ const options = {
                 'receptionist',
                 'transport_manager',
                 'hr',
-                'alumni',
+                'alumni'
               ],
-              example: 'school_admin',
+              example: 'school_admin'
             },
             status: {
               type: 'string',
               enum: ['active', 'inactive', 'suspended', 'pending'],
-              example: 'active',
+              example: 'active'
             },
             school_id: {
               type: 'string',
               format: 'uuid',
-              example: '123e4567-e89b-12d3-a456-426614174000',
+              example: '123e4567-e89b-12d3-a456-426614174000'
             },
             branch_id: {
               type: 'string',
               format: 'uuid',
-              example: '123e4567-e89b-12d3-a456-426614174000',
+              example: '123e4567-e89b-12d3-a456-426614174000'
             },
             created_at: {
               type: 'string',
               format: 'date-time',
-              example: '2023-01-01T00:00:00Z',
+              example: '2023-01-01T00:00:00Z'
             },
             updated_at: {
               type: 'string',
               format: 'date-time',
-              example: '2023-01-01T00:00:00Z',
-            },
-          },
-        },
-      },
+              example: '2023-01-01T00:00:00Z'
+            }
+          }
+        }
+      }
     },
     security: [
       {
-        bearerAuth: [],
-      },
-    ],
+        bearerAuth: []
+      }
+    ]
   },
-  apis: ['./src/routes/*.js', './src/controllers/*.js'],
+  apis: ['./src/routes/*.js', './src/controllers/*.js']
 };
 
 const swaggerSpec = swaggerJsdoc(options);

@@ -18,14 +18,14 @@ class RedisService {
     try {
       const redisUrl = `redis://${config.redis.host}:${config.redis.port}`;
       logger.info(`Attempting to connect to Redis at ${redisUrl}`);
-      
+
       this.client = createClient({
         url: redisUrl,
         ...(config.redis.password && { password: config.redis.password }),
         socket: {
           connectTimeout: 5000,
           lazyConnect: true,
-          reconnectStrategy: (retries) => {
+          reconnectStrategy: retries => {
             if (retries > this.maxReconnectionAttempts) {
               logger.warn('Max Redis reconnection attempts reached');
               return false;
@@ -37,7 +37,7 @@ class RedisService {
         }
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', err => {
         logger.error('Redis Client Error:', err.message);
         this.isConnected = false;
       });
@@ -62,13 +62,16 @@ class RedisService {
       return true;
     } catch (error) {
       this.connectionAttempts++;
-      logger.error(`Failed to connect to Redis (attempt ${this.connectionAttempts}):`, error.message);
-      
+      logger.error(
+        `Failed to connect to Redis (attempt ${this.connectionAttempts}):`,
+        error.message
+      );
+
       if (this.connectionAttempts >= this.maxReconnectionAttempts) {
         logger.warn('Max Redis connection attempts reached');
         throw error;
       }
-      
+
       throw error;
     }
   }
@@ -170,7 +173,7 @@ class RedisService {
     try {
       const info = await this.client.info();
       const memory = await this.client.memory('USAGE');
-      
+
       return {
         info: info,
         memory: memory,
@@ -195,4 +198,4 @@ class RedisService {
   }
 }
 
-module.exports = RedisService; 
+module.exports = RedisService;

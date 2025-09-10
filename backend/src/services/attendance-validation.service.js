@@ -3,11 +3,11 @@ const ApiError = require('~/utils/ApiError');
 
 /**
  * Default Attendance Configuration Example
- * 
+ *
  * This is the default configuration that provides maximum flexibility
  * while maintaining audit trails. Schools can enable specific rules
  * as needed for compliance.
- * 
+ *
  * {
  *   "enforceWorkingDays": false,
  *   "enforceCutoffTime": false,
@@ -19,7 +19,7 @@ const ApiError = require('~/utils/ApiError');
  *   "enforceLateThreshold": false,
  *   "lateThresholdMinutes": 0,
  *   "enforceHolidayRules": false,
- * 
+ *
  *   "logAllChanges": true,
  *   "logLateSubmissions": true,
  *   "logRuleViolations": true,
@@ -35,114 +35,133 @@ class AttendanceValidationService {
     const dayOfWeek = new Date(date).getDay();
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayName = dayNames[dayOfWeek];
-    
+
     // Only enforce if explicitly configured
     if (settings.attendanceSettings?.validationRules?.enforceWorkingDays === true) {
       const workingDays = settings.attendanceSettings?.workingDays || {
-        monday: true, tuesday: true, wednesday: true, thursday: true, friday: true,
-        saturday: false, sunday: false
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false
       };
-      
+
       if (!workingDays[dayName]) {
         throw new ApiError(400, `Attendance cannot be marked on ${dayName}`);
       }
     }
-    
+
     const calendarEntry = await AcademicCalendar.findOne({
       where: { date, school_id: schoolId }
     });
-    
+
     if (calendarEntry && calendarEntry.day_type !== 'working') {
-      const enforceHolidayRules = settings.attendanceSettings?.validationRules?.enforceHolidayRules === true;
+      const enforceHolidayRules =
+        settings.attendanceSettings?.validationRules?.enforceHolidayRules === true;
       if (enforceHolidayRules) {
         throw new ApiError(400, `Attendance cannot be marked on ${calendarEntry.day_type} days`);
       }
     }
-    
+
     return true;
   }
-  
+
   static validateAttendanceTime(currentTime, settings) {
     const enforceCutoff = settings.attendanceSettings?.validationRules?.enforceCutoffTime === true;
     if (!enforceCutoff) return true;
-    
+
     const cutoffTime = settings.attendanceSettings?.timeSettings?.cutoffTime || '16:00';
     const [cutoffHour, cutoffMinute] = cutoffTime.split(':').map(Number);
-    
+
     const currentHour = currentTime.getHours();
     const currentMinute = currentTime.getMinutes();
-    
+
     if (currentHour > cutoffHour || (currentHour === cutoffHour && currentMinute > cutoffMinute)) {
       throw new ApiError(400, `Attendance cannot be marked after ${cutoffTime}`);
     }
-    
+
     return true;
   }
-  
+
   static validateEditTimeLimit(sessionDate, settings) {
-    const enforceEditLimit = settings.attendanceSettings?.validationRules?.enforceEditTimeLimit === true;
+    const enforceEditLimit =
+      settings.attendanceSettings?.validationRules?.enforceEditTimeLimit === true;
     if (!enforceEditLimit) return true;
-    
+
     const editTimeLimit = settings.attendanceSettings?.timeSettings?.editTimeLimit || 24;
     const currentTime = new Date();
     const sessionDateTime = new Date(sessionDate);
     const timeDiffHours = (currentTime - sessionDateTime) / (1000 * 60 * 60);
-    
+
     if (timeDiffHours > editTimeLimit) {
       throw new ApiError(400, `Attendance cannot be edited after ${editTimeLimit} hours`);
     }
-    
+
     return true;
   }
-  
+
   static validateAttendanceStatus(status, remarks, settings) {
     const validStatuses = ['present', 'absent', 'late', 'excused'];
     if (!validStatuses.includes(status)) {
       throw new ApiError(400, `Invalid attendance status: ${status}`);
     }
-    
+
     const validationRules = settings.attendanceSettings?.validationRules || {};
-    
+
     // Only enforce remarks if explicitly configured
-    if (status === 'absent' && validationRules.enforceRemarksForAbsent === true && (!remarks || remarks.trim() === '')) {
+    if (
+      status === 'absent' &&
+      validationRules.enforceRemarksForAbsent === true &&
+      (!remarks || remarks.trim() === '')
+    ) {
       throw new ApiError(400, 'Remarks are required for absent students');
     }
-    
-    if (status === 'late' && validationRules.enforceRemarksForLate === true && (!remarks || remarks.trim() === '')) {
+
+    if (
+      status === 'late' &&
+      validationRules.enforceRemarksForLate === true &&
+      (!remarks || remarks.trim() === '')
+    ) {
       throw new ApiError(400, 'Remarks are required for late students');
     }
-    
+
     return true;
   }
-  
+
   static validateLateThreshold(attendanceTime, settings) {
-    const enforceLateThreshold = settings.attendanceSettings?.validationRules?.enforceLateThreshold === true;
+    const enforceLateThreshold =
+      settings.attendanceSettings?.validationRules?.enforceLateThreshold === true;
     if (!enforceLateThreshold) return 'present';
-    
+
     const lateThreshold = settings.attendanceSettings?.timeSettings?.lateThreshold || '08:15';
     const [thresholdHour, thresholdMinute] = lateThreshold.split(':').map(Number);
-    
+
     const attendanceHour = attendanceTime.getHours();
     const attendanceMinute = attendanceTime.getMinutes();
-    
-    if (attendanceHour > thresholdHour || (attendanceHour === thresholdHour && attendanceMinute > thresholdMinute)) {
+
+    if (
+      attendanceHour > thresholdHour ||
+      (attendanceHour === thresholdHour && attendanceMinute > thresholdMinute)
+    ) {
       return 'late';
     }
-    
+
     return 'present';
   }
-  
+
   static async getSchoolSettings(schoolId) {
     const school = await School.findByPk(schoolId, {
       attributes: ['id', 'settings']
     });
-    
+
     if (!school) {
       throw new ApiError(404, 'School not found');
     }
-    
+
     const settings = school.settings || {};
-    
+
     return {
       attendanceSettings: {
         minimumPercentage: settings.minimum_attendance_percentage || 75,
@@ -201,32 +220,32 @@ class AttendanceValidationService {
       }
     };
   }
-  
+
   static async validateAttendanceSubmission(schoolId, date, records, publish = false) {
     const settings = await this.getSchoolSettings(schoolId);
-    
+
     // Always validate date (but with soft enforcement)
     await this.validateAttendanceDate(schoolId, date, settings);
-    
+
     // Only validate time if enforcement is enabled
     if (publish && settings.attendanceSettings?.validationRules?.enforceCutoffTime === true) {
       this.validateAttendanceTime(new Date(), settings);
     }
-    
+
     // Validate records with soft enforcement
     for (const record of records) {
       this.validateAttendanceStatus(record.status, record.remarks, settings);
     }
-    
+
     return settings;
   }
-  
+
   static async logAttendanceAction(action, data, settings) {
     const auditSettings = settings.attendanceSettings?.auditSettings || {};
-    
+
     // Always log if logAllChanges is enabled (default: true)
     if (auditSettings.logAllChanges === false) return;
-    
+
     const logData = {
       action,
       timestamp: new Date(),
@@ -238,32 +257,33 @@ class AttendanceValidationService {
         graceMode: auditSettings.graceMode
       }
     };
-    
+
     // Log to database or external audit system
     // This is where you'd implement your audit logging
     console.log('AUDIT LOG:', logData);
   }
-  
+
   static async checkGraceMode(ruleName, settings) {
     const auditSettings = settings.attendanceSettings?.auditSettings || {};
-    
+
     if (!auditSettings.graceMode) return false;
-    
+
     // Check if rule was recently enabled (within grace period)
     const gracePeriodDays = auditSettings.gracePeriodDays || 30;
-    const ruleEnabledDate = settings.attendanceSettings?.validationRules?.[`${ruleName}EnabledDate`];
-    
+    const ruleEnabledDate =
+      settings.attendanceSettings?.validationRules?.[`${ruleName}EnabledDate`];
+
     if (ruleEnabledDate) {
       const enabledDate = new Date(ruleEnabledDate);
       const currentDate = new Date();
       const daysDiff = (currentDate - enabledDate) / (1000 * 60 * 60 * 24);
-      
+
       return daysDiff <= gracePeriodDays;
     }
-    
+
     return true; // If no enabled date, assume grace mode
   }
-  
+
   static async validateWithGraceMode(validationFunction, ruleName, ...args) {
     try {
       return await validationFunction(...args);
@@ -271,18 +291,22 @@ class AttendanceValidationService {
       // Check if we're in grace mode for this rule
       const settings = args[args.length - 1]; // Last argument is usually settings
       const inGraceMode = await this.checkGraceMode(ruleName, settings);
-      
+
       if (inGraceMode) {
         // Log the violation but don't throw error
-        await this.logAttendanceAction('grace_mode_violation', {
-          rule: ruleName,
-          error: error.message,
-          action: 'logged_but_allowed'
-        }, settings);
-        
+        await this.logAttendanceAction(
+          'grace_mode_violation',
+          {
+            rule: ruleName,
+            error: error.message,
+            action: 'logged_but_allowed'
+          },
+          settings
+        );
+
         return true; // Allow the action
       }
-      
+
       throw error; // Re-throw if not in grace mode
     }
   }

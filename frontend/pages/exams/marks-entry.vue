@@ -132,6 +132,64 @@
       </div>
     </div>
 
+    <!-- Bulk Marks Entry Section -->
+    <div
+      v-if="selectedExam"
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+    >
+      <BulkMarksEntry
+        :exam="selectedExam"
+        :students="students"
+        @marks-updated="loadStudentsForExam(selectedExam)"
+      />
+    </div>
+
+    <!-- Optimized Results Management Section -->
+    <div
+      v-if="selectedExam && showResultsManagement"
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Results Management</h3>
+        <button
+          @click="showResultsManagement = false"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <ExamResults :exam="selectedExam" @close="showResultsManagement = false" />
+    </div>
+
+    <!-- Show Results Management Button -->
+    <div
+      v-if="selectedExam && !showResultsManagement"
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
+    >
+      <div class="text-center">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          View Results Management
+        </h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
+          Access optimized results processing, analytics, and management tools
+        </p>
+        <button
+          @click="showResultsManagement = true"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Open Results Management
+        </button>
+      </div>
+    </div>
+
     <!-- Marks Entry Section -->
     <div
       v-if="selectedExam && students.length > 0"
@@ -165,8 +223,36 @@
             Mark All Absent
           </button>
           <button
+            @click="markAllPresent"
+            class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+            Mark All Present
+          </button>
+          <button
+            @click="validateMarks"
+            class="bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 transition-colors text-sm flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            Validate
+          </button>
+          <button
             @click="saveMarks"
-            :disabled="saving"
+            :disabled="saving || !isValidToSave"
             class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
           >
             <svg
@@ -314,6 +400,26 @@
         </table>
       </div>
 
+      <!-- Validation Errors -->
+      <div
+        v-if="validationErrors.length > 0"
+        class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+      >
+        <h4 class="text-sm font-medium text-red-800 dark:text-red-200 mb-2">Validation Errors</h4>
+        <ul class="text-sm text-red-700 dark:text-red-300 space-y-1">
+          <li v-for="error in validationErrors" :key="error" class="flex items-center">
+            <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+
       <!-- Summary -->
       <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
         <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Summary</h4>
@@ -350,6 +456,8 @@ import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Exams } from '~/api';
 import { Students } from '~/api';
+import BulkMarksEntry from '~/components/BulkMarksEntry.vue';
+import ExamResults from '~/components/ExamResults.vue';
 
 // Composables
 const { showToast } = useToast();
@@ -369,6 +477,7 @@ const studentMarks = ref({});
 const selectedExamType = ref('');
 const selectedClass = ref('');
 const selectedAcademicYear = ref('');
+const showResultsManagement = ref(false);
 
 // Computed
 const academicYearOptions = computed(() => {
@@ -398,6 +507,20 @@ const averagePercentage = computed(() => {
 
   return totalPercentage / presentStudents.length;
 });
+
+const isValidToSave = computed(() => {
+  if (!selectedExam.value || students.value.length === 0) return false;
+
+  // Check if at least one student has marks entered
+  const hasMarks = students.value.some(student => {
+    const marks = studentMarks.value[student.id];
+    return marks && (marks.marks_obtained > 0 || marks.is_absent);
+  });
+
+  return hasMarks;
+});
+
+const validationErrors = ref([]);
 
 // Methods
 const loadExams = async () => {
@@ -456,12 +579,35 @@ const loadStudentsForExam = async exam => {
   }
 };
 
-const calculateStudentResult = studentId => {
+const calculateStudentResult = async studentId => {
   const marks = studentMarks.value[studentId];
   if (marks.marks_obtained && selectedExam.value.max_marks > 0) {
     marks.percentage = (marks.marks_obtained / selectedExam.value.max_marks) * 100;
-    // Grade will be calculated by the backend using database-driven system
+
+    // Calculate grade using backend service
+    try {
+      const gradeResponse = await Exams.calculateGrade(marks.percentage);
+      marks.grade = gradeResponse.data.grade;
+    } catch (error) {
+      console.warn('Failed to calculate grade:', error);
+      // Fallback to basic grade calculation
+      marks.grade = calculateBasicGrade(marks.percentage);
+    }
+  } else {
+    marks.percentage = 0;
+    marks.grade = '';
   }
+};
+
+const calculateBasicGrade = percentage => {
+  if (percentage >= 90) return 'A+';
+  if (percentage >= 80) return 'A';
+  if (percentage >= 70) return 'B+';
+  if (percentage >= 60) return 'B';
+  if (percentage >= 50) return 'C+';
+  if (percentage >= 40) return 'C';
+  if (percentage >= 35) return 'D';
+  return 'F';
 };
 
 const handleAbsentChange = studentId => {
@@ -480,11 +626,57 @@ const markAllAbsent = () => {
     studentMarks.value[student.id].percentage = 0;
     studentMarks.value[student.id].grade = '';
   });
+  showToast('All students marked as absent', 'info');
+};
+
+const markAllPresent = () => {
+  students.value.forEach(student => {
+    studentMarks.value[student.id].is_absent = false;
+    if (!studentMarks.value[student.id].marks_obtained) {
+      studentMarks.value[student.id].marks_obtained = 0;
+    }
+  });
+  showToast('All students marked as present', 'info');
+};
+
+const validateMarks = () => {
+  const errors = [];
+
+  students.value.forEach(student => {
+    const marks = studentMarks.value[student.id];
+    if (!marks.is_absent) {
+      const marksObtained = parseFloat(marks.marks_obtained);
+
+      if (isNaN(marksObtained) || marksObtained < 0) {
+        errors.push(`${student.first_name} ${student.last_name}: Invalid marks entered`);
+      } else if (marksObtained > selectedExam.value.max_marks) {
+        errors.push(
+          `${student.first_name} ${student.last_name}: Marks exceed maximum (${selectedExam.value.max_marks})`
+        );
+      }
+    }
+  });
+
+  validationErrors.value = errors;
+
+  if (errors.length === 0) {
+    showToast('All marks are valid', 'success');
+  } else {
+    showToast(`Found ${errors.length} validation errors`, 'error');
+  }
+
+  return errors.length === 0;
 };
 
 const saveMarks = async () => {
   try {
     saving.value = true;
+
+    // Validate marks before saving
+    if (!validateMarks()) {
+      showToast('Please fix validation errors before saving', 'error');
+      return;
+    }
 
     const results = students.value.map(student => {
       const marks = studentMarks.value[student.id];
@@ -498,6 +690,9 @@ const saveMarks = async () => {
 
     await Exams.bulkCreateResults(selectedExam.value.id, results);
     showToast('Marks saved successfully', 'success');
+
+    // Clear validation errors after successful save
+    validationErrors.value = [];
   } catch (error) {
     console.error('Error saving marks:', error);
     showToast('Failed to save marks', 'error');

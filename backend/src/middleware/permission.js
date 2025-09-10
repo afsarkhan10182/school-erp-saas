@@ -19,5 +19,5 @@ function requirePermission(permission) {
 
 module.exports = {
   hasPermission,
-  requirePermission,
-}; 
+  requirePermission
+};

@@ -14,11 +14,7 @@ class CommonService {
    * @returns {Object} Pagination parameters
    */
   static getPaginationParams(options = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      maxLimit = 100
-    } = options;
+    const { page = 1, limit = 10, maxLimit = 100 } = options;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const actualLimit = Math.min(parseInt(limit), maxLimit);
@@ -141,11 +137,11 @@ class CommonService {
   static generateUniqueCode(prefix = '', length = 6) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = prefix;
-    
+
     for (let i = 0; i < length; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
+
     return result;
   }
 

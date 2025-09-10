@@ -6,18 +6,18 @@ const createTermValidator = [
     .withMessage('Name is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
-  
+
   body('description')
     .optional()
     .isLength({ max: 500 })
     .withMessage('Description must not exceed 500 characters'),
-  
+
   body('start_date')
     .notEmpty()
     .withMessage('Start date is required')
     .isISO8601()
     .withMessage('Start date must be a valid date'),
-  
+
   body('end_date')
     .notEmpty()
     .withMessage('End date is required')
@@ -29,13 +29,13 @@ const createTermValidator = [
       }
       return true;
     }),
-  
+
   body('academic_year_id')
     .notEmpty()
     .withMessage('Academic year ID is required')
     .isUUID()
     .withMessage('Academic year ID must be a valid UUID'),
-  
+
   body('status')
     .optional()
     .isIn(['upcoming', 'active', 'completed', 'cancelled'])
@@ -47,17 +47,14 @@ const updateTermValidator = [
     .optional()
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
-  
+
   body('description')
     .optional()
     .isLength({ max: 500 })
     .withMessage('Description must not exceed 500 characters'),
-  
-  body('start_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Start date must be a valid date'),
-  
+
+  body('start_date').optional().isISO8601().withMessage('Start date must be a valid date'),
+
   body('end_date')
     .optional()
     .isISO8601()
@@ -68,7 +65,7 @@ const updateTermValidator = [
       }
       return true;
     }),
-  
+
   body('status')
     .optional()
     .isIn(['upcoming', 'active', 'completed', 'cancelled'])

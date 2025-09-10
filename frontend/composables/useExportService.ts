@@ -1,5 +1,5 @@
 import { ref, readonly } from 'vue';
-import { createApiInstance } from '~/utils/api';
+import { Export } from '~/api/shared/export';
 import { useToast } from '~/composables/useToast';
 
 import type { ExportColumn, ExportFilters } from '~/utils/exportConfig';
@@ -111,26 +111,15 @@ export const useExportService = () => {
     filters: ExportFilters,
     columns?: ExportColumn[]
   ): Promise<void> => {
-    // Build query parameters for backend API
-    const queryParams = new URLSearchParams();
-    queryParams.append('report_type', reportType);
-    queryParams.append('format', format);
-
-    // Clean and add filters using shared utility
+    // Clean filters using shared utility
     const cleanedFilters = cleanExportFilters(filters);
-    Object.entries(cleanedFilters).forEach(([key, value]) => {
-      queryParams.append(key, String(value));
-    });
 
-    // Add columns if specified - send as JSON string for proper format
-    if (columns && columns.length > 0) {
-      queryParams.append('columns', JSON.stringify(columns));
-    }
-
-    // Call backend API
-    const api = createApiInstance();
-    const response = await api.get(`/export?${queryParams.toString()}`, {
-      responseType: 'blob'
+    // Call backend API using Export service
+    const response = await Export.exportData({
+      report_type: reportType,
+      format: format as 'csv' | 'excel' | 'pdf',
+      ...cleanedFilters,
+      columns: columns ? JSON.stringify(columns) : undefined
     });
 
     // Handle the file download

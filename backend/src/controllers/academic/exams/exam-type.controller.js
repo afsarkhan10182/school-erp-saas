@@ -16,7 +16,7 @@ class ExamTypeController {
     };
 
     const examType = await ExamTypeService.createExamType(examTypeData, req.user.id);
-    
+
     success(res, { examType }, 'Exam type created successfully', httpStatus.CREATED);
   });
 
@@ -33,7 +33,7 @@ class ExamTypeController {
     };
 
     const result = await ExamTypeService.getAllExamTypes(params, req.user);
-    
+
     success(res, result, 'Exam types retrieved successfully');
   });
 
@@ -43,7 +43,7 @@ class ExamTypeController {
   static getExamTypeById = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const examType = await ExamTypeService.getExamTypeById(id, req.user);
-    
+
     success(res, { examType }, 'Exam type retrieved successfully');
   });
 
@@ -55,7 +55,7 @@ class ExamTypeController {
     const updateData = req.body;
 
     const examType = await ExamTypeService.updateExamType(id, updateData, req.user);
-    
+
     success(res, { examType }, 'Exam type updated successfully');
   });
 
@@ -65,7 +65,7 @@ class ExamTypeController {
   static deleteExamType = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const result = await ExamTypeService.deleteExamType(id, req.user);
-    
+
     success(res, result, 'Exam type deleted successfully');
   });
 
@@ -74,7 +74,7 @@ class ExamTypeController {
    */
   static getActiveExamTypes = asyncHandler(async (req, res) => {
     const examTypes = await ExamTypeService.getActiveExamTypes(req.user);
-    
+
     success(res, { examTypes }, 'Active exam types retrieved successfully');
   });
 }

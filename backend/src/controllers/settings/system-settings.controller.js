@@ -82,7 +82,10 @@ class SystemSettingsController {
       const validThemes = ['light', 'dark', 'auto'];
       const validPaginationSizes = [10, 25, 50, 100];
 
-      if (systemSettings.defaultLanguage && !validLanguages.includes(systemSettings.defaultLanguage)) {
+      if (
+        systemSettings.defaultLanguage &&
+        !validLanguages.includes(systemSettings.defaultLanguage)
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Invalid default language'
@@ -103,7 +106,10 @@ class SystemSettingsController {
         });
       }
 
-      if (systemSettings.defaultPaginationSize && !validPaginationSizes.includes(systemSettings.defaultPaginationSize)) {
+      if (
+        systemSettings.defaultPaginationSize &&
+        !validPaginationSizes.includes(systemSettings.defaultPaginationSize)
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Invalid pagination size'

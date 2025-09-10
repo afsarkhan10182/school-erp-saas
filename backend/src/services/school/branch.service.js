@@ -1,4 +1,6 @@
-const { Branch, School, User } = require('~/models');
+const Branch = require('~/models/branch.model');
+const School = require('~/models/school.model');
+const User = require('~/models/user.model');
 const { Op } = require('sequelize');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
@@ -10,9 +12,22 @@ class BranchService {
   static async createBranch(branchData) {
     return BaseService.executeWithErrorHandling(async () => {
       // Handle file uploads and settings using base service
-      const { system_logo, text_logo, printing_logo, report_card_design, currency, currency_symbol, ...basicData } = branchData;
-      
-      const settings = BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design });
+      const {
+        system_logo,
+        text_logo,
+        printing_logo,
+        report_card_design,
+        currency,
+        currency_symbol,
+        ...basicData
+      } = branchData;
+
+      const settings = BaseService.createSettingsFromFiles({
+        system_logo,
+        text_logo,
+        printing_logo,
+        report_card_design
+      });
 
       const branch = await Branch.create({
         ...basicData,
@@ -49,17 +64,17 @@ class BranchService {
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name', 'email'],
-          },
+            attributes: ['id', 'first_name', 'last_name', 'email']
+          }
         ],
         order: [['created_at', 'DESC']],
         limit,
-        offset,
+        offset
       });
 
       // Use base service for pagination response
@@ -75,14 +90,14 @@ class BranchService {
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code', 'status'],
+            attributes: ['id', 'name', 'code', 'status']
           },
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name', 'email'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name', 'email']
+          }
+        ]
       });
 
       if (!branch) {
@@ -90,7 +105,15 @@ class BranchService {
       }
 
       // Use RoleManager for access control
-      if (!RoleManager.canAccessBranch(user.role, user.school_id, user.branch_id, branch.school_id, branch.id)) {
+      if (
+        !RoleManager.canAccessBranch(
+          user.role,
+          user.school_id,
+          user.branch_id,
+          branch.school_id,
+          branch.id
+        )
+      ) {
         throw new ApiError(403, 'Access denied');
       }
 
@@ -104,27 +127,48 @@ class BranchService {
       const branch = await BaseService.validateEntityExists(Branch, id, 'Branch');
 
       // Use RoleManager for access control
-      if (!RoleManager.canAccessBranch(user.role, user.school_id, user.branch_id, branch.school_id, branch.id)) {
+      if (
+        !RoleManager.canAccessBranch(
+          user.role,
+          user.school_id,
+          user.branch_id,
+          branch.school_id,
+          branch.id
+        )
+      ) {
         throw new ApiError(403, 'Access denied - You can only update branches you have access to');
       }
 
       // Handle file uploads and settings using base service
-      const { system_logo, text_logo, printing_logo, report_card_design, currency, currency_symbol, ...basicData } = updateData;
-      
+      const {
+        system_logo,
+        text_logo,
+        printing_logo,
+        report_card_design,
+        currency,
+        currency_symbol,
+        ...basicData
+      } = updateData;
+
       // Update settings if new values are provided
       const currentSettings = branch.settings || {};
       const newSettings = {
         ...currentSettings,
         ...(currency && { currency }),
         ...(currency_symbol && { currency_symbol }),
-        ...BaseService.createSettingsFromFiles({ system_logo, text_logo, printing_logo, report_card_design })
+        ...BaseService.createSettingsFromFiles({
+          system_logo,
+          text_logo,
+          printing_logo,
+          report_card_design
+        })
       };
 
       await branch.update({
         ...basicData,
         settings: newSettings
       });
-      
+
       logger.info(`Branch updated: ${branch.name} (${branch.id})`);
       return branch;
     }, 'BranchService.updateBranch');
@@ -137,7 +181,7 @@ class BranchService {
 
       // Check if branch has active users
       const activeUsers = await User.count({
-        where: { branch_id: id, status: 'active' },
+        where: { branch_id: id, status: 'active' }
       });
 
       if (activeUsers > 0) {
@@ -146,7 +190,7 @@ class BranchService {
 
       // Soft delete by setting status to inactive
       await branch.update({ status: 'inactive' });
-      
+
       logger.info(`Branch deleted: ${branch.name} (${branch.id})`);
       return true;
     }, 'BranchService.deleteBranch');
@@ -171,12 +215,12 @@ class BranchService {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name', 'email'],
-          },
+            attributes: ['id', 'first_name', 'last_name', 'email']
+          }
         ],
         order: [['created_at', 'DESC']],
         limit,
-        offset,
+        offset
       });
 
       // Use base service for pagination response
@@ -190,7 +234,7 @@ class BranchService {
       const userCount = await User.count({ where: { branch_id: branchId } });
 
       return {
-        totalUsers: userCount,
+        totalUsers: userCount
       };
     }, 'BranchService.getBranchStats');
   }
@@ -205,10 +249,10 @@ class BranchService {
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code'],
-          },
+            attributes: ['id', 'name', 'code']
+          }
         ],
-        order: [['name', 'ASC']],
+        order: [['name', 'ASC']]
       });
 
       return branches;
@@ -216,4 +260,4 @@ class BranchService {
   }
 }
 
-module.exports = BranchService; 
+module.exports = BranchService;

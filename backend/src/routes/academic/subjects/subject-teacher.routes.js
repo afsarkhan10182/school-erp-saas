@@ -8,11 +8,14 @@ const {
   getSubjectTeachersBySubject,
   getSubjectTeachersByTeacher,
   getSubjectTeachersForDropdown,
-  getTeacherWorkload,
+  getTeacherWorkload
 } = require('~/controllers/academic/subjects/subject-teacher.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createSubjectTeacherValidator, updateSubjectTeacherValidator } = require('~/validations/academic/subject-teacher.validation');
+const {
+  createSubjectTeacherValidator,
+  updateSubjectTeacherValidator
+} = require('~/validations/academic/subject-teacher.validation');
 
 const router = express.Router();
 
@@ -24,7 +27,8 @@ router.use(verifyToken);
  * @desc    Create a new subject-teacher assignment
  * @access  Private (school_admin, branch_admin)
  */
-router.post('/', 
+router.post(
+  '/',
   authorize(['school_admin', 'branch_admin']),
   validate(createSubjectTeacherValidator),
   createSubjectTeacher
@@ -35,17 +39,15 @@ router.post('/',
  * @desc    Get all subject-teacher assignments with filtering and pagination
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/', 
-  authorize(['school_admin', 'branch_admin', 'teacher']),
-  getAllSubjectTeachers
-);
+router.get('/', authorize(['school_admin', 'branch_admin', 'teacher']), getAllSubjectTeachers);
 
 /**
  * @route   GET /api/subject-teachers/dropdown
  * @desc    Get subject-teacher assignments for dropdown
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/dropdown', 
+router.get(
+  '/dropdown',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectTeachersForDropdown
 );
@@ -55,17 +57,15 @@ router.get('/dropdown',
  * @desc    Get teacher workload data
  * @access  Private (school_admin, branch_admin)
  */
-router.get('/workload', 
-  authorize(['school_admin', 'branch_admin']),
-  getTeacherWorkload
-);
+router.get('/workload', authorize(['school_admin', 'branch_admin']), getTeacherWorkload);
 
 /**
  * @route   GET /api/subject-teachers/subject/:subjectId
  * @desc    Get subject-teacher assignments by subject
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/subject/:subjectId', 
+router.get(
+  '/subject/:subjectId',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectTeachersBySubject
 );
@@ -75,7 +75,8 @@ router.get('/subject/:subjectId',
  * @desc    Get subject-teacher assignments by teacher
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/teacher/:teacherId', 
+router.get(
+  '/teacher/:teacherId',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectTeachersByTeacher
 );
@@ -85,17 +86,15 @@ router.get('/teacher/:teacherId',
  * @desc    Get subject-teacher assignment by ID
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/:id', 
-  authorize(['school_admin', 'branch_admin', 'teacher']),
-  getSubjectTeacherById
-);
+router.get('/:id', authorize(['school_admin', 'branch_admin', 'teacher']), getSubjectTeacherById);
 
 /**
  * @route   PUT /api/subject-teachers/:id
  * @desc    Update subject-teacher assignment
  * @access  Private (school_admin, branch_admin)
  */
-router.put('/:id', 
+router.put(
+  '/:id',
   authorize(['school_admin', 'branch_admin']),
   validate(updateSubjectTeacherValidator),
   updateSubjectTeacher
@@ -106,9 +105,6 @@ router.put('/:id',
  * @desc    Delete subject-teacher assignment
  * @access  Private (school_admin, branch_admin)
  */
-router.delete('/:id', 
-  authorize(['school_admin', 'branch_admin']),
-  deleteSubjectTeacher
-);
+router.delete('/:id', authorize(['school_admin', 'branch_admin']), deleteSubjectTeacher);
 
 module.exports = router;

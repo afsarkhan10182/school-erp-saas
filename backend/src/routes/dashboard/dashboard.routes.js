@@ -181,4 +181,4 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
 router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
 router.get('/academic-year-months', DashboardController.getAcademicYearMonths);
 
-module.exports = router; 
+module.exports = router;

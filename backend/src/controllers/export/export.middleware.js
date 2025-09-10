@@ -11,7 +11,10 @@ const validateExportRequest = (req, res, next) => {
     // Validate report type
     const supportedReportTypes = ['receipts', 'fees', 'students', 'attendance'];
     if (!report_type || !supportedReportTypes.includes(report_type)) {
-      throw new ApiError(400, `Invalid report_type. Supported types: ${supportedReportTypes.join(', ')}`);
+      throw new ApiError(
+        400,
+        `Invalid report_type. Supported types: ${supportedReportTypes.join(', ')}`
+      );
     }
 
     // Validate format
@@ -28,11 +31,11 @@ const validateExportRequest = (req, res, next) => {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      
+
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         throw new ApiError(400, 'Invalid date format. Use YYYY-MM-DD format');
       }
-      
+
       if (start > end) {
         throw new ApiError(400, 'Start date cannot be after end date');
       }
@@ -66,11 +69,11 @@ const checkExportPermissions = (req, res, next) => {
       receipts: ['super_admin', 'school_admin', 'branch_admin', 'accountant'],
       fees: ['super_admin', 'school_admin', 'branch_admin', 'accountant'],
       students: ['super_admin', 'school_admin', 'branch_admin', 'teacher'],
-      attendance: ['super_admin', 'school_admin', 'branch_admin', 'teacher'],
+      attendance: ['super_admin', 'school_admin', 'branch_admin', 'teacher']
     };
 
     const allowedRoles = permissions[report_type] || [];
-    
+
     if (!allowedRoles.includes(userRole)) {
       throw new ApiError(403, `You don't have permission to export ${report_type} reports`);
     }
@@ -115,7 +118,7 @@ const rateLimitExports = (req, res, next) => {
 
     const userLimits = req.app.locals.exportRateLimit.get(userKey) || {
       count: 0,
-      resetTime: now + windowMs,
+      resetTime: now + windowMs
     };
 
     // Reset counter if window has passed
@@ -147,7 +150,7 @@ const rateLimitExports = (req, res, next) => {
 const logExportRequest = (req, res, next) => {
   try {
     const { report_type, format } = req.query;
-    
+
     logger.info('Export request initiated', {
       userId: req.user.id,
       userRole: req.user.role,
@@ -156,7 +159,7 @@ const logExportRequest = (req, res, next) => {
       format,
       userAgent: req.get('User-Agent'),
       ip: req.ip,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
 
     next();
@@ -173,13 +176,13 @@ const logExportRequest = (req, res, next) => {
 const sanitizeExportFilters = (req, res, next) => {
   try {
     const filters = req.query;
-    
+
     // Sanitize string values
     Object.keys(filters).forEach(key => {
       if (typeof filters[key] === 'string') {
         // Remove any potentially dangerous characters
         filters[key] = filters[key].replace(/[<>\"'&]/g, '');
-        
+
         // Limit string length
         if (filters[key].length > 100) {
           filters[key] = filters[key].substring(0, 100);
@@ -207,5 +210,5 @@ module.exports = {
   checkExportPermissions,
   rateLimitExports,
   logExportRequest,
-  sanitizeExportFilters,
+  sanitizeExportFilters
 };

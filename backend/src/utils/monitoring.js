@@ -18,12 +18,13 @@ class MonitoringService {
   // Track request metrics
   trackRequest(duration, statusCode, path) {
     this.metrics.requests++;
-    
+
     if (statusCode >= 400) {
       this.metrics.errors++;
     }
-    
-    if (duration > 1000) { // 1 second
+
+    if (duration > 1000) {
+      // 1 second
       this.metrics.slowRequests++;
       logger.warn('Slow request detected', {
         path,
@@ -55,10 +56,12 @@ class MonitoringService {
   // Get current metrics
   getMetrics() {
     const uptime = Date.now() - this.startTime;
-    const errorRate = this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0;
-    const cacheHitRate = (this.metrics.cacheHits + this.metrics.cacheMisses) > 0 
-      ? (this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses)) * 100 
-      : 0;
+    const errorRate =
+      this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0;
+    const cacheHitRate =
+      this.metrics.cacheHits + this.metrics.cacheMisses > 0
+        ? (this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses)) * 100
+        : 0;
 
     return {
       ...this.metrics,
@@ -126,4 +129,4 @@ class MonitoringService {
 }
 
 // Export singleton instance
-module.exports = new MonitoringService(); 
+module.exports = new MonitoringService();

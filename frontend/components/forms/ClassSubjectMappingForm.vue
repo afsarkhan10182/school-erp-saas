@@ -225,7 +225,6 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { validationRules, commonSchemas, validateForm } from '~/utils/validators';
-import { useConfig } from '~/composables/useConfig';
 
 // Props
 const props = defineProps({

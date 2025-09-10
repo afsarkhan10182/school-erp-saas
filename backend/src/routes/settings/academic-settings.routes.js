@@ -7,14 +7,16 @@ const { verifyToken, authorize } = require('~/middleware/auth');
 router.use(verifyToken);
 
 // Get academic settings
-router.get('/', 
-  authorize(['school_admin', 'super_admin']), 
+router.get(
+  '/',
+  authorize(['school_admin', 'super_admin']),
   AcademicSettingsController.getAcademicSettings
 );
 
 // Update academic settings
-router.put('/', 
-  authorize(['school_admin', 'super_admin']), 
+router.put(
+  '/',
+  authorize(['school_admin', 'super_admin']),
   AcademicSettingsController.updateAcademicSettings
 );
 

@@ -7,10 +7,18 @@ const {
   updateFeeStructure,
   deleteFeeStructure,
   cloneFeeStructure,
-  getFeeStructuresWithContext,
+  getFeeStructuresWithContext
 } = require('~/controllers/fee-structure.controller');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole } = require('~/middleware/auth');
-const { validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole
+} = require('~/middleware/auth');
+const {
+  validateModuleAccess,
+  checkSubscriptionStatus
+} = require('~/middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication
@@ -30,9 +38,11 @@ router.use(validateModuleAccess('fees'));
 router.post('/', requireRole('super_admin', 'school_admin', 'branch_admin'), createFeeStructure);
 
 // POST endpoint to create multiple section-based fee structures (admin only)
-router.post('/section-based', requireRole('super_admin', 'school_admin', 'branch_admin'), createSectionBasedFeeStructures);
-
-
+router.post(
+  '/section-based',
+  requireRole('super_admin', 'school_admin', 'branch_admin'),
+  createSectionBasedFeeStructures
+);
 
 // GET endpoint to retrieve all fee structures
 router.get('/', getFeeStructures);
@@ -48,9 +58,17 @@ router.get('/:id', getFeeStructureById);
 router.put('/:id', requireRole('super_admin', 'school_admin', 'branch_admin'), updateFeeStructure);
 
 // DELETE endpoint to delete a fee structure (admin only)
-router.delete('/:id', requireRole('super_admin', 'school_admin', 'branch_admin'), deleteFeeStructure);
+router.delete(
+  '/:id',
+  requireRole('super_admin', 'school_admin', 'branch_admin'),
+  deleteFeeStructure
+);
 
 // POST endpoint to clone a fee structure (admin only)
-router.post('/:id/clone', requireRole('super_admin', 'school_admin', 'branch_admin'), cloneFeeStructure);
+router.post(
+  '/:id/clone',
+  requireRole('super_admin', 'school_admin', 'branch_admin'),
+  cloneFeeStructure
+);
 
 module.exports = router;

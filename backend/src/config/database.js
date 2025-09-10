@@ -6,23 +6,18 @@ const { logger } = require('~/utils/logger');
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config.db;
 
-const sequelize = new Sequelize(
-  dbConfig.name,
-  dbConfig.username,
-  dbConfig.password,
-  {
-    host: dbConfig.host,
-    port: dbConfig.port,
-    dialect: 'postgres',
-    logging: env === 'development' ? console.log : false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
+const sequelize = new Sequelize(dbConfig.name, dbConfig.username, dbConfig.password, {
+  host: dbConfig.host,
+  port: dbConfig.port,
+  dialect: 'postgres',
+  logging: env === 'development' ? console.log : false,
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
   }
-);
+});
 
 // Test the connection
 const testConnection = async () => {
@@ -42,7 +37,7 @@ sequelize
   .then(() => {
     logger.info('Database connection has been established successfully.');
   })
-  .catch((err) => {
+  .catch(err => {
     logger.error('Unable to connect to the database:', err);
     process.exit(1);
   });

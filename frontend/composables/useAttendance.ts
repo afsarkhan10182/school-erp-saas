@@ -83,7 +83,6 @@ export const useAttendance = () => {
       pagination.total = total;
     } catch (err: any) {
       error.value = 'Failed to load attendance sessions';
-      console.error('Load sessions error:', err);
       // Only show toast for unexpected errors, not for normal data loading
       if (err?.response?.status !== 404) {
         const msg =
@@ -140,7 +139,6 @@ export const useAttendance = () => {
       return sessionResult;
     } catch (err: any) {
       error.value = 'Failed to create session';
-      console.error('Create session error:', err);
       const msg = err?.response?.data?.message || err?.message || 'Failed to create session';
       showError(msg);
       throw err;
@@ -185,7 +183,6 @@ export const useAttendance = () => {
       return data;
     } catch (err: any) {
       error.value = 'Failed to load students';
-      console.error('Load students error:', err);
       // Only show toast for server errors, not for empty results
       if (err?.response?.status >= 500) {
         const msg = err?.response?.data?.message || err?.message || 'Failed to load students';
@@ -235,7 +232,6 @@ export const useAttendance = () => {
       return response;
     } catch (err: any) {
       error.value = 'Failed to save attendance';
-      console.error('Save attendance error:', err);
       const msg = err?.response?.data?.message || err?.message || 'Failed to save attendance';
       showError(msg);
       throw err;
@@ -256,7 +252,6 @@ export const useAttendance = () => {
       return response.data;
     } catch (err: any) {
       error.value = 'Failed to load session details';
-      console.error('Get session details error:', err);
       const msg = err?.response?.data?.message || err?.message || 'Failed to load session details';
       showError(msg);
       throw err;

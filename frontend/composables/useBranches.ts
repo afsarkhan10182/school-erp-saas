@@ -19,12 +19,10 @@ export function useBranches() {
         return branches.value;
       } else {
         error.value = response.message || 'Failed to fetch branches.';
-        console.error('❌ Branches API error:', response.message);
         branches.value = [];
         return [];
       }
     } catch (e) {
-      console.error('❌ Error fetching branches:', e);
       error.value = 'Network error while fetching branches.';
       branches.value = [];
       return [];
@@ -46,7 +44,6 @@ export function useBranches() {
         error.value = response.message || 'Failed to fetch branches.';
       }
     } catch (e) {
-      console.error('Error fetching all branches:', e);
       error.value = 'Network error.';
     } finally {
       loading.value = false;
@@ -58,24 +55,14 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      // For FormData, we need to use direct fetch since axios doesn't handle it well
-      const config = useRuntimeConfig();
-      const apiBase = config.public.apiBase;
-
-      // Don't set Authorization header - let cookies be sent automatically
-      const res = await fetch(`${apiBase}/branches`, {
-        method: 'POST',
-        credentials: 'include', // Include cookies automatically
-        body: formData
-      });
-      const data = await res.json();
-      if (!data.success) {
+      const response = await Branches.create(formData);
+      if (!response.success) {
         // Collect detailed validation errors if present
-        const fieldErrors = (data.fieldErrors || []) as Array<{
+        const fieldErrors = (response.fieldErrors || []) as Array<{
           field?: string;
           message?: string;
         }>;
-        const errorMap = data.errors || {};
+        const errorMap = response.errors || {};
         const collected: string[] = [];
 
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
@@ -94,12 +81,13 @@ export function useBranches() {
         }
 
         error.value =
-          collected.length > 0 ? collected.join(', ') : data.message || 'Failed to create branch.';
+          collected.length > 0
+            ? collected.join(', ')
+            : response.message || 'Failed to create branch.';
         return null;
       }
-      return data.data;
+      return response.data;
     } catch (e) {
-      console.error('Error creating branch:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -119,7 +107,6 @@ export function useBranches() {
       }
       return response.data;
     } catch (e) {
-      console.error('Error fetching branch:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -132,24 +119,13 @@ export function useBranches() {
     loading.value = true;
     error.value = '';
     try {
-      // For FormData, we need to use direct fetch since axios doesn't handle it well
-      const config = useRuntimeConfig();
-      const apiBase = config.public.apiBase;
-
-      // Don't set Authorization header - let cookies be sent automatically
-      const res = await fetch(`${apiBase}/branches/${branchId}`, {
-        method: 'PUT',
-        credentials: 'include', // Include cookies automatically
-        body: formData
-      });
-      const data = await res.json();
-      if (!data.success) {
-        error.value = data.message || 'Failed to update branch.';
+      const response = await Branches.update(branchId, formData);
+      if (!response.success) {
+        error.value = response.message || 'Failed to update branch.';
         return null;
       }
-      return data.data;
+      return response.data;
     } catch (e) {
-      console.error('Error updating branch:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -169,7 +145,6 @@ export function useBranches() {
       }
       return true;
     } catch (e) {
-      console.error('Error deleting branch:', e);
       error.value = 'Network error.';
       return false;
     } finally {

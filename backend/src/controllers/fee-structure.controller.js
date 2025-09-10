@@ -13,19 +13,26 @@ const { logger } = require('~/utils/logger');
  * @param {string} fee_type_id - Fee type ID
  * @param {string} school_id - School ID
  */
-const validateFeeStructure = async (branch_id, classNames, academic_year, new_payment_model, section, fee_type_id, school_id, stream_ids = [], excludeId = null) => {
+const validateFeeStructure = async (
+  branch_id,
+  classNames,
+  academic_year,
+  new_payment_model,
+  section,
+  fee_type_id,
+  school_id,
+  stream_ids = [],
+  excludeId = null
+) => {
   // Check for existing fee structures for each class
   for (const className of classNames) {
-    const whereClause = { 
-      branch_id, 
+    const whereClause = {
+      branch_id,
       academic_year,
       school_id,
       is_active: true,
       // Check both class_name and applicable_classes
-      [Op.or]: [
-        { class_name: className },
-        { applicable_classes: { [Op.contains]: [className] } }
-      ]
+      [Op.or]: [{ class_name: className }, { applicable_classes: { [Op.contains]: [className] } }]
     };
 
     // Exclude current record if updating
@@ -38,19 +45,24 @@ const validateFeeStructure = async (branch_id, classNames, academic_year, new_pa
       include: [
         {
           model: FeeType,
-          as: 'feeType',
-        },
-      ],
+          as: 'feeType'
+        }
+      ]
     });
 
     if (existing) {
       // Check if it's the same fee type, section, and stream_ids
       const sameFeeType = existing.fee_type_id === fee_type_id;
       const sameSection = existing.section === (section || null);
-      
+
       // Check if stream_ids overlap (if both have streams)
       let sameStreams = false;
-      if (stream_ids && stream_ids.length > 0 && existing.stream_ids && existing.stream_ids.length > 0) {
+      if (
+        stream_ids &&
+        stream_ids.length > 0 &&
+        existing.stream_ids &&
+        existing.stream_ids.length > 0
+      ) {
         // Check if there's any overlap in stream_ids
         const existingStreams = existing.stream_ids;
         const newStreams = stream_ids;
@@ -68,7 +80,8 @@ const validateFeeStructure = async (branch_id, classNames, academic_year, new_pa
             `Class "${className}" already has a fee structure with "${existing.payment_model}" model for ${academic_year}. Cannot assign both monthly and installment models to the same class.`
           );
         } else {
-          const streamText = stream_ids && stream_ids.length > 0 ? ` (Streams: ${stream_ids.join(', ')})` : '';
+          const streamText =
+            stream_ids && stream_ids.length > 0 ? ` (Streams: ${stream_ids.join(', ')})` : '';
           throw new ApiError(
             400,
             `Fee structure for Class "${className}" with fee type "${existing.feeType?.name || 'Unknown'}"${streamText} already exists for ${academic_year}.`
@@ -94,7 +107,7 @@ const createFeeStructure = async (req, res, next) => {
       total_months,
       due_day,
       payment_model,
-      is_active = true,
+      is_active = true
     } = req.body;
 
     // Validate required fields for creation
@@ -107,13 +120,16 @@ const createFeeStructure = async (req, res, next) => {
     }
 
     // Check if we have either class_id or applicable_classes
-    if (!class_id && (!applicable_classes || !Array.isArray(applicable_classes) || applicable_classes.length === 0)) {
+    if (
+      !class_id &&
+      (!applicable_classes || !Array.isArray(applicable_classes) || applicable_classes.length === 0)
+    ) {
       throw new ApiError(400, 'Either class_id or applicable_classes array is required.');
     }
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
+
     if (!uuidRegex.test(academic_year_id)) {
       throw new ApiError(400, 'Invalid academic year ID format.');
     }
@@ -125,8 +141,8 @@ const createFeeStructure = async (req, res, next) => {
     // Get academic year details
     const academicYear = await AcademicYear.findOne({
       where: {
-        id: academic_year_id,
-      },
+        id: academic_year_id
+      }
     });
 
     if (!academicYear) {
@@ -139,8 +155,8 @@ const createFeeStructure = async (req, res, next) => {
         id: fee_type_id,
         school_id: req.schoolId,
         branch_id: req.branchId,
-        is_active: true,
-      },
+        is_active: true
+      }
     });
 
     if (!feeType) {
@@ -149,20 +165,20 @@ const createFeeStructure = async (req, res, next) => {
 
     // Determine classes to process
     let classesToProcess = [];
-    
+
     if (class_id) {
       // Single class mode
       const classData = await Class.findOne({
         where: {
           id: class_id,
-          school_id: req.schoolId,
-        },
+          school_id: req.schoolId
+        }
       });
 
       if (!classData) {
         throw new ApiError(404, 'Class not found.');
       }
-      
+
       classesToProcess = [{ id: class_id, name: classData.name }];
     } else {
       // Multiple classes mode
@@ -170,8 +186,8 @@ const createFeeStructure = async (req, res, next) => {
       const classData = await Class.findAll({
         where: {
           name: classNames,
-          school_id: req.schoolId,
-        },
+          school_id: req.schoolId
+        }
       });
 
       if (classData.length !== classNames.length) {
@@ -179,7 +195,7 @@ const createFeeStructure = async (req, res, next) => {
         const missingNames = classNames.filter(name => !foundNames.includes(name));
         throw new ApiError(404, `Classes not found: ${missingNames.join(', ')}`);
       }
-      
+
       classesToProcess = classData.map(c => ({ id: c.id, name: c.name }));
     }
 
@@ -190,7 +206,7 @@ const createFeeStructure = async (req, res, next) => {
     // Enhanced validation: Ensure one payment model per class per academic year
     const newClassNames = classesToProcess.map(c => c.name);
     const paymentModel = payment_model || 'monthly';
-    
+
     await validateFeeStructure(
       req.branchId,
       newClassNames,
@@ -205,7 +221,7 @@ const createFeeStructure = async (req, res, next) => {
 
     // Calculate amount based on payment model
     let calculatedAmount = 0;
-    
+
     // Log the received data for debugging
     logger.info('Fee structure creation - received data:', {
       amount: amount,
@@ -214,7 +230,7 @@ const createFeeStructure = async (req, res, next) => {
       monthly_payment_amount: monthly_payment_amount,
       total_months: total_months
     });
-    
+
     // Use the amount field from frontend if provided, otherwise calculate based on payment model
     if (amount && parseFloat(amount) > 0) {
       calculatedAmount = parseFloat(amount);
@@ -225,7 +241,8 @@ const createFeeStructure = async (req, res, next) => {
       logger.info('Using installment amount:', calculatedAmount);
     } else if (payment_model === 'monthly') {
       // For monthly payments, calculate from monthly amount
-      calculatedAmount = (parseFloat(monthly_payment_amount) || 0) * (parseFloat(total_months) || 12);
+      calculatedAmount =
+        (parseFloat(monthly_payment_amount) || 0) * (parseFloat(total_months) || 12);
       logger.info('Calculated monthly amount:', calculatedAmount);
     }
 
@@ -253,7 +270,7 @@ const createFeeStructure = async (req, res, next) => {
       is_active,
       school_id: req.schoolId,
       branch_id: req.branchId,
-      created_by: req.user.id,
+      created_by: req.user.id
     });
 
     // Include fee type in response
@@ -261,19 +278,21 @@ const createFeeStructure = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
-        },
-      ],
+          as: 'feeType'
+        }
+      ]
     });
 
     createdStructures.push(feeStructureWithType);
-    logger.info(`Fee structure created: ${feeStructure.name} with classes: ${classNamesText} (${feeStructure.academic_year})`);
+    logger.info(
+      `Fee structure created: ${feeStructure.name} with classes: ${classNamesText} (${feeStructure.academic_year})`
+    );
 
     // Return response
     const response = {
       success: true,
       message: `Successfully created fee structure for classes: ${classNamesText}`,
-      data: createdStructures[0],
+      data: createdStructures[0]
     };
 
     return res.status(201).json(response);
@@ -287,9 +306,9 @@ const createFeeStructure = async (req, res, next) => {
 const getFeeStructures = async (req, res, next) => {
   try {
     const { academic_year, class_name, fee_type_id, school_id } = req.query;
-    
+
     const whereClause = {
-      is_active: true,
+      is_active: true
     };
 
     // Handle school_id filtering based on user role
@@ -317,22 +336,25 @@ const getFeeStructures = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
+          as: 'feeType'
         },
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
-        },
+          attributes: ['id', 'name', 'code']
+        }
       ],
-      order: [['academic_year', 'DESC'], ['class_name', 'ASC']],
+      order: [
+        ['academic_year', 'DESC'],
+        ['class_name', 'ASC']
+      ]
     });
 
     // Fetch stream names for each fee structure
     const feeStructuresWithStreams = await Promise.all(
-      feeStructures.map(async (structure) => {
+      feeStructures.map(async structure => {
         const structureData = structure.toJSON();
-        
+
         // If the structure has stream_ids, fetch the stream names
         if (structureData.stream_ids && structureData.stream_ids.length > 0) {
           const streams = await Stream.findAll({
@@ -343,13 +365,13 @@ const getFeeStructures = async (req, res, next) => {
             attributes: ['name'],
             order: [['name', 'ASC']]
           });
-          
+
           // Create a comma-separated string of stream names for display
           structureData.stream_names = streams.map(s => s.name).join(', ');
         } else {
           structureData.stream_names = '';
         }
-        
+
         return structureData;
       })
     );
@@ -367,7 +389,7 @@ const getFeeStructureById = async (req, res, next) => {
     const { id } = req.params;
 
     const whereClause = {
-      id,
+      id
     };
 
     // Handle school_id filtering based on user role
@@ -389,14 +411,14 @@ const getFeeStructureById = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
+          as: 'feeType'
         },
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
-        },
-      ],
+          attributes: ['id', 'name', 'code']
+        }
+      ]
     });
 
     if (!feeStructure) {
@@ -405,7 +427,7 @@ const getFeeStructureById = async (req, res, next) => {
 
     // Add stream names to the response
     const structureData = feeStructure.toJSON();
-    
+
     // If the structure has stream_ids, fetch the stream names
     if (structureData.stream_ids && structureData.stream_ids.length > 0) {
       const streams = await Stream.findAll({
@@ -416,7 +438,7 @@ const getFeeStructureById = async (req, res, next) => {
         attributes: ['name'],
         order: [['name', 'ASC']]
       });
-      
+
       // Create a comma-separated string of stream names for display
       structureData.stream_names = streams.map(s => s.name).join(', ');
     } else {
@@ -442,12 +464,12 @@ const updateFeeStructure = async (req, res, next) => {
       section,
       fee_type_id,
       amount,
-      is_active,
+      is_active
     } = req.body;
 
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter if branch context is set
@@ -456,7 +478,7 @@ const updateFeeStructure = async (req, res, next) => {
     }
 
     const feeStructure = await FeeStructure.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!feeStructure) {
@@ -469,14 +491,14 @@ const updateFeeStructure = async (req, res, next) => {
       payment_model: req.body.payment_model,
       installment_type: req.body.installment_type
     });
-    
+
     // Prepare update data
     const updateData = {
       amount,
       is_active,
       section: section || null,
       stream_ids: stream_ids || [],
-      updated_by: req.user.id,
+      updated_by: req.user.id
     };
 
     // Add payment model specific fields if provided
@@ -506,8 +528,8 @@ const updateFeeStructure = async (req, res, next) => {
     if (academic_year_id) {
       const academicYear = await AcademicYear.findOne({
         where: {
-          id: academic_year_id,
-        },
+          id: academic_year_id
+        }
       });
 
       if (!academicYear) {
@@ -522,8 +544,8 @@ const updateFeeStructure = async (req, res, next) => {
       const classData = await Class.findOne({
         where: {
           id: class_id,
-          school_id: req.schoolId,
-        },
+          school_id: req.schoolId
+        }
       });
 
       if (!classData) {
@@ -540,16 +562,16 @@ const updateFeeStructure = async (req, res, next) => {
         updateData.applicable_classes = applicable_classes;
         // For multi-class structures, set class_name to the first class for backward compatibility
         updateData.class_name = applicable_classes[0];
-        
+
         // If class_id is not provided but we have applicable_classes, try to find the class_id
         if ((!class_id || class_id.trim() === '') && applicable_classes.length === 1) {
           const classData = await Class.findOne({
             where: {
               name: applicable_classes[0],
-              school_id: req.schoolId,
-            },
+              school_id: req.schoolId
+            }
           });
-          
+
           if (classData) {
             updateData.class_id = classData.id;
           }
@@ -567,8 +589,8 @@ const updateFeeStructure = async (req, res, next) => {
           id: fee_type_id,
           school_id: req.schoolId,
           branch_id: req.branchId,
-          is_active: true,
-        },
+          is_active: true
+        }
       });
 
       if (!feeType) {
@@ -585,9 +607,19 @@ const updateFeeStructure = async (req, res, next) => {
     const newFeeTypeId = updateData.fee_type_id || feeStructure.fee_type_id;
     const newApplicableClasses = updateData.applicable_classes || feeStructure.applicable_classes;
 
-    if (updateData.academic_year || updateData.class_name || updateData.section || updateData.fee_type_id || updateData.applicable_classes) {
+    if (
+      updateData.academic_year ||
+      updateData.class_name ||
+      updateData.section ||
+      updateData.fee_type_id ||
+      updateData.applicable_classes
+    ) {
       // For multi-class fee structures, check each class for conflicts
-      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+      if (
+        newApplicableClasses &&
+        Array.isArray(newApplicableClasses) &&
+        newApplicableClasses.length > 0
+      ) {
         for (const className of newApplicableClasses) {
           const existingFeeStructure = await FeeStructure.findOne({
             where: {
@@ -602,12 +634,15 @@ const updateFeeStructure = async (req, res, next) => {
                 { class_name: className },
                 { applicable_classes: { [Op.contains]: [className] } }
               ]
-            },
+            }
           });
 
           if (existingFeeStructure) {
             const sectionText = newSection ? ` and section ${newSection}` : '';
-            throw new ApiError(400, `Fee structure already exists for class "${className}"${sectionText} and fee type in this academic year.`);
+            throw new ApiError(
+              400,
+              `Fee structure already exists for class "${className}"${sectionText} and fee type in this academic year.`
+            );
           }
         }
       } else {
@@ -621,32 +656,42 @@ const updateFeeStructure = async (req, res, next) => {
             section: newSection,
             fee_type_id: newFeeTypeId,
             is_active: true,
-            id: { [Op.ne]: id }, // Exclude current record
-          },
+            id: { [Op.ne]: id } // Exclude current record
+          }
         });
 
         if (existingFeeStructure) {
           const sectionText = newSection ? ` and section ${newSection}` : '';
-          throw new ApiError(400, `Fee structure already exists for this class${sectionText} and fee type in this academic year.`);
+          throw new ApiError(
+            400,
+            `Fee structure already exists for this class${sectionText} and fee type in this academic year.`
+          );
         }
       }
     }
 
     // Enhanced validation: Check payment model conflicts when updating
-    if (req.body.payment_model !== undefined && req.body.payment_model !== feeStructure.payment_model) {
+    if (
+      req.body.payment_model !== undefined &&
+      req.body.payment_model !== feeStructure.payment_model
+    ) {
       const newPaymentModel = req.body.payment_model;
       const classNames = [];
-      
+
       // Use applicable_classes if available, otherwise use class_name
-      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+      if (
+        newApplicableClasses &&
+        Array.isArray(newApplicableClasses) &&
+        newApplicableClasses.length > 0
+      ) {
         classNames.push(...newApplicableClasses);
       } else if (newClassName) {
         classNames.push(newClassName);
       }
-      
+
       // Remove duplicates
       const uniqueClassNames = [...new Set(classNames)];
-      
+
       if (uniqueClassNames.length > 0) {
         await validateFeeStructure(
           req.branchId,
@@ -662,13 +707,25 @@ const updateFeeStructure = async (req, res, next) => {
     }
 
     // Update the name if class, section, or fee type is being updated
-    if (updateData.class_name || updateData.section || updateData.fee_type_id || updateData.applicable_classes) {
+    if (
+      updateData.class_name ||
+      updateData.section ||
+      updateData.fee_type_id ||
+      updateData.applicable_classes
+    ) {
       const feeType = await FeeType.findByPk(updateData.fee_type_id || feeStructure.fee_type_id);
-      const sectionText = updateData.section || feeStructure.section ? ` - ${updateData.section || feeStructure.section}` : '';
+      const sectionText =
+        updateData.section || feeStructure.section
+          ? ` - ${updateData.section || feeStructure.section}`
+          : '';
       const academicYear = updateData.academic_year || feeStructure.academic_year;
-      
+
       // Handle multi-class fee structures
-      if (newApplicableClasses && Array.isArray(newApplicableClasses) && newApplicableClasses.length > 0) {
+      if (
+        newApplicableClasses &&
+        Array.isArray(newApplicableClasses) &&
+        newApplicableClasses.length > 0
+      ) {
         const classNames = newApplicableClasses.join(', ');
         updateData.name = `${feeType.name} - ${classNames}${sectionText} (${academicYear})`;
       } else {
@@ -683,12 +740,14 @@ const updateFeeStructure = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
-        },
-      ],
+          as: 'feeType'
+        }
+      ]
     });
 
-    logger.info(`Fee structure updated: ${feeStructure.name} - ${feeStructure.class_name} (${feeStructure.academic_year})`);
+    logger.info(
+      `Fee structure updated: ${feeStructure.name} - ${feeStructure.class_name} (${feeStructure.academic_year})`
+    );
     return res.status(200).json({ success: true, data: updatedFeeStructure });
   } catch (error) {
     logger.error('Error updating fee structure:', error);
@@ -703,7 +762,7 @@ const deleteFeeStructure = async (req, res, next) => {
 
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter if branch context is set
@@ -712,7 +771,7 @@ const deleteFeeStructure = async (req, res, next) => {
     }
 
     const feeStructure = await FeeStructure.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!feeStructure) {
@@ -721,10 +780,12 @@ const deleteFeeStructure = async (req, res, next) => {
 
     await feeStructure.update({
       is_active: false,
-      updated_by: req.user.id,
+      updated_by: req.user.id
     });
 
-    logger.info(`Fee structure deleted: ${feeStructure.name} - ${feeStructure.class_name} (${feeStructure.academic_year})`);
+    logger.info(
+      `Fee structure deleted: ${feeStructure.name} - ${feeStructure.class_name} (${feeStructure.academic_year})`
+    );
     return res.status(200).json({ success: true, message: 'Fee structure deleted successfully.' });
   } catch (error) {
     logger.error('Error deleting fee structure:', error);
@@ -736,10 +797,10 @@ const deleteFeeStructure = async (req, res, next) => {
 const cloneFeeStructure = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { 
-      new_name, 
-      new_academic_year, 
-      new_class_name, 
+    const {
+      new_name,
+      new_academic_year,
+      new_class_name,
       new_section,
       clone_to_multiple_classes = false,
       target_classes = []
@@ -749,14 +810,14 @@ const cloneFeeStructure = async (req, res, next) => {
     const originalStructure = await FeeStructure.findOne({
       where: {
         id,
-        school_id: req.schoolId,
+        school_id: req.schoolId
       },
       include: [
         {
           model: FeeType,
-          as: 'feeType',
-        },
-      ],
+          as: 'feeType'
+        }
+      ]
     });
 
     if (!originalStructure) {
@@ -766,7 +827,7 @@ const cloneFeeStructure = async (req, res, next) => {
     // Check if fee structure already exists for the new combination (only active ones)
     const newAcademicYear = new_academic_year || originalStructure.academic_year;
     const newClassName = new_class_name || originalStructure.class_name;
-    
+
     // Enhanced validation: Ensure one payment model per class per academic year
     await validateFeeStructure(
       req.branchId,
@@ -791,12 +852,12 @@ const cloneFeeStructure = async (req, res, next) => {
       installment_count: originalStructure.installment_count,
       due_month: originalStructure.due_month,
       due_day: originalStructure.due_day,
-      
+
       notes: originalStructure.notes,
       is_active: true,
       school_id: req.schoolId,
       branch_id: req.branchId,
-      created_by: req.user.id,
+      created_by: req.user.id
     });
 
     // Include fee type in response
@@ -804,12 +865,14 @@ const cloneFeeStructure = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
-        },
-      ],
+          as: 'feeType'
+        }
+      ]
     });
 
-    logger.info(`Fee structure cloned: ${clonedStructure.name} - ${clonedStructure.class_name} (${clonedStructure.academic_year})`);
+    logger.info(
+      `Fee structure cloned: ${clonedStructure.name} - ${clonedStructure.class_name} (${clonedStructure.academic_year})`
+    );
     return res.status(201).json({ success: true, data: clonedStructureWithType });
   } catch (error) {
     logger.error('Error cloning fee structure:', error);
@@ -829,7 +892,7 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
       class_id,
       fee_type_id,
       sections_data, // Array of { section: string, amount: number, payment_model: string }
-      is_active = true,
+      is_active = true
     } = req.body;
 
     // Validate required fields
@@ -851,7 +914,7 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
+
     if (!uuidRegex.test(academic_year_id)) {
       throw new ApiError(400, 'Invalid academic year ID format.');
     }
@@ -877,8 +940,8 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
     const classData = await Class.findOne({
       where: {
         id: class_id,
-        school_id: req.schoolId,
-      },
+        school_id: req.schoolId
+      }
     });
 
     if (!classData) {
@@ -891,8 +954,8 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
         id: fee_type_id,
         school_id: req.schoolId,
         branch_id: req.branchId,
-        is_active: true,
-      },
+        is_active: true
+      }
     });
 
     if (!feeType) {
@@ -905,7 +968,13 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
     // Create fee structure for each section
     for (const sectionData of sections_data) {
       try {
-        const { section, amount, payment_model = 'installment', installment_count = 1, installment_amounts = [] } = sectionData;
+        const {
+          section,
+          amount,
+          payment_model = 'installment',
+          installment_count = 1,
+          installment_amounts = []
+        } = sectionData;
 
         if (!section || !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
           errors.push(`Invalid data for section: ${section}`);
@@ -922,8 +991,8 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
             section: section,
             fee_type_id,
             payment_model,
-            is_active: true,
-          },
+            is_active: true
+          }
         });
 
         if (existingFeeStructure) {
@@ -949,7 +1018,7 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
           is_active,
           school_id: req.schoolId,
           branch_id: req.branchId,
-          created_by: req.user.id,
+          created_by: req.user.id
         });
 
         // Include fee type in response
@@ -957,9 +1026,9 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
-            },
-          ],
+              as: 'feeType'
+            }
+          ]
         });
 
         createdStructures.push(feeStructureWithType);
@@ -979,8 +1048,8 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
       message: `Created ${createdStructures.length} fee structure(s) successfully.`,
       data: {
         created_structures: createdStructures,
-        errors: errors.length > 0 ? errors : null,
-      },
+        errors: errors.length > 0 ? errors : null
+      }
     });
   } catch (error) {
     logger.error('Error creating section-based fee structures:', error);
@@ -994,11 +1063,7 @@ const createSectionBasedFeeStructures = async (req, res, next) => {
  */
 const createBranch1FeeStructures = async (req, res, next) => {
   try {
-    const {
-      academic_year_id,
-      fee_type_id,
-      is_active = true,
-    } = req.body;
+    const { academic_year_id, fee_type_id, is_active = true } = req.body;
 
     // Validate required fields
     if (!academic_year_id || academic_year_id.trim() === '') {
@@ -1011,7 +1076,7 @@ const createBranch1FeeStructures = async (req, res, next) => {
 
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
+
     if (!uuidRegex.test(academic_year_id)) {
       throw new ApiError(400, 'Invalid academic year ID format.');
     }
@@ -1022,7 +1087,7 @@ const createBranch1FeeStructures = async (req, res, next) => {
 
     // Get academic year details
     const academicYear = await AcademicYear.findOne({
-      where: { id: academic_year_id },
+      where: { id: academic_year_id }
     });
 
     if (!academicYear) {
@@ -1035,8 +1100,8 @@ const createBranch1FeeStructures = async (req, res, next) => {
         id: fee_type_id,
         school_id: req.schoolId,
         branch_id: req.branchId,
-        is_active: true,
-      },
+        is_active: true
+      }
     });
 
     if (!feeType) {
@@ -1065,8 +1130,8 @@ const createBranch1FeeStructures = async (req, res, next) => {
             class_name: group.name,
             fee_type_id,
             payment_model: 'monthly',
-            is_active: true,
-          },
+            is_active: true
+          }
         });
 
         if (existingFeeStructure) {
@@ -1092,7 +1157,7 @@ const createBranch1FeeStructures = async (req, res, next) => {
           is_active,
           school_id: req.schoolId,
           branch_id: req.branchId,
-          created_by: req.user.id,
+          created_by: req.user.id
         });
 
         // Include fee type in response
@@ -1100,13 +1165,15 @@ const createBranch1FeeStructures = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
-            },
-          ],
+              as: 'feeType'
+            }
+          ]
         });
 
         createdStructures.push(feeStructureWithType);
-        logger.info(`Branch 1 fee structure created: ${feeStructure.name} - ₹${group.amount}/month`);
+        logger.info(
+          `Branch 1 fee structure created: ${feeStructure.name} - ₹${group.amount}/month`
+        );
       } catch (error) {
         logger.error(`Error creating fee structure for ${group.name}:`, error);
         errors.push(`Failed to create fee structure for ${group.name}: ${error.message}`);
@@ -1125,10 +1192,10 @@ const createBranch1FeeStructures = async (req, res, next) => {
         errors: errors.length > 0 ? errors : null,
         summary: {
           'JR-SR': '₹800/month',
-          '1st-5th': '₹900/month', 
+          '1st-5th': '₹900/month',
           '6th-10th': '₹1,000/month'
         }
-      },
+      }
     });
   } catch (error) {
     logger.error('Error creating Branch 1 fee structures:', error);
@@ -1139,9 +1206,9 @@ const createBranch1FeeStructures = async (req, res, next) => {
 const getFeeStructuresWithContext = async (req, res, next) => {
   try {
     const { payment_model, academic_year, class_name, fee_type_id, school_id } = req.query;
-    
+
     const whereClause = {
-      is_active: true,
+      is_active: true
     };
 
     // Handle school_id filtering based on user role
@@ -1174,22 +1241,26 @@ const getFeeStructuresWithContext = async (req, res, next) => {
       include: [
         {
           model: FeeType,
-          as: 'feeType',
+          as: 'feeType'
         },
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
-        },
+          attributes: ['id', 'name', 'code']
+        }
       ],
-      order: [['academic_year', 'DESC'], ['class_name', 'ASC'], ['name', 'ASC']],
+      order: [
+        ['academic_year', 'DESC'],
+        ['class_name', 'ASC'],
+        ['name', 'ASC']
+      ]
     });
 
     // Format the response with complete context and stream names
     const formattedStructures = await Promise.all(
-      feeStructures.map(async (structure) => {
+      feeStructures.map(async structure => {
         const structureData = structure.toJSON();
-        
+
         // If the structure has stream_ids, fetch the stream names
         if (structureData.stream_ids && structureData.stream_ids.length > 0) {
           const streams = await Stream.findAll({
@@ -1200,13 +1271,13 @@ const getFeeStructuresWithContext = async (req, res, next) => {
             attributes: ['name'],
             order: [['name', 'ASC']]
           });
-          
+
           // Create a comma-separated string of stream names for display
           structureData.stream_names = streams.map(s => s.name).join(', ');
         } else {
           structureData.stream_names = '';
         }
-        
+
         return {
           id: structureData.id,
           name: structureData.name,
@@ -1229,13 +1300,13 @@ const getFeeStructuresWithContext = async (req, res, next) => {
           school_id: structureData.school_id,
           is_active: structureData.is_active,
           created_at: structureData.created_at,
-          updated_at: structureData.updated_at,
+          updated_at: structureData.updated_at
         };
       })
     );
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       data: {
         fee_structures: formattedStructures,
         total: formattedStructures.length
@@ -1256,5 +1327,5 @@ module.exports = {
   updateFeeStructure,
   deleteFeeStructure,
   cloneFeeStructure,
-  getFeeStructuresWithContext,
+  getFeeStructuresWithContext
 };

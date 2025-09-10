@@ -16,8 +16,22 @@ class SchoolConfigurationController {
 
     const school = await School.findByPk(schoolId, {
       attributes: [
-        'id', 'name', 'code', 'email', 'phone', 'website', 'address', 'city', 'state', 'postal_code', 'country',
-        'timezone', 'currency', 'date_format', 'current_academic_year_id', 'settings'
+        'id',
+        'name',
+        'code',
+        'email',
+        'phone',
+        'website',
+        'address',
+        'city',
+        'state',
+        'postal_code',
+        'country',
+        'timezone',
+        'currency',
+        'date_format',
+        'current_academic_year_id',
+        'settings'
       ]
     });
 

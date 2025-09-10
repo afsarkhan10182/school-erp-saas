@@ -11,7 +11,7 @@ const isRedisEnabled = () => {
   if (process.env.REDIS_ENABLED === 'false' || process.env.REDIS_ENABLED === '0') {
     return false;
   }
-  
+
   // Check if Redis configuration exists
   return config.redis && config.redis.enabled !== false;
 };
@@ -25,14 +25,14 @@ const connectRedis = async () => {
   try {
     const redisUrl = `redis://${config.redis.host}:${config.redis.port}`;
     logger.info(`Attempting to connect to Redis at ${redisUrl}`);
-    
+
     redisClient = createClient({
       url: redisUrl,
       ...(config.redis.password && { password: config.redis.password }),
       socket: {
         connectTimeout: 5000, // 5 seconds
         lazyConnect: true,
-        reconnectStrategy: (retries) => {
+        reconnectStrategy: retries => {
           if (retries > MAX_RECONNECTION_ATTEMPTS) {
             logger.warn('Max Redis reconnection attempts reached. Continuing without Redis.');
             return false; // Stop trying to reconnect
@@ -44,7 +44,7 @@ const connectRedis = async () => {
       }
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', err => {
       logger.error('Redis Client Error:', err.message);
       // Don't throw error, just log it
     });
@@ -67,12 +67,14 @@ const connectRedis = async () => {
   } catch (error) {
     redisConnectionAttempts++;
     logger.error(`Failed to connect to Redis (attempt ${redisConnectionAttempts}):`, error.message);
-    
+
     if (redisConnectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
-      logger.warn('Max Redis connection attempts reached. Application will continue without Redis.');
+      logger.warn(
+        'Max Redis connection attempts reached. Application will continue without Redis.'
+      );
       return null;
     }
-    
+
     // Don't throw error, just return null
     return null;
   }
@@ -82,11 +84,11 @@ const getRedisClient = () => {
   if (!isRedisEnabled()) {
     return null;
   }
-  
+
   if (!redisClient || !redisClient.isOpen) {
     return null;
   }
-  
+
   return redisClient;
 };
 
@@ -114,11 +116,11 @@ const checkRedisHealth = async () => {
     if (!client) {
       return { status: 'disabled', message: 'Redis is disabled or not connected' };
     }
-    
+
     const startTime = Date.now();
     await client.ping();
     const responseTime = Date.now() - startTime;
-    
+
     return {
       status: 'healthy',
       responseTime,
@@ -143,5 +145,5 @@ module.exports = {
   shutdownRedis,
   isRedisEnabled,
   isRedisAvailable,
-  checkRedisHealth,
+  checkRedisHealth
 };

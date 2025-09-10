@@ -3,12 +3,18 @@ const {
   sendAbsenceNotifications,
   sendLateArrivalNotifications,
   sendAttendanceSummary,
-  getNotificationSettings,
+  getNotificationSettings
 } = require('~/controllers/academic/attendance/attendance-notification.controller');
 const { verifyToken, authorize, setSchoolContext } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createAttendanceNotificationValidator, updateAttendanceNotificationValidator } = require('~/validations/academic/attendance-notification.validation');
-const { validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
+const {
+  createAttendanceNotificationValidator,
+  updateAttendanceNotificationValidator
+} = require('~/validations/academic/attendance-notification.validation');
+const {
+  validateModuleAccess,
+  checkSubscriptionStatus
+} = require('~/middleware/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication
@@ -53,7 +59,5 @@ router.post('/summary', sendAttendanceSummary);
  * @access Private (super_admin, school_admin, branch_admin, teacher)
  */
 router.get('/settings', getNotificationSettings);
-
-
 
 module.exports = router;

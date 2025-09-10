@@ -4,12 +4,13 @@ const { verifyToken, authorize } = require('~/middleware/auth');
 const { uploadSingle } = require('~/middleware/upload');
 const { validate } = require('~/middleware/validate');
 const { validateRoleAssignment } = require('~/middleware/roleValidation');
-const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('~/middleware/subscriptionValidation');
-const UserController = require('~/controllers/user/user.controller');
 const {
-  createUserValidator,
-  updateUserValidator,
-} = require('~/validations/user.validation');
+  validateSubscriptionLimits,
+  validateModuleAccess,
+  checkSubscriptionStatus
+} = require('~/middleware/subscriptionValidation');
+const UserController = require('~/controllers/user/user.controller');
+const { createUserValidator, updateUserValidator } = require('~/validations/user.validation');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -48,17 +49,9 @@ router.get(
 );
 
 // Get all users (Super Admin can see all, School Admin can see users in their school)
-router.get(
-  '/',
-  authorize(['super_admin', 'school_admin']),
-  UserController.getAllUsers
-);
+router.get('/', authorize(['super_admin', 'school_admin']), UserController.getAllUsers);
 
-router.get(
-  '/:id',
-  authorize(['super_admin', 'school_admin']),
-  UserController.getUserById
-);
+router.get('/:id', authorize(['super_admin', 'school_admin']), UserController.getUserById);
 
 router.put(
   '/:id',
@@ -68,11 +61,7 @@ router.put(
   UserController.updateUser
 );
 
-router.delete(
-  '/:id',
-  authorize(['super_admin', 'school_admin']),
-  UserController.deleteUser
-);
+router.delete('/:id', authorize(['super_admin', 'school_admin']), UserController.deleteUser);
 
 // School Admin routes (can manage users in their school)
 router.post(
@@ -86,4 +75,4 @@ router.post(
   UserController.createUser
 );
 
-module.exports = router; 
+module.exports = router;

@@ -35,7 +35,7 @@
         <div class="header">
           <img
             v-if="receiptData.receipt_logo && receiptData.receipt_logo.trim() !== ''"
-            :src="getImageUrl(receiptData.receipt_logo)"
+            :src="getLogoUrl(receiptData.receipt_logo)"
             alt="Receipt Logo"
             class="receipt-logo"
             @error="handleLogoError"
@@ -387,14 +387,8 @@ const handleLogoError = event => {
   event.target.style.display = 'none';
 };
 
-const getImageUrl = filename => {
-  if (!filename) return '';
-  if (filename.startsWith('data:')) return filename;
-  const config = useRuntimeConfig();
-  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
-  const backendBase = apiBase.replace('/api', '');
-  return `${backendBase}/uploads/logos/${filename}`;
-};
+// Import centralized image utilities
+import { getLogoUrl } from '~/utils/imageUtils';
 
 const getMonthName = month => {
   const months = [

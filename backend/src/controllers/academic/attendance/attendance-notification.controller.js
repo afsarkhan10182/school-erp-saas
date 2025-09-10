@@ -1,7 +1,7 @@
-const { 
-  sendAbsenteeNotifications, 
+const {
+  sendAbsenteeNotifications,
   sendLateArrivalNotifications,
-  sendAttendanceSummaryNotifications 
+  sendAttendanceSummaryNotifications
 } = require('~/services/attendance-notification.service');
 const { Student, Parent, StudentParent, Class, Section, Branch, School } = require('~/models');
 const { Op } = require('sequelize');
@@ -38,9 +38,9 @@ const sendAbsenceNotifications = async (req, res, next) => {
         id: { [Op.in]: studentIds },
         school_id: userSchoolId,
         ...(userBranchId && { branch_id: userBranchId }),
-        is_active: true,
+        is_active: true
       },
-      attributes: ['id'],
+      attributes: ['id']
     });
 
     if (studentCheck.length !== studentIds.length) {
@@ -50,7 +50,7 @@ const sendAbsenceNotifications = async (req, res, next) => {
     logger.info(`Processing absence notifications for ${absentStudents.length} students`, {
       schoolId: userSchoolId,
       branchId: userBranchId,
-      sessionDate: sessionData.date,
+      sessionDate: sessionData.date
     });
 
     // Send notifications
@@ -58,7 +58,9 @@ const sendAbsenceNotifications = async (req, res, next) => {
 
     logger.info('Absence notifications completed', results);
 
-    return res.status(200).json(apiResponse(200, 'Absence notifications sent successfully', results));
+    return res
+      .status(200)
+      .json(apiResponse(200, 'Absence notifications sent successfully', results));
   } catch (error) {
     logger.error('Error sending absence notifications:', error);
     next(error);
@@ -94,9 +96,9 @@ const handleSendLateArrivalNotifications = async (req, res, next) => {
         id: { [Op.in]: studentIds },
         school_id: userSchoolId,
         ...(userBranchId && { branch_id: userBranchId }),
-        is_active: true,
+        is_active: true
       },
-      attributes: ['id'],
+      attributes: ['id']
     });
 
     if (studentCheck.length !== studentIds.length) {
@@ -106,7 +108,7 @@ const handleSendLateArrivalNotifications = async (req, res, next) => {
     logger.info(`Processing late arrival notifications for ${lateStudents.length} students`, {
       schoolId: userSchoolId,
       branchId: userBranchId,
-      sessionDate: sessionData.date,
+      sessionDate: sessionData.date
     });
 
     // Send notifications
@@ -114,7 +116,9 @@ const handleSendLateArrivalNotifications = async (req, res, next) => {
 
     logger.info('Late arrival notifications completed', results);
 
-    return res.status(200).json(apiResponse(200, 'Late arrival notifications sent successfully', results));
+    return res
+      .status(200)
+      .json(apiResponse(200, 'Late arrival notifications sent successfully', results));
   } catch (error) {
     logger.error('Error sending late arrival notifications:', error);
     next(error);
@@ -149,8 +153,8 @@ const sendAttendanceSummary = async (req, res, next) => {
         id: sessionData.class_id,
         school_id: userSchoolId,
         ...(userBranchId && { branch_id: userBranchId }),
-        is_active: true,
-      },
+        is_active: true
+      }
     });
 
     if (!classCheck) {
@@ -161,13 +165,13 @@ const sendAttendanceSummary = async (req, res, next) => {
     const enhancedClassData = {
       ...classData,
       school_id: userSchoolId,
-      branch_id: userBranchId,
+      branch_id: userBranchId
     };
 
     logger.info(`Processing attendance summary notifications for class ${sessionData.class_id}`, {
       schoolId: userSchoolId,
       branchId: userBranchId,
-      sessionDate: sessionData.date,
+      sessionDate: sessionData.date
     });
 
     // Send notifications
@@ -175,7 +179,9 @@ const sendAttendanceSummary = async (req, res, next) => {
 
     logger.info('Attendance summary notifications completed', results);
 
-    return res.status(200).json(apiResponse(200, 'Attendance summary notifications sent successfully', results));
+    return res
+      .status(200)
+      .json(apiResponse(200, 'Attendance summary notifications sent successfully', results));
   } catch (error) {
     logger.error('Error sending attendance summary notifications:', error);
     next(error);
@@ -201,9 +207,9 @@ const getNotificationSettings = async (req, res, next) => {
           model: Branch,
           where: userBranchId ? { id: userBranchId } : {},
           required: false,
-          attributes: ['id', 'name', 'email', 'phone'],
-        },
-      ],
+          attributes: ['id', 'name', 'email', 'phone']
+        }
+      ]
     });
 
     if (!school) {
@@ -215,7 +221,7 @@ const getNotificationSettings = async (req, res, next) => {
       where: {
         school_id: userSchoolId,
         ...(userBranchId && { branch_id: userBranchId }),
-        is_active: true,
+        is_active: true
       },
       include: [
         {
@@ -226,21 +232,21 @@ const getNotificationSettings = async (req, res, next) => {
             [Op.or]: [
               { father_email: { [Op.ne]: null } },
               { mother_email: { [Op.ne]: null } },
-              { guardian_email: { [Op.ne]: null } },
-            ],
+              { guardian_email: { [Op.ne]: null } }
+            ]
           },
-          attributes: [],
-        },
+          attributes: []
+        }
       ],
-      distinct: true,
+      distinct: true
     });
 
     const totalStudents = await Student.count({
       where: {
         school_id: userSchoolId,
         ...(userBranchId && { branch_id: userBranchId }),
-        is_active: true,
-      },
+        is_active: true
+      }
     });
 
     const settings = {
@@ -248,42 +254,43 @@ const getNotificationSettings = async (req, res, next) => {
         id: school.id,
         name: school.name,
         email: school.email,
-        phone: school.phone,
+        phone: school.phone
       },
       branches: school.Branches || [],
       statistics: {
         totalStudents,
         studentsWithParentEmail: studentStats.count,
-        coveragePercentage: totalStudents > 0 ? Math.round((studentStats.count / totalStudents) * 100) : 0,
+        coveragePercentage:
+          totalStudents > 0 ? Math.round((studentStats.count / totalStudents) * 100) : 0
       },
       notificationTypes: {
         absence: {
           enabled: true,
-          description: 'Send notifications when students are marked absent',
+          description: 'Send notifications when students are marked absent'
         },
         lateArrival: {
           enabled: true,
-          description: 'Send notifications when students arrive late',
+          description: 'Send notifications when students arrive late'
         },
         dailySummary: {
           enabled: true,
-          description: 'Send daily attendance summary to parents',
-        },
-      },
+          description: 'Send daily attendance summary to parents'
+        }
+      }
     };
 
-    return res.status(200).json(apiResponse(200, 'Notification settings retrieved successfully', settings));
+    return res
+      .status(200)
+      .json(apiResponse(200, 'Notification settings retrieved successfully', settings));
   } catch (error) {
     logger.error('Error getting notification settings:', error);
     next(error);
   }
 };
 
-
-
 module.exports = {
   sendAbsenceNotifications,
   sendLateArrivalNotifications: handleSendLateArrivalNotifications,
   sendAttendanceSummary,
-  getNotificationSettings,
+  getNotificationSettings
 };

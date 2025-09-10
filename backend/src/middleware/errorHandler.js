@@ -46,7 +46,7 @@ const errorHandler = (err, req, res, next) => {
     stack: err.stack,
     ...(err.errors && { validationErrors: err.errors }),
     ...(err.code && { errorCode: err.code }),
-    ...(err.statusCode && { statusCode: err.statusCode }),
+    ...(err.statusCode && { statusCode: err.statusCode })
   });
 
   // Debug logging for status code issues
@@ -65,13 +65,13 @@ const errorHandler = (err, req, res, next) => {
   // Handle specific error types with proper status codes
   if (err instanceof ValidationError) {
     const errors = {};
-    err.errors.forEach((error) => {
+    err.errors.forEach(error => {
       errors[error.path] = error.message;
     });
     return errorResponse(res, err, {
       statusCode: HTTP_STATUS.BAD_REQUEST,
       message: 'Validation Error',
-      errors,
+      errors
     });
   }
 
@@ -80,7 +80,7 @@ const errorHandler = (err, req, res, next) => {
     return errorResponse(res, err, {
       statusCode: err.statusCode,
       message: err.message,
-      errors: err.details.errors,
+      errors: err.details.errors
     });
   }
 
@@ -90,92 +90,92 @@ const errorHandler = (err, req, res, next) => {
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.CONFLICT,
         message: 'Duplicate entry',
-        errors: { [err.errors[0].path]: 'This value already exists' },
+        errors: { [err.errors[0].path]: 'This value already exists' }
       });
-    
+
     case 'SequelizeDatabaseError':
       return errorResponse(res, err, {
         statusCode: 400,
-        message: 'Database error',
+        message: 'Database error'
       });
-    
+
     case 'SequelizeConnectionError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
-        message: 'Database connection error',
+        message: 'Database connection error'
       });
-    
+
     case 'JsonWebTokenError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.UNAUTHORIZED,
-        message: 'Invalid token',
+        message: 'Invalid token'
       });
-    
+
     case 'TokenExpiredError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.UNAUTHORIZED,
-        message: 'Token expired',
+        message: 'Token expired'
       });
-    
+
     case 'UnauthorizedError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.UNAUTHORIZED,
-        message: 'Not authorized to access this route',
+        message: 'Not authorized to access this route'
       });
-    
+
     case 'MulterError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.BAD_REQUEST,
         message: 'File upload error',
-        errors: { file: err.message },
+        errors: { file: err.message }
       });
-    
+
     case 'SyntaxError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.BAD_REQUEST,
-        message: 'Invalid JSON',
+        message: 'Invalid JSON'
       });
-    
+
     case 'CastError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.BAD_REQUEST,
-        message: 'Invalid data format',
+        message: 'Invalid data format'
       });
-    
+
     // Handle custom API errors
     case 'ApiError':
       return errorResponse(res, err, {
         statusCode: err.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR,
         message: err.message || 'API Error',
-        errors: err.details?.errors || {},
+        errors: err.details?.errors || {}
       });
-    
+
     // Handle timeout errors
     case 'TimeoutError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.REQUEST_TIMEOUT,
-        message: 'Request timeout',
+        message: 'Request timeout'
       });
-    
+
     // Handle network errors
     case 'NetworkError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
-        message: 'Network error',
+        message: 'Network error'
       });
-    
+
     case 'NotFoundError':
       return errorResponse(res, err, {
         statusCode: HTTP_STATUS.NOT_FOUND,
-        message: err.message || 'Resource not found',
+        message: err.message || 'Resource not found'
       });
-    
+
     // Default error handler
     default:
       // Determine status code based on error properties
       let statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
       let message = 'Internal Server Error';
-      
+
       if (err.statusCode) {
         statusCode = err.statusCode;
       } else if (err.code === 'ENOTFOUND') {
@@ -190,19 +190,19 @@ const errorHandler = (err, req, res, next) => {
       } else if (err.message) {
         message = err.message;
       }
-      
+
       // Final fallback: ensure statusCode is always valid
       if (!statusCode || isNaN(parseInt(statusCode)) || statusCode < 100 || statusCode > 599) {
         statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
       }
-      
+
       // Also ensure err.statusCode is set for consistency
       err.statusCode = statusCode;
 
       return errorResponse(res, err, {
         statusCode,
         message,
-        errors: err.errors || {},
+        errors: err.errors || {}
       });
   }
 };
@@ -222,20 +222,20 @@ const notFoundHandler = (req, res, next) => {
  * Graceful shutdown handler
  * @param {Object} server - Express server instance
  */
-const gracefulShutdown = (server) => {
-  return (signal) => {
+const gracefulShutdown = server => {
+  return signal => {
     logger.info(`Received ${signal}. Starting graceful shutdown...`);
-    
-    server.close((err) => {
+
+    server.close(err => {
       if (err) {
         logger.error('Error during server shutdown:', err);
         process.exit(1);
       }
-      
+
       logger.info('Server closed successfully');
       process.exit(0);
     });
-    
+
     // Force shutdown after 30 seconds
     setTimeout(() => {
       logger.error('Forced shutdown after timeout');
@@ -244,8 +244,8 @@ const gracefulShutdown = (server) => {
   };
 };
 
-module.exports = { 
-  errorHandler, 
-  notFoundHandler, 
-  gracefulShutdown 
+module.exports = {
+  errorHandler,
+  notFoundHandler,
+  gracefulShutdown
 };

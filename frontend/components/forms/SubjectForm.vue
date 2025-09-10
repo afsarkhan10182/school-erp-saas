@@ -219,11 +219,12 @@ const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
 const { showToast } = useToast();
-const { subjectCategories } = useConfig();
+const config = useConfig();
 
 // Reactive data
 const isSubmitting = ref(false);
 const errors = ref({});
+const subjectCategories = ref([]);
 
 // Form data
 const form = reactive({
@@ -363,9 +364,20 @@ watch(
   { immediate: true }
 );
 
+// Load subject categories
+const loadSubjectCategories = async () => {
+  try {
+    subjectCategories.value = await config.getSubjectCategories();
+  } catch (error) {
+    console.error('Failed to load subject categories:', error);
+    subjectCategories.value = [];
+  }
+};
+
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   populateForm(props.subject);
+  await loadSubjectCategories();
 });
 </script>
 

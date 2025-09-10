@@ -5,12 +5,7 @@ const { logger } = require('~/utils/logger');
 // Create a new fee type
 const createFeeType = async (req, res, next) => {
   try {
-    const {
-      name,
-      code,
-      category,
-      is_active = true,
-    } = req.body;
+    const { name, code, category, is_active = true } = req.body;
 
     // For school admin, use their school_id from the token
     // For super admin, use the school_id from request body
@@ -32,8 +27,8 @@ const createFeeType = async (req, res, next) => {
         code,
         school_id: schoolId,
         branch_id: branchId,
-        is_active: true, // Only check active fee types
-      },
+        is_active: true // Only check active fee types
+      }
     });
 
     if (existingFeeType) {
@@ -46,12 +41,15 @@ const createFeeType = async (req, res, next) => {
         code,
         school_id: schoolId,
         branch_id: branchId,
-        is_active: false, // Check for soft-deleted fee types
-      },
+        is_active: false // Check for soft-deleted fee types
+      }
     });
 
     if (softDeletedFeeType) {
-      throw new ApiError(400, `A fee type with code '${code}' was previously deleted. Please use a different code or contact support to restore the deleted fee type.`);
+      throw new ApiError(
+        400,
+        `A fee type with code '${code}' was previously deleted. Please use a different code or contact support to restore the deleted fee type.`
+      );
     }
 
     // Create fee type
@@ -62,7 +60,7 @@ const createFeeType = async (req, res, next) => {
       is_active,
       school_id: schoolId,
       branch_id: branchId,
-      created_by: req.user.id,
+      created_by: req.user.id
     });
 
     logger.info(`Fee type created: ${feeType.name} (${feeType.code})`);
@@ -78,7 +76,7 @@ const getFeeTypes = async (req, res, next) => {
   try {
     const whereClause = {
       school_id: req.schoolId,
-      is_active: true,
+      is_active: true
     };
 
     // Add branch filter for branch_admin and when branch context is set
@@ -92,10 +90,10 @@ const getFeeTypes = async (req, res, next) => {
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
+          attributes: ['id', 'name', 'code']
         }
       ],
-      order: [['name', 'ASC']],
+      order: [['name', 'ASC']]
     });
 
     return res.status(200).json({ success: true, data: feeTypes });
@@ -112,12 +110,13 @@ const getFeeTypeById = async (req, res, next) => {
 
     // For school admin, use their school_id from the token
     // For super admin, use the school_id from query params or their context
-    const schoolId = req.user.role === 'super_admin' ? (req.query.school_id || req.schoolId) : req.user.school_id;
+    const schoolId =
+      req.user.role === 'super_admin' ? req.query.school_id || req.schoolId : req.user.school_id;
     const branchId = req.query.branch_id || req.user.branch_id;
 
     const whereClause = {
       id,
-      school_id: schoolId,
+      school_id: schoolId
     };
 
     // Add branch filter if branch context is set
@@ -131,9 +130,9 @@ const getFeeTypeById = async (req, res, next) => {
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
+          attributes: ['id', 'name', 'code']
         }
-      ],
+      ]
     });
 
     if (!feeType) {
@@ -155,12 +154,13 @@ const updateFeeType = async (req, res, next) => {
 
     // For school admin, use their school_id from the token
     // For super admin, use the school_id from request body or existing fee type
-    const schoolId = req.user.role === 'super_admin' ? (req.body.school_id || req.schoolId) : req.user.school_id;
+    const schoolId =
+      req.user.role === 'super_admin' ? req.body.school_id || req.schoolId : req.user.school_id;
     const branchId = req.body.branch_id || req.user.branch_id;
 
     const whereClause = {
       id,
-      school_id: schoolId,
+      school_id: schoolId
     };
 
     // Add branch filter if branch context is set
@@ -169,35 +169,35 @@ const updateFeeType = async (req, res, next) => {
     }
 
     const feeType = await FeeType.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!feeType) {
       throw new ApiError(404, 'Fee type not found.');
     }
 
-          // Check if code is being updated and if it already exists (only active ones)
-      if (code && code !== feeType.code) {
-        const existingFeeType = await FeeType.findOne({
-          where: {
-            code: code,
-            school_id: schoolId,
-            branch_id: branchId,
-            is_active: true, // Only check active fee types
-          },
-        });
-
-        if (existingFeeType) {
-          throw new ApiError(400, 'Fee type with this code already exists in this branch.');
+    // Check if code is being updated and if it already exists (only active ones)
+    if (code && code !== feeType.code) {
+      const existingFeeType = await FeeType.findOne({
+        where: {
+          code: code,
+          school_id: schoolId,
+          branch_id: branchId,
+          is_active: true // Only check active fee types
         }
+      });
+
+      if (existingFeeType) {
+        throw new ApiError(400, 'Fee type with this code already exists in this branch.');
       }
+    }
 
     await feeType.update({
       name,
       code,
       category,
       is_active,
-      updated_by: req.user.id,
+      updated_by: req.user.id
     });
 
     logger.info(`Fee type updated: ${feeType.name} (${feeType.code})`);
@@ -215,12 +215,13 @@ const deleteFeeType = async (req, res, next) => {
 
     // For school admin, use their school_id from the token
     // For super admin, use the school_id from query params or their context
-    const schoolId = req.user.role === 'super_admin' ? (req.query.school_id || req.schoolId) : req.user.school_id;
+    const schoolId =
+      req.user.role === 'super_admin' ? req.query.school_id || req.schoolId : req.user.school_id;
     const branchId = req.query.branch_id || req.user.branch_id;
 
     const whereClause = {
       id,
-      school_id: schoolId,
+      school_id: schoolId
     };
 
     // Add branch filter if branch context is set
@@ -229,7 +230,7 @@ const deleteFeeType = async (req, res, next) => {
     }
 
     const feeType = await FeeType.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!feeType) {
@@ -238,7 +239,7 @@ const deleteFeeType = async (req, res, next) => {
 
     await feeType.update({
       is_active: false,
-      updated_by: req.user.id,
+      updated_by: req.user.id
     });
 
     logger.info(`Fee type deleted: ${feeType.name} (${feeType.code})`);
@@ -256,13 +257,14 @@ const restoreFeeType = async (req, res, next) => {
 
     // For school admin, use their school_id from the token
     // For super admin, use the school_id from query params or their context
-    const schoolId = req.user.role === 'super_admin' ? (req.query.school_id || req.schoolId) : req.user.school_id;
+    const schoolId =
+      req.user.role === 'super_admin' ? req.query.school_id || req.schoolId : req.user.school_id;
     const branchId = req.query.branch_id || req.user.branch_id;
 
     const whereClause = {
       id,
       school_id: schoolId,
-      is_active: false, // Only restore soft-deleted fee types
+      is_active: false // Only restore soft-deleted fee types
     };
 
     // Add branch filter if branch context is set
@@ -271,7 +273,7 @@ const restoreFeeType = async (req, res, next) => {
     }
 
     const feeType = await FeeType.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!feeType) {
@@ -285,21 +287,26 @@ const restoreFeeType = async (req, res, next) => {
         school_id: schoolId,
         is_active: true,
         // Only check branch_id if it's provided
-        ...(branchId && { branch_id: branchId }),
-      },
+        ...(branchId && { branch_id: branchId })
+      }
     });
 
     if (existingActiveFeeType) {
-      throw new ApiError(400, `Cannot restore fee type. An active fee type with code '${feeType.code}' already exists.`);
+      throw new ApiError(
+        400,
+        `Cannot restore fee type. An active fee type with code '${feeType.code}' already exists.`
+      );
     }
 
     await feeType.update({
       is_active: true,
-      updated_by: req.user.id,
+      updated_by: req.user.id
     });
 
     logger.info(`Fee type restored: ${feeType.name} (${feeType.code})`);
-    return res.status(200).json({ success: true, message: 'Fee type restored successfully.', data: feeType });
+    return res
+      .status(200)
+      .json({ success: true, message: 'Fee type restored successfully.', data: feeType });
   } catch (error) {
     logger.error('Error restoring fee type:', error);
     return next(error);
@@ -312,5 +319,5 @@ module.exports = {
   getFeeTypeById,
   updateFeeType,
   deleteFeeType,
-  restoreFeeType,
+  restoreFeeType
 };

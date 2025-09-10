@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
-const { stringify } = require('csv-stringify/sync');
+const Papa = require('papaparse');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,36 +25,36 @@ class UnifiedExportService {
   // Helper function to build common where clause
   buildWhereClause(filters, user, schoolId) {
     const whereClause = {};
-    
+
     // Add school_id filter
     if (schoolId && user.role !== 'super_admin') {
       whereClause.school_id = schoolId;
     }
-    
+
     // Add branch filter for branch admins
     if (user.role === 'branch_admin') {
       whereClause.branch_id = user.branch_id;
     } else if (filters.branch_id) {
       whereClause.branch_id = filters.branch_id;
     }
-    
+
     return whereClause;
   }
 
   // Helper function to add date filters
   addDateFilters(whereClause, filters, dateField = 'date') {
     const { Op } = require('sequelize');
-    
+
     if (filters.from_date && filters.to_date) {
       whereClause[dateField] = {
-        [Op.between]: [filters.from_date, filters.to_date],
+        [Op.between]: [filters.from_date, filters.to_date]
       };
     } else if (filters.from_date) {
       whereClause[dateField] = { [Op.gte]: filters.from_date };
     } else if (filters.date) {
       whereClause[dateField] = filters.date;
     }
-    
+
     return whereClause;
   }
 
@@ -75,9 +75,17 @@ class UnifiedExportService {
 
     // Get data based on report type
     const data = await this.getReportData(reportType, filters, user, schoolId);
-    
+
     // Generate export based on format with custom columns
-    const result = await this.generateExport(reportType, format, data, filters, user, schoolId, customColumns);
+    const result = await this.generateExport(
+      reportType,
+      format,
+      data,
+      filters,
+      user,
+      schoolId,
+      customColumns
+    );
 
     return result;
   }
@@ -89,16 +97,16 @@ class UnifiedExportService {
     switch (reportType) {
       case 'receipts':
         return await this.getReceiptsData(filters, user, schoolId);
-      
+
       case 'fees':
         return await this.getFeesData(filters, user, schoolId);
-      
+
       case 'students':
         return await this.getStudentsData(filters, user, schoolId);
-      
+
       case 'attendance':
         return await this.getAttendanceData(filters, user, schoolId);
-      
+
       default:
         throw new Error(`Unsupported report type: ${reportType}`);
     }
@@ -112,7 +120,7 @@ class UnifiedExportService {
 
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
-    
+
     // Add date filters
     this.addDateFilters(whereClause, filters, 'payment_date');
 
@@ -126,8 +134,6 @@ class UnifiedExportService {
       whereClause.branch_id = filters.branch_id;
     }
 
-
-
     // Build student include with potential filters
     const studentInclude = {
       model: Student,
@@ -136,23 +142,21 @@ class UnifiedExportService {
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
-        },
-      ],
+          attributes: ['id', 'name', 'code']
+        }
+      ]
     };
 
     // Add class filter to student include if provided
     if (filters.class_id && filters.class_id !== '') {
       studentInclude.where = { ...studentInclude.where };
       studentInclude.where.current_class_id = filters.class_id;
-
     }
 
     // Add section filter to student include if provided
     if (filters.section && filters.section !== '') {
       if (!studentInclude.where) studentInclude.where = {};
       studentInclude.where.section = filters.section;
-
     }
 
     const payments = await FeePayment.findAll({
@@ -170,55 +174,55 @@ class UnifiedExportService {
                 {
                   model: FeeType,
                   as: 'feeType',
-                  attributes: ['id', 'name'],
-                },
-              ],
-            },
-          ],
-        },
+                  attributes: ['id', 'name']
+                }
+              ]
+            }
+          ]
+        }
       ],
-      order: [['payment_date', 'DESC']],
+      order: [['payment_date', 'DESC']]
     });
 
-
-    
     if (payments.length === 0) {
       return []; // Return empty array if no data found
     }
-    const mappedData = payments.map((payment, index) => {
-      try {
-        const mapped = {
-          invoice_number: payment.invoice?.invoice_number || payment.invoice?.id || 'N/A',
-          receipt_number: payment.receipt_number || `R${payment.id}`,
-          payment_date: payment.payment_date || '',
-          payment_amount: payment.payment_amount || payment.amount || 0,
-          payment_method: payment.payment_method || 'N/A',
-          status: payment.payment_status || 'completed',
-          student_name: payment.student ? `${payment.student.first_name || ''} ${payment.student.last_name || ''}`.trim() : 'Student Not Found',
-          admission_number: payment.student?.admission_number || 'N/A',
-          class: payment.student?.current_class || payment.student?.current_class_name || 'N/A',
-          section: payment.student?.section || 'N/A',
-          fee_type: payment.invoice?.feeStructure?.feeType?.name || payment.fee_type || 'N/A',
-          branch: payment.student?.branch?.name || payment.branch_name || 'N/A',
-          school: 'School ERP System',
-        };   
-        return mapped;
-      } catch (error) {
-        logger.error('❌ Error mapping payment data:', error, { 
-          paymentId: payment.id,
-          paymentData: {
-            receipt_number: payment.receipt_number,
-            payment_date: payment.payment_date,
-            payment_amount: payment.payment_amount,
-            student_id: payment.student_id
-          }
-        });
-        return null;
-      }
-    }).filter(Boolean); // Remove any null entries
+    const mappedData = payments
+      .map((payment, index) => {
+        try {
+          const mapped = {
+            invoice_number: payment.invoice?.invoice_number || payment.invoice?.id || 'N/A',
+            receipt_number: payment.receipt_number || `R${payment.id}`,
+            payment_date: payment.payment_date || '',
+            payment_amount: payment.payment_amount || payment.amount || 0,
+            payment_method: payment.payment_method || 'N/A',
+            status: payment.payment_status || 'completed',
+            student_name: payment.student
+              ? `${payment.student.first_name || ''} ${payment.student.last_name || ''}`.trim()
+              : 'Student Not Found',
+            admission_number: payment.student?.admission_number || 'N/A',
+            class: payment.student?.current_class || payment.student?.current_class_name || 'N/A',
+            section: payment.student?.section || 'N/A',
+            fee_type: payment.invoice?.feeStructure?.feeType?.name || payment.fee_type || 'N/A',
+            branch: payment.student?.branch?.name || payment.branch_name || 'N/A',
+            school: 'School ERP System'
+          };
+          return mapped;
+        } catch (error) {
+          logger.error('❌ Error mapping payment data:', error, {
+            paymentId: payment.id,
+            paymentData: {
+              receipt_number: payment.receipt_number,
+              payment_date: payment.payment_date,
+              payment_amount: payment.payment_amount,
+              student_id: payment.student_id
+            }
+          });
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove any null entries
 
-
-    
     return mappedData;
   }
 
@@ -238,12 +242,12 @@ class UnifiedExportService {
     const whereClause = this.buildWhereClause(filters, user, schoolId);
 
     if (filters.status) whereClause.status = filters.status;
-    
+
     // Add payment model filter
     if (filters.payment_model) {
       whereClause.payment_model = filters.payment_model;
     }
-    
+
     // Add date filters for invoice_date or due_date
     if (filters.from_date && filters.to_date) {
       whereClause[Op.or] = [
@@ -258,7 +262,7 @@ class UnifiedExportService {
         {
           model: Student,
           as: 'student',
-          where: {},
+          where: {}
         },
         {
           model: FeeStructure,
@@ -266,12 +270,12 @@ class UnifiedExportService {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
-            },
-          ],
-        },
+              as: 'feeType'
+            }
+          ]
+        }
       ],
-      order: [['invoice_date', 'DESC']],
+      order: [['invoice_date', 'DESC']]
     });
 
     return invoices.map(invoice => ({
@@ -287,7 +291,7 @@ class UnifiedExportService {
       class: invoice.student.current_class,
       section: invoice.student.section,
       branch: invoice.student.branch?.name || '',
-      fee_type: invoice.feeStructure.feeType.name,
+      fee_type: invoice.feeStructure.feeType.name
     }));
   }
 
@@ -307,13 +311,13 @@ class UnifiedExportService {
         monthsArray = filters.months.split(',').map(m => parseInt(m.trim()));
       }
     }
-    
+
     if (monthsArray.length === 0) {
       throw new Error('Months are required for monthly payment export');
     }
-    
+
     const currentYear = filters.year ? parseInt(filters.year) : new Date().getFullYear();
-    
+
     const whereClause = {
       school_id: schoolId,
       payment_model: 'monthly',
@@ -322,14 +326,14 @@ class UnifiedExportService {
       },
       year: currentYear
     };
-    
+
     // Handle branch filtering
     if (user.role === 'branch_admin') {
       whereClause.branch_id = user.branch_id;
     } else if (filters.branch_id) {
       whereClause.branch_id = filters.branch_id;
     }
-    
+
     // Add student filters
     const studentWhereClause = {};
     if (filters.search) {
@@ -351,7 +355,16 @@ class UnifiedExportService {
           model: Student,
           as: 'student',
           where: studentWhereClause,
-          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number', 'current_class', 'section', 'photo'],
+          attributes: [
+            'id',
+            'first_name',
+            'last_name',
+            'admission_number',
+            'roll_number',
+            'current_class',
+            'section',
+            'photo'
+          ]
         },
         {
           model: FeeStructure,
@@ -360,31 +373,47 @@ class UnifiedExportService {
             {
               model: FeeType,
               as: 'feeType',
-              attributes: ['id', 'name'],
-            },
-          ],
+              attributes: ['id', 'name']
+            }
+          ]
         },
         {
           model: FeePayment,
           as: 'payments',
           attributes: ['id', 'payment_amount', 'payment_date', 'payment_method', 'payment_status'],
           order: [['created_at', 'DESC']],
-          limit: 5,
-        },
+          limit: 5
+        }
       ],
-      order: [['student_id', 'ASC'], ['month', 'ASC']],
-      limit: 5000, // Reasonable limit to prevent memory issues
+      order: [
+        ['student_id', 'ASC'],
+        ['month', 'ASC']
+      ],
+      limit: 5000 // Reasonable limit to prevent memory issues
     });
-    
+
     // Group by student and month to show payment status
     const studentMonthStatus = {};
-    
+
     monthlyInvoices.forEach(invoice => {
       const studentId = invoice.student_id;
       const month = invoice.month;
-      const monthName = ['', 'January', 'February', 'March', 'April', 'May', 'June', 
-                        'July', 'August', 'September', 'October', 'November', 'December'][month];
-      
+      const monthName = [
+        '',
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+      ][month];
+
       if (!studentMonthStatus[studentId]) {
         studentMonthStatus[studentId] = {
           student: invoice.student,
@@ -394,10 +423,10 @@ class UnifiedExportService {
           totalPending: 0
         };
       }
-      
+
       const isPaid = parseFloat(invoice.paid_amount) >= parseFloat(invoice.total_amount);
       const isPartial = parseFloat(invoice.paid_amount) > 0 && !isPaid;
-      
+
       studentMonthStatus[studentId].months[month] = {
         month,
         monthName,
@@ -405,16 +434,16 @@ class UnifiedExportService {
         amount: parseFloat(invoice.total_amount),
         paid: parseFloat(invoice.paid_amount),
         balance: parseFloat(invoice.balance_amount),
-        status: isPaid ? 'paid' : (isPartial ? 'partial' : 'pending'),
+        status: isPaid ? 'paid' : isPartial ? 'partial' : 'pending',
         dueDate: invoice.due_date,
         payments: invoice.payments || []
       };
-      
+
       studentMonthStatus[studentId].totalAmount += parseFloat(invoice.total_amount);
       studentMonthStatus[studentId].totalPaid += parseFloat(invoice.paid_amount);
       studentMonthStatus[studentId].totalPending += parseFloat(invoice.balance_amount);
     });
-    
+
     // Convert to flat array format for export
     const exportData = [];
     Object.values(studentMonthStatus).forEach(studentData => {
@@ -428,9 +457,14 @@ class UnifiedExportService {
             total_amount: monthData.amount,
             paid_amount: monthData.paid,
             remaining_amount: monthData.balance,
-            status: monthData.status === 'paid' ? 'paid' : 
-                    monthData.status === 'partial' ? 'partial_paid' : 'sent',
-            student_name: `${studentData.student.first_name} ${studentData.student.last_name || ''}`.trim(),
+            status:
+              monthData.status === 'paid'
+                ? 'paid'
+                : monthData.status === 'partial'
+                  ? 'partial_paid'
+                  : 'sent',
+            student_name:
+              `${studentData.student.first_name} ${studentData.student.last_name || ''}`.trim(),
             admission_number: studentData.student.admission_number,
             class: studentData.student.current_class,
             section: studentData.student.section,
@@ -443,7 +477,7 @@ class UnifiedExportService {
         }
       });
     });
-    
+
     return exportData;
   }
 
@@ -455,7 +489,7 @@ class UnifiedExportService {
 
     // Build where clause using helper
     const whereClause = this.buildWhereClause(filters, user, schoolId);
-    
+
     // Add school_id filter if provided in filters
     if (filters.school_id) {
       whereClause.school_id = filters.school_id;
@@ -473,10 +507,10 @@ class UnifiedExportService {
           model: Parent,
           as: 'parents',
           through: { attributes: [] },
-          attributes: ['guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relation'],
-        },
+          attributes: ['guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relation']
+        }
       ],
-      order: [['created_at', 'DESC']],
+      order: [['created_at', 'DESC']]
     });
 
     return students.map(student => ({
@@ -492,7 +526,7 @@ class UnifiedExportService {
       admission_date: student.admission_date,
       guardian_name: student.parents?.[0]?.guardian_name || '',
       guardian_phone: student.parents?.[0]?.guardian_phone || '',
-      guardian_email: student.parents?.[0]?.guardian_email || '',
+      guardian_email: student.parents?.[0]?.guardian_email || ''
     }));
   }
 
@@ -504,23 +538,23 @@ class UnifiedExportService {
 
     // Build where clause using helper
     const whereRec = this.buildWhereClause(filters, user, schoolId);
-    
+
     if (filters.class_id) whereRec.class_id = filters.class_id;
     if (filters.section_id) whereRec.section_id = filters.section_id;
     if (filters.student_id) whereRec.student_id = filters.student_id;
     if (filters.academic_year) whereRec.academic_year = filters.academic_year;
-    
+
     // Add date filters
     this.addDateFilters(whereRec, filters, 'date');
 
-    const records = await AttendanceRecord.findAll({ 
-      where: whereRec, 
+    const records = await AttendanceRecord.findAll({
+      where: whereRec,
       include: [
         { model: Student, as: 'student' },
         { model: Class, as: 'class' },
         { model: Section, as: 'section' }
       ],
-      order: [['date', 'DESC']],
+      order: [['date', 'DESC']]
     });
 
     return records.map(record => ({
@@ -532,7 +566,7 @@ class UnifiedExportService {
       admission_number: record.student?.admission_number || '',
       student_name: `${record.student?.first_name || ''} ${record.student?.last_name || ''}`.trim(),
       time_in: record.time_in || '',
-      time_out: record.time_out || '',
+      time_out: record.time_out || ''
     }));
   }
 
@@ -541,20 +575,20 @@ class UnifiedExportService {
    */
   async generateExport(reportType, format, data, filters, user, schoolId, customColumns = null) {
     const fileName = this.generateFileName(reportType, format);
-    
+
     switch (format) {
       case 'pdf':
         return await this.generatePDF(reportType, data, filters, fileName, customColumns);
-      
+
       case 'excel':
         return await this.generateExcel(reportType, data, filters, fileName, customColumns);
-      
+
       case 'csv':
         return await this.generateCSV(reportType, data, filters, fileName, customColumns);
-      
+
       case 'print':
         return await this.generatePrint(reportType, data, filters, fileName, customColumns);
-      
+
       default:
         throw new Error(`Unsupported format: ${format}`);
     }
@@ -564,9 +598,7 @@ class UnifiedExportService {
    * Generate PDF export with professional styling
    */
   async generatePDF(reportType, data, filters, fileName, customColumns = null) {
-
-
-    const doc = new PDFDocument({ 
+    const doc = new PDFDocument({
       margin: 50,
       size: 'A4',
       layout: 'portrait'
@@ -577,59 +609,67 @@ class UnifiedExportService {
     doc.pipe(stream);
 
     // Professional header - matching the image exactly
-    doc.fontSize(28)
+    doc
+      .fontSize(28)
       .font('Helvetica-Bold')
       .fillColor('#2c3e50')
       .text('School ERP System', { align: 'center' });
-    
+
     doc.moveDown(0.2);
-    
-    doc.fontSize(16)
+
+    doc
+      .fontSize(16)
       .font('Helvetica-Bold')
       .fillColor('#2c3e50')
       .text(`${this.getReportTitle(reportType)} Report`, { align: 'center' });
-    
+
     doc.moveDown(0.2);
-    
-    doc.fontSize(9)
+
+    doc
+      .fontSize(9)
       .font('Helvetica')
       .fillColor('#666666')
       .text(`Generated on: ${new Date().toLocaleString('en-IN')}`, { align: 'center' });
-    
+
     doc.moveDown(1);
 
     // Add filters info with professional styling - matching the image
     if (Object.keys(filters).length > 0) {
       const activeFilters = Object.entries(filters).filter(([key, value]) => value && value !== '');
-      
+
       if (activeFilters.length > 0) {
         // Filters box with rounded corners effect
         const filterBoxY = doc.y;
         const filterBoxHeight = 30;
-        
+
         // Main filter box
-        doc.rect(50, filterBoxY, 495, filterBoxHeight)
+        doc
+          .rect(50, filterBoxY, 495, filterBoxHeight)
           .fillColor('#f5f5f5')
           .fill()
           .strokeColor('#e0e0e0')
           .lineWidth(0.5)
           .stroke();
-        
-        doc.fontSize(11)
+
+        doc
+          .fontSize(11)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
           .text('Applied Filters:', 60, filterBoxY + 8);
-        
-        const filterText = activeFilters.map(([key, value]) => {
-          const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          return `${label}: ${value}`;
-        }).join(' | ');
-        
-        doc.fontSize(9)
+
+        const filterText = activeFilters
+          .map(([key, value]) => {
+            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return `${label}: ${value}`;
+          })
+          .join(' | ');
+
+        doc
+          .fontSize(9)
           .font('Helvetica')
           .fillColor('#2c3e50')
           .text(filterText, 60, filterBoxY + 18, { width: 475 });
-        
+
         doc.moveDown(2);
       }
     }
@@ -637,14 +677,14 @@ class UnifiedExportService {
     // Add summary section if data exists - matching the image exactly
     if (data.length > 0) {
       const summaryY = doc.y;
-      
+
       // Calculate summary values using helper functions
       const totalRecords = data.length;
       let totalAmount = 0;
       let totalCollected = 0;
       let summaryLabel = 'TOTAL RECORDS';
       let amountLabel = 'TOTAL AMOUNT';
-      
+
       // Calculate amount based on report type
       if (reportType === 'receipts') {
         totalAmount = data.reduce((sum, row) => sum + this.parseAmount(row.payment_amount), 0);
@@ -662,91 +702,119 @@ class UnifiedExportService {
         summaryLabel = 'TOTAL RECORDS';
         amountLabel = 'TOTAL RECORDS';
       }
-      
+
       // Summary cards - matching the image styling
       const cardWidth = 160;
       const cardHeight = 70;
       const cardSpacing = 20;
       const startX = 50;
-      
+
       // Determine number of cards based on report type
       const isFeesReport = reportType === 'fees' && totalCollected > 0;
       const numCards = isFeesReport ? 3 : 2;
       const totalWidth = cardWidth * numCards + cardSpacing * (numCards - 1);
-      
+
       // Summary section background
-      doc.rect(startX, summaryY, totalWidth, cardHeight)
+      doc
+        .rect(startX, summaryY, totalWidth, cardHeight)
         .fillColor('#f9f9f9')
         .fill()
         .strokeColor('#dee2e6')
         .lineWidth(1)
         .stroke();
-      
+
       // Total Amount Card (if applicable) - FIRST
       if (totalAmount > 0) {
-        doc.rect(startX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
+        doc
+          .rect(startX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
           .fillColor('#ffffff')
           .fill()
           .strokeColor('#dee2e6')
           .lineWidth(1)
           .stroke();
-        
+
         const formattedAmount = this.formatCurrency(totalAmount);
-        
-        doc.fontSize(20)
+
+        doc
+          .fontSize(20)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
-          .text(formattedAmount, startX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
-        
-        doc.fontSize(10)
+          .text(formattedAmount, startX + 15, summaryY + 20, {
+            width: cardWidth - 30,
+            align: 'center'
+          });
+
+        doc
+          .fontSize(10)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
-          .text(amountLabel, startX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
+          .text(amountLabel, startX + 15, summaryY + 50, {
+            width: cardWidth - 30,
+            align: 'center'
+          });
       }
-      
+
       // Total Collected Card (for fees reports) - SECOND
       let recordsCardX = startX + cardWidth + cardSpacing;
       if (isFeesReport) {
-        doc.rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
+        doc
+          .rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
           .fillColor('#ffffff')
           .fill()
           .strokeColor('#dee2e6')
           .lineWidth(1)
           .stroke();
-        
+
         const formattedCollected = this.formatCurrency(totalCollected);
-        
-        doc.fontSize(20)
+
+        doc
+          .fontSize(20)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
-          .text(formattedCollected, recordsCardX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
-        
-        doc.fontSize(10)
+          .text(formattedCollected, recordsCardX + 15, summaryY + 20, {
+            width: cardWidth - 30,
+            align: 'center'
+          });
+
+        doc
+          .fontSize(10)
           .font('Helvetica-Bold')
           .fillColor('#2c3e50')
-          .text('TOTAL COLLECTED', recordsCardX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
-        
+          .text('TOTAL COLLECTED', recordsCardX + 15, summaryY + 50, {
+            width: cardWidth - 30,
+            align: 'center'
+          });
+
         recordsCardX = startX + (cardWidth + cardSpacing) * 2;
       }
-      
+
       // Total Records Card - LAST
-      doc.rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
+      doc
+        .rect(recordsCardX + 5, summaryY + 5, cardWidth - 10, cardHeight - 10)
         .fillColor('#ffffff')
         .fill()
         .strokeColor('#dee2e6')
         .lineWidth(1)
         .stroke();
-      
-      doc.fontSize(24)
+
+      doc
+        .fontSize(24)
         .font('Helvetica-Bold')
         .fillColor('#2c3e50')
-        .text(totalRecords.toString(), recordsCardX + 15, summaryY + 20, { width: cardWidth - 30, align: 'center' });
-      
-      doc.fontSize(10)
+        .text(totalRecords.toString(), recordsCardX + 15, summaryY + 20, {
+          width: cardWidth - 30,
+          align: 'center'
+        });
+
+      doc
+        .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#2c3e50')
-        .text(summaryLabel, recordsCardX + 15, summaryY + 50, { width: cardWidth - 30, align: 'center' });
-      
+        .text(summaryLabel, recordsCardX + 15, summaryY + 50, {
+          width: cardWidth - 30,
+          align: 'center'
+        });
+
       doc.moveDown(2.5);
     }
 
@@ -758,61 +826,58 @@ class UnifiedExportService {
       const tableTop = doc.y;
       let currentY = tableTop;
       const tableWidth = 520; // Increased table width for better column distribution
-      
+
       // Calculate optimal column widths based on content type
-      const getColumnWidth = (columnKey) => {
+      const getColumnWidth = columnKey => {
         const widthMap = {
-          'invoice_number': 70,
-          'receipt_number': 70,
-          'payment_date': 45,
-          'student_name': 90,
-          'branch': 45,
-          'class': 40,
-          'section': 40,
-          'payment_amount': 50,
-          'payment_method': 40,
-          'fee_type': 55
+          invoice_number: 70,
+          receipt_number: 70,
+          payment_date: 45,
+          student_name: 90,
+          branch: 45,
+          class: 40,
+          section: 40,
+          payment_amount: 50,
+          payment_method: 40,
+          fee_type: 55
         };
         return widthMap[columnKey] || 50; // Default width
       };
-      
+
       // Calculate total width and adjust if needed
       let totalWidth = columns.reduce((sum, col) => sum + getColumnWidth(col.key), 0);
       const scaleFactor = tableWidth / totalWidth;
-      
-      const getAdjustedWidth = (columnKey) => {
+
+      const getAdjustedWidth = columnKey => {
         return getColumnWidth(columnKey) * scaleFactor;
       };
 
       // Center the table on the page
       const tableStartX = (doc.page.width - tableWidth) / 2;
-      
+
       // Draw table header - dark blue background with white text
-      doc.rect(tableStartX, currentY, tableWidth, 25)
-        .fillColor('#1e3a8a')
-        .fill();
-      
-              let currentX = tableStartX;
-        columns.forEach((column, index) => {
-          const colWidth = getAdjustedWidth(column.key);
-        
+      doc.rect(tableStartX, currentY, tableWidth, 25).fillColor('#1e3a8a').fill();
+
+      let currentX = tableStartX;
+      columns.forEach((column, index) => {
+        const colWidth = getAdjustedWidth(column.key);
+
         // Draw header cell border
-        doc.rect(currentX, currentY, colWidth, 25)
-          .strokeColor('#1e3a8a')
-          .lineWidth(0.5)
-          .stroke();
-        
+        doc.rect(currentX, currentY, colWidth, 25).strokeColor('#1e3a8a').lineWidth(0.5).stroke();
+
         // Use shorter header text for better fit
-        const shortHeader = column.header.length > 10 ? column.header.substring(0, 10) : column.header;
-        
-        doc.fontSize(8)
+        const shortHeader =
+          column.header.length > 10 ? column.header.substring(0, 10) : column.header;
+
+        doc
+          .fontSize(8)
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
-          .text(shortHeader.toUpperCase(), currentX + 2, currentY + 8, { 
+          .text(shortHeader.toUpperCase(), currentX + 2, currentY + 8, {
             width: colWidth - 4,
             align: column.key.includes('amount') ? 'right' : 'left'
           });
-          
+
         currentX += colWidth;
       });
 
@@ -824,14 +889,12 @@ class UnifiedExportService {
           doc.addPage();
           currentY = 50;
         }
-        
+
         // Calculate row height based on content - use consistent height for better appearance
         const rowHeight = 20; // Fixed row height for consistency
-        
+
         // Draw row background
-        doc.rect(tableStartX, currentY, tableWidth, rowHeight)
-          .fillColor('#ffffff')
-          .fill();
+        doc.rect(tableStartX, currentY, tableWidth, rowHeight).fillColor('#ffffff').fill();
 
         // Draw cell content
         let currentX = tableStartX;
@@ -839,11 +902,14 @@ class UnifiedExportService {
           const colWidth = getAdjustedWidth(column.key);
           const value = row[column.key] || '';
           let displayValue = String(value);
-          
 
-          
           // Format values based on column type using helper functions
-          if (column.key.includes('amount') || column.key.includes('paid') || column.key.includes('total') || column.key.includes('remaining')) {
+          if (
+            column.key.includes('amount') ||
+            column.key.includes('paid') ||
+            column.key.includes('total') ||
+            column.key.includes('remaining')
+          ) {
             displayValue = this.formatCurrency(value);
           } else if (column.key.includes('date') || column.key.includes('time')) {
             if (value) {
@@ -858,36 +924,39 @@ class UnifiedExportService {
             const cleanName = String(value).replace(/null/g, '').trim();
             displayValue = cleanName.length > 18 ? cleanName.substring(0, 15) + '...' : cleanName;
           }
-          
+
           // Draw cell border
-          doc.rect(currentX, currentY, colWidth, rowHeight)
+          doc
+            .rect(currentX, currentY, colWidth, rowHeight)
             .strokeColor('#e0e0e0')
             .lineWidth(0.5)
             .stroke();
-          
+
           // Draw text with proper alignment
-          doc.fontSize(8)
+          doc
+            .fontSize(8)
             .font('Helvetica')
             .fillColor('#2c3e50')
-            .text(displayValue, currentX + 2, currentY + 6, { 
+            .text(displayValue, currentX + 2, currentY + 6, {
               width: colWidth - 4,
               align: column.key.includes('amount') ? 'right' : 'left'
             });
-            
+
           currentX += colWidth;
         });
 
         currentY += rowHeight;
       });
-      
+
       // Draw table border
-      doc.rect(tableStartX, tableTop, tableWidth, currentY - tableTop)
+      doc
+        .rect(tableStartX, tableTop, tableWidth, currentY - tableTop)
         .strokeColor('#dee2e6')
         .lineWidth(1)
         .stroke();
-        
     } else {
-      doc.fontSize(14)
+      doc
+        .fontSize(14)
         .font('Helvetica')
         .fillColor('#7f8c8d')
         .text('No data found for the specified filters.', { align: 'center' });
@@ -895,7 +964,8 @@ class UnifiedExportService {
 
     // Add footer - simplified without redundant timestamp
     doc.moveDown(2);
-    doc.fontSize(10)
+    doc
+      .fontSize(10)
       .font('Helvetica')
       .fillColor('#2c3e50')
       .text(`Total Records: ${data.length}`, { align: 'right' });
@@ -917,15 +987,15 @@ class UnifiedExportService {
           reject(new Error('PDF file was not created'));
           return;
         }
-        
+
         resolve({
           fileName,
           filePath,
           format: 'pdf',
-          contentType: 'application/pdf',
+          contentType: 'application/pdf'
         });
       });
-      stream.on('error', (error) => {
+      stream.on('error', error => {
         logger.error(`📄 PDF generation error:`, error);
         reject(error);
       });
@@ -957,7 +1027,7 @@ class UnifiedExportService {
     if (data.length > 0) {
       const summaryStartRow = worksheet.rowCount - data.length - 6; // Adjust based on summary rows
       const summaryEndRow = worksheet.rowCount - data.length - 1;
-      
+
       for (let i = summaryStartRow; i <= summaryEndRow; i++) {
         const row = worksheet.getRow(i);
         row.font = { bold: true };
@@ -1006,7 +1076,7 @@ class UnifiedExportService {
       fileName,
       filePath,
       format: 'excel',
-      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     };
   }
 
@@ -1015,7 +1085,7 @@ class UnifiedExportService {
    */
   async generateCSV(reportType, data, filters, fileName, customColumns = null) {
     const columns = customColumns;
-    
+
     // Add metadata rows
     const metadataRows = [];
     this.addCSVMetadata(metadataRows, reportType, data, filters);
@@ -1027,7 +1097,7 @@ class UnifiedExportService {
     const dataRows = data.map(row => columns.map(col => row[col.key] || ''));
 
     const allRows = [...metadataRows, ...dataRows];
-    const csv = stringify(allRows);
+    const csv = Papa.unparse(allRows, { header: true });
 
     const filePath = path.join(resolveUploadsPath(), fileName);
     fs.writeFileSync(filePath, csv);
@@ -1041,7 +1111,7 @@ class UnifiedExportService {
       fileName,
       filePath,
       format: 'csv',
-      contentType: 'text/csv',
+      contentType: 'text/csv'
     };
   }
 
@@ -1051,7 +1121,7 @@ class UnifiedExportService {
   async generatePrint(reportType, data, filters, fileName, customColumns = null) {
     // For print format, we return the data as JSON with metadata
     // The frontend can handle the actual printing
-    
+
     const printData = {
       reportType,
       title: this.getReportTitle(reportType),
@@ -1059,9 +1129,8 @@ class UnifiedExportService {
       filters,
       columns: customColumns,
       data,
-      totalRecords: data.length,
+      totalRecords: data.length
     };
-
 
     const filePath = path.join(resolveUploadsPath(), fileName);
     fs.writeFileSync(filePath, JSON.stringify(printData, null, 2));
@@ -1071,7 +1140,7 @@ class UnifiedExportService {
       filePath,
       format: 'print',
       contentType: 'application/json',
-      data: printData,
+      data: printData
     };
   }
 
@@ -1098,11 +1167,11 @@ class UnifiedExportService {
     // Add summary section
     if (data.length > 0) {
       const summaryData = this.calculateSummaryData(reportType, data);
-      
+
       // Add summary header
       worksheet.addRow(['Summary']);
       worksheet.addRow([]);
-      
+
       // Add summary cards
       worksheet.addRow(['Total Records', summaryData.totalRecords]);
       if (summaryData.totalAmount > 0) {
@@ -1135,11 +1204,11 @@ class UnifiedExportService {
     // Add summary section
     if (data.length > 0) {
       const summaryData = this.calculateSummaryData(reportType, data);
-      
+
       // Add summary header
       metadataRows.push(['Summary']);
       metadataRows.push([]);
-      
+
       // Add summary cards
       metadataRows.push(['Total Records', summaryData.totalRecords]);
       if (summaryData.totalAmount > 0) {
@@ -1154,7 +1223,8 @@ class UnifiedExportService {
    */
   generateFileName(reportType, format) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-    const extension = format === 'csv' ? 'csv' : format === 'excel' ? 'xlsx' : format === 'pdf' ? 'pdf' : 'json';
+    const extension =
+      format === 'csv' ? 'csv' : format === 'excel' ? 'xlsx' : format === 'pdf' ? 'pdf' : 'json';
     return `${reportType}_report_${timestamp}.${extension}`;
   }
 
@@ -1166,7 +1236,7 @@ class UnifiedExportService {
     let totalAmount = 0;
     let summaryLabel = 'TOTAL RECORDS';
     let amountLabel = 'TOTAL AMOUNT';
-    
+
     // Calculate amount based on report type
     if (reportType === 'receipts') {
       totalAmount = data.reduce((sum, row) => sum + this.parseAmount(row.payment_amount), 0);
@@ -1183,7 +1253,7 @@ class UnifiedExportService {
       summaryLabel = 'TOTAL RECORDS';
       amountLabel = 'TOTAL RECORDS';
     }
-    
+
     return {
       totalRecords,
       totalAmount,
@@ -1201,11 +1271,10 @@ class UnifiedExportService {
       receipts: 'Receipts',
       fees: 'Fee Invoices',
       students: 'Students',
-      attendance: 'Attendance',
+      attendance: 'Attendance'
     };
     return titles[reportType] || reportType;
   }
-
 }
 
 module.exports = new UnifiedExportService();

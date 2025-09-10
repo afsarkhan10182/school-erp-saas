@@ -65,6 +65,21 @@
           </select>
         </div>
 
+        <!-- Format Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Format</label
+          >
+          <select
+            v-model="selectedFormat"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="html">HTML</option>
+            <option value="pdf">PDF</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+
         <!-- Generate Button -->
         <div class="flex items-end">
           <button
@@ -157,12 +172,42 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button
-                  @click="generateIndividualReportCard(student)"
-                  class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Generate Report Card
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="previewReportCard(student)"
+                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                    title="Preview Report Card"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      ></path>
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      ></path>
+                    </svg>
+                  </button>
+                  <button
+                    @click="generateIndividualReportCard(student)"
+                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="Download Report Card"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -215,6 +260,9 @@ const filters = ref({
   section_id: '',
   academic_year: ''
 });
+
+// Format selection
+const selectedFormat = ref('html');
 
 // Academic years (last 5 years + next 2 years)
 const academicYears = computed(() => {
@@ -274,19 +322,46 @@ const generateReportCards = async () => {
   }
 };
 
+const previewReportCard = async student => {
+  try {
+    const response = await Exams.generateReportCard(student.id, {
+      academic_year: filters.value.academic_year,
+      format: 'html'
+    });
+
+    // Open in new window for preview
+    const blob = new Blob([response.data], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+
+    // Clean up URL after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    showToast(
+      'error',
+      `Failed to preview report card for ${student.first_name} ${student.last_name}`
+    );
+    console.error('Error previewing report card:', error);
+  }
+};
+
 const generateIndividualReportCard = async (student, showSuccess = true) => {
   try {
     const response = await Exams.generateReportCard(student.id, {
-      academic_year: filters.value.academic_year
+      academic_year: filters.value.academic_year,
+      format: selectedFormat.value
     });
 
-    // Download the PDF
+    // Handle different formats
+    const fileExtension =
+      selectedFormat.value === 'json' ? 'json' : selectedFormat.value === 'pdf' ? 'pdf' : 'html';
+
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute(
       'download',
-      `report-card-${student.admission_number}-${filters.value.academic_year}.pdf`
+      `report-card-${student.admission_number}-${filters.value.academic_year}.${fileExtension}`
     );
     document.body.appendChild(link);
     link.click();

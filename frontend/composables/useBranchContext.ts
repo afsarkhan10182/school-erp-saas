@@ -56,7 +56,6 @@ export const useBranchContext = () => {
         error.value = response.message || 'Failed to fetch branches';
       }
     } catch (err: any) {
-      console.error('Error fetching branches:', err);
       error.value = err.message || 'Failed to fetch branches';
     } finally {
       loading.value = false;
@@ -87,7 +86,6 @@ export const useBranchContext = () => {
         return false;
       }
     } catch (err: any) {
-      console.error('Error switching branch:', err);
       error.value = err.message || 'Failed to switch branch';
       return false;
     } finally {

@@ -138,8 +138,6 @@ export function useFormValidation() {
   const handleApiError = (error: any) => {
     clearErrors();
 
-    console.error('🔍 handleApiError called with:', error);
-
     // Handle different error response formats
     if (error?.response?.data?.errors) {
       // Standard API error format with field-specific errors

@@ -433,6 +433,12 @@ const menuGroups = computed(() => {
           title: 'Branches',
           path: '/branches',
           icon: Building2
+        },
+        {
+          id: 'config-management',
+          title: 'Configuration',
+          path: '/admin/config',
+          icon: Settings
         }
       ]
     });
@@ -550,6 +556,13 @@ const menuGroups = computed(() => {
               title: 'Attendance',
               path: '/attendance',
               icon: ClipboardList,
+              requiredModule: 'attendance'
+            },
+            {
+              id: 'attendance-analytics',
+              title: 'Attendance Analytics',
+              path: '/attendance/analytics',
+              icon: BarChart3,
               requiredModule: 'attendance'
             }
           ]

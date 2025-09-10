@@ -12,7 +12,7 @@ class AcademicYearController {
         return res.status(400).json({
           success: false,
           message: 'Validation errors',
-          errors: errors.array(),
+          errors: errors.array()
         });
       }
 
@@ -22,7 +22,7 @@ class AcademicYearController {
         search = '',
         is_current = '',
         sort_by = 'created_at',
-        sort_order = 'DESC',
+        sort_order = 'DESC'
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -32,9 +32,7 @@ class AcademicYearController {
 
       // Add search filter
       if (search) {
-        whereClause[Op.or] = [
-          { name: { [Op.iLike]: `%${search}%` } },
-        ];
+        whereClause[Op.or] = [{ name: { [Op.iLike]: `%${search}%` } }];
       }
 
       // Add is_current filter
@@ -48,12 +46,12 @@ class AcademicYearController {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
+            attributes: ['id', 'first_name', 'last_name']
+          }
         ],
         order: [[sort_by, sort_order.toUpperCase()]],
         limit: parseInt(limit),
-        offset,
+        offset
       });
 
       const totalPages = Math.ceil(count / parseInt(limit));
@@ -67,8 +65,8 @@ class AcademicYearController {
           limit: parseInt(limit),
           totalPages,
           hasNextPage: parseInt(page) < totalPages,
-          hasPrevPage: parseInt(page) > 1,
-        },
+          hasPrevPage: parseInt(page) > 1
+        }
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.getAllAcademicYears:', error);
@@ -86,26 +84,26 @@ class AcademicYearController {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
+            attributes: ['id', 'first_name', 'last_name']
           },
           {
             model: User,
             as: 'updatedBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name']
+          }
+        ]
       });
 
       if (!academicYear) {
         return res.status(404).json({
           success: false,
-          message: 'Academic year not found',
+          message: 'Academic year not found'
         });
       }
 
       res.json({
         success: true,
-        data: academicYear,
+        data: academicYear
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.getAcademicYearById:', error);
@@ -121,7 +119,7 @@ class AcademicYearController {
         return res.status(400).json({
           success: false,
           message: 'Validation errors',
-          errors: errors.array(),
+          errors: errors.array()
         });
       }
 
@@ -131,19 +129,19 @@ class AcademicYearController {
       if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Only super admin can create global academic years',
+          message: 'Only super admin can create global academic years'
         });
       }
 
       // Check if academic year name already exists
       const existingYear = await AcademicYear.findOne({
-        where: { name },
+        where: { name }
       });
 
       if (existingYear) {
         return res.status(400).json({
           success: false,
-          message: 'Academic year already exists',
+          message: 'Academic year already exists'
         });
       }
 
@@ -161,7 +159,7 @@ class AcademicYearController {
         end_date,
         is_current,
         status: 'active',
-        created_by: req.user.id,
+        created_by: req.user.id
       });
 
       // Fetch the created academic year with associations
@@ -170,15 +168,15 @@ class AcademicYearController {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name']
+          }
+        ]
       });
 
       res.status(201).json({
         success: true,
         message: 'Academic year created successfully',
-        data: createdYear,
+        data: createdYear
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.createAcademicYear:', error);
@@ -194,7 +192,7 @@ class AcademicYearController {
         return res.status(400).json({
           success: false,
           message: 'Validation errors',
-          errors: errors.array(),
+          errors: errors.array()
         });
       }
 
@@ -205,7 +203,7 @@ class AcademicYearController {
       if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Only super admin can update global academic years',
+          message: 'Only super admin can update global academic years'
         });
       }
 
@@ -213,30 +211,30 @@ class AcademicYearController {
       if (!academicYear) {
         return res.status(404).json({
           success: false,
-          message: 'Academic year not found',
+          message: 'Academic year not found'
         });
       }
 
       // Check if updated name conflicts with existing year
       if (name && name !== academicYear.name) {
         const existingYear = await AcademicYear.findOne({
-          where: { 
+          where: {
             name,
             id: { [Op.ne]: id }
-          },
+          }
         });
 
         if (existingYear) {
           return res.status(400).json({
             success: false,
-            message: 'Academic year name already exists',
+            message: 'Academic year name already exists'
           });
         }
       }
 
       // Prepare update data
       const updateData = {
-        updated_by: req.user.id,
+        updated_by: req.user.id
       };
 
       // If name is being updated, also update related fields
@@ -262,20 +260,20 @@ class AcademicYearController {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
+            attributes: ['id', 'first_name', 'last_name']
           },
           {
             model: User,
             as: 'updatedBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name']
+          }
+        ]
       });
 
       res.json({
         success: true,
         message: 'Academic year updated successfully',
-        data: updatedYear,
+        data: updatedYear
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.updateAcademicYear:', error);
@@ -292,7 +290,7 @@ class AcademicYearController {
       if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Only super admin can delete global academic years',
+          message: 'Only super admin can delete global academic years'
         });
       }
 
@@ -300,7 +298,7 @@ class AcademicYearController {
       if (!academicYear) {
         return res.status(404).json({
           success: false,
-          message: 'Academic year not found',
+          message: 'Academic year not found'
         });
       }
 
@@ -308,17 +306,17 @@ class AcademicYearController {
       if (academicYear.is_current) {
         return res.status(400).json({
           success: false,
-          message: 'Cannot delete current academic year. Please set another year as current first.',
+          message: 'Cannot delete current academic year. Please set another year as current first.'
         });
       }
 
       // TODO: Add validation to check if academic year is referenced by any schools
-      
+
       await academicYear.destroy();
 
       res.json({
         success: true,
-        message: 'Academic year deleted successfully',
+        message: 'Academic year deleted successfully'
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.deleteAcademicYear:', error);
@@ -335,7 +333,7 @@ class AcademicYearController {
       if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Only super admin can set current global academic year',
+          message: 'Only super admin can set current global academic year'
         });
       }
 
@@ -343,14 +341,14 @@ class AcademicYearController {
       if (!academicYear) {
         return res.status(404).json({
           success: false,
-          message: 'Academic year not found',
+          message: 'Academic year not found'
         });
       }
 
       // Set as current (the model hook will handle unsetting other current years)
       await academicYear.update({
         is_current: true,
-        updated_by: req.user.id,
+        updated_by: req.user.id
       });
 
       const updatedYear = await AcademicYear.findByPk(id);
@@ -358,7 +356,7 @@ class AcademicYearController {
       res.json({
         success: true,
         message: 'Academic year set as current successfully',
-        data: updatedYear,
+        data: updatedYear
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.setCurrentAcademicYear:', error);
@@ -375,15 +373,15 @@ class AcademicYearController {
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name']
+          }
+        ]
       });
 
       if (!currentYear) {
         return res.status(404).json({
           success: false,
-          message: 'No current academic year found',
+          message: 'No current academic year found'
         });
       }
 
@@ -398,7 +396,7 @@ class AcademicYearController {
         data: {
           ...currentYear.toJSON(),
           schools_count: schoolsCount
-        },
+        }
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.getCurrentAcademicYear:', error);
@@ -413,7 +411,7 @@ class AcademicYearController {
       if (req.user.role !== 'super_admin') {
         return res.status(403).json({
           success: false,
-          message: 'Only super admin can sync schools to current academic year',
+          message: 'Only super admin can sync schools to current academic year'
         });
       }
 
@@ -423,7 +421,7 @@ class AcademicYearController {
       res.json({
         success: true,
         message: `Successfully synced ${result.updated_count} schools to current academic year: ${result.academic_year}`,
-        data: result,
+        data: result
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.syncSchoolsToCurrentAcademicYear:', error);
@@ -436,12 +434,15 @@ class AcademicYearController {
     try {
       const academicYears = await AcademicYear.findAll({
         attributes: ['id', 'name', 'is_current'],
-        order: [['is_current', 'DESC'], ['name', 'DESC']],
+        order: [
+          ['is_current', 'DESC'],
+          ['name', 'DESC']
+        ]
       });
 
       res.json({
         success: true,
-        data: academicYears,
+        data: academicYears
       });
     } catch (error) {
       logger.error('Error in AcademicYearController.getAcademicYearsForDropdown:', error);

@@ -28,7 +28,7 @@ class ClassSubjectMappingController {
 
       // Get pagination parameters using common service
       const { offset, limit: actualLimit } = CommonService.getPaginationParams({ page, limit });
-      
+
       // Build role-based where clause using common service
       let whereClause = CommonService.buildRoleBasedWhere(req.user);
 
@@ -89,9 +89,15 @@ class ClassSubjectMappingController {
       });
 
       // Calculate pagination metadata using common service
-      const paginationMeta = CommonService.calculatePaginationMeta(count, parseInt(page), actualLimit);
+      const paginationMeta = CommonService.calculatePaginationMeta(
+        count,
+        parseInt(page),
+        actualLimit
+      );
 
-      logger.info(`getAllClassSubjectMappings: Retrieved ${rows.length} mappings out of ${count} total`);
+      logger.info(
+        `getAllClassSubjectMappings: Retrieved ${rows.length} mappings out of ${count} total`
+      );
 
       return res.status(200).json(
         CommonService.formatSuccessResponse('Class-subject mappings retrieved successfully', {
@@ -113,7 +119,7 @@ class ClassSubjectMappingController {
       const { id } = req.params;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -239,7 +245,7 @@ class ClassSubjectMappingController {
           subject_id,
           sort_order: index + 1,
           is_required: true,
-          weightage: 100.00
+          weightage: 100.0
         }));
 
         await SubjectGroupSubject.bulkCreate(subjectMappings);
@@ -270,16 +276,10 @@ class ClassSubjectMappingController {
   static async updateClassSubjectMapping(req, res, next) {
     try {
       const { id } = req.params;
-      const {
-        name,
-        code,
-        description,
-        subject_ids = [],
-        total_credit_hours
-      } = req.body;
+      const { name, code, description, subject_ids = [], total_credit_hours } = req.body;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -298,7 +298,8 @@ class ClassSubjectMappingController {
         name: name || mapping.name,
         code: code || mapping.code,
         description: description !== undefined ? description : mapping.description,
-        total_credit_hours: total_credit_hours !== undefined ? total_credit_hours : mapping.total_credit_hours,
+        total_credit_hours:
+          total_credit_hours !== undefined ? total_credit_hours : mapping.total_credit_hours,
         updated_by: req.user.id
       });
 
@@ -315,7 +316,7 @@ class ClassSubjectMappingController {
           subject_id,
           sort_order: index + 1,
           is_required: true,
-          weightage: 100.00
+          weightage: 100.0
         }));
 
         await SubjectGroupSubject.bulkCreate(subjectMappings);
@@ -347,7 +348,7 @@ class ClassSubjectMappingController {
       const { id } = req.params;
 
       let whereClause = { id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -371,9 +372,9 @@ class ClassSubjectMappingController {
       // Log the operation
       CommonService.logOperation('delete', 'class_subject_mapping', id, req.user);
 
-      return res.status(200).json(
-        CommonService.formatSuccessResponse('Class-subject mapping deleted successfully')
-      );
+      return res
+        .status(200)
+        .json(CommonService.formatSuccessResponse('Class-subject mapping deleted successfully'));
     } catch (error) {
       logger.error('Error in deleteClassSubjectMapping:', error);
       return next(error);
@@ -393,7 +394,7 @@ class ClassSubjectMappingController {
       }
 
       let whereClause = { class_id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;
@@ -452,7 +453,7 @@ class ClassSubjectMappingController {
       }
 
       let whereClause = { subject_id };
-      
+
       // Add role-based access control
       if (req.user.role === 'school_admin') {
         whereClause.school_id = req.user.school_id;

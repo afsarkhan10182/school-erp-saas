@@ -120,5 +120,120 @@ export const Attendance = {
       responseType: 'blob'
     });
     return response.data;
+  },
+
+  // Enhanced Analytics API
+  getAnalytics: async (params?: {
+    period?: string;
+    custom_start_date?: string;
+    custom_end_date?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics', { params });
+    return response.data;
+  },
+
+  getAnalyticsSummary: async (params?: {
+    period?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/summary', { params });
+    return response.data;
+  },
+
+  getAttendanceTrends: async (params?: {
+    period?: string;
+    custom_start_date?: string;
+    custom_end_date?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+    group_by?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/trends', { params });
+    return response.data;
+  },
+
+  getClassPerformance: async (params?: { period?: string; academic_year?: string }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/performance/classes', { params });
+    return response.data;
+  },
+
+  getStudentPerformance: async (params?: {
+    period?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/performance/students', { params });
+    return response.data;
+  },
+
+  getAttendanceAlerts: async (params?: {
+    period?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/alerts', { params });
+    return response.data;
+  },
+
+  exportAnalytics: async (params?: {
+    format?: string;
+    period?: string;
+    custom_start_date?: string;
+    custom_end_date?: string;
+    class_id?: string;
+    section_id?: string;
+    academic_year?: string;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/analytics/export', {
+      params,
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  getDetailedReport: async (params?: {
+    report_type?: string;
+    date_from?: string;
+    date_to?: string;
+    class_id?: string;
+    section_id?: string;
+    student_id?: string;
+    academic_year?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const api = createApiInstance();
+    const response = await api.get('/attendance/reports/detailed', { params });
+    return response.data;
+  },
+
+  getStudentAttendanceHistory: async (
+    studentId: string,
+    params?: {
+      period?: string;
+      custom_start_date?: string;
+      custom_end_date?: string;
+      academic_year?: string;
+    }
+  ) => {
+    const api = createApiInstance();
+    const response = await api.get(`/attendance/student/${studentId}/history`, { params });
+    return response.data;
   }
 };

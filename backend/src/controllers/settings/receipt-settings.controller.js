@@ -4,85 +4,68 @@ const fs = require('fs');
 const path = require('path');
 const { resolveUploadsPath } = require('~/utils/pathHelper');
 
-// Helper function to archive old logo files (move to archive folder instead of deleting)
-const archiveOldLogoFile = (filename) => {
+// Helper function to delete old logo files
+const deleteOldLogoFile = filename => {
   if (!filename) return;
   try {
     const logoPath = path.join(resolveUploadsPath('logos'), filename);
-    const archiveDir = path.join(resolveUploadsPath('logos'), 'archive');
-    
-    // Create archive directory if it doesn't exist
-    if (!fs.existsSync(archiveDir)) {
-      fs.mkdirSync(archiveDir, { recursive: true });
-    }
-    
     if (fs.existsSync(logoPath)) {
-      const archivePath = path.join(archiveDir, filename);
-      
-      // If file already exists in archive, add timestamp to avoid conflicts
-      if (fs.existsSync(archivePath)) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const nameWithoutExt = path.parse(filename).name;
-        const ext = path.parse(filename).ext;
-        const newFilename = `${nameWithoutExt}_${timestamp}${ext}`;
-        const newArchivePath = path.join(archiveDir, newFilename);
-        fs.renameSync(logoPath, newArchivePath);
-        logger.info(`Archived old logo file: ${filename} -> ${newFilename}`);
-      } else {
-        fs.renameSync(logoPath, archivePath);
-        logger.info(`Archived old logo file: ${filename}`);
-      }
+      fs.unlinkSync(logoPath);
+      logger.info(`Deleted old logo file: ${filename}`);
     }
   } catch (error) {
-    logger.warn(`Failed to archive old logo file ${filename}:`, error.message);
+    logger.warn(`Failed to delete old logo file ${filename}:`, error.message);
   }
 };
+
+// Note: We no longer delete or archive logo files
+// All logos are preserved for historical receipts
 
 // Helper function to clean up orphaned logo files
 const cleanupOrphanedLogos = async () => {
   try {
-    const { School, Branch } = require('~/models');
-    
+    const School = require('~/models/school.model');
+    const Branch = require('~/models/branch.model');
+
     // Get all schools and their logo filenames
     const schools = await School.findAll({
       attributes: ['receipt_settings']
     });
-    
+
     // Get all branches and their logo filenames
     const branches = await Branch.findAll({
       attributes: ['receipt_logo']
     });
-    
+
     // Collect all valid logo filenames
     const validLogos = new Set();
-    
+
     schools.forEach(school => {
       const settings = school.receipt_settings || {};
       if (settings.schoolLogo) validLogos.add(settings.schoolLogo);
       if (settings.receiptLogo) validLogos.add(settings.receiptLogo);
     });
-    
+
     branches.forEach(branch => {
       if (branch.receipt_logo) validLogos.add(branch.receipt_logo);
     });
-    
-    // Get all files in logos directory (excluding archive folder)
+
+    // Get all files in logos directory
     const logosDir = resolveUploadsPath('logos');
     if (fs.existsSync(logosDir)) {
       const files = fs.readdirSync(logosDir).filter(file => {
         const filePath = path.join(logosDir, file);
         return fs.statSync(filePath).isFile(); // Only process files, not directories
       });
-      
-      // Archive orphaned files instead of deleting them
+
+      // Delete orphaned files
       files.forEach(file => {
         if (!validLogos.has(file)) {
-          const filePath = path.join(logosDir, file);
           try {
-            archiveOldLogoFile(file);
-            logger.info(`Archived orphaned logo file: ${file}`);
+            deleteOldLogoFile(file);
+            logger.info(`Deleted orphaned logo file: ${file}`);
           } catch (error) {
-            logger.warn(`Failed to archive orphaned logo file ${file}:`, error.message);
+            logger.warn(`Failed to delete orphaned logo file ${file}:`, error.message);
           }
         }
       });
@@ -97,19 +80,27 @@ const cleanupOrphanedLogos = async () => {
  */
 const getReceiptSettings = async (req, res, next) => {
   try {
-    const { School, Branch } = require('~/models');
-    
+    const School = require('~/models/school.model');
+    const Branch = require('~/models/branch.model');
+
     // Get school ID from context or user
     const schoolId = req.schoolId || req.user?.school_id;
-    
+
     if (!schoolId) {
       throw new ApiError(400, 'School context is required');
     }
-    
+
     // Get school configuration
     const school = await School.findByPk(schoolId, {
       attributes: [
-        'id', 'name', 'code', 'logo', 'address', 'phone', 'email', 'website',
+        'id',
+        'name',
+        'code',
+        'logo',
+        'address',
+        'phone',
+        'email',
+        'website',
         'receipt_settings'
       ]
     });
@@ -122,8 +113,16 @@ const getReceiptSettings = async (req, res, next) => {
     const branches = await Branch.findAll({
       where: { school_id: schoolId },
       attributes: [
-        'id', 'name', 'code', 'address', 'phone', 'email',
-        'receipt_name', 'receipt_logo', 'receipt_address', 'receipt_contact'
+        'id',
+        'name',
+        'code',
+        'address',
+        'phone',
+        'email',
+        'receipt_name',
+        'receipt_logo',
+        'receipt_address',
+        'receipt_contact'
       ],
       order: [['name', 'ASC']]
     });
@@ -171,7 +170,6 @@ const getReceiptSettings = async (req, res, next) => {
         branches: branchesWithReceiptSettings
       }
     });
-
   } catch (error) {
     logger.error('Error getting receipt settings:', error);
     return next(error);
@@ -183,9 +181,10 @@ const getReceiptSettings = async (req, res, next) => {
  */
 const updateReceiptSettings = async (req, res, next) => {
   try {
-    const { School, Branch } = require('~/models');
+    const School = require('~/models/school.model');
+    const Branch = require('~/models/branch.model');
     const { receiptSettings, branches } = req.body;
-    
+
     // Handle uploaded files
     const uploadedFiles = req.files || {};
     const schoolLogoFile = uploadedFiles.schoolLogo?.[0];
@@ -198,11 +197,11 @@ const updateReceiptSettings = async (req, res, next) => {
 
     // Update school receipt settings
     const schoolId = req.schoolId || req.user?.school_id;
-    
+
     if (!schoolId) {
       throw new ApiError(400, 'School context is required');
     }
-    
+
     const school = await School.findByPk(schoolId);
     if (!school) {
       throw new ApiError(404, 'School not found');
@@ -210,20 +209,24 @@ const updateReceiptSettings = async (req, res, next) => {
 
     // Get current settings to check for old logo files
     const currentSettings = school.receipt_settings || {};
-    
-    // Archive old logo files if new ones are being uploaded
-    if (schoolLogoFile && currentSettings.schoolLogo) {
-      archiveOldLogoFile(currentSettings.schoolLogo);
-    }
-    if (receiptLogoFile && currentSettings.receiptLogo) {
-      archiveOldLogoFile(currentSettings.receiptLogo);
-    }
+
+    // NEVER delete old logo files - keep them for historical receipts
+    // Old logos remain in their original location for existing receipts
+    // New receipts will use the new logo from current settings
 
     // Save receipt settings to school
     const updatedReceiptSettings = {
       schoolName: receiptSettings.schoolName || school.name,
-      schoolLogo: schoolLogoFile ? schoolLogoFile.filename : (receiptSettings.schoolLogo !== undefined ? receiptSettings.schoolLogo : currentSettings.schoolLogo || ''),
-      receiptLogo: receiptLogoFile ? receiptLogoFile.filename : (receiptSettings.receiptLogo !== undefined ? receiptSettings.receiptLogo : currentSettings.receiptLogo || ''),
+      schoolLogo: schoolLogoFile
+        ? schoolLogoFile.filename
+        : receiptSettings.schoolLogo !== undefined
+          ? receiptSettings.schoolLogo
+          : currentSettings.schoolLogo || '',
+      receiptLogo: receiptLogoFile
+        ? receiptLogoFile.filename
+        : receiptSettings.receiptLogo !== undefined
+          ? receiptSettings.receiptLogo
+          : currentSettings.receiptLogo || '',
       trustName: receiptSettings.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
       defaultReceiptTitle: receiptSettings.defaultReceiptTitle || 'Fee Receipt',
       showSchoolLogo: receiptSettings.showSchoolLogo !== false,
@@ -244,22 +247,23 @@ const updateReceiptSettings = async (req, res, next) => {
         if (branchData.id) {
           // Get current branch to check for old logo
           const currentBranch = await Branch.findByPk(branchData.id);
-          
+
           // Find if there's a logo file for this branch
-          const branchLogoFile = branchLogoFiles.find(file => 
-            file.fieldname === `branchLogos` && 
-            file.originalname === branchData.receiptLogo
+          const branchLogoFile = branchLogoFiles.find(
+            file => file.fieldname === `branchLogos` && file.originalname === branchData.receiptLogo
           );
-          
-          // Archive old branch logo if new one is being uploaded
-          if (branchLogoFile && currentBranch?.receipt_logo) {
-            archiveOldLogoFile(currentBranch.receipt_logo);
-          }
-          
+
+          // NEVER delete old branch logos - keep them for historical receipts
+          // Old branch logos remain for existing receipts
+
           await Branch.update(
             {
               receipt_name: branchData.receiptName || `${branchData.name} Receipt`,
-              receipt_logo: branchLogoFile ? branchLogoFile.filename : (branchData.receiptLogo !== undefined ? branchData.receiptLogo : (currentBranch?.receipt_logo || '')),
+              receipt_logo: branchLogoFile
+                ? branchLogoFile.filename
+                : branchData.receiptLogo !== undefined
+                  ? branchData.receiptLogo
+                  : currentBranch?.receipt_logo || '',
               receipt_address: branchData.receiptAddress || branchData.address || '',
               receipt_contact: branchData.receiptContact || branchData.phone || ''
             },
@@ -274,8 +278,8 @@ const updateReceiptSettings = async (req, res, next) => {
       }
     }
 
-    // Clean up orphaned logo files
-    await cleanupOrphanedLogos();
+    // Note: We no longer clean up logo files to preserve historical receipts
+    // await cleanupOrphanedLogos();
 
     logger.info(`Receipt settings updated for school ${schoolId}`);
 
@@ -286,7 +290,6 @@ const updateReceiptSettings = async (req, res, next) => {
         receiptSettings: updatedReceiptSettings
       }
     });
-
   } catch (error) {
     logger.error('Error updating receipt settings:', error);
     return next(error);

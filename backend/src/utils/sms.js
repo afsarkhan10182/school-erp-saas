@@ -16,7 +16,7 @@ const httpStatus = require('http-status');
  * @param {string} [options.priority] - Message priority ('normal' | 'high')
  * @returns {Promise<Object>} - Result from SMS provider
  */
-const sendSMS = async (options) => {
+const sendSMS = async options => {
   try {
     const { to, message, priority = 'normal' } = options;
 
@@ -32,27 +32,23 @@ const sendSMS = async (options) => {
         to,
         message: message.substring(0, 50) + '...',
         priority,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       });
-      
+
       return {
         success: true,
         messageId: `dev_sms_${Date.now()}`,
-        provider: 'development',
+        provider: 'development'
       };
     }
 
     // Production SMS sending logic will go here
     throw new Error('SMS provider not configured. Please set up SMS service.');
-
   } catch (error) {
     logger.error('Error sending SMS:', error);
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      'Failed to send SMS notification',
-      false,
-      { error: error.message }
-    );
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to send SMS notification', false, {
+      error: error.message
+    });
   }
 };
 
@@ -68,7 +64,7 @@ const sendSMS = async (options) => {
  */
 const sendAttendanceNotificationSMS = async (to, data) => {
   const { studentName, date, status, schoolName = 'School' } = data;
-  
+
   let message;
   switch (status) {
     case 'absent':
@@ -84,7 +80,7 @@ const sendAttendanceNotificationSMS = async (to, data) => {
   return sendSMS({
     to,
     message,
-    priority: status === 'absent' ? 'high' : 'normal',
+    priority: status === 'absent' ? 'high' : 'normal'
   });
 };
 
@@ -93,7 +89,7 @@ const sendAttendanceNotificationSMS = async (to, data) => {
  * @param {string} phoneNumber - Phone number to validate
  * @returns {boolean} - Whether the phone number is valid
  */
-const isValidPhoneNumber = (phoneNumber) => {
+const isValidPhoneNumber = phoneNumber => {
   // Basic international phone number validation
   // Starts with + followed by 7-15 digits
   const phoneRegex = /^\+[1-9]\d{6,14}$/;
@@ -109,17 +105,17 @@ const isValidPhoneNumber = (phoneNumber) => {
 const formatPhoneNumber = (phoneNumber, countryCode = '+91') => {
   // Remove all non-digit characters
   const cleaned = phoneNumber.replace(/\D/g, '');
-  
+
   // If it starts with country code digits, add +
   if (cleaned.startsWith('91') && cleaned.length === 12) {
     return '+' + cleaned;
   }
-  
+
   // If it's a 10-digit number, add country code
   if (cleaned.length === 10) {
     return countryCode + cleaned;
   }
-  
+
   // Return as-is if already formatted or unknown format
   return phoneNumber;
 };
@@ -128,5 +124,5 @@ module.exports = {
   sendSMS,
   sendAttendanceNotificationSMS,
   isValidPhoneNumber,
-  formatPhoneNumber,
+  formatPhoneNumber
 };

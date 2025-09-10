@@ -22,10 +22,10 @@ function resolveUploadsPath(...segments) {
   return path.join(BACKEND_ROOT, 'uploads', ...segments);
 }
 
-module.exports = { 
-  PROJECT_ROOT, 
+module.exports = {
+  PROJECT_ROOT,
   BACKEND_ROOT,
-  resolveProjectPath, 
+  resolveProjectPath,
   resolveBackendPath,
   resolveUploadsPath
 };

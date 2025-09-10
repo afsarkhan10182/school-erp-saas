@@ -18,7 +18,6 @@ export const useAuth = () => {
         return result;
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
       return {
         success: false,
         error: 'An unexpected error occurred during login.'
@@ -31,7 +30,6 @@ export const useAuth = () => {
       await authStore.logout();
       await navigateTo('/login');
     } catch (error) {
-      console.error('Logout error:', error);
       // Force redirect even if logout fails
       await navigateTo('/login');
     }

@@ -12,7 +12,10 @@ const {
 } = require('~/controllers/academic/academic-year.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createAcademicYear: createAcademicYearValidation, updateAcademicYear: updateAcademicYearValidation } = require('~/validations/academic/academic-year.validation');
+const {
+  createAcademicYear: createAcademicYearValidation,
+  updateAcademicYear: updateAcademicYearValidation
+} = require('~/validations/academic/academic-year.validation');
 
 const router = express.Router();
 
@@ -32,16 +35,18 @@ router.get('/current', getCurrentAcademicYear);
 router.get('/:id', authorize(['super_admin', 'school_admin']), getAcademicYearById);
 
 // POST /api/academic-years/ - Create new academic year (super admin only)
-router.post('/', 
-  authorize(['super_admin']), 
-  validate(createAcademicYearValidation), 
+router.post(
+  '/',
+  authorize(['super_admin']),
+  validate(createAcademicYearValidation),
   createAcademicYear
 );
 
 // PUT /api/academic-years/:id - Update academic year (super admin only)
-router.put('/:id', 
-  authorize(['super_admin']), 
-  validate(updateAcademicYearValidation), 
+router.put(
+  '/:id',
+  authorize(['super_admin']),
+  validate(updateAcademicYearValidation),
   updateAcademicYear
 );
 
@@ -49,15 +54,9 @@ router.put('/:id',
 router.delete('/:id', authorize(['super_admin']), deleteAcademicYear);
 
 // POST /api/academic-years/:id/set-current - Set academic year as current (super admin only)
-router.post('/:id/set-current', 
-  authorize(['super_admin']), 
-  setCurrentAcademicYear
-);
+router.post('/:id/set-current', authorize(['super_admin']), setCurrentAcademicYear);
 
 // POST /api/academic-years/sync-schools - Sync all schools to current academic year (super admin only)
-router.post('/sync-schools', 
-  authorize(['super_admin']), 
-  syncSchoolsToCurrentAcademicYear
-);
+router.post('/sync-schools', authorize(['super_admin']), syncSchoolsToCurrentAcademicYear);
 
 module.exports = router;

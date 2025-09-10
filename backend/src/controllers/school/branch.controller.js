@@ -10,15 +10,15 @@ class BranchController {
         ...req.files, // Include uploaded files
         created_by: req.user.id,
         // If School Admin, use their school_id
-        school_id: req.user.role === 'school_admin' ? req.user.school_id : req.body.school_id,
+        school_id: req.user.role === 'school_admin' ? req.user.school_id : req.body.school_id
       };
 
       const branch = await BranchService.createBranch(branchData);
-      
+
       res.status(201).json({
         success: true,
         message: 'Branch created successfully',
-        data: branch,
+        data: branch
       });
     } catch (error) {
       logger.error('Error in BranchController.createBranch:', error);
@@ -30,18 +30,18 @@ class BranchController {
   static async getAllBranches(req, res, next) {
     try {
       const { page = 1, limit = 10, search, status, school_id } = req.query;
-      
+
       const branches = await BranchService.getAllBranches({
         page: parseInt(page),
         limit: parseInt(limit),
         search,
         status,
-        school_id,
+        school_id
       });
-      
+
       res.json({
         success: true,
-        data: branches,
+        data: branches
       });
     } catch (error) {
       logger.error('Error in BranchController.getAllBranches:', error);
@@ -54,10 +54,10 @@ class BranchController {
     try {
       const { id } = req.params;
       const branch = await BranchService.getBranchById(id, req.user);
-      
+
       res.json({
         success: true,
-        data: branch,
+        data: branch
       });
     } catch (error) {
       logger.error('Error in BranchController.getBranchById:', error);
@@ -72,15 +72,15 @@ class BranchController {
       const updateData = {
         ...req.body,
         ...req.files, // Include uploaded files
-        updated_by: req.user.id,
+        updated_by: req.user.id
       };
 
       const branch = await BranchService.updateBranch(id, updateData, req.user);
-      
+
       res.json({
         success: true,
         message: 'Branch updated successfully',
-        data: branch,
+        data: branch
       });
     } catch (error) {
       logger.error('Error in BranchController.updateBranch:', error);
@@ -93,10 +93,10 @@ class BranchController {
     try {
       const { id } = req.params;
       await BranchService.deleteBranch(id);
-      
+
       res.json({
         success: true,
-        message: 'Branch deleted successfully',
+        message: 'Branch deleted successfully'
       });
     } catch (error) {
       logger.error('Error in BranchController.deleteBranch:', error);
@@ -109,30 +109,30 @@ class BranchController {
     try {
       const { schoolId } = req.params;
       const { page = 1, limit = 10, search, status } = req.query;
-      
+
       // Verify School Admin and Branch Admin can only access their own school
       if (req.user.role === 'school_admin' || req.user.role === 'branch_admin') {
         const userSchoolId = String(req.user.school_id || '').trim();
         const requestedSchoolId = String(schoolId || '').trim();
-        
+
         if (userSchoolId !== requestedSchoolId) {
           return res.status(403).json({
             success: false,
-            message: 'Access denied - School ID mismatch',
+            message: 'Access denied - School ID mismatch'
           });
         }
       }
-      
+
       const branches = await BranchService.getBranchesBySchool(schoolId, {
         page: parseInt(page),
         limit: parseInt(limit),
         search,
-        status,
+        status
       });
-      
+
       res.json({
         success: true,
-        data: branches,
+        data: branches
       });
     } catch (error) {
       logger.error('Error in BranchController.getBranchesBySchool:', error);
@@ -144,10 +144,10 @@ class BranchController {
   static async getMyBranch(req, res, next) {
     try {
       const branch = await BranchService.getBranchById(req.user.branch_id, req.user);
-      
+
       res.json({
         success: true,
-        data: branch,
+        data: branch
       });
     } catch (error) {
       logger.error('Error in BranchController.getMyBranch:', error);
@@ -160,7 +160,7 @@ class BranchController {
     try {
       const { school_id, status = 'active' } = req.query;
       let whereClause = { status };
-      
+
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can see all branches, optionally filtered by school
@@ -176,15 +176,15 @@ class BranchController {
       } else {
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
       const branches = await BranchService.getBranchesForDropdown(whereClause);
-      
+
       res.json({
         success: true,
-        data: branches,
+        data: branches
       });
     } catch (error) {
       logger.error('Error in BranchController.getBranchesForDropdown:', error);
@@ -193,4 +193,4 @@ class BranchController {
   }
 }
 
-module.exports = BranchController; 
+module.exports = BranchController;

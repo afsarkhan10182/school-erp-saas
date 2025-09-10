@@ -168,14 +168,16 @@ export const useAuthStore = defineStore('auth', () => {
         if (userData.school_id) {
           currentSchool.value = {
             id: userData.school_id,
-            name: userData.school_name
+            name: userData.school?.name || userData.school_name,
+            code: userData.school?.code || userData.school_code
           };
         }
 
         if (userData.branch_id) {
           currentBranch.value = {
             id: userData.branch_id,
-            name: userData.branch_name
+            name: userData.branch?.name || userData.branch_name,
+            code: userData.branch?.code || userData.branch_code
           };
         }
 

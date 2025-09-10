@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import { createApiInstance } from '~/utils/api';
+import { Academic } from '~/api/academic/academic';
 
 export const useAttendanceValidation = () => {
   const authStore = useAuthStore();
@@ -12,11 +12,10 @@ export const useAttendanceValidation = () => {
 
     loading.value = true;
     try {
-      const api = createApiInstance();
-      const response = await api.get('/academic/settings');
+      const response = await Academic.getSettings();
 
-      if (response.data.success) {
-        attendanceSettings.value = response.data.data.attendanceSettings;
+      if (response.success) {
+        attendanceSettings.value = response.data.attendanceSettings;
         return attendanceSettings.value;
       }
     } catch (error) {

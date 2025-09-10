@@ -47,7 +47,7 @@
                 <div class="flex-shrink-0">
                   <img
                     v-if="form.profilePreview || user?.profile_image"
-                    :src="form.profilePreview || uploadsUrl(user?.profile_image)"
+                    :src="form.profilePreview || getProfileImageUrl(user?.profile_image)"
                     :key="user?.profile_image || 'default'"
                     alt="Profile"
                     class="h-16 w-16 rounded-full object-cover"
@@ -432,12 +432,8 @@ const formatRole = role => {
   return roleMap[role] || role;
 };
 
-const uploadsUrl = filename => {
-  const config = useRuntimeConfig();
-  return filename
-    ? `${config.public.apiBase?.replace('/api', '')}/uploads/profile-images/${filename}`
-    : '';
-};
+// Import centralized image utilities
+import { getProfileImageUrl } from '~/utils/imageUtils';
 
 // Change password function
 const changePassword = async () => {

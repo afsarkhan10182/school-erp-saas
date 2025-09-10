@@ -1,16 +1,27 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('~/models');
+const {
+  FeeInvoice,
+  FeeStructure,
+  FeeType,
+  Student,
+  Parent,
+  School,
+  FeePayment,
+  Branch,
+  Class
+} = require('~/models');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
 const { generateInstallmentReceipt } = require('~/services/receipt.service');
 const { generateUniqueInvoiceNumber, getClassCode } = require('./core');
 const { createDateRange } = require('~/utils/dateUtils');
+const { getFileUrlPath, getSchoolCodeFromId, getCurrentYear } = require('~/utils/storage');
 
 // Helper function to get student full name
-const getStudentFullName = (student) => {
+const getStudentFullName = student => {
   const firstName = student.first_name || '';
   const lastName = student.last_name || '';
-  
+
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
   } else if (firstName) {
@@ -30,7 +41,7 @@ const getReceiptForInvoice = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -43,14 +54,14 @@ const getReceiptForInvoice = async (req, res, next) => {
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeePayment,
           as: 'payments',
-          order: [['created_at', 'DESC']],
-        },
-      ],
+          order: [['created_at', 'DESC']]
+        }
+      ]
     });
 
     if (!invoice) {
@@ -64,7 +75,7 @@ const getReceiptForInvoice = async (req, res, next) => {
     // If there's only one payment, return it directly
     if (invoice.payments.length === 1) {
       const payment = invoice.payments[0];
-      
+
       // Use the new on-demand approach
       const { generateReceiptData } = require('~/services/receipt.service');
       const receiptData = await generateReceiptData(payment.id);
@@ -78,7 +89,7 @@ const getReceiptForInvoice = async (req, res, next) => {
             payment_number: payment.payment_number,
             payment_amount: payment.payment_amount,
             payment_method: payment.payment_method,
-            payment_date: payment.payment_date,
+            payment_date: payment.payment_date
           },
           // Include invoice information for month details
           invoice: {
@@ -92,19 +103,19 @@ const getReceiptForInvoice = async (req, res, next) => {
             balance_amount: invoice.balance_amount,
             academic_year: invoice.academic_year,
             class_name: invoice.class_name,
-            section: invoice.section,
-          },
-        },
+            section: invoice.section
+          }
+        }
       });
     } else {
       // Multiple payments - return all payments with their receipts
       const paymentsWithReceipts = [];
-      
+
       for (const payment of invoice.payments) {
         // Use the new on-demand approach for each payment
         const { generateReceiptData } = require('~/services/receipt.service');
         const receiptData = await generateReceiptData(payment.id);
-        
+
         paymentsWithReceipts.push({
           payment: {
             id: payment.id,
@@ -112,7 +123,7 @@ const getReceiptForInvoice = async (req, res, next) => {
             payment_amount: payment.payment_amount,
             payment_method: payment.payment_method,
             payment_date: payment.payment_date,
-            created_at: payment.created_at,
+            created_at: payment.created_at
           },
           receipt: receiptData
         });
@@ -132,12 +143,12 @@ const getReceiptForInvoice = async (req, res, next) => {
             balance_amount: invoice.balance_amount,
             academic_year: invoice.academic_year,
             class_name: invoice.class_name,
-            section: invoice.section,
+            section: invoice.section
           },
           payments: paymentsWithReceipts,
           total_payments: paymentsWithReceipts.length,
-          has_multiple_payments: true,
-        },
+          has_multiple_payments: true
+        }
       });
     }
   } catch (error) {
@@ -153,7 +164,7 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -173,7 +184,7 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
           include: [
             {
               model: Student,
-              as: 'student',
+              as: 'student'
             },
             {
               model: FeeStructure,
@@ -181,16 +192,16 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
-          ],
-        },
+                  as: 'feeType'
+                }
+              ]
+            }
+          ]
+        }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
-      offset: offset,
+      offset: offset
     });
 
     const totalPages = Math.ceil(count / parseInt(limit));
@@ -212,16 +223,16 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
         section: payment.invoice.section,
         academic_year: payment.invoice.academic_year,
         total_amount: parseFloat(payment.invoice.total_amount || 0),
-        balance_amount: parseFloat(payment.invoice.balance_amount || 0),
+        balance_amount: parseFloat(payment.invoice.balance_amount || 0)
       },
       student: {
         id: payment.invoice.student.id,
         name: getStudentFullName(payment.invoice.student),
         admission_number: payment.invoice.student.admission_number,
         class: payment.invoice.student.current_class,
-        section: payment.invoice.student.section,
+        section: payment.invoice.student.section
       },
-      created_at: payment.created_at,
+      created_at: payment.created_at
     }));
 
     return res.status(200).json({
@@ -232,9 +243,9 @@ const getEnhancedPaymentReceipts = async (req, res, next) => {
           current_page: parseInt(page),
           total_pages: totalPages,
           total_count: count,
-          limit: parseInt(limit),
-        },
-      },
+          limit: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
     logger.error('Error fetching enhanced payment receipts:', error);
@@ -252,12 +263,12 @@ const getGroupedReceipts = async (req, res, next) => {
     }
 
     const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
-    
+
     const whereClause = {
       school_id: req.schoolId,
       payment_date: {
-        [Op.between]: [fromDateTime, toDateTime],
-      },
+        [Op.between]: [fromDateTime, toDateTime]
+      }
     };
 
     // Add branch filter for branch admins
@@ -280,23 +291,23 @@ const getGroupedReceipts = async (req, res, next) => {
               {
                 model: Branch,
                 as: 'branch',
-                attributes: ['id', 'name', 'code'],
-              },
-            ],
+                attributes: ['id', 'name', 'code']
+              }
+            ]
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
-      },
+            attributes: ['id', 'name', 'code']
+          }
+        ]
+      }
     ];
 
     // Add student filters
     if (class_name) includeClause[0].include[0].where.current_class = class_name;
     if (section) includeClause[0].include[0].where.section = section;
-    
+
     // Handle student branch filtering based on user role
     if (req.user.role === 'branch_admin') {
       includeClause[0].include[0].where.branch_id = req.user.branch_id;
@@ -305,7 +316,7 @@ const getGroupedReceipts = async (req, res, next) => {
     const payments = await FeePayment.findAll({
       where: whereClause,
       include: includeClause,
-      order: [['payment_date', 'ASC']],
+      order: [['payment_date', 'ASC']]
     });
 
     // Group payments by date
@@ -315,13 +326,13 @@ const getGroupedReceipts = async (req, res, next) => {
 
     payments.forEach(payment => {
       const dateKey = payment.payment_date.toISOString().split('T')[0];
-      
+
       if (!groupedPayments[dateKey]) {
         groupedPayments[dateKey] = {
           date: dateKey,
           payments: [],
           total_amount: 0,
-          payment_count: 0,
+          payment_count: 0
         };
       }
 
@@ -337,7 +348,7 @@ const getGroupedReceipts = async (req, res, next) => {
         section: payment.invoice.student.section,
         invoice_number: payment.invoice.invoice_number,
         branch_name: payment.invoice.branch?.name || payment.invoice.student?.branch?.name || 'N/A',
-        created_at: payment.created_at,
+        created_at: payment.created_at
       });
 
       groupedPayments[dateKey].total_amount += parseFloat(payment.payment_amount || 0);
@@ -347,7 +358,9 @@ const getGroupedReceipts = async (req, res, next) => {
     });
 
     // Convert to array and sort by date
-    const groupedArray = Object.values(groupedPayments).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const groupedArray = Object.values(groupedPayments).sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
 
     return res.status(200).json({
       success: true,
@@ -357,11 +370,11 @@ const getGroupedReceipts = async (req, res, next) => {
           total_payments: totalPayments,
           date_range: {
             from_date,
-            to_date,
-          },
+            to_date
+          }
         },
-        grouped_payments: groupedArray,
-      },
+        grouped_payments: groupedArray
+      }
     });
   } catch (error) {
     logger.error('Error fetching grouped receipts:', error);
@@ -370,53 +383,63 @@ const getGroupedReceipts = async (req, res, next) => {
 };
 
 // Generate combined receipt for multiple invoices (smart payment)
-const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMethod, transactionId, school, student, receiptNumber, branch = null, paymentDate = null) => {
+const generateCombinedReceipt = async (
+  invoices,
+  totalPaymentAmount,
+  paymentMethod,
+  transactionId,
+  school,
+  student,
+  receiptNumber,
+  branch = null,
+  paymentDate = null
+) => {
   try {
     if (!invoices || invoices.length === 0) {
       throw new Error('No invoices provided for combined receipt');
     }
-    
+
     // Calculate totals
     const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
     const totalPaid = invoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0);
-    
+
     // Group invoices by month/year for monthly payments
     const monthlyPayments = invoices.filter(inv => inv.payment_model === 'monthly');
     const installmentPayments = invoices.filter(inv => inv.payment_model === 'installment');
-    
+
     // Calculate months being paid in this receipt
     let remainingMonths = 0;
     let totalMonths = 12;
     let monthlyFeeAmount = 0;
     let monthsPaidInThisReceipt = 0;
     let totalPaidMonthsAfterThisReceipt = 0;
-    
+
     if (monthlyPayments.length > 0) {
       // Count the months being paid in THIS receipt
       monthsPaidInThisReceipt = monthlyPayments.length;
-      
+
       // Get the fee structure from the first monthly payment to get total months and monthly fee
       const firstMonthlyPayment = monthlyPayments[0];
       const feeStructure = firstMonthlyPayment.feeStructure;
       totalMonths = feeStructure?.total_months || 12;
       monthlyFeeAmount = parseFloat(feeStructure?.monthly_payment_amount || 0);
-      
+
       const { calculatePaidMonths } = require('~/services/receipt.service');
-      
+
       // Calculate total paid months across all fee structures for this student
       // If paymentDate is provided, calculate historical state; otherwise include current receipt
       const totalPaidMonths = await calculatePaidMonths(
-        student.id, 
-        firstMonthlyPayment.fee_structure_id, 
+        student.id,
+        firstMonthlyPayment.fee_structure_id,
         firstMonthlyPayment.academic_year,
         paymentDate ? null : monthlyPayments, // Only include current invoices if not historical
         paymentDate // Pass payment date for historical calculation
       );
-      
+
       // Use the calculated total (no need to add manually)
       totalPaidMonthsAfterThisReceipt = totalPaidMonths;
       remainingMonths = Math.max(0, totalMonths - totalPaidMonthsAfterThisReceipt);
-      
+
       // Debug logging
       console.log('🔍 Combined Receipt Calculation:', {
         student_id: student.id,
@@ -429,17 +452,20 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
         remaining_balance: remainingMonths * monthlyFeeAmount
       });
     }
-    
+
     // Get branch information from the first invoice
     const branch = invoices[0].branch;
-    
+
     // Get receipt settings from school data
     const receiptSettings = school.receipt_settings || {};
-    
+
     // Create receipt data
     const receiptData = {
       receipt_number: receiptNumber,
-      invoice_number: invoices.length === 1 ? invoices[0].invoice_number : invoices.map(inv => inv.invoice_number).join(', '),
+      invoice_number:
+        invoices.length === 1
+          ? invoices[0].invoice_number
+          : invoices.map(inv => inv.invoice_number).join(', '),
       student_name: getStudentFullName(student),
       student_id: student.id,
       admission_number: student.admission_number,
@@ -452,19 +478,24 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
       branch_name: branch?.name || null,
       branch_code: branch?.code || null,
       receipt_logo: receiptSettings.receiptLogo || branch?.receipt_logo,
-      branch: branch ? {
-        id: branch.id,
-        name: branch.name,
-        code: branch.code,
-        receipt_logo: branch.receipt_logo
-      } : null,
+      branch: branch
+        ? {
+            id: branch.id,
+            name: branch.name,
+            code: branch.code,
+            receipt_logo: branch.receipt_logo
+          }
+        : null,
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: paymentMethod,
       transaction_id: transactionId,
       total_payment_amount: totalPaymentAmount,
       total_amount: totalAmount,
       total_paid: totalPaid,
-      fee_type_name: monthlyPayments.length > 0 ? monthlyPayments[0].feeStructure?.feeType?.name || 'Tuition Fees' : 'Multiple Fee Types',
+      fee_type_name:
+        monthlyPayments.length > 0
+          ? monthlyPayments[0].feeStructure?.feeType?.name || 'Tuition Fees'
+          : 'Multiple Fee Types',
       invoices: invoices,
       monthly_payments: monthlyPayments,
       installment_payments: installmentPayments,
@@ -475,7 +506,8 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
         fee_type: inv.feeStructure?.feeType?.name
       })),
       remaining_months: remainingMonths,
-      remaining_balance: monthlyFeeAmount > 0 ? remainingMonths * monthlyFeeAmount : totalAmount - totalPaid,
+      remaining_balance:
+        monthlyFeeAmount > 0 ? remainingMonths * monthlyFeeAmount : totalAmount - totalPaid,
       total_months: totalMonths,
       months_paid: totalPaidMonthsAfterThisReceipt,
       receipt_number: receiptNumber // Add receipt_number to the receipt data
@@ -498,27 +530,40 @@ const generateCombinedReceipt = async (invoices, totalPaymentAmount, paymentMeth
 
 // Generate HTML for combined receipt
 const generateCombinedReceiptHtml = (data, school, branch = null) => {
-  const paidMonthsText = data.paid_months.map(pm => 
-    `${getMonthName(pm.month)} ${pm.year}`
-  ).join(', ');
+  const paidMonthsText = data.paid_months
+    .map(pm => `${getMonthName(pm.month)} ${pm.year}`)
+    .join(', ');
 
-  // Use the same logo URL handling as the receipt service
-  const getLogoUrl = (filename) => {
+  // Use the centralized storage utility for logo URL generation
+  const getLogoUrl = filename => {
     if (!filename) return '';
     if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
-    const baseUrl = process.env.NUXT_PUBLIC_API_BASE;
-    const backendBase = baseUrl?.replace('/api', '');
-    return `${backendBase}/uploads/logos/${filename}`;
+
+    try {
+      const schoolCode = school.code;
+      const year = getCurrentYear();
+      const filePath = getFileUrlPath(schoolCode, 'logos', filename, year);
+      const baseUrl = process.env.NUXT_PUBLIC_API_BASE;
+      const backendBase = baseUrl?.replace('/api', '');
+      return `${backendBase}/uploads/${filePath}`;
+    } catch (error) {
+      logger.error('Error generating logo URL:', error);
+      return '';
+    }
   };
 
   return `
     <div class="receipt" style="width: 400px; background: white; border: 1px solid #ddd; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
       <div class="header" style="text-align: center; padding: 15px; border-bottom: 2px solid #333; background: #f8f9fa;">
-        ${(data.receipt_logo || data.school_logo) ? `
+        ${
+          data.receipt_logo || data.school_logo
+            ? `
           <div class="logo-container" style="margin-bottom: 10px;">
             <img src="${getLogoUrl(data.receipt_logo || data.school_logo)}" alt="School Logo" style="max-height: 60px; max-width: 200px; object-fit: contain;" onerror="this.style.display='none'" />
           </div>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="trust-name" style="font-size: 18px; font-weight: bold; color: #000;">${data.trust_name || school.trust_name || 'School Trust'}</div>
         <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000;">${school.name}</div>
         <div class="school-type" style="font-size: 14px; color: #000;">${school.school_type || 'Educational Institution'}</div>
@@ -574,13 +619,17 @@ const generateCombinedReceiptHtml = (data, school, branch = null) => {
               </tr>
             </thead>
             <tbody>
-              ${data.paid_months.map(pm => `
+              ${data.paid_months
+                .map(
+                  pm => `
                 <tr>
                   <td style="border: 1px solid #000; padding: 8px; color: #000;">${getMonthName(pm.month)} ${pm.year}</td>
                   <td style="border: 1px solid #000; padding: 8px; color: #000;">${pm.fee_type}</td>
                   <td style="border: 1px solid #000; padding: 8px; text-align: right; color: #000;">₹${pm.amount}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
         </div>
@@ -594,12 +643,16 @@ const generateCombinedReceiptHtml = (data, school, branch = null) => {
             <span style="color: #000;">Payment Method:</span>
             <span style="color: #000;">${data.payment_method.toUpperCase()}</span>
           </div>
-          ${data.transaction_id ? `
+          ${
+            data.transaction_id
+              ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span style="color: #000;">Transaction ID:</span>
             <span style="color: #000;">${data.transaction_id}</span>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         
         
@@ -626,10 +679,20 @@ const generateCombinedReceiptHtml = (data, school, branch = null) => {
 };
 
 // Helper function to get month name
-const getMonthName = (month) => {
+const getMonthName = month => {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
   return months[month - 1] || 'Unknown';
 };
@@ -646,7 +709,7 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       receipt_number: receiptNumber,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -660,7 +723,7 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeeStructure,
@@ -668,14 +731,14 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
-            },
-          ],
+              as: 'feeType'
+            }
+          ]
         },
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
+          attributes: ['id', 'name', 'code']
         },
         {
           model: FeePayment,
@@ -684,10 +747,13 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
             payment_status: 'completed'
           },
           required: true,
-          order: [['payment_date', 'ASC']],
+          order: [['payment_date', 'ASC']]
         }
       ],
-      order: [['month', 'ASC'], ['year', 'ASC']],
+      order: [
+        ['month', 'ASC'],
+        ['year', 'ASC']
+      ]
     });
 
     if (invoices.length === 0) {
@@ -710,48 +776,58 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
 
     // If we have stored receipt data, use it but ensure branch information is included
     if (storedReceiptData) {
-      logger.info(`Using stored receipt data for group ${receiptGroupId} - preserving historical state`);
-      
+      logger.info(
+        `Using stored receipt data for group ${receiptGroupId} - preserving historical state`
+      );
+
       // Get branch information from the first invoice
       const branch = invoices[0].branch;
       const student = invoices[0].student;
-      
+
       // Ensure branch information and student details are included in the stored receipt data
       const enhancedReceiptData = {
         ...storedReceiptData,
         branch_name: branch?.name || storedReceiptData.branch_name || null,
         branch_code: branch?.code || storedReceiptData.branch_code || null,
-        branch: branch ? {
-          id: branch.id,
-          name: branch.name,
-          code: branch.code
-        } : storedReceiptData.branch || null,
+        branch: branch
+          ? {
+              id: branch.id,
+              name: branch.name,
+              code: branch.code
+            }
+          : storedReceiptData.branch || null,
         class_name: student?.current_class || storedReceiptData.class_name || null,
         section: student?.section || storedReceiptData.section || null,
-        student_name: student ? `${student.first_name} ${student.last_name || ''}` : storedReceiptData.student_name || null,
-        admission_number: student?.admission_number || storedReceiptData.admission_number || null,
+        student_name: student
+          ? `${student.first_name} ${student.last_name || ''}`
+          : storedReceiptData.student_name || null,
+        admission_number: student?.admission_number || storedReceiptData.admission_number || null
       };
-      
+
       return res.status(200).json({
         success: true,
-        data: enhancedReceiptData,
+        data: enhancedReceiptData
       });
     }
 
     // If no stored data, generate on-demand (fallback for old receipts)
     logger.info(`No stored receipt data found for group ${receiptGroupId}, generating on-demand`);
-    
+
     // Get school and student data
     const school = await School.findByPk(req.schoolId);
     const student = invoices[0].student;
 
     // Calculate total payment amount
-    const totalPaymentAmount = invoices.reduce((sum, invoice) => sum + parseFloat(invoice.paid_amount || 0), 0);
+    const totalPaymentAmount = invoices.reduce(
+      (sum, invoice) => sum + parseFloat(invoice.paid_amount || 0),
+      0
+    );
 
     // Get the payment date from the first payment for historical calculation
-    const paymentDate = invoices[0].payments && invoices[0].payments.length > 0 
-      ? invoices[0].payments[0].payment_date 
-      : null;
+    const paymentDate =
+      invoices[0].payments && invoices[0].payments.length > 0
+        ? invoices[0].payments[0].payment_date
+        : null;
 
     // Generate combined receipt
     const combinedReceipt = await generateCombinedReceipt(
@@ -767,7 +843,7 @@ const getCombinedReceiptByGroupId = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: combinedReceipt.receipt_data || combinedReceipt,
+      data: combinedReceipt.receipt_data || combinedReceipt
     });
   } catch (error) {
     logger.error('Error fetching combined receipt:', error);
@@ -787,7 +863,7 @@ const getReceiptData = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id: paymentId,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -804,7 +880,7 @@ const getReceiptData = async (req, res, next) => {
           include: [
             {
               model: Student,
-              as: 'student',
+              as: 'student'
             },
             {
               model: FeeStructure,
@@ -812,17 +888,17 @@ const getReceiptData = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
-          ],
+                  as: 'feeType'
+                }
+              ]
+            }
+          ]
         },
         {
           model: School,
-          as: 'school',
-        },
-      ],
+          as: 'school'
+        }
+      ]
     });
 
     if (!payment) {
@@ -835,7 +911,7 @@ const getReceiptData = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      data: receiptData,
+      data: receiptData
     });
   } catch (error) {
     logger.error('Error fetching receipt data:', error);
@@ -855,7 +931,7 @@ const getCombinedReceiptData = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id: paymentIds,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -872,7 +948,7 @@ const getCombinedReceiptData = async (req, res, next) => {
           include: [
             {
               model: Student,
-              as: 'student',
+              as: 'student'
             },
             {
               model: FeeStructure,
@@ -880,18 +956,18 @@ const getCombinedReceiptData = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
-          ],
+                  as: 'feeType'
+                }
+              ]
+            }
+          ]
         },
         {
           model: School,
-          as: 'school',
-        },
+          as: 'school'
+        }
       ],
-      order: [['payment_date', 'ASC']],
+      order: [['payment_date', 'ASC']]
     });
 
     if (payments.length === 0) {
@@ -899,12 +975,14 @@ const getCombinedReceiptData = async (req, res, next) => {
     }
 
     // Generate combined receipt data on-demand
-    const { generateCombinedReceiptData: generateReceiptData } = require('~/services/receipt.service');
+    const {
+      generateCombinedReceiptData: generateReceiptData
+    } = require('~/services/receipt.service');
     const receiptData = await generateReceiptData(paymentIds);
 
     return res.status(200).json({
       success: true,
-      data: receiptData,
+      data: receiptData
     });
   } catch (error) {
     logger.error('Error fetching combined receipt data:', error);
@@ -924,7 +1002,7 @@ const getInvoiceReceiptData = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id: id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -937,14 +1015,14 @@ const getInvoiceReceiptData = async (req, res, next) => {
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeePayment,
           as: 'payments',
-          order: [['created_at', 'DESC']],
-        },
-      ],
+          order: [['created_at', 'DESC']]
+        }
+      ]
     });
 
     if (!invoice) {
@@ -962,17 +1040,19 @@ const getInvoiceReceiptData = async (req, res, next) => {
 
       return res.status(200).json({
         success: true,
-        data: receiptData,
+        data: receiptData
       });
     } else {
       // Multiple payments - return combined receipt data
       const paymentIds = invoice.payments.map(payment => payment.id);
-      const { generateCombinedReceiptData: generateReceiptData } = require('~/services/receipt.service');
+      const {
+        generateCombinedReceiptData: generateReceiptData
+      } = require('~/services/receipt.service');
       const receiptData = await generateReceiptData(paymentIds);
 
       return res.status(200).json({
         success: true,
-        data: receiptData,
+        data: receiptData
       });
     }
   } catch (error) {
@@ -984,25 +1064,23 @@ const getInvoiceReceiptData = async (req, res, next) => {
 // Simple receipts report for dedicated receipts page
 const getReceiptsReport = async (req, res, next) => {
   try {
-    const { 
-      from_date, 
-      to_date, 
-      payment_method, 
-      class_id, 
-      section, 
+    const {
+      from_date,
+      to_date,
+      payment_method,
+      class_id,
+      section,
       search,
       branch_id,
-      page = 1, 
+      page = 1,
       limit = 10,
       export_all = false
     } = req.query;
-    
-
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -1014,7 +1092,7 @@ const getReceiptsReport = async (req, res, next) => {
     if (from_date && to_date) {
       const { fromDateTime, toDateTime } = createDateRange(from_date, to_date);
       whereClause.payment_date = {
-        [Op.between]: [fromDateTime, toDateTime],
+        [Op.between]: [fromDateTime, toDateTime]
       };
     }
 
@@ -1041,9 +1119,9 @@ const getReceiptsReport = async (req, res, next) => {
               {
                 model: Branch,
                 as: 'branch',
-                attributes: ['id', 'name', 'code'],
-              },
-            ],
+                attributes: ['id', 'name', 'code']
+              }
+            ]
           },
           {
             model: FeeStructure,
@@ -1052,12 +1130,12 @@ const getReceiptsReport = async (req, res, next) => {
               {
                 model: FeeType,
                 as: 'feeType',
-                attributes: ['id', 'name'],
-              },
-            ],
-          },
-        ],
-      },
+                attributes: ['id', 'name']
+              }
+            ]
+          }
+        ]
+      }
     ];
 
     // Add student filters
@@ -1071,7 +1149,7 @@ const getReceiptsReport = async (req, res, next) => {
       if (!includeClause[0].include[0].where) includeClause[0].include[0].where = {};
       includeClause[0].include[0].where.section = section;
     }
-    
+
     // Add search filter
     if (search) {
       if (!includeClause[0].include[0].where) {
@@ -1081,7 +1159,7 @@ const getReceiptsReport = async (req, res, next) => {
         { first_name: { [Op.iLike]: `%${search}%` } },
         { last_name: { [Op.iLike]: `%${search}%` } },
         { admission_number: { [Op.iLike]: `%${search}%` } },
-        { roll_number: { [Op.iLike]: `%${search}%` } },
+        { roll_number: { [Op.iLike]: `%${search}%` } }
       ];
       if (!includeClause[0].where) {
         includeClause[0].where = {};
@@ -1105,7 +1183,7 @@ const getReceiptsReport = async (req, res, next) => {
     const allPayments = await FeePayment.findAll({
       where: whereClause,
       include: includeClause,
-      order: [['payment_date', 'DESC']],
+      order: [['payment_date', 'DESC']]
     });
 
     // Group by receipt_number if exists, otherwise show individual
@@ -1114,7 +1192,7 @@ const getReceiptsReport = async (req, res, next) => {
 
     allPayments.forEach(payment => {
       const receiptGroupId = payment.invoice?.receipt_number;
-      
+
       if (receiptGroupId) {
         if (!groupedReceipts[receiptGroupId]) {
           groupedReceipts[receiptGroupId] = {
@@ -1130,12 +1208,14 @@ const getReceiptsReport = async (req, res, next) => {
             months: []
           };
         }
-        
+
         groupedReceipts[receiptGroupId].payments.push(payment);
         groupedReceipts[receiptGroupId].total_amount += parseFloat(payment.payment_amount || 0);
-        groupedReceipts[receiptGroupId].fee_types.add(payment.invoice?.feeStructure?.feeType?.name || 'N/A');
+        groupedReceipts[receiptGroupId].fee_types.add(
+          payment.invoice?.feeStructure?.feeType?.name || 'N/A'
+        );
         groupedReceipts[receiptGroupId].month_count += 1;
-        
+
         // Add month information if available
         if (payment.invoice?.month && payment.invoice?.year) {
           groupedReceipts[receiptGroupId].months.push({
@@ -1151,9 +1231,11 @@ const getReceiptsReport = async (req, res, next) => {
     // Convert grouped receipts to simple format
     const groupedReceiptsArray = Object.values(groupedReceipts).map(group => {
       // Collect all unique invoice numbers for grouped receipts
-      const invoiceNumbers = [...new Set(group.payments.map(p => p.invoice?.invoice_number).filter(Boolean))];
+      const invoiceNumbers = [
+        ...new Set(group.payments.map(p => p.invoice?.invoice_number).filter(Boolean))
+      ];
       const invoiceIds = [...new Set(group.payments.map(p => p.invoice?.id).filter(Boolean))];
-      
+
       return {
         id: group.receipt_number,
         receipt_number: group.receipt_number,
@@ -1166,13 +1248,14 @@ const getReceiptsReport = async (req, res, next) => {
         },
         student: {
           id: group.student?.id,
-          name: group.student?.first_name && group.student?.last_name 
-            ? `${group.student?.first_name} ${group.student?.last_name}`.trim()
-            : group.student?.first_name || group.student?.last_name || null,
+          name:
+            group.student?.first_name && group.student?.last_name
+              ? `${group.student?.first_name} ${group.student?.last_name}`.trim()
+              : group.student?.first_name || group.student?.last_name || null,
           admission_number: group.student?.admission_number,
           roll_number: group.student?.roll_number,
           current_class: group.student?.current_class,
-          section: group.student?.section,
+          section: group.student?.section
         },
         fee_type: Array.from(group.fee_types).join(', '),
         branch: group.branch?.name,
@@ -1194,13 +1277,14 @@ const getReceiptsReport = async (req, res, next) => {
       },
       student: {
         id: payment.invoice?.student?.id,
-        name: payment.invoice?.student?.first_name && payment.invoice?.student?.last_name 
-          ? `${payment.invoice?.student?.first_name} ${payment.invoice?.student?.last_name}`.trim()
-          : payment.invoice?.student?.first_name || payment.invoice?.student?.last_name || null,
+        name:
+          payment.invoice?.student?.first_name && payment.invoice?.student?.last_name
+            ? `${payment.invoice?.student?.first_name} ${payment.invoice?.student?.last_name}`.trim()
+            : payment.invoice?.student?.first_name || payment.invoice?.student?.last_name || null,
         admission_number: payment.invoice?.student?.admission_number,
         roll_number: payment.invoice?.student?.roll_number,
         current_class: payment.invoice?.student?.current_class,
-        section: payment.invoice?.student?.section,
+        section: payment.invoice?.student?.section
       },
       fee_type: payment.invoice?.feeStructure?.feeType?.name || 'N/A',
       branch: payment.invoice?.student?.branch?.name,
@@ -1208,18 +1292,20 @@ const getReceiptsReport = async (req, res, next) => {
     }));
 
     // Combine and sort all receipts
-    const allReceipts = [...groupedReceiptsArray, ...individualReceiptsArray]
-      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+    const allReceipts = [...groupedReceiptsArray, ...individualReceiptsArray].sort(
+      (a, b) => new Date(b.payment_date) - new Date(a.payment_date)
+    );
 
     // Filter out receipts with incomplete student data
     let finalReceipts = allReceipts;
     if (class_id || search) {
-      finalReceipts = allReceipts.filter(receipt => 
-        receipt.student && 
-        receipt.student.id && 
-        receipt.student.name && 
-        receipt.student.name.trim() !== '' &&
-        receipt.student.name !== 'Student data unavailable'
+      finalReceipts = allReceipts.filter(
+        receipt =>
+          receipt.student &&
+          receipt.student.id &&
+          receipt.student.name &&
+          receipt.student.name.trim() !== '' &&
+          receipt.student.name !== 'Student data unavailable'
       );
     }
 
@@ -1227,7 +1313,7 @@ const getReceiptsReport = async (req, res, next) => {
     const totalRecords = finalReceipts.length;
     let paginatedReceipts;
     let totalPages;
-    
+
     if (export_all === 'true' || export_all === true) {
       // For export, return all records without pagination
       paginatedReceipts = finalReceipts;
@@ -1264,15 +1350,15 @@ const getReceiptsReport = async (req, res, next) => {
             payment_method: method,
             amount: data.amount,
             count: data.count
-          })),
+          }))
         },
         pagination: {
           current_page: parseInt(page),
           total_pages: totalPages,
           total_records: totalRecords,
-          per_page: parseInt(limit),
-        },
-      },
+          per_page: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
     logger.error('Error fetching receipts report:', error);
@@ -1293,7 +1379,7 @@ const getReceiptByNumber = async (req, res, next) => {
     const payments = await FeePayment.findAll({
       where: {
         receipt_number: receiptNumber,
-        school_id: req.schoolId,
+        school_id: req.schoolId
       },
       include: [
         {
@@ -1307,9 +1393,9 @@ const getReceiptByNumber = async (req, res, next) => {
                 {
                   model: Branch,
                   as: 'branch',
-                  attributes: ['id', 'name', 'code'],
-                },
-              ],
+                  attributes: ['id', 'name', 'code']
+                }
+              ]
             },
             {
               model: FeeStructure,
@@ -1317,25 +1403,25 @@ const getReceiptByNumber = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
+                  as: 'feeType'
                 },
                 {
                   model: Class,
                   as: 'class',
-                  attributes: ['id', 'name', 'code'],
-                },
-              ],
-            },
-          ],
-        },
+                  attributes: ['id', 'name', 'code']
+                }
+              ]
+            }
+          ]
+        }
       ],
-      order: [['payment_date', 'DESC']],
+      order: [['payment_date', 'DESC']]
     });
 
     if (!payments || payments.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Receipt not found',
+        message: 'Receipt not found'
       });
     }
 
@@ -1352,16 +1438,16 @@ const getReceiptByNumber = async (req, res, next) => {
       // Return stored receipt data
       return res.status(200).json({
         success: true,
-        data: receiptData,
+        data: receiptData
       });
     } else {
       // Generate receipt data on-demand
       const { generateReceiptData } = require('~/services/receipt.service');
       const generatedData = await generateReceiptData(payments[0].id);
-      
+
       return res.status(200).json({
         success: true,
-        data: generatedData,
+        data: generatedData
       });
     }
   } catch (error) {
@@ -1382,5 +1468,5 @@ module.exports = {
   getCombinedReceiptData,
   getInvoiceReceiptData,
   // Receipts report
-  getReceiptsReport,
-}; 
+  getReceiptsReport
+};

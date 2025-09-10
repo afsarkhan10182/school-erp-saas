@@ -8,16 +8,13 @@ const logger = require('~/utils/logger');
  * This should be the last middleware in the chain.
  */
 const notFound = (req, res, next) => {
-  const error = new ApiError(
-    httpStatus.NOT_FOUND,
-    `Not Found - ${req.method} ${req.originalUrl}`
-  );
-  
+  const error = new ApiError(httpStatus.NOT_FOUND, `Not Found - ${req.method} ${req.originalUrl}`);
+
   // Log the 404 error in development or if debug is enabled
   if (config.env === 'development' || config.logging.level === 'debug') {
     logger.warn(`404 Not Found: ${req.method} ${req.originalUrl}`);
   }
-  
+
   next(error);
 };
 

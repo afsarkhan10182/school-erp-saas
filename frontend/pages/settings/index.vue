@@ -1135,7 +1135,7 @@
                           />
                           <div v-if="receiptSettings.schoolLogo" class="flex-shrink-0">
                             <img
-                              :src="getImageUrl(receiptSettings.schoolLogo)"
+                              :src="getLogoUrl(receiptSettings.schoolLogo)"
                               alt="School Logo"
                               class="w-12 h-12 object-cover rounded border-2 border-gray-200"
                             />
@@ -1155,7 +1155,7 @@
                           />
                           <div v-if="receiptSettings.receiptLogo" class="flex-shrink-0">
                             <img
-                              :src="getImageUrl(receiptSettings.receiptLogo)"
+                              :src="getLogoUrl(receiptSettings.receiptLogo)"
                               alt="Receipt Logo"
                               class="w-16 h-10 object-contain rounded border-2 border-gray-200"
                             />
@@ -1307,7 +1307,7 @@
                             />
                             <div v-if="branch.receiptLogo" class="flex-shrink-0">
                               <img
-                                :src="getImageUrl(branch.receiptLogo)"
+                                :src="getLogoUrl(branch.receiptLogo)"
                                 alt="Branch Logo"
                                 class="w-10 h-10 object-cover rounded border-2 border-gray-200"
                               />
@@ -1735,6 +1735,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { createApiInstance } from '~/utils/api';
+import { Settings as SettingsAPI } from '~/api/administration/settings';
 import {
   Building2,
   GraduationCap,
@@ -2060,50 +2061,49 @@ const loadTabData = async tabName => {
       return;
     }
 
-    const api = createApiInstance();
     let response;
 
     switch (tabName) {
       case 'school':
-        response = await api.get('/settings/school');
-        if (response.data.success) {
-          Object.assign(schoolInfo, response.data.data.schoolInfo || {});
-          Object.assign(contactInfo, response.data.data.contactInfo || {});
-          Object.assign(operationalSettings, response.data.data.operationalSettings || {});
+        response = await SettingsAPI.getSchoolSettings();
+        if (response.success) {
+          Object.assign(schoolInfo, response.data.schoolInfo || {});
+          Object.assign(contactInfo, response.data.contactInfo || {});
+          Object.assign(operationalSettings, response.data.operationalSettings || {});
           dataCache.school = true; // Mark as loaded
         }
         break;
 
       case 'academic':
-        response = await api.get('/settings/academic');
-        if (response.data.success) {
-          Object.assign(academicYear, response.data.data.academicYear || {});
-          Object.assign(termSettings, response.data.data.termSettings || {});
-          Object.assign(gradingSystem, response.data.data.gradingSystem || {});
-          Object.assign(attendanceSettings, response.data.data.attendanceSettings || {});
-          Object.assign(academicSettings, response.data.data.academicSettings || {});
+        response = await SettingsAPI.getAcademicSettings();
+        if (response.success) {
+          Object.assign(academicYear, response.data.academicYear || {});
+          Object.assign(termSettings, response.data.termSettings || {});
+          Object.assign(gradingSystem, response.data.gradingSystem || {});
+          Object.assign(attendanceSettings, response.data.attendanceSettings || {});
+          Object.assign(academicSettings, response.data.academicSettings || {});
           dataCache.academic = true; // Mark as loaded
         }
         break;
 
       case 'fees':
-        response = await api.get('/settings/fee');
-        if (response.data.success) {
-          Object.assign(feeSettings, response.data.data.feeSettings || {});
+        response = await SettingsAPI.getFeeSettings();
+        if (response.success) {
+          Object.assign(feeSettings, response.data.feeSettings || {});
           dataCache.fees = true;
         }
         break;
 
       case 'branding':
-        response = await api.get('/settings/branding');
-        if (response.data.success) {
-          const settings = response.data.data.receiptSettings || {};
+        response = await SettingsAPI.getBrandingSettings();
+        if (response.success) {
+          const settings = response.data.receiptSettings || {};
           Object.assign(receiptSettings, {
             ...settings,
             schoolLogoFile: null // Reset file property on load
           });
           // Add file property to each branch for logo uploads
-          branches.value = (response.data.data.branches || []).map(branch => ({
+          branches.value = (response.data.branches || []).map(branch => ({
             ...branch,
             receiptLogoFile: null
           }));
@@ -2112,9 +2112,9 @@ const loadTabData = async tabName => {
         break;
 
       case 'system':
-        response = await api.get('/settings/system');
-        if (response.data.success) {
-          Object.assign(systemSettings, response.data.data.systemSettings || {});
+        response = await SettingsAPI.getSystemSettings();
+        if (response.success) {
+          Object.assign(systemSettings, response.data.systemSettings || {});
           dataCache.system = true;
         }
         break;
@@ -2251,10 +2251,11 @@ const saveAcademicSettings = async () => {
 const handleSchoolLogoUpload = event => {
   const file = event.target.files[0];
   if (file) {
-    // Create a preview URL
+    // Create a preview URL for display only
     const reader = new FileReader();
     reader.onload = e => {
-      receiptSettings.schoolLogo = e.target.result;
+      // Don't store base64 in settings - just use for preview
+      // The actual file will be uploaded separately
     };
     reader.readAsDataURL(file);
 
@@ -2266,10 +2267,11 @@ const handleSchoolLogoUpload = event => {
 const handleReceiptLogoUpload = event => {
   const file = event.target.files[0];
   if (file) {
-    // Create a preview URL
+    // Create a preview URL for display only
     const reader = new FileReader();
     reader.onload = e => {
-      receiptSettings.receiptLogo = e.target.result;
+      // Don't store base64 in settings - just use for preview
+      // The actual file will be uploaded separately
     };
     reader.readAsDataURL(file);
 
@@ -2281,10 +2283,11 @@ const handleReceiptLogoUpload = event => {
 const handleBranchLogoUpload = (event, branch) => {
   const file = event.target.files[0];
   if (file) {
-    // Create a preview URL
+    // Create a preview URL for display only
     const reader = new FileReader();
     reader.onload = e => {
-      branch.receiptLogo = e.target.result;
+      // Don't store base64 in settings - just use for preview
+      // The actual file will be uploaded separately
     };
     reader.readAsDataURL(file);
 
@@ -2293,14 +2296,8 @@ const handleBranchLogoUpload = (event, branch) => {
   }
 };
 
-const getImageUrl = filename => {
-  if (!filename) return '';
-  if (filename.startsWith('data:')) return filename;
-  const config = useRuntimeConfig();
-  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
-  const backendBase = apiBase.replace('/api', '');
-  return `${backendBase}/uploads/logos/${filename}`;
-};
+// Import centralized image utilities
+import { getLogoUrl } from '~/utils/imageUtils';
 
 const saveBrandingSettings = async () => {
   isSavingBranding.value = true;
@@ -2322,8 +2319,23 @@ const saveBrandingSettings = async () => {
     // Create FormData for file uploads
     const formData = new FormData();
 
-    // Add receipt settings
-    formData.append('receiptSettings', JSON.stringify(receiptSettings));
+    // Create a clean receipt settings object without base64 data
+    const cleanReceiptSettings = {
+      schoolName: receiptSettings.schoolName,
+      schoolLogo: receiptSettings.schoolLogo, // Keep existing filename, not base64
+      receiptLogo: receiptSettings.receiptLogo, // Keep existing filename, not base64
+      trustName: receiptSettings.trustName,
+      defaultReceiptTitle: receiptSettings.defaultReceiptTitle,
+      showSchoolLogo: receiptSettings.showSchoolLogo,
+      showReceiptLogo: receiptSettings.showReceiptLogo,
+      showSchoolAddress: receiptSettings.showSchoolAddress,
+      showSchoolContact: receiptSettings.showSchoolContact,
+      showBranchInfo: receiptSettings.showBranchInfo,
+      receiptFooter: receiptSettings.receiptFooter
+    };
+
+    // Add receipt settings (without base64 data)
+    formData.append('receiptSettings', JSON.stringify(cleanReceiptSettings));
 
     // Add school logo if uploaded
     if (receiptSettings.schoolLogoFile) {
@@ -2335,8 +2347,22 @@ const saveBrandingSettings = async () => {
       formData.append('receiptLogo', receiptSettings.receiptLogoFile);
     }
 
-    // Add branches data
-    formData.append('branches', JSON.stringify(branches.value));
+    // Create clean branches data without base64
+    const cleanBranches = branches.value.map(branch => ({
+      id: branch.id,
+      name: branch.name,
+      code: branch.code,
+      address: branch.address,
+      phone: branch.phone,
+      email: branch.email,
+      receiptName: branch.receiptName,
+      receiptLogo: branch.receiptLogo, // Keep existing filename, not base64
+      receiptAddress: branch.receiptAddress,
+      receiptContact: branch.receiptContact
+    }));
+
+    // Add branches data (without base64 data)
+    formData.append('branches', JSON.stringify(cleanBranches));
 
     // Add branch logos if uploaded
     branches.value.forEach(branch => {

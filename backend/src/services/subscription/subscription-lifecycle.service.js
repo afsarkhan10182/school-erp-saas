@@ -1,10 +1,10 @@
 const { Op } = require('sequelize');
 const { sequelize } = require('~/config/database');
-const { 
-  School, 
-  User, 
-  SubscriptionPlan, 
-  Transaction, 
+const {
+  School,
+  User,
+  SubscriptionPlan,
+  Transaction,
   SubscriptionRenewalRequest,
   Module,
   PlanModule
@@ -14,22 +14,24 @@ const ApiError = require('~/utils/ApiError');
 const RedisUtils = require('~/utils/redis-utils');
 
 class SubscriptionLifecycleService {
-  
   /**
    * Calculate subscription status based on plan and dates
    */
   static calculateSubscriptionStatus(school) {
     if (!school) return 'unknown';
-    
+
     const now = new Date();
     const startDate = school.subscription_start_date;
     const endDate = school.subscription_end_date;
-    
+
     // Check if it's a lifetime plan based on billing cycle
-    if (school.plan_details?.billing_cycle === 'lifetime' || school.subscription_plan === 'lifetime') {
+    if (
+      school.plan_details?.billing_cycle === 'lifetime' ||
+      school.subscription_plan === 'lifetime'
+    ) {
       return 'active';
     }
-    
+
     // Trial period
     if (school.status === 'trial') {
       if (!endDate || endDate > now) {
@@ -37,7 +39,7 @@ class SubscriptionLifecycleService {
       }
       return 'expired';
     }
-    
+
     // Active subscription
     if (school.status === 'active') {
       if (!endDate || endDate > now) {
@@ -45,7 +47,7 @@ class SubscriptionLifecycleService {
       }
       return 'expired';
     }
-    
+
     return school.status || 'unknown';
   }
 
@@ -76,14 +78,14 @@ class SubscriptionLifecycleService {
           {
             model: Module,
             as: 'modules',
-            through: { 
+            through: {
               attributes: ['is_enabled'],
               where: { is_enabled: true }
             },
             attributes: ['code'],
-            where: { 
+            where: {
               code: moduleCode,
-              is_active: true 
+              is_active: true
             },
             required: false
           }
@@ -152,7 +154,7 @@ class SubscriptionLifecycleService {
    */
   static async processRenewalRequest(requestId, action, reviewedBy, notes = '') {
     const transaction = await sequelize.transaction();
-    
+
     try {
       const request = await SubscriptionRenewalRequest.findByPk(requestId, {
         include: [
@@ -172,16 +174,19 @@ class SubscriptionLifecycleService {
       }
 
       const now = new Date();
-      
+
       if (action === 'approve') {
         // Update request status
-        await request.update({
-          status: 'approved',
-          reviewed_by: reviewedBy,
-          reviewed_at: now,
-          review_notes: notes,
-          effective_date: now
-        }, { transaction });
+        await request.update(
+          {
+            status: 'approved',
+            reviewed_by: reviewedBy,
+            reviewed_at: now,
+            review_notes: notes,
+            effective_date: now
+          },
+          { transaction }
+        );
 
         // Update school subscription
         const school = await School.findByPk(request.school_id, { transaction });
@@ -201,7 +206,7 @@ class SubscriptionLifecycleService {
         // Calculate new subscription dates
         const newStartDate = now;
         let newEndDate = null;
-        
+
         if (requestedPlan.billing_cycle === 'lifetime') {
           newEndDate = null; // Never expires
         } else if (requestedPlan.billing_cycle === 'monthly') {
@@ -211,50 +216,61 @@ class SubscriptionLifecycleService {
         }
 
         // Update school subscription
-        await school.update({
-          subscription_plan: requestedPlan.code,
-          subscription_start_date: newStartDate,
-          subscription_end_date: newEndDate,
-          max_students: requestedPlan.max_students,
-          max_staff: requestedPlan.max_staff,
-          max_branches: requestedPlan.max_branches,
-          status: requestedPlan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
-        }, { transaction });
+        await school.update(
+          {
+            subscription_plan: requestedPlan.code,
+            subscription_start_date: newStartDate,
+            subscription_end_date: newEndDate,
+            max_students: requestedPlan.max_students,
+            max_staff: requestedPlan.max_staff,
+            max_branches: requestedPlan.max_branches,
+            status: requestedPlan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
+          },
+          { transaction }
+        );
 
         // Create transaction record if payment is required
         if (request.payment_required && request.payment_amount > 0) {
-          await Transaction.create({
-            school_id: request.school_id,
-            amount: request.payment_amount,
-            currency: 'INR',
-            type: 'subscription_change',
-            status: 'completed',
-            description: `Subscription change from ${request.current_plan_code} to ${request.requested_plan_code}`,
-            reference: `RENEWAL_${request.id}`,
-            created_by: reviewedBy
-          }, { transaction });
+          await Transaction.create(
+            {
+              school_id: request.school_id,
+              amount: request.payment_amount,
+              currency: 'INR',
+              type: 'subscription_change',
+              status: 'completed',
+              description: `Subscription change from ${request.current_plan_code} to ${request.requested_plan_code}`,
+              reference: `RENEWAL_${request.id}`,
+              created_by: reviewedBy
+            },
+            { transaction }
+          );
         }
 
         // Clear cache
         await RedisUtils.del(`cache:school:${request.school_id}`);
         await RedisUtils.del('cache:schools:list');
 
-        logger.info(`Subscription renewal request ${requestId} approved for school ${request.school_id}`);
-
+        logger.info(
+          `Subscription renewal request ${requestId} approved for school ${request.school_id}`
+        );
       } else if (action === 'reject') {
-        await request.update({
-          status: 'rejected',
-          reviewed_by: reviewedBy,
-          reviewed_at: now,
-          review_notes: notes
-        }, { transaction });
+        await request.update(
+          {
+            status: 'rejected',
+            reviewed_by: reviewedBy,
+            reviewed_at: now,
+            review_notes: notes
+          },
+          { transaction }
+        );
 
-        logger.info(`Subscription renewal request ${requestId} rejected for school ${request.school_id}`);
+        logger.info(
+          `Subscription renewal request ${requestId} rejected for school ${request.school_id}`
+        );
       }
 
       await transaction.commit();
       return { success: true, action };
-
     } catch (error) {
       await transaction.rollback();
       logger.error('Error processing renewal request:', error);
@@ -268,7 +284,7 @@ class SubscriptionLifecycleService {
   static async checkAndUpdateSubscriptionStatuses() {
     try {
       logger.info('Starting subscription status check...');
-      
+
       const now = new Date();
       const schools = await School.findAll({
         where: {
@@ -278,16 +294,16 @@ class SubscriptionLifecycleService {
       });
 
       let updatedCount = 0;
-      
+
       for (const school of schools) {
         const status = this.calculateSubscriptionStatus(school);
-        
+
         if (status === 'expired' && school.status !== 'expired') {
           await school.update({ status: 'expired' });
           updatedCount++;
-          
+
           logger.info(`School ${school.name} (${school.id}) subscription expired`);
-          
+
           // TODO: Send notification to school admin
           // TODO: Send notification to super admin
         }
@@ -295,7 +311,6 @@ class SubscriptionLifecycleService {
 
       logger.info(`Subscription status check completed. Updated ${updatedCount} schools.`);
       return { updatedCount, totalChecked: schools.length };
-
     } catch (error) {
       logger.error('Error checking subscription statuses:', error);
       throw error;
@@ -331,8 +346,9 @@ class SubscriptionLifecycleService {
       });
 
       const currentStatus = this.calculateSubscriptionStatus(school);
-      const daysRemaining = school.subscription_end_date ? 
-        Math.ceil((school.subscription_end_date - new Date()) / (1000 * 60 * 60 * 24)) : null;
+      const daysRemaining = school.subscription_end_date
+        ? Math.ceil((school.subscription_end_date - new Date()) / (1000 * 60 * 60 * 24))
+        : null;
 
       // Get resource usage
       const studentCount = await school.countStudents();
@@ -354,37 +370,42 @@ class SubscriptionLifecycleService {
           subscription_end_date: school.subscription_end_date,
           days_remaining: daysRemaining
         },
-        plan: subscriptionPlan ? {
-          name: subscriptionPlan.name,
-          description: subscriptionPlan.description,
-          price: subscriptionPlan.price,
-          billing_cycle: subscriptionPlan.billing_cycle,
-          features: subscriptionPlan.features,
-          modules: subscriptionPlan.modules.map(m => ({
-            code: m.code,
-            name: m.name,
-            category: m.category,
-            enabled: m.planModule.is_enabled
-          }))
-        } : null,
+        plan: subscriptionPlan
+          ? {
+              name: subscriptionPlan.name,
+              description: subscriptionPlan.description,
+              price: subscriptionPlan.price,
+              billing_cycle: subscriptionPlan.billing_cycle,
+              features: subscriptionPlan.features,
+              modules: subscriptionPlan.modules.map(m => ({
+                code: m.code,
+                name: m.name,
+                category: m.category,
+                enabled: m.planModule.is_enabled
+              }))
+            }
+          : null,
         usage: {
           students: {
             current: studentCount,
             limit: studentLimits.limit,
             remaining: studentLimits.remaining,
-            percentage: studentLimits.limit > 0 ? Math.round((studentCount / studentLimits.limit) * 100) : 0
+            percentage:
+              studentLimits.limit > 0 ? Math.round((studentCount / studentLimits.limit) * 100) : 0
           },
           staff: {
             current: staffCount,
             limit: staffLimits.limit,
             remaining: staffLimits.remaining,
-            percentage: staffLimits.limit > 0 ? Math.round((staffCount / staffLimits.limit) * 100) : 0
+            percentage:
+              staffLimits.limit > 0 ? Math.round((staffCount / staffLimits.limit) * 100) : 0
           },
           branches: {
             current: branchCount,
             limit: branchLimits.limit,
             remaining: branchLimits.remaining,
-            percentage: branchLimits.limit > 0 ? Math.round((branchCount / branchLimits.limit) * 100) : 0
+            percentage:
+              branchLimits.limit > 0 ? Math.round((branchCount / branchLimits.limit) * 100) : 0
           }
         },
         limits: {
@@ -393,7 +414,6 @@ class SubscriptionLifecycleService {
           branches: branchLimits
         }
       };
-
     } catch (error) {
       logger.error('Error getting subscription analytics:', error);
       throw error;
@@ -413,10 +433,7 @@ class SubscriptionLifecycleService {
 
       // Get plan distribution
       const planDistribution = await School.findAll({
-        attributes: [
-          'subscription_plan',
-          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-        ],
+        attributes: ['subscription_plan', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
         group: ['subscription_plan'],
         raw: true
       });
@@ -455,7 +472,6 @@ class SubscriptionLifecycleService {
           yearly: yearlyRevenue || 0
         }
       };
-
     } catch (error) {
       logger.error('Error getting system subscription analytics:', error);
       throw error;
