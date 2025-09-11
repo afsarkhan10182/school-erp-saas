@@ -692,6 +692,9 @@ onMounted(() => {
   color: #000;
   margin-bottom: 5px;
   text-transform: uppercase;
+  word-wrap: break-word;
+  line-height: 1.2;
+  max-width: 100%;
 }
 
 .school-type {

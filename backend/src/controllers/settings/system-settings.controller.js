@@ -7,7 +7,14 @@ class SystemSettingsController {
    */
   static async getSystemSettings(req, res) {
     try {
-      const { schoolId } = req.school;
+      const schoolId = req.user.school_id;
+
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'No school assigned to user'
+        });
+      }
 
       // Get school with system settings
       const school = await School.findByPk(schoolId, {
@@ -64,7 +71,15 @@ class SystemSettingsController {
    */
   static async updateSystemSettings(req, res) {
     try {
-      const { schoolId } = req.school;
+      const schoolId = req.user.school_id;
+
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'No school assigned to user'
+        });
+      }
+
       const { systemSettings } = req.body;
 
       // Validate required fields

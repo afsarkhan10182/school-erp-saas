@@ -21,6 +21,7 @@ router.get(
 router.put(
   '/',
   authorize(['school_admin', 'super_admin']),
+  uploadFields([{ name: 'schoolLogo', maxCount: 1 }]),
   SchoolConfigurationController.updateSchoolConfiguration
 );
 

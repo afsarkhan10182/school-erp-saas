@@ -1134,7 +1134,7 @@ const saveAttendance = async (sessionId: string, records: any[], publish: boolea
 };
 
 // Watch for date changes with debounce
-let dateChangeTimeout: NodeJS.Timeout | null = null;
+let dateChangeTimeout: any = null;
 watch(
   () => form.date,
   () => {

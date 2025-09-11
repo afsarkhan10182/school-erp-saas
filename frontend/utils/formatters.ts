@@ -89,18 +89,6 @@ export const formatPhone = (phone: string): string => {
 };
 
 /**
- * Truncate text with ellipsis
- * @param text - Text to truncate
- * @param maxLength - Maximum length
- * @returns Truncated text
- */
-export const truncateText = (text: string, maxLength: number = 50): string => {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
  * Format file size
  * @param bytes - File size in bytes
  * @returns Formatted file size string

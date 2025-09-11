@@ -143,8 +143,7 @@ const User = sequelize.define(
     tableName: 'users',
     timestamps: true,
     underscored: true,
-    paranoid: true, // Enable soft deletes
-    deletedAt: 'deleted_at', // Custom field name for soft delete
+    paranoid: false, // Disable soft deletes
     indexes: [
       // Note: Unique constraint is handled at database level with school_id + branch_id + email
       // The actual constraint: CREATE UNIQUE INDEX users_school_branch_email_unique ON users (school_id, branch_id, email)
@@ -238,7 +237,11 @@ User.prototype.generateAuthToken = function () {
 
 // Static method to find user by credentials
 User.findByCredentials = async (email, password) => {
-  const user = await User.findOne({ where: { email } });
+  const user = await User.findOne({
+    where: {
+      email
+    }
+  });
 
   if (!user) {
     throw new Error('Invalid email or password');

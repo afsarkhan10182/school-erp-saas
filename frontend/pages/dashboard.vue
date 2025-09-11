@@ -29,7 +29,9 @@
 
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          {{ dashboardTitle }}
+        </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
           Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening
           today.
@@ -996,6 +998,21 @@ const availableBranches = computed(() => {
   }
 
   return [];
+});
+
+// Computed property for dashboard title based on user role
+const dashboardTitle = computed(() => {
+  // Branch admin shows branch name in title
+  if (authStore.isBranchAdmin && authStore.currentBranch?.name) {
+    const branchName = authStore.currentBranch.name;
+    // Truncate branch name if it's too long to prevent UI issues
+    const truncatedBranchName =
+      branchName.length > 30 ? branchName.substring(0, 30) + '...' : branchName;
+    return `${truncatedBranchName} Branch Dashboard`;
+  }
+
+  // School admin and other roles show generic "Dashboard"
+  return 'Dashboard';
 });
 
 // Watch for changes in selected academic year

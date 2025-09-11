@@ -14,7 +14,9 @@ class AuthService {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({
-        where: { email: userData.email }
+        where: {
+          email: userData.email
+        }
       });
 
       if (existingUser) {
@@ -39,7 +41,9 @@ class AuthService {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({
-        where: { email: schoolAdminData.email }
+        where: {
+          email: schoolAdminData.email
+        }
       });
 
       if (existingUser) {
@@ -67,7 +71,9 @@ class AuthService {
   static async login(email, password, ip) {
     try {
       const user = await User.findOne({
-        where: { email },
+        where: {
+          email
+        },
         include: [
           {
             model: School,
@@ -76,6 +82,7 @@ class AuthService {
               'id',
               'name',
               'code',
+              'logo',
               'status',
               'subscription_plan',
               'subscription_end_date'
@@ -293,7 +300,11 @@ class AuthService {
 
   static async forgotPassword(email) {
     try {
-      const user = await User.findOne({ where: { email } });
+      const user = await User.findOne({
+        where: {
+          email
+        }
+      });
       if (!user) {
         // Don't reveal if user exists or not
         return { message: 'If the email exists, a password reset link has been sent.' };

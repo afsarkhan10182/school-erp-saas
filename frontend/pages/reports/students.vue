@@ -1077,8 +1077,8 @@
           <div class="flex space-x-3">
             <span class="text-sm text-gray-500 dark:text-gray-400">
               {{
-                pagination.total_records > 0
-                  ? `${pagination.total_records} total students`
+                pagination.total_records > 0 || completeStudentsData.length > 0
+                  ? `${pagination.total_records || completeStudentsData.length} total students`
                   : 'No records'
               }}
             </span>
@@ -1097,7 +1097,9 @@
 
         <!-- Empty state -->
         <div
-          v-else-if="pagination.total_records === 0 && !isLoading"
+          v-else-if="
+            (pagination.total_records === 0 || completeStudentsData.length === 0) && !isLoading
+          "
           class="flex items-center justify-center py-12"
         >
           <div class="text-center">
@@ -1125,7 +1127,7 @@
         </div>
 
         <!-- Student Table -->
-        <div v-else class="overflow-x-auto">
+        <div v-else-if="completeStudentsData.length > 0" class="overflow-x-auto">
           <table class="min-w-full">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -1222,7 +1224,7 @@
 
         <!-- Pagination -->
         <Pagination
-          v-if="pagination.total_records > 0"
+          v-if="pagination.total_records > 0 || completeStudentsData.length > 0"
           :pagination="pagination"
           item-label="students"
           :additional-info="`${paginatedStudents.length} on this page`"
@@ -1235,7 +1237,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import {
   Download,
   Users,
@@ -1414,36 +1416,70 @@ const loadReport = async () => {
     });
 
     if (response.success) {
-      if (response.data && Array.isArray(response.data)) {
-        // Store paginated data
-        completeStudentsData.value = response.data;
-      } else if (response.data && response.pagination) {
-        // Handle paginated response from backend
-        completeStudentsData.value = response.data || [];
-        // Update pagination info if provided by backend
-        if (response.pagination) {
+      // Store paginated data
+      completeStudentsData.value = response.data || [];
+
+      // Update pagination info if provided by backend
+      if (response.pagination) {
+        // Handle different pagination response structures
+        const paginationData = response.pagination;
+
+        // If pagination has success field, it might be a different structure
+        if (paginationData.success !== undefined) {
+          // Fallback for unexpected pagination structure
           pagination.value = {
-            page: response.pagination.current_page || 1,
-            current_page: response.pagination.current_page || 1,
-            total: response.pagination.total || completeStudentsData.value.length,
-            total_records: response.pagination.total || completeStudentsData.value.length,
-            total_pages: response.pagination.total_pages || 1,
-            per_page: response.pagination.per_page || 10,
-            limit: response.pagination.per_page || 10
+            page: 1,
+            current_page: 1,
+            total: paginationData.total || completeStudentsData.value.length,
+            total_records: paginationData.total || completeStudentsData.value.length,
+            total_pages: 1,
+            per_page: 10,
+            limit: 10
+          };
+        } else {
+          // Standard pagination structure
+          pagination.value = {
+            page: paginationData.page || 1,
+            current_page: paginationData.page || 1,
+            total: paginationData.total || 0,
+            total_records: paginationData.total || 0,
+            total_pages: paginationData.totalPages || 1,
+            per_page: paginationData.limit || 10,
+            limit: paginationData.limit || 10
           };
         }
       } else {
-        completeStudentsData.value = [];
+        // No pagination data, use data length
+        pagination.value = {
+          page: 1,
+          current_page: 1,
+          total: completeStudentsData.value.length,
+          total_records: completeStudentsData.value.length,
+          total_pages: 1,
+          per_page: 10,
+          limit: 10
+        };
       }
     } else {
       completeStudentsData.value = [];
+      pagination.value = {
+        page: 1,
+        current_page: 1,
+        total: 0,
+        total_records: 0,
+        total_pages: 1,
+        per_page: 10,
+        limit: 10
+      };
     }
 
     console.log('📊 Data loaded:', {
       totalStudents: pagination.value.total_records,
       currentPage: pagination.value.current_page,
       pageSize: pagination.value.per_page,
-      totalPages: pagination.value.total_pages
+      totalPages: pagination.value.total_pages,
+      studentsData: completeStudentsData.value.length,
+      rawResponse: response
     });
   } catch (error) {
     console.error('Error loading student report:', error);
@@ -1584,7 +1620,19 @@ const handlePageSizeChange = newPageSize => {
 
 const formatDate = date => {
   if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-IN');
+  try {
+    // Handle both string and Date objects
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return 'N/A';
+    return dateObj.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for date:', date);
+    return 'N/A';
+  }
 };
 
 const getStatusClass = status => {
@@ -1706,6 +1754,11 @@ const sortedClassDistribution = computed(() => {
   } else {
     return Object.fromEntries(Object.entries(distribution).sort(([a], [b]) => a.localeCompare(b)));
   }
+});
+
+// Computed property to filter visible columns
+const displayedColumns = computed(() => {
+  return availableColumns.value.filter(column => column.visible);
 });
 
 // Missing functions for insights section - use stats data for accurate insights
@@ -1842,6 +1895,104 @@ const filterByClass = className => {
   loadData();
 };
 
+// Add missing filterByGender function
+const filterByGender = gender => {
+  // For now, we'll implement this as a search filter since gender isn't a direct filter
+  filters.student_search = gender;
+  loadData();
+};
+
+// Add missing handleDateRangeChange function
+const handleDateRangeChange = () => {
+  const now = new Date();
+
+  if (filters.dateRange === 'custom') {
+    // Custom date range - dates will be set manually
+    return;
+  } else if (filters.dateRange === 'all_time') {
+    filters.fromDate = '';
+    filters.toDate = '';
+  } else if (filters.dateRange === 'today') {
+    const today = new Date(now);
+    filters.fromDate = today.toISOString().split('T')[0];
+    filters.toDate = today.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    filters.fromDate = yesterday.toISOString().split('T')[0];
+    filters.toDate = yesterday.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'week') {
+    const firstDay = new Date(now);
+    firstDay.setDate(now.getDate() - now.getDay());
+    const lastDay = new Date(firstDay);
+    lastDay.setDate(firstDay.getDate() + 6);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'last_week') {
+    const firstDay = new Date(now);
+    firstDay.setDate(now.getDate() - now.getDay() - 7);
+    const lastDay = new Date(firstDay);
+    lastDay.setDate(firstDay.getDate() + 6);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'last_month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'quarter') {
+    const quarter = Math.floor(now.getMonth() / 3);
+    const firstDay = new Date(now.getFullYear(), quarter * 3, 1);
+    const lastDay = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  } else if (filters.dateRange === 'year') {
+    const firstDay = new Date(now.getFullYear(), 0, 1);
+    const lastDay = new Date(now.getFullYear(), 11, 31);
+    filters.fromDate = firstDay.toISOString().split('T')[0];
+    filters.toDate = lastDay.toISOString().split('T')[0];
+  }
+  loadData();
+};
+
+// Add missing onSchoolChange function
+const onSchoolChange = () => {
+  // Reset branch and class filters when school changes
+  filters.branch_id = '';
+  filters.class_id = '';
+  filters.section_id = '';
+  loadBranches();
+  loadData();
+};
+
+// Add missing onBranchChange function
+const onBranchChange = () => {
+  // Reset class and section filters when branch changes
+  filters.class_id = '';
+  filters.section_id = '';
+  loadData();
+};
+
+// Add missing onClassChange function
+const onClassChange = () => {
+  // Reset section filter when class changes
+  filters.section_id = '';
+  loadData();
+};
+
+// Add missing onStreamChange function
+const onStreamChange = () => {
+  // Reset class and section filters when stream changes
+  filters.class_id = '';
+  filters.section_id = '';
+  loadData();
+};
+
 // Add missing toggleDownloadDropdown function
 const toggleDownloadDropdown = () => {
   showDownloadDropdown.value = !showDownloadDropdown.value;
@@ -1890,11 +2041,30 @@ const deselectAllColumns = () => {
   availableColumns.value.forEach(column => (column.visible = false));
 };
 
+// Common method to validate column visibility for exports
+const validateColumnVisibility = (action = 'export') => {
+  // Check if any columns are visible
+  if (displayedColumns.value.length === 0) {
+    showToast(`No columns selected. Please select at least one column to ${action}.`, 'warning');
+    return false;
+  }
+  return true;
+};
+
+// Common method to validate data availability for exports
+const validateDataAvailability = (action = 'export') => {
+  // Check if there's data to export
+  if (completeStudentsData.value.length === 0) {
+    showToast(`No data available to ${action}. Please load some students first.`, 'warning');
+    return false;
+  }
+  return true;
+};
+
 // Common download function
 const downloadReport = async format => {
   try {
-    if (pagination.value.total_records === 0) {
-      showToast('No data to export. Please load some students first.', 'warning');
+    if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
       return;
     }
 
@@ -1910,9 +2080,10 @@ const downloadReport = async format => {
       student_search: filters.student_search || ''
     };
 
-    const selectedColumns = availableColumns.value
-      .filter(col => col.visible)
-      .map(col => ({ key: col.key, header: col.label }));
+    const selectedColumns = displayedColumns.value.map(col => ({
+      key: col.key,
+      header: col.label
+    }));
 
     // Start progress tracking
     generationProgress.value = 0;
@@ -1949,8 +2120,7 @@ const downloadReport = async format => {
 const printStudentsReport = async () => {
   try {
     isPrinting.value = true;
-    if (pagination.value.total_records === 0) {
-      showToast('No data to print. Please load some students first.', 'warning');
+    if (!validateColumnVisibility('print') || !validateDataAvailability('print')) {
       return;
     }
 
@@ -1969,9 +2139,7 @@ const printStudentsReport = async () => {
     const reportData = {
       title: 'Student Report',
       data: formattedData,
-      columns: availableColumns.value
-        .filter(col => col.visible)
-        .map(col => ({ key: col.key, header: col.label })),
+      columns: displayedColumns.value.map(col => ({ key: col.key, header: col.label })),
       filters: {
         'Date Range': filters.dateRange,
         'From Date': filters.dateRange === 'custom' ? formatDate(filters.fromDate) : 'N/A',

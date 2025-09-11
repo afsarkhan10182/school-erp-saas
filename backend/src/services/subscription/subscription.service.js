@@ -93,7 +93,9 @@ class SubscriptionService {
     }
 
     // Check if admin email already exists
-    const whereClause = { email: adminEmail };
+    const whereClause = {
+      email: adminEmail
+    };
     if (schoolId) {
       // For updates, exclude current school
       whereClause.school_id = { [Op.ne]: schoolId };

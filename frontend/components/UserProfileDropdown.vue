@@ -9,30 +9,27 @@
       aria-haspopup="true"
     >
       <!-- User Avatar -->
-      <div v-if="props.user?.profile_image" class="w-8 h-8 rounded-full overflow-hidden">
-        <img
-          :src="getProfileImageUrl(props.user.profile_image)"
-          :key="props.user?.profile_image || 'default'"
-          :alt="userName"
-          class="w-full h-full object-cover"
-        />
-      </div>
-      <div
-        v-else
-        class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center"
-      >
-        <component :is="getUserIcon()" class="w-4 h-4 text-white" />
-      </div>
+      <UserAvatar
+        :image-url="
+          props.user?.profile_image
+            ? getProfileImageUrl(props.user.profile_image, schoolCode)
+            : null
+        "
+        :user="props.user"
+        size="sm"
+        :alt="userName"
+        container-class="w-8 h-8"
+      />
 
       <!-- User Info -->
-      <div class="hidden md:block text-left">
-        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ userName }}</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ userRole }}</p>
+      <div class="hidden md:block text-left min-w-0 flex-1">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ userName }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ userRole }}</p>
       </div>
 
       <!-- Dropdown Arrow -->
       <ChevronDown
-        class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200"
+        class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 flex-shrink-0"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
@@ -46,20 +43,16 @@
       <!-- User Header -->
       <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center space-x-3">
-          <div v-if="props.user?.profile_image" class="w-10 h-10 rounded-full overflow-hidden">
-            <img
-              :src="getProfileImageUrl(props.user.profile_image)"
-              :key="props.user?.profile_image || 'default'"
-              :alt="userName"
-              class="w-full h-full object-cover"
-            />
-          </div>
-          <div
-            v-else
-            class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center"
-          >
-            <component :is="getUserIcon()" class="w-5 h-5 text-white" />
-          </div>
+          <UserAvatar
+            :image-url="
+              props.user?.profile_image
+                ? getProfileImageUrl(props.user.profile_image, schoolCode)
+                : null
+            "
+            :user="props.user"
+            size="lg"
+            :alt="userName"
+          />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
               {{ userName }}
@@ -122,6 +115,7 @@ import {
   Users
 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
+import UserAvatar from '~/components/UserAvatar.vue';
 
 const props = defineProps({
   user: {
@@ -137,6 +131,11 @@ const isOpen = ref(false);
 
 // Import centralized image utilities
 import { getProfileImageUrl } from '~/utils/imageUtils';
+
+// Get school code for image URL generation
+const schoolCode = computed(() => {
+  return authStore.currentSchool?.code || authStore.user?.school?.code;
+});
 
 // Computed properties
 const userName = computed(() => {

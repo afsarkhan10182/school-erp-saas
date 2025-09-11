@@ -961,18 +961,19 @@
 
                 <!-- Student Avatar -->
                 <div class="flex-shrink-0 h-10 w-10">
-                  <img
-                    v-if="studentGroup.studentPhoto"
-                    :src="studentGroup.studentPhoto"
+                  <UserAvatar
+                    :image-url="studentGroup.studentPhoto"
+                    :user="{
+                      first_name: studentGroup.studentName?.split(' ')[0],
+                      last_name: studentGroup.studentName?.split(' ').slice(1).join(' ')
+                    }"
+                    size="md"
                     alt=""
-                    class="h-10 w-10 rounded-full object-cover"
+                    container-class="h-10 w-10"
+                    image-class="h-10 w-10 rounded-full object-cover"
+                    fallback-class="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center"
+                    initials-class="text-white font-semibold text-sm"
                   />
-                  <div
-                    v-else
-                    class="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm"
-                  >
-                    {{ (studentGroup.studentName || 'U').charAt(0).toUpperCase() }}
-                  </div>
                 </div>
 
                 <!-- Student Info -->
@@ -1202,6 +1203,7 @@ import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/Pagination.vue';
+import UserAvatar from '~/components/UserAvatar.vue';
 import { formatMonthsForAPI } from '~/utils/academicYearUtils';
 
 // Get auth store and toast

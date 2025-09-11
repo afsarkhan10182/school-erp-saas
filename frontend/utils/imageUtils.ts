@@ -3,16 +3,30 @@
  * Centralized, reusable, and future-proof image URL generation
  */
 
+// Get API base from runtime config
+function getApiBase(): string {
+  if (process.client) {
+    // Client-side: use runtime config
+    const config = useRuntimeConfig();
+    return config.public?.apiBase || '';
+  }
+  return '';
+}
+
 /**
  * Generate image URL for any uploaded file
  * @param filename - The filename of the uploaded image
  * @param type - The upload type (logos, profile-images, documents, id-cards)
+ * @param schoolCode - The school code for the image path
+ * @param apiBase - Optional API base URL
  * @param year - Optional year, defaults to current year
  * @returns Complete URL to the image
  */
 export function getImageUrl(
   filename: string | null | undefined,
   type: 'logos' | 'profile-images' | 'documents' | 'id-cards',
+  schoolCode?: string,
+  apiBase?: string,
   year?: number
 ): string {
   if (!filename) return '';
@@ -20,17 +34,25 @@ export function getImageUrl(
   // Handle data URLs (preview images)
   if (filename.startsWith('data:')) return filename;
 
-  const config = useRuntimeConfig();
-  const authStore = useAuthStore();
+  // If no school code provided, return empty string to prevent broken URLs
+  if (!schoolCode) {
+    console.warn('⚠️ No school code provided for image URL generation');
+    return '';
+  }
 
-  // Get school code from multiple possible sources
-  let schoolCode = authStore.currentSchool?.code;
+  // Use provided apiBase or get from runtime config
+  const baseUrl = apiBase || getApiBase();
+  if (!baseUrl) {
+    console.warn('⚠️ No API base available for image URL generation');
+    return '';
+  }
 
-  const apiBase = config.public?.apiBase;
-  const backendBase = apiBase.replace('/api', '');
+  const backendBase = baseUrl.replace('/api', '');
   const currentYear = year || new Date().getFullYear();
 
-  return `${backendBase}/uploads/schools/${schoolCode}/${currentYear}/${type}/${filename}`;
+  const imageUrl = `${backendBase}/uploads/schools/${schoolCode}/${currentYear}/${type}/${filename}`;
+  console.log(imageUrl);
+  return imageUrl;
 }
 
 /**
@@ -39,18 +61,30 @@ export function getImageUrl(
  * @param year - Optional year, defaults to current year
  * @returns Complete URL to the logo
  */
-export function getLogoUrl(filename: string | null | undefined, year?: number): string {
-  return getImageUrl(filename, 'logos', year);
+export function getLogoUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'logos', schoolCode, apiBase, year);
 }
 
 /**
  * Generate profile image URL (commonly used for user profile pictures)
  * @param filename - The filename of the profile image
+ * @param schoolCode - The school code for the image path
+ * @param apiBase - Optional API base URL
  * @param year - Optional year, defaults to current year
  * @returns Complete URL to the profile image
  */
-export function getProfileImageUrl(filename: string | null | undefined, year?: number): string {
-  return getImageUrl(filename, 'profile-images', year);
+export function getProfileImageUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'profile-images', schoolCode, apiBase, year);
 }
 
 /**
@@ -59,8 +93,13 @@ export function getProfileImageUrl(filename: string | null | undefined, year?: n
  * @param year - Optional year, defaults to current year
  * @returns Complete URL to the document
  */
-export function getDocumentUrl(filename: string | null | undefined, year?: number): string {
-  return getImageUrl(filename, 'documents', year);
+export function getDocumentUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'documents', schoolCode, apiBase, year);
 }
 
 /**
@@ -69,8 +108,13 @@ export function getDocumentUrl(filename: string | null | undefined, year?: numbe
  * @param year - Optional year, defaults to current year
  * @returns Complete URL to the ID card
  */
-export function getIdCardUrl(filename: string | null | undefined, year?: number): string {
-  return getImageUrl(filename, 'id-cards', year);
+export function getIdCardUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'id-cards', schoolCode, apiBase, year);
 }
 
 /**

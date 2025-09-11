@@ -130,7 +130,6 @@ const getReceiptSettings = async (req, res, next) => {
     // Parse receipt settings from school
     let receiptSettings = {
       schoolName: school.name,
-      schoolLogo: school.logo || '',
       receiptLogo: '',
       trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
       defaultReceiptTitle: 'Fee Receipt',
@@ -187,7 +186,6 @@ const updateReceiptSettings = async (req, res, next) => {
 
     // Handle uploaded files
     const uploadedFiles = req.files || {};
-    const schoolLogoFile = uploadedFiles.schoolLogo?.[0];
     const receiptLogoFile = uploadedFiles.receiptLogo?.[0];
     const branchLogoFiles = uploadedFiles.branchLogos || [];
 
@@ -217,11 +215,6 @@ const updateReceiptSettings = async (req, res, next) => {
     // Save receipt settings to school
     const updatedReceiptSettings = {
       schoolName: receiptSettings.schoolName || school.name,
-      schoolLogo: schoolLogoFile
-        ? schoolLogoFile.filename
-        : receiptSettings.schoolLogo !== undefined
-          ? receiptSettings.schoolLogo
-          : currentSettings.schoolLogo || '',
       receiptLogo: receiptLogoFile
         ? receiptLogoFile.filename
         : receiptSettings.receiptLogo !== undefined

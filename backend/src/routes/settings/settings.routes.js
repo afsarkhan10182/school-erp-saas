@@ -22,6 +22,7 @@ router.get(
 router.put(
   '/school',
   authorize(['school_admin', 'super_admin']),
+  uploadFields([{ name: 'schoolLogo', maxCount: 1 }]),
   SchoolConfigurationController.updateSchoolConfiguration
 );
 
@@ -92,6 +93,7 @@ router.get(
 router.put(
   '/school/configuration',
   authorize(['school_admin', 'super_admin']),
+  uploadFields([{ name: 'schoolLogo', maxCount: 1 }]),
   SchoolConfigurationController.updateSchoolConfiguration
 );
 

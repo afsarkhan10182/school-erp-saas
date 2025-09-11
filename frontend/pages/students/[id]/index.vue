@@ -82,24 +82,19 @@
             <div class="flex items-center space-x-6">
               <!-- Profile Picture -->
               <div class="relative">
-                <div v-if="student.photo" class="relative">
-                  <img
-                    :src="student.photo"
-                    :alt="getStudentFullName(student)"
-                    class="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
-                  />
-                  <div
-                    class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 border-2 border-white dark:border-gray-700 rounded-full"
-                  ></div>
-                </div>
+                <UserAvatar
+                  :image-url="student.photo"
+                  :user="student"
+                  size="xl"
+                  :alt="getStudentFullName(student)"
+                  container-class="relative"
+                  image-class="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
+                  fallback-class="w-24 h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
+                  initials-class="text-2xl font-bold text-indigo-600 dark:text-indigo-400"
+                />
                 <div
-                  v-else
-                  class="w-24 h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
-                >
-                  <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                    {{ getStudentInitials(student) }}
-                  </span>
-                </div>
+                  class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 border-2 border-white dark:border-gray-700 rounded-full"
+                ></div>
               </div>
 
               <!-- Student Name and Basic Info -->
@@ -693,6 +688,7 @@ import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
+import UserAvatar from '~/components/UserAvatar.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
@@ -798,25 +794,6 @@ const getStudentFullName = student => {
     return lastName;
   } else {
     return 'Unknown Student';
-  }
-};
-
-// Helper function to get student initials
-const getStudentInitials = student => {
-  const firstName = student.first_name || '';
-  const lastName = student.last_name || '';
-
-  const firstInitial = firstName.charAt(0).toUpperCase();
-  const lastInitial = lastName.charAt(0).toUpperCase();
-
-  if (firstName && lastName) {
-    return `${firstInitial}${lastInitial}`;
-  } else if (firstName) {
-    return firstInitial;
-  } else if (lastName) {
-    return lastInitial;
-  } else {
-    return '?';
   }
 };
 

@@ -169,7 +169,8 @@ export const useAuthStore = defineStore('auth', () => {
           currentSchool.value = {
             id: userData.school_id,
             name: userData.school?.name || userData.school_name,
-            code: userData.school?.code || userData.school_code
+            code: userData.school?.code || userData.school_code,
+            logo: userData.school?.logo || ''
           };
         }
 

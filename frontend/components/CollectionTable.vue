@@ -55,21 +55,16 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div class="flex-shrink-0 h-10 w-10">
-                  <img
-                    v-if="collection.student?.photo"
-                    :src="collection.student.photo"
+                  <UserAvatar
+                    :image-url="collection.student?.photo"
+                    :user="collection.student"
+                    size="md"
                     alt=""
-                    class="h-10 w-10 rounded-full"
+                    container-class="h-10 w-10"
+                    image-class="h-10 w-10 rounded-full"
+                    fallback-class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"
+                    initials-class="text-sm font-medium text-gray-700 dark:text-gray-300"
                   />
-                  <div
-                    v-else
-                    class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"
-                  >
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {{ (collection.student?.first_name || '').charAt(0)
-                      }}{{ (collection.student?.last_name || '').charAt(0) }}
-                    </span>
-                  </div>
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -127,6 +122,8 @@
 </template>
 
 <script setup>
+import UserAvatar from '~/components/UserAvatar.vue';
+
 defineProps({
   collections: {
     type: Array,

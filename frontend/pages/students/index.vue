@@ -496,20 +496,15 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="flex items-center">
                         <div class="flex-shrink-0 h-12 w-12">
-                          <img
-                            v-if="student.photo"
-                            :src="student.photo"
+                          <UserAvatar
+                            :image-url="student.photo"
+                            :user="student"
+                            size="lg"
                             :alt="student.first_name"
-                            class="h-12 w-12 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-600"
+                            container-class="h-12 w-12"
+                            image-class="h-12 w-12 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-600"
+                            fallback-class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center ring-2 ring-indigo-100 dark:ring-indigo-900"
                           />
-                          <div
-                            v-else
-                            class="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center ring-2 ring-indigo-100 dark:ring-indigo-900"
-                          >
-                            <span class="text-sm font-bold text-white">
-                              {{ getStudentInitials(student) }}
-                            </span>
-                          </div>
                         </div>
                         <div class="ml-4">
                           <div class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -753,6 +748,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import Pagination from '~/components/Pagination.vue';
+import UserAvatar from '~/components/UserAvatar.vue';
 import { PlusIcon, Users, CheckCircle, UserPlus, GraduationCap } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
 
@@ -1128,24 +1124,6 @@ const getStudentFullName = student => {
     return lastName;
   } else {
     return 'Unknown Student';
-  }
-};
-
-const getStudentInitials = student => {
-  const firstName = student.first_name || '';
-  const lastName = student.last_name || '';
-
-  const firstInitial = firstName.charAt(0).toUpperCase();
-  const lastInitial = lastName.charAt(0).toUpperCase();
-
-  if (firstName && lastName) {
-    return `${firstInitial}${lastInitial}`;
-  } else if (firstName) {
-    return firstInitial;
-  } else if (lastName) {
-    return lastInitial;
-  } else {
-    return '?';
   }
 };
 

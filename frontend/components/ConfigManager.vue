@@ -43,16 +43,14 @@
     <div v-if="activeTab === 'school'" class="config-content">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">School Configuration</h3>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Basic Information -->
           <div class="space-y-4">
             <h4 class="font-medium text-gray-700">Basic Information</h4>
-            
+
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                Currency
-              </label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"> Currency </label>
               <select
                 v-model="schoolConfig.currency"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -68,9 +66,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                Timezone
-              </label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"> Timezone </label>
               <select
                 v-model="schoolConfig.timezone"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -88,9 +84,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                Date Format
-              </label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"> Date Format </label>
               <select
                 v-model="schoolConfig.date_format"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -104,9 +98,7 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                Time Format
-              </label>
+              <label class="block text-sm font-medium text-gray-600 mb-1"> Time Format </label>
               <select
                 v-model="schoolConfig.time_format"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -121,7 +113,7 @@
           <!-- Academic Settings -->
           <div class="space-y-4">
             <h4 class="font-medium text-gray-700">Academic Settings</h4>
-            
+
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 Academic Year Start Month
@@ -129,7 +121,12 @@
               <select
                 v-model="schoolConfig.academic_year_start_month"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('academic_year_start_month', schoolConfig.academic_year_start_month)"
+                @change="
+                  updateSchoolConfig(
+                    'academic_year_start_month',
+                    schoolConfig.academic_year_start_month
+                  )
+                "
               >
                 <option v-for="month in months" :key="month.value" :value="month.value">
                   {{ month.label }}
@@ -144,7 +141,9 @@
               <select
                 v-model="schoolConfig.default_grading_system"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)"
+                @change="
+                  updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)
+                "
               >
                 <option value="percentage">Percentage</option>
                 <option value="letter_grade">Letter Grade</option>
@@ -163,7 +162,9 @@
                 min="1"
                 max="7"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                @change="updateSchoolConfig('working_days_per_week', schoolConfig.working_days_per_week)"
+                @change="
+                  updateSchoolConfig('working_days_per_week', schoolConfig.working_days_per_week)
+                "
               />
             </div>
           </div>
@@ -185,9 +186,7 @@
               <span
                 :class="[
                   'px-2 py-1 rounded-full text-xs font-medium',
-                  module.is_enabled
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
+                  module.is_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 ]"
               >
                 {{ module.is_enabled ? 'Enabled' : 'Disabled' }}
@@ -263,7 +262,7 @@
     <div v-if="activeTab === 'system'" class="config-content">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">System Configuration</h3>
-        
+
         <div class="space-y-6">
           <!-- Security Settings -->
           <div>
@@ -292,7 +291,9 @@
                   min="3"
                   max="10"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  @change="updateSystemConfig('max_login_attempts', systemConfig.max_login_attempts)"
+                  @change="
+                    updateSystemConfig('max_login_attempts', systemConfig.max_login_attempts)
+                  "
                 />
               </div>
             </div>
@@ -311,7 +312,9 @@
                   v-model="systemConfig.email_notifications"
                   type="checkbox"
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  @change="updateSystemConfig('email_notifications', systemConfig.email_notifications)"
+                  @change="
+                    updateSystemConfig('email_notifications', systemConfig.email_notifications)
+                  "
                 />
               </div>
               <div class="flex items-center justify-between">
@@ -358,7 +361,9 @@
                   min="7"
                   max="365"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  @change="updateSystemConfig('backup_retention_days', systemConfig.backup_retention_days)"
+                  @change="
+                    updateSystemConfig('backup_retention_days', systemConfig.backup_retention_days)
+                  "
                 />
               </div>
             </div>
@@ -409,7 +414,7 @@ const schoolConfig = ref({
   time_format: '12',
   academic_year_start_month: 'April',
   default_grading_system: 'percentage',
-  working_days_per_week: 5,
+  working_days_per_week: 5
 });
 
 // System configuration
@@ -419,7 +424,7 @@ const systemConfig = ref({
   email_notifications: true,
   sms_notifications: false,
   backup_frequency: 'daily',
-  backup_retention_days: 30,
+  backup_retention_days: 30
 });
 
 // Enabled modules
@@ -438,29 +443,28 @@ const months = computed(() => [
   { value: 'September', label: 'September' },
   { value: 'October', label: 'October' },
   { value: 'November', label: 'November' },
-  { value: 'December', label: 'December' },
+  { value: 'December', label: 'December' }
 ]);
 
 // Methods
 const loadConfigurations = async () => {
   try {
     loading.value = true;
-    
+
     // Load school configuration
     const schoolConfigData = await config.getSchoolConfig();
     if (schoolConfigData) {
       schoolConfig.value = { ...schoolConfig.value, ...schoolConfigData.settings };
     }
-    
+
     // Load enabled modules
     enabledModules.value = await config.getEnabledModules();
-    
+
     // Load system configuration
     const systemConfigData = await config.getSystemConfig();
     if (systemConfigData) {
       systemConfig.value = { ...systemConfig.value, ...systemConfigData };
     }
-    
   } catch (error) {
     console.error('Error loading configurations:', error);
     showMessage('error', 'Failed to load configurations');
@@ -536,7 +540,7 @@ onMounted(() => {
 }
 
 /* Custom checkbox styles */
-input[type="checkbox"]:checked {
+input[type='checkbox']:checked {
   background-color: #2563eb;
   border-color: #2563eb;
 }
@@ -557,7 +561,7 @@ button {
   .config-manager {
     padding: 0.5rem;
   }
-  
+
   .grid-cols-2 {
     grid-template-columns: 1fr;
   }

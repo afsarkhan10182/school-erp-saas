@@ -84,13 +84,26 @@
             :key="branch._id"
             class="hover:bg-gray-50 dark:hover:bg-gray-700"
           >
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900 dark:text-white">{{ branch.name }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ branch.email }}</div>
+            <td class="px-6 py-4">
+              <div
+                class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]"
+                :title="branch.name"
+              >
+                {{ branch.name }}
+              </div>
+              <div
+                class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]"
+                :title="branch.email"
+              >
+                {{ branch.email }}
+              </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">{{ branch.phone }}</div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-900 dark:text-white">
+            <td class="px-6 py-4">
+              <div
+                class="text-sm text-gray-900 dark:text-white truncate max-w-[150px]"
+                :title="branch.school?.name || branch.school_name || '-'"
+              >
                 {{ branch.school?.name || branch.school_name || '-' }}
               </div>
             </td>

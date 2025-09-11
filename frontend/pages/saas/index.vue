@@ -158,13 +158,21 @@
                 class="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <!-- School Info -->
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-6 py-4">
                   <div>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    <div
+                      class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]"
+                      :title="school.name"
+                    >
                       {{ school.name }}
                     </div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.code }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ school.email }}</div>
+                    <div
+                      class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]"
+                      :title="school.email"
+                    >
+                      {{ school.email }}
+                    </div>
                   </div>
                 </td>
 

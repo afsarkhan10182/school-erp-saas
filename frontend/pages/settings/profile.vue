@@ -44,22 +44,23 @@
                 >Profile Picture</label
               >
               <div class="flex items-center space-x-4">
+                <!-- Profile Picture (shows current or preview) -->
                 <div class="flex-shrink-0">
-                  <img
-                    v-if="form.profilePreview || user?.profile_image"
-                    :src="form.profilePreview || getProfileImageUrl(user?.profile_image)"
-                    :key="user?.profile_image || 'default'"
+                  <UserAvatar
+                    :image-url="
+                      form.profilePreview ||
+                      (user?.profile_image
+                        ? getProfileImageUrl(user.profile_image, user?.school?.code, apiBase)
+                        : null)
+                    "
+                    :user="user"
+                    size="xl"
                     alt="Profile"
-                    class="h-16 w-16 rounded-full object-cover"
                   />
-                  <div
-                    v-else
-                    class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"
-                  >
-                    <User class="h-8 w-8 text-gray-400" />
-                  </div>
                 </div>
-                <div>
+
+                <!-- Photo Upload Section -->
+                <div class="flex-1">
                   <input
                     ref="fileInput"
                     type="file"
@@ -73,9 +74,8 @@
                     :disabled="loading"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload v-if="!loading" class="-ml-1 mr-2 h-4 w-4" />
-                    <Loader2 v-else class="animate-spin -ml-1 mr-2 h-4 w-4" />
-                    {{ loading ? 'Uploading...' : 'Change Photo' }}
+                    <Upload class="-ml-1 mr-2 h-4 w-4" />
+                    Upload Photo
                   </button>
                 </div>
               </div>
@@ -267,7 +267,9 @@ import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import SubscriptionDetails from '~/components/SubscriptionDetails.vue';
+import UserAvatar from '~/components/UserAvatar.vue';
 import { Users } from '~/api';
+import { getProfileImageUrl } from '~/utils/imageUtils';
 
 // Page meta
 definePageMeta({
@@ -276,6 +278,8 @@ definePageMeta({
 
 const authStore = useAuthStore();
 const { showSuccess, showError } = useToast();
+const config = useRuntimeConfig();
+const apiBase = config.public?.apiBase;
 
 // Tab management
 const route = useRoute();
@@ -365,7 +369,9 @@ const onFileChange = event => {
       return;
     }
 
+    // Store the file for later upload
     form.value.profile_image = file;
+
     // Create preview
     const reader = new FileReader();
     reader.onload = e => {
@@ -389,31 +395,45 @@ const updateProfile = async () => {
       formData.append('profile_image', form.value.profile_image);
     }
 
-    await Users.updateProfile(formData);
+    console.log('📤 Updating profile with data:', {
+      first_name: form.value.first_name,
+      last_name: form.value.last_name,
+      email: form.value.email,
+      phone: form.value.phone,
+      hasImage: !!form.value.profile_image
+    });
 
-    // Small delay to ensure server processes the image upload
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const response = await Users.updateProfile(formData);
+    console.log('📥 Profile update response:', response);
 
-    // Update auth store with latest user data
-    await authStore.checkAuth();
+    if (response.success) {
+      // Small delay to ensure server processes the image upload
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Update auth store with latest user data
+      // Update auth store with latest user data
+      await authStore.checkAuth();
 
-    // Update form data with the latest user data
-    if (authStore.user) {
-      form.value = {
-        first_name: authStore.user.first_name || '',
-        last_name: authStore.user.last_name || '',
-        email: authStore.user.email || '',
-        phone: authStore.user.phone || '',
-        profile_image: null,
-        profilePreview: null
-      };
+      // Update form data with the latest user data
+      if (authStore.user) {
+        form.value = {
+          first_name: authStore.user.first_name || '',
+          last_name: authStore.user.last_name || '',
+          email: authStore.user.email || '',
+          phone: authStore.user.phone || '',
+          profile_image: null,
+          profilePreview: null
+        };
+      }
+
+      showSuccess('Profile updated successfully');
+    } else {
+      showError(response.message || 'Failed to update profile');
     }
-
-    showSuccess('Profile updated successfully');
   } catch (error) {
-    showError(error.data?.message || 'Failed to update profile');
+    console.error('❌ Profile update error:', error);
+    const errorMessage =
+      error.response?.data?.message || error.message || 'Failed to update profile';
+    showError(errorMessage);
   } finally {
     loading.value = false;
   }
@@ -432,9 +452,6 @@ const formatRole = role => {
   return roleMap[role] || role;
 };
 
-// Import centralized image utilities
-import { getProfileImageUrl } from '~/utils/imageUtils';
-
 // Change password function
 const changePassword = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
@@ -442,23 +459,38 @@ const changePassword = async () => {
     return;
   }
 
+  if (passwordForm.value.newPassword.length < 6) {
+    showError('New password must be at least 6 characters long');
+    return;
+  }
+
   changingPassword.value = true;
   try {
-    await Users.changePassword({
+    console.log('🔐 Changing password...');
+    const response = await Users.changePassword({
       currentPassword: passwordForm.value.currentPassword,
       newPassword: passwordForm.value.newPassword
     });
 
-    // Reset form
-    passwordForm.value = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    };
+    console.log('🔐 Password change response:', response);
 
-    showSuccess('Password changed successfully');
+    if (response.success) {
+      // Reset form
+      passwordForm.value = {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      };
+
+      showSuccess('Password changed successfully');
+    } else {
+      showError(response.message || 'Failed to change password');
+    }
   } catch (error) {
-    showError(error.data?.message || 'Failed to change password');
+    console.error('❌ Password change error:', error);
+    const errorMessage =
+      error.response?.data?.message || error.message || 'Failed to change password';
+    showError(errorMessage);
   } finally {
     changingPassword.value = false;
   }

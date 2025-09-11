@@ -20,16 +20,30 @@
       class="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700"
     >
       <div class="flex items-center">
+        <!-- School Logo or Fallback Icon -->
         <div
-          class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center cursor-pointer"
+          class="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer overflow-hidden"
           @click="$emit('toggle')"
         >
-          <School class="w-5 h-5 text-white" />
+          <img
+            v-if="schoolLogo && !logoError"
+            :src="schoolLogo"
+            :alt="schoolName"
+            class="w-full h-full object-cover rounded-lg"
+            @error="handleLogoError"
+          />
+          <div
+            v-else
+            class="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center"
+          >
+            <School class="w-5 h-5 text-white" />
+          </div>
         </div>
         <span
           v-if="open || isMobile"
-          class="ml-3 text-lg font-semibold text-gray-900 dark:text-white"
-          >School ERP</span
+          class="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate max-w-[200px]"
+          :title="schoolName || 'School ERP'"
+          >{{ schoolName || 'School ERP' }}</span
         >
       </div>
       <button
@@ -302,9 +316,11 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
+import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
 import { useModuleAccess } from '~/composables/useModuleAccess';
+import { getLogoUrl } from '~/utils/imageUtils';
 import {
   Home,
   School,
@@ -364,6 +380,50 @@ const saveSidebarState = isOpen => {
 const authStore = useAuthStore();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
+const logoError = ref(false);
+
+// School logo and name
+const schoolLogo = computed(() => {
+  const school = authStore.currentSchool;
+  // Reset logo error when school changes
+  logoError.value = false;
+
+  console.log('🏫 School logo debug:', {
+    school: school,
+    logo: school?.logo,
+    currentSchool: authStore.currentSchool,
+    user: authStore.user
+  });
+
+  if (school?.logo) {
+    const config = useRuntimeConfig();
+    const schoolCode = school.code || authStore.user?.school?.code;
+    const apiBase = config.public?.apiBase;
+
+    const logoUrl = getLogoUrl(school.logo, schoolCode, apiBase);
+    console.log('🖼️ Generated logo URL:', {
+      filename: school.logo,
+      schoolCode: schoolCode,
+      apiBase: apiBase,
+      logoUrl: logoUrl
+    });
+    return logoUrl;
+  }
+  return null;
+});
+
+const schoolName = computed(() => {
+  return authStore.currentSchool?.name || authStore.user?.school?.name || '';
+});
+
+// Handle logo error fallback
+const handleLogoError = event => {
+  console.error('🚫 School logo failed to load:', {
+    src: event.target?.src,
+    school: authStore.currentSchool
+  });
+  logoError.value = true;
+};
 
 // Watch for sidebar state changes
 watch(
@@ -643,36 +703,36 @@ const menuGroups = computed(() => {
                   requiredModule: 'fees'
                 }
               ]
-            },
-            {
-              id: 'student',
-              title: 'Student',
-              icon: Users,
-              requiredModule: 'students',
-              children: [
-                {
-                  id: 'student-reports',
-                  title: 'Student Reports',
-                  path: '/reports/students',
-                  icon: BarChart3,
-                  requiredModule: 'students'
-                },
-                {
-                  id: 'attendance-reports',
-                  title: 'Attendance Reports',
-                  path: '/reports/attendance',
-                  icon: BarChart3,
-                  requiredModule: 'attendance'
-                },
-                {
-                  id: 'exam-reports',
-                  title: 'Exam Reports',
-                  path: '/exams/report-cards',
-                  icon: FileText,
-                  requiredModule: 'exams'
-                }
-              ]
             }
+            // {
+            //   id: 'student',
+            //   title: 'Student',
+            //   icon: Users,
+            //   requiredModule: 'students',
+            //   children: [
+            //     {
+            //       id: 'student-reports',
+            //       title: 'Student Reports',
+            //       path: '/reports/students',
+            //       icon: BarChart3,
+            //       requiredModule: 'students'
+            //     },
+            //     {
+            //       id: 'attendance-reports',
+            //       title: 'Attendance Reports',
+            //       path: '/reports/attendance',
+            //       icon: BarChart3,
+            //       requiredModule: 'attendance'
+            //     },
+            //     {
+            //       id: 'exam-reports',
+            //       title: 'Exam Reports',
+            //       path: '/exams/report-cards',
+            //       icon: FileText,
+            //       requiredModule: 'exams'
+            //     }
+            //   ]
+            // }
           ]
         }
       ]
@@ -708,7 +768,7 @@ const menuGroups = computed(() => {
   }
 
   // Settings
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isSchoolAdmin.value) {
     const settingsItems = [];
 
     // Super Admin gets full settings
@@ -747,28 +807,27 @@ const menuGroups = computed(() => {
         }
       );
     }
-    // Branch Admin gets minimal settings
-    else {
-      settingsItems.push(
-        {
-          id: 'settings-main',
-          title: 'Settings',
-          path: '/settings',
-          icon: Settings
-        },
+
+    groups.push({
+      id: 'settings',
+      title: 'Settings',
+      items: settingsItems
+    });
+  }
+
+  // Branch Admin gets only profile access
+  if (isBranchAdmin.value) {
+    groups.push({
+      id: 'profile',
+      title: 'Profile',
+      items: [
         {
           id: 'profile',
           title: 'Profile',
           path: '/settings/profile',
           icon: User
         }
-      );
-    }
-
-    groups.push({
-      id: 'settings',
-      title: 'Settings',
-      items: settingsItems
+      ]
     });
   }
 

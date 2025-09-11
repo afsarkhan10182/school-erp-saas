@@ -49,7 +49,10 @@ export const Config = {
   setModuleConfig: async (params: ModuleConfigParams & { value: any; type: string }) => {
     const api = createApiInstance();
     const { moduleCode, schoolId, key, value, type } = params;
-    const response = await api.put(`/config/module/${moduleCode}/${schoolId}/${key}`, { value, type });
+    const response = await api.put(`/config/module/${moduleCode}/${schoolId}/${key}`, {
+      value,
+      type
+    });
     return response.data;
   },
 
