@@ -243,8 +243,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
-import { Exams } from '~/api/academic/exams';
-import { Students } from '~/api/students/students';
+import { Exams } from '~/api/academic';
+import { Students } from '~/api/students';
 
 // Composables
 const { showToast } = useToast();
