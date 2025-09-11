@@ -7,7 +7,7 @@
  * @param {Object} data - The data object containing enum fields
  * @returns {Object} - Sanitized data object
  */
-const sanitizeEnumFields = (data) => {
+const sanitizeEnumFields = data => {
   const sanitized = { ...data };
 
   // Gender field sanitization
@@ -18,7 +18,11 @@ const sanitizeEnumFields = (data) => {
     } else {
       throw new Error(`Invalid gender value: ${sanitized.gender}`);
     }
-  } else if (sanitized.gender === '' || sanitized.gender === null || sanitized.gender === undefined) {
+  } else if (
+    sanitized.gender === '' ||
+    sanitized.gender === null ||
+    sanitized.gender === undefined
+  ) {
     throw new Error('Gender is required');
   }
 
@@ -66,7 +70,7 @@ const sanitizeEnumFields = (data) => {
  * @param {Object} studentData - The student data to validate
  * @returns {Object} - Validation result with isValid and errors
  */
-const validateStudentData = (studentData) => {
+const validateStudentData = studentData => {
   const errors = [];
 
   // Required fields validation
@@ -103,7 +107,7 @@ const validateStudentData = (studentData) => {
  * @param {string} email - Email to validate
  * @returns {boolean} - True if valid
  */
-const isValidEmail = (email) => {
+const isValidEmail = email => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
@@ -113,7 +117,7 @@ const isValidEmail = (email) => {
  * @param {string} phone - Phone number to validate
  * @returns {boolean} - True if valid
  */
-const isValidPhone = (phone) => {
+const isValidPhone = phone => {
   const phoneRegex = /^[0-9]{10}$/;
   return phoneRegex.test(phone.replace(/\D/g, ''));
 };
@@ -123,7 +127,7 @@ const isValidPhone = (phone) => {
  * @param {string} aadhaar - Aadhaar number to validate
  * @returns {boolean} - True if valid
  */
-const isValidAadhaar = (aadhaar) => {
+const isValidAadhaar = aadhaar => {
   const aadhaarRegex = /^[0-9]{12}$/;
   return aadhaarRegex.test(aadhaar.replace(/\D/g, ''));
 };
@@ -135,8 +139,8 @@ const isValidAadhaar = (aadhaar) => {
  * @returns {Promise<string>} - Generated admission number
  */
 const generateAdmissionNumber = async (schoolId, academicYear) => {
-  const { Student } = require('../models');
-  
+  const { Student } = require('~/models');
+
   // Get the last admission number for this school and academic year
   const lastStudent = await Student.findOne({
     where: {
@@ -166,8 +170,8 @@ const generateAdmissionNumber = async (schoolId, academicYear) => {
  * @returns {Promise<string>} - Generated roll number
  */
 const generateRollNumber = async (classId, sectionId) => {
-  const { Student } = require('../models');
-  
+  const { Student } = require('~/models');
+
   // Get the last roll number for this class and section
   const lastStudent = await Student.findOne({
     where: {
@@ -195,4 +199,4 @@ module.exports = {
   isValidAadhaar,
   generateAdmissionNumber,
   generateRollNumber
-}; 
+};

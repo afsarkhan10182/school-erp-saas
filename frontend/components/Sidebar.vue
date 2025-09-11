@@ -1,27 +1,50 @@
 <template>
   <!-- Mobile overlay -->
-  <div 
-    v-if="isMobile && open" 
-    class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden backdrop-blur-sm" 
+  <div
+    v-if="isMobile && open"
+    class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden backdrop-blur-sm"
     @click="$emit('toggle')"
     @touchmove.prevent
   ></div>
-  
+
   <!-- Sidebar -->
-  <div 
+  <div
     :class="[
-      'sidebar-container fixed inset-y-0 left-0 z-[99999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col', 
+      'sidebar-container fixed inset-y-0 left-0 z-[99999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col',
       sidebarClasses,
       'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
   >
     <!-- Logo/Brand Header -->
-    <div class="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+    <div
+      class="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700"
+    >
       <div class="flex items-center">
-        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center cursor-pointer" @click="$emit('toggle')">
-          <School class="w-5 h-5 text-white" />
+        <!-- School Logo or Fallback Icon -->
+        <div
+          class="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer overflow-hidden"
+          @click="$emit('toggle')"
+        >
+          <img
+            v-if="schoolLogo && !logoError"
+            :src="schoolLogo"
+            :alt="schoolName"
+            class="w-full h-full object-cover rounded-lg"
+            @error="handleLogoError"
+          />
+          <div
+            v-else
+            class="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center"
+          >
+            <School class="w-5 h-5 text-white" />
+          </div>
         </div>
-        <span v-if="open || isMobile" class="ml-3 text-lg font-semibold text-gray-900 dark:text-white">School ERP</span>
+        <span
+          v-if="open || isMobile"
+          class="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate max-w-[200px]"
+          :title="schoolName || 'School ERP'"
+          >{{ schoolName || 'School ERP' }}</span
+        >
       </div>
       <button
         v-if="open || isMobile"
@@ -30,7 +53,12 @@
       >
         <ChevronLeft v-if="!isMobile" class="w-5 h-5" />
         <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </div>
@@ -48,7 +76,7 @@
           </div>
         </div>
       </template>
-      
+
       <!-- Loading state for modules -->
       <div v-if="modulesLoading" class="px-2 py-4 space-y-2">
         <div class="animate-pulse">
@@ -58,15 +86,13 @@
           <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
         </div>
       </div>
-      
 
-      
-              <!-- Actual navigation content -->
-        <nav v-else class="px-2 py-4 space-y-2">
+      <!-- Actual navigation content -->
+      <nav v-else class="px-2 py-4 space-y-2">
         <!-- Dashboard -->
         <div class="relative group">
-          <NuxtLink 
-            :to="'/dashboard'" 
+          <NuxtLink
+            :to="'/dashboard'"
             :class="navClass('/dashboard')"
             @click="handleMenuClick('/dashboard', $event)"
           >
@@ -74,75 +100,115 @@
             <span v-if="open || isMobile">Dashboard</span>
           </NuxtLink>
           <!-- Hover Menu for Collapsed State -->
-          <div v-if="!open && !isMobile" 
-               class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700">
+          <div
+            v-if="!open && !isMobile"
+            class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700"
+          >
             <span class="text-sm font-medium text-gray-900 dark:text-white">Dashboard</span>
           </div>
         </div>
-        
+
         <!-- Navigation Menu Items -->
         <template v-for="menuGroup in visibleMenuGroups" :key="menuGroup.id">
           <!-- Menu Group Header -->
-          <div v-if="open || isMobile" class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider sidebar-group-header">
+          <div
+            v-if="open || isMobile"
+            class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider sidebar-group-header"
+          >
             {{ menuGroup.title }}
           </div>
-          
+
           <!-- Menu Items -->
           <template v-for="menuItem in menuGroup.items" :key="menuItem.id">
             <!-- Direct Link Menu Item (no children or empty children, has path) -->
-            <NuxtLink 
-              v-if="(!menuItem.children || menuItem.children.length === 0) && menuItem.path" 
-              :to="menuItem.path" 
+            <NuxtLink
+              v-if="(!menuItem.children || menuItem.children.length === 0) && menuItem.path"
+              :to="menuItem.path"
               :class="navClass(menuItem.path)"
               @click="handleMenuClick(menuItem.path, $event)"
-              @auxclick="$event.button === 1 ? window.open($router.resolve(menuItem.path).href, '_blank') : null"
+              @auxclick="
+                $event.button === 1
+                  ? window.open($router.resolve(menuItem.path).href, '_blank')
+                  : null
+              "
             >
-              <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+              <component
+                :is="menuItem.icon"
+                class="w-5 h-5"
+                :class="{ 'mr-3': open || isMobile }"
+              />
               <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
             </NuxtLink>
-            
+
             <!-- Collapsible Menu -->
-            <div v-else-if="menuItem.children && menuItem.children.length > 0" class="space-y-1 relative group">
-              <div 
-                :class="[navClass(''), menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
+            <div
+              v-else-if="menuItem.children && menuItem.children.length > 0"
+              class="space-y-1 relative group"
+            >
+              <div
+                :class="[
+                  navClass(''),
+                  menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : ''
+                ]"
                 @click="toggleMenu(menuItem.id)"
               >
-                <component :is="menuItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                <component
+                  :is="menuItem.icon"
+                  class="w-5 h-5"
+                  :class="{ 'mr-3': open || isMobile }"
+                />
                 <span v-if="open || isMobile" class="flex-1">{{ menuItem.title }}</span>
                 <!-- Chevron only for top-level collapsibles -->
-                <ChevronDown 
+                <ChevronDown
                   v-if="open || isMobile"
-                  class="w-4 h-4 transition-transform duration-200" 
+                  class="w-4 h-4 transition-transform duration-200"
                   :class="{ 'rotate-180': menuOpen === menuItem.id }"
                 />
               </div>
-            <!-- Hover Menu for Collapsed State -->
-              <div v-if="!open && !isMobile" 
-                   class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0">
-                <div class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">
+              <!-- Hover Menu for Collapsed State -->
+              <div
+                v-if="!open && !isMobile"
+                class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0"
+              >
+                <div
+                  class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700"
+                >
                   {{ menuItem.title }}
                 </div>
                 <div class="py-1">
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
-                    <div v-if="subItem.children && subItem.children.length > 0" class="relative group/sub">
-                      <div class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300">
+                    <div
+                      v-if="subItem.children && subItem.children.length > 0"
+                      class="relative group/sub"
+                    >
+                      <div
+                        class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                      >
                         <component :is="subItem.icon" class="w-4 h-4 mr-2" />
                         <span>{{ subItem.title }}</span>
                         <!-- No chevron in hover menus for nested items -->
                       </div>
                       <!-- Nested hover menu -->
-                      <div class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[180px] z-50 border border-gray-200 dark:border-gray-700">
-                        <div class="px-3 py-2 font-medium text-xs text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700">
+                      <div
+                        class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[180px] z-50 border border-gray-200 dark:border-gray-700"
+                      >
+                        <div
+                          class="px-3 py-2 font-medium text-xs text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700"
+                        >
                           {{ subItem.title }}
                         </div>
                         <div class="py-1">
-                          <NuxtLink 
-                            v-for="nestedItem in subItem.children" 
+                          <NuxtLink
+                            v-for="nestedItem in subItem.children"
                             :key="nestedItem.id"
-                            :to="nestedItem.path" 
+                            :to="nestedItem.path"
                             class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
-                            @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(nestedItem.path).href, '_blank') : null"
+                            @click.middle.prevent="
+                              $event.ctrlKey || $event.metaKey
+                                ? window.open($router.resolve(nestedItem.path).href, '_blank')
+                                : null
+                            "
                           >
                             <component :is="nestedItem.icon" class="w-4 h-4 mr-2" />
                             <span>{{ nestedItem.title }}</span>
@@ -151,11 +217,15 @@
                       </div>
                     </div>
                     <!-- Direct submenu item -->
-                    <NuxtLink 
+                    <NuxtLink
                       v-else
-                      :to="subItem.path" 
+                      :to="subItem.path"
                       class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
-                      @click.middle.prevent="$event.ctrlKey || $event.metaKey ? window.open($router.resolve(subItem.path).href, '_blank') : null"
+                      @click.middle.prevent="
+                        $event.ctrlKey || $event.metaKey
+                          ? window.open($router.resolve(subItem.path).href, '_blank')
+                          : null
+                      "
                     >
                       <component :is="subItem.icon" class="w-4 h-4 mr-2" />
                       <span>{{ subItem.title }}</span>
@@ -163,10 +233,10 @@
                   </template>
                 </div>
               </div>
-              
+
               <!-- Submenu Items -->
-              <div 
-                v-show="menuOpen === menuItem.id && open" 
+              <div
+                v-show="menuOpen === menuItem.id && open"
                 class="overflow-hidden transition-all duration-300 ease-in-out"
                 :class="[open ? 'max-h-96' : 'max-h-0']"
               >
@@ -175,33 +245,40 @@
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
                     <div v-if="subItem.children && subItem.children.length > 0" class="space-y-1">
-                      <div 
-                        :class="[navClass(''), subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : '']"
+                      <div
+                        :class="[
+                          navClass(''),
+                          subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : ''
+                        ]"
                         @click="toggleSubMenu(subItem.id)"
                       >
                         <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                         <span class="flex-1">{{ subItem.title }}</span>
                         <!-- Show chevron ONLY in expanded sidebar mode for nested submenus -->
-                        <ChevronDown 
+                        <ChevronDown
                           v-if="open && subItem.children.length > 0"
-                          class="w-4 h-4 transition-transform duration-200" 
+                          class="w-4 h-4 transition-transform duration-200"
                           :class="{ 'rotate-180': subMenuOpen === subItem.id }"
                         />
                       </div>
                       <!-- Nested submenu items -->
-                      <div 
-                        v-show="subMenuOpen === subItem.id && open" 
+                      <div
+                        v-show="subMenuOpen === subItem.id && open"
                         class="overflow-hidden transition-all duration-300 ease-in-out"
                         :class="[open ? 'max-h-96' : 'max-h-0']"
                       >
                         <div class="ml-8 space-y-1 py-1">
-                          <NuxtLink 
-                            v-for="nestedItem in subItem.children" 
+                          <NuxtLink
+                            v-for="nestedItem in subItem.children"
                             :key="nestedItem.id"
-                            :to="nestedItem.path" 
+                            :to="nestedItem.path"
                             :class="navClass(nestedItem.path)"
                             @click="handleMenuClick(nestedItem.path, $event)"
-                            @auxclick="$event.button === 1 ? window.open($router.resolve(nestedItem.path).href, '_blank') : null"
+                            @auxclick="
+                              $event.button === 1
+                                ? window.open($router.resolve(nestedItem.path).href, '_blank')
+                                : null
+                            "
                           >
                             <component :is="nestedItem.icon" class="w-5 h-5 mr-3" />
                             <span>{{ nestedItem.title }}</span>
@@ -210,12 +287,16 @@
                       </div>
                     </div>
                     <!-- Direct submenu item -->
-                    <NuxtLink 
+                    <NuxtLink
                       v-else
-                      :to="subItem.path" 
+                      :to="subItem.path"
                       :class="navClass(subItem.path)"
                       @click="handleMenuClick(subItem.path, $event)"
-                      @auxclick="$event.button === 1 ? window.open($router.resolve(subItem.path).href, '_blank') : null"
+                      @auxclick="
+                        $event.button === 1
+                          ? window.open($router.resolve(subItem.path).href, '_blank')
+                          : null
+                      "
                     >
                       <component :is="subItem.icon" class="w-5 h-5 mr-3" />
                       <span>{{ subItem.title }}</span>
@@ -235,15 +316,17 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
+import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
 import { useModuleAccess } from '~/composables/useModuleAccess';
-import { 
-  Home, 
-  School, 
-  Building2, 
-  Users, 
-  UserPlus, 
+import { getLogoUrl } from '~/utils/imageUtils';
+import {
+  Home,
+  School,
+  Building2,
+  Users,
+  UserPlus,
   GraduationCap,
   DollarSign,
   CreditCard,
@@ -280,10 +363,15 @@ const emit = defineEmits(['toggle']);
 // Use centralized composables
 const { isHydrated } = useHydrationState();
 const { isMobile } = useMobileDetection();
-const { loadUserModules, filterMenuByModules, isLoading: modulesLoading, userModules } = useModuleAccess();
+const {
+  loadUserModules,
+  filterMenuByModules,
+  isLoading: modulesLoading,
+  userModules
+} = useModuleAccess();
 
 // Function to save sidebar state
-const saveSidebarState = (isOpen) => {
+const saveSidebarState = isOpen => {
   if (import.meta.client) {
     localStorage.setItem('sidebarOpen', isOpen.toString());
   }
@@ -292,16 +380,63 @@ const saveSidebarState = (isOpen) => {
 const authStore = useAuthStore();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
+const logoError = ref(false);
+
+// School logo and name
+const schoolLogo = computed(() => {
+  const school = authStore.currentSchool;
+  // Reset logo error when school changes
+  logoError.value = false;
+
+  console.log('🏫 School logo debug:', {
+    school: school,
+    logo: school?.logo,
+    currentSchool: authStore.currentSchool,
+    user: authStore.user
+  });
+
+  if (school?.logo) {
+    const config = useRuntimeConfig();
+    const schoolCode = school.code || authStore.user?.school?.code;
+    const apiBase = config.public?.apiBase;
+
+    const logoUrl = getLogoUrl(school.logo, schoolCode, apiBase);
+    console.log('🖼️ Generated logo URL:', {
+      filename: school.logo,
+      schoolCode: schoolCode,
+      apiBase: apiBase,
+      logoUrl: logoUrl
+    });
+    return logoUrl;
+  }
+  return null;
+});
+
+const schoolName = computed(() => {
+  return authStore.currentSchool?.name || authStore.user?.school?.name || '';
+});
+
+// Handle logo error fallback
+const handleLogoError = event => {
+  console.error('🚫 School logo failed to load:', {
+    src: event.target?.src,
+    school: authStore.currentSchool
+  });
+  logoError.value = true;
+};
 
 // Watch for sidebar state changes
-watch(() => props.open, (newValue) => {
-  if (!newValue) {
-    menuOpen.value = '';
-    subMenuOpen.value = '';
+watch(
+  () => props.open,
+  newValue => {
+    if (!newValue) {
+      menuOpen.value = '';
+      subMenuOpen.value = '';
+    }
+    // Save state to localStorage whenever it changes
+    saveSidebarState(newValue);
   }
-  // Save state to localStorage whenever it changes
-  saveSidebarState(newValue);
-});
+);
 
 // Role checks - use authStore for consistency
 const isSuperAdmin = computed(() => authStore.user?.role === 'super_admin');
@@ -325,11 +460,26 @@ const menuGroups = computed(() => {
           title: 'School Subscriptions',
           icon: CreditCard,
           children: [
-             { id: 'customer-overview', title: 'Overview', path: '/saas', icon: BarChart3 },
-            { id: 'subscription-plans', title: 'Subscription Plans', path: '/saas/plans', icon: List },
-            { id: 'renewal-requests', title: 'Renewal Requests', path: '/saas/renewal-requests', icon: FileText },
+            {
+              id: 'customer-overview',
+              title: 'Overview',
+              path: '/saas',
+              icon: BarChart3
+            },
+            {
+              id: 'subscription-plans',
+              title: 'Subscription Plans',
+              path: '/saas/plans',
+              icon: List
+            },
+            {
+              id: 'renewal-requests',
+              title: 'Renewal Requests',
+              path: '/saas/renewal-requests',
+              icon: FileText
+            }
           ]
-        },
+        }
       ]
     });
 
@@ -338,7 +488,18 @@ const menuGroups = computed(() => {
       id: 'school-admin',
       title: 'School Administration',
       items: [
-        { id: 'manage-branches', title: 'Branches', path: '/branches', icon: Building2 },
+        {
+          id: 'manage-branches',
+          title: 'Branches',
+          path: '/branches',
+          icon: Building2
+        },
+        {
+          id: 'config-management',
+          title: 'Configuration',
+          path: '/admin/config',
+          icon: Settings
+        }
       ]
     });
   }
@@ -355,17 +516,35 @@ const menuGroups = computed(() => {
           icon: GraduationCap,
           requiredModule: 'students',
           children: [
-            { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus, requiredModule: 'students' },
-            { id: 'all-students', title: 'All Students', path: '/students', icon: Users, requiredModule: 'students' },
-            { id: 'multiple-import', title: 'Multiple Import', path: '/students/multiple-import', icon: ClipboardList, requiredModule: 'students' },
+            {
+              id: 'new-student',
+              title: 'New Student',
+              path: '/students/form',
+              icon: UserPlus,
+              requiredModule: 'students'
+            },
+            {
+              id: 'all-students',
+              title: 'All Students',
+              path: '/students',
+              icon: Users,
+              requiredModule: 'students'
+            },
+            {
+              id: 'multiple-import',
+              title: 'Multiple Import',
+              path: '/students/multiple-import',
+              icon: ClipboardList,
+              requiredModule: 'students'
+            }
           ]
         }
       ]
     });
   }
 
-   // Academic Management
-   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  // Academic Management
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'academic',
       title: 'Academic Management',
@@ -376,14 +555,48 @@ const menuGroups = computed(() => {
           icon: BookOpen,
           children: [
             // Academic Years - only for super admin and school admin
-            ...(isSuperAdmin.value ? [
-              { id: 'academic-years', title: 'Academic Years', path: '/academic/years', icon: Calendar }
-            ] : []),
-            { id: 'classes', title: 'Classes', path: '/academic/classes', icon: GraduationCap },
-            { id: 'streams', title: 'Streams', path: '/academic/streams', icon: BookOpen },
-            { id: 'sections', title: 'Sections', path: '/academic/sections', icon: Users },
-            { id: 'subjects', title: 'Subjects', path: '/academic/subjects', icon: BookOpen, requiredModule: 'exams' },
-            { id: 'exam-types', title: 'Exam Types', path: '/academic/exam-types', icon: Tag, requiredModule: 'exams' },
+            ...(isSuperAdmin.value
+              ? [
+                  {
+                    id: 'academic-years',
+                    title: 'Academic Years',
+                    path: '/academic/years',
+                    icon: Calendar
+                  }
+                ]
+              : []),
+            {
+              id: 'classes',
+              title: 'Classes',
+              path: '/academic/classes',
+              icon: GraduationCap
+            },
+            {
+              id: 'streams',
+              title: 'Streams',
+              path: '/academic/streams',
+              icon: BookOpen
+            },
+            {
+              id: 'sections',
+              title: 'Sections',
+              path: '/academic/sections',
+              icon: Users
+            },
+            {
+              id: 'subjects',
+              title: 'Subjects',
+              path: '/academic/subjects',
+              icon: BookOpen,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'exam-types',
+              title: 'Exam Types',
+              path: '/academic/exam-types',
+              icon: Tag,
+              requiredModule: 'exams'
+            }
           ]
         },
         {
@@ -391,8 +604,27 @@ const menuGroups = computed(() => {
           title: 'Academic Operations',
           icon: ClipboardList,
           children: [
-            { id: 'exams', title: 'Exams', path: '/exams', icon: FileText, requiredModule: 'exams' },
-            { id: 'attendance-sessions', title: 'Attendance', path: '/attendance', icon: ClipboardList, requiredModule: 'attendance' },
+            {
+              id: 'exams',
+              title: 'Exams',
+              path: '/exams',
+              icon: FileText,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'attendance-sessions',
+              title: 'Attendance',
+              path: '/attendance',
+              icon: ClipboardList,
+              requiredModule: 'attendance'
+            },
+            {
+              id: 'attendance-analytics',
+              title: 'Attendance Analytics',
+              path: '/attendance/analytics',
+              icon: BarChart3,
+              requiredModule: 'attendance'
+            }
           ]
         }
       ]
@@ -411,9 +643,27 @@ const menuGroups = computed(() => {
           icon: DollarSign,
           requiredModule: 'fees',
           children: [
-            { id: 'fee-types', title: 'Fee Types', path: '/fees/types', icon: Tag, requiredModule: 'fees' },
-            { id: 'fee-structures', title: 'Fee Structures', path: '/fees/structures', icon: List, requiredModule: 'fees' },
-            { id: 'invoices', title: 'Invoices', path: '/fees/invoices', icon: Receipt, requiredModule: 'fees' }
+            {
+              id: 'fee-types',
+              title: 'Fee Types',
+              path: '/fees/types',
+              icon: Tag,
+              requiredModule: 'fees'
+            },
+            {
+              id: 'fee-structures',
+              title: 'Fee Structures',
+              path: '/fees/structures',
+              icon: List,
+              requiredModule: 'fees'
+            },
+            {
+              id: 'invoices',
+              title: 'Invoices',
+              path: '/fees/invoices',
+              icon: Receipt,
+              requiredModule: 'fees'
+            }
           ]
         }
       ]
@@ -438,19 +688,49 @@ const menuGroups = computed(() => {
               icon: DollarSign,
               requiredModule: 'fees',
               children: [
-                { id: 'fee-management-report', title: 'Fee Management', path: '/reports/fees', icon: PieChart, requiredModule: 'fees' },
-                { id: 'receipts-report', title: 'Receipts Report', path: '/reports/receipts', icon: Receipt, requiredModule: 'fees' },
+                {
+                  id: 'fee-management-report',
+                  title: 'Fee Management',
+                  path: '/reports/fees',
+                  icon: PieChart,
+                  requiredModule: 'fees'
+                },
+                {
+                  id: 'receipts-report',
+                  title: 'Receipts Report',
+                  path: '/reports/receipts',
+                  icon: Receipt,
+                  requiredModule: 'fees'
+                }
               ]
-            },
+            }
             // {
             //   id: 'student',
             //   title: 'Student',
             //   icon: Users,
             //   requiredModule: 'students',
             //   children: [
-            //     { id: 'student-reports', title: 'Student Reports', path: '/reports/students', icon: BarChart3, requiredModule: 'students' },
-            //     { id: 'attendance-reports', title: 'Attendance Reports', path: '/reports/attendance', icon: BarChart3, requiredModule: 'attendance' },
-            //     { id: 'exam-reports', title: 'Exam Reports', path: '/exams/report-cards', icon: FileText, requiredModule: 'exams' },
+            //     {
+            //       id: 'student-reports',
+            //       title: 'Student Reports',
+            //       path: '/reports/students',
+            //       icon: BarChart3,
+            //       requiredModule: 'students'
+            //     },
+            //     {
+            //       id: 'attendance-reports',
+            //       title: 'Attendance Reports',
+            //       path: '/reports/attendance',
+            //       icon: BarChart3,
+            //       requiredModule: 'attendance'
+            //     },
+            //     {
+            //       id: 'exam-reports',
+            //       title: 'Exam Reports',
+            //       path: '/exams/report-cards',
+            //       icon: FileText,
+            //       requiredModule: 'exams'
+            //     }
             //   ]
             // }
           ]
@@ -465,38 +745,66 @@ const menuGroups = computed(() => {
       id: 'front-office',
       title: 'Front Office',
       items: [
-        { id: 'new-student', title: 'New Student', path: '/students/form', icon: UserPlus },
-        { id: 'all-students', title: 'All Students', path: '/students', icon: Users },
-        { id: 'visitors', title: 'Visitors', path: '/visitors', icon: UserCheck },
+        {
+          id: 'new-student',
+          title: 'New Student',
+          path: '/students/form',
+          icon: UserPlus
+        },
+        {
+          id: 'all-students',
+          title: 'All Students',
+          path: '/students',
+          icon: Users
+        },
+        {
+          id: 'visitors',
+          title: 'Visitors',
+          path: '/visitors',
+          icon: UserCheck
+        }
       ]
     });
   }
 
   // Settings
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isSchoolAdmin.value) {
     const settingsItems = [];
-    
+
     // Super Admin gets full settings
     if (isSuperAdmin.value) {
       settingsItems.push(
         { id: 'staff-list', title: 'User List', path: '/users', icon: Users },
-        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+        {
+          id: 'settings-main',
+          title: 'Settings',
+          path: '/settings',
+          icon: Settings
+        },
+        {
+          id: 'profile',
+          title: 'Profile',
+          path: '/settings/profile',
+          icon: User
+        }
       );
-    } 
+    }
     // School Admin gets simplified settings
     else if (isSchoolAdmin.value) {
       settingsItems.push(
         { id: 'staff-list', title: 'Staff List', path: '/users', icon: Users },
-        { id: 'settings-main', title: 'School Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
-      );
-    }
-    // Branch Admin gets minimal settings
-    else {
-      settingsItems.push(
-        { id: 'settings-main', title: 'Settings', path: '/settings', icon: Settings },
-        { id: 'profile', title: 'Profile', path: '/settings/profile', icon: User }
+        {
+          id: 'settings-main',
+          title: 'School Settings',
+          path: '/settings',
+          icon: Settings
+        },
+        {
+          id: 'profile',
+          title: 'Profile',
+          path: '/settings/profile',
+          icon: User
+        }
       );
     }
 
@@ -507,18 +815,34 @@ const menuGroups = computed(() => {
     });
   }
 
+  // Branch Admin gets only profile access
+  if (isBranchAdmin.value) {
+    groups.push({
+      id: 'profile',
+      title: 'Profile',
+      items: [
+        {
+          id: 'profile',
+          title: 'Profile',
+          path: '/settings/profile',
+          icon: User
+        }
+      ]
+    });
+  }
+
   return groups;
 });
 
 // Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
   console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
-  
+
   // Super admin: show all menu groups
   if (authStore.user?.role === 'super_admin') {
     return menuGroups.value;
   }
-  
+
   // For non-super admins, filter based on modules
   if (!userModules.value || userModules.value.length === 0) {
     console.log('🔄 No user modules available');
@@ -535,22 +859,20 @@ const visibleMenuGroups = computed(() => {
       };
     })
     .filter(group => group.items.length > 0); // remove empty groups
-  
+
   console.log('🔄 Filtered menu groups:', filtered);
   return filtered;
 });
 
-
-
-const toggleMenu = (menu) => {
+const toggleMenu = menu => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;
 };
 
-const toggleSubMenu = (subMenu) => {
+const toggleSubMenu = subMenu => {
   subMenuOpen.value = subMenuOpen.value === subMenu ? '' : subMenu;
 };
 
-const navClass = (path) => {
+const navClass = path => {
   const route = useRoute();
   const isActive = path ? route.path === path : false;
   return [
@@ -561,7 +883,7 @@ const navClass = (path) => {
   ];
 };
 
-const subNavClass = (path) => {
+const subNavClass = path => {
   return navClass(path);
 };
 
@@ -608,15 +930,19 @@ onMounted(async () => {
     mql = window.matchMedia('(max-width: 767px)');
     mql.addEventListener('change', checkMobile);
   }
-  
+
   // Load user modules for menu filtering
   await loadUserModules();
 });
 
 // Watch for module changes to update sidebar
-watch(userModules, (newModules) => {
-  console.log('🔄 Sidebar modules updated:', newModules);
-}, { deep: true });
+watch(
+  userModules,
+  newModules => {
+    console.log('🔄 Sidebar modules updated:', newModules);
+  },
+  { deep: true }
+);
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', checkMobile);
@@ -732,7 +1058,7 @@ nav {
   .sidebar-container {
     transform: translateX(-100%);
   }
-  
+
   .sidebar-container.w-\[280px\].translate-x-0 {
     transform: translateX(0);
   }
@@ -753,16 +1079,16 @@ nav {
 /* Ensure menu items remain clickable when collapsed */
 .sidebar-container:not(.w-64) nav a,
 .sidebar-container:not(.w-64) nav button,
-.sidebar-container:not(.w-64) nav div[class*="flex items-center"] {
+.sidebar-container:not(.w-64) nav div[class*='flex items-center'] {
   pointer-events: auto;
 }
 
 /* Ensure proper hover states for menu items */
-nav div[class*="flex items-center"]:hover {
+nav div[class*='flex items-center']:hover {
   background-color: rgb(243 244 246);
 }
 
-.dark nav div[class*="flex items-center"]:hover {
+.dark nav div[class*='flex items-center']:hover {
   background-color: rgb(55 65 81);
 }
 </style>

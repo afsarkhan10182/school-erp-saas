@@ -1,11 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
-const { User, School, Branch } = require('../../models');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { getRedisClient } = require('../../config/redis');
-const RedisUtils = require('../../utils/redis-utils');
+const { User, School, Branch } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { getRedisClient } = require('~/config/redis');
+const RedisUtils = require('~/utils/redis-utils');
 
 const ROLES = User.ROLES;
 
@@ -14,7 +14,9 @@ class AuthService {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({
-        where: { email: userData.email }
+        where: {
+          email: userData.email
+        }
       });
 
       if (existingUser) {
@@ -23,7 +25,7 @@ class AuthService {
 
       // Create user
       const user = await User.create(userData);
-      
+
       // Clear user-related caches
       await RedisUtils.del('cache:users:list');
       await RedisUtils.del(`user:${user.id}`);
@@ -39,7 +41,9 @@ class AuthService {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({
-        where: { email: schoolAdminData.email }
+        where: {
+          email: schoolAdminData.email
+        }
       });
 
       if (existingUser) {
@@ -67,19 +71,29 @@ class AuthService {
   static async login(email, password, ip) {
     try {
       const user = await User.findOne({
-        where: { email },
+        where: {
+          email
+        },
         include: [
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'status', 'subscription_plan', 'subscription_end_date'],
+            attributes: [
+              'id',
+              'name',
+              'code',
+              'logo',
+              'status',
+              'subscription_plan',
+              'subscription_end_date'
+            ]
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'status'],
-          },
-        ],
+            attributes: ['id', 'name', 'status']
+          }
+        ]
       });
 
       if (!user) {
@@ -98,7 +112,10 @@ class AuthService {
 
       // Check if branch is active
       if (user.branch && user.branch.status !== 'active') {
-        throw new ApiError(403, 'Your branch is not active. Please contact your school administrator.');
+        throw new ApiError(
+          403,
+          'Your branch is not active. Please contact your school administrator.'
+        );
       }
 
       // Check password
@@ -110,7 +127,7 @@ class AuthService {
       // Update last login and IP
       await user.update({
         last_login: new Date(),
-        last_ip: ip,
+        last_ip: ip
       });
 
       // Clear user cache after login
@@ -134,7 +151,7 @@ class AuthService {
     // Debug logging
     logger.info('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
     logger.info('JWT_REFRESH_SECRET:', process.env.JWT_REFRESH_SECRET ? 'SET' : 'NOT SET');
-    
+
     // Generate access token (1 minute for testing)
     const accessToken = jwt.sign(
       {
@@ -142,24 +159,22 @@ class AuthService {
         email: user.email,
         role: user.role,
         school_id: user.school_id,
-        branch_id: user.branch_id,
+        branch_id: user.branch_id
       },
       process.env.JWT_SECRET,
       { expiresIn: '60m' } // 60 minutes
     );
 
     // Generate refresh token
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
-    );
+    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET, {
+      expiresIn: '7d'
+    });
 
     // Store refresh token in Redis with user ID as key (optional)
     try {
       const redisClient = await getRedisClient();
       await redisClient.set(`refresh_token:${user.id}`, refreshToken, {
-        EX: 60 * 60 * 24 * 7, // 7 days
+        EX: 60 * 60 * 24 * 7 // 7 days
       });
     } catch (error) {
       logger.warn('Redis not available, continuing without token storage:', error.message);
@@ -172,26 +187,26 @@ class AuthService {
     return {
       access: {
         token: accessToken,
-        expires: accessTokenExpiry,
+        expires: accessTokenExpiry
       },
       refresh: {
         token: refreshToken,
-        expires: refreshTokenExpiry,
-      },
+        expires: refreshTokenExpiry
+      }
     };
   }
 
   static async refreshToken(refreshToken) {
     try {
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      
+
       // Verify refresh token in Redis (optional - continue if Redis fails)
       try {
         const redisClient = await getRedisClient();
-        
+
         if (redisClient) {
           const storedToken = await redisClient.get(`refresh_token:${decoded.id}`);
-          
+
           if (!storedToken || storedToken !== refreshToken) {
             throw new ApiError(401, 'Invalid refresh token');
           }
@@ -200,9 +215,28 @@ class AuthService {
         // Continue without Redis validation if Redis is not available
       }
 
-      // Get user
+      // Get user with school and branch associations
       const user = await User.findByPk(decoded.id, {
         attributes: { exclude: ['password'] },
+        include: [
+          {
+            model: School,
+            as: 'school',
+            attributes: [
+              'id',
+              'name',
+              'code',
+              'status',
+              'subscription_plan',
+              'subscription_end_date'
+            ]
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'status']
+          }
+        ]
       });
 
       if (!user) {
@@ -223,7 +257,7 @@ class AuthService {
     try {
       // Blacklist the current token
       const redisClient = await getRedisClient();
-      
+
       if (redisClient) {
         if (allDevices) {
           // Remove all refresh tokens for this user
@@ -236,7 +270,7 @@ class AuthService {
               // Blacklist the current access token with expiration matching the token's expiration
               const decoded = jwt.verify(currentToken, process.env.JWT_SECRET);
               const timeToExpiry = decoded.exp - Math.floor(Date.now() / 1000);
-              
+
               if (timeToExpiry > 0) {
                 await redisClient.set(`bl_${currentToken}`, '1', {
                   EX: timeToExpiry
@@ -266,24 +300,24 @@ class AuthService {
 
   static async forgotPassword(email) {
     try {
-      const user = await User.findOne({ where: { email } });
+      const user = await User.findOne({
+        where: {
+          email
+        }
+      });
       if (!user) {
         // Don't reveal if user exists or not
         return { message: 'If the email exists, a password reset link has been sent.' };
       }
 
       // Generate reset token
-      const resetToken = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
       // Store reset token in Redis
       try {
         const redisClient = await getRedisClient();
         await redisClient.set(`reset_token:${user.id}`, resetToken, {
-          EX: 3600, // 1 hour
+          EX: 3600 // 1 hour
         });
       } catch (error) {
         logger.warn('Redis not available for reset token storage:', error.message);
@@ -291,10 +325,12 @@ class AuthService {
 
       // TODO: Send email with reset link
       logger.info(`Password reset token generated for user ${user.id}`);
-      
+
       // Log reset token for testing purposes (remove in production)
       logger.info(`🔑 RESET TOKEN FOR TESTING: ${resetToken}`);
-      logger.info(`🔗 Reset URL: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${resetToken}`);
+      logger.info(
+        `🔗 Reset URL: ${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${resetToken}`
+      );
 
       return { message: 'If the email exists, a password reset link has been sent.' };
     } catch (error) {
@@ -306,18 +342,20 @@ class AuthService {
   static async resetPassword(token, newPassword) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
       // Verify reset token in Redis (optional - continue if Redis fails)
       try {
         const redisClient = await getRedisClient();
         if (redisClient) {
           const storedToken = await redisClient.get(`reset_token:${decoded.id}`);
-          
+
           if (!storedToken || storedToken !== token) {
             throw new ApiError(401, 'Invalid or expired reset token');
           }
         } else {
-          logger.warn('Redis not available for reset token validation, proceeding without validation');
+          logger.warn(
+            'Redis not available for reset token validation, proceeding without validation'
+          );
         }
       } catch (redisError) {
         logger.warn('Redis validation failed, continuing without Redis check:', redisError.message);

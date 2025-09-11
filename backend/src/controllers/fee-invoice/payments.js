@@ -1,26 +1,36 @@
-const { FeeInvoice, FeeStructure, FeeType, Student, Parent, School, FeePayment, Branch, Class } = require('../../models');
-const ApiError = require('../../utils/ApiError');
-const { logger } = require('../../utils/logger');
+const {
+  FeeInvoice,
+  FeeStructure,
+  FeeType,
+  Student,
+  Parent,
+  School,
+  FeePayment,
+  Branch,
+  Class
+} = require('~/models');
+const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/logger');
 const { Op } = require('sequelize');
-const { validatePaymentSequence, getEarliestPendingMonth } = require('../../utils/academicYearUtils');
+const { validatePaymentSequence, getEarliestPendingMonth } = require('~/utils/academicYearUtils');
 const { generateUniqueReceiptNumber, getClassCode } = require('./core');
 
 // Calculate late fees based on due date
-const calculateLateFees = async (invoice) => {
+const calculateLateFees = async invoice => {
   const currentDate = new Date();
   const dueDate = new Date(invoice.due_date);
-  
+
   if (currentDate <= dueDate) {
     return 0; // No late fee if not overdue
   }
-  
+
   const daysOverdue = Math.ceil((currentDate - dueDate) / (1000 * 60 * 60 * 24));
   const lateFeePct = parseFloat(invoice.late_fee_percentage) || 2.0; // Default 2% late fee
-  
+
   // Calculate late fee (2% per month or part thereof)
   const monthsOverdue = Math.ceil(daysOverdue / 30);
   const lateFee = (parseFloat(invoice.total_amount) * lateFeePct * monthsOverdue) / 100;
-  
+
   return parseFloat(lateFee.toFixed(2));
 };
 
@@ -28,7 +38,7 @@ const calculateLateFees = async (invoice) => {
 const applyLateFees = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const invoice = await FeeInvoice.findOne({
       where: {
         id,
@@ -36,21 +46,21 @@ const applyLateFees = async (req, res, next) => {
         status: { [Op.in]: ['sent', 'partial_paid', 'overdue'] }
       }
     });
-    
+
     if (!invoice) {
       throw new ApiError(404, 'Invoice not found or not eligible for late fees');
     }
-    
+
     if (invoice.is_late_fee_applied) {
       throw new ApiError(400, 'Late fees already applied to this invoice');
     }
-    
+
     const lateFeeAmount = await calculateLateFees(invoice);
-    
+
     if (lateFeeAmount > 0) {
       const newTotalAmount = parseFloat(invoice.total_amount) + lateFeeAmount;
       const newBalanceAmount = newTotalAmount - parseFloat(invoice.paid_amount);
-      
+
       await invoice.update({
         late_fee_amount: lateFeeAmount,
         total_amount: newTotalAmount,
@@ -60,9 +70,9 @@ const applyLateFees = async (req, res, next) => {
         status: 'overdue',
         updated_by: req.user.id
       });
-      
+
       logger.info(`Late fee applied: $${lateFeeAmount} to invoice ${invoice.invoice_number}`);
-      
+
       return res.status(200).json({
         success: true,
         message: 'Late fees applied successfully',
@@ -94,7 +104,7 @@ const recordPayment = async (req, res, next) => {
       cheque_number,
       bank_name,
       reference_number,
-      notes,
+      notes
     } = req.body;
 
     // Support both 'amount' and 'payment_amount' for backward compatibility
@@ -107,7 +117,7 @@ const recordPayment = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -120,7 +130,7 @@ const recordPayment = async (req, res, next) => {
       include: [
         {
           model: Student,
-          as: 'student',
+          as: 'student'
         },
         {
           model: FeeStructure,
@@ -128,16 +138,16 @@ const recordPayment = async (req, res, next) => {
           include: [
             {
               model: FeeType,
-              as: 'feeType',
+              as: 'feeType'
             },
             {
               model: Class,
               as: 'class',
-              attributes: ['id', 'name', 'code'],
-            },
-          ],
-        },
-      ],
+              attributes: ['id', 'name', 'code']
+            }
+          ]
+        }
+      ]
     });
 
     if (!invoice) {
@@ -157,7 +167,7 @@ const recordPayment = async (req, res, next) => {
       // Get school to determine starting month
       const school = await School.findByPk(req.schoolId);
       const startingMonth = school.starting_month || 6; // Default to June
-      
+
       // Get all student invoices for this fee structure and academic year
       const allStudentInvoices = await FeeInvoice.findAll({
         where: {
@@ -167,15 +177,18 @@ const recordPayment = async (req, res, next) => {
           payment_model: 'monthly',
           school_id: req.schoolId
         },
-        order: [['month', 'ASC'], ['year', 'ASC']]
+        order: [
+          ['month', 'ASC'],
+          ['year', 'ASC']
+        ]
       });
-      
+
       // Validate payment sequence
       const validation = validatePaymentSequence([invoice], allStudentInvoices, startingMonth);
       if (!validation.isValid) {
         throw new ApiError(400, validation.message);
       }
-      
+
       logger.info(`Payment sequence validation passed for invoice ${invoice.invoice_number}`);
     }
 
@@ -189,22 +202,30 @@ const recordPayment = async (req, res, next) => {
     if (invoice.payment_model === 'monthly') {
       const monthlyAmount = parseFloat(invoice.total_amount);
       const paymentAmountFloat = parseFloat(paymentAmount);
-      
+
       // Check if payment is in multiples of monthly amount
       if (paymentAmountFloat % monthlyAmount !== 0) {
-        throw new ApiError(400, `Payment amount must be in multiples of the monthly amount (₹${monthlyAmount.toLocaleString()}). You can pay for 1, 2, 3, etc. months at once.`);
+        throw new ApiError(
+          400,
+          `Payment amount must be in multiples of the monthly amount (₹${monthlyAmount.toLocaleString()}). You can pay for 1, 2, 3, etc. months at once.`
+        );
       }
-      
+
       // Calculate how many months this payment covers
       const monthsCovered = paymentAmountFloat / monthlyAmount;
-      
+
       // Check if this would exceed the total amount for the year (12 months)
       const totalYearlyAmount = monthlyAmount * 12;
       if (newPaidAmount > totalYearlyAmount) {
-        throw new ApiError(400, `Payment would exceed the total yearly amount of ₹${totalYearlyAmount.toLocaleString()}`);
+        throw new ApiError(
+          400,
+          `Payment would exceed the total yearly amount of ₹${totalYearlyAmount.toLocaleString()}`
+        );
       }
-      
-      logger.info(`Monthly payment validation passed: ${paymentAmountFloat} covers ${monthsCovered} month(s) at ₹${monthlyAmount} each`);
+
+      logger.info(
+        `Monthly payment validation passed: ${paymentAmountFloat} covers ${monthsCovered} month(s) at ₹${monthlyAmount} each`
+      );
     }
 
     // Get school data for receipt generation
@@ -213,7 +234,7 @@ const recordPayment = async (req, res, next) => {
     // Generate unique receipt number for each payment
     // Use the same class code logic as invoice generation to ensure consistency
     const classCode = await getClassCode(invoice.feeStructure, invoice.student);
-    
+
     logger.info('Class code for receipt generation (using same logic as invoice):', {
       feeStructureId: invoice.feeStructure?.id,
       classCode: classCode,
@@ -242,7 +263,7 @@ const recordPayment = async (req, res, next) => {
       notes,
       school_id: req.schoolId,
       branch_id: req.branchId,
-      created_by: req.user.id,
+      created_by: req.user.id
     };
 
     const payment = await FeePayment.create(paymentData);
@@ -252,7 +273,7 @@ const recordPayment = async (req, res, next) => {
       paid_amount: newPaidAmount,
       balance_amount: parseFloat(invoice.total_amount) - newPaidAmount,
       last_payment_date: payment_date || new Date(),
-      updated_by: req.user.id,
+      updated_by: req.user.id
     };
 
     // Update status based on payment model and amount
@@ -279,10 +300,12 @@ const recordPayment = async (req, res, next) => {
     await invoice.update(updateData);
 
     // Generate receipt data AFTER invoice update to get correct remaining balance
-    const { generateReceiptData } = require('../../services/receipt.service');
+    const { generateReceiptData } = require('~/services/receipt.service');
     const receiptData = await generateReceiptData(payment.id);
-    
-    logger.info(`Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`);
+
+    logger.info(
+      `Payment recorded: ${paymentAmount} for invoice ${invoice.invoice_number} (Payment: ${payment.payment_number})`
+    );
 
     return res.status(200).json({
       success: true,
@@ -296,8 +319,8 @@ const recordPayment = async (req, res, next) => {
         new_paid_amount: newPaidAmount,
         remaining_balance: Math.max(0, parseFloat(invoice.total_amount) - newPaidAmount),
         status: invoice.status,
-        receipt: receiptData,
-      },
+        receipt: receiptData
+      }
     });
   } catch (error) {
     logger.error('Error recording payment:', error);
@@ -315,7 +338,7 @@ const getInvoicePayments = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -324,7 +347,7 @@ const getInvoicePayments = async (req, res, next) => {
     }
 
     const invoice = await FeeInvoice.findOne({
-      where: whereClause,
+      where: whereClause
     });
 
     if (!invoice) {
@@ -334,11 +357,11 @@ const getInvoicePayments = async (req, res, next) => {
     const { count, rows: payments } = await FeePayment.findAndCountAll({
       where: {
         invoice_id: id,
-        school_id: req.schoolId,
+        school_id: req.schoolId
       },
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
-      offset: offset,
+      offset: offset
     });
 
     const totalPages = Math.ceil(count / parseInt(limit));
@@ -351,9 +374,9 @@ const getInvoicePayments = async (req, res, next) => {
           current_page: parseInt(page),
           total_pages: totalPages,
           total_count: count,
-          limit: parseInt(limit),
-        },
-      },
+          limit: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
     logger.error('Error fetching invoice payments:', error);
@@ -369,7 +392,7 @@ const getPaymentById = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id: paymentId,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -389,11 +412,11 @@ const getPaymentById = async (req, res, next) => {
           include: [
             {
               model: Student,
-              as: 'student',
-            },
-          ],
-        },
-      ],
+              as: 'student'
+            }
+          ]
+        }
+      ]
     });
 
     if (!payment) {
@@ -415,7 +438,7 @@ const getPaymentReceipt = async (req, res, next) => {
     // Build where clause based on user role
     const whereClause = {
       id: paymentId,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -435,11 +458,11 @@ const getPaymentReceipt = async (req, res, next) => {
           include: [
             {
               model: Student,
-              as: 'student',
-            },
-          ],
-        },
-      ],
+              as: 'student'
+            }
+          ]
+        }
+      ]
     });
 
     if (!payment) {
@@ -450,8 +473,8 @@ const getPaymentReceipt = async (req, res, next) => {
       success: true,
       data: {
         receipt_number: payment.receipt_number,
-        receipt_data: payment.receipt_data,
-      },
+        receipt_data: payment.receipt_data
+      }
     });
   } catch (error) {
     logger.error('Error fetching payment receipt:', error);
@@ -468,7 +491,7 @@ const getStudentPayments = async (req, res, next) => {
 
     const whereClause = {
       student_id: studentId,
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Add branch filter for branch admins
@@ -493,16 +516,16 @@ const getStudentPayments = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
-          ],
-        },
+                  as: 'feeType'
+                }
+              ]
+            }
+          ]
+        }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
-      offset: offset,
+      offset: offset
     });
 
     const totalPages = Math.ceil(count / parseInt(limit));
@@ -515,9 +538,9 @@ const getStudentPayments = async (req, res, next) => {
           current_page: parseInt(page),
           total_pages: totalPages,
           total_count: count,
-          limit: parseInt(limit),
-        },
-      },
+          limit: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
     logger.error('Error fetching student payments:', error);
@@ -532,7 +555,7 @@ const getCollections = async (req, res, next) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
-      school_id: req.schoolId,
+      school_id: req.schoolId
     };
 
     // Handle branch filtering based on user role
@@ -576,21 +599,21 @@ const getCollections = async (req, res, next) => {
               include: [
                 {
                   model: FeeType,
-                  as: 'feeType',
-                },
-              ],
-            },
-          ],
+                  as: 'feeType'
+                }
+              ]
+            }
+          ]
         },
         {
           model: Student,
           as: 'student',
-          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'photo'],
-        },
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'photo']
+        }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
-      offset: offset,
+      offset: offset
     });
 
     // Transform the data to match the frontend expectations
@@ -602,14 +625,14 @@ const getCollections = async (req, res, next) => {
         first_name: payment.student?.first_name,
         last_name: payment.student?.last_name,
         admission_number: payment.student?.admission_number,
-        photo: payment.student?.photo,
+        photo: payment.student?.photo
       },
       amount: parseFloat(payment.payment_amount),
       payment_method: payment.payment_method,
       payment_date: payment.payment_date,
       status: payment.payment_status || 'completed',
       transaction_id: payment.transaction_id,
-      created_at: payment.created_at,
+      created_at: payment.created_at
     }));
 
     const totalPages = Math.ceil(count / parseInt(limit));
@@ -622,9 +645,9 @@ const getCollections = async (req, res, next) => {
           current_page: parseInt(page),
           total_pages: totalPages,
           total_count: count,
-          limit: parseInt(limit),
-        },
-      },
+          limit: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
     logger.error('Error fetching collections:', error);
@@ -640,5 +663,5 @@ module.exports = {
   getPaymentById,
   getPaymentReceipt,
   getStudentPayments,
-  getCollections,
-}; 
+  getCollections
+};

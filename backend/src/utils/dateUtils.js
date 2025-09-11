@@ -12,7 +12,7 @@ const createDateRange = (fromDate, toDate) => {
   const fromDateTime = new Date(fromDate);
   const toDateTime = new Date(toDate);
   toDateTime.setHours(23, 59, 59, 999); // Set to end of day
-  
+
   return {
     fromDateTime,
     toDateTime

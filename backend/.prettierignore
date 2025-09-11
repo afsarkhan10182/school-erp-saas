@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sql
+
+# Uploads
+uploads/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env*
+
+# Package lock files
+package-lock.json
+
+# Documentation
+README.md

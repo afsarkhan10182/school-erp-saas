@@ -1,9 +1,16 @@
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware(async to => {
   // Skip middleware on server-side
   if (process.server) return;
 
   const authStore = useAuthStore();
-  const { canAccessRoute, loadUserModules, areModulesLoaded, initializeFromCache, isLoading, checkModulesUpdated } = useModuleAccess();
+  const {
+    canAccessRoute,
+    loadUserModules,
+    areModulesLoaded,
+    initializeFromCache,
+    isLoading,
+    checkModulesUpdated
+  } = useModuleAccess();
 
   // Skip for super admin
   if (authStore.user?.role === 'super_admin') return;
@@ -19,7 +26,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Try to initialize from cache first
   const cached = initializeFromCache();
-  
+
   // Only load modules if not already loaded and not in cache
   if (!cached && !areModulesLoaded() && !isLoading.value) {
     await loadUserModules();
@@ -33,9 +40,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // Redirect to dashboard with error message
     return navigateTo({
       path: '/dashboard',
-      query: { 
+      query: {
         error: 'module_access_denied',
-        module: routePath 
+        module: routePath
       }
     });
   }

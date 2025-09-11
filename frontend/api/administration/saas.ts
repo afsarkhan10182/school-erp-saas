@@ -83,13 +83,21 @@ export const Saas = {
     return response.data;
   },
 
-  getSchoolTransactions: async (schoolId: string, params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }) => {
+  getSchoolTransactions: async (
+    schoolId: string,
+    params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }
+  ) => {
     const api = createApiInstance();
     const response = await api.get(`/subscriptions/schools/${schoolId}/transactions`, { params });
     return response.data;
   },
 
-  getMyTransactions: async (params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }) => {
+  getMyTransactions: async (params?: {
+    page?: number;
+    limit?: number;
+    payment_status?: string;
+    payment_method?: string;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/subscriptions/my-transactions', { params });
     return response.data;
@@ -97,7 +105,10 @@ export const Saas = {
 
   createManualTransaction: async (transactionData: any) => {
     const api = createApiInstance();
-    const response = await api.post(`/subscriptions/schools/${transactionData.school_id}/transactions`, transactionData);
+    const response = await api.post(
+      `/subscriptions/schools/${transactionData.school_id}/transactions`,
+      transactionData
+    );
     return response.data;
   },
 
@@ -126,7 +137,13 @@ export const Saas = {
   },
 
   // Renewal Requests
-  getRenewalRequests: async (params?: { page?: number; limit?: number; status?: string; school_id?: string; request_type?: string }) => {
+  getRenewalRequests: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    school_id?: string;
+    request_type?: string;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/subscriptions/renewal-requests', { params });
     return response.data;
@@ -140,7 +157,10 @@ export const Saas = {
 
   reviewRenewalRequest: async (requestId: string, reviewData: any) => {
     const api = createApiInstance();
-    const response = await api.put(`/subscriptions/renewal-requests/${requestId}/review`, reviewData);
+    const response = await api.put(
+      `/subscriptions/renewal-requests/${requestId}/review`,
+      reviewData
+    );
     return response.data;
   },
 
@@ -160,9 +180,9 @@ export const Saas = {
   // Simple module toggle
   toggleSchoolModule: async (schoolId: string, moduleCode: string, enabled: boolean) => {
     const api = createApiInstance();
-    const response = await api.post(`/subscriptions/schools/${schoolId}/toggle-module`, { 
-      module_code: moduleCode, 
-      enabled: enabled 
+    const response = await api.post(`/subscriptions/schools/${schoolId}/toggle-module`, {
+      module_code: moduleCode,
+      enabled: enabled
     });
     return response.data;
   },

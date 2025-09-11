@@ -1,8 +1,5 @@
 <template>
-  <StudentForm 
-    :mode="mode" 
-    :student-id="studentId" 
-  />
+  <StudentForm :mode="mode" :student-id="studentId" />
 </template>
 
 <script setup>
@@ -20,10 +17,10 @@ const mode = computed(() => {
 const studentId = computed(() => route.params.id || null);
 
 // Set page meta based on mode
-const pageTitle = computed(() => mode.value === 'edit' ? 'Edit Student' : 'Create Student');
+const pageTitle = computed(() => (mode.value === 'edit' ? 'Edit Student' : 'Create Student'));
 
 definePageMeta({
   // Global auth middleware handles authentication
-  title: pageTitle,
+  title: pageTitle
 });
-</script> 
+</script>

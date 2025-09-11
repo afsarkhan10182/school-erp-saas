@@ -4,23 +4,25 @@
     <div class="modal-header">
       <div class="modal-title">Receipt Viewer</div>
       <div class="modal-actions">
-        <button
-          @click="printReceipt"
-          class="action-button print-button"
-          title="Print Receipt"
-        >
+        <button @click="printReceipt" class="action-button print-button" title="Print Receipt">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+            />
           </svg>
         </button>
-        
-        <button
-          @click="$emit('close')"
-          class="action-button close-button"
-          title="Close"
-        >
+
+        <button @click="$emit('close')" class="action-button close-button" title="Close">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -31,29 +33,35 @@
       <div class="receipt" :class="{ 'receipt-print': isPrinting }">
         <!-- Header -->
         <div class="header">
-          <img 
-            v-if="receiptData.receipt_logo && receiptData.receipt_logo.trim() !== ''" 
-            :src="getImageUrl(receiptData.receipt_logo)" 
-            alt="Receipt Logo" 
+          <img
+            v-if="receiptData.receipt_logo && receiptData.receipt_logo.trim() !== ''"
+            :src="getLogoUrl(receiptData.receipt_logo)"
+            alt="Receipt Logo"
             class="receipt-logo"
             @error="handleLogoError"
-          >
+          />
           <div class="header-content">
             <div class="trust-section">
-              <div class="trust-name">{{ receiptData.trust_name || schoolData.trust_name || 'HAJI OMAR MOOSA EDUCATIONAL TRUST' }}</div>
+              <div class="trust-name">
+                {{
+                  receiptData.trust_name ||
+                  schoolData.trust_name ||
+                  'HAJI OMAR MOOSA EDUCATIONAL TRUST'
+                }}
+              </div>
             </div>
             <div class="school-section">
               <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
-              <div class="school-address">{{ receiptData.school_address}}</div>
+              <div class="school-address">{{ receiptData.school_address }}</div>
             </div>
           </div>
         </div>
-        
+
         <!-- Receipt Title -->
         <div class="receipt-title">
           {{ getReceiptTitle() }}
         </div>
-        
+
         <!-- Receipt Information -->
         <div class="receipt-info">
           <div class="info-row">
@@ -69,12 +77,17 @@
             <span class="info-value">{{ formatDate(receiptData.payment_date) }}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">{{ isJuniorCollege ? 'Receive from' : 'Name of the Pupil' }}:</span>
+            <span class="info-label"
+              >{{ isJuniorCollege ? 'Receive from' : 'Name of the Pupil' }}:</span
+            >
             <span class="info-value">{{ receiptData.student_name }}</span>
           </div>
           <div class="info-row">
             <span class="info-label">{{ isJuniorCollege ? 'Class' : 'Std. & Div.' }}:</span>
-            <span class="info-value">{{ receiptData.class_name }}{{ receiptData.section ? ' - ' + receiptData.section : '' }}</span>
+            <span class="info-value"
+              >{{ receiptData.class_name
+              }}{{ receiptData.section ? ' - ' + receiptData.section : '' }}</span
+            >
           </div>
           <!-- <div v-if="receiptData.branch_name || receiptData.branch?.name" class="info-row">
             <span class="info-label">Branch:</span>
@@ -88,26 +101,36 @@
             <span class="info-label">G.R. No:</span>
             <span class="info-value">{{ receiptData.admission_number }}</span>
           </div>
-          
+
           <div v-if="isMonthlyPayment && receiptData.month_paid" class="info-row">
             <span class="info-label">Month Paid:</span>
             <span class="info-value">{{ receiptData.month_paid }}</span>
           </div>
-          
 
-          
-
-          
-          <div v-if="isCombinedPayment && (receiptData.months_covered || (receiptData.invoices && receiptData.invoices.length > 0))" class="info-row">
+          <div
+            v-if="
+              isCombinedPayment &&
+              (receiptData.months_covered ||
+                (receiptData.invoices && receiptData.invoices.length > 0))
+            "
+            class="info-row"
+          >
             <span class="info-label">Months Covered:</span>
             <span class="info-value">
               <span v-if="receiptData.months_covered">{{ receiptData.months_covered }}</span>
               <span v-else-if="receiptData.invoices && receiptData.invoices.length > 0">
-                {{ receiptData.invoices.map(inv => inv.month && inv.year ? `${getMonthName(inv.month)} ${inv.year}` : null).filter(Boolean).join(', ') }}
+                {{
+                  receiptData.invoices
+                    .map(inv =>
+                      inv.month && inv.year ? `${getMonthName(inv.month)} ${inv.year}` : null
+                    )
+                    .filter(Boolean)
+                    .join(', ')
+                }}
               </span>
             </span>
           </div>
-          
+
           <!-- Fee Table -->
           <table v-if="isCombinedPayment" class="fee-table">
             <thead>
@@ -118,22 +141,33 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="receiptData.monthly_payments && receiptData.monthly_payments.length > 0" 
-                  v-for="payment in receiptData.monthly_payments" :key="`${payment.month}-${payment.year}`">
+              <tr
+                v-if="receiptData.monthly_payments && receiptData.monthly_payments.length > 0"
+                v-for="payment in receiptData.monthly_payments"
+                :key="`${payment.month}-${payment.year}`"
+              >
                 <td>{{ getMonthName(payment.month) }} {{ payment.year }}</td>
                 <td>{{ payment.fee_type }}</td>
                 <td>{{ formatCurrency(payment.amount) }}</td>
               </tr>
-              <tr v-else-if="receiptData.invoices && receiptData.invoices.length > 0" 
-                  v-for="invoice in receiptData.invoices" :key="`${invoice.month}-${invoice.year}`">
+              <tr
+                v-else-if="receiptData.invoices && receiptData.invoices.length > 0"
+                v-for="invoice in receiptData.invoices"
+                :key="`${invoice.month}-${invoice.year}`"
+              >
                 <td>{{ getMonthName(invoice.month) }} {{ invoice.year }}</td>
                 <td>{{ invoice.feeStructure?.feeType?.name || 'TUITION FEES' }}</td>
                 <td>{{ formatCurrency(invoice.total_amount) }}</td>
               </tr>
             </tbody>
           </table>
-          
-          <table v-else-if="isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 1" class="fee-table">
+
+          <table
+            v-else-if="
+              isInstallmentPayment && receiptData.invoices && receiptData.invoices.length > 1
+            "
+            class="fee-table"
+          >
             <thead>
               <tr>
                 <th class="table-header">Installment No</th>
@@ -149,7 +183,7 @@
               </tr>
             </tbody>
           </table>
-          
+
           <table v-else class="fee-table">
             <thead>
               <tr>
@@ -164,7 +198,7 @@
               </tr>
             </tbody>
           </table>
-          
+
           <!-- Summary Section -->
           <div class="summary-section">
             <div class="info-row">
@@ -173,14 +207,16 @@
             </div>
             <div class="info-row">
               <span class="info-label">Payment Method:</span>
-              <span class="info-value">{{ (receiptData.payment_method || 'cash').toUpperCase() }}</span>
+              <span class="info-value">{{
+                (receiptData.payment_method || 'cash').toUpperCase()
+              }}</span>
             </div>
             <div v-if="receiptData.transaction_id" class="info-row">
               <span class="info-label">Transaction ID:</span>
               <span class="info-value">{{ receiptData.transaction_id }}</span>
             </div>
           </div>
-          
+
           <!-- Remaining Balance Info -->
           <div v-if="isCombinedPayment" class="remaining-info">
             <div class="remaining-title">Monthly Payment Summary</div>
@@ -190,10 +226,12 @@
             </div>
             <div class="info-row">
               <span class="info-label">Remaining Balance:</span>
-              <span class="info-value">₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span>
+              <span class="info-value"
+                >₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span
+              >
             </div>
           </div>
-          
+
           <div v-else-if="isMonthlyPayment" class="remaining-info">
             <div class="remaining-title">Monthly Payment Summary</div>
             <div class="info-row">
@@ -202,31 +240,41 @@
             </div>
             <div class="info-row">
               <span class="info-label">Remaining Balance:</span>
-              <span class="info-value">₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span>
+              <span class="info-value"
+                >₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span
+              >
             </div>
           </div>
-          
+
           <div v-else-if="isInstallmentPayment" class="remaining-info">
             <div class="remaining-title">Installment Payment Summary</div>
             <div class="info-row">
               <span class="info-label">Remaining Amount:</span>
-              <span class="info-value">₹{{ formatCurrency(getInstallmentRemainingBalance()) }}</span>
+              <span class="info-value"
+                >₹{{ formatCurrency(getInstallmentRemainingBalance()) }}</span
+              >
             </div>
             <div v-if="receiptData.invoices && receiptData.invoices.length > 0" class="info-row">
               <span class="info-label">Installments Paid:</span>
-              <span class="info-value">{{ getPaidInstallmentsCount() }}/{{ receiptData.invoices[0].total_installments }}</span>
+              <span class="info-value"
+                >{{ getPaidInstallmentsCount() }}/{{
+                  receiptData.invoices[0].total_installments
+                }}</span
+              >
             </div>
             <div v-if="receiptData.remaining_installments" class="info-row">
               <span class="info-label">Remaining Installments:</span>
               <span class="info-value">{{ receiptData.remaining_installments }}</span>
             </div>
           </div>
-          
+
           <div v-else class="remaining-info">
             <div class="remaining-title">Outstanding Balance</div>
             <div class="info-row">
               <span class="info-label">Remaining Amount:</span>
-              <span class="info-value">₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span>
+              <span class="info-value"
+                >₹{{ formatCurrency(receiptData.remaining_balance || 0) }}</span
+              >
             </div>
             <div v-if="receiptData.remaining_months" class="info-row">
               <span class="info-label">Remaining Months:</span>
@@ -234,12 +282,12 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Signature Section -->
         <div class="signature-section">
           <div class="signature">
             <div class="signature-line"></div>
-            {{ isJuniorCollege ? 'Cashier Signature' : 'Receiver\'s Signature' }}
+            {{ isJuniorCollege ? 'Cashier Signature' : "Receiver's Signature" }}
           </div>
           <div class="signature">
             <div class="signature-line"></div>
@@ -252,8 +300,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useToast } from '~/composables/useToast'
+import { ref, computed, onMounted } from 'vue';
+import { useToast } from '~/composables/useToast';
 
 const props = defineProps({
   receiptData: {
@@ -264,235 +312,249 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   }
-})
+});
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close']);
 
-const { showToast } = useToast()
-const receiptContainer = ref(null)
-const isPrinting = ref(false)
+const { showToast } = useToast();
+const receiptContainer = ref(null);
+const isPrinting = ref(false);
 
 // Computed properties
 const isJuniorCollege = computed(() => {
-  return props.receiptData.class_name && props.receiptData.class_name.toLowerCase().includes('junior')
-})
+  return (
+    props.receiptData.class_name && props.receiptData.class_name.toLowerCase().includes('junior')
+  );
+});
 
 const schoolType = computed(() => {
   // First check class name
   if (isJuniorCollege.value) {
-    return 'JUNIOR COLLEGE'
+    return 'JUNIOR COLLEGE';
   }
-  
+
   // Then check branch name for college indicators
-  const branchName = props.receiptData.branch_name || props.receiptData.branch?.name || ''
+  const branchName = props.receiptData.branch_name || props.receiptData.branch?.name || '';
   if (branchName) {
-    const branchNameLower = branchName.toLowerCase()
-    if (branchNameLower.includes('jr') || 
-        branchNameLower.includes('junior') || 
-        branchNameLower.includes('college') ||
-        branchNameLower.includes('jc')) {
-      return 'JUNIOR COLLEGE'
+    const branchNameLower = branchName.toLowerCase();
+    if (
+      branchNameLower.includes('jr') ||
+      branchNameLower.includes('junior') ||
+      branchNameLower.includes('college') ||
+      branchNameLower.includes('jc')
+    ) {
+      return 'JUNIOR COLLEGE';
     }
   }
-  
-  return 'ENGLISH MEDIUM SCHOOL'
-})
+
+  return 'ENGLISH MEDIUM SCHOOL';
+});
 
 const branchDisplay = computed(() => {
-  return ''
-})
+  return '';
+});
 
 const isMonthlyPayment = computed(() => {
-  return props.receiptData.payment_model === 'monthly'
-})
+  return props.receiptData.payment_model === 'monthly';
+});
 
 const isCombinedPayment = computed(() => {
   // Check for combined payment indicators
-  return props.receiptData.payment_model === 'combined' || 
-         props.receiptData.receipt_group_id ||
-         (props.receiptData.monthly_payments && props.receiptData.monthly_payments.length > 1) ||
-         (props.receiptData.invoices && props.receiptData.invoices.length > 1)
-})
+  return (
+    props.receiptData.payment_model === 'combined' ||
+    props.receiptData.receipt_group_id ||
+    (props.receiptData.monthly_payments && props.receiptData.monthly_payments.length > 1) ||
+    (props.receiptData.invoices && props.receiptData.invoices.length > 1)
+  );
+});
 
 const isInstallmentPayment = computed(() => {
-  return props.receiptData.payment_model === 'installment'
-})
+  return props.receiptData.payment_model === 'installment';
+});
 
 // Methods
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return new Date(dateString).toLocaleDateString('en-IN')
-}
+const formatDate = dateString => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-IN');
+};
 
-const formatCurrency = (amount) => {
-  if (!amount) return '0'
-  return parseFloat(amount).toLocaleString('en-IN')
-}
+const formatCurrency = amount => {
+  if (!amount) return '0';
+  return parseFloat(amount).toLocaleString('en-IN');
+};
 
-const handleLogoError = (event) => {
-  event.target.style.display = 'none'
-}
+const handleLogoError = event => {
+  event.target.style.display = 'none';
+};
 
-const getImageUrl = (filename) => {
-  if (!filename) return '';
-  if (filename.startsWith('data:')) return filename;
-  const config = useRuntimeConfig();
-  const apiBase = config.public?.apiBase || 'http://localhost:8000/api';
-  const backendBase = apiBase.replace('/api', '');
-  return `${backendBase}/uploads/logos/${filename}`;
-}
+// Import centralized image utilities
+import { getLogoUrl } from '~/utils/imageUtils';
 
-
-
-const getMonthName = (month) => {
+const getMonthName = month => {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
-  return months[month - 1] || 'Unknown'
-}
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+  return months[month - 1] || 'Unknown';
+};
 
 const getFeeTypeDisplay = () => {
-  
   if (props.receiptData.fee_type_name && props.receiptData.fee_type_name !== 'Multiple Fee Types') {
-    return props.receiptData.fee_type_name
+    return props.receiptData.fee_type_name;
   }
   if (props.receiptData.fee_type) {
-    return props.receiptData.fee_type
+    return props.receiptData.fee_type;
   }
   if (props.receiptData.monthly_payments && props.receiptData.monthly_payments.length > 0) {
-    return props.receiptData.monthly_payments[0].fee_type || 'Tuition Fees'
+    return props.receiptData.monthly_payments[0].fee_type || 'Tuition Fees';
   }
-  return 'Tuition Fees'
-}
+  return 'Tuition Fees';
+};
 
 const getReceiptNumberDisplay = () => {
   // Check if receipt_number is directly in receiptData
   if (props.receiptData.receipt_number) {
-    return props.receiptData.receipt_number
+    return props.receiptData.receipt_number;
   }
-  
+
   // Check if receiptData is nested inside a parent object (like combined_receipt)
   if (props.receiptData.receipt_data && props.receiptData.receipt_data.receipt_number) {
-    return props.receiptData.receipt_data.receipt_number
+    return props.receiptData.receipt_data.receipt_number;
   }
-  
-  return 'N/A'
-}
+
+  return 'N/A';
+};
 
 const getInvoiceNumberDisplay = () => {
   // Always show the original invoice number as reference
   if (props.receiptData.invoice_number) {
-    return props.receiptData.invoice_number
+    return props.receiptData.invoice_number;
   }
-  
-  return 'N/A'
-}
+
+  return 'N/A';
+};
 
 const getAmountDisplay = () => {
   // For combined payments, use total_payment_amount or total_paid
   if (isCombinedPayment.value) {
-    return props.receiptData.total_payment_amount || props.receiptData.total_paid || 0
+    return props.receiptData.total_payment_amount || props.receiptData.total_paid || 0;
   }
   // For individual payments, use payment_amount
-  return props.receiptData.payment_amount || 0
-}
+  return props.receiptData.payment_amount || 0;
+};
 
 const getParticularsDisplay = () => {
   if (isCombinedPayment.value) {
     // For group invoices, show the months covered
     if (props.receiptData.months_covered) {
-      return `Multiple Months (${props.receiptData.months_covered})`
+      return `Multiple Months (${props.receiptData.months_covered})`;
     }
     if (props.receiptData.monthly_payments && props.receiptData.monthly_payments.length > 0) {
-      const months = props.receiptData.monthly_payments.map(p => `${getMonthName(p.month)} ${p.year}`).join(', ')
-      return `Multiple Months (${months})`
+      const months = props.receiptData.monthly_payments
+        .map(p => `${getMonthName(p.month)} ${p.year}`)
+        .join(', ');
+      return `Multiple Months (${months})`;
     }
     if (props.receiptData.paid_months && props.receiptData.paid_months.length > 0) {
-      const months = props.receiptData.paid_months.map(pm => `${getMonthName(pm.month)} ${pm.year}`).join(', ')
-      return `Multiple Months (${months})`
+      const months = props.receiptData.paid_months
+        .map(pm => `${getMonthName(pm.month)} ${pm.year}`)
+        .join(', ');
+      return `Multiple Months (${months})`;
     }
     // For grouped receipts, try to extract months from invoice numbers or other fields
     if (props.receiptData.invoices && props.receiptData.invoices.length > 0) {
-      const months = props.receiptData.invoices.map(inv => {
-        if (inv.month && inv.year) {
-          return `${getMonthName(inv.month)} ${inv.year}`
-        }
-        return null
-      }).filter(Boolean).join(', ')
+      const months = props.receiptData.invoices
+        .map(inv => {
+          if (inv.month && inv.year) {
+            return `${getMonthName(inv.month)} ${inv.year}`;
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .join(', ');
       if (months) {
-        return `Multiple Months (${months})`
+        return `Multiple Months (${months})`;
       }
     }
-    return 'Multiple Months Payment'
+    return 'Multiple Months Payment';
   }
   if (isInstallmentPayment.value) {
-    return getFeeTypeDisplay()
+    return getFeeTypeDisplay();
   }
   if (isMonthlyPayment.value && props.receiptData.month_paid) {
-    return `${getFeeTypeDisplay()} (${props.receiptData.month_paid})`
+    return `${getFeeTypeDisplay()} (${props.receiptData.month_paid})`;
   }
-  return getFeeTypeDisplay()
-}
+  return getFeeTypeDisplay();
+};
 
 const getPaidInstallmentsCount = () => {
   if (!props.receiptData.invoices || props.receiptData.invoices.length === 0) {
-    return 0
+    return 0;
   }
-  
+
   // Count installments that are paid or partially paid
-  return props.receiptData.invoices.filter(invoice => 
-    invoice.status === 'paid' || invoice.status === 'partial_paid'
-  ).length
-}
+  return props.receiptData.invoices.filter(
+    invoice => invoice.status === 'paid' || invoice.status === 'partial_paid'
+  ).length;
+};
 
 const getInstallmentRemainingBalance = () => {
   if (!props.receiptData.invoices || props.receiptData.invoices.length === 0) {
-    return props.receiptData.remaining_balance || 0
+    return props.receiptData.remaining_balance || 0;
   }
-  
+
   // Calculate total fee amount from all installments
   const totalFeeAmount = props.receiptData.invoices.reduce((sum, invoice) => {
-    return sum + parseFloat(invoice.total_amount || 0)
-  }, 0)
-  
+    return sum + parseFloat(invoice.total_amount || 0);
+  }, 0);
+
   // Calculate total amount paid so far
   const totalPaidAmount = props.receiptData.invoices.reduce((sum, invoice) => {
-    return sum + parseFloat(invoice.paid_amount || 0)
-  }, 0)
-  
+    return sum + parseFloat(invoice.paid_amount || 0);
+  }, 0);
+
   // Remaining balance = total fee - total paid
-  const remainingBalance = totalFeeAmount - totalPaidAmount
-  
-  return Math.max(0, remainingBalance)
-}
+  const remainingBalance = totalFeeAmount - totalPaidAmount;
+
+  return Math.max(0, remainingBalance);
+};
 
 const getReceiptTitle = () => {
   if (isCombinedPayment.value) {
-    return 'MULTIPLE MONTHS PAYMENT RECEIPT'
+    return 'MULTIPLE MONTHS PAYMENT RECEIPT';
   }
   if (isInstallmentPayment.value) {
     if (props.receiptData.invoices && props.receiptData.invoices.length > 1) {
-      return 'INSTALLMENT PAYMENT RECEIPT'
+      return 'INSTALLMENT PAYMENT RECEIPT';
     }
-    return 'INSTALLMENT RECEIPT'
+    return 'INSTALLMENT RECEIPT';
   }
-  return 'FEE RECEIPT'
-}
+  return 'FEE RECEIPT';
+};
 
 const printReceipt = () => {
-  isPrinting.value = true
-  
+  isPrinting.value = true;
+
   // Wait for DOM update
   setTimeout(() => {
-    window.print()
-    isPrinting.value = false
-  }, 100)
-}
+    window.print();
+    isPrinting.value = false;
+  }, 100);
+};
 
 onMounted(() => {
   // Add print styles
-  const style = document.createElement('style')
+  const style = document.createElement('style');
   style.textContent = `
     @media print {
       body * {
@@ -511,9 +573,9 @@ onMounted(() => {
         display: none !important;
       }
     }
-  `
-  document.head.appendChild(style)
-})
+  `;
+  document.head.appendChild(style);
+});
 </script>
 
 <style scoped>
@@ -560,7 +622,7 @@ onMounted(() => {
   width: 400px;
   background: white;
   border: 1px solid #ddd;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   font-family: Arial, sans-serif;
   color: #000;
 }
@@ -630,6 +692,9 @@ onMounted(() => {
   color: #000;
   margin-bottom: 5px;
   text-transform: uppercase;
+  word-wrap: break-word;
+  line-height: 1.2;
+  max-width: 100%;
 }
 
 .school-type {
@@ -820,19 +885,19 @@ onMounted(() => {
     width: 100%;
     max-width: 400px;
   }
-  
+
   .modal-header {
     padding: 12px 16px;
   }
-  
+
   .modal-title {
     font-size: 16px;
   }
-  
+
   .action-button {
     width: 32px;
     height: 32px;
     padding: 6px;
   }
 }
-</style> 
+</style>

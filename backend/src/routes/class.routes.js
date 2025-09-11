@@ -6,9 +6,9 @@ const {
   updateClass,
   deleteClass,
   getClassesForDropdown,
-  getClassStats,
-} = require('../controllers/class.controller');
-const { verifyToken, authorize } = require('../middleware/auth');
+  getClassStats
+} = require('~/controllers/class.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 const router = express.Router();
 
@@ -19,7 +19,11 @@ router.use(verifyToken);
 router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin']), getAllClasses);
 
 // GET /api/classes/dropdown - Get all classes for dropdown
-router.get('/dropdown', authorize(['super_admin', 'school_admin', 'branch_admin']), getClassesForDropdown);
+router.get(
+  '/dropdown',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  getClassesForDropdown
+);
 
 // GET /api/classes/stats - Get class statistics
 router.get('/stats', authorize(['super_admin', 'school_admin', 'branch_admin']), getClassStats);

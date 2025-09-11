@@ -12,12 +12,14 @@ This is the backend service for the School ERP SaaS application, built with Node
 ## Getting Started
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd school-erp-saas/backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -31,16 +33,19 @@ This is the backend service for the School ERP SaaS application, built with Node
    - Update the database connection details in `.env`
 
 5. **Run database migrations**
+
    ```bash
    npm run db:migrate
    ```
 
 6. **Seed the database**
+
    ```bash
    npm run db:seed
    ```
 
 7. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -98,24 +103,24 @@ Authorization: Bearer <token>
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| NODE_ENV | Environment (development, production) | development |
-| PORT | Port to run the server on | 8000 |
-| API_PREFIX | API route prefix | /api |
-| DB_HOST | Database host | localhost |
-| DB_PORT | Database port | 5432 |
-| DB_USER | Database user | postgres |
-| DB_PASSWORD | Database password | |
-| DB_NAME | Database name | school_erp |
-| JWT_SECRET | Secret key for JWT | |
-| JWT_EXPIRES_IN | JWT expiration time | 1h |
-| JWT_REFRESH_SECRET | Secret key for refresh token | |
-| JWT_REFRESH_EXPIRES_IN | Refresh token expiration time | 7d |
-| REDIS_HOST | Redis host | localhost |
-| REDIS_PORT | Redis port | 6379 |
-| REDIS_PASSWORD | Redis password | |
-| FRONTEND_URL | Frontend URL for CORS | http://localhost:3000 |
+| Variable               | Description                           | Default               |
+| ---------------------- | ------------------------------------- | --------------------- |
+| NODE_ENV               | Environment (development, production) | development           |
+| PORT                   | Port to run the server on             | 8000                  |
+| API_PREFIX             | API route prefix                      | /api                  |
+| DB_HOST                | Database host                         | localhost             |
+| DB_PORT                | Database port                         | 5432                  |
+| DB_USER                | Database user                         | postgres              |
+| DB_PASSWORD            | Database password                     |                       |
+| DB_NAME                | Database name                         | school_erp            |
+| JWT_SECRET             | Secret key for JWT                    |                       |
+| JWT_EXPIRES_IN         | JWT expiration time                   | 1h                    |
+| JWT_REFRESH_SECRET     | Secret key for refresh token          |                       |
+| JWT_REFRESH_EXPIRES_IN | Refresh token expiration time         | 7d                    |
+| REDIS_HOST             | Redis host                            | localhost             |
+| REDIS_PORT             | Redis port                            | 6379                  |
+| REDIS_PASSWORD         | Redis password                        |                       |
+| FRONTEND_URL           | Frontend URL for CORS                 | http://localhost:3000 |
 
 ## Testing
 
@@ -144,11 +149,13 @@ npm run test:coverage
 ### Production
 
 1. Install production dependencies:
+
    ```bash
    npm install --production
    ```
 
 2. Run migrations:
+
    ```bash
    NODE_ENV=production npx sequelize-cli db:migrate
    ```
@@ -161,6 +168,7 @@ npm run test:coverage
 ### Docker
 
 1. Build the Docker image:
+
    ```bash
    docker build -t school-erp-backend .
    ```

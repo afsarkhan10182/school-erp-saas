@@ -39,15 +39,19 @@ export const Branches = {
     return response.data;
   },
 
-  create: async (branchData: BranchData) => {
+  create: async (branchData: BranchData | FormData) => {
     const api = createApiInstance();
-    const response = await api.post('/branches', branchData);
+    const response = await api.post('/branches', branchData, {
+      headers: branchData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
     return response.data;
   },
 
-  update: async (id: string, branchData: BranchData) => {
+  update: async (id: string, branchData: BranchData | FormData) => {
     const api = createApiInstance();
-    const response = await api.put(`/branches/${id}`, branchData);
+    const response = await api.put(`/branches/${id}`, branchData, {
+      headers: branchData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
     return response.data;
   },
 

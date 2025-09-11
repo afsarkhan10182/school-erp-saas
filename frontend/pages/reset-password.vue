@@ -1,20 +1,34 @@
 <template>
-  <div class="min-h-screen w-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 relative overflow-hidden">
+  <div
+    class="min-h-screen w-full bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-gray-950 dark:via-blue-950 dark:to-purple-950 relative overflow-hidden"
+  >
     <!-- Animated background elements -->
     <div class="absolute inset-0">
       <div class="absolute top-0 left-0 w-full h-full">
-        <div class="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <div
+          class="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"
+        ></div>
+        <div
+          class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"
+        ></div>
+        <div
+          class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"
+        ></div>
       </div>
     </div>
 
     <!-- Floating particles -->
     <div class="absolute inset-0 pointer-events-none">
       <div class="absolute top-1/4 left-1/4 w-2 h-2 bg-white/30 rounded-full animate-bounce"></div>
-      <div class="absolute top-1/3 right-1/3 w-1 h-1 bg-white/40 rounded-full animate-bounce delay-500"></div>
-      <div class="absolute bottom-1/4 left-1/2 w-3 h-3 bg-white/20 rounded-full animate-bounce delay-1000"></div>
-      <div class="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-white/35 rounded-full animate-bounce delay-1500"></div>
+      <div
+        class="absolute top-1/3 right-1/3 w-1 h-1 bg-white/40 rounded-full animate-bounce delay-500"
+      ></div>
+      <div
+        class="absolute bottom-1/4 left-1/2 w-3 h-3 bg-white/20 rounded-full animate-bounce delay-1000"
+      ></div>
+      <div
+        class="absolute top-1/2 right-1/4 w-1.5 h-1.5 bg-white/35 rounded-full animate-bounce delay-1500"
+      ></div>
     </div>
 
     <div class="min-h-screen flex items-center justify-center p-4 relative z-10">
@@ -23,7 +37,9 @@
         <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8">
           <!-- Logo/Brand -->
           <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div
+              class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+            >
               <span class="text-white font-bold text-2xl">S</span>
             </div>
             <h1 class="text-white text-xl font-semibold mb-2">Reset Password</h1>
@@ -31,12 +47,18 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="error" class="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded-xl">
+          <div
+            v-if="error"
+            class="mb-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded-xl"
+          >
             <p class="text-red-200 text-sm text-center">{{ error }}</p>
           </div>
 
           <!-- Success Message -->
-          <div v-if="success" class="mb-6 p-4 bg-green-500/20 backdrop-blur-sm border border-green-500/30 rounded-xl">
+          <div
+            v-if="success"
+            class="mb-6 p-4 bg-green-500/20 backdrop-blur-sm border border-green-500/30 rounded-xl"
+          >
             <p class="text-green-200 text-sm text-center">{{ success }}</p>
           </div>
 
@@ -45,7 +67,9 @@
             <div>
               <label class="block text-white/80 text-sm font-medium mb-2">New Password</label>
               <div class="relative">
-                <Lock class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10" />
+                <Lock
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10"
+                />
                 <input
                   v-model="form.password"
                   type="password"
@@ -61,7 +85,9 @@
             <div>
               <label class="block text-white/80 text-sm font-medium mb-2">Confirm Password</label>
               <div class="relative">
-                <Lock class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10" />
+                <Lock
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 z-10"
+                />
                 <input
                   v-model="form.confirmPassword"
                   type="password"
@@ -79,7 +105,9 @@
             >
               <span v-if="!loading">Reset Password</span>
               <span v-else class="flex items-center justify-center">
-                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                <div
+                  class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"
+                ></div>
                 Resetting...
               </span>
             </button>
@@ -87,8 +115,8 @@
 
           <!-- Back to Login -->
           <div class="mt-6 pt-6 border-t border-white/20 text-center">
-            <NuxtLink 
-              to="/login" 
+            <NuxtLink
+              to="/login"
               class="text-blue-300 hover:text-blue-200 transition-colors text-sm"
             >
               ← Back to Login
@@ -199,7 +227,7 @@ input:-moz-autofill {
 }
 
 /* Ensure autofilled text is visible */
-input[type="password"]:-webkit-autofill {
+input[type='password']:-webkit-autofill {
   -webkit-text-fill-color: white !important;
   color: white !important;
 }

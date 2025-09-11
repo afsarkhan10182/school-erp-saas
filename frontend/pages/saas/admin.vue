@@ -2,7 +2,9 @@
   <div class="container mx-auto py-8 max-w-4xl">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Subscription Management</h1>
-      <p class="text-gray-600 dark:text-gray-400 mt-1">Manage subscription plans and school statuses</p>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">
+        Manage subscription plans and school statuses
+      </p>
     </div>
 
     <!-- Status Update Section -->
@@ -11,15 +13,32 @@
       <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Check and update subscription statuses for all schools based on their end dates.
       </p>
-      
+
       <button
         @click="checkAllStatuses"
         :disabled="isChecking"
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
       >
-        <svg v-if="isChecking" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <svg
+          v-if="isChecking"
+          class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
         </svg>
         {{ isChecking ? 'Checking Statuses...' : 'Check All Subscription Statuses' }}
       </button>
@@ -66,11 +85,25 @@
         <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <p><strong>Status Types:</strong></p>
           <ul class="list-disc list-inside space-y-1 ml-4">
-            <li><span class="text-blue-600 dark:text-blue-400">Trial:</span> Schools on trial plans</li>
-            <li><span class="text-green-600 dark:text-green-400">Active:</span> Schools with active subscriptions</li>
-            <li><span class="text-red-600 dark:text-red-400">Expired:</span> Schools with expired subscriptions</li>
-            <li><span class="text-purple-600 dark:text-purple-400">Lifetime:</span> Schools with lifetime plans</li>
-            <li><span class="text-yellow-600 dark:text-yellow-400">Suspended:</span> Manually suspended schools</li>
+            <li>
+              <span class="text-blue-600 dark:text-blue-400">Trial:</span> Schools on trial plans
+            </li>
+            <li>
+              <span class="text-green-600 dark:text-green-400">Active:</span> Schools with active
+              subscriptions
+            </li>
+            <li>
+              <span class="text-red-600 dark:text-red-400">Expired:</span> Schools with expired
+              subscriptions
+            </li>
+            <li>
+              <span class="text-purple-600 dark:text-purple-400">Lifetime:</span> Schools with
+              lifetime plans
+            </li>
+            <li>
+              <span class="text-yellow-600 dark:text-yellow-400">Suspended:</span> Manually
+              suspended schools
+            </li>
           </ul>
         </div>
       </div>
@@ -111,4 +144,4 @@ const checkAllStatuses = async () => {
     isChecking.value = false;
   }
 };
-</script> 
+</script>

@@ -1,30 +1,30 @@
 <template>
-  <div>
-    <!-- Header with Module Management Link -->
+  <div class="container mx-auto py-8 max-w-7xl">
+    <!-- Clean Header -->
     <div class="mb-6 flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">School Details</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ schoolName }}</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ schoolName }}</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+          School subscription and module management
+        </p>
       </div>
       <div class="flex gap-3">
-        <NuxtLink :to="`/saas/schools/${$route.params.id}/modules`" class="btn-secondary" style="background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500;">
+        <NuxtLink :to="`/saas/schools/${$route.params.id}/modules`" class="btn-primary">
           🔧 Manage Modules
         </NuxtLink>
         <NuxtLink :to="`/saas/schools/${$route.params.id}/edit`" class="btn-secondary">
           Edit School
         </NuxtLink>
-        <NuxtLink to="/saas" class="btn-secondary">
-          Back to List
-        </NuxtLink>
+        <NuxtLink to="/saas" class="btn-secondary"> Back to List </NuxtLink>
       </div>
     </div>
 
-    <SubscriptionDetails 
+    <SubscriptionDetails
       :school-id="$route.params.id"
       :edit-school-url="`/saas/schools/${$route.params.id}/edit`"
       :transactions-url="`/saas/schools/${$route.params.id}/transactions`"
-      title="Subscription Details"
-      :subtitle="schoolName"
+      :title="null"
+      :subtitle="null"
       plan-section-title="Plan Information"
       limits-section-title="Plan Limits"
       modules-section-title="Available Modules"
@@ -82,11 +82,11 @@ const loadSchoolDetails = async () => {
 };
 
 // Event handlers
-const handleDataLoaded = (data) => {
+const handleDataLoaded = data => {
   console.log('Subscription data loaded:', data);
 };
 
-const handleRenewalRequested = (data) => {
+const handleRenewalRequested = data => {
   showSuccess('Renewal request submitted successfully');
   console.log('Renewal requested:', data);
 };
@@ -109,4 +109,4 @@ onMounted(() => {
 .input-field {
   @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
-</style> 
+</style>

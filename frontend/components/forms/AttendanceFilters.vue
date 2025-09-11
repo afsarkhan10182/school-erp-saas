@@ -2,27 +2,19 @@
   <div class="flex flex-wrap gap-2 mb-4">
     <!-- Date Range -->
     <div class="flex gap-2">
-      <FormField 
-        id="date-from"
-        label="From Date"
-        class="min-w-36"
-      >
-        <input 
-          v-model="localFilters.date_from" 
-          type="date" 
+      <FormField id="date-from" label="From Date" class="min-w-36">
+        <input
+          v-model="localFilters.date_from"
+          type="date"
           class="input-field"
           @change="emitFilters"
         />
       </FormField>
-      
-      <FormField 
-        id="date-to"
-        label="To Date"
-        class="min-w-36"
-      >
-        <input 
-          v-model="localFilters.date_to" 
-          type="date" 
+
+      <FormField id="date-to" label="To Date" class="min-w-36">
+        <input
+          v-model="localFilters.date_to"
+          type="date"
           class="input-field"
           @change="emitFilters"
         />
@@ -31,32 +23,31 @@
 
     <!-- Dropdowns -->
     <div class="flex gap-2">
-      <EnhancedDropdown 
-        :options="classOptions" 
-        v-model="localFilters.class_id" 
+      <EnhancedDropdown
+        :options="classOptions"
+        v-model="localFilters.class_id"
         placeholder="Select Class"
         label="Class"
         @update:modelValue="onClassChange"
       />
-      
-      <EnhancedDropdown 
-        :options="sectionOptions" 
-        v-model="localFilters.section_id" 
+
+      <EnhancedDropdown
+        :options="sectionOptions"
+        v-model="localFilters.section_id"
         placeholder="Select Section"
         label="Section"
         :disabled="!localFilters.class_id"
         @update:modelValue="emitFilters"
       />
-      
-      <EnhancedDropdown 
+
+      <EnhancedDropdown
         v-if="showStatus"
-        :options="statusOptions" 
-        v-model="localFilters.status" 
+        :options="statusOptions"
+        v-model="localFilters.status"
         placeholder="Select Status"
         label="Status"
         @update:modelValue="emitFilters"
       />
-      
     </div>
 
     <!-- Additional Filters Slot -->
@@ -66,21 +57,21 @@
 
     <!-- Action Buttons -->
     <div class="flex gap-2 ml-auto">
-      <button 
+      <button
         @click="applyFilters"
         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         :disabled="loading"
       >
         {{ loading ? 'Loading...' : 'Apply Filters' }}
       </button>
-      
-      <button 
+
+      <button
         @click="resetFilters"
         class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
       >
         Reset
       </button>
-      
+
       <!-- Additional Actions Slot -->
       <slot name="actions" :filters="localFilters" />
     </div>
@@ -88,31 +79,31 @@
 </template>
 
 <script setup lang="ts">
-import { useDropdowns } from '~/composables/useDropdowns'
+import { useDropdowns } from '~/composables/useDropdowns';
 
 interface Props {
-  modelValue?: Record<string, any>
-  showStatus?: boolean
-  loading?: boolean
-  autoApply?: boolean
+  modelValue?: Record<string, any>;
+  showStatus?: boolean;
+  loading?: boolean;
+  autoApply?: boolean;
 }
 
 interface Emits {
-  (e: 'update:modelValue', filters: Record<string, any>): void
-  (e: 'filter', filters: Record<string, any>): void
-  (e: 'reset'): void
+  (e: 'update:modelValue', filters: Record<string, any>): void;
+  (e: 'filter', filters: Record<string, any>): void;
+  (e: 'reset'): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showStatus: false,
   loading: false,
   autoApply: true
-})
+});
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>();
 
 // Use centralized dropdown composable
-const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns()
+const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns();
 
 // Local filter state
 const localFilters = ref({
@@ -122,48 +113,51 @@ const localFilters = ref({
   section_id: '',
   status: '',
   ...props.modelValue
-})
+});
 
 // Status options for attendance
 const statusOptions = [
   { label: 'All Statuses', value: '' },
   { label: 'Draft (Can Edit)', value: 'draft' },
   { label: 'Published (Final)', value: 'published' }
-]
-
+];
 
 // Watch for external filter changes
-watch(() => props.modelValue, (newFilters) => {
-  if (newFilters) {
-    Object.assign(localFilters.value, newFilters)
-  }
-}, { deep: true })
+watch(
+  () => props.modelValue,
+  newFilters => {
+    if (newFilters) {
+      Object.assign(localFilters.value, newFilters);
+    }
+  },
+  { deep: true }
+);
 
 // Handle class change to load sections
 const onClassChange = async (classId: string) => {
-  localFilters.value.class_id = classId
-  localFilters.value.section_id = '' // Reset section when class changes
-  
+  localFilters.value.class_id = classId;
+  localFilters.value.section_id = ''; // Reset section when class changes
+
   if (classId) {
-    await loadSections(classId)
+    await loadSections(classId);
   }
-  
-  emitFilters()
-}
+
+  emitFilters();
+};
 
 // Emit filters to parent
 const emitFilters = () => {
-  emit('update:modelValue', { ...localFilters.value })
-  
+  emit('update:modelValue', { ...localFilters.value });
+
   if (props.autoApply) {
-    emit('filter', { ...localFilters.value })
+    emit('filter', { ...localFilters.value });
   }
-}
+};
 
 // Apply filters manually
 const applyFilters = () => {
-  emit('filter', { ...localFilters.value })
-}
+  emit('filter', { ...localFilters.value });
+};
 
 // Reset all filters
 const resetFilters = () => {
@@ -173,18 +167,18 @@ const resetFilters = () => {
     class_id: '',
     section_id: '',
     status: ''
-  }
-  
-  Object.assign(localFilters.value, resetData)
-  emit('update:modelValue', resetData)
-  emit('reset')
-  emit('filter', resetData)
-}
+  };
+
+  Object.assign(localFilters.value, resetData);
+  emit('update:modelValue', resetData);
+  emit('reset');
+  emit('filter', resetData);
+};
 
 // Load initial data
 onMounted(() => {
-  loadClasses()
-})
+  loadClasses();
+});
 </script>
 
 <style scoped>

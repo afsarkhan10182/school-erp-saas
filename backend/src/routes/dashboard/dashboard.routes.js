@@ -1,6 +1,6 @@
 const express = require('express');
-const DashboardController = require('../../controllers/dashboard/dashboard.controller');
-const { verifyToken, authorize } = require('../../middleware/auth');
+const DashboardController = require('~/controllers/dashboard/dashboard.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
 
 const router = express.Router();
 
@@ -181,4 +181,4 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
 router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
 router.get('/academic-year-months', DashboardController.getAcademicYearMonths);
 
-module.exports = router; 
+module.exports = router;

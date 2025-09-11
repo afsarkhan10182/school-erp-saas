@@ -1,6 +1,6 @@
 const { Op, Sequelize } = require('sequelize');
 const { Timetable, TimetableSlot, Class, Section, Subject, School, User } = require('~/models');
-const BaseService = require('../shared/base.service');
+const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
 
@@ -12,7 +12,7 @@ class TimetableService extends BaseService {
     return this.executeWithErrorHandling(async () => {
       // Validate class exists
       await this.validateEntityExists(Class, timetableData.class_id, 'Class');
-      
+
       if (timetableData.section_id) {
         await this.validateEntityExists(Section, timetableData.section_id, 'Section');
       }
@@ -29,7 +29,10 @@ class TimetableService extends BaseService {
       });
 
       if (existingTimetable) {
-        throw new ApiError(400, 'A timetable already exists for this class/section and academic year');
+        throw new ApiError(
+          400,
+          'A timetable already exists for this class/section and academic year'
+        );
       }
 
       const timetable = await Timetable.create({
@@ -47,7 +50,16 @@ class TimetableService extends BaseService {
    */
   static async getAllTimetables(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { page = 1, limit = 10, search, class_id, section_id, academic_year, is_active, branch_id } = params;
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        class_id,
+        section_id,
+        academic_year,
+        is_active,
+        branch_id
+      } = params;
       const offset = (page - 1) * limit;
 
       const whereClause = {
@@ -565,30 +577,31 @@ class TimetableService extends BaseService {
         ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
       };
 
-      const [
-        totalTimetables,
-        activeTimetables,
-        totalSlots,
-        teacherAssignments
-      ] = await Promise.all([
-        Timetable.count({ where: whereClause }),
-        Timetable.count({ where: { ...whereClause, is_active: true } }),
-        TimetableSlot.count({
-          include: [{
-            model: Timetable,
-            as: 'timetable',
-            where: whereClause
-          }]
-        }),
-        TimetableSlot.count({
-          where: { teacher_id: { [Op.ne]: null } },
-          include: [{
-            model: Timetable,
-            as: 'timetable',
-            where: whereClause
-          }]
-        })
-      ]);
+      const [totalTimetables, activeTimetables, totalSlots, teacherAssignments] = await Promise.all(
+        [
+          Timetable.count({ where: whereClause }),
+          Timetable.count({ where: { ...whereClause, is_active: true } }),
+          TimetableSlot.count({
+            include: [
+              {
+                model: Timetable,
+                as: 'timetable',
+                where: whereClause
+              }
+            ]
+          }),
+          TimetableSlot.count({
+            where: { teacher_id: { [Op.ne]: null } },
+            include: [
+              {
+                model: Timetable,
+                as: 'timetable',
+                where: whereClause
+              }
+            ]
+          })
+        ]
+      );
 
       return {
         total_timetables: totalTimetables,
@@ -602,4 +615,3 @@ class TimetableService extends BaseService {
 }
 
 module.exports = TimetableService;
-

@@ -5,7 +5,9 @@
       <div class="flex justify-between items-center mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Structures</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Define fee structures for different classes and academic years</p>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Define fee structures for different classes and academic years
+          </p>
         </div>
         <button
           @click="openCreateModal"
@@ -19,7 +21,9 @@
       <!-- Fee Structures List -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+          ></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee structures...</p>
         </div>
 
@@ -39,27 +43,68 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Academic Year</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Applicable Classes</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Payment Model</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Academic Year
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Applicable Classes
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Branch
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Fee Type
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Payment Model
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Amount
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="structure in feeStructures" :key="structure.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr
+                v-for="structure in feeStructures"
+                :key="structure.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ structure.academic_year }}</div>
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ structure.academic_year }}
+                  </div>
                 </td>
                 <td class="px-6 py-4">
                   <div class="text-sm text-gray-900 dark:text-white">
                     <!-- Show applicable classes if available, otherwise fallback to class_name -->
-                    <div v-if="structure.applicable_classes && structure.applicable_classes.length > 0" class="flex flex-wrap gap-1">
-                      <span 
-                        v-for="className in structure.applicable_classes" 
+                    <div
+                      v-if="structure.applicable_classes && structure.applicable_classes.length > 0"
+                      class="flex flex-wrap gap-1"
+                    >
+                      <span
+                        v-for="className in structure.applicable_classes"
                         :key="className"
                         class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
                       >
@@ -70,46 +115,77 @@
                       {{ structure.class_name || 'N/A' }}
                     </div>
                   </div>
-                  <div v-if="structure.stream_names" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <div
+                    v-if="structure.stream_names"
+                    class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                  >
                     {{ structure.stream_names }}
                   </div>
-                  <div v-if="structure.section" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <div
+                    v-if="structure.section"
+                    class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                  >
                     Section: {{ structure.section }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="structure.branch" class="flex items-center">
                     <span class="font-medium">{{ structure.branch.name }}</span>
-                    <span v-if="structure.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ structure.branch.code }})</span>
+                    <span v-if="structure.branch.code" class="text-gray-500 dark:text-gray-400 ml-1"
+                      >({{ structure.branch.code }})</span
+                    >
                   </div>
                   <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">{{ structure.feeType?.name || 'N/A' }}</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ structure.feeType?.code || '' }}</div>
+                  <div class="text-sm text-gray-900 dark:text-white">
+                    {{ structure.feeType?.name || 'N/A' }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ structure.feeType?.code || '' }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400': structure.payment_model === 'installment',
-                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': structure.payment_model === 'monthly'
-                  }">
-                    {{ structure.payment_model === 'installment' ? 'Installment-based' : 'Monthly-based' }}
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="{
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400':
+                        structure.payment_model === 'installment',
+                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
+                        structure.payment_model === 'monthly'
+                    }"
+                  >
+                    {{
+                      structure.payment_model === 'installment'
+                        ? 'Installment-based'
+                        : 'Monthly-based'
+                    }}
                   </span>
                   <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {{ structure.payment_model === 'installment' ? 
-                      (structure.installment_count > 1 ? `${structure.installment_count} installments` : 'One time') : 
-                      `₹${structure.monthly_payment_amount}/month` 
+                    {{
+                      structure.payment_model === 'installment'
+                        ? structure.installment_count > 1
+                          ? `${structure.installment_count} installments`
+                          : 'One time'
+                        : `₹${structure.monthly_payment_amount}/month`
                     }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">₹{{ structure.amount }}</div>
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    ₹{{ structure.amount }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': structure.is_active,
-                    'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400': !structure.is_active
-                  }">
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
+                        structure.is_active,
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400':
+                        !structure.is_active
+                    }"
+                  >
                     {{ structure.is_active ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
@@ -135,20 +211,32 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+      >
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {{ isEditing ? 'Edit Fee Structure' : 'Create Fee Structure' }}
           </h3>
-          
+
           <form @submit.prevent="saveFeeStructure">
             <!-- School Selector for Super Admin -->
-            <div v-if="user?.role === 'super_admin'" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School Context</h4>
+            <div
+              v-if="user?.role === 'super_admin'"
+              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            >
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                📍 Select School Context
+              </h4>
               <div class="space-y-3">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >School *</label
+                  >
                   <select
                     v-model="selectedSchoolId"
                     required
@@ -165,10 +253,12 @@
                     </option>
                   </select>
                 </div>
-                
+
                 <!-- Branch Selector for Super Admin -->
                 <div v-if="selectedSchoolId">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Branch *</label
+                  >
                   <select
                     v-model="selectedBranchId"
                     required
@@ -185,22 +275,35 @@
                     </option>
                   </select>
                 </div>
-                
-                <div v-if="!isEditing && !selectedSchoolId" class="text-xs text-blue-600 dark:text-blue-400">
+
+                <div
+                  v-if="!isEditing && !selectedSchoolId"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a school before creating the fee structure
                 </div>
-                <div v-if="!isEditing && selectedSchoolId && !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                <div
+                  v-if="!isEditing && selectedSchoolId && !selectedBranchId"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a branch before creating the fee structure
                 </div>
               </div>
             </div>
 
             <!-- Branch Selector for School Admin -->
-            <div v-if="user?.role === 'school_admin'" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select Branch Context</h4>
+            <div
+              v-if="user?.role === 'school_admin'"
+              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            >
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                📍 Select Branch Context
+              </h4>
               <div class="space-y-3">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Branch *</label
+                  >
                   <select
                     v-model="selectedBranchId"
                     required
@@ -217,7 +320,10 @@
                     </option>
                   </select>
                 </div>
-                <div v-if="!isEditing && !selectedBranchId" class="text-xs text-blue-600 dark:text-blue-400">
+                <div
+                  v-if="!isEditing && !selectedBranchId"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a branch before creating the fee structure
                 </div>
               </div>
@@ -227,7 +333,9 @@
             <div class="space-y-4">
               <!-- Academic Year -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Academic Year *</label
+                >
                 <input
                   :value="currentAcademicYearName"
                   readonly
@@ -238,10 +346,18 @@
 
               <!-- Class Dropdown - Updated to Multi-Select -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Applicable Classes *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Applicable Classes *</label
+                >
                 <div class="relative">
-                  <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 dark:bg-gray-700 dark:text-white min-h-[42px]">
-                    <div v-for="className in form.applicable_classes" :key="className" class="flex items-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-md text-sm">
+                  <div
+                    class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 dark:bg-gray-700 dark:text-white min-h-[42px]"
+                  >
+                    <div
+                      v-for="className in form.applicable_classes"
+                      :key="className"
+                      class="flex items-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-md text-sm"
+                    >
                       <span>{{ className }}</span>
                       <button
                         type="button"
@@ -258,9 +374,9 @@
                       :disabled="form.applicable_classes.length >= classes.length"
                     >
                       <option value="">Select classes to add...</option>
-                      <option 
-                        v-for="classItem in availableClassesForSelection" 
-                        :key="classItem.id" 
+                      <option
+                        v-for="classItem in availableClassesForSelection"
+                        :key="classItem.id"
                         :value="classItem.name"
                       >
                         {{ classItem.name }}
@@ -269,37 +385,43 @@
                   </div>
                 </div>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Select multiple classes that this fee structure applies to. Students in any of these classes will be assigned this fee structure.
+                  Select multiple classes that this fee structure applies to. Students in any of
+                  these classes will be assigned this fee structure.
                 </p>
-                <div v-if="form.applicable_classes.length === 0" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                <div
+                  v-if="form.applicable_classes.length === 0"
+                  class="mt-1 text-xs text-red-600 dark:text-red-400"
+                >
                   At least one class must be selected.
                 </div>
               </div>
 
               <!-- Stream Selection - Only when streams are available for selected classes -->
               <div v-if="hasStreamsAvailable">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream (Optional)</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Stream (Optional)</label
+                >
                 <select
                   v-model="form.stream_ids"
                   multiple
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 >
-                  <option 
-                    v-for="stream in streams" 
-                    :key="stream.id" 
-                    :value="stream.id"
-                  >
+                  <option v-for="stream in streams" :key="stream.id" :value="stream.id">
                     {{ stream.name }} ({{ stream.code }})
                   </option>
                 </select>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Select streams for the applicable classes. This allows different fees for different streams (e.g., Science IT vs Commerce General). Leave empty to apply to all streams.
+                  Select streams for the applicable classes. This allows different fees for
+                  different streams (e.g., Science IT vs Commerce General). Leave empty to apply to
+                  all streams.
                 </p>
               </div>
 
               <!-- Section Dropdown - Only when sections are available for selected classes -->
               <div v-if="hasSectionsAvailable">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Section (Optional)</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Section (Optional)</label
+                >
                 <select
                   v-model="form.section_id"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
@@ -310,13 +432,19 @@
                   </option>
                 </select>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {{ hasStreamsAvailable && form.stream_ids.length > 0 ? 'Sections filtered by selected streams' : 'All available sections for selected classes' }}
+                  {{
+                    hasStreamsAvailable && form.stream_ids.length > 0
+                      ? 'Sections filtered by selected streams'
+                      : 'All available sections for selected classes'
+                  }}
                 </p>
               </div>
 
               <!-- Fee Type Dropdown -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fee Type *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Fee Type *</label
+                >
                 <select
                   v-model="form.fee_type_id"
                   required
@@ -331,7 +459,9 @@
 
               <!-- Payment Model -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Model *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Payment Model *</label
+                >
                 <select
                   v-model="form.payment_model"
                   required
@@ -343,16 +473,24 @@
                   <option value="monthly">Monthly-based</option>
                 </select>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Installment-based: One-time or installment payments | Monthly-based: Monthly payments
+                  Installment-based: One-time or installment payments | Monthly-based: Monthly
+                  payments
                 </p>
               </div>
 
               <!-- Installment-based Fields -->
-              <div v-if="form.payment_model === 'installment'" class="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">Installment Configuration</h4>
-                
+              <div
+                v-if="form.payment_model === 'installment'"
+                class="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+              >
+                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Installment Configuration
+                </h4>
+
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Type</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Installment Type</label
+                  >
                   <select
                     v-model="form.installment_type"
                     @change="onInstallmentTypeChange"
@@ -362,16 +500,24 @@
                     <option value="multiple">Multiple Installments</option>
                   </select>
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    One-Time Full Fee: Single invoice for entire amount | Multiple Installments: Split into 2-4 installments
+                    One-Time Full Fee: Single invoice for entire amount | Multiple Installments:
+                    Split into 2-4 installments
                   </p>
                 </div>
 
                 <!-- One-Time Full Fee Configuration -->
-                <div v-if="form.installment_type === 'one_time'" class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">One-Time Full Fee</h5>
-                  
+                <div
+                  v-if="form.installment_type === 'one_time'"
+                  class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700"
+                >
+                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    One-Time Full Fee
+                  </h5>
+
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Fee Amount (₹)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Total Fee Amount (₹)</label
+                    >
                     <input
                       v-model="form.amount"
                       type="number"
@@ -380,13 +526,16 @@
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="e.g., 21000"
                     />
-                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Total amount for the entire fee structure. Students can pay full amount or remaining balance.
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Total amount for the entire fee structure. Students can pay full amount or
+                      remaining balance.
                     </p>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Date <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Due Date <span class="text-red-500">*</span></label
+                    >
                     <input
                       v-model="form.due_date"
                       type="date"
@@ -400,11 +549,18 @@
                 </div>
 
                 <!-- Multiple Installments Configuration -->
-                <div v-if="form.installment_type === 'multiple'" class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">Multiple Installments</h5>
-                  
+                <div
+                  v-if="form.installment_type === 'multiple'"
+                  class="space-y-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700"
+                >
+                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Multiple Installments
+                  </h5>
+
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Number of Installments</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Number of Installments</label
+                    >
                     <select
                       v-model="form.installment_count"
                       @change="onInstallmentCountChange"
@@ -420,17 +576,28 @@
                   </div>
 
                   <div v-if="form.installment_count > 1">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Installment Details</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Installment Details</label
+                    >
                     <div class="space-y-3">
-                      <div v-for="i in parseInt(form.installment_count)" :key="i" class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                      <div
+                        v-for="i in parseInt(form.installment_count)"
+                        :key="i"
+                        class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700"
+                      >
                         <div class="flex items-center space-x-2 mb-2">
-                          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Installment #{{ i }}:</span>
+                          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                            >Installment #{{ i }}:</span
+                          >
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount (₹)</label>
+                            <label
+                              class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                              >Amount (₹)</label
+                            >
                             <input
-                              v-model="form.installment_amounts[i-1]"
+                              v-model="form.installment_amounts[i - 1]"
                               type="number"
                               step="100"
                               min="100"
@@ -440,9 +607,12 @@
                             />
                           </div>
                           <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Due Date</label>
+                            <label
+                              class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+                              >Due Date</label
+                            >
                             <input
-                              v-model="form.installment_due_dates[i-1]"
+                              v-model="form.installment_due_dates[i - 1]"
                               type="date"
                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                             />
@@ -456,9 +626,13 @@
                   </div>
 
                   <!-- Partial Payment Toggle for Multiple Installments -->
-                  <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div
+                    class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700"
+                  >
                     <div>
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Allow Partial Payments</label>
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >Allow Partial Payments</label
+                      >
                       <p class="text-xs text-gray-500 dark:text-gray-400">
                         Students can pay partial amounts within each installment
                       </p>
@@ -475,11 +649,18 @@
               </div>
 
               <!-- Monthly-based Fields -->
-              <div v-if="form.payment_model === 'monthly'" class="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <h4 class="text-sm font-medium text-green-900 dark:text-green-100">Monthly Configuration</h4>
-                
+              <div
+                v-if="form.payment_model === 'monthly'"
+                class="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+              >
+                <h4 class="text-sm font-medium text-green-900 dark:text-green-100">
+                  Monthly Configuration
+                </h4>
+
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Amount (₹)</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Monthly Amount (₹)</label
+                  >
                   <input
                     v-model="form.monthly_payment_amount"
                     type="number"
@@ -496,7 +677,9 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Months</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Total Months</label
+                    >
                     <input
                       v-model="form.total_months"
                       type="number"
@@ -512,7 +695,9 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Month</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Start Month</label
+                    >
                     <select
                       v-model="form.start_month"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
@@ -536,7 +721,9 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due Day</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Due Day</label
+                    >
                     <input
                       v-model="form.due_day"
                       type="number"
@@ -551,33 +738,37 @@
                   </div>
                 </div>
 
-              <!-- Total Amount Display -->
-              <div v-if="form.payment_model" class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
-                <div class="flex justify-between items-center">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Total Amount (₹)</label>
-                  <div class="text-right">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                      ₹{{ calculatedTotalAmount }}
-                    </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ amountCalculationNote }}
+                <!-- Total Amount Display -->
+                <div
+                  v-if="form.payment_model"
+                  class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
+                >
+                  <div class="flex justify-between items-center">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Total Amount (₹)</label
+                    >
+                    <div class="text-right">
+                      <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        ₹{{ calculatedTotalAmount }}
+                      </div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ amountCalculationNote }}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Status -->
-              <div class="flex items-center">
-                <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
+                <!-- Status -->
+                <div class="flex items-center">
+                  <input
+                    v-model="form.is_active"
+                    type="checkbox"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
+                </div>
               </div>
             </div>
-          </div>
-          
 
             <div class="flex justify-end space-x-3 pt-4">
               <button
@@ -589,10 +780,17 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId)) || (user?.role === 'school_admin' && !isEditing && !selectedBranchId) || !form.payment_model"
+                :disabled="
+                  isSubmitting ||
+                  (user?.role === 'super_admin' &&
+                    !isEditing &&
+                    (!selectedSchoolId || !selectedBranchId)) ||
+                  (user?.role === 'school_admin' && !isEditing && !selectedBranchId) ||
+                  !form.payment_model
+                "
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
-                {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
+                {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
               </button>
             </div>
           </form>
@@ -620,7 +818,16 @@ const isClient = import.meta.client;
 const { user } = useAuth();
 const router = useRouter();
 const route = useRoute();
-const { academicYears, classes, sections, fetchAcademicYears, fetchClasses, fetchSections, loadSectionsByClass, currentAcademicYear } = useAcademics();
+const {
+  academicYears,
+  classes,
+  sections,
+  fetchAcademicYears,
+  fetchClasses,
+  fetchSections,
+  loadSectionsByClass,
+  currentAcademicYear
+} = useAcademics();
 const { fetchBranches } = useBranches();
 const { showSuccess, showError } = useToast();
 
@@ -665,7 +872,7 @@ const form = ref({
   due_day: 10,
   due_date: '', // Added for one-time full fee
   is_active: true,
-  allow_partial_payments: true, // Changed from min_partial_percentage to toggle
+  allow_partial_payments: true // Changed from min_partial_percentage to toggle
 });
 
 // Computed property for current academic year name
@@ -683,7 +890,9 @@ const currentAcademicYearName = computed(() => {
 // Computed property for total installment amount
 const totalInstallmentAmount = computed(() => {
   if (form.value.installment_amounts && form.value.installment_amounts.length > 0) {
-    return form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0).toFixed(2);
+    return form.value.installment_amounts
+      .reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0)
+      .toFixed(2);
   }
   return '0.00';
 });
@@ -728,14 +937,14 @@ const availableClassesForSelection = computed(() => {
 // Computed property for sections filtered by selected streams
 const filteredSections = computed(() => {
   let filtered = sections.value;
-  
+
   // If streams are selected, filter sections by streams
   if (hasStreamsAvailable.value && form.value.stream_ids.length > 0) {
-    filtered = sections.value.filter(section => 
-      section.stream_id && form.value.stream_ids.includes(section.stream_id)
+    filtered = sections.value.filter(
+      section => section.stream_id && form.value.stream_ids.includes(section.stream_id)
     );
   }
-  
+
   return filtered;
 });
 
@@ -763,14 +972,14 @@ const resetForm = () => {
     due_day: 10,
     due_date: '', // Reset for create
     is_active: true,
-    allow_partial_payments: true, // Reset for create
+    allow_partial_payments: true // Reset for create
   };
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
   selectedClassToAdd.value = '';
   streams.value = [];
   sections.value = [];
-  
+
   // Set current academic year ID if available (only for create mode)
   if (!isEditing.value && academicYears.value && academicYears.value.length > 0) {
     const currentYear = academicYears.value.find(year => year.is_current);
@@ -780,7 +989,7 @@ const resetForm = () => {
       form.value.academic_year_id = academicYears.value[0].id;
     }
   }
-  
+
   // Reset the flag after form reset is complete
   nextTick(() => {
     isResettingForm.value = false;
@@ -789,20 +998,21 @@ const resetForm = () => {
 
 // Multi-class selection functions
 const addClass = () => {
-  if (selectedClassToAdd.value && !form.value.applicable_classes.includes(selectedClassToAdd.value)) {
+  if (
+    selectedClassToAdd.value &&
+    !form.value.applicable_classes.includes(selectedClassToAdd.value)
+  ) {
     form.value.applicable_classes.push(selectedClassToAdd.value);
     selectedClassToAdd.value = '';
   }
 };
 
-const removeClass = (className) => {
+const removeClass = className => {
   const index = form.value.applicable_classes.indexOf(className);
   if (index > -1) {
     form.value.applicable_classes.splice(index, 1);
   }
 };
-
-
 
 // Load streams for selected classes
 const loadStreamsForClasses = async () => {
@@ -810,17 +1020,18 @@ const loadStreamsForClasses = async () => {
     streams.value = [];
     return;
   }
-  
+
   try {
     // Get current school and branch context
-    const currentSchoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+    const currentSchoolId =
+      user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
     const currentBranchId = selectedBranchId.value;
-    
+
     if (!currentSchoolId || !currentBranchId) {
       streams.value = [];
       return;
     }
-    
+
     // Get all class IDs for the selected classes (only from current school/branch)
     const classIds = [];
     for (const className of form.value.applicable_classes) {
@@ -832,31 +1043,31 @@ const loadStreamsForClasses = async () => {
         classIds.push(classItem.id);
       }
     }
-    
+
     if (classIds.length === 0) {
       streams.value = [];
       return;
     }
-    
+
     // Fetch streams for each selected class with strict school-branch-class coupling
     const allStreams = [];
     for (const classId of classIds) {
       const params = {
         class_id: classId,
-        school_id: currentSchoolId,  // Always include school_id
-        branch_id: currentBranchId,  // Always include branch_id
+        school_id: currentSchoolId, // Always include school_id
+        branch_id: currentBranchId, // Always include branch_id
         is_active: 'true'
       };
-      
+
       const response = await Streams.getAll(params);
       if (response.data && response.data.length > 0) {
         allStreams.push(...response.data);
       }
     }
-    
+
     // Remove duplicates based on stream ID
-    streams.value = allStreams.filter((stream, index, self) => 
-      index === self.findIndex(s => s.id === stream.id)
+    streams.value = allStreams.filter(
+      (stream, index, self) => index === self.findIndex(s => s.id === stream.id)
     );
   } catch (error) {
     console.error('Error loading streams:', error);
@@ -870,11 +1081,12 @@ const loadSectionsForClasses = async () => {
     sections.value = [];
     return;
   }
-  
+
   try {
-    const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+    const schoolId =
+      user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
     const branchId = selectedBranchId.value;
-    
+
     // Load sections for all selected classes
     for (const className of form.value.applicable_classes) {
       const classItem = classes.value.find(c => c.name === className);
@@ -895,20 +1107,19 @@ const onPaymentModelChange = () => {
     form.value.due_month = null;
     form.value.due_day = null; // Use NULL for installment payments
     form.value.min_partial_percentage = 10; // Reset for installment
-    
+
     // Set default installment values
     form.value.installment_type = 'one_time';
     form.value.installment_count = 1;
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
-    
+
     // Set default due date for one-time installments
     if (!form.value.due_date) {
       const defaultDate = new Date();
       defaultDate.setMonth(defaultDate.getMonth() + 3);
       form.value.due_date = defaultDate.toISOString().split('T')[0];
     }
-    
   } else if (form.value.payment_model === 'monthly') {
     // Reset installment fields for monthly payments
     form.value.installment_type = null; // Use NULL for monthly payments
@@ -917,7 +1128,7 @@ const onPaymentModelChange = () => {
     form.value.installment_due_dates = [];
     form.value.due_date = null;
     form.value.due_month = null; // Remove due_month for monthly payments
-    
+
     // Set default monthly values
     form.value.monthly_payment_amount = '';
     form.value.total_months = 12;
@@ -933,7 +1144,7 @@ const onInstallmentTypeChange = () => {
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
     form.value.due_date = null; // Clear due_date for multiple installments
-    
+
     // Set default due date to current date + 3 months if not already set
     if (!form.value.due_date) {
       const defaultDate = new Date();
@@ -946,12 +1157,12 @@ const onInstallmentTypeChange = () => {
     form.value.installment_amounts = [];
     form.value.installment_due_dates = [];
     form.value.due_date = null; // Multiple installments use installment_due_dates, not due_date
-    
+
     // Set default due dates for installments (spread across the year)
     const currentDate = new Date();
     for (let i = 0; i < form.value.installment_count; i++) {
       const installmentDate = new Date(currentDate);
-      installmentDate.setMonth(currentDate.getMonth() + (i * 6)); // Every 6 months
+      installmentDate.setMonth(currentDate.getMonth() + i * 6); // Every 6 months
       form.value.installment_due_dates[i] = installmentDate.toISOString().split('T')[0];
     }
   }
@@ -960,35 +1171,36 @@ const onInstallmentTypeChange = () => {
 // Handle installment count change
 const onInstallmentCountChange = () => {
   const count = parseInt(form.value.installment_count) || 1;
-  
+
   // Ensure installment_amounts array matches the count
   while (form.value.installment_amounts.length < count) {
     form.value.installment_amounts.push('');
   }
-  
+
   // Remove extra amounts if count is reduced
   if (form.value.installment_amounts.length > count) {
     form.value.installment_amounts = form.value.installment_amounts.slice(0, count);
   }
-  
+
   // Ensure installment_due_dates array matches the count
   while (form.value.installment_due_dates.length < count) {
     form.value.installment_due_dates.push('');
   }
-  
+
   // Remove extra due dates if count is reduced
   if (form.value.installment_due_dates.length > count) {
     form.value.installment_due_dates = form.value.installment_due_dates.slice(0, count);
   }
 };
 
-
-
 // Handle installment amount change
 const onInstallmentAmountChange = () => {
   // Auto-calculate total amount when installment amounts change
   if (form.value.payment_model === 'installment' && form.value.installment_type === 'multiple') {
-    const total = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+    const total = form.value.installment_amounts.reduce(
+      (sum, amount) => sum + (parseFloat(amount) || 0),
+      0
+    );
     if (total > 0) {
       form.value.amount = total.toFixed(2);
     }
@@ -1011,10 +1223,10 @@ const onMonthlyPaymentChange = () => {
 // Fetch schools for super admin
 const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
-  
+
   try {
     const response = await Schools.getAll();
-    
+
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
       availableSchools.value = response.data.schools;
@@ -1037,14 +1249,14 @@ const onSchoolChange = async () => {
   if (selectedSchoolId.value) {
     try {
       const branches = await fetchBranches(selectedSchoolId.value);
-      
+
       // fetchBranches returns the branches array directly
       if (Array.isArray(branches)) {
         availableBranches.value = branches;
       } else {
         availableBranches.value = [];
       }
-      
+
       // Auto-select if only one branch
       if (availableBranches.value.length === 1) {
         selectedBranchId.value = availableBranches.value[0].id;
@@ -1069,11 +1281,12 @@ const onBranchChange = async () => {
   form.value.section_id = '';
   sections.value = []; // Clear sections
   streams.value = []; // Clear streams
-  
+
   // Reload classes for the selected branch
   if (selectedBranchId.value) {
     try {
-      const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+      const schoolId =
+        user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
       await fetchClasses(schoolId, selectedBranchId.value);
     } catch (error) {
       console.error('Error loading classes for branch:', error);
@@ -1081,7 +1294,7 @@ const onBranchChange = async () => {
   } else {
     classes.value = []; // Clear classes if no branch selected
   }
-  
+
   // Reload fee types for the selected branch
   await fetchFeeTypes();
 };
@@ -1089,17 +1302,17 @@ const onBranchChange = async () => {
 // Fetch branches for school admin
 const fetchBranchesForSchoolAdmin = async () => {
   if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
-  
+
   try {
     const branches = await fetchBranches(user.value.school_id);
-    
+
     // fetchBranches returns the branches array directly
     if (Array.isArray(branches)) {
       availableBranches.value = branches;
     } else {
       availableBranches.value = [];
     }
-    
+
     // Auto-select if only one branch
     if (availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
@@ -1146,12 +1359,13 @@ const fetchFeeTypes = async () => {
 // Load form data (academic years and classes)
 const loadFormData = async () => {
   try {
-    const schoolId = user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
+    const schoolId =
+      user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
     const branchId = selectedBranchId.value;
-    
+
     // Load academic years
     await fetchAcademicYears();
-    
+
     // Set current academic year ID automatically (only for create mode)
     if (!isEditing.value && academicYears.value && academicYears.value.length > 0) {
       const currentYear = academicYears.value.find(year => year.is_current);
@@ -1161,10 +1375,10 @@ const loadFormData = async () => {
         form.value.academic_year_id = academicYears.value[0].id;
       }
     }
-    
+
     // Load classes
     await fetchClasses(schoolId, branchId);
-    
+
     // Load fee types
     await fetchFeeTypes();
   } catch (error) {
@@ -1173,19 +1387,25 @@ const loadFormData = async () => {
 };
 
 // Watch for user data changes to load branches
-watch(user, async (newUser) => {
-  if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
-    await fetchBranchesForSchoolAdmin();
-  }
-}, { immediate: true });
-
-
+watch(
+  user,
+  async newUser => {
+    if (
+      newUser?.role === 'school_admin' &&
+      newUser?.school_id &&
+      availableBranches.value.length === 0
+    ) {
+      await fetchBranchesForSchoolAdmin();
+    }
+  },
+  { immediate: true }
+);
 
 const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
-  
+
   // Load schools for super admin
   if (user.value?.role === 'super_admin') {
     await fetchSchools();
@@ -1200,10 +1420,10 @@ const openCreateModal = async () => {
   await loadFormData();
 };
 
-const editFeeStructure = async (structure) => {
+const editFeeStructure = async structure => {
   isEditing.value = true;
   editingId.value = structure.id;
-  
+
   // Set school and branch context for super admin first
   if (user.value?.role === 'super_admin') {
     selectedSchoolId.value = structure.school_id;
@@ -1221,13 +1441,13 @@ const editFeeStructure = async (structure) => {
       }
     }
   }
-  
+
   // Set branch context
   selectedBranchId.value = structure.branch_id;
-  
+
   // Now load form data with the correct context
   await loadFormData();
-  
+
   // Handle applicable_classes - support both new array format and legacy class_name
   let applicableClasses = [];
   if (structure.applicable_classes && Array.isArray(structure.applicable_classes)) {
@@ -1236,7 +1456,7 @@ const editFeeStructure = async (structure) => {
     // Legacy support: convert single class_name to array
     applicableClasses = [structure.class_name];
   }
-  
+
   // Find the academic year ID by matching academic year name
   let academicYearId = '';
   if (structure.academic_year && academicYears.value.length > 0) {
@@ -1245,7 +1465,7 @@ const editFeeStructure = async (structure) => {
       academicYearId = matchingYear.id;
     }
   }
-  
+
   // Find section ID by name if section exists
   let sectionId = '';
   if (structure.section && sections.value.length > 0) {
@@ -1254,13 +1474,17 @@ const editFeeStructure = async (structure) => {
       sectionId = matchingSection.id;
     }
   }
-  
+
   // Handle streams if they exist
   let streamIds = [];
-  if (structure.stream_ids && Array.isArray(structure.stream_ids) && structure.stream_ids.length > 0) {
+  if (
+    structure.stream_ids &&
+    Array.isArray(structure.stream_ids) &&
+    structure.stream_ids.length > 0
+  ) {
     streamIds = structure.stream_ids;
   }
-  
+
   // Set form values
   form.value = {
     academic_year_id: academicYearId,
@@ -1281,11 +1505,9 @@ const editFeeStructure = async (structure) => {
     due_day: structure.due_day || 10,
     due_date: structure.due_date || '', // Set for edit
     is_active: structure.is_active !== false,
-    allow_partial_payments: structure.allow_partial_payments !== false, // Set for edit
+    allow_partial_payments: structure.allow_partial_payments !== false // Set for edit
   };
-  
 
-  
   showModal.value = true;
 };
 
@@ -1318,7 +1540,10 @@ const saveFeeStructure = async () => {
         calculatedAmount = parseFloat(form.value.amount) || 0;
       } else if (form.value.installment_type === 'multiple') {
         // For multiple installments, sum up all installment amounts
-        calculatedAmount = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+        calculatedAmount = form.value.installment_amounts.reduce(
+          (sum, amount) => sum + (parseFloat(amount) || 0),
+          0
+        );
       }
     } else if (form.value.payment_model === 'monthly') {
       // For monthly payments, multiply monthly amount by total months
@@ -1329,7 +1554,9 @@ const saveFeeStructure = async () => {
 
     // Validate that the calculated amount is greater than 0
     if (calculatedAmount <= 0) {
-      showError('Total amount must be greater than 0. Please check your fee structure configuration.');
+      showError(
+        'Total amount must be greater than 0. Please check your fee structure configuration.'
+      );
       return;
     }
 
@@ -1384,11 +1611,10 @@ const saveFeeStructure = async () => {
       applicable_classes: form.value.applicable_classes, // Send applicable classes array
       stream_ids: form.value.stream_ids, // Send stream IDs array
       section: sectionName, // Send section name instead of section_id
-      school_id: user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
+      school_id:
+        user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id,
       branch_id: selectedBranchId.value || user.value?.branch_id
     };
-    
-
 
     if (isEditing.value) {
       await FeeStructures.update(editingId.value, feeStructureData);
@@ -1402,23 +1628,23 @@ const saveFeeStructure = async () => {
     closeModal();
   } catch (error) {
     console.error('Error saving fee structure:', error);
-    
+
     // Extract error message from API response
     let errorMessage = 'Failed to save fee structure. Please try again.';
-    
+
     if (error.response?.data?.message) {
       errorMessage = error.response.data.message;
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     showError(errorMessage);
   } finally {
     isSubmitting.value = false;
   }
 };
 
-const deleteFeeStructure = async (id) => {
+const deleteFeeStructure = async id => {
   if (confirm('Are you sure you want to delete this fee structure?')) {
     try {
       await FeeStructures.delete(id);
@@ -1426,118 +1652,144 @@ const deleteFeeStructure = async (id) => {
       await fetchFeeStructures();
     } catch (error) {
       console.error('Error deleting fee structure:', error);
-      
+
       // Extract error message from API response
       let errorMessage = 'Failed to delete fee structure. Please try again.';
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
     }
   }
 };
 
 // Watch for form changes to ensure amount is properly calculated
-watch(() => [form.value.payment_model, form.value.installment_type, form.value.installment_amounts, form.value.monthly_payment_amount, form.value.total_months], () => {
-  // Skip calculation if form is being reset
-  if (isResettingForm.value) {
-    return;
-  }
-  
-  // Only auto-calculate amount if user has actually entered values (not during form reset)
-  if (form.value.payment_model === 'installment') {
-    if (form.value.installment_type === 'one_time') {
-      // For one-time full fee, amount is set directly by user
-      // No auto-calculation needed - don't override user input
-      
-      // Ensure due date is set for one-time full fee
-      if (!form.value.due_date) {
-        const defaultDate = new Date();
-        defaultDate.setMonth(defaultDate.getMonth() + 3);
-        form.value.due_date = defaultDate.toISOString().split('T')[0];
+watch(
+  () => [
+    form.value.payment_model,
+    form.value.installment_type,
+    form.value.installment_amounts,
+    form.value.monthly_payment_amount,
+    form.value.total_months
+  ],
+  () => {
+    // Skip calculation if form is being reset
+    if (isResettingForm.value) {
+      return;
+    }
+
+    // Only auto-calculate amount if user has actually entered values (not during form reset)
+    if (form.value.payment_model === 'installment') {
+      if (form.value.installment_type === 'one_time') {
+        // For one-time full fee, amount is set directly by user
+        // No auto-calculation needed - don't override user input
+
+        // Ensure due date is set for one-time full fee
+        if (!form.value.due_date) {
+          const defaultDate = new Date();
+          defaultDate.setMonth(defaultDate.getMonth() + 3);
+          form.value.due_date = defaultDate.toISOString().split('T')[0];
+        }
+      } else if (form.value.installment_type === 'multiple') {
+        // For multiple installments, sum up all installment amounts
+        const total = form.value.installment_amounts.reduce(
+          (sum, amount) => sum + (parseFloat(amount) || 0),
+          0
+        );
+        if (total > 0) {
+          form.value.amount = total.toFixed(2);
+        }
       }
-    } else if (form.value.installment_type === 'multiple') {
-      // For multiple installments, sum up all installment amounts
-      const total = form.value.installment_amounts.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+    } else if (form.value.payment_model === 'monthly') {
+      // For monthly payments, multiply monthly amount by total months
+      const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
+      const totalMonths = parseFloat(form.value.total_months) || 1;
+      const total = monthlyAmount * totalMonths;
       if (total > 0) {
         form.value.amount = total.toFixed(2);
       }
     }
-  } else if (form.value.payment_model === 'monthly') {
-    // For monthly payments, multiply monthly amount by total months
-    const monthlyAmount = parseFloat(form.value.monthly_payment_amount) || 0;
-    const totalMonths = parseFloat(form.value.total_months) || 1;
-    const total = monthlyAmount * totalMonths;
-    if (total > 0) {
-      form.value.amount = total.toFixed(2);
-    }
-  }
-}, { deep: true });
+  },
+  { deep: true }
+);
 
 // Watch for classes to be loaded and set class_id if we're in edit mode
-watch(classes, (newClasses) => {
-  if (isEditing.value && editingId.value && newClasses.length > 0) {
-    // Find the fee structure being edited
-    const structure = feeStructures.value.find(s => s.id === editingId.value);
-    if (structure) {
-      // Handle applicable_classes - support both new array format and legacy class_name
-      let applicableClasses = [];
-      if (structure.applicable_classes && Array.isArray(structure.applicable_classes)) {
-        applicableClasses = structure.applicable_classes;
-      } else if (structure.class_name) {
-        // Legacy support: convert single class_name to array
-        applicableClasses = [structure.class_name];
-      }
-      
-      // Set applicable_classes if not already set
-      if (form.value.applicable_classes.length === 0 && applicableClasses.length > 0) {
-        form.value.applicable_classes = applicableClasses;
+watch(
+  classes,
+  newClasses => {
+    if (isEditing.value && editingId.value && newClasses.length > 0) {
+      // Find the fee structure being edited
+      const structure = feeStructures.value.find(s => s.id === editingId.value);
+      if (structure) {
+        // Handle applicable_classes - support both new array format and legacy class_name
+        let applicableClasses = [];
+        if (structure.applicable_classes && Array.isArray(structure.applicable_classes)) {
+          applicableClasses = structure.applicable_classes;
+        } else if (structure.class_name) {
+          // Legacy support: convert single class_name to array
+          applicableClasses = [structure.class_name];
+        }
+
+        // Set applicable_classes if not already set
+        if (form.value.applicable_classes.length === 0 && applicableClasses.length > 0) {
+          form.value.applicable_classes = applicableClasses;
+        }
       }
     }
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
 // Watch for academic years to be loaded and set academic_year_id if we're in edit mode
-watch(academicYears, (newYears) => {
-  if (isEditing.value && editingId.value && newYears.length > 0) {
-    // Find the fee structure being edited
-    const structure = feeStructures.value.find(s => s.id === editingId.value);
-    if (structure && structure.academic_year) {
-      const matchingYear = newYears.find(year => year.name === structure.academic_year);
-      if (matchingYear) {
-        form.value.academic_year_id = matchingYear.id;
+watch(
+  academicYears,
+  newYears => {
+    if (isEditing.value && editingId.value && newYears.length > 0) {
+      // Find the fee structure being edited
+      const structure = feeStructures.value.find(s => s.id === editingId.value);
+      if (structure && structure.academic_year) {
+        const matchingYear = newYears.find(year => year.name === structure.academic_year);
+        if (matchingYear) {
+          form.value.academic_year_id = matchingYear.id;
+        }
       }
     }
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
 // Watch for sections to be loaded and set section_id if we're in edit mode
-watch(sections, (newSections) => {
-  if (isEditing.value && editingId.value && newSections.length > 0) {
-    // Find the fee structure being edited
-    const structure = feeStructures.value.find(s => s.id === editingId.value);
-    if (structure && structure.section) {
-      const matchingSection = newSections.find(sec => sec.name === structure.section);
-      if (matchingSection) {
-        form.value.section_id = matchingSection.id;
+watch(
+  sections,
+  newSections => {
+    if (isEditing.value && editingId.value && newSections.length > 0) {
+      // Find the fee structure being edited
+      const structure = feeStructures.value.find(s => s.id === editingId.value);
+      if (structure && structure.section) {
+        const matchingSection = newSections.find(sec => sec.name === structure.section);
+        if (matchingSection) {
+          form.value.section_id = matchingSection.id;
+        }
       }
     }
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
 // Watch for applicable_classes changes to load streams and sections
-watch(() => form.value.applicable_classes, async (newClasses) => {
-  if (!isResettingForm.value) {
-    await Promise.all([
-      loadStreamsForClasses(),
-      loadSectionsForClasses()
-    ]);
-  }
-}, { deep: true });
+watch(
+  () => form.value.applicable_classes,
+  async newClasses => {
+    if (!isResettingForm.value) {
+      await Promise.all([loadStreamsForClasses(), loadSectionsForClasses()]);
+    }
+  },
+  { deep: true }
+);
 
 // Handle window resize
 let resizeObserver;
@@ -1554,15 +1806,15 @@ onMounted(async () => {
     if (user.value?.role === 'super_admin') {
       await fetchSchools();
     }
-    
+
     // Load branches for school admin on component mount
     if (user.value?.role === 'school_admin') {
       await fetchBranchesForSchoolAdmin();
     }
-    
+
     // Load fee structures and fee types
     await Promise.all([fetchFeeStructures(), fetchFeeTypes()]);
-    
+
     // Setup resize observer
     resizeObserver = new ResizeObserver(() => {
       checkMobile();

@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const { Subject, SubjectGroup, SubjectGroupSubject, Class, School, User } = require('~/models');
-const BaseService = require('../shared/base.service');
+const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/ApiError');
 const { logger } = require('~/utils/logger');
 
@@ -43,15 +43,15 @@ class SubjectService extends BaseService {
    */
   static async getAllSubjects(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        class_id, 
-        category, 
-        is_active, 
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        class_id,
+        category,
+        is_active,
         branch_id,
-        include_groups = false 
+        include_groups = false
       } = params;
       const offset = (page - 1) * limit;
 
@@ -305,40 +305,36 @@ class SubjectService extends BaseService {
         ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
       };
 
-      const [
-        totalSubjects,
-        activeSubjects,
-        subjectsByCategory,
-        subjectsByClass
-      ] = await Promise.all([
-        Subject.count({ where: whereClause }),
-        Subject.count({ where: { ...whereClause, is_active: true } }),
-        Subject.findAll({
-          where: whereClause,
-          attributes: [
-            'category',
-            [Subject.sequelize.fn('COUNT', Subject.sequelize.col('id')), 'count']
-          ],
-          group: ['category'],
-          raw: true
-        }),
-        Subject.findAll({
-          where: whereClause,
-          attributes: [
-            'class_id',
-            [Subject.sequelize.fn('COUNT', Subject.sequelize.col('id')), 'count']
-          ],
-          group: ['class_id'],
-          include: [
-            {
-              model: Class,
-              as: 'class',
-              attributes: ['id', 'name']
-            }
-          ],
-          raw: true
-        })
-      ]);
+      const [totalSubjects, activeSubjects, subjectsByCategory, subjectsByClass] =
+        await Promise.all([
+          Subject.count({ where: whereClause }),
+          Subject.count({ where: { ...whereClause, is_active: true } }),
+          Subject.findAll({
+            where: whereClause,
+            attributes: [
+              'category',
+              [Subject.sequelize.fn('COUNT', Subject.sequelize.col('id')), 'count']
+            ],
+            group: ['category'],
+            raw: true
+          }),
+          Subject.findAll({
+            where: whereClause,
+            attributes: [
+              'class_id',
+              [Subject.sequelize.fn('COUNT', Subject.sequelize.col('id')), 'count']
+            ],
+            group: ['class_id'],
+            include: [
+              {
+                model: Class,
+                as: 'class',
+                attributes: ['id', 'name']
+              }
+            ],
+            raw: true
+          })
+        ]);
 
       return {
         total_subjects: totalSubjects,
@@ -355,7 +351,7 @@ class SubjectService extends BaseService {
   static async bulkCreateSubjects(subjectsData, userId) {
     return this.executeWithErrorHandling(async () => {
       const results = [];
-      
+
       for (const subjectData of subjectsData) {
         try {
           const subject = await this.createSubject(subjectData, userId);
@@ -449,4 +445,3 @@ class SubjectService extends BaseService {
 }
 
 module.exports = SubjectService;
-

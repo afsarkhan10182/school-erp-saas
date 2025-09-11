@@ -17,7 +17,7 @@ class TimetableController {
     };
 
     const timetable = await TimetableService.createTimetable(timetableData, req.user.id);
-    
+
     success(res, { timetable }, 'Timetable created successfully', httpStatus.CREATED);
   });
 
@@ -37,7 +37,7 @@ class TimetableController {
     };
 
     const result = await TimetableService.getAllTimetables(params, req.user);
-    
+
     success(res, result, 'Timetables retrieved successfully');
   });
 
@@ -47,7 +47,7 @@ class TimetableController {
   static getTimetableById = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const timetable = await TimetableService.getTimetableById(id, req.user);
-    
+
     success(res, { timetable }, 'Timetable retrieved successfully');
   });
 
@@ -59,7 +59,7 @@ class TimetableController {
     const updateData = req.body;
 
     const timetable = await TimetableService.updateTimetable(id, updateData, req.user);
-    
+
     success(res, { timetable }, 'Timetable updated successfully');
   });
 
@@ -69,7 +69,7 @@ class TimetableController {
   static deleteTimetable = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const result = await TimetableService.deleteTimetable(id, req.user);
-    
+
     success(res, result, 'Timetable deleted successfully');
   });
 
@@ -81,7 +81,7 @@ class TimetableController {
     const slotData = req.body;
 
     const slot = await TimetableService.addTimetableSlot(timetableId, slotData, req.user);
-    
+
     success(res, { slot }, 'Timetable slot added successfully', httpStatus.CREATED);
   });
 
@@ -93,7 +93,7 @@ class TimetableController {
     const updateData = req.body;
 
     const slot = await TimetableService.updateTimetableSlot(slotId, updateData, req.user);
-    
+
     success(res, { slot }, 'Timetable slot updated successfully');
   });
 
@@ -103,7 +103,7 @@ class TimetableController {
   static deleteTimetableSlot = asyncHandler(async (req, res) => {
     const { slotId } = req.params;
     const result = await TimetableService.deleteTimetableSlot(slotId, req.user);
-    
+
     success(res, result, 'Timetable slot deleted successfully');
   });
 
@@ -114,8 +114,13 @@ class TimetableController {
     const { classId, sectionId } = req.params;
     const { academic_year } = req.query;
 
-    const timetable = await TimetableService.getTimetableForClass(classId, sectionId, academic_year, req.user);
-    
+    const timetable = await TimetableService.getTimetableForClass(
+      classId,
+      sectionId,
+      academic_year,
+      req.user
+    );
+
     success(res, { timetable }, 'Timetable retrieved successfully');
   });
 
@@ -126,8 +131,12 @@ class TimetableController {
     const { teacherId } = req.params;
     const { academic_year } = req.query;
 
-    const timetable = await TimetableService.getTeacherTimetable(teacherId, academic_year, req.user);
-    
+    const timetable = await TimetableService.getTeacherTimetable(
+      teacherId,
+      academic_year,
+      req.user
+    );
+
     success(res, { timetable }, 'Teacher timetable retrieved successfully');
   });
 
@@ -137,8 +146,12 @@ class TimetableController {
   static getMyTimetable = asyncHandler(async (req, res) => {
     const { academic_year } = req.query;
 
-    const timetable = await TimetableService.getTeacherTimetable(req.user.id, academic_year, req.user);
-    
+    const timetable = await TimetableService.getTeacherTimetable(
+      req.user.id,
+      academic_year,
+      req.user
+    );
+
     success(res, { timetable }, 'Your timetable retrieved successfully');
   });
 
@@ -150,11 +163,11 @@ class TimetableController {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 10,
       teacher_id: req.query.teacher_id,
-      academic_year: req.query.academic_year,
+      academic_year: req.query.academic_year
     };
 
     const result = await TimetableService.getAllTeacherTimetables(params, req.user);
-    
+
     success(res, result, 'Teacher timetables retrieved successfully');
   });
 }

@@ -36,5 +36,12 @@ export const Academic = {
     const api = createApiInstance();
     const response = await api.get('/timetables/my-timetable', { params });
     return response.data;
+  },
+
+  // Academic Settings
+  getSettings: async () => {
+    const api = createApiInstance();
+    const response = await api.get('/academic/settings');
+    return response.data;
   }
 };

@@ -1,12 +1,15 @@
 <template>
-  <div v-if="pagination.total > 0" class="bg-white dark:bg-gray-800 px-4 py-4 border-t border-gray-200 dark:border-gray-700 md:px-6">
+  <div
+    v-if="pagination.total > 0"
+    class="bg-white dark:bg-gray-800 px-4 py-4 border-t border-gray-200 dark:border-gray-700 md:px-6"
+  >
     <!-- Desktop Layout: All in one line -->
     <div class="hidden sm:flex items-center justify-between">
       <!-- Page Size Selector (Left) -->
       <div class="flex items-center space-x-2">
         <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
-        <select 
-          v-model="localPageSize" 
+        <select
+          v-model="localPageSize"
           @change="onPageSizeChange"
           class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         >
@@ -21,10 +24,13 @@
       <!-- Page Info (Center) -->
       <div class="text-center">
         <p class="text-sm text-gray-700 dark:text-gray-300">
-          Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
+          Showing <span class="font-medium">{{ startItem }}</span> to
+          <span class="font-medium">{{ endItem }}</span> of
+          <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel
+          }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
         </p>
       </div>
-      
+
       <!-- Pagination Navigation (Right) -->
       <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
         <button
@@ -34,7 +40,7 @@
         >
           Previous
         </button>
-        
+
         <template v-for="page in visiblePages" :key="page">
           <button
             v-if="page !== '...'"
@@ -55,7 +61,7 @@
             ...
           </span>
         </template>
-        
+
         <button
           @click="nextPage"
           :disabled="pagination.page >= totalPages"
@@ -72,8 +78,8 @@
       <div class="flex items-center justify-center">
         <div class="flex items-center space-x-2">
           <span class="text-sm text-gray-700 dark:text-gray-300">Show</span>
-          <select 
-            v-model="localPageSize" 
+          <select
+            v-model="localPageSize"
             @change="onPageSizeChange"
             class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
@@ -89,10 +95,13 @@
       <!-- Page Info -->
       <div class="text-center">
         <p class="text-sm text-gray-700 dark:text-gray-300">
-          Showing <span class="font-medium">{{ startItem }}</span> to <span class="font-medium">{{ endItem }}</span> of <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
+          Showing <span class="font-medium">{{ startItem }}</span> to
+          <span class="font-medium">{{ endItem }}</span> of
+          <span class="font-medium">{{ pagination.total }}</span> {{ itemLabel
+          }}{{ additionalInfo ? ` (${additionalInfo})` : '' }}
         </p>
       </div>
-      
+
       <!-- Pagination Navigation -->
       <div class="flex justify-center">
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
@@ -103,7 +112,7 @@
           >
             Previous
           </button>
-          
+
           <template v-for="page in visiblePages" :key="page">
             <button
               v-if="page !== '...'"
@@ -124,7 +133,7 @@
               ...
             </span>
           </template>
-          
+
           <button
             @click="nextPage"
             :disabled="pagination.page >= totalPages"
@@ -169,10 +178,13 @@ const getInitialPageSize = () => {
 const localPageSize = ref(getInitialPageSize());
 
 // Watch for external page size changes
-watch(() => props.pagination.limit, (newLimit) => {
-  const newPageSize = getInitialPageSize();
-  localPageSize.value = newPageSize;
-});
+watch(
+  () => props.pagination.limit,
+  newLimit => {
+    const newPageSize = getInitialPageSize();
+    localPageSize.value = newPageSize;
+  }
+);
 
 const totalPages = computed(() => {
   return Math.ceil(props.pagination.total / localPageSize.value);
@@ -182,7 +194,7 @@ const visiblePages = computed(() => {
   const current = props.pagination.page;
   const total = totalPages.value;
   const pages = [];
-  
+
   if (total <= 7) {
     // For small page counts, show all pages
     for (let i = 1; i <= total; i++) {
@@ -198,7 +210,7 @@ const visiblePages = computed(() => {
       pages.push(total);
     }
   }
-  
+
   return pages;
 });
 
@@ -222,7 +234,7 @@ const nextPage = () => {
   }
 };
 
-const goToPage = (page) => {
+const goToPage = page => {
   if (page !== props.pagination.page) {
     emit('page-changed', page);
   }
@@ -231,4 +243,4 @@ const goToPage = (page) => {
 const onPageSizeChange = () => {
   emit('page-size-changed', parseInt(localPageSize.value));
 };
-</script> 
+</script>

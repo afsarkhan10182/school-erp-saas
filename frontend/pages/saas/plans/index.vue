@@ -12,11 +12,18 @@
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       <p class="mt-2 text-gray-600 dark:text-gray-400">Loading plans...</p>
     </div>
-    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+    <div
+      v-else-if="error"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6"
+    >
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
           </svg>
         </div>
         <div class="ml-3">
@@ -30,23 +37,59 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cycle</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Modules</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Limits</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Price
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Cycle
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Modules
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Limits
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <tr v-for="plan in plans" :key="plan.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+            <tr
+              v-for="plan in plans"
+              :key="plan.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ plan.name }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ plan.code }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">₹{{ plan.price }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{{ plan.billing_cycle }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">
+                ₹{{ plan.price }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">
+                {{ plan.billing_cycle }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white">
                 <div v-if="plan.modules && plan.modules.length > 0">
                   <div v-for="module in plan.modules" :key="module.id">{{ module.name }}</div>
@@ -59,14 +102,30 @@
                 <div>Staff: {{ plan.max_staff }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="plan.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                <span
+                  :class="
+                    plan.is_active
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                  "
+                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                >
                   {{ plan.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
-                  <NuxtLink :to="`/saas/plans/${plan.id}/edit`" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</NuxtLink>
-                  <button @click="deletePlanConfirm(plan.id)" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
+                  <NuxtLink
+                    :to="`/saas/plans/${plan.id}/edit`"
+                    class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
+                    >Edit</NuxtLink
+                  >
+                  <button
+                    @click="deletePlanConfirm(plan.id)"
+                    class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                  >
+                    Delete
+                  </button>
                 </div>
               </td>
             </tr>
@@ -75,10 +134,15 @@
       </div>
     </div>
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50">
+    <div
+      v-if="showDeleteModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Delete Plan?</h3>
-        <p class="text-gray-700 dark:text-gray-300 mb-4">Are you sure you want to delete this plan? This action cannot be undone.</p>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          Are you sure you want to delete this plan? This action cannot be undone.
+        </p>
         <div class="flex justify-end gap-3">
           <button @click="showDeleteModal = false" class="btn-secondary">Cancel</button>
           <button @click="deletePlanAction" class="btn-primary">Delete</button>
@@ -111,7 +175,7 @@ const fetchAllPlans = async () => {
   await fetchPlans();
 };
 
-const deletePlanConfirm = (id) => {
+const deletePlanConfirm = id => {
   planToDelete.value = id;
   showDeleteModal.value = true;
 };
@@ -126,7 +190,6 @@ const deletePlanAction = async () => {
 };
 
 onMounted(fetchAllPlans);
-
 </script>
 <style scoped>
 .btn-primary {
@@ -135,4 +198,4 @@ onMounted(fetchAllPlans);
 .btn-secondary {
   @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
-</style> 
+</style>

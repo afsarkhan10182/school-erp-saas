@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginCredentials, AuthResponse } from '~/types';
-import { Auth } from '~/api';
+import { Auth } from '~/api/shared/auth';
 
 interface AuthState {
   user: User | null;
@@ -41,11 +41,11 @@ export const useAuthStore = defineStore('auth', () => {
       sessionStorage.removeItem('current-branch');
       sessionStorage.removeItem('current-school');
       sessionStorage.removeItem('last-auth-check');
-      
+
       // Clear any theme or other auth-related data
       localStorage.removeItem('theme');
     }
-    
+
     // Clear auth token cookies
     const accessToken = useCookie('accessToken');
     const refreshToken = useCookie('refreshToken');
@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       const savedUser = sessionStorage.getItem('auth-user');
       const savedBranch = sessionStorage.getItem('current-branch');
       const savedSchool = sessionStorage.getItem('current-school');
-      
+
       if (savedUser) {
         user.value = JSON.parse(savedUser);
         currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
@@ -82,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
       isInitializing.value = false;
       return;
     }
-    
+
     try {
       // Since we use HTTP-only cookies, we can't read the token directly
       // Instead, we check if we have user data in sessionStorage
@@ -95,7 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = JSON.parse(savedUser);
         currentBranch.value = savedBranch ? JSON.parse(savedBranch) : null;
         currentSchool.value = savedSchool ? JSON.parse(savedSchool) : null;
-        
+
         // Background verification with server (non-blocking)
         setTimeout(async () => {
           try {
@@ -103,17 +103,17 @@ export const useAuthStore = defineStore('auth', () => {
             if (window.location.pathname === '/login') {
               return;
             }
-            
+
             const isValid = await Promise.race([
               checkAuth(),
-              new Promise((_, reject) => 
+              new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Auth check timeout')), 5000)
               )
             ]);
-            
+
             if (!isValid) {
               await silentLogout();
-              
+
               // Redirect to login if not already there
               if (window.location.pathname !== '/login') {
                 await navigateTo('/login');
@@ -150,27 +150,38 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   // Login
-  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> => {
+  const login = async (
+    credentials: LoginCredentials
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       isLoading.value = true;
-      
+
       const response = await Auth.login(credentials);
-      
+
       if (response.success) {
         const { user: userData } = response.data;
-        
+
         // Set user data immediately
         user.value = userData;
-        
+
         // Set current school and branch based on user role
         if (userData.school_id) {
-          currentSchool.value = { id: userData.school_id, name: userData.school_name };
+          currentSchool.value = {
+            id: userData.school_id,
+            name: userData.school?.name || userData.school_name,
+            code: userData.school?.code || userData.school_code,
+            logo: userData.school?.logo || ''
+          };
         }
-        
+
         if (userData.branch_id) {
-          currentBranch.value = { id: userData.branch_id, name: userData.branch_name };
+          currentBranch.value = {
+            id: userData.branch_id,
+            name: userData.branch?.name || userData.branch_name,
+            code: userData.branch?.code || userData.branch_code
+          };
         }
-        
+
         // Save user data to sessionStorage (tokens are handled by secure cookies)
         if (import.meta.client) {
           sessionStorage.setItem('auth-user', JSON.stringify(userData));
@@ -180,57 +191,57 @@ export const useAuthStore = defineStore('auth', () => {
           if (currentBranch.value) {
             sessionStorage.setItem('current-branch', JSON.stringify(currentBranch.value));
           }
-          
+
           // Signal other tabs about successful login
           sessionStorage.setItem('auth-action', 'login');
           setTimeout(() => {
             sessionStorage.removeItem('auth-action');
           }, 100);
         }
-        
+
         lastAuthCheck.value = Date.now();
-        
+
         // Brief wait for cookies to be set
         if (import.meta.client) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         // Ensure initialization is complete
         isInitializing.value = false;
-        
+
         return { success: true, user: userData };
       } else {
         return { success: false, error: response.message };
       }
     } catch (error: any) {
       console.error('🔐 Login error:', error);
-      
+
       // Handle specific error cases
       if (error.response?.status === 401) {
-        return { 
-          success: false, 
-          error: 'Invalid email or password. Please check your credentials and try again.' 
+        return {
+          success: false,
+          error: 'Invalid email or password. Please check your credentials and try again.'
         };
       } else if (error.response?.status === 429) {
-        return { 
-          success: false, 
-          error: 'Too many login attempts. Please wait a moment before trying again.' 
+        return {
+          success: false,
+          error: 'Too many login attempts. Please wait a moment before trying again.'
         };
       } else if (error.response?.status >= 500) {
-        return { 
-          success: false, 
-          error: 'Server error. Please try again later.' 
+        return {
+          success: false,
+          error: 'Server error. Please try again later.'
         };
       } else if (!error.response) {
-        return { 
-          success: false, 
-          error: 'Network error. Please check your connection and try again.' 
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
         };
       }
-      
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Login failed. Please try again.' 
+
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed. Please try again.'
       };
     } finally {
       isLoading.value = false;
@@ -239,15 +250,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Logout with debounce to prevent multiple calls
   let logoutInProgress = false;
-  
+
   const logout = async () => {
     // Prevent multiple logout calls
     if (logoutInProgress) {
       return;
     }
-    
+
     logoutInProgress = true;
-    
+
     try {
       // Call logout endpoint to invalidate tokens on server
       await Auth.logout();
@@ -256,7 +267,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (error.response?.status === 401 || error.response?.status === 403) {
         // User already logged out or token expired - continuing with local cleanup
       }
-      
+
       // Even if the server logout fails, we should still clear local state
       // This handles cases where the token is expired/invalid
     } finally {
@@ -266,16 +277,16 @@ export const useAuthStore = defineStore('auth', () => {
       currentSchool.value = null;
       availableBranches.value = [];
       lastAuthCheck.value = 0;
-      
+
       // Clear module cache
       if (import.meta.client) {
         const { clearModuleCache } = useModuleAccess();
         clearModuleCache();
       }
-      
+
       // Clear localStorage and cookies
       clearAuthData();
-      
+
       // Signal other tabs about logout (before navigation)
       if (import.meta.client) {
         sessionStorage.setItem('auth-action', 'logout');
@@ -283,12 +294,12 @@ export const useAuthStore = defineStore('auth', () => {
           sessionStorage.removeItem('auth-action');
         }, 100);
       }
-      
+
       // Force redirect to login page to ensure clean state
       if (import.meta.client) {
         await navigateTo('/login');
       }
-      
+
       // Reset logout flag after a delay
       setTimeout(() => {
         logoutInProgress = false;
@@ -314,16 +325,16 @@ export const useAuthStore = defineStore('auth', () => {
       currentSchool.value = null;
       availableBranches.value = [];
       lastAuthCheck.value = 0;
-      
+
       // Clear module cache
       if (import.meta.client) {
         const { clearModuleCache } = useModuleAccess();
         clearModuleCache();
       }
-      
+
       // Clear localStorage and cookies (this will also clear the refresh timer)
       clearAuthData();
-      
+
       // Signal other tabs about logout (without navigation)
       if (import.meta.client) {
         sessionStorage.setItem('auth-action', 'logout');
@@ -341,7 +352,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.success && response.data) {
         user.value = response.data;
         lastAuthCheck.value = Date.now();
-        
+
         // Update sessionStorage
         if (import.meta.client) {
           sessionStorage.setItem('auth-user', JSON.stringify(response.data));
@@ -404,11 +415,11 @@ export const useAuthStore = defineStore('auth', () => {
   // Cross-tab synchronization using storage events
   const handleStorageChange = (event: StorageEvent) => {
     if (!event.key?.startsWith('auth-') && event.key !== 'auth-action') return;
-    
+
     // Handle auth action events (login/logout from other tabs)
     if (event.key === 'auth-action') {
       const action = event.newValue;
-      
+
       if (action === 'logout') {
         // Clear local state immediately without calling server logout
         user.value = null;
@@ -416,17 +427,17 @@ export const useAuthStore = defineStore('auth', () => {
         currentSchool.value = null;
         availableBranches.value = [];
         lastAuthCheck.value = 0;
-        
+
         // Clear module cache
         const { clearModuleCache } = useModuleAccess();
         clearModuleCache();
-        
+
         // Clear cookies
         const accessToken = useCookie('accessToken');
         const refreshToken = useCookie('refreshToken');
         accessToken.value = null;
         refreshToken.value = null;
-        
+
         // Navigate to login if not already there
         if (window.location.pathname !== '/login') {
           navigateTo('/login');
@@ -434,19 +445,19 @@ export const useAuthStore = defineStore('auth', () => {
       } else if (action === 'login') {
         // Refresh auth state from sessionStorage
         refreshFromStorage();
-        
+
         // Navigate to dashboard if on login page
         if (window.location.pathname === '/login') {
           navigateTo('/dashboard');
         }
       }
-      
+
       // Clean up the action flag
       setTimeout(() => {
         sessionStorage.removeItem('auth-action');
       }, 100);
     }
-    
+
     // Handle direct sessionStorage changes
     else if (event.key === 'auth-user') {
       if (event.newValue === null) {
@@ -466,12 +477,12 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
   };
-  
+
   // Initialize storage event listener on client side
   if (import.meta.client) {
     // Add storage event listener for cross-tab sync
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Initialize auth
     initializeAuth();
   }
@@ -492,7 +503,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentBranch,
     availableBranches,
     currentSchool,
-    
+
     // Computed
     isLoggedIn,
     isAuthenticated,
@@ -501,7 +512,7 @@ export const useAuthStore = defineStore('auth', () => {
     isSchoolAdmin,
     isBranchAdmin,
     currentUser,
-    
+
     // Actions
     login,
     logout,
@@ -516,6 +527,6 @@ export const useAuthStore = defineStore('auth', () => {
     initializeAuth,
     clearAuthData,
     refreshFromStorage,
-    cleanup,
+    cleanup
   };
-}); 
+});

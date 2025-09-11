@@ -1,5 +1,11 @@
 import { ref, reactive, computed, readonly } from 'vue';
-import { examApi, type Exam, type ExamFilters, type ExamResult, type ExamResultData } from '~/api/academic/exams';
+import {
+  examApi,
+  type Exam,
+  type ExamFilters,
+  type ExamResult,
+  type ExamResultData
+} from '~/api/academic/exams';
 import { useToast } from '~/composables/useToast';
 
 export interface ExamState {
@@ -190,7 +196,11 @@ export const useExams = () => {
     }
   };
 
-  const loadStats = async (params?: { academic_year?: string; date_from?: string; date_to?: string }) => {
+  const loadStats = async (params?: {
+    academic_year?: string;
+    date_from?: string;
+    date_to?: string;
+  }) => {
     try {
       const response = await examApi.getStats(params);
       if (response.success) {
@@ -205,12 +215,15 @@ export const useExams = () => {
   const exportExamResults = async (examId: string, format: 'excel' | 'pdf' = 'excel') => {
     try {
       const response = await examApi.exportResults(examId, format);
-      
+
       // Create download link
       const blob = new Blob([response.data], {
-        type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        type:
+          format === 'pdf'
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -226,10 +239,13 @@ export const useExams = () => {
     }
   };
 
-  const generateReportCard = async (studentId: string, params?: { academic_year?: string; exam_types?: string }) => {
+  const generateReportCard = async (
+    studentId: string,
+    params?: { academic_year?: string; exam_types?: string }
+  ) => {
     try {
       const response = await examApi.generateReportCard(studentId, params);
-      
+
       // Create download link for PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);

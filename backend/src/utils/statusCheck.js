@@ -14,5 +14,5 @@ function checkBranchActive(branch) {
 
 module.exports = {
   checkSchoolActive,
-  checkBranchActive,
-}; 
+  checkBranchActive
+};

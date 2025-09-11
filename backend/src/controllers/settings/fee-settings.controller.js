@@ -1,26 +1,23 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 /**
  * Get fee settings for a school
  */
 const getFeeSettings = async (req, res, next) => {
   try {
-    const { School } = require('../../models');
-    
+    const { School } = require('~/models');
+
     // Get school ID from context or user
     const schoolId = req.schoolId || req.user?.school_id;
-    
+
     if (!schoolId) {
       throw new ApiError(400, 'School context is required');
     }
-    
+
     // Get school configuration
     const school = await School.findByPk(schoolId, {
-      attributes: [
-        'id', 'name', 'code', 'currency', 'timezone', 'date_format',
-        'fee_settings'
-      ]
+      attributes: ['id', 'name', 'code', 'currency', 'timezone', 'date_format', 'fee_settings']
     });
 
     if (!school) {
@@ -80,7 +77,6 @@ const getFeeSettings = async (req, res, next) => {
         feeSettings
       }
     });
-
   } catch (error) {
     logger.error('Error getting fee settings:', error);
     return next(error);
@@ -92,7 +88,7 @@ const getFeeSettings = async (req, res, next) => {
  */
 const updateFeeSettings = async (req, res, next) => {
   try {
-    const { School } = require('../../models');
+    const { School } = require('~/models');
     const { feeSettings } = req.body;
 
     if (!feeSettings) {
@@ -101,11 +97,11 @@ const updateFeeSettings = async (req, res, next) => {
 
     // Update school fee settings
     const schoolId = req.schoolId || req.user?.school_id;
-    
+
     if (!schoolId) {
       throw new ApiError(400, 'School context is required');
     }
-    
+
     const school = await School.findByPk(schoolId);
     if (!school) {
       throw new ApiError(404, 'School not found');
@@ -167,7 +163,6 @@ const updateFeeSettings = async (req, res, next) => {
         feeSettings: updatedFeeSettings
       }
     });
-
   } catch (error) {
     logger.error('Error updating fee settings:', error);
     return next(error);

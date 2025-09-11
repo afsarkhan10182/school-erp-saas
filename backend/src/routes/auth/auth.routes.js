@@ -1,23 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const { checkSchema } = require('express-validator');
-const AuthController = require('../../controllers/auth/auth.controller');
-const { verifyToken } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
+const AuthController = require('~/controllers/auth/auth.controller');
+const { verifyToken } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
 const {
   registerValidator,
   loginValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
-  schoolAdminRegisterValidator,
-} = require('../../validations/auth.validation');
+  schoolAdminRegisterValidator
+} = require('~/validations/auth.validation');
 
 // Public routes
-router.post(
-  '/register',
-  validate(registerValidator),
-  AuthController.register
-);
+router.post('/register', validate(registerValidator), AuthController.register);
 
 router.post(
   '/register/school-admin',
@@ -25,28 +21,13 @@ router.post(
   AuthController.register
 );
 
-router.post(
-  '/login',
-  validate(loginValidator),
-  AuthController.login
-);
+router.post('/login', validate(loginValidator), AuthController.login);
 
-router.post(
-  '/refresh-token',
-  AuthController.refreshToken
-);
+router.post('/refresh-token', AuthController.refreshToken);
 
-router.post(
-  '/forgot-password',
-  validate(forgotPasswordValidator),
-  AuthController.forgotPassword
-);
+router.post('/forgot-password', validate(forgotPasswordValidator), AuthController.forgotPassword);
 
-router.post(
-  '/reset-password',
-  validate(resetPasswordValidator),
-  AuthController.resetPassword
-);
+router.post('/reset-password', validate(resetPasswordValidator), AuthController.resetPassword);
 
 // Protected routes (require authentication)
 router.get('/me', verifyToken, AuthController.getCurrentUser);

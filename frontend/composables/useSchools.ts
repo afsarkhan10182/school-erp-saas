@@ -1,5 +1,6 @@
 import { ref } from 'vue';
-import { Schools, Saas } from '~/api';
+import { Schools } from '~/api/administration/schools';
+import { Saas } from '~/api/administration/saas';
 
 export function useSchools() {
   const schools = ref<any[]>([]);
@@ -31,7 +32,6 @@ export function useSchools() {
         }
       }
     } catch (e) {
-      console.error('Error fetching schools:', e);
       error.value = 'Network error.';
     } finally {
       loading.value = false;
@@ -49,7 +49,6 @@ export function useSchools() {
       }
       return response.data;
     } catch (e) {
-      console.error('Error creating school:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -68,7 +67,6 @@ export function useSchools() {
       }
       return response.data;
     } catch (e) {
-      console.error('Error updating school:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -87,7 +85,6 @@ export function useSchools() {
       }
       return true;
     } catch (e) {
-      console.error('Error deleting school:', e);
       error.value = 'Network error.';
       return false;
     } finally {
@@ -106,7 +103,6 @@ export function useSchools() {
       }
       return response.data;
     } catch (e) {
-      console.error('Error fetching school:', e);
       error.value = 'Network error.';
       return null;
     } finally {
@@ -124,4 +120,4 @@ export function useSchools() {
     deleteSchool,
     getSchoolById
   };
-} 
+}

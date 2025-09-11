@@ -2,19 +2,15 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
-  
+
   // Development mode configuration
   devServer: {
     port: 3000,
     host: 'localhost'
   },
-  
+
   // Modules
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt',
-    '@vueuse/nuxt'
-  ],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@vueuse/nuxt'],
 
   // Runtime config for API
   runtimeConfig: {
@@ -46,7 +42,7 @@ export default defineNuxtConfig({
   // Vite configuration
   vite: {
     define: {
-      global: 'globalThis',
+      global: 'globalThis'
     },
     resolve: {
       alias: {
@@ -81,15 +77,15 @@ export default defineNuxtConfig({
       theme: {
         extend: {
           animation: {
-            'gradient': 'gradient 8s ease infinite',
-            'float': 'float 6s ease-in-out infinite',
-            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            gradient: 'gradient 8s ease infinite',
+            float: 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
           },
           backdropBlur: {
-            xs: '2px',
+            xs: '2px'
           }
         }
       }
     }
   }
-})
+});

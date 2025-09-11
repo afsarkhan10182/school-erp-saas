@@ -29,7 +29,7 @@ class App {
     try {
       await testConnection();
       logger.info('Database connected successfully');
-      
+
       // Try to connect Redis, but don't fail if it doesn't work
       if (isRedisEnabled()) {
         try {
@@ -53,10 +53,12 @@ class App {
     this.app.use(helmet());
 
     // CORS
-    this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
-      credentials: true,
-    }));
+    this.app.use(
+      cors({
+        origin: process.env.CORS_ORIGIN || '*',
+        credentials: true
+      })
+    );
 
     // Request logging
     if (process.env.NODE_ENV === 'development') {
@@ -64,24 +66,28 @@ class App {
     }
 
     // Body parser for JSON with size limits
-    this.app.use(express.json({ 
-      limit: '10mb',
-      verify: (req, res, buf) => {
-        // Only verify JSON if there's actually content to parse
-        if (buf && buf.length > 0) {
-          try {
-            JSON.parse(buf);
-          } catch (e) {
-            throw new Error('Invalid JSON');
+    this.app.use(
+      express.json({
+        limit: '10mb',
+        verify: (req, res, buf) => {
+          // Only verify JSON if there's actually content to parse
+          if (buf && buf.length > 0) {
+            try {
+              JSON.parse(buf);
+            } catch (e) {
+              throw new Error('Invalid JSON');
+            }
           }
         }
-      }
-    }));
-    
-    this.app.use(express.urlencoded({ 
-      extended: true, 
-      limit: '10mb' 
-    }));
+      })
+    );
+
+    this.app.use(
+      express.urlencoded({
+        extended: true,
+        limit: '10mb'
+      })
+    );
 
     // Cookie parser for auth tokens
     this.app.use(require('cookie-parser')());
@@ -90,13 +96,13 @@ class App {
     const { resolveUploadsPath } = require('./utils/pathHelper');
     const uploadDir = config.uploads?.dir || './uploads';
     const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
-    
+
     this.app.use(
       '/uploads',
       express.static(resolvedUploadDir, {
-        setHeaders: (res) => {
+        setHeaders: res => {
           res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-        },
+        }
       })
     );
   }
@@ -126,13 +132,15 @@ class App {
   async start() {
     try {
       console.log('Before initializeDatabase');
-      await this.initializeDatabase();    console.log('After initializeDatabase, before app.listen');
+      await this.initializeDatabase();
+      console.log('After initializeDatabase, before app.listen');
 
-      
       this.server = this.app.listen(this.port, () => {
         logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${this.port}`);
         logger.info(`API Documentation available at http://localhost:${this.port}/api-docs`);
-        logger.info(`Health check available at http://localhost:${this.port}${this.apiPrefix}/health`);
+        logger.info(
+          `Health check available at http://localhost:${this.port}${this.apiPrefix}/health`
+        );
         logger.info('Rate limiting completely disabled for all environments');
       });
 
@@ -142,7 +150,7 @@ class App {
       process.on('SIGINT', shutdown);
 
       // Handle unhandled promise rejections
-      process.on('unhandledRejection', (err) => {
+      process.on('unhandledRejection', err => {
         logger.error('Unhandled Rejection:', err);
         if (this.server) {
           this.server.close(() => {
@@ -155,7 +163,7 @@ class App {
       });
 
       // Handle uncaught exceptions
-      process.on('uncaughtException', (err) => {
+      process.on('uncaughtException', err => {
         logger.error('Uncaught Exception:', err);
         if (this.server) {
           this.server.close(() => {
@@ -166,7 +174,6 @@ class App {
           process.exit(1);
         }
       });
-
     } catch (error) {
       logger.error('Failed to start server:', error);
       process.exit(1);
@@ -176,7 +183,7 @@ class App {
   // Method to gracefully stop the server
   async stop() {
     if (this.server) {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         this.server.close(() => {
           logger.info('Server stopped gracefully');
           resolve();

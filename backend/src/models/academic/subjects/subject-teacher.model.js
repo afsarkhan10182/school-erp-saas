@@ -1,90 +1,96 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../../config/database');
-const { logger } = require('../../../utils/logger');
+const { sequelize } = require('~/config/database');
+const { logger } = require('~/utils/logger');
 
-const SubjectTeacher = sequelize.define('SubjectTeacher', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  subject_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'subjects', key: 'id' },
-  },
-  teacher_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'users', key: 'id' },
-  },
-  class_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: { model: 'classes', key: 'id' },
-  },
-  section_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: { model: 'sections', key: 'id' },
-  },
-  is_primary: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-    comment: 'Primary teacher for this subject-class combination'
-  },
-  academic_year: {
-    type: DataTypes.STRING(10),
-    allowNull: false,
-  },
-  school_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'schools', key: 'id' },
-  },
-  branch_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'branches', key: 'id' },
-  },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: { model: 'users', key: 'id' },
-  },
-  updated_by: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: { model: 'users', key: 'id' },
-  },
-}, {
-  tableName: 'subject_teachers',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    { fields: ['subject_id'] },
-    { fields: ['teacher_id'] },
-    { fields: ['class_id'] },
-    { fields: ['section_id'] },
-    { fields: ['academic_year'] },
-    { fields: ['school_id'] },
-    { fields: ['branch_id'] },
-    { fields: ['is_primary'] },
-    { 
-      fields: ['subject_id', 'teacher_id', 'class_id', 'section_id', 'academic_year'],
-      unique: true,
-      name: 'unique_subject_teacher_assignment'
+const SubjectTeacher = sequelize.define(
+  'SubjectTeacher',
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
     },
-  ],
-  hooks: {
-    afterCreate: async (subjectTeacher) => {
-      logger.info(`Subject teacher assignment created: Subject ${subjectTeacher.subject_id} -> Teacher ${subjectTeacher.teacher_id}`);
+    subject_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'subjects', key: 'id' }
     },
+    teacher_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'users', key: 'id' }
+    },
+    class_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'classes', key: 'id' }
+    },
+    section_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'sections', key: 'id' }
+    },
+    is_primary: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Primary teacher for this subject-class combination'
+    },
+    academic_year: {
+      type: DataTypes.STRING(10),
+      allowNull: false
+    },
+    school_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'schools', key: 'id' }
+    },
+    branch_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'branches', key: 'id' }
+    },
+    created_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'users', key: 'id' }
+    },
+    updated_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'users', key: 'id' }
+    }
   },
-});
+  {
+    tableName: 'subject_teachers',
+    timestamps: true,
+    underscored: true,
+    indexes: [
+      { fields: ['subject_id'] },
+      { fields: ['teacher_id'] },
+      { fields: ['class_id'] },
+      { fields: ['section_id'] },
+      { fields: ['academic_year'] },
+      { fields: ['school_id'] },
+      { fields: ['branch_id'] },
+      { fields: ['is_primary'] },
+      {
+        fields: ['subject_id', 'teacher_id', 'class_id', 'section_id', 'academic_year'],
+        unique: true,
+        name: 'unique_subject_teacher_assignment'
+      }
+    ],
+    hooks: {
+      afterCreate: async subjectTeacher => {
+        logger.info(
+          `Subject teacher assignment created: Subject ${subjectTeacher.subject_id} -> Teacher ${subjectTeacher.teacher_id}`
+        );
+      }
+    }
+  }
+);
 
-SubjectTeacher.associate = (models) => {
+SubjectTeacher.associate = models => {
   SubjectTeacher.belongsTo(models.Subject, { foreignKey: 'subject_id', as: 'subject' });
   SubjectTeacher.belongsTo(models.User, { foreignKey: 'teacher_id', as: 'teacher' });
   SubjectTeacher.belongsTo(models.Class, { foreignKey: 'class_id', as: 'class' });

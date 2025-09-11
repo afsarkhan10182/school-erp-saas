@@ -47,7 +47,11 @@ export const Invoices = {
     return response.data;
   },
 
-  getSummary: async (params?: { payment_model?: 'monthly' | 'installment'; academic_year?: string; status?: string }) => {
+  getSummary: async (params?: {
+    payment_model?: 'monthly' | 'installment';
+    academic_year?: string;
+    status?: string;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/fee-invoices/summary', { params });
     return response.data;

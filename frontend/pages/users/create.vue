@@ -1,8 +1,11 @@
 <template>
   <div class="container mx-auto py-8 max-w-2xl">
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Add New Staff Member</h1>
-    
-    <form @submit.prevent="handleSubmit" class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
+
+    <form
+      @submit.prevent="handleSubmit"
+      class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow"
+    >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -24,7 +27,7 @@
             {{ errors.first_name }}
           </div>
         </div>
-        
+
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
             Last Name <span class="text-red-500">*</span>
@@ -45,7 +48,7 @@
             {{ errors.last_name }}
           </div>
         </div>
-        
+
         <!-- Login Details (Email and Password in one line) -->
         <div class="col-span-2">
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -86,7 +89,7 @@
             </div>
           </div>
         </div>
-        
+
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
           <input
@@ -103,8 +106,8 @@
           <div v-if="errors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ errors.phone }}
           </div>
-          </div>
-        
+        </div>
+
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
             Role <span class="text-red-500">*</span>
@@ -127,7 +130,7 @@
             {{ errors.role }}
           </div>
         </div>
-        
+
         <!-- School Selection (Super Admin only) -->
         <div v-if="authStore.user?.role === 'super_admin'">
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -143,7 +146,9 @@
             @change="onSchoolChange"
             :disabled="isLoadingSchools"
           >
-            <option value="">{{ isLoadingSchools ? 'Loading schools...' : 'Select School' }}</option>
+            <option value="">
+              {{ isLoadingSchools ? 'Loading schools...' : 'Select School' }}
+            </option>
             <option v-for="school in schools" :key="school.id" :value="school.id">
               {{ school.name }}
             </option>
@@ -152,9 +157,14 @@
             {{ errors.school_id }}
           </div>
         </div>
-        
+
         <!-- Branch Selection (Super Admin & School Admin) -->
-        <div v-if="(authStore.user?.role === 'super_admin' && formData.school_id) || authStore.user?.role === 'school_admin'">
+        <div
+          v-if="
+            (authStore.user?.role === 'super_admin' && formData.school_id) ||
+            authStore.user?.role === 'school_admin'
+          "
+        >
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
             Branch <span class="text-red-500">*</span>
           </label>
@@ -168,7 +178,9 @@
             @change="onBranchChange"
             :disabled="isLoadingBranches"
           >
-            <option value="">{{ isLoadingBranches ? 'Loading branches...' : 'Select Branch' }}</option>
+            <option value="">
+              {{ isLoadingBranches ? 'Loading branches...' : 'Select Branch' }}
+            </option>
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">
               {{ branch.name }}
             </option>
@@ -177,10 +189,8 @@
             {{ errors.branch_id }}
           </div>
         </div>
-        
-
       </div>
-      
+
       <div class="flex justify-end gap-3">
         <NuxtLink to="/users" class="btn-secondary">Cancel</NuxtLink>
         <button
@@ -190,9 +200,25 @@
           :class="{ 'opacity-50 cursor-not-allowed': isSubmitting || !isFormValid }"
         >
           <span v-if="isSubmitting">
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             Creating Staff Member...
           </span>
@@ -200,20 +226,36 @@
         </button>
       </div>
     </form>
-    
+
     <!-- Generated Password Modal -->
-    <div v-if="showPasswordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <div
+      v-if="showPasswordModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+      >
         <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">User Created Successfully</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            User Created Successfully
+          </h3>
           <div class="space-y-4">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Email: <span class="font-medium text-gray-900 dark:text-white">{{ createdUserEmail }}</span></p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Password has been auto-generated:</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Email:
+                <span class="font-medium text-gray-900 dark:text-white">{{
+                  createdUserEmail
+                }}</span>
+              </p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Password has been auto-generated:
+              </p>
             </div>
             <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded border">
               <div class="flex items-center justify-between">
-                <code class="text-sm font-mono text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-2 py-1 rounded border select-all">
+                <code
+                  class="text-sm font-mono text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-2 py-1 rounded border select-all"
+                >
                   {{ generatedPassword }}
                 </code>
                 <button
@@ -221,9 +263,16 @@
                   class="ml-2 p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
                   title="Copy password"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
                     <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    <path
+                      d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -282,18 +331,18 @@ const isLoadingBranches = ref(false);
 // Available roles based on current user's role
 const availableRoles = computed(() => {
   const currentUserRole = authStore.user?.role;
-  
+
   if (!currentUserRole) {
     return [];
   }
-  
+
   if (currentUserRole === 'super_admin') {
     return [
       { value: 'school_admin', label: 'School Admin' },
       { value: 'teacher', label: 'Teacher' },
       { value: 'accountant', label: 'Accountant' },
       { value: 'librarian', label: 'Librarian' },
-      { value: 'receptionist', label: 'Receptionist' },
+      { value: 'receptionist', label: 'Receptionist' }
     ];
   } else if (currentUserRole === 'school_admin') {
     return [
@@ -301,10 +350,10 @@ const availableRoles = computed(() => {
       { value: 'teacher', label: 'Teacher' },
       { value: 'accountant', label: 'Accountant' },
       { value: 'librarian', label: 'Librarian' },
-      { value: 'receptionist', label: 'Receptionist' },
+      { value: 'receptionist', label: 'Receptionist' }
     ];
   }
-  
+
   return [];
 });
 
@@ -318,7 +367,7 @@ const formData = ref({
   password: '',
   school_id: authStore.user?.school_id || '',
   branch_id: '',
-  created_by: authStore.user?.id || null,
+  created_by: authStore.user?.id || null
 });
 
 // Validation errors
@@ -326,27 +375,27 @@ const errors = ref({});
 
 // Validation rules
 const validationRules = {
-  first_name: (value) => {
+  first_name: value => {
     if (!value) return 'First name is required';
     if (value.length < 2) return 'First name must be at least 2 characters';
     if (value.length > 50) return 'First name must be less than 50 characters';
     if (!/^[a-zA-Z\s]+$/.test(value)) return 'First name can only contain letters and spaces';
     return null;
   },
-  last_name: (value) => {
+  last_name: value => {
     if (!value) return 'Last name is required';
     if (value.length < 2) return 'Last name must be at least 2 characters';
     if (value.length > 50) return 'Last name must be less than 50 characters';
     if (!/^[a-zA-Z\s]+$/.test(value)) return 'Last name can only contain letters and spaces';
     return null;
   },
-  email: (value) => {
+  email: value => {
     if (!value) return 'Email is required';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) return 'Please enter a valid email address';
     return null;
   },
-  phone: (value) => {
+  phone: value => {
     if (value && value.trim() !== '') {
       // Remove all non-digit characters for validation
       const digitsOnly = value.replace(/[^\d]/g, '');
@@ -361,39 +410,45 @@ const validationRules = {
     }
     return null;
   },
-  role: (value) => {
+  role: value => {
     if (!value) return 'Role is required';
-    if (!availableRoles.value || !Array.isArray(availableRoles.value) || !availableRoles.value.find(role => role.value === value)) {
+    if (
+      !availableRoles.value ||
+      !Array.isArray(availableRoles.value) ||
+      !availableRoles.value.find(role => role.value === value)
+    ) {
       return 'Please select a valid role';
     }
     return null;
   },
-  password: (value) => {
+  password: value => {
     if (value && value.trim() !== '') {
       if (value.length < 8) return 'Password must be at least 8 characters';
       if (!/(?=.*[a-z])/.test(value)) return 'Password must contain at least one lowercase letter';
       if (!/(?=.*[A-Z])/.test(value)) return 'Password must contain at least one uppercase letter';
       if (!/(?=.*\d)/.test(value)) return 'Password must contain at least one number';
-      if (!/(?=.*[!@#$%^&*])/.test(value)) return 'Password must contain at least one special character (!@#$%^&*)';
+      if (!/(?=.*[!@#$%^&*])/.test(value))
+        return 'Password must contain at least one special character (!@#$%^&*)';
     }
     return null;
   },
 
-  school_id: (value) => {
+  school_id: value => {
     if (authStore.user?.role === 'super_admin') {
       if (!value) return 'School selection is required';
     }
     return null;
   },
-  branch_id: (value) => {
-    if ((authStore.user?.role === 'super_admin' && formData.value.school_id) || authStore.user?.role === 'school_admin') {
+  branch_id: value => {
+    if (
+      (authStore.user?.role === 'super_admin' && formData.value.school_id) ||
+      authStore.user?.role === 'school_admin'
+    ) {
       if (!value) return 'Branch selection is required';
     }
     return null;
   }
 };
-
-
 
 // Form validation
 const isFormValid = computed(() => {
@@ -401,9 +456,9 @@ const isFormValid = computed(() => {
   if (!authStore.user?.role) {
     return false;
   }
-  
+
   const requiredFields = ['first_name', 'last_name', 'email', 'role'];
-  
+
   // Add conditional required fields based on role only if auth store is ready
   if (authStore.user?.role === 'super_admin') {
     requiredFields.push('school_id');
@@ -411,28 +466,28 @@ const isFormValid = computed(() => {
       requiredFields.push('branch_id');
     }
   }
-  
+
   if (authStore.user?.role === 'school_admin') {
     requiredFields.push('branch_id');
   }
-  
+
   // Check if all required fields have values
   const hasAllRequiredValues = requiredFields.every(field => {
     const value = formData.value[field];
     return value && value.toString().trim() !== '';
   });
-  
+
   // Also check if there are any validation errors
   const hasNoValidationErrors = requiredFields.every(field => {
     const error = validationRules[field](formData.value[field]);
     return !error;
   });
-  
+
   return hasAllRequiredValues && hasNoValidationErrors;
 });
 
 // Validate a specific field
-const validateField = (fieldName) => {
+const validateField = fieldName => {
   if (validationRules[fieldName] && authStore.user?.role) {
     const error = validationRules[fieldName](formData.value[fieldName]);
     if (error) {
@@ -444,12 +499,12 @@ const validateField = (fieldName) => {
 };
 
 // Clear error for a field
-const clearError = (fieldName) => {
+const clearError = fieldName => {
   delete errors.value[fieldName];
 };
 
 // Handle phone input
-const handlePhoneInput = (event) => {
+const handlePhoneInput = event => {
   // Allow digits, spaces, dashes, plus sign, and parentheses
   const value = event.target.value;
   const cleaned = value.replace(/[^\d\s\-\(\)\+]/g, '');
@@ -468,42 +523,42 @@ const validateForm = () => {
 // Handle form submission
 const handleSubmit = async () => {
   if (isSubmitting.value) return;
-  
+
   // Validate form before submission
   if (!validateForm()) {
     showError('Please fix the validation errors before submitting');
     return;
   }
-  
+
   isSubmitting.value = true;
-  
+
   try {
     // Prepare the data
     const payload = { ...formData.value };
-    
+
     // Remove empty phone field to avoid validation issues
     if (!payload.phone || payload.phone.trim() === '') {
       delete payload.phone;
     }
-    
+
     // If password is not provided, remove it so backend can auto-generate
     if (!payload.password || payload.password.trim() === '') {
       delete payload.password;
     }
-    
+
     // Auto-set school_id and branch_id based on user role
     if (authStore.user?.role === 'school_admin') {
       payload.school_id = authStore.user.school_id;
     }
-    
+
     if (authStore.user?.role === 'branch_admin') {
       payload.school_id = authStore.user.school_id;
       payload.branch_id = authStore.user.branch_id;
     }
-    
+
     // Send the request
     const response = await Users.create(payload);
-    
+
     // Check if password was auto-generated
     if (response.generatedPassword) {
       // Store the generated password and email, then show modal
@@ -518,7 +573,7 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     console.error('Error creating staff member:', error);
-    
+
     // Handle specific validation errors from backend
     if (error.response?.data?.errors) {
       Object.keys(error.response.data.errors).forEach(field => {
@@ -583,7 +638,7 @@ const handleSubmit = async () => {
 // Fetch schools (for super admin)
 const fetchSchools = async () => {
   if (authStore.user?.role !== 'super_admin') return;
-  
+
   isLoadingSchools.value = true;
   try {
     const response = await Schools.getAll();
@@ -600,15 +655,15 @@ const fetchSchools = async () => {
 // Fetch branches (for school admin and super admin when school is selected)
 const fetchBranches = async (schoolId = null) => {
   const targetSchoolId = schoolId || authStore.user?.school_id;
-  
+
   if (!targetSchoolId) {
     return;
   }
-  
+
   isLoadingBranches.value = true;
   try {
-            const response = await Branches.getForDropdown({ school_id: targetSchoolId });
-    
+    const response = await Branches.getForDropdown({ school_id: targetSchoolId });
+
     // The dropdown API returns { success: true, data: [...] }
     branches.value = response.data || [];
   } catch (error) {
@@ -626,12 +681,12 @@ const onRoleChange = () => {
     formData.value.school_id = '';
     formData.value.branch_id = '';
   }
-  
+
   // Validate the role field only if auth store is ready
   if (authStore.user?.role) {
     validateField('role');
   }
-  
+
   // Auto-set school_id for non-super admins
   if (authStore.user?.role !== 'super_admin') {
     formData.value.school_id = authStore.user?.school_id;
@@ -642,7 +697,7 @@ const onRoleChange = () => {
 const onSchoolChange = async () => {
   formData.value.branch_id = '';
   validateField('school_id');
-  
+
   // Fetch branches for the selected school
   if (formData.value.school_id) {
     await fetchBranches(formData.value.school_id);
@@ -676,25 +731,23 @@ const closePasswordModal = () => {
   }, 500);
 };
 
-
-
 // Initialize component
 onMounted(async () => {
   // Auto-set school_id for non-super admins
   if (authStore.user?.role !== 'super_admin') {
     formData.value.school_id = authStore.user?.school_id;
   }
-  
+
   // Fetch schools for super admin
   if (authStore.user?.role === 'super_admin') {
     await fetchSchools();
   }
-  
+
   // Fetch branches for school admin
   if (authStore.user?.role === 'school_admin') {
     await fetchBranches();
   }
-  
+
   // Ensure branch_id is empty string initially
   formData.value.branch_id = '';
 });

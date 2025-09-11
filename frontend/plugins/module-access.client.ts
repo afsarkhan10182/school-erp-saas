@@ -9,7 +9,7 @@ export default defineNuxtPlugin(async () => {
   });
 
   // Wait for auth initialization to complete
-  await new Promise<void>((resolve) => {
+  await new Promise<void>(resolve => {
     const checkAuth = () => {
       if (!authStore.isInitializing) {
         resolve();
@@ -28,11 +28,11 @@ export default defineNuxtPlugin(async () => {
   // Only preload modules if user is authenticated and not super admin
   if (authStore.isAuthenticated && authStore.user?.role !== 'super_admin') {
     console.log('🔧 Loading modules for school admin...');
-    
+
     // Try to initialize from cache first
     const cached = initializeFromCache();
     console.log('🔧 Cache check result:', { cached });
-    
+
     // Always ensure modules are loaded
     setTimeout(() => {
       if (!cached) {

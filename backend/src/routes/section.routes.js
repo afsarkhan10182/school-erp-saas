@@ -5,11 +5,14 @@ const {
   createSection,
   updateSection,
   deleteSection,
-  getSectionsForDropdown,
-} = require('../controllers/section.controller');
-const { verifyToken, authorize } = require('../middleware/auth');
-const { validate } = require('../middleware/validate');
-const { createSectionValidator, updateSectionValidator } = require('../validations/section.validation');
+  getSectionsForDropdown
+} = require('~/controllers/section.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const {
+  createSectionValidator,
+  updateSectionValidator
+} = require('~/validations/section.validation');
 
 const router = express.Router();
 
@@ -20,22 +23,28 @@ router.use(verifyToken);
 router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin']), getAllSections);
 
 // GET /api/sections/dropdown - Get all sections for dropdown
-router.get('/dropdown', authorize(['super_admin', 'school_admin', 'branch_admin']), getSectionsForDropdown);
+router.get(
+  '/dropdown',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  getSectionsForDropdown
+);
 
 // GET /api/sections/:id - Get section by ID
 router.get('/:id', authorize(['super_admin', 'school_admin', 'branch_admin']), getSectionById);
 
 // POST /api/sections - Create new section
-router.post('/', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(createSectionValidator), 
+router.post(
+  '/',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(createSectionValidator),
   createSection
 );
 
 // PUT /api/sections/:id - Update section
-router.put('/:id', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(updateSectionValidator), 
+router.put(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(updateSectionValidator),
   updateSection
 );
 

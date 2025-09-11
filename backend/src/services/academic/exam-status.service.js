@@ -1,5 +1,5 @@
 const { ExamStatus } = require('~/models');
-const BaseService = require('../shared/base.service');
+const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/ApiError');
 const { Op } = require('sequelize');
 
@@ -57,12 +57,7 @@ class ExamStatusService extends BaseService {
    */
   static async getAllExamStatuses(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { 
-        page = 1, 
-        limit = 10, 
-        search, 
-        is_active 
-      } = params;
+      const { page = 1, limit = 10, search, is_active } = params;
       const offset = (page - 1) * limit;
 
       const whereClause = {
@@ -139,10 +134,7 @@ class ExamStatusService extends BaseService {
       const existingStatus = await ExamStatus.findOne({
         where: {
           school_id: examStatusData.school_id,
-          [Op.or]: [
-            { name: examStatusData.name },
-            { code: examStatusData.code }
-          ]
+          [Op.or]: [{ name: examStatusData.name }, { code: examStatusData.code }]
         }
       });
 

@@ -1,18 +1,23 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="$emit('close')">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800" @click.stop>
+  <div
+    v-if="show"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    @click="$emit('close')"
+  >
+    <div
+      class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+      @click.stop
+    >
       <div class="mt-3">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-              Quick Fee Collection
-            </h3>
-            <button
-              @click="$emit('close')"
-              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X class="h-6 w-6" />
-            </button>
-          </div>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Quick Fee Collection</h3>
+          <button
+            @click="$emit('close')"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X class="h-6 w-6" />
+          </button>
+        </div>
 
         <!-- Student Selection -->
         <div class="mb-6 relative search-area">
@@ -49,8 +54,8 @@
           </div>
 
           <!-- Student Results -->
-          <div 
-            v-if="searchResults.length > 0" 
+          <div
+            v-if="searchResults.length > 0"
             ref="searchResultsContainer"
             class="mt-2 max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 z-10 relative"
           >
@@ -61,14 +66,15 @@
               @click="selectStudent(student)"
               :class="[
                 'px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0',
-                index === selectedIndex 
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100' 
+                index === selectedIndex
+                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-900 dark:text-indigo-100'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700'
               ]"
             >
               <div class="font-medium">{{ getStudentFullName(student) }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
-                {{ student.admission_number }} - {{ student.current_class }}{{ student.section ? `-${student.section}` : '' }}
+                {{ student.admission_number }} - {{ student.current_class
+                }}{{ student.section ? `-${student.section}` : '' }}
               </div>
             </div>
           </div>
@@ -77,35 +83,61 @@
         <!-- Selected Student Dues -->
         <div v-if="selectedStudent && studentDues && studentDues.summary" class="mb-6">
           <!-- Student Dues Summary -->
-          <div v-if="studentDues?.summary" class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600">
-            <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-3">{{ getStudentFullName(selectedStudent) }}</h4>
+          <div
+            v-if="studentDues?.summary"
+            class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-600"
+          >
+            <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-3">
+              {{ getStudentFullName(selectedStudent) }}
+            </h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div>
                 <span class="text-blue-600 dark:text-blue-300">Total Dues:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.total_dues) }}</div>
+                <div class="font-medium text-red-600">
+                  ₹{{ formatCurrency(studentDues.summary.total_dues) }}
+                </div>
               </div>
               <div>
                 <span class="text-blue-600 dark:text-blue-300">Overdue:</span>
-                <div class="font-medium text-red-600">₹{{ formatCurrency(studentDues.summary.overdue_amount) }}</div>
+                <div class="font-medium text-red-600">
+                  ₹{{ formatCurrency(studentDues.summary.overdue_amount) }}
+                </div>
               </div>
               <div>
                 <span class="text-blue-600 dark:text-blue-300">Total Amount:</span>
-                <div class="font-medium text-blue-900 dark:text-blue-100">₹{{ formatCurrency(studentDues.summary.total_amount || 0) }}</div>
+                <div class="font-medium text-blue-900 dark:text-blue-100">
+                  ₹{{ formatCurrency(studentDues.summary.total_amount || 0) }}
+                </div>
               </div>
               <div>
                 <span class="text-blue-600 dark:text-blue-300">Total Paid:</span>
-                <div class="font-medium text-green-600 dark:text-green-400">₹{{ formatCurrency(studentDues.summary.total_paid || 0) }}</div>
+                <div class="font-medium text-green-600 dark:text-green-400">
+                  ₹{{ formatCurrency(studentDues.summary.total_paid || 0) }}
+                </div>
               </div>
             </div>
-            
-            <!-- Paid Months Summary -->
-            <div v-if="groupedPayments.length > 0" class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-600">
 
-              
+            <!-- Paid Months Summary -->
+            <div
+              v-if="groupedPayments.length > 0"
+              class="mt-4 pt-3 border-t border-blue-200 dark:border-blue-600"
+            >
               <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-blue-700 dark:text-blue-200">Paid Months:</span>
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-200"
+                  >Paid Months:</span
+                >
                 <span class="text-xs text-blue-600 dark:text-blue-300">
-                  {{ studentDues?.summary?.paid_months_count || groupedPayments.reduce((sum, p) => sum + p.months_covered, 0) }} month{{ (studentDues?.summary?.paid_months_count || groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)) > 1 ? 's' : '' }} paid
+                  {{
+                    studentDues?.summary?.paid_months_count ||
+                    groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)
+                  }}
+                  month{{
+                    (studentDues?.summary?.paid_months_count ||
+                      groupedPayments.reduce((sum, p) => sum + p.months_covered, 0)) > 1
+                      ? 's'
+                      : ''
+                  }}
+                  paid
                 </span>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -125,34 +157,41 @@
                   <span v-else-if="payment.months_covered > 1">
                     {{ payment.months_covered }} months
                   </span>
-                  <span v-else>
-                    Month {{ payment.month || 'N/A' }}
-                  </span>
-
+                  <span v-else> Month {{ payment.month || 'N/A' }} </span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Monthly Payments List -->
-          <div v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0" class="space-y-3 mb-6">
+          <div
+            v-if="studentDues?.monthly_payments && studentDues.monthly_payments.length > 0"
+            class="space-y-3 mb-6"
+          >
             <h5 class="font-medium text-gray-900 dark:text-white">Monthly Payments</h5>
-            
+
             <!-- Simplified Pending Monthly Payments Summary -->
             <div v-if="studentDues?.summary?.pending_months_count > 0" class="space-y-2 mb-4">
-              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Pending Monthly Payments</h6>
-              
+              <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Pending Monthly Payments
+              </h6>
+
               <!-- Summary Card -->
-              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+              <div
+                class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700"
+              >
                 <div class="flex items-center justify-between mb-2">
                   <div class="font-medium text-gray-900 dark:text-white">
                     {{ ungroupedPayments[0]?.feeStructure?.feeType?.name || 'Monthly Fee' }}
                   </div>
                   <span class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ studentDues.summary.pending_months_count }} month{{ studentDues.summary.pending_months_count > 1 ? 's' : '' }} pending
+                    {{ studentDues.summary.pending_months_count }} month{{
+                      studentDues.summary.pending_months_count > 1 ? 's' : ''
+                    }}
+                    pending
                   </span>
                 </div>
-                
+
                 <!-- Common Values (shown once) -->
                 <div class="grid grid-cols-3 gap-3 mb-2 text-sm">
                   <div>
@@ -161,7 +200,9 @@
                   </div>
                   <div>
                     <span class="text-gray-500 dark:text-gray-400">Total Due:</span>
-                    <div class="font-medium">₹{{ formatCurrency(studentDues.summary.total_dues) }}</div>
+                    <div class="font-medium">
+                      ₹{{ formatCurrency(studentDues.summary.total_dues) }}
+                    </div>
                   </div>
                   <div>
                     <span class="text-gray-500 dark:text-gray-400">Structure:</span>
@@ -170,7 +211,7 @@
                     </div>
                   </div>
                 </div>
-                
+
                 <!-- Pending Months List -->
                 <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
                   <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending Months:</div>
@@ -186,9 +227,12 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- No Pending Payments Message -->
-            <div v-else-if="studentDues?.summary?.paid_months_count > 0" class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-600">
+            <div
+              v-else-if="studentDues?.summary?.paid_months_count > 0"
+              class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-600"
+            >
               <div class="text-sm text-green-800 dark:text-green-200 text-center">
                 ✅ All monthly payments are up to date! No pending amounts.
               </div>
@@ -196,8 +240,13 @@
           </div>
 
           <!-- Other Invoices Summary -->
-          <div v-if="studentDues?.invoices && studentDues.invoices.length > 0" class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
-            Other: {{ studentDues.invoices.length }} invoices | ₹{{ formatCurrency(studentDues.invoices.reduce((sum, inv) => sum + inv.balance_amount, 0)) }}
+          <div
+            v-if="studentDues?.invoices && studentDues.invoices.length > 0"
+            class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400"
+          >
+            Other: {{ studentDues.invoices.length }} invoices | ₹{{
+              formatCurrency(studentDues.invoices.reduce((sum, inv) => sum + inv.balance_amount, 0))
+            }}
           </div>
 
           <!-- Payment Form -->
@@ -236,7 +285,12 @@
                 <div class="flex items-end">
                   <button
                     @click="submitPayment"
-                    :disabled="!paymentForm.amount || paymentForm.amount <= 0 || isSubmitting || validationMessage.includes('⚠️')"
+                    :disabled="
+                      !paymentForm.amount ||
+                      paymentForm.amount <= 0 ||
+                      isSubmitting ||
+                      validationMessage.includes('⚠️')
+                    "
                     class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {{ isSubmitting ? 'Recording...' : 'Record Payment' }}
@@ -252,28 +306,50 @@
                 </button>
               </div>
               <!-- Validation Message -->
-              <div v-if="validationMessage" class="text-sm p-2 rounded-md" :class="{
-                'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-600': validationMessage.includes('⚠️'),
-                'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-600': validationMessage.includes('✅')
-              }">
+              <div
+                v-if="validationMessage"
+                class="text-sm p-2 rounded-md"
+                :class="{
+                  'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-600':
+                    validationMessage.includes('⚠️'),
+                  'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-600':
+                    validationMessage.includes('✅')
+                }"
+              >
                 <p>{{ validationMessage }}</p>
               </div>
-              
+
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                <p>💡 System automatically picks earliest pending months first when you enter an amount.</p>
+                <p>
+                  💡 System automatically picks earliest pending months first when you enter an
+                  amount.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Receipt Display -->
-        <div v-if="lastPaymentReceipt" class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200">
-          Receipt: {{ lastPaymentReceipt.receipt_number || 'N/A' }} | ₹{{ formatCurrency(lastPaymentReceipt.receipt_data?.amount || lastPaymentReceipt.amount) }} | {{ formatDate(lastPaymentReceipt.receipt_data?.payment_date || lastPaymentReceipt.payment_date) }}
+        <div
+          v-if="lastPaymentReceipt"
+          class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-600 text-xs text-blue-800 dark:text-blue-200"
+        >
+          Receipt: {{ lastPaymentReceipt.receipt_number || 'N/A' }} | ₹{{
+            formatCurrency(lastPaymentReceipt.receipt_data?.amount || lastPaymentReceipt.amount)
+          }}
+          |
+          {{
+            formatDate(
+              lastPaymentReceipt.receipt_data?.payment_date || lastPaymentReceipt.payment_date
+            )
+          }}
         </div>
 
         <!-- Loading State -->
         <div v-if="isLoading" class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+          ></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
@@ -296,7 +372,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'payment-recorded','view-combined-receipt']);
+const emit = defineEmits(['close', 'payment-recorded', 'view-combined-receipt']);
 
 // Reactive data
 const searchQuery = ref('');
@@ -365,19 +441,24 @@ const setStudentItemRef = (el, index) => {
 
 // Scroll selected item into view (cross-browser compatible)
 const scrollToSelectedItem = () => {
-  if (selectedIndex.value >= 0 && studentItemRefs.value[selectedIndex.value] && searchResultsContainer.value) {
+  if (
+    selectedIndex.value >= 0 &&
+    studentItemRefs.value[selectedIndex.value] &&
+    searchResultsContainer.value
+  ) {
     const selectedElement = studentItemRefs.value[selectedIndex.value];
     const container = searchResultsContainer.value;
-    
+
     if (!selectedElement || !container) return;
-    
+
     // Get element and container positions
     const elementRect = selectedElement.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
-    
+
     // Check if element is visible in container
-    const isElementVisible = elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom;
-    
+    const isElementVisible =
+      elementRect.top >= containerRect.top && elementRect.bottom <= containerRect.bottom;
+
     if (!isElementVisible) {
       // Use scrollIntoView with fallback for older browsers
       if (selectedElement.scrollIntoView) {
@@ -397,7 +478,7 @@ const scrollToSelectedItem = () => {
         const containerTop = container.scrollTop;
         const containerHeight = container.clientHeight;
         const elementHeight = selectedElement.offsetHeight;
-        
+
         if (elementTop < containerTop) {
           container.scrollTop = elementTop;
         } else if (elementTop + elementHeight > containerTop + containerHeight) {
@@ -409,7 +490,7 @@ const scrollToSelectedItem = () => {
 };
 
 // Handle keyboard navigation
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   if (searchResults.value.length === 0) return;
 
   switch (event.key) {
@@ -444,7 +525,7 @@ const handleKeydown = (event) => {
 };
 
 // Handle clicking outside search area
-const handleClickOutside = (event) => {
+const handleClickOutside = event => {
   // Close search results when clicking outside the search area
   if (!event.target.closest('.search-area')) {
     searchResults.value = [];
@@ -463,24 +544,24 @@ const clearSelection = () => {
 };
 
 // Select student and load dues
-const selectStudent = async (student) => {
+const selectStudent = async student => {
   selectedStudent.value = student;
   searchResults.value = []; // Clear search results
   selectedIndex.value = -1; // Reset selection index
   studentItemRefs.value = []; // Clear refs
   searchQuery.value = getStudentFullName(student);
-  
+
   await loadStudentDues(student.id);
 };
 
 // Load student dues
-const loadStudentDues = async (studentId) => {
+const loadStudentDues = async studentId => {
   isLoading.value = true;
   try {
     const response = await FeeInvoices.getStudentDues({
       student_id: studentId
     });
-    
+
     // Ensure we have a proper structure with fallbacks
     studentDues.value = {
       summary: {
@@ -493,7 +574,6 @@ const loadStudentDues = async (studentId) => {
       invoices: response.data?.invoices || [],
       monthly_payments: response.data?.monthly_payments || []
     };
-    
   } catch (error) {
     // Set default structure on error
     studentDues.value = {
@@ -511,8 +591,6 @@ const loadStudentDues = async (studentId) => {
   }
 };
 
-
-
 // Submit smart payment
 const submitPayment = async () => {
   if (!selectedStudent.value || !paymentForm.value.amount) {
@@ -528,7 +606,7 @@ const submitPayment = async () => {
       payment_date: paymentForm.value.payment_date,
       notes: paymentForm.value.notes
     });
-    
+
     // Reset form
     paymentForm.value = {
       amount: '',
@@ -536,25 +614,24 @@ const submitPayment = async () => {
       payment_date: new Date().toISOString().split('T')[0],
       notes: ''
     };
-    
+
     // Store receipt data (without months info)
     const data = response.data;
     // Use the full combined_receipt object which contains receipt_number and receipt_data
     lastPaymentReceipt.value = data.combined_receipt || data;
-    
+
     // Show simple success message
     showSuccess(`Payment recorded successfully! ₹${data.total_payment_amount.toLocaleString()}`);
-    
+
     // Show receipt first, then close modal and update listing
     emit('view-combined-receipt', data);
-    
+
     // Close modal after showing receipt
     setTimeout(() => {
       emit('close');
       // Emit payment recorded event to update listing after receipt is shown
       emit('payment-recorded');
     }, 100);
-    
   } catch (error) {
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
@@ -567,58 +644,58 @@ const submitPayment = async () => {
 };
 
 // Utility functions
-const formatCurrency = (amount) => {
+const formatCurrency = amount => {
   return parseFloat(amount || 0).toLocaleString('en-IN');
 };
 
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('en-IN');
 };
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     partial_paid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
   };
   return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
 };
 
-const getStatusText = (status) => {
+const getStatusText = status => {
   const texts = {
     sent: 'Sent',
     partial_paid: 'Partial Paid',
     paid: 'Paid',
-    overdue: 'Overdue',
+    overdue: 'Overdue'
   };
   return texts[status] || status;
 };
 
-const getMonthlyStatusClass = (status) => {
+const getMonthlyStatusClass = status => {
   const classes = {
     pending: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     partial_paid: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
   };
   return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
 };
 
-const getMonthlyStatusText = (status) => {
+const getMonthlyStatusText = status => {
   const texts = {
     pending: 'Pending',
     partial_paid: 'Partial Paid',
     paid: 'Paid',
-    overdue: 'Overdue',
+    overdue: 'Overdue'
   };
   return texts[status] || status;
 };
 
 // Helper function to get student full name
-const getStudentFullName = (student) => {
+const getStudentFullName = student => {
   const firstName = student.first_name || '';
   const lastName = student.last_name || '';
-  
+
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
   } else if (firstName) {
@@ -630,34 +707,44 @@ const getStudentFullName = (student) => {
   }
 };
 
-const getMonthName = (monthNumber) => {
+const getMonthName = monthNumber => {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
   return months[monthNumber - 1];
 };
 
 // Helper function to simplify month names (e.g., "July 2025, August 2025" -> "Jul-Aug 2025")
-const simplifyMonthNames = (monthNamesString) => {
+const simplifyMonthNames = monthNamesString => {
   if (!monthNamesString) return '';
-  
+
   const monthYearPairs = monthNamesString.split(', ');
   if (monthYearPairs.length === 1) {
     return monthYearPairs[0]; // Single month, return as is
   }
-  
+
   // Extract months and year
   const months = monthYearPairs.map(pair => {
     const parts = pair.trim().split(' ');
     return parts[0]; // Just the month name
   });
-  
+
   const year = monthYearPairs[0].split(' ')[1]; // Get year from first pair
-  
+
   // Create abbreviated month names
   const abbreviatedMonths = months.map(month => month.substring(0, 3));
-  
+
   if (abbreviatedMonths.length === 2) {
     return `${abbreviatedMonths[0]}-${abbreviatedMonths[1]} ${year}`;
   } else {
@@ -666,33 +753,34 @@ const simplifyMonthNames = (monthNamesString) => {
   }
 };
 
-
-
 // Watch for show prop changes
-watch(() => props.show, (newValue) => {
-  if (newValue) {
-    // Reset form when modal opens
-    searchQuery.value = '';
-    searchResults.value = [];
-    selectedStudent.value = null;
-    studentDues.value = null;
-    selectedIndex.value = -1;
-    studentItemRefs.value = [];
-    paymentForm.value = {
-      amount: '',
-      payment_method: 'cash',
-      payment_date: new Date().toISOString().split('T')[0],
-      notes: ''
-    };
-    lastPaymentReceipt.value = null;
-    
-    // Add click outside listener
-    document.addEventListener('click', handleClickOutside);
-  } else {
-    // Remove click outside listener when modal closes
-    document.removeEventListener('click', handleClickOutside);
+watch(
+  () => props.show,
+  newValue => {
+    if (newValue) {
+      // Reset form when modal opens
+      searchQuery.value = '';
+      searchResults.value = [];
+      selectedStudent.value = null;
+      studentDues.value = null;
+      selectedIndex.value = -1;
+      studentItemRefs.value = [];
+      paymentForm.value = {
+        amount: '',
+        payment_method: 'cash',
+        payment_date: new Date().toISOString().split('T')[0],
+        notes: ''
+      };
+      lastPaymentReceipt.value = null;
+
+      // Add click outside listener
+      document.addEventListener('click', handleClickOutside);
+    } else {
+      // Remove click outside listener when modal closes
+      document.removeEventListener('click', handleClickOutside);
+    }
   }
-});
+);
 
 // Watch for search query changes to trigger debounced search
 watch(searchQuery, () => {
@@ -706,24 +794,23 @@ watch(searchQuery, () => {
   }
 });
 
-
-
 // Computed properties
 const groupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
-  
-  const filteredPayments = studentDues.value.monthly_payments
-    .filter(payment => payment.status === 'paid' || payment.status === 'partial_paid');
-  
+
+  const filteredPayments = studentDues.value.monthly_payments.filter(
+    payment => payment.status === 'paid' || payment.status === 'partial_paid'
+  );
+
   return filteredPayments;
 });
 
 const ungroupedPayments = computed(() => {
   if (!studentDues.value?.monthly_payments) return [];
-  
+
   // Get all monthly payments
   const allMonthlyPayments = studentDues.value.monthly_payments;
-  
+
   // Get paid months from grouped payments
   const paidMonths = new Set();
   groupedPayments.value.forEach(payment => {
@@ -740,17 +827,21 @@ const ungroupedPayments = computed(() => {
       paidMonths.add(monthYear);
     }
   });
-  
+
   // Filter out months that are already paid and only show pending ones
   return allMonthlyPayments.filter(payment => {
     if (payment.is_grouped) return false; // Skip grouped payments
-    
+
     const monthYear = `${getMonthName(payment.month)} ${payment.year}`;
     const isPaid = paidMonths.has(monthYear);
-    
+
     // Only show invoices that are not fully paid
-    return !isPaid && (payment.status === 'sent' || payment.status === 'overdue' || 
-           (payment.status === 'partial_paid' && payment.balance_amount > 0));
+    return (
+      !isPaid &&
+      (payment.status === 'sent' ||
+        payment.status === 'overdue' ||
+        (payment.status === 'partial_paid' && payment.balance_amount > 0))
+    );
   });
 });
 
@@ -779,7 +870,7 @@ const validationMessage = computed(() => {
       return `✅ Amount covers ${monthsCovered} month${monthsCovered > 1 ? 's' : ''} at ₹${monthlyFee} each`;
     }
   }
-  
+
   return '';
 });
 
@@ -787,4 +878,4 @@ const validationMessage = computed(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
-</script> 
+</script>

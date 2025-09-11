@@ -29,7 +29,9 @@ export const examStatusApi = {
   // Get all exam statuses with pagination and filtering
   getAll: async (filters: ExamStatusFilters = {}) => {
     const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<ExamStatus>>('/exam-statuses', { params: filters });
+    const response = await api.get<PaginatedResponse<ExamStatus>>('/exam-statuses', {
+      params: filters
+    });
     return response.data;
   },
 
@@ -64,7 +66,9 @@ export const examStatusApi = {
   // Get exam statuses for dropdown/select
   getForDropdown: async (params?: { school_id?: string; is_active?: string }) => {
     const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamStatus[]>>('/exam-statuses/dropdown', { params });
+    const response = await api.get<ApiResponse<ExamStatus[]>>('/exam-statuses/dropdown', {
+      params
+    });
     return response.data;
   },
 

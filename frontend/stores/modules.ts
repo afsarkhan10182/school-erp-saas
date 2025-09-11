@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { Saas, Schools } from '~/api';
+import { Saas } from '~/api/administration/saas';
+import { Schools } from '~/api/administration/schools';
 
 interface Module {
   key: string;
@@ -43,8 +44,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_staff', name: 'Manage Staff', enabled: true },
           { id: 'view_reports', name: 'View Reports', enabled: true },
           { id: 'manage_modules', name: 'Manage Modules', enabled: true },
-          { id: 'system_settings', name: 'System Settings', enabled: true },
-        ],
+          { id: 'system_settings', name: 'System Settings', enabled: true }
+        ]
       },
       {
         id: 'branch_admin',
@@ -55,8 +56,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: true },
           { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
-        ],
+          { id: 'system_settings', name: 'System Settings', enabled: false }
+        ]
       },
       {
         id: 'accountant',
@@ -67,8 +68,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: true },
           { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
-        ],
+          { id: 'system_settings', name: 'System Settings', enabled: false }
+        ]
       },
       {
         id: 'teacher',
@@ -80,7 +81,25 @@ export const useModulesStore = defineStore('modules', {
           { id: 'view_reports', name: 'View Reports', enabled: true },
           { id: 'manage_modules', name: 'Manage Modules', enabled: false },
           { id: 'system_settings', name: 'System Settings', enabled: false },
-        ],
+          { id: 'view_subjects', name: 'View Subjects', enabled: true },
+          {
+            id: 'view_subject_teachers',
+            name: 'View Subject Teachers',
+            enabled: true
+          },
+          {
+            id: 'view_class_subject_mappings',
+            name: 'View Class-Subject Mappings',
+            enabled: true
+          },
+          {
+            id: 'view_academic_calendar',
+            name: 'View Academic Calendar',
+            enabled: true
+          },
+          { id: 'view_timetable', name: 'View Timetable', enabled: true },
+          { id: 'view_exams', name: 'View Exams', enabled: true }
+        ]
       },
       {
         id: 'librarian',
@@ -91,8 +110,8 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: true },
           { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
-        ],
+          { id: 'system_settings', name: 'System Settings', enabled: false }
+        ]
       },
       {
         id: 'receptionist',
@@ -103,24 +122,24 @@ export const useModulesStore = defineStore('modules', {
           { id: 'manage_staff', name: 'Manage Staff', enabled: false },
           { id: 'view_reports', name: 'View Reports', enabled: false },
           { id: 'manage_modules', name: 'Manage Modules', enabled: false },
-          { id: 'system_settings', name: 'System Settings', enabled: false },
-        ],
-      },
+          { id: 'system_settings', name: 'System Settings', enabled: false }
+        ]
+      }
     ],
     isLoading: false,
-    availableModules: [],
+    availableModules: []
   }),
 
   getters: {
-    getModules: (state) => () => state.modules,
-    getRoles: (state) => () => state.roles,
-    getModuleById: (state) => (id: string) => state.modules.find(m => m.key === id),
-    getEnabledModules: (state) => state.modules.filter(m => m.enabled),
-    isModuleEnabled: (state) => (moduleId: string) => {
+    getModules: state => () => state.modules,
+    getRoles: state => () => state.roles,
+    getModuleById: state => (id: string) => state.modules.find(m => m.key === id),
+    getEnabledModules: state => state.modules.filter(m => m.enabled),
+    isModuleEnabled: state => (moduleId: string) => {
       const module = state.modules.find(m => m.key === moduleId);
       return module?.enabled || false;
     },
-    getAvailableModules: (state) => state.availableModules,
+    getAvailableModules: state => state.availableModules
   },
 
   actions: {
@@ -184,12 +203,15 @@ export const useModulesStore = defineStore('modules', {
         //   modules: this.modules,
         //   roles: this.roles,
         // });
-        
+
         // For now, just save to localStorage
-        localStorage.setItem('moduleSettings', JSON.stringify({
-          modules: this.modules,
-          roles: this.roles,
-        }));
+        localStorage.setItem(
+          'moduleSettings',
+          JSON.stringify({
+            modules: this.modules,
+            roles: this.roles
+          })
+        );
       } catch (error) {
         throw error;
       }
@@ -206,6 +228,6 @@ export const useModulesStore = defineStore('modules', {
       } catch (error) {
         console.error('Error loading module settings:', error);
       }
-    },
-  },
+    }
+  }
 });

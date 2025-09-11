@@ -65,9 +65,9 @@ export const Schools = {
 
   updateModules: async (id: string, modules: string[], subscriptionPlan?: string) => {
     const api = createApiInstance();
-    const response = await api.put(`/schools/${id}/modules`, { 
-      modules, 
-      subscription_plan: subscriptionPlan 
+    const response = await api.put(`/schools/${id}/modules`, {
+      modules,
+      subscription_plan: subscriptionPlan
     });
     return response.data;
   },

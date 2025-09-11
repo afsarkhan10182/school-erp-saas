@@ -1,7 +1,7 @@
 const winston = require('winston');
 const { combine, timestamp, printf, colorize, json } = winston.format;
 const path = require('path');
-const config = require('../config/config');
+const config = require('~/config/config');
 const fs = require('fs');
 const { resolveBackendPath } = require('./pathHelper');
 // Create logs directory if it doesn't exist
@@ -32,8 +32,8 @@ const transports = [
       winston.format.errors({ stack: config.env !== 'production' }),
       logFormat
     ),
-    silent: process.env.NODE_ENV === 'test', // Don't log during tests
-  }),
+    silent: process.env.NODE_ENV === 'test' // Don't log during tests
+  })
 ];
 
 // Add file transports if enabled in config
@@ -44,21 +44,13 @@ if (config.logging?.toFile) {
       level: 'error',
       maxsize: config.logging.file?.maxsize || 5 * 1024 * 1024, // 5MB
       maxFiles: config.logging.file?.maxFiles || 5,
-      format: combine(
-        timestamp(),
-        winston.format.errors({ stack: true }),
-        json()
-      ),
+      format: combine(timestamp(), winston.format.errors({ stack: true }), json())
     }),
     new winston.transports.File({
       filename: path.join(logDir, 'combined.log'),
       maxsize: config.logging.file?.maxsize || 10 * 1024 * 1024, // 10MB
       maxFiles: config.logging.file?.maxFiles || 5,
-      format: combine(
-        timestamp(),
-        winston.format.errors({ stack: true }),
-        json()
-      ),
+      format: combine(timestamp(), winston.format.errors({ stack: true }), json())
     })
   );
 }
@@ -73,21 +65,21 @@ const logger = winston.createLogger({
   ),
   transports,
   exitOnError: false, // Don't exit on handled exceptions
-  silent: process.env.NODE_ENV === 'test', // Don't log during tests
+  silent: process.env.NODE_ENV === 'test' // Don't log during tests
 });
 
 // Create a stream for morgan
 logger.stream = {
-  write: (message) => {
+  write: message => {
     // Skip logging health checks to reduce noise
     if (!message.includes('GET /health')) {
       logger.info(message.trim());
     }
-  },
+  }
 };
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
   // In production, you might want to restart the process
   if (config.env === 'production') {

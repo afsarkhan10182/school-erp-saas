@@ -1,5 +1,5 @@
-const { getRedisClient, isRedisEnabled } = require('../config/redis');
-const { logger } = require('../utils/logger');
+const { getRedisClient, isRedisEnabled } = require('~/config/redis');
+const { logger } = require('~/utils/logger');
 const { safeMiddleware, robustMiddleware } = require('./robust');
 
 /**
@@ -34,45 +34,49 @@ const cacheMiddleware = (ttl = 300, prefix = 'cache') => {
       }
 
       const cacheKey = `${prefix}:${req.originalUrl}`;
-      
+
       // Try to get cached response
       const cachedResponse = await redisClient.get(cacheKey);
-      
+
       if (cachedResponse) {
         logger.debug(`Cache hit for: ${req.originalUrl}`);
         try {
           const parsed = JSON.parse(cachedResponse);
           return res.status(parsed.status || 200).json(parsed.data);
         } catch (parseError) {
-          logger.warn('Failed to parse cached response, continuing without cache:', parseError.message);
+          logger.warn(
+            'Failed to parse cached response, continuing without cache:',
+            parseError.message
+          );
           // Continue without cache if parsing fails
         }
       }
 
       // Cache miss - store original send method
       const originalSend = res.json;
-      
+
       // Override res.json to cache the response
-      res.json = function(data) {
+      res.json = function (data) {
         // Restore original method
         res.json = originalSend;
-        
+
         // Cache the response (non-blocking)
         const responseToCache = {
           status: res.statusCode,
           data: data,
           timestamp: new Date().toISOString()
         };
-        
+
         // Use set with EX option for newer Redis client (non-blocking)
         // Wrap in try-catch to prevent Redis errors from breaking the response
         try {
-          redisClient.set(cacheKey, JSON.stringify(responseToCache), { EX: ttl })
+          redisClient
+            .set(cacheKey, JSON.stringify(responseToCache), { EX: ttl })
             .catch(err => logger.error('Cache storage error:', err));
         } catch (redisError) {
           logger.warn('Redis not available for caching response:', redisError.message);
         }
-        
+
         // Send the response
         return originalSend.call(this, data);
       };
@@ -105,7 +109,7 @@ const clearCache = async (pattern = 'cache:*') => {
     }
 
     const keys = await redisClient.keys(pattern);
-    
+
     if (keys.length > 0) {
       await redisClient.del(keys);
       logger.info(`Cleared ${keys.length} cache entries for pattern: ${pattern}`);
@@ -120,7 +124,7 @@ const clearCache = async (pattern = 'cache:*') => {
  * Clear cache for specific school
  * @param {string} schoolId - School ID to clear cache for
  */
-const clearSchoolCache = async (schoolId) => {
+const clearSchoolCache = async schoolId => {
   try {
     await clearCache(`cache:*school*${schoolId}*`);
     await clearCache(`cache:*branch*${schoolId}*`);
@@ -133,7 +137,7 @@ const clearSchoolCache = async (schoolId) => {
  * Clear cache for specific user
  * @param {string} userId - User ID to clear cache for
  */
-const clearUserCache = async (userId) => {
+const clearUserCache = async userId => {
   try {
     await clearCache(`cache:*user*${userId}*`);
   } catch (error) {
@@ -164,4 +168,4 @@ module.exports = {
   clearCache,
   clearSchoolCache,
   clearUserCache
-}; 
+};

@@ -1,7 +1,7 @@
-const unifiedExportService = require('../../services/unified-export.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { success: successResponse } = require('../../utils/apiResponse');
+const unifiedExportService = require('~/services/unified-export.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { success: successResponse } = require('~/utils/apiResponse');
 
 /**
  * Unified export endpoint for all report types
@@ -11,9 +11,9 @@ const exportReport = async (req, res, next) => {
     // Handle both GET and POST requests
     const isPostRequest = req.method === 'POST';
     const requestData = isPostRequest ? req.body : req.query;
-    
-    const { 
-      report_type, 
+
+    const {
+      report_type,
       format = 'excel',
       // Common filters
       from_date,
@@ -37,12 +37,12 @@ const exportReport = async (req, res, next) => {
       report_type: fee_report_type,
       payment_model,
       months,
-      year,
+      year
     } = requestData;
 
     // Extract and validate columns based on request method
     let columns;
-    
+
     if (req.method === 'POST') {
       columns = requestData?.columns;
       if (!columns) {
@@ -58,12 +58,12 @@ const exportReport = async (req, res, next) => {
         throw new ApiError(400, 'Invalid columns format. Expected JSON array.');
       }
     }
-    
+
     // Validate columns structure
     if (!Array.isArray(columns) || columns.length === 0) {
       throw new ApiError(400, 'Columns must be a non-empty array.');
     }
-    
+
     // Validate each column has required properties
     const invalidColumns = columns.filter(col => !col || !col.key || !col.header);
     if (invalidColumns.length > 0) {
@@ -81,13 +81,13 @@ const exportReport = async (req, res, next) => {
       from_date: from_date || date_from,
       to_date: to_date || date_to,
       date,
-      
+
       // Branch filter
       branch_id,
-      
+
       // Status filter
       status,
-      
+
       // Academic filters
       academic_year,
       class_name,
@@ -95,17 +95,17 @@ const exportReport = async (req, res, next) => {
       section_name,
       section_id,
       student_id,
-      
+
       // Search filter
       search,
-      
+
       // Fee report type
       report_type: fee_report_type,
-      
+
       // Monthly payment filters
       payment_model,
       months,
-      year,
+      year
     };
 
     // Remove undefined values
@@ -114,8 +114,6 @@ const exportReport = async (req, res, next) => {
         delete filters[key];
       }
     });
-
-
 
     // Call unified export service
     const result = await unifiedExportService.exportReport(
@@ -132,27 +130,27 @@ const exportReport = async (req, res, next) => {
       return successResponse(res, {
         message: 'Export data generated successfully',
         data: result.data,
-        fileName: result.fileName,
+        fileName: result.fileName
       });
     }
 
     // For file formats, send the file
     if (result.filePath && require('fs').existsSync(result.filePath)) {
       const stats = require('fs').statSync(result.filePath);
-      
+
       if (stats.size === 0) {
         throw new ApiError(500, 'Generated file is empty');
       }
-      
+
       res.setHeader('Content-Type', result.contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
-      
+
       const fileStream = require('fs').createReadStream(result.filePath);
       fileStream.pipe(res);
-      
+
       // Clean up file after sending
       fileStream.on('end', () => {
-        require('fs').unlink(result.filePath, (err) => {
+        require('fs').unlink(result.filePath, err => {
           if (err) {
             logger.warn('Failed to delete temporary export file:', err);
           }
@@ -161,7 +159,6 @@ const exportReport = async (req, res, next) => {
     } else {
       throw new ApiError(500, 'Failed to generate export file');
     }
-
   } catch (error) {
     logger.error('Export controller error:', error);
     return next(error);
@@ -182,15 +179,15 @@ const getExportFormats = async (req, res, next) => {
     const formats = unifiedExportService.supportedFormats.map(format => ({
       value: format,
       label: format.toUpperCase(),
-      description: getFormatDescription(format),
+      description: getFormatDescription(format)
     }));
 
     return successResponse(res, {
       message: 'Export formats retrieved successfully',
       data: {
         report_type,
-        formats,
-      },
+        formats
+      }
     });
   } catch (error) {
     logger.error('Get export formats error:', error);
@@ -206,12 +203,12 @@ const getReportTypes = async (req, res, next) => {
     const reportTypes = unifiedExportService.supportedReportTypes.map(type => ({
       value: type,
       label: getReportTypeLabel(type),
-      description: getReportTypeDescription(type),
+      description: getReportTypeDescription(type)
     }));
 
     return successResponse(res, {
       message: 'Report types retrieved successfully',
-      data: reportTypes,
+      data: reportTypes
     });
   } catch (error) {
     logger.error('Get report types error:', error);
@@ -236,8 +233,8 @@ const getReportColumns = async (req, res, next) => {
       message: 'Report columns retrieved successfully',
       data: {
         report_type,
-        columns,
-      },
+        columns
+      }
     });
   } catch (error) {
     logger.error('Get report columns error:', error);
@@ -253,7 +250,7 @@ function getFormatDescription(format) {
     pdf: 'Portable Document Format - Best for printing and sharing',
     excel: 'Microsoft Excel format - Best for data analysis',
     csv: 'Comma Separated Values - Best for data import',
-    print: 'Print-friendly format - Best for browser printing',
+    print: 'Print-friendly format - Best for browser printing'
   };
   return descriptions[format] || 'Export format';
 }
@@ -266,7 +263,7 @@ function getReportTypeLabel(type) {
     receipts: 'Receipts Report',
     fees: 'Fee Invoices Report',
     students: 'Students Report',
-    attendance: 'Attendance Report',
+    attendance: 'Attendance Report'
   };
   return labels[type] || type;
 }
@@ -279,7 +276,7 @@ function getReportTypeDescription(type) {
     receipts: 'Export payment receipts with student and fee details',
     fees: 'Export fee invoices with payment status and amounts',
     students: 'Export student information with guardian details',
-    attendance: 'Export attendance records with student and class details',
+    attendance: 'Export attendance records with student and class details'
   };
   return descriptions[type] || 'Report data';
 }

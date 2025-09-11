@@ -11,7 +11,11 @@ export { fetchCollectionsAPI } from './collections';
 // Re-export types
 export type { StudentParams, StudentData } from './students';
 export type { AttendanceSession, AttendanceRecord, AttendanceReportParams } from './attendance';
-export type { AbsenceNotificationData, LateArrivalNotificationData, AttendanceSummaryData } from './attendance-notifications';
+export type {
+  AbsenceNotificationData,
+  LateArrivalNotificationData,
+  AttendanceSummaryData
+} from './attendance-notifications';
 export type { FeeTypeParams, FeeTypeData } from './fee-types';
 export type { FeeStructureParams, FeeStructureData } from './fee-structures';
 export type { FeeInvoiceParams, PaymentData } from './fee-invoices';

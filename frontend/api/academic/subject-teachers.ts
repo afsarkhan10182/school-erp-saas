@@ -52,7 +52,9 @@ export const subjectTeacherApi = {
   // Get all subject-teacher assignments with pagination and filtering
   getAll: async (filters: SubjectTeacherFilters = {}) => {
     const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<SubjectTeacher>>('/subject-teachers', { params: filters });
+    const response = await api.get<PaginatedResponse<SubjectTeacher>>('/subject-teachers', {
+      params: filters
+    });
     return response.data;
   },
 
@@ -87,14 +89,30 @@ export const subjectTeacherApi = {
   // Get assignments by subject
   getBySubject: async (subjectId: string, params?: { academic_year?: string }) => {
     const api = createApiInstance();
-    const response = await api.get<ApiResponse<SubjectTeacher[]>>(`/subject-teachers/subject/${subjectId}`, { params });
+    const response = await api.get<ApiResponse<SubjectTeacher[]>>(
+      `/subject-teachers/subject/${subjectId}`,
+      { params }
+    );
     return response.data;
   },
 
   // Get assignments by teacher
   getByTeacher: async (teacherId: string, params?: { academic_year?: string }) => {
     const api = createApiInstance();
-    const response = await api.get<ApiResponse<SubjectTeacher[]>>(`/subject-teachers/teacher/${teacherId}`, { params });
+    const response = await api.get<ApiResponse<SubjectTeacher[]>>(
+      `/subject-teachers/teacher/${teacherId}`,
+      { params }
+    );
+    return response.data;
+  },
+
+  // Get teacher workload data
+  getWorkload: async (filters: SubjectTeacherFilters = {}) => {
+    const api = createApiInstance();
+    const response = await api.get<ApiResponse<{ workload: any[]; stats: any }>>(
+      '/subject-teachers/workload',
+      { params: filters }
+    );
     return response.data;
   }
 };

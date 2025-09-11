@@ -8,7 +8,7 @@ const ROLES = {
   ACCOUNTANT: 'accountant', // Same as branch_admin for fee management
   TEACHER: 'teacher',
   LIBRARIAN: 'librarian',
-  RECEPTIONIST: 'receptionist',
+  RECEPTIONIST: 'receptionist'
 };
 
 // Role hierarchy - higher roles can access lower role resources
@@ -19,7 +19,7 @@ const ROLE_HIERARCHY = {
   [ROLES.ACCOUNTANT]: 8, // Same level as branch_admin
   [ROLES.TEACHER]: 7,
   [ROLES.LIBRARIAN]: 6,
-  [ROLES.RECEPTIONIST]: 5,
+  [ROLES.RECEPTIONIST]: 5
 };
 
 // Role permissions mapping - only for implemented features
@@ -38,7 +38,7 @@ const ROLE_PERMISSIONS = {
     'manage_payments',
     'view_reports',
     'export_data',
-    'manage_modules', // Can enable/disable modules
+    'manage_modules' // Can enable/disable modules
   ],
   [ROLES.SCHOOL_ADMIN]: [
     'manage_school',
@@ -52,7 +52,7 @@ const ROLE_PERMISSIONS = {
     'manage_payments',
     'view_reports',
     'export_data',
-    'manage_modules', // Can enable/disable modules for their school
+    'manage_modules' // Can enable/disable modules for their school
   ],
   [ROLES.BRANCH_ADMIN]: [
     'manage_branch',
@@ -62,7 +62,7 @@ const ROLE_PERMISSIONS = {
     'manage_students',
     'view_fee_data',
     'generate_invoices',
-    'record_payments',
+    'record_payments'
   ],
   [ROLES.ACCOUNTANT]: [
     'view_branch_data',
@@ -71,7 +71,7 @@ const ROLE_PERMISSIONS = {
     'view_fee_data',
     'generate_invoices',
     'record_payments',
-    'view_financial_reports',
+    'view_financial_reports'
   ],
   [ROLES.TEACHER]: [
     'view_branch_data',
@@ -79,19 +79,20 @@ const ROLE_PERMISSIONS = {
     'manage_attendance',
     'manage_grades',
     'view_reports',
+    'view_subjects',
+    'view_subject_teachers',
+    'view_class_subject_mappings',
+    'view_academic_calendar',
+    'view_timetable',
+    'view_exams'
   ],
-  [ROLES.LIBRARIAN]: [
-    'view_branch_data',
-    'manage_library',
-    'manage_books',
-    'view_students',
-  ],
+  [ROLES.LIBRARIAN]: ['view_branch_data', 'manage_library', 'manage_books', 'view_students'],
   [ROLES.RECEPTIONIST]: [
     'view_branch_data',
     'view_students',
     'manage_visitors',
-    'manage_appointments',
-  ],
+    'manage_appointments'
+  ]
 };
 
 // Role access scopes - simplified for actual implementation
@@ -100,44 +101,44 @@ const ROLE_SCOPES = {
     school_access: 'all',
     branch_access: 'all',
     user_access: 'all',
-    data_access: 'all',
+    data_access: 'all'
   },
   [ROLES.SCHOOL_ADMIN]: {
     school_access: 'own',
     branch_access: 'own_school',
     user_access: 'own_school',
-    data_access: 'own_school',
+    data_access: 'own_school'
   },
   [ROLES.BRANCH_ADMIN]: {
     school_access: 'own',
     branch_access: 'own',
     user_access: 'own_branch',
-    data_access: 'own_branch',
+    data_access: 'own_branch'
   },
   [ROLES.ACCOUNTANT]: {
     school_access: 'own',
     branch_access: 'own',
     user_access: 'own_branch',
-    data_access: 'own_branch',
+    data_access: 'own_branch'
   },
   [ROLES.TEACHER]: {
     school_access: 'own',
     branch_access: 'own',
     user_access: 'own_branch',
-    data_access: 'own_branch',
+    data_access: 'own_branch'
   },
   [ROLES.LIBRARIAN]: {
     school_access: 'own',
     branch_access: 'own',
     user_access: 'own_branch',
-    data_access: 'own_branch',
+    data_access: 'own_branch'
   },
   [ROLES.RECEPTIONIST]: {
     school_access: 'own',
     branch_access: 'own',
     user_access: 'own_branch',
-    data_access: 'own_branch',
-  },
+    data_access: 'own_branch'
+  }
 };
 
 class RoleManager {
@@ -350,12 +351,24 @@ class RoleManager {
     }
 
     // Check resource-specific access
-    if (resource.school_id && !this.canAccessSchool(user.role, user.school_id, resource.school_id)) {
+    if (
+      resource.school_id &&
+      !this.canAccessSchool(user.role, user.school_id, resource.school_id)
+    ) {
       logger.debug(`User ${user.id} cannot access school ${resource.school_id}`);
       return false;
     }
 
-    if (resource.branch_id && !this.canAccessBranch(user.role, user.school_id, user.branch_id, resource.school_id, resource.branch_id)) {
+    if (
+      resource.branch_id &&
+      !this.canAccessBranch(
+        user.role,
+        user.school_id,
+        user.branch_id,
+        resource.school_id,
+        resource.branch_id
+      )
+    ) {
       logger.debug(`User ${user.id} cannot access branch ${resource.branch_id}`);
       return false;
     }
@@ -420,5 +433,5 @@ module.exports = {
   ROLE_HIERARCHY,
   ROLE_PERMISSIONS,
   ROLE_SCOPES,
-  RoleManager,
-}; 
+  RoleManager
+};

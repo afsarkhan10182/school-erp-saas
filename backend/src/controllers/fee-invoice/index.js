@@ -66,5 +66,5 @@ module.exports = {
 
   // Advanced payment operations
   getBreakdown: advancedPayments.getBreakdown,
-  recordFlexibleInstallmentPayment: advancedPayments.recordFlexibleInstallmentPayment,
-}; 
+  recordFlexibleInstallmentPayment: advancedPayments.recordFlexibleInstallmentPayment
+};

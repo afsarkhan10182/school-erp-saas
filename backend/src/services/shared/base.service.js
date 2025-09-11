@@ -1,5 +1,5 @@
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 
 class BaseService {
   /**
@@ -10,32 +10,32 @@ class BaseService {
       return await operation();
     } catch (error) {
       logger.error(`${operationName} failed:`, error);
-      
+
       if (error instanceof ApiError) {
         throw error;
       }
-      
+
       // Handle Sequelize errors
       if (error.name === 'SequelizeValidationError') {
         const validationErrors = error.errors.map(err => err.message).join(', ');
         throw new ApiError(400, `Validation failed: ${validationErrors}`);
       }
-      
+
       if (error.name === 'SequelizeUniqueConstraintError') {
         const field = error.errors[0]?.path || 'field';
         throw new ApiError(400, `${field} already exists`);
       }
-      
+
       if (error.name === 'SequelizeForeignKeyConstraintError') {
         throw new ApiError(400, 'Referenced record does not exist');
       }
-      
+
       // Handle other database errors
       if (error.name === 'SequelizeDatabaseError') {
         logger.error('Database error:', error);
         throw new ApiError(500, 'Database operation failed');
       }
-      
+
       // Default error handling
       logger.error('Unexpected error:', error);
       throw new ApiError(500, 'Internal server error');
@@ -47,7 +47,7 @@ class BaseService {
    */
   static async validateEntityExists(model, id, entityName) {
     if (!id) return;
-    
+
     const entity = await model.findByPk(id);
     if (!entity) {
       throw new ApiError(404, `${entityName} not found`);
@@ -60,15 +60,15 @@ class BaseService {
    */
   static async validateEntitiesExist(model, ids, entityName) {
     if (!ids || !Array.isArray(ids) || ids.length === 0) return;
-    
+
     const entities = await model.findAll({
       where: { id: { [require('sequelize').Op.in]: ids } }
     });
-    
+
     if (entities.length !== ids.length) {
       throw new ApiError(404, `One or more ${entityName} not found`);
     }
-    
+
     return entities;
   }
 
@@ -147,8 +147,8 @@ class BaseService {
    * Validate required fields
    */
   static validateRequiredFields(data, requiredFields) {
-    const missingFields = requiredFields.filter(field => 
-      data[field] === undefined || data[field] === null || data[field] === ''
+    const missingFields = requiredFields.filter(
+      field => data[field] === undefined || data[field] === null || data[field] === ''
     );
 
     if (missingFields.length > 0) {
@@ -246,8 +246,8 @@ class BaseService {
     }
 
     if (requiredPermissions.length > 0) {
-      const hasPermission = requiredPermissions.some(permission => 
-        user.permissions && user.permissions.includes(permission)
+      const hasPermission = requiredPermissions.some(
+        permission => user.permissions && user.permissions.includes(permission)
       );
 
       if (!hasPermission) {
@@ -345,9 +345,9 @@ class BaseService {
    */
   static async getFromCache(cacheKey, fetchFunction, ttl = 600) {
     try {
-      const RedisUtils = require('../../utils/redis-utils');
+      const RedisUtils = require('~/utils/redis-utils');
       const cachedData = await RedisUtils.get(cacheKey);
-      
+
       if (cachedData) {
         logger.debug(`Cache hit for key: ${cacheKey}`);
         return cachedData;
@@ -355,12 +355,12 @@ class BaseService {
 
       logger.debug(`Cache miss for key: ${cacheKey}, executing function`);
       const data = await fetchFunction();
-      
+
       if (data) {
         await RedisUtils.set(cacheKey, data, ttl);
         logger.debug(`Cached data for key: ${cacheKey}`);
       }
-      
+
       return data;
     } catch (error) {
       logger.warn(`Cache operation failed for key: ${cacheKey}`, error.message);
@@ -374,8 +374,8 @@ class BaseService {
    */
   static async clearCache(keys) {
     try {
-      const RedisUtils = require('../../utils/redis-utils');
-      
+      const RedisUtils = require('~/utils/redis-utils');
+
       if (Array.isArray(keys)) {
         for (const key of keys) {
           await RedisUtils.del(key);

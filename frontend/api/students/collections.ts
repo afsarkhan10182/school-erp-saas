@@ -8,7 +8,7 @@ export const fetchCollectionsAPI = async (filters: any, pagination: any) => {
       limit: pagination.limit,
       ...filters
     };
-    
+
     const response = await api.get('/fee-invoices/collections', { params });
     return {
       data: response.data.data.collections || [],
@@ -18,4 +18,4 @@ export const fetchCollectionsAPI = async (filters: any, pagination: any) => {
     console.error('Error fetching collections:', error);
     throw error;
   }
-}; 
+};

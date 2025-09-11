@@ -1,13 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorize } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
-const SchoolController = require('../../controllers/school/school.controller');
-const {
-  createSchoolValidator,
-  updateSchoolValidator,
-} = require('../../validations/school.validation');
-const { uploadFields } = require('../../middleware/upload');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const SchoolController = require('~/controllers/school/school.controller');
+const { createSchoolValidator, updateSchoolValidator } = require('~/validations/school.validation');
+const { uploadFields } = require('~/middleware/upload');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -21,23 +18,15 @@ router.post(
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
     { name: 'printing_logo', maxCount: 1 },
-    { name: 'report_card_design', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 }
   ]),
   validate(createSchoolValidator),
   SchoolController.createSchool
 );
 
-router.get(
-  '/',
-  authorize(['super_admin', 'school_admin']),
-  SchoolController.getAllSchools
-);
+router.get('/', authorize(['super_admin', 'school_admin']), SchoolController.getAllSchools);
 
-router.get(
-  '/my-school',
-  authorize(['school_admin', 'branch_admin']),
-  SchoolController.getMySchool
-);
+router.get('/my-school', authorize(['school_admin', 'branch_admin']), SchoolController.getMySchool);
 
 router.put(
   '/my-school',
@@ -47,7 +36,7 @@ router.put(
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
     { name: 'printing_logo', maxCount: 1 },
-    { name: 'report_card_design', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 }
   ]),
   validate(updateSchoolValidator),
   SchoolController.updateMySchool
@@ -60,11 +49,7 @@ router.get(
   SchoolController.getSchoolStaff
 );
 
-router.get(
-  '/:id',
-  authorize(['super_admin', 'school_admin']),
-  SchoolController.getSchoolById
-);
+router.get('/:id', authorize(['super_admin', 'school_admin']), SchoolController.getSchoolById);
 
 router.put(
   '/:id',
@@ -74,35 +59,19 @@ router.put(
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
     { name: 'printing_logo', maxCount: 1 },
-    { name: 'report_card_design', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 }
   ]),
   validate(updateSchoolValidator),
   SchoolController.updateSchool
 );
 
-router.delete(
-  '/:id',
-  authorize(['super_admin']),
-  SchoolController.deleteSchool
-);
+router.delete('/:id', authorize(['super_admin']), SchoolController.deleteSchool);
 
-router.patch(
-  '/:id/suspend',
-  authorize(['super_admin']),
-  SchoolController.suspendSchool
-);
+router.patch('/:id/suspend', authorize(['super_admin']), SchoolController.suspendSchool);
 
-router.patch(
-  '/:id/reactivate',
-  authorize(['super_admin']),
-  SchoolController.reactivateSchool
-);
+router.patch('/:id/reactivate', authorize(['super_admin']), SchoolController.reactivateSchool);
 
-router.post(
-  '/:id/reactivate',
-  authorize(['super_admin']),
-  SchoolController.reactivateSchool
-);
+router.post('/:id/reactivate', authorize(['super_admin']), SchoolController.reactivateSchool);
 
 // Module management routes (Super Admin controls, School Admin and Branch Admin view-only)
 router.get(
@@ -130,4 +99,4 @@ router.post(
   SchoolController.requestUpgrade
 );
 
-module.exports = router; 
+module.exports = router;

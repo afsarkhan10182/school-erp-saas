@@ -1,6 +1,6 @@
 <template>
   <div>
-    <SubscriptionDetails 
+    <SubscriptionDetails
       :school-id="authStore.user.school_id"
       title="My Plan"
       subtitle="Your subscription overview"
@@ -32,11 +32,11 @@ const { showSuccess, showError } = useToast();
 await navigateTo('/settings/profile?tab=subscription');
 
 // Event handlers
-const handleDataLoaded = (data) => {
+const handleDataLoaded = data => {
   console.log('Subscription data loaded:', data);
 };
 
-const handleRenewalRequested = (data) => {
+const handleRenewalRequested = data => {
   showSuccess('Renewal request submitted successfully');
   console.log('Renewal requested:', data);
 };

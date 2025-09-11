@@ -1,26 +1,25 @@
 // Common Print Report Composable
 // Reusable print functionality for all reports
 
-import { calculateReportSummary, formatCellValue, getCellAlignment } from '~/utils/exportConfig'
+import { calculateReportSummary, formatCellValue, getCellAlignment } from '~/utils/exportConfig';
 
 export interface PrintReportData {
-  title: string
-  data: any[]
-  columns: any[]
-  filters: Record<string, any>
-  reportType: string
+  title: string;
+  data: any[];
+  columns: any[];
+  filters: Record<string, any>;
+  reportType: string;
 }
 
 export interface PrintOptions {
-  showHeader?: boolean
-  showSummary?: boolean
-  showFilters?: boolean
-  showFooter?: boolean
-  autoPrint?: boolean
+  showHeader?: boolean;
+  showSummary?: boolean;
+  showFilters?: boolean;
+  showFooter?: boolean;
+  autoPrint?: boolean;
 }
 
 export const usePrintReport = () => {
-  
   // Helper function to format date consistently
   const formatDate = () => {
     return new Date().toLocaleString('en-IN', {
@@ -29,9 +28,9 @@ export const usePrintReport = () => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    })
-  }
-  
+    });
+  };
+
   // Main print function
   // Note: The data passed in reportData should already be filtered based on user selections
   const printReport = async (
@@ -40,29 +39,22 @@ export const usePrintReport = () => {
   ): Promise<void> => {
     try {
       // Generate HTML content
-      const htmlContent = generatePrintHTML(reportData, options)
-      
+      const htmlContent = generatePrintHTML(reportData, options);
+
       // Show print preview or print directly
       if (options.autoPrint) {
-        await printDirectly(htmlContent)
+        await printDirectly(htmlContent);
       } else {
-        await showPrintPreview(htmlContent, reportData.title)
+        await showPrintPreview(htmlContent, reportData.title);
       }
     } catch (error) {
-      console.error('Print error:', error)
-      throw new Error('Failed to print report')
+      throw new Error('Failed to print report');
     }
-  }
+  };
 
   // Generate print HTML content
   const generatePrintHTML = (reportData: PrintReportData, options: PrintOptions = {}): string => {
-    const {
-      title,
-      data,
-      columns,
-      filters,
-      reportType
-    } = reportData
+    const { title, data, columns, filters, reportType } = reportData;
 
     const {
       showHeader = true,
@@ -70,11 +62,11 @@ export const usePrintReport = () => {
       showFilters = true,
       showFooter = true,
       autoPrint = false
-    } = options
+    } = options;
 
     // Calculate summary values using shared utility
-    const summary = calculateReportSummary(data, reportType)
-    
+    const summary = calculateReportSummary(data, reportType);
+
     return `
       <!DOCTYPE html>
       <html lang="en">
@@ -385,44 +377,65 @@ export const usePrintReport = () => {
         </style>
       </head>
       <body>
-        ${!autoPrint ? `
+        ${
+          !autoPrint
+            ? `
         <!-- Print Preview Controls -->
         <div class="preview-controls no-print">
           <button onclick="window.print()" class="primary">Print Report</button>
           <button onclick="window.print()" class="success">Save as PDF</button>
           <button onclick="window.close()">Close</button>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
         
         <div class="report-container">
-          ${showHeader ? `
+          ${
+            showHeader
+              ? `
           <!-- Report Header -->
           <div class="report-header">
             <div class="school-name">School ERP System</div>
             <div class="report-title">${title} Report</div>
             <div class="report-date">Generated on: ${formatDate()}</div>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
           
-          ${showFilters && Object.keys(filters).length > 0 ? `
+          ${
+            showFilters && Object.keys(filters).length > 0
+              ? `
           <!-- Filters Section -->
           <div class="filters-section keep-together">
             <div class="filters-title">Applied Filters:</div>
             <div class="filters-content">
-              ${Object.entries(filters).map(([key, value]) => {
-                if (!value) return ''
-                const label = key.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase())
-                return `${label}: ${value}`
-              }).filter(Boolean).join(' | ') || 'None'}
+              ${
+                Object.entries(filters)
+                  .map(([key, value]) => {
+                    if (!value) return '';
+                    const label = key.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());
+                    return `${label}: ${value}`;
+                  })
+                  .filter(Boolean)
+                  .join(' | ') || 'None'
+              }
             </div>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
           
-          ${showSummary ? `
+          ${
+            showSummary
+              ? `
           <!-- Summary Section -->
           <div class="summary-section keep-together">
             <div class="summary-grid">
-              ${reportType === 'receipts' ? `
+              ${
+                reportType === 'receipts'
+                  ? `
               <!-- Receipts: Only 2 cards - Total Collected and Total Receipts -->
               <div class="summary-card">
                 <div class="summary-value">${summary.formattedAmount}</div>
@@ -432,7 +445,9 @@ export const usePrintReport = () => {
                 <div class="summary-value">${data.length}</div>
                 <div class="summary-label">TOTAL RECEIPTS</div>
               </div>
-              ` : reportType === 'fees' ? `
+              `
+                  : reportType === 'fees'
+                    ? `
               <!-- Fees: 4 cards - Total Amount, Total Collected, Total Pending, Collection Rate -->
               <div class="summary-card">
                 <div class="summary-value">${summary.formattedAmount}</div>
@@ -450,19 +465,25 @@ export const usePrintReport = () => {
                 <div class="summary-value">${summary.collectionRate || '0%'}</div>
                 <div class="summary-label">COLLECTION RATE</div>
               </div>
-              ` : `
+              `
+                    : `
               <!-- Default: Simple record count -->
               <div class="summary-card">
                 <div class="summary-value">${data.length}</div>
                 <div class="summary-label">${summary.summaryLabel}</div>
               </div>
-              `}
+              `
+              }
             </div>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
           
           <!-- Data Table -->
-          ${columns.length > 0 && data.length > 0 ? `
+          ${
+            columns.length > 0 && data.length > 0
+              ? `
           <table class="data-table">
             <thead>
               <tr>
@@ -470,78 +491,90 @@ export const usePrintReport = () => {
               </tr>
             </thead>
             <tbody>
-              ${data.map((row: any) => `
+              ${data
+                .map(
+                  (row: any) => `
                 <tr>
-                  ${columns.map((col: any) => {
-                    const value = row[col.key] || ''
-                    let displayValue = String(value)
-                    
-                    // Format values using shared utility
-                    displayValue = formatCellValue(value, col.key)
-                    
-                    // Get text alignment using shared utility
-                    const textAlign = getCellAlignment(col.key)
-                    
-                    return `<td class="${textAlign}">${displayValue}</td>`
-                  }).join('')}
+                  ${columns
+                    .map((col: any) => {
+                      const value = row[col.key] || '';
+                      let displayValue = String(value);
+
+                      // Format values using shared utility
+                      displayValue = formatCellValue(value, col.key);
+
+                      // Get text alignment using shared utility
+                      const textAlign = getCellAlignment(col.key);
+
+                      return `<td class="${textAlign}">${displayValue}</td>`;
+                    })
+                    .join('')}
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
-          ` : `
+          `
+              : `
           <div class="no-data-message">
             No data found for the specified filters.
           </div>
-          `}
+          `
+          }
           
-          ${showFooter ? `
+          ${
+            showFooter
+              ? `
           <!-- Footer -->
           <div class="report-footer">
             Total Records: ${data.length} | Generated on: ${formatDate()}
           </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         
 
       </body>
       </html>
-    `
-  }
+    `;
+  };
 
   // Note: calculateSummary function removed - now using shared utility calculateReportSummary
 
   // Print directly without preview
   const printDirectly = async (htmlContent: string): Promise<void> => {
-    const printWindow = window.open('', '_blank')
+    const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      throw new Error('Please allow popups to print the report')
+      throw new Error('Please allow popups to print the report');
     }
-    
-    printWindow.document.write(htmlContent)
-    printWindow.document.close()
-    
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
     // Wait for content to load, then trigger print
     setTimeout(() => {
-      printWindow.print()
-      printWindow.close()
-    }, 1000)
-  }
+      printWindow.print();
+      printWindow.close();
+    }, 1000);
+  };
 
   // Show print preview
   const showPrintPreview = async (htmlContent: string, title: string): Promise<void> => {
-    const previewWindow = window.open('', '_blank', 'width=1200,height=800')
+    const previewWindow = window.open('', '_blank', 'width=1200,height=800');
     if (!previewWindow) {
-      throw new Error('Please allow popups to view print preview')
+      throw new Error('Please allow popups to view print preview');
     }
-    
-    previewWindow.document.write(htmlContent)
-    previewWindow.document.close()
-    
+
+    previewWindow.document.write(htmlContent);
+    previewWindow.document.close();
+
     // Focus the window
-    previewWindow.focus()
-  }
+    previewWindow.focus();
+  };
 
   return {
     printReport
-  }
-}
+  };
+};
