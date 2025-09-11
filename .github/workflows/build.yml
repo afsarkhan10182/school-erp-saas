@@ -14,16 +14,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
+
+      # ✅ Check previous workflow run status
+      - name: Check previous workflow run status
+        id: check_previous_run
+        run: |
+          # Get the previous workflow run for this branch
+          PREVIOUS_RUN=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=${{ github.ref_name }}&per_page=2" | \
+            jq -r '.workflow_runs[1].conclusion // "null"')
+
+          if [ "$PREVIOUS_RUN" = "failure" ] || [ "$PREVIOUS_RUN" = "cancelled" ]; then
+            echo "previous_run_failed=true" >> $GITHUB_OUTPUT
+            echo "Previous workflow run failed or was cancelled. Forcing full deployment."
+          else
+            echo "previous_run_failed=false" >> $GITHUB_OUTPUT
+            echo "Previous workflow run was successful or no previous run found."
+          fi
 
       # ✅ Detect file changes
       - name: Check changed files
         id: check_changes
         run: |
-          # First deployment or workflow changes = full deploy
-          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '\.github/workflows/' > /dev/null; then
+          # Force full deploy if previous run failed, first deployment, or workflow changes
+          if [ "${{ steps.check_previous_run.outputs.previous_run_failed }}" = "true" ] || \
+             [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || \
+             git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '\.github/workflows/' > /dev/null; then
             echo "frontend_changed=true" >> $GITHUB_OUTPUT
             echo "backend_changed=true" >> $GITHUB_OUTPUT
+            echo "Forcing full deployment due to previous failure, first deployment, or workflow changes"
           else
             # Check specific changes
             git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^frontend/' > /dev/null && echo "frontend_changed=true" >> $GITHUB_OUTPUT || echo "frontend_changed=false" >> $GITHUB_OUTPUT
@@ -99,23 +119,23 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/digitalfuzed-schoolapi/htdocs/schoolapi.digitalfuzed.com
-            
+
             # Backup important files
             cp .env /tmp/backend_env_backup 2>/dev/null || true
             cp -r uploads /tmp/uploads_backup 2>/dev/null || true
             cp -r logs /tmp/logs_backup 2>/dev/null || true
-            
+
             # Extract and restore
             tar -xzf /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
             mv /tmp/backend_env_backup .env 2>/dev/null || true
             cp -r /tmp/uploads_backup/* uploads/ 2>/dev/null || true
             cp -r /tmp/logs_backup/* logs/ 2>/dev/null || true
-            
+
             # Setup directories and permissions
             mkdir -p uploads/{documents,receipts,id-cards,logos} logs
             chmod -R 755 uploads/ logs/
             chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/ logs/
-            
+
             # Cleanup
             rm -rf /tmp/uploads_backup /tmp/logs_backup
             rm /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz
