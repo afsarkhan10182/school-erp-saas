@@ -1,13 +1,13 @@
-import { ref, onMounted, readonly } from 'vue'
+import { ref, onMounted, readonly } from 'vue';
 
 export const useHydrationState = () => {
-  const isHydrated = ref(false)
-  
+  const isHydrated = ref(false);
+
   onMounted(() => {
-    isHydrated.value = true
-  })
-  
+    isHydrated.value = true;
+  });
+
   return {
     isHydrated: readonly(isHydrated)
-  }
-} 
+  };
+};

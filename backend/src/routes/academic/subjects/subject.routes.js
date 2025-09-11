@@ -6,11 +6,14 @@ const {
   updateSubject,
   deleteSubject,
   getSubjectsForDropdown,
-  getSubjectStats,
+  getSubjectStats
 } = require('~/controllers/academic/subjects/subject.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createSubjectValidator, updateSubjectValidator } = require('~/validations/academic/subject.validation');
+const {
+  createSubjectValidator,
+  updateSubjectValidator
+} = require('~/validations/academic/subject.validation');
 
 const router = express.Router();
 
@@ -18,28 +21,42 @@ const router = express.Router();
 router.use(verifyToken);
 
 // GET /api/subjects - Get all subjects with role-based access control
-router.get('/', authorize(['super_admin', 'school_admin', 'branch_admin']), getAllSubjects);
+router.get(
+  '/',
+  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
+  getAllSubjects
+);
 
 // GET /api/subjects/dropdown - Get all subjects for dropdown
-router.get('/dropdown', authorize(['super_admin', 'school_admin', 'branch_admin']), getSubjectsForDropdown);
+router.get(
+  '/dropdown',
+  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
+  getSubjectsForDropdown
+);
 
 // GET /api/subjects/stats - Get subject statistics
 router.get('/stats', authorize(['super_admin', 'school_admin', 'branch_admin']), getSubjectStats);
 
 // GET /api/subjects/:id - Get subject by ID
-router.get('/:id', authorize(['super_admin', 'school_admin', 'branch_admin']), getSubjectById);
+router.get(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
+  getSubjectById
+);
 
 // POST /api/subjects - Create new subject
-router.post('/', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(createSubjectValidator), 
+router.post(
+  '/',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(createSubjectValidator),
   createSubject
 );
 
 // PUT /api/subjects/:id - Update subject
-router.put('/:id', 
-  authorize(['super_admin', 'school_admin', 'branch_admin']), 
-  validate(updateSubjectValidator), 
+router.put(
+  '/:id',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  validate(updateSubjectValidator),
   updateSubject
 );
 

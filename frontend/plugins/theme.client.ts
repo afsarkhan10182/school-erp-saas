@@ -11,14 +11,14 @@ export default defineNuxtPlugin(() => {
     // Check for saved theme preference, default to SSR theme
     const savedTheme = localStorage.getItem('theme') || initialTheme;
     const isDark = savedTheme === 'dark';
-    
+
     // Apply theme to document
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    
+
     // Also set cookie for SSR fallback
     const themeCookie = useCookie('theme');
     themeCookie.value = savedTheme;
@@ -33,7 +33,7 @@ export default defineNuxtPlugin(() => {
       } else {
         document.documentElement.classList.remove('dark');
       }
-      
+
       // Update cookie for SSR consistency
       const themeCookie = useCookie('theme');
       themeCookie.value = event.newValue;
@@ -53,4 +53,4 @@ export default defineNuxtPlugin(() => {
       syncTheme
     }
   };
-}); 
+});

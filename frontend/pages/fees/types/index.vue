@@ -5,7 +5,9 @@
       <div class="flex justify-between items-center mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Fee Management</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Manage fee types for your institution</p>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Manage fee types for your institution
+          </p>
         </div>
         <button
           @click="openCreateModal"
@@ -19,7 +21,9 @@
       <!-- Fee Types List -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"
+          ></div>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading fee types...</p>
         </div>
 
@@ -39,44 +43,88 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Code</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Name
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Code
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Category
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Branch
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="feeType in feeTypes" :key="feeType.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr
+                v-for="feeType in feeTypes"
+                :key="feeType.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ feeType.name }}</div>
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ feeType.name }}
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-500 dark:text-gray-400">{{ feeType.code }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': feeType.category === 'academic',
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400': feeType.category === 'transport',
-                    'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400': feeType.category === 'hostel',
-                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400': feeType.category === 'other'
-                  }">
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
+                        feeType.category === 'academic',
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400':
+                        feeType.category === 'transport',
+                      'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400':
+                        feeType.category === 'hostel',
+                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400':
+                        feeType.category === 'other'
+                    }"
+                  >
                     {{ feeType.category }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="feeType.branch" class="flex items-center">
                     <span class="font-medium">{{ feeType.branch.name }}</span>
-                    <span v-if="feeType.branch.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ feeType.branch.code }})</span>
+                    <span v-if="feeType.branch.code" class="text-gray-500 dark:text-gray-400 ml-1"
+                      >({{ feeType.branch.code }})</span
+                    >
                   </div>
                   <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="{
-                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400': feeType.is_active,
-                    'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400': !feeType.is_active
-                  }">
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400':
+                        feeType.is_active,
+                      'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400':
+                        !feeType.is_active
+                    }"
+                  >
                     {{ feeType.is_active ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
@@ -102,26 +150,40 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+      >
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {{ isEditing ? 'Edit Fee Type' : 'Create Fee Type' }}
           </h3>
-          
+
           <form @submit.prevent="saveFeeType">
             <!-- School Selector for Super Admin -->
-            <div v-if="user?.role === 'super_admin' && !isEditing" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">📍 Select School Context</h4>
+            <div
+              v-if="user?.role === 'super_admin' && !isEditing"
+              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            >
+              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
+                📍 Select School Context
+              </h4>
               <div class="space-y-3">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >School *</label
+                  >
                   <select
                     v-model="selectedSchoolId"
                     required
                     :class="[
                       'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.school_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                      validationErrors.school_id
+                        ? 'border-red-300 dark:border-red-600'
+                        : 'border-gray-300 dark:border-gray-600'
                     ]"
                     @change="onSchoolChange"
                   >
@@ -130,18 +192,27 @@
                       {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
                     </option>
                   </select>
-                  <div v-if="validationErrors.school_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.school_id }}</div>
+                  <div
+                    v-if="validationErrors.school_id"
+                    class="mt-1 text-xs text-red-600 dark:text-red-400"
+                  >
+                    {{ validationErrors.school_id }}
+                  </div>
                 </div>
-                
+
                 <!-- Branch Selector for Super Admin -->
                 <div v-if="selectedSchoolId">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Branch *</label
+                  >
                   <select
                     v-model="selectedBranchId"
                     required
                     :class="[
                       'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.branch_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                      validationErrors.branch_id
+                        ? 'border-red-300 dark:border-red-600'
+                        : 'border-gray-300 dark:border-gray-600'
                     ]"
                   >
                     <option value="">Select a branch</option>
@@ -149,33 +220,51 @@
                       {{ branch.name }}
                     </option>
                   </select>
-                  <div v-if="validationErrors.branch_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.branch_id }}</div>
+                  <div
+                    v-if="validationErrors.branch_id"
+                    class="mt-1 text-xs text-red-600 dark:text-red-400"
+                  >
+                    {{ validationErrors.branch_id }}
+                  </div>
                 </div>
-                
-                <div v-if="!selectedSchoolId && !validationErrors.school_id" class="text-xs text-blue-600 dark:text-blue-400">
+
+                <div
+                  v-if="!selectedSchoolId && !validationErrors.school_id"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a school before creating the fee type
                 </div>
-                <div v-if="selectedSchoolId && !selectedBranchId && !validationErrors.branch_id" class="text-xs text-blue-600 dark:text-blue-400">
+                <div
+                  v-if="selectedSchoolId && !selectedBranchId && !validationErrors.branch_id"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a branch before creating the fee type
                 </div>
               </div>
             </div>
 
             <!-- Branch Selector for School Admin -->
-            <div v-if="user?.role === 'school_admin'" class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div
+              v-if="user?.role === 'school_admin'"
+              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            >
               <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
                 📍 {{ isEditing ? 'Branch Context (Read-only)' : 'Select Branch Context' }}
               </h4>
               <div class="space-y-3">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Branch *</label
+                  >
                   <select
                     v-model="selectedBranchId"
                     :required="!isEditing"
                     :disabled="isEditing"
                     :class="[
                       'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.branch_id ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600',
+                      validationErrors.branch_id
+                        ? 'border-red-300 dark:border-red-600'
+                        : 'border-gray-300 dark:border-gray-600',
                       isEditing ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : ''
                     ]"
                   >
@@ -184,9 +273,17 @@
                       {{ branch.name }}
                     </option>
                   </select>
-                  <div v-if="validationErrors.branch_id" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.branch_id }}</div>
+                  <div
+                    v-if="validationErrors.branch_id"
+                    class="mt-1 text-xs text-red-600 dark:text-red-400"
+                  >
+                    {{ validationErrors.branch_id }}
+                  </div>
                 </div>
-                <div v-if="!selectedBranchId && !validationErrors.branch_id && !isEditing" class="text-xs text-blue-600 dark:text-blue-400">
+                <div
+                  v-if="!selectedBranchId && !validationErrors.branch_id && !isEditing"
+                  class="text-xs text-blue-600 dark:text-blue-400"
+                >
                   ⚠️ Please select a branch before creating the fee type
                 </div>
                 <div v-if="isEditing" class="text-xs text-blue-600 dark:text-blue-400">
@@ -196,50 +293,75 @@
             </div>
 
             <!-- Validation Errors Display -->
-            <div v-if="validationErrors.general" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div
+              v-if="validationErrors.general"
+              class="mb-4 p-4 bg-red-50 border border-red-200 rounded-md"
+            >
               <div class="text-red-800 text-sm">{{ validationErrors.general }}</div>
             </div>
 
             <!-- Fee Type Form -->
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Name *</label
+                >
                 <input
                   v-model="form.name"
                   type="text"
                   required
                   :class="[
                     'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.name ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    validationErrors.name
+                      ? 'border-red-300 dark:border-red-600'
+                      : 'border-gray-300 dark:border-gray-600'
                   ]"
                   placeholder="Enter fee type name"
                 />
-                <div v-if="validationErrors.name" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.name }}</div>
+                <div
+                  v-if="validationErrors.name"
+                  class="mt-1 text-xs text-red-600 dark:text-red-400"
+                >
+                  {{ validationErrors.name }}
+                </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Code *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Code *</label
+                >
                 <input
                   v-model="form.code"
                   type="text"
                   required
                   :class="[
                     'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.code ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    validationErrors.code
+                      ? 'border-red-300 dark:border-red-600'
+                      : 'border-gray-300 dark:border-gray-600'
                   ]"
                   placeholder="e.g., TUITION, TRANSPORT, HOSTEL"
                 />
-                <div v-if="validationErrors.code" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.code }}</div>
+                <div
+                  v-if="validationErrors.code"
+                  class="mt-1 text-xs text-red-600 dark:text-red-400"
+                >
+                  {{ validationErrors.code }}
+                </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Category *</label
+                >
                 <select
                   v-model="form.category"
                   required
                   :class="[
                     'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.category ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    validationErrors.category
+                      ? 'border-red-300 dark:border-red-600'
+                      : 'border-gray-300 dark:border-gray-600'
                   ]"
                 >
                   <option value="academic">Academic</option>
@@ -247,7 +369,12 @@
                   <option value="hostel">Hostel</option>
                   <option value="other">Other</option>
                 </select>
-                <div v-if="validationErrors.category" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.category }}</div>
+                <div
+                  v-if="validationErrors.category"
+                  class="mt-1 text-xs text-red-600 dark:text-red-400"
+                >
+                  {{ validationErrors.category }}
+                </div>
               </div>
 
               <div class="flex items-center">
@@ -258,7 +385,12 @@
                 />
                 <label class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Active</label>
               </div>
-              <div v-if="validationErrors.is_active" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ validationErrors.is_active }}</div>
+              <div
+                v-if="validationErrors.is_active"
+                class="mt-1 text-xs text-red-600 dark:text-red-400"
+              >
+                {{ validationErrors.is_active }}
+              </div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4">
@@ -271,10 +403,16 @@
               </button>
               <button
                 type="submit"
-                :disabled="isSubmitting || (user?.role === 'super_admin' && !isEditing && (!selectedSchoolId || !selectedBranchId)) || (user?.role === 'school_admin' && !isEditing && !selectedBranchId)"
+                :disabled="
+                  isSubmitting ||
+                  (user?.role === 'super_admin' &&
+                    !isEditing &&
+                    (!selectedSchoolId || !selectedBranchId)) ||
+                  (user?.role === 'school_admin' && !isEditing && !selectedBranchId)
+                "
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
               >
-                {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
+                {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
               </button>
             </div>
           </form>
@@ -344,10 +482,10 @@ const resetForm = () => {
 // Fetch schools for super admin
 const fetchSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
-  
+
   try {
     const response = await Schools.getAll();
-    
+
     // Handle both paginated and non-paginated responses
     if (response.data?.schools) {
       availableSchools.value = response.data.schools;
@@ -370,14 +508,14 @@ const onSchoolChange = async () => {
   if (selectedSchoolId.value) {
     try {
       const branches = await fetchBranches(selectedSchoolId.value);
-      
+
       // fetchBranches returns the branches array directly
       if (Array.isArray(branches)) {
         availableBranches.value = branches;
       } else {
         availableBranches.value = [];
       }
-      
+
       // Auto-select if only one branch
       if (availableBranches.value.length === 1) {
         selectedBranchId.value = availableBranches.value[0].id;
@@ -399,17 +537,17 @@ const fetchBranchesForSchoolAdmin = async () => {
   if (user.value?.role !== 'school_admin' || !user.value?.school_id) {
     return;
   }
-  
+
   try {
     const branches = await fetchBranches(user.value.school_id);
-    
+
     // fetchBranches returns the branches array directly
     if (Array.isArray(branches)) {
       availableBranches.value = branches;
     } else {
       availableBranches.value = [];
     }
-    
+
     // Auto-select if only one branch
     if (availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
@@ -428,13 +566,19 @@ const forceReloadBranches = async () => {
 };
 
 // Watch for user data changes to load branches
-watch(user, async (newUser) => {
-  if (newUser?.role === 'school_admin' && newUser?.school_id && availableBranches.value.length === 0) {
-    await fetchBranchesForSchoolAdmin();
-  }
-}, { immediate: true });
-
-
+watch(
+  user,
+  async newUser => {
+    if (
+      newUser?.role === 'school_admin' &&
+      newUser?.school_id &&
+      availableBranches.value.length === 0
+    ) {
+      await fetchBranchesForSchoolAdmin();
+    }
+  },
+  { immediate: true }
+);
 
 const fetchFeeTypes = async () => {
   isLoading.value = true;
@@ -456,7 +600,7 @@ const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
-  
+
   // Load schools for super admin
   if (user.value?.role === 'super_admin') {
     await fetchSchools();
@@ -468,7 +612,7 @@ const openCreateModal = async () => {
   }
 };
 
-const editFeeType = (feeType) => {
+const editFeeType = feeType => {
   form.value = {
     name: feeType.name,
     code: feeType.code,
@@ -478,7 +622,7 @@ const editFeeType = (feeType) => {
   editingId.value = feeType.id;
   isEditing.value = true;
   showModal.value = true;
-  
+
   // Set the branch ID for editing (so it's passed to the API)
   if (feeType.branch_id) {
     selectedBranchId.value = feeType.branch_id;
@@ -497,7 +641,7 @@ const saveFeeType = async () => {
   isSubmitting.value = true;
   // Clear previous validation errors
   validationErrors.value = {};
-  
+
   try {
     const feeTypeData = {
       ...form.value,
@@ -515,17 +659,17 @@ const saveFeeType = async () => {
     if (isEditing.value) {
       await FeeTypes.update(editingId.value, feeTypeData);
     } else {
-              await FeeTypes.create(feeTypeData);
+      await FeeTypes.create(feeTypeData);
     }
 
     await fetchFeeTypes();
     closeModal();
-    
+
     // Show success message
     showSuccess(`Fee type ${isEditing.value ? 'updated' : 'created'} successfully!`);
   } catch (error) {
     console.error('Error saving fee type:', error);
-    
+
     // Handle validation errors from backend
     if (error.response?.data?.errors) {
       validationErrors.value = error.response.data.errors;
@@ -536,7 +680,7 @@ const saveFeeType = async () => {
       // Handle generic error
       validationErrors.value = { general: 'An error occurred while saving the fee type' };
     }
-    
+
     // Show error toast
     showError('Failed to save fee type. Please check the form for errors.');
   } finally {
@@ -544,7 +688,7 @@ const saveFeeType = async () => {
   }
 };
 
-const deleteFeeType = async (id) => {
+const deleteFeeType = async id => {
   if (confirm('Are you sure you want to delete this fee type?')) {
     try {
       await FeeTypes.delete(id);
@@ -570,15 +714,15 @@ onMounted(async () => {
     if (user.value?.role === 'super_admin') {
       await fetchSchools();
     }
-    
+
     // Load branches for school admin on component mount
     if (user.value?.role === 'school_admin') {
       await fetchBranchesForSchoolAdmin();
     }
-    
+
     // Load fee types
     await fetchFeeTypes();
-    
+
     // Setup resize observer
     resizeObserver = new ResizeObserver(() => {
       checkMobile();

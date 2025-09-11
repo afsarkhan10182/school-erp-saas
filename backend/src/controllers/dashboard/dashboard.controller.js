@@ -1,9 +1,9 @@
-const { User, School, Branch, FeeInvoice, Student } = require('../../models');
-const { Sequelize, sequelize } = require('../../config/database');
-const SchoolService = require('../../services/school/school.service');
-const BranchService = require('../../services/school/branch.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
+const { User, School, Branch, FeeInvoice, Student } = require('~/models');
+const { Sequelize, sequelize } = require('~/config/database');
+const SchoolService = require('~/services/school/school.service');
+const BranchService = require('~/services/school/branch.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
 const { Op } = require('sequelize');
 
 class DashboardController {
@@ -11,7 +11,14 @@ class DashboardController {
     try {
       const user = req.user;
       const { branch_id, new_students_days = 30 } = req.query;
-      console.log('🔍 Dashboard getStats called for user:', user.role, 'branch_id:', branch_id, 'new_students_days:', new_students_days);
+      console.log(
+        '🔍 Dashboard getStats called for user:',
+        user.role,
+        'branch_id:',
+        branch_id,
+        'new_students_days:',
+        new_students_days
+      );
       let stats = {};
 
       if (user.role === 'super_admin') {
@@ -27,33 +34,47 @@ class DashboardController {
           totalSchools: schoolCount,
           totalBranches: branchCount,
           totalUsers: userCount,
-          totalRevenue: totalRevenue || 0,
+          totalRevenue: totalRevenue || 0
         };
       } else if (user.role === 'school_admin') {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
-        
+
         // Build where clause for school with optional branch filter
         let schoolWhere = { school_id: user.school_id };
         let branchWhere = { school_id: user.school_id };
-        
+
         if (branch_id) {
           schoolWhere.branch_id = branch_id;
           branchWhere.id = branch_id;
         }
-        
+
         // Calculate date for new students (last N days)
         const newStudentsDate = new Date();
         newStudentsDate.setDate(newStudentsDate.getDate() - parseInt(new_students_days));
         const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        
+
         // Optimized: Single query for all student statistics
         const studentStats = await Student.findAll({
           where: schoolWhere,
           attributes: [
             [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_students'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`)), 'new_students'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)), 'active_students']
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(
+                  `CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`
+                )
+              ),
+              'new_students'
+            ],
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)
+              ),
+              'active_students'
+            ]
           ],
           raw: true
         });
@@ -62,27 +83,44 @@ class DashboardController {
         const feeStats = await FeeInvoice.findAll({
           where: schoolWhere,
           attributes: [
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)), 'pending_fees'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)), 'overdue_fees'],
-            [Sequelize.fn('SUM', Sequelize.literal(`CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`)), 'fee_collection']
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)
+              ),
+              'pending_fees'
+            ],
+            [
+              Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)),
+              'overdue_fees'
+            ],
+            [
+              Sequelize.fn(
+                'SUM',
+                Sequelize.literal(
+                  `CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
+                )
+              ),
+              'fee_collection'
+            ]
           ],
           raw: true
         });
 
         // Get branch count
         const totalBranches = await Branch.count({ where: branchWhere });
-        
+
         // Extract results
         const studentData = studentStats[0] || {};
         const feeData = feeStats[0] || {};
-        
+
         const totalStudents = parseInt(studentData.total_students || 0);
         const newStudents = parseInt(studentData.new_students || 0);
         const activeStudents = parseInt(studentData.active_students || 0);
         const pendingFees = parseInt(feeData.pending_fees || 0);
         const overdueFees = parseInt(feeData.overdue_fees || 0);
         const feeCollection = parseFloat(feeData.fee_collection || 0);
-        
+
         stats = {
           totalStudents,
           totalBranches,
@@ -91,25 +129,39 @@ class DashboardController {
           feeCollection: feeCollection || 0,
           activeStudents,
           pendingFees,
-          overdueFees,
+          overdueFees
         };
         console.log('✅ School admin stats calculated:', stats);
       } else if (user.role === 'branch_admin') {
         // Branch stats
         if (!user.branch_id) throw new ApiError(400, 'No branch assigned');
-        
+
         // Calculate date for new students (last N days)
         const newStudentsDate = new Date();
         newStudentsDate.setDate(newStudentsDate.getDate() - parseInt(new_students_days));
         const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        
+
         // Optimized: Single query for all student statistics
         const studentStats = await Student.findAll({
           where: { branch_id: user.branch_id },
           attributes: [
             [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_students'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`)), 'new_students'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)), 'active_students']
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(
+                  `CASE WHEN created_at >= '${newStudentsDate.toISOString()}' THEN 1 END`
+                )
+              ),
+              'new_students'
+            ],
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(`CASE WHEN status IN ('active') OR status IS NULL THEN 1 END`)
+              ),
+              'active_students'
+            ]
           ],
           raw: true
         });
@@ -119,18 +171,38 @@ class DashboardController {
           where: { branch_id: user.branch_id },
           attributes: [
             [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_invoices'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'paid' THEN 1 END`)), 'paid_invoices'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)), 'pending_fees'],
-            [Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)), 'overdue_fees'],
-            [Sequelize.fn('SUM', Sequelize.literal(`CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`)), 'fee_collection']
+            [
+              Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'paid' THEN 1 END`)),
+              'paid_invoices'
+            ],
+            [
+              Sequelize.fn(
+                'COUNT',
+                Sequelize.literal(`CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END`)
+              ),
+              'pending_fees'
+            ],
+            [
+              Sequelize.fn('COUNT', Sequelize.literal(`CASE WHEN status = 'overdue' THEN 1 END`)),
+              'overdue_fees'
+            ],
+            [
+              Sequelize.fn(
+                'SUM',
+                Sequelize.literal(
+                  `CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
+                )
+              ),
+              'fee_collection'
+            ]
           ],
           raw: true
         });
-        
+
         // Extract results
         const studentData = studentStats[0] || {};
         const feeData = feeStats[0] || {};
-        
+
         const totalStudents = parseInt(studentData.total_students || 0);
         const newStudents = parseInt(studentData.new_students || 0);
         const activeStudents = parseInt(studentData.active_students || 0);
@@ -139,7 +211,7 @@ class DashboardController {
         const pendingFees = parseInt(feeData.pending_fees || 0);
         const overdueFees = parseInt(feeData.overdue_fees || 0);
         const feeCollection = parseFloat(feeData.fee_collection || 0);
-        
+
         stats = {
           totalStudents,
           newStudents,
@@ -149,7 +221,7 @@ class DashboardController {
           activeStudents,
           pendingFees,
           totalInvoices,
-          paidInvoices,
+          paidInvoices
         };
       } else {
         // For other roles, return basic info
@@ -166,17 +238,27 @@ class DashboardController {
   static async getOverviewReport(req, res, next) {
     try {
       if (req.user.role !== 'super_admin') {
-        return res.status(403).json({ success: false, message: 'Only super admins can access this report.' });
+        return res
+          .status(403)
+          .json({ success: false, message: 'Only super admins can access this report.' });
       }
       // Count schools by status
-      const [totalSchools, activeSchools, inactiveSchools, suspendedSchools, trialSchools, totalUsers, totalBranches] = await Promise.all([
+      const [
+        totalSchools,
+        activeSchools,
+        inactiveSchools,
+        suspendedSchools,
+        trialSchools,
+        totalUsers,
+        totalBranches
+      ] = await Promise.all([
         School.count(),
         School.count({ where: { status: 'active' } }),
         School.count({ where: { status: 'inactive' } }),
         School.count({ where: { status: 'suspended' } }),
         School.count({ where: { status: 'trial' } }),
         User.count(),
-        Branch.count(),
+        Branch.count()
       ]);
       // Expiring trials: status 'trial' and subscription_end_date within 7 days
       const now = new Date();
@@ -184,9 +266,9 @@ class DashboardController {
       const expiringTrials = await School.findAll({
         where: {
           status: 'trial',
-          subscription_end_date: { 
-            [Op.lte]: in7days, 
-            [Op.gte]: now 
+          subscription_end_date: {
+            [Op.lte]: in7days,
+            [Op.gte]: now
           }
         },
         attributes: ['id', 'name', 'email', 'subscription_end_date']
@@ -201,7 +283,7 @@ class DashboardController {
           trialSchools,
           totalUsers,
           totalBranches,
-          expiringTrials,
+          expiringTrials
         }
       });
     } catch (error) {
@@ -213,20 +295,36 @@ class DashboardController {
   static async getSchoolReport(req, res, next) {
     try {
       if (req.user.role !== 'school_admin') {
-        return res.status(403).json({ success: false, message: 'Only school admins can access this report.' });
+        return res
+          .status(403)
+          .json({ success: false, message: 'Only school admins can access this report.' });
       }
       const schoolId = req.user.school_id;
       if (!schoolId) {
         return res.status(400).json({ success: false, message: 'No school assigned.' });
       }
       // Count users by role
-      const [totalStudents, totalTeachers, totalStaff, totalParents, totalBranches] = await Promise.all([
-        User.count({ where: { school_id: schoolId, role: 'student' } }),
-        User.count({ where: { school_id: schoolId, role: 'teacher' } }),
-        User.count({ where: { school_id: schoolId, role: ['accountant', 'hr', 'receptionist', 'librarian', 'transport_manager', 'branch_admin', 'school_admin'] } }),
-        User.count({ where: { school_id: schoolId, role: 'parent' } }),
-        Branch.count({ where: { school_id: schoolId } }),
-      ]);
+      const [totalStudents, totalTeachers, totalStaff, totalParents, totalBranches] =
+        await Promise.all([
+          User.count({ where: { school_id: schoolId, role: 'student' } }),
+          User.count({ where: { school_id: schoolId, role: 'teacher' } }),
+          User.count({
+            where: {
+              school_id: schoolId,
+              role: [
+                'accountant',
+                'hr',
+                'receptionist',
+                'librarian',
+                'transport_manager',
+                'branch_admin',
+                'school_admin'
+              ]
+            }
+          }),
+          User.count({ where: { school_id: schoolId, role: 'parent' } }),
+          Branch.count({ where: { school_id: schoolId } })
+        ]);
       // Get enabled modules
       const school = await School.findByPk(schoolId);
       const enabledModules = Array.isArray(school.modules) ? school.modules : [];
@@ -238,7 +336,7 @@ class DashboardController {
           totalStaff,
           totalParents,
           totalBranches,
-          enabledModules,
+          enabledModules
         }
       });
     } catch (error) {
@@ -256,7 +354,8 @@ class DashboardController {
 
       if (user.role === 'super_admin') {
         // Optimized: Single query using UNION for all recent activities
-        const recentActivities = await sequelize.query(`
+        const recentActivities = await sequelize.query(
+          `
           (SELECT 
             'student' as type,
             id,
@@ -289,27 +388,37 @@ class DashboardController {
           LIMIT ${Math.ceil(limit / 3)})
           ORDER BY created_at DESC
           LIMIT ${limit}
-        `, {
-          type: Sequelize.QueryTypes.SELECT
-        });
+        `,
+          {
+            type: Sequelize.QueryTypes.SELECT
+          }
+        );
 
         recentActivities.forEach(activity => {
           const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
           activities.push({
             id: `${activity.type}_${activity.id}`,
-            type: activity.type === 'student' ? 'student_added' : 
-                  activity.type === 'payment' ? 'fee_paid' : 'user_created',
-            title: activity.type === 'student' ? 'New Student Created' :
-                   activity.type === 'payment' ? 'Fee Payment Received' : 'New User Created',
+            type:
+              activity.type === 'student'
+                ? 'student_added'
+                : activity.type === 'payment'
+                  ? 'fee_paid'
+                  : 'user_created',
+            title:
+              activity.type === 'student'
+                ? 'New Student Created'
+                : activity.type === 'payment'
+                  ? 'Fee Payment Received'
+                  : 'New User Created',
             description: cleanDescription,
             created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
-
       } else if (user.role === 'school_admin') {
         // Optimized: Single query using UNION for school activities
         const schoolFilter = branch_id ? `AND branch_id = '${branch_id}'` : '';
-        const recentActivities = await sequelize.query(`
+        const recentActivities = await sequelize.query(
+          `
           (SELECT 
             'student' as type,
             id,
@@ -333,9 +442,11 @@ class DashboardController {
           LIMIT ${Math.ceil(limit / 2)})
           ORDER BY created_at DESC
           LIMIT ${limit}
-        `, {
-          type: Sequelize.QueryTypes.SELECT
-        });
+        `,
+          {
+            type: Sequelize.QueryTypes.SELECT
+          }
+        );
 
         recentActivities.forEach(activity => {
           const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
@@ -347,10 +458,10 @@ class DashboardController {
             created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
-
       } else if (user.role === 'branch_admin') {
         // Optimized: Single query using UNION for branch activities
-        const recentActivities = await sequelize.query(`
+        const recentActivities = await sequelize.query(
+          `
           (SELECT 
             'student' as type,
             id,
@@ -374,9 +485,11 @@ class DashboardController {
           LIMIT ${Math.ceil(limit / 2)})
           ORDER BY created_at DESC
           LIMIT ${limit}
-        `, {
-          type: Sequelize.QueryTypes.SELECT
-        });
+        `,
+          {
+            type: Sequelize.QueryTypes.SELECT
+          }
+        );
 
         recentActivities.forEach(activity => {
           const cleanDescription = activity.description.replace(/\s+/g, ' ').trim();
@@ -413,7 +526,7 @@ class DashboardController {
       const user = req.user;
       const { branch_id } = req.query;
       let where = {};
-      
+
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
@@ -428,13 +541,15 @@ class DashboardController {
         where,
         attributes: [
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
-          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
+          [Sequelize.fn('count', Sequelize.col('id')), 'count']
         ],
         group: ['month'],
-        order: [[Sequelize.col('month'), 'ASC']],
+        order: [[Sequelize.col('month'), 'ASC']]
       });
 
-      const labels = students.map(s => new Date(s.get('month')).toLocaleString('default', { month: 'short' }));
+      const labels = students.map(s =>
+        new Date(s.get('month')).toLocaleString('default', { month: 'short' })
+      );
       const data = students.map(s => s.get('count'));
 
       // If no data, provide default structure
@@ -455,7 +570,7 @@ class DashboardController {
       const user = req.user;
       const { branch_id } = req.query;
       let where = {};
-      
+
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
@@ -473,9 +588,9 @@ class DashboardController {
         attributes: [
           'status',
           [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
-          [Sequelize.fn('sum', Sequelize.col('balance_amount')), 'total_pending'],
+          [Sequelize.fn('sum', Sequelize.col('balance_amount')), 'total_pending']
         ],
-        group: ['status'],
+        group: ['status']
       });
 
       // Process the data to create proper chart labels and data
@@ -516,7 +631,7 @@ class DashboardController {
       const user = req.user;
       const { branch_id } = req.query;
       let where = {};
-      
+
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
@@ -530,12 +645,9 @@ class DashboardController {
 
       const students = await Student.findAll({
         where,
-        attributes: [
-          'current_class',
-          [Sequelize.fn('count', Sequelize.col('id')), 'count'],
-        ],
+        attributes: ['current_class', [Sequelize.fn('count', Sequelize.col('id')), 'count']],
         group: ['current_class'],
-        order: [[Sequelize.col('current_class'), 'ASC']],
+        order: [[Sequelize.col('current_class'), 'ASC']]
       });
 
       const labels = students.map(s => s.current_class || 'Unknown');
@@ -559,7 +671,7 @@ class DashboardController {
       const user = req.user;
       const { months = 6, branch_id } = req.query;
       let where = {};
-      
+
       if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
@@ -574,7 +686,7 @@ class DashboardController {
       // Get fee collection data for last N months
       const monthsAgo = new Date();
       monthsAgo.setMonth(monthsAgo.getMonth() - parseInt(months));
-      
+
       where.created_at = {
         [Op.gte]: monthsAgo
       };
@@ -583,13 +695,15 @@ class DashboardController {
         where: { ...where, status: 'paid' },
         attributes: [
           [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'month'],
-          [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid'],
+          [Sequelize.fn('sum', Sequelize.col('paid_amount')), 'total_paid']
         ],
         group: [Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at'))],
-        order: [[Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'ASC']],
+        order: [[Sequelize.fn('date_trunc', 'month', Sequelize.col('created_at')), 'ASC']]
       });
 
-      const labels = fees.map(f => new Date(f.get('month')).toLocaleString('default', { month: 'short' }));
+      const labels = fees.map(f =>
+        new Date(f.get('month')).toLocaleString('default', { month: 'short' })
+      );
       const data = fees.map(f => parseFloat(f.get('total_paid') || 0));
 
       // If no data, provide default structure
@@ -607,37 +721,45 @@ class DashboardController {
 
   static async getAcademicYearMonths(req, res, next) {
     try {
-      console.log('📅 getAcademicYearMonths called by user:', req.user?.id, 'role:', req.user?.role);
+      console.log(
+        '📅 getAcademicYearMonths called by user:',
+        req.user?.id,
+        'role:',
+        req.user?.role
+      );
       const user = req.user;
-      const { getCurrentAcademicYearForSchool, getAcademicYearMonths } = require('../../utils/academicYearUtils');
-      
+      const {
+        getCurrentAcademicYearForSchool,
+        getAcademicYearMonths
+      } = require('~/utils/academicYearUtils');
+
       // Get current academic year for the school
       const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
-      
+
       if (!currentAcademicYear) {
         return res.status(404).json({
           success: false,
           message: 'No current academic year found'
         });
       }
-      
+
       // Get school's starting month (default to 6 for June)
-      const { School } = require('../../models');
+      const { School } = require('~/models');
       const school = await School.findByPk(user.school_id, {
         attributes: ['starting_month']
       });
-      
+
       const startingMonth = school?.starting_month || 6; // Default to June
-      
+
       // Get academic year months
       const academicMonths = getAcademicYearMonths(startingMonth, currentAcademicYear.name);
-      
+
       console.log('📅 Academic year months generated:', {
         startingMonth,
         academicYear: currentAcademicYear.name,
         months: academicMonths
       });
-      
+
       // Format for frontend - use calendar month numbers as values for backend compatibility
       const formattedMonths = academicMonths.map(month => ({
         value: month.month, // Calendar month number (1-12) for backend API
@@ -646,9 +768,9 @@ class DashboardController {
         academicMonth: month.academicMonth,
         isCurrentMonth: month.isCurrentMonth
       }));
-      
+
       console.log('📅 Formatted months for frontend:', formattedMonths);
-      
+
       res.json({
         success: true,
         data: {
@@ -667,26 +789,34 @@ class DashboardController {
     try {
       const user = req.user;
       const { academic_year } = req.query;
-      console.log('🔍 Fee collection summary called for user:', user.role, 'academic_year:', academic_year);
-      
+      console.log(
+        '🔍 Fee collection summary called for user:',
+        user.role,
+        'academic_year:',
+        academic_year
+      );
+
       // Get current academic year from database if not provided
       let targetAcademicYear = academic_year;
       if (!targetAcademicYear) {
-        const { getCurrentAcademicYearForSchool } = require('../../utils/academicYearUtils');
+        const { getCurrentAcademicYearForSchool } = require('~/utils/academicYearUtils');
         const currentAcademicYear = await getCurrentAcademicYearForSchool(user.school_id);
         targetAcademicYear = currentAcademicYear ? currentAcademicYear.name : null;
-        
+
         if (!targetAcademicYear) {
           // Fallback to calculated academic year if no current year in database
           const currentYear = new Date().getFullYear();
           const currentMonth = new Date().getMonth() + 1; // 1-12
-          targetAcademicYear = currentMonth >= 6 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+          targetAcademicYear =
+            currentMonth >= 6
+              ? `${currentYear}-${currentYear + 1}`
+              : `${currentYear - 1}-${currentYear}`;
         }
       }
 
       let where = {};
       let branchWhere = {};
-      
+
       // Only filter by academic year if explicitly provided
       if (targetAcademicYear) {
         where.academic_year = targetAcademicYear;
@@ -698,7 +828,7 @@ class DashboardController {
       } else if (user.role === 'school_admin') {
         where.school_id = user.school_id;
         branchWhere.school_id = user.school_id;
-        
+
         // Add branch filter if provided
         if (req.query.branch_id) {
           where.branch_id = req.query.branch_id;
@@ -713,18 +843,54 @@ class DashboardController {
       }
 
       // Get all summary statistics in a single optimized query
-      
+
       const summaryStats = await FeeInvoice.findAll({
         where,
         attributes: [
           [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.col('id')), 'total_invoices'],
-          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'paid' THEN 1 END")), 'paid_count'],
-          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END")), 'pending_count'],
-          [FeeInvoice.sequelize.fn('COUNT', FeeInvoice.sequelize.literal("CASE WHEN status = 'overdue' THEN 1 END")), 'overdue_count'],
-          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
-          [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+          [
+            FeeInvoice.sequelize.fn(
+              'COUNT',
+              FeeInvoice.sequelize.literal("CASE WHEN status = 'paid' THEN 1 END")
+            ),
+            'paid_count'
+          ],
+          [
+            FeeInvoice.sequelize.fn(
+              'COUNT',
+              FeeInvoice.sequelize.literal(
+                "CASE WHEN status IN ('sent', 'partial_paid') THEN 1 END"
+              )
+            ),
+            'pending_count'
+          ],
+          [
+            FeeInvoice.sequelize.fn(
+              'COUNT',
+              FeeInvoice.sequelize.literal("CASE WHEN status = 'overdue' THEN 1 END")
+            ),
+            'overdue_count'
+          ],
+          [
+            FeeInvoice.sequelize.fn(
+              'SUM',
+              FeeInvoice.sequelize.literal(
+                "CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END"
+              )
+            ),
+            'total_collected'
+          ],
+          [
+            FeeInvoice.sequelize.fn(
+              'SUM',
+              FeeInvoice.sequelize.literal(
+                "CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END"
+              )
+            ),
+            'total_pending'
+          ]
         ],
-        raw: true,
+        raw: true
       });
 
       const stats = summaryStats[0] || {};
@@ -734,7 +900,7 @@ class DashboardController {
       const overdueInvoices = parseInt(stats.overdue_count || 0);
       const totalCollected = parseFloat(stats.total_collected || 0);
       const totalPending = parseFloat(stats.total_pending || 0);
-      
+
       console.log('💰 Dashboard calculation results (optimized single query):');
       console.log('   - Total Invoices:', totalInvoices);
       console.log('   - Paid Invoices:', paidInvoices);
@@ -755,17 +921,33 @@ class DashboardController {
           // Get all branch fee data in a single optimized query
           const branchIds = branches.map(b => b.id);
           const branchFeeData = await FeeInvoice.findAll({
-            where: { 
-              ...where, 
-              branch_id: { [Op.in]: branchIds } 
+            where: {
+              ...where,
+              branch_id: { [Op.in]: branchIds }
             },
             attributes: [
               'branch_id',
-              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END")), 'total_collected'],
-              [FeeInvoice.sequelize.fn('SUM', FeeInvoice.sequelize.literal("CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END")), 'total_pending'],
+              [
+                FeeInvoice.sequelize.fn(
+                  'SUM',
+                  FeeInvoice.sequelize.literal(
+                    "CASE WHEN status IN ('paid', 'partial_paid') THEN paid_amount ELSE 0 END"
+                  )
+                ),
+                'total_collected'
+              ],
+              [
+                FeeInvoice.sequelize.fn(
+                  'SUM',
+                  FeeInvoice.sequelize.literal(
+                    "CASE WHEN status IN ('sent', 'partial_paid', 'overdue') THEN balance_amount ELSE 0 END"
+                  )
+                ),
+                'total_pending'
+              ]
             ],
             group: ['branch_id'],
-            raw: true,
+            raw: true
           });
 
           // Create a map for quick lookup
@@ -809,4 +991,4 @@ class DashboardController {
   }
 }
 
-module.exports = DashboardController; 
+module.exports = DashboardController;

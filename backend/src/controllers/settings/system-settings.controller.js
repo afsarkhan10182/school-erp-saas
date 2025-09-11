@@ -1,4 +1,4 @@
-const { School } = require('../../models');
+const { School } = require('~/models');
 const { Op } = require('sequelize');
 
 class SystemSettingsController {
@@ -7,7 +7,14 @@ class SystemSettingsController {
    */
   static async getSystemSettings(req, res) {
     try {
-      const { schoolId } = req.school;
+      const schoolId = req.user.school_id;
+
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'No school assigned to user'
+        });
+      }
 
       // Get school with system settings
       const school = await School.findByPk(schoolId, {
@@ -64,7 +71,15 @@ class SystemSettingsController {
    */
   static async updateSystemSettings(req, res) {
     try {
-      const { schoolId } = req.school;
+      const schoolId = req.user.school_id;
+
+      if (!schoolId) {
+        return res.status(400).json({
+          success: false,
+          message: 'No school assigned to user'
+        });
+      }
+
       const { systemSettings } = req.body;
 
       // Validate required fields
@@ -82,7 +97,10 @@ class SystemSettingsController {
       const validThemes = ['light', 'dark', 'auto'];
       const validPaginationSizes = [10, 25, 50, 100];
 
-      if (systemSettings.defaultLanguage && !validLanguages.includes(systemSettings.defaultLanguage)) {
+      if (
+        systemSettings.defaultLanguage &&
+        !validLanguages.includes(systemSettings.defaultLanguage)
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Invalid default language'
@@ -103,7 +121,10 @@ class SystemSettingsController {
         });
       }
 
-      if (systemSettings.defaultPaginationSize && !validPaginationSizes.includes(systemSettings.defaultPaginationSize)) {
+      if (
+        systemSettings.defaultPaginationSize &&
+        !validPaginationSizes.includes(systemSettings.defaultPaginationSize)
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Invalid pagination size'

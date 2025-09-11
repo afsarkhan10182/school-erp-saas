@@ -1,18 +1,29 @@
 <template>
   <div class="container mx-auto py-8 max-w-4xl">
     <!-- Header -->
-          <div class="mb-6 flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit School Subscription</h1>
-          <p class="text-gray-600 dark:text-gray-400 mt-1">Update school and subscription details</p>
-        </div>
-        <div class="flex gap-3">
-          <NuxtLink :to="`/saas/schools/${$route.params.id}/modules`" class="btn-secondary" style="background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500;">
-            🔧 Manage Modules
-          </NuxtLink>
-          <NuxtLink to="/saas" class="btn-secondary">Back to List</NuxtLink>
-        </div>
+    <div class="mb-6 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit School Subscription</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">Update school and subscription details</p>
       </div>
+      <div class="flex gap-3">
+        <NuxtLink
+          :to="`/saas/schools/${$route.params.id}/modules`"
+          class="btn-secondary"
+          style="
+            background-color: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+          "
+        >
+          🔧 Manage Modules
+        </NuxtLink>
+        <NuxtLink to="/saas" class="btn-secondary">Back to List</NuxtLink>
+      </div>
+    </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
@@ -21,11 +32,18 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+    <div
+      v-else-if="error"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6"
+    >
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
           </svg>
         </div>
         <div class="ml-3">
@@ -42,31 +60,48 @@
         <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Information</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School Name *</label>
-            <input v-model="form.schoolData.name" type="text" required class="input-field" placeholder="Enter school name" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >School Name *</label
+            >
+            <input
+              v-model="form.schoolData.name"
+              type="text"
+              required
+              class="input-field"
+              placeholder="Enter school name"
+            />
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">School Code *</label>
-              <span v-if="form.schoolData.code && !isSchoolCodeValid" class="text-xs text-red-600 dark:text-red-400">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >School Code *</label
+              >
+              <span
+                v-if="form.schoolData.code && !isSchoolCodeValid"
+                class="text-xs text-red-600 dark:text-red-400"
+              >
                 Must be 2-20 alphanumeric characters
               </span>
             </div>
-            <input 
-              v-model="form.schoolData.code" 
-              type="text" 
-              required 
+            <input
+              v-model="form.schoolData.code"
+              type="text"
+              required
               :class="[
-                'input-field', 
-                form.schoolData.code && !isSchoolCodeValid ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
-              ]" 
-              placeholder="e.g., SCHOOL001" 
+                'input-field',
+                form.schoolData.code && !isSchoolCodeValid
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : ''
+              ]"
+              placeholder="e.g., SCHOOL001"
               @input="validateSchoolCode"
             />
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Email *</label
+              >
               <span v-if="emailError" class="text-xs text-red-600 dark:text-red-400">
                 {{ emailError }}
               </span>
@@ -83,12 +118,17 @@
               @input="validateSchoolEmail"
               @blur="validateSchoolEmail"
             />
-            <p v-if="!emailError && form.schoolData.email" class="mt-1 text-xs text-green-600 dark:text-green-400">
+            <p
+              v-if="!emailError && form.schoolData.email"
+              class="mt-1 text-xs text-green-600 dark:text-green-400"
+            >
               ✓ Valid email format
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Phone</label
+            >
             <input
               v-model="form.schoolData.phone"
               type="tel"
@@ -97,15 +137,23 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency</label>
-            <select v-model="form.schoolData.currency" class="input-field" @change="autoFillCurrencySymbol">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Currency</label
+            >
+            <select
+              v-model="form.schoolData.currency"
+              class="input-field"
+              @change="autoFillCurrencySymbol"
+            >
               <option value="INR">INR (₹)</option>
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Starting Month</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Academic Year Starting Month</label
+            >
             <select v-model="form.schoolData.starting_month" class="input-field">
               <option value="1">January</option>
               <option value="2">February</option>
@@ -125,7 +173,9 @@
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Payment Model</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Default Payment Model</label
+            >
             <select v-model="form.schoolData.default_payment_model" class="input-field">
               <option value="class_based">Class-based (Default)</option>
               <option value="monthly">Monthly</option>
@@ -136,7 +186,9 @@
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Year Type</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Academic Year Type</label
+            >
             <select v-model="form.schoolData.academic_year_start" class="input-field">
               <option value="academic">Academic Year (Custom starting month)</option>
               <option value="calendar">Calendar Year (January-December)</option>
@@ -146,27 +198,68 @@
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Symbol</label>
-            <input v-model="form.schoolData.currency_symbol" type="text" class="input-field" placeholder="e.g. ₹, $" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Currency Symbol</label
+            >
+            <input
+              v-model="form.schoolData.currency_symbol"
+              type="text"
+              class="input-field"
+              placeholder="e.g. ₹, $"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Logo</label>
-            <input ref="systemLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('system_logo', $event)" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >System Logo</label
+            >
+            <input
+              ref="systemLogoInput"
+              type="file"
+              accept="image/*"
+              class="input-field"
+              @change="onFileChange('system_logo', $event)"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Text Logo</label>
-            <input ref="textLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('text_logo', $event)" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Text Logo</label
+            >
+            <input
+              ref="textLogoInput"
+              type="file"
+              accept="image/*"
+              class="input-field"
+              @change="onFileChange('text_logo', $event)"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Printing Logo</label>
-            <input ref="printingLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('printing_logo', $event)" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Printing Logo</label
+            >
+            <input
+              ref="printingLogoInput"
+              type="file"
+              accept="image/*"
+              class="input-field"
+              @change="onFileChange('printing_logo', $event)"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Report Card Design (optional)</label>
-            <input ref="reportCardInput" type="file" accept="image/*,application/pdf" class="input-field" @change="onFileChange('report_card_design', $event)" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Report Card Design (optional)</label
+            >
+            <input
+              ref="reportCardInput"
+              type="file"
+              accept="image/*,application/pdf"
+              class="input-field"
+              @change="onFileChange('report_card_design', $event)"
+            />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Address</label
+            >
             <textarea
               v-model="form.schoolData.address"
               rows="3"
@@ -175,7 +268,9 @@
             ></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >City</label
+            >
             <input
               v-model="form.schoolData.city"
               type="text"
@@ -184,7 +279,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >State</label
+            >
             <input
               v-model="form.schoolData.state"
               type="text"
@@ -193,7 +290,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Country</label
+            >
             <input
               v-model="form.schoolData.country"
               type="text"
@@ -202,7 +301,9 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Postal Code</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Postal Code</label
+            >
             <input
               v-model="form.schoolData.postal_code"
               type="text"
@@ -211,7 +312,9 @@
             />
           </div>
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Website</label
+            >
             <input
               v-model="form.schoolData.website"
               type="url"
@@ -224,10 +327,14 @@
 
       <!-- Subscription Information -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mt-8">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Subscription Information</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          Subscription Information
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Subscription Plan *</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Subscription Plan *</label
+            >
             <select v-model="form.subscriptionData.plan_code" required class="input-field">
               <option value="">Select a plan</option>
               <option v-for="plan in plans" :key="plan.code" :value="plan.code">
@@ -246,12 +353,28 @@
             </select>
           </div>
           <div v-if="form.subscriptionData.status === 'trial'">
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Trial Days</label>
-            <input v-model.number="form.subscriptionData.trial_days" type="number" min="1" class="input-field" @input="autoSetTrialEndDate" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Trial Days</label
+            >
+            <input
+              v-model.number="form.subscriptionData.trial_days"
+              type="number"
+              min="1"
+              class="input-field"
+              @input="autoSetTrialEndDate"
+            />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date *</label>
-            <input v-model="form.subscriptionData.start_date" type="date" required class="input-field" @change="autoSetTrialEndDate" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Start Date *</label
+            >
+            <input
+              v-model="form.subscriptionData.start_date"
+              type="date"
+              required
+              class="input-field"
+              @change="autoSetTrialEndDate"
+            />
           </div>
           <div v-if="form.subscriptionData.status !== 'lifetime'">
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
@@ -265,19 +388,27 @@
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Price:</span>
-              <span class="font-medium text-gray-900 dark:text-white">₹{{ selectedPlan.price }}/{{ selectedPlan.billing_cycle }}</span>
+              <span class="font-medium text-gray-900 dark:text-white"
+                >₹{{ selectedPlan.price }}/{{ selectedPlan.billing_cycle }}</span
+              >
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Students:</span>
-              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_students }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{
+                selectedPlan.max_students
+              }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Staff:</span>
-              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_staff }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{
+                selectedPlan.max_staff
+              }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-500 dark:text-gray-400">Max Branches:</span>
-              <span class="font-medium text-gray-900 dark:text-white">{{ selectedPlan.max_branches }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{
+                selectedPlan.max_branches
+              }}</span>
             </div>
           </div>
           <div class="mt-3">
@@ -300,34 +431,78 @@
         <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Admin User</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">First Name *</label>
-            <input v-model="form.subscriptionData.admin_first_name" type="text" required class="input-field" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >First Name *</label
+            >
+            <input
+              v-model="form.subscriptionData.admin_first_name"
+              type="text"
+              required
+              class="input-field"
+            />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Last Name *</label>
-            <input v-model="form.subscriptionData.admin_last_name" type="text" required class="input-field" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Last Name *</label
+            >
+            <input
+              v-model="form.subscriptionData.admin_last_name"
+              type="text"
+              required
+              class="input-field"
+            />
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email *</label>
-            <input v-model="form.subscriptionData.admin_email" type="email" required class="input-field" @blur="validateUniqueEmail('admin')" />
+            <input
+              v-model="form.subscriptionData.admin_email"
+              type="email"
+              required
+              class="input-field"
+              @blur="validateUniqueEmail('admin')"
+            />
             <span v-if="adminEmailError" class="text-red-500 text-xs">{{ adminEmailError }}</span>
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-            <input v-model="form.subscriptionData.admin_phone" type="text" class="input-field" @input="form.subscriptionData.admin_phone = form.subscriptionData.admin_phone.replace(/[^\d]/g, '')" />
+            <input
+              v-model="form.subscriptionData.admin_phone"
+              type="text"
+              class="input-field"
+              @input="
+                form.subscriptionData.admin_phone = form.subscriptionData.admin_phone.replace(
+                  /[^\d]/g,
+                  ''
+                )
+              "
+            />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">New Password (optional)</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >New Password (optional)</label
+            >
             <div class="relative">
-              <input :type="showAdminPassword ? 'text' : 'password'" v-model="form.subscriptionData.admin_password" class="input-field pr-10" placeholder="Leave blank to keep current password" />
-              <button type="button" @click="toggleAdminPassword" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+              <input
+                :type="showAdminPassword ? 'text' : 'password'"
+                v-model="form.subscriptionData.admin_password"
+                class="input-field pr-10"
+                placeholder="Leave blank to keep current password"
+              />
+              <button
+                type="button"
+                @click="toggleAdminPassword"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+              >
                 <component :is="showAdminPassword ? EyeOff : Eye" class="w-5 h-5" />
               </button>
             </div>
-            <button type="button" class="btn-secondary mt-2" @click="generatePassword">Generate New Password</button>
+            <button type="button" class="btn-secondary mt-2" @click="generatePassword">
+              Generate New Password
+            </button>
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              <strong>Note:</strong> If you want to change the admin password, either enter a new password above or click "Generate New Password". 
-              If left blank, the current password will remain unchanged.
+              <strong>Note:</strong> If you want to change the admin password, either enter a new
+              password above or click "Generate New Password". If left blank, the current password
+              will remain unchanged.
             </p>
           </div>
           <div>
@@ -341,21 +516,35 @@
           </div>
           <div class="col-span-2 flex items-center mt-2">
             <input type="checkbox" v-model="form.subscriptionData.send_email" class="mr-2" />
-            <span class="text-gray-700 dark:text-gray-300">Send new password to email (if password changed)</span>
+            <span class="text-gray-700 dark:text-gray-300"
+              >Send new password to email (if password changed)</span
+            >
           </div>
         </div>
       </div>
 
       <!-- Payment Information (Optional) -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mt-8">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Payment Information (Optional)</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          Payment Information (Optional)
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Payment Amount</label>
-            <input v-model="form.subscriptionData.payment_amount" type="number" step="0.01" class="input-field" placeholder="Enter amount" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Payment Amount</label
+            >
+            <input
+              v-model="form.subscriptionData.payment_amount"
+              type="number"
+              step="0.01"
+              class="input-field"
+              placeholder="Enter amount"
+            />
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Payment Method</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Payment Method</label
+            >
             <select v-model="form.subscriptionData.payment_method" class="input-field">
               <option value="offline_cash">Cash</option>
               <option value="offline_cheque">Cheque</option>
@@ -373,21 +562,33 @@
             </select>
           </div>
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">TRX ID (optional)</label>
-            <input v-model="form.subscriptionData.trx_id" type="text" class="input-field" placeholder="Transaction ID, Cheque No, etc." />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >TRX ID (optional)</label
+            >
+            <input
+              v-model="form.subscriptionData.trx_id"
+              type="text"
+              class="input-field"
+              placeholder="Transaction ID, Cheque No, etc."
+            />
           </div>
           <div class="col-span-2">
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Notes (optional)</label>
-            <textarea v-model="form.subscriptionData.notes" class="input-field" rows="2" placeholder="Bank reference, remarks, etc."></textarea>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Notes (optional)</label
+            >
+            <textarea
+              v-model="form.subscriptionData.notes"
+              class="input-field"
+              rows="2"
+              placeholder="Bank reference, remarks, etc."
+            ></textarea>
           </div>
         </div>
       </div>
 
       <!-- Submit Buttons -->
       <div class="flex justify-end gap-3">
-        <NuxtLink to="/saas" class="btn-secondary">
-          Cancel
-        </NuxtLink>
+        <NuxtLink to="/saas" class="btn-secondary"> Cancel </NuxtLink>
         <button type="submit" class="btn-primary" :disabled="loading">
           {{ loading ? 'Saving...' : 'Save Changes' }}
         </button>
@@ -395,14 +596,31 @@
     </form>
 
     <!-- Toast Notifications -->
-    <div v-if="showToast" :class="toastClasses" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm">
+    <div
+      v-if="showToast"
+      :class="toastClasses"
+      class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm"
+    >
       <div class="flex items-center">
         <div class="flex-shrink-0">
-          <svg v-if="toastType === 'success'" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          <svg
+            v-if="toastType === 'success'"
+            class="h-5 w-5 text-green-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
           </svg>
           <svg v-else class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
           </svg>
         </div>
         <div class="ml-3">
@@ -411,7 +629,11 @@
         <div class="ml-auto pl-3">
           <button @click="hideToast" class="inline-flex text-gray-400 hover:text-gray-600">
             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+              <path
+                fill-rule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
         </div>
@@ -441,7 +663,14 @@ if (user?.role !== 'super_admin') {
 
 const route = useRoute();
 const router = useRouter();
-const { updateSchoolSubscription, getSchoolWithSubscription, plans, fetchPlans, loading: subscriptionLoading, error: subscriptionError } = useSubscriptions();
+const {
+  updateSchoolSubscription,
+  getSchoolWithSubscription,
+  plans,
+  fetchPlans,
+  loading: subscriptionLoading,
+  error: subscriptionError
+} = useSubscriptions();
 
 // Combine loading and error states
 const loading = computed(() => subscriptionLoading.value);
@@ -535,13 +764,13 @@ const validateSchoolEmail = () => {
     emailError.value = 'Email is required';
     return false;
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     emailError.value = 'Please enter a valid email address';
     return false;
   }
-  
+
   emailError.value = '';
   return true;
 };
@@ -553,25 +782,28 @@ const validateAdminEmail = () => {
     adminEmailError.value = 'Admin email is required';
     return false;
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     adminEmailError.value = 'Please enter a valid email address';
     return false;
   }
-  
+
   adminEmailError.value = '';
   return true;
 };
 
 // Validate unique email (frontend only)
-const validateUniqueEmail = (type) => {
+const validateUniqueEmail = type => {
   const email = form.value.subscriptionData.admin_email;
   const schoolCode = form.value.schoolData.code;
   const schoolName = form.value.schoolData.name;
 
   if (type === 'admin') {
-    if (email.toLowerCase() === schoolCode.toLowerCase() || email.toLowerCase() === schoolName.toLowerCase()) {
+    if (
+      email.toLowerCase() === schoolCode.toLowerCase() ||
+      email.toLowerCase() === schoolName.toLowerCase()
+    ) {
       adminEmailError.value = 'Email cannot be the same as School Code or Name.';
       return false;
     }
@@ -585,7 +817,7 @@ const validateForm = () => {
   const isSchoolEmailValid = validateSchoolEmail();
   const isAdminEmailValid = validateAdminEmail();
   const isCodeValid = validateSchoolCode();
-  
+
   return isSchoolEmailValid && isAdminEmailValid && isCodeValid;
 };
 
@@ -642,8 +874,8 @@ const hideToast = () => {
 };
 
 const toastClasses = computed(() => {
-  return toastType.value === 'success' 
-    ? 'bg-green-50 border border-green-200 text-green-800' 
+  return toastType.value === 'success'
+    ? 'bg-green-50 border border-green-200 text-green-800'
     : 'bg-red-50 border border-red-200 text-red-800';
 });
 
@@ -653,11 +885,11 @@ const loadSchool = async () => {
   try {
     // Fetch plans
     await fetchPlans({ is_active: true });
-    
+
     // Fetch school details with subscription data
     const school = await getSchoolWithSubscription(route.params.id);
     if (!school) throw new Error('School not found');
-    
+
     // Populate form
     form.value.schoolData = {
       name: school.name || '',
@@ -676,7 +908,7 @@ const loadSchool = async () => {
       academic_year_start: school.academic_year_start || 'academic', // Default to Academic Year
       default_payment_model: school.fee_settings?.defaultPaymentModel || 'class_based' // Default payment model
     };
-    
+
     form.value.subscriptionData = {
       plan_code: school.subscription_plan || '',
       status: school.status || '',
@@ -706,18 +938,18 @@ const loadSchool = async () => {
 
 const handleSubmit = async () => {
   formError.value = '';
-  
+
   // Validate form before submission
   if (!validateForm()) {
     showToastNotification('Please fix the validation errors', 'error');
     return;
   }
-  
+
   loading.value = true;
   try {
     // Use FormData for file uploads (exactly like create form)
     const formData = new FormData();
-    
+
     // Append form data as JSON strings (same as create form)
     formData.append('schoolData', JSON.stringify(form.value.schoolData));
     formData.append('subscriptionData', JSON.stringify(form.value.subscriptionData));
@@ -725,20 +957,26 @@ const handleSubmit = async () => {
     // File fields
     if (fileInputs.value.system_logo) formData.append('system_logo', fileInputs.value.system_logo);
     if (fileInputs.value.text_logo) formData.append('text_logo', fileInputs.value.text_logo);
-    if (fileInputs.value.printing_logo) formData.append('printing_logo', fileInputs.value.printing_logo);
-    if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
+    if (fileInputs.value.printing_logo)
+      formData.append('printing_logo', fileInputs.value.printing_logo);
+    if (fileInputs.value.report_card_design)
+      formData.append('report_card_design', fileInputs.value.report_card_design);
 
     // Call composable (same pattern as create form)
     const result = await updateSchoolSubscription(route.params.id, formData);
-    
+
     if (result) {
       let successMessage = 'School and subscription updated successfully!';
-      
+
       // If admin user was updated and password was provided, show password info
-      if (result.admin_user && result.admin_user.password && result.admin_user.password !== 'Password unchanged') {
+      if (
+        result.admin_user &&
+        result.admin_user.password &&
+        result.admin_user.password !== 'Password unchanged'
+      ) {
         successMessage += ` Admin password: ${result.admin_user.password}`;
       }
-      
+
       showToastNotification(successMessage, 'success');
       setTimeout(() => {
         router.push('/saas');
@@ -762,7 +1000,6 @@ const toggleAdminPassword = () => {
 };
 
 onMounted(loadSchool);
-
 </script>
 
 <style scoped>
@@ -777,4 +1014,4 @@ onMounted(loadSchool);
 .input-field {
   @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
-</style> 
+</style>

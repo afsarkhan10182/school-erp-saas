@@ -1,8 +1,8 @@
 const { Op } = require('sequelize');
-const { Stream, Class, School, Branch, User } = require('../models');
-const { logger } = require('../utils/logger');
-const ApiError = require('../utils/ApiError');
-const { apiResponse } = require('../utils/apiResponse');
+const { Stream, Class, School, Branch, User } = require('~/models');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { apiResponse } = require('~/utils/apiResponse');
 
 class StreamController {
   static async getAllStreams(req, res, next) {
@@ -32,12 +32,17 @@ class StreamController {
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
         whereClause.branch_id = req.user.branch_id;
-        logger.debug('getAllStreams: Branch admin - filtering by school_id:', req.user.school_id, 'and branch_id:', req.user.branch_id);
+        logger.debug(
+          'getAllStreams: Branch admin - filtering by school_id:',
+          req.user.school_id,
+          'and branch_id:',
+          req.user.branch_id
+        );
       } else {
         logger.warn('getAllStreams: Access denied for role:', req.user.role);
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
@@ -45,7 +50,7 @@ class StreamController {
       if (search) {
         whereClause[Op.or] = [
           { name: { [Op.iLike]: `%${search}%` } },
-          { code: { [Op.iLike]: `%${search}%` } },
+          { code: { [Op.iLike]: `%${search}%` } }
         ];
       }
 
@@ -71,33 +76,33 @@ class StreamController {
 
       // Build include array with safe associations
       const includeArray = [];
-      
+
       includeArray.push({
         model: Class,
         as: 'class',
         attributes: ['id', 'name', 'code'],
-        required: false,
+        required: false
       });
-      
+
       includeArray.push({
         model: School,
         as: 'school',
         attributes: ['id', 'name', 'code'],
-        required: false,
+        required: false
       });
-      
+
       includeArray.push({
         model: Branch,
         as: 'branch',
         attributes: ['id', 'name', 'code'],
-        required: false,
+        required: false
       });
-      
+
       includeArray.push({
         model: User,
         as: 'createdBy',
         attributes: ['id', 'first_name', 'last_name'],
-        required: false,
+        required: false
       });
 
       const { count, rows } = await Stream.findAndCountAll({
@@ -108,7 +113,7 @@ class StreamController {
           ['name', 'ASC'] // Secondary sort for consistency
         ],
         limit: parseInt(limit),
-        offset,
+        offset
       });
 
       const totalPages = Math.ceil(count / parseInt(limit));
@@ -122,8 +127,8 @@ class StreamController {
           limit: parseInt(limit),
           totalPages,
           hasNextPage: parseInt(page) < totalPages,
-          hasPrevPage: parseInt(page) > 1,
-        },
+          hasPrevPage: parseInt(page) > 1
+        }
       });
     } catch (error) {
       logger.error('Error in StreamController.getAllStreams:', error);
@@ -147,7 +152,7 @@ class StreamController {
       } else {
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
@@ -157,41 +162,41 @@ class StreamController {
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: User,
             as: 'createdBy',
-            attributes: ['id', 'first_name', 'last_name'],
+            attributes: ['id', 'first_name', 'last_name']
           },
           {
             model: User,
             as: 'updatedBy',
-            attributes: ['id', 'first_name', 'last_name'],
-          },
-        ],
+            attributes: ['id', 'first_name', 'last_name']
+          }
+        ]
       });
 
       if (!stream) {
         return res.status(404).json({
           success: false,
-          message: 'Stream not found',
+          message: 'Stream not found'
         });
       }
 
       res.json({
         success: true,
-        data: stream,
+        data: stream
       });
     } catch (error) {
       logger.error('Error in StreamController.getStreamById:', error);
@@ -201,20 +206,13 @@ class StreamController {
 
   static async createStream(req, res, next) {
     try {
-      const {
-        name,
-        code,
-        description,
-        class_id,
-        is_active = true,
-        sort_order = 0
-      } = req.body;
+      const { name, code, description, class_id, is_active = true, sort_order = 0 } = req.body;
 
       // Validate required fields
       if (!name || !class_id) {
         return res.status(400).json({
           success: false,
-          message: 'Name and class_id are required',
+          message: 'Name and class_id are required'
         });
       }
 
@@ -223,7 +221,7 @@ class StreamController {
       if (!classInstance) {
         return res.status(400).json({
           success: false,
-          message: 'Class not found',
+          message: 'Class not found'
         });
       }
 
@@ -231,11 +229,14 @@ class StreamController {
       if (!classInstance.has_stream) {
         return res.status(400).json({
           success: false,
-          message: 'This class does not have streams enabled. Please enable streams for this class first.',
+          message:
+            'This class does not have streams enabled. Please enable streams for this class first.'
         });
       }
 
-      logger.debug(`Creating stream for class: ${classInstance.name} (${classInstance.code}) - has_stream: ${classInstance.has_stream}`);
+      logger.debug(
+        `Creating stream for class: ${classInstance.name} (${classInstance.code}) - has_stream: ${classInstance.has_stream}`
+      );
 
       // Set school_id and branch_id based on user role
       let school_id, branch_id;
@@ -245,7 +246,7 @@ class StreamController {
         if (!req.body.school_id || !req.body.branch_id) {
           return res.status(400).json({
             success: false,
-            message: 'school_id and branch_id are required for super admin',
+            message: 'school_id and branch_id are required for super admin'
           });
         }
         school_id = req.body.school_id;
@@ -259,7 +260,7 @@ class StreamController {
       } else {
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
@@ -277,7 +278,7 @@ class StreamController {
         } else {
           finalCode = 'STREAM';
         }
-        
+
         // Add number suffix if code already exists
         let counter = 1;
         let uniqueCode = finalCode;
@@ -286,8 +287,8 @@ class StreamController {
             where: {
               school_id,
               branch_id,
-              code: uniqueCode,
-            },
+              code: uniqueCode
+            }
           });
           if (!existingCode) break;
           uniqueCode = `${finalCode}-${counter}`;
@@ -301,14 +302,14 @@ class StreamController {
         where: {
           school_id,
           branch_id,
-          name,
-        },
+          name
+        }
       });
 
       if (existingStream) {
         return res.status(400).json({
           success: false,
-          message: 'A stream with this name already exists in this branch',
+          message: 'A stream with this name already exists in this branch'
         });
       }
 
@@ -317,14 +318,14 @@ class StreamController {
         where: {
           school_id,
           branch_id,
-          code: finalCode,
-        },
+          code: finalCode
+        }
       });
 
       if (existingCodeStream) {
         return res.status(400).json({
           success: false,
-          message: 'A stream with this code already exists in this branch',
+          message: 'A stream with this code already exists in this branch'
         });
       }
 
@@ -339,7 +340,7 @@ class StreamController {
         is_active,
         sort_order,
         created_by: req.user.id,
-        updated_by: req.user.id,
+        updated_by: req.user.id
       });
 
       // Fetch the created stream with associations
@@ -348,25 +349,25 @@ class StreamController {
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
+            attributes: ['id', 'name', 'code']
+          }
+        ]
       });
 
       res.status(201).json({
         success: true,
         message: 'Stream created successfully',
-        data: createdStream,
+        data: createdStream
       });
     } catch (error) {
       logger.error('Error in StreamController.createStream:', error);
@@ -377,13 +378,7 @@ class StreamController {
   static async updateStream(req, res, next) {
     try {
       const { id } = req.params;
-      const {
-        name,
-        code,
-        description,
-        is_active,
-        sort_order
-      } = req.body;
+      const { name, code, description, is_active, sort_order } = req.body;
 
       // Find the stream with role-based access control
       let whereClause = { id };
@@ -398,7 +393,7 @@ class StreamController {
       } else {
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
@@ -408,15 +403,15 @@ class StreamController {
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
+            attributes: ['id', 'name', 'code']
+          }
+        ]
       });
 
       if (!stream) {
         return res.status(404).json({
           success: false,
-          message: 'Stream not found',
+          message: 'Stream not found'
         });
       }
 
@@ -427,21 +422,21 @@ class StreamController {
             school_id: stream.school_id,
             branch_id: stream.branch_id,
             name,
-            id: { [Op.ne]: id }, // Exclude current stream
-          },
+            id: { [Op.ne]: id } // Exclude current stream
+          }
         });
 
         if (existingStream) {
           return res.status(400).json({
             success: false,
-            message: 'A stream with this name already exists in this branch',
+            message: 'A stream with this name already exists in this branch'
           });
         }
       }
 
       // Update the stream
       const updateData = {
-        updated_by: req.user.id,
+        updated_by: req.user.id
       };
 
       if (name !== undefined) updateData.name = name;
@@ -458,25 +453,25 @@ class StreamController {
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: School,
             as: 'school',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'code'],
-          },
-        ],
+            attributes: ['id', 'name', 'code']
+          }
+        ]
       });
 
       res.json({
         success: true,
         message: 'Stream updated successfully',
-        data: updatedStream,
+        data: updatedStream
       });
     } catch (error) {
       logger.error('Error in StreamController.updateStream:', error);
@@ -501,7 +496,7 @@ class StreamController {
       } else {
         return res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied'
         });
       }
 
@@ -510,7 +505,7 @@ class StreamController {
       if (!stream) {
         return res.status(404).json({
           success: false,
-          message: 'Stream not found',
+          message: 'Stream not found'
         });
       }
 
@@ -519,7 +514,7 @@ class StreamController {
       if (sectionCount > 0) {
         return res.status(400).json({
           success: false,
-          message: `Cannot delete stream. It has ${sectionCount} section(s) associated with it.`,
+          message: `Cannot delete stream. It has ${sectionCount} section(s) associated with it.`
         });
       }
 
@@ -527,7 +522,7 @@ class StreamController {
 
       res.json({
         success: true,
-        message: 'Stream deleted successfully',
+        message: 'Stream deleted successfully'
       });
     } catch (error) {
       logger.error('Error in StreamController.deleteStream:', error);
@@ -539,7 +534,7 @@ class StreamController {
   static async getStreamsForDropdown(req, res, next) {
     try {
       let whereClause = { is_active: true };
-      
+
       if (req.user.role === 'super_admin') {
         if (req.query.school_id) {
           whereClause.school_id = req.query.school_id;
@@ -567,7 +562,7 @@ class StreamController {
       }
 
       console.log('🔍 getStreamsForDropdown - whereClause:', whereClause);
-      
+
       const streams = await Stream.findAll({
         where: whereClause,
         attributes: ['id', 'name', 'code', 'description', 'class_id'],
@@ -575,23 +570,26 @@ class StreamController {
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code'],
+            attributes: ['id', 'name', 'code']
           },
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name'],
-          },
+            attributes: ['id', 'name']
+          }
         ],
-        order: [['sort_order', 'ASC'], ['name', 'ASC']],
+        order: [
+          ['sort_order', 'ASC'],
+          ['name', 'ASC']
+        ]
       });
-      
+
       console.log('🔍 getStreamsForDropdown - found streams:', streams.length, 'items');
       console.log('🔍 getStreamsForDropdown - first stream:', streams[0]?.toJSON());
-      
+
       res.json({
         success: true,
-        data: streams,
+        data: streams
       });
     } catch (error) {
       logger.error('Error in StreamController.getStreamsForDropdown:', error);
@@ -600,4 +598,4 @@ class StreamController {
   }
 }
 
-module.exports = StreamController; 
+module.exports = StreamController;

@@ -2,26 +2,47 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../utils/logger');
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { logger } = require('~/utils/logger');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
+const {
+  getSchoolCodeFromId,
+  getSchoolUploadPath,
+  ensureSchoolUploadDir,
+  generateUniqueFilename,
+  getCurrentYear,
+  getFileUrlPath
+} = require('~/utils/storage');
 
-// Configure multer for file uploads
+// Configure multer for school-specific file uploads
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = resolveUploadsPath('documents');
-    if (!fs.existsSync(uploadDir)) {
-      try {
-      fs.mkdirSync(uploadDir, { recursive: true });
+  destination: async function (req, file, cb) {
+    try {
+      // Get school ID from request
+      const schoolId = req.user?.school_id || req.school_id;
+
+      if (!schoolId) {
+        return cb(new Error('School ID is required for document uploads'), null);
+      }
+
+      // Get school code from school ID
+      const schoolCode = await getSchoolCodeFromId(schoolId);
+
+      // Ensure school-specific documents directory exists
+      const year = getCurrentYear();
+      const uploadDir = ensureSchoolUploadDir(schoolCode, 'documents', year);
+
+      cb(null, uploadDir);
     } catch (error) {
-      console.warn(`Warning: Could not create upload directory at ${uploadDir}:`, error.message);
+      cb(error, null);
     }
-    }
-    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueId = uuidv4();
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueId}${ext}`);
+    try {
+      const filename = generateUniqueFilename(file.originalname, 'document');
+      cb(null, filename);
+    } catch (error) {
+      cb(error, null);
+    }
   }
 });
 
@@ -36,7 +57,7 @@ const fileFilter = (req, file, cb) => {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -58,7 +79,7 @@ const upload = multer({
 const uploadStudentDocuments = async (req, res) => {
   try {
     const { student_id, document_type } = req.body;
-    
+
     if (!student_id || !document_type) {
       return res.status(400).json({
         success: false,
@@ -73,6 +94,14 @@ const uploadStudentDocuments = async (req, res) => {
       });
     }
 
+    // Get school ID and code for file URL generation
+    const schoolId = req.user?.school_id || req.school_id;
+    const schoolCode = await getSchoolCodeFromId(schoolId);
+    const year = getCurrentYear();
+
+    // Generate file URL path for serving
+    const fileUrlPath = getFileUrlPath(schoolCode, 'documents', req.file.filename, year);
+
     // Document metadata
     const documentData = {
       id: uuidv4(),
@@ -80,17 +109,21 @@ const uploadStudentDocuments = async (req, res) => {
       document_type,
       file_name: req.file.originalname,
       file_path: req.file.path,
+      file_url_path: fileUrlPath, // Add URL path for serving
       file_size: req.file.size,
       mime_type: req.file.mimetype,
       uploaded_at: new Date(),
-      uploaded_by: req.user.id
+      uploaded_by: req.user.id,
+      school_id: schoolId // Add school ID for tenant isolation
     };
 
     // Here you would typically save to database
     // For now, we'll return the document info
-    
-    logger.info(`Document uploaded successfully: ${documentData.file_name} for student ${student_id}`);
-    
+
+    logger.info(
+      `Document uploaded successfully: ${documentData.file_name} for student ${student_id}`
+    );
+
     res.json({
       success: true,
       message: 'Document uploaded successfully',
@@ -118,7 +151,7 @@ const uploadStudentDocuments = async (req, res) => {
 const getStudentDocuments = async (req, res) => {
   try {
     const { student_id } = req.params;
-    
+
     if (!student_id) {
       return res.status(400).json({
         success: false,
@@ -169,7 +202,7 @@ const getStudentDocuments = async (req, res) => {
 const deleteStudentDocument = async (req, res) => {
   try {
     const { document_id } = req.params;
-    
+
     if (!document_id) {
       return res.status(400).json({
         success: false,
@@ -179,9 +212,9 @@ const deleteStudentDocument = async (req, res) => {
 
     // Here you would typically delete from database and filesystem
     // For now, we'll just return success
-    
+
     logger.info(`Document deleted: ${document_id}`);
-    
+
     res.json({
       success: true,
       message: 'Document deleted successfully'
@@ -203,7 +236,7 @@ const verifyStudentDocument = async (req, res) => {
   try {
     const { document_id } = req.params;
     const { status, remarks } = req.body;
-    
+
     if (!document_id || !status) {
       return res.status(400).json({
         success: false,
@@ -212,9 +245,9 @@ const verifyStudentDocument = async (req, res) => {
     }
 
     // Here you would typically update the document status in database
-    
+
     logger.info(`Document ${document_id} status updated to: ${status}`);
-    
+
     res.json({
       success: true,
       message: 'Document verification status updated',

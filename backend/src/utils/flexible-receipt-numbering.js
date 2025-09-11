@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/database');
+const { sequelize } = require('~/config/database');
 const { logger } = require('./logger');
 
 /**
@@ -9,13 +9,13 @@ const { logger } = require('./logger');
  */
 const generateFlexibleReceiptNumber = async (school, context = {}) => {
   const { school_id, entity_type, entity_id, class_code, invoice_type } = context;
-  
+
   // Get school's invoice mode from settings
   const invoiceMode = school.settings?.invoice_mode || 'class_based';
-  
+
   let prefix = 'RCP';
   let sequenceKey = 'general';
-  
+
   switch (invoiceMode) {
     case 'class_based':
       // Use class code for class-based schools
@@ -27,7 +27,7 @@ const generateFlexibleReceiptNumber = async (school, context = {}) => {
         sequenceKey = 'class_general';
       }
       break;
-      
+
     case 'student_based':
       // Use student-based numbering
       if (entity_type === 'student') {
@@ -38,7 +38,7 @@ const generateFlexibleReceiptNumber = async (school, context = {}) => {
         sequenceKey = 'general';
       }
       break;
-      
+
     case 'generic':
       // Use invoice type for generic mode
       if (invoice_type) {
@@ -50,29 +50,29 @@ const generateFlexibleReceiptNumber = async (school, context = {}) => {
         sequenceKey = 'generic';
       }
       break;
-      
+
     default:
       prefix = 'RCP-GEN';
       sequenceKey = 'general';
   }
-  
+
   // Get the next sequence number
   const result = await sequelize.query(
     `SELECT MAX(CAST(SUBSTRING(receipt_number FROM '${prefix}-([0-9]+)$') AS INTEGER)) as max_number
      FROM fee_payments 
      WHERE school_id = :school_id 
      AND receipt_number LIKE '${prefix}-%'`,
-    { 
+    {
       type: sequelize.QueryTypes.SELECT,
       replacements: { school_id }
     }
   );
-  
+
   const maxNumber = result[0].max_number || 0;
   const nextId = maxNumber + 1;
-  
+
   const receiptNumber = `${prefix}-${nextId}`;
-  
+
   logger.info('Generated flexible receipt number:', {
     invoiceMode,
     receiptNumber,
@@ -80,8 +80,8 @@ const generateFlexibleReceiptNumber = async (school, context = {}) => {
     school_id,
     context
   });
-  
-  return { 
+
+  return {
     receipt_number: receiptNumber,
     invoice_mode: invoiceMode,
     sequence_key: sequenceKey
@@ -96,13 +96,13 @@ const generateFlexibleReceiptNumber = async (school, context = {}) => {
  */
 const generateFlexibleInvoiceNumber = async (school, context = {}) => {
   const { school_id, entity_type, entity_id, class_code, invoice_type } = context;
-  
+
   // Get school's invoice mode from settings
   const invoiceMode = school.settings?.invoice_mode || 'class_based';
-  
+
   let prefix = 'INV';
   let sequenceKey = 'general';
-  
+
   switch (invoiceMode) {
     case 'class_based':
       // Use class code for class-based schools
@@ -114,7 +114,7 @@ const generateFlexibleInvoiceNumber = async (school, context = {}) => {
         sequenceKey = 'class_general';
       }
       break;
-      
+
     case 'student_based':
       // Use student-based numbering
       if (entity_type === 'student') {
@@ -125,7 +125,7 @@ const generateFlexibleInvoiceNumber = async (school, context = {}) => {
         sequenceKey = 'general';
       }
       break;
-      
+
     case 'generic':
       // Use invoice type for generic mode
       if (invoice_type) {
@@ -137,29 +137,29 @@ const generateFlexibleInvoiceNumber = async (school, context = {}) => {
         sequenceKey = 'generic';
       }
       break;
-      
+
     default:
       prefix = 'INV-GEN';
       sequenceKey = 'general';
   }
-  
+
   // Get the next sequence number
   const result = await sequelize.query(
     `SELECT MAX(CAST(SUBSTRING(invoice_number FROM '${prefix}-([0-9]+)$') AS INTEGER)) as max_number
      FROM fee_invoices 
      WHERE school_id = :school_id 
      AND invoice_number LIKE '${prefix}-%'`,
-    { 
+    {
       type: sequelize.QueryTypes.SELECT,
       replacements: { school_id }
     }
   );
-  
+
   const maxNumber = result[0].max_number || 0;
   const nextId = maxNumber + 1;
-  
+
   const invoiceNumber = `${prefix}-${nextId}`;
-  
+
   logger.info('Generated flexible invoice number:', {
     invoiceMode,
     invoiceNumber,
@@ -167,8 +167,8 @@ const generateFlexibleInvoiceNumber = async (school, context = {}) => {
     school_id,
     context
   });
-  
-  return { 
+
+  return {
     invoice_number: invoiceNumber,
     invoice_mode: invoiceMode,
     sequence_key: sequenceKey

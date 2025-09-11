@@ -8,9 +8,9 @@
         :disabled="disabled"
         class="switch-input"
       />
-      <span class="slider" :class="{ 'disabled': disabled, 'checked': modelValue }"></span>
+      <span class="slider" :class="{ disabled: disabled, checked: modelValue }"></span>
     </label>
-    <span v-if="label" class="toggle-label" :class="{ 'disabled': disabled }">
+    <span v-if="label" class="toggle-label" :class="{ disabled: disabled }">
       {{ label }}
     </span>
   </div>
@@ -30,17 +30,17 @@ const props = defineProps({
     type: Boolean,
     default: false
   }
-})
+});
 
-const emit = defineEmits(['update:modelValue', 'toggle'])
+const emit = defineEmits(['update:modelValue', 'toggle']);
 
-const handleToggle = (event) => {
+const handleToggle = event => {
   if (!props.disabled) {
-    const newValue = event.target.checked
-    emit('update:modelValue', newValue)
-    emit('toggle', newValue)
+    const newValue = event.target.checked;
+    emit('update:modelValue', newValue);
+    emit('toggle', newValue);
   }
-}
+};
 </script>
 
 <style scoped>
@@ -78,7 +78,7 @@ const handleToggle = (event) => {
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 20px;
   width: 20px;
   left: 2px;
@@ -144,23 +144,23 @@ const handleToggle = (event) => {
   .slider {
     background-color: #4b5563;
   }
-  
+
   .slider.checked {
     background-color: #3b82f6;
   }
-  
+
   .slider.disabled {
     background-color: #374151;
   }
-  
+
   .slider.disabled.checked {
     background-color: #6b7280;
   }
-  
+
   .toggle-label {
     color: #d1d5db;
   }
-  
+
   .toggle-label.disabled {
     color: #6b7280;
   }

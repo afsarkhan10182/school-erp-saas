@@ -6,11 +6,11 @@ export const useAuth = () => {
   const login = async (credentials: { email: string; password: string; rememberMe?: boolean }) => {
     try {
       const result = await authStore.login(credentials);
-      
+
       if (result.success) {
         // Wait a moment for auth state to be fully set
         await nextTick();
-        
+
         // Force redirect to dashboard - use replace to prevent back navigation
         await navigateTo('/dashboard', { replace: true });
         return result;
@@ -18,10 +18,9 @@ export const useAuth = () => {
         return result;
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
-      return { 
-        success: false, 
-        error: 'An unexpected error occurred during login.' 
+      return {
+        success: false,
+        error: 'An unexpected error occurred during login.'
       };
     }
   };
@@ -31,7 +30,6 @@ export const useAuth = () => {
       await authStore.logout();
       await navigateTo('/login');
     } catch (error) {
-      console.error('Logout error:', error);
       // Force redirect even if logout fails
       await navigateTo('/login');
     }
@@ -53,13 +51,13 @@ export const useAuth = () => {
   const requireRole = async (allowedRoles: string[]) => {
     const isAuthenticated = await requireAuth();
     if (!isAuthenticated) return false;
-    
+
     const userRole = authStore.userRole;
     if (!userRole || !allowedRoles.includes(userRole)) {
       await navigateTo('/unauthorized');
       return false;
     }
-    
+
     return true;
   };
 
@@ -69,20 +67,20 @@ export const useAuth = () => {
     isLoggedIn: computed(() => authStore.isLoggedIn),
     isLoading: computed(() => authStore.isLoading),
     userRole: computed(() => authStore.userRole),
-    
+
     // Role checks
     isSuperAdmin: computed(() => authStore.isSuperAdmin),
     isSchoolAdmin: computed(() => authStore.isSchoolAdmin),
     isBranchAdmin: computed(() => authStore.isBranchAdmin),
-    
+
     // Actions
     login,
     logout,
     checkAuth,
     requireAuth,
     requireRole,
-    
+
     // Store actions
-    updateUser: authStore.updateUser,
+    updateUser: authStore.updateUser
   };
-}; 
+};

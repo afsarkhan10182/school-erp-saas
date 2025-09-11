@@ -3,14 +3,20 @@
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Edit User</h1>
     <div v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</div>
     <div v-else-if="error" class="text-red-600 dark:text-red-400">{{ error }}</div>
-    <form v-else @submit.prevent="handleSubmit" class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
+    <form
+      v-else
+      @submit.prevent="handleSubmit"
+      class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow"
+    >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">First Name *</label>
-          <input 
-            v-model="form.first_name" 
-            type="text" 
-            required 
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >First Name *</label
+          >
+          <input
+            v-model="form.first_name"
+            type="text"
+            required
             :class="[
               'input-field',
               fieldErrors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
@@ -23,10 +29,10 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Last Name *</label>
-          <input 
-            v-model="form.last_name" 
-            type="text" 
-            required 
+          <input
+            v-model="form.last_name"
+            type="text"
+            required
             :class="[
               'input-field',
               fieldErrors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
@@ -39,10 +45,10 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email *</label>
-          <input 
-            v-model="form.email" 
-            type="email" 
-            required 
+          <input
+            v-model="form.email"
+            type="email"
+            required
             :class="[
               'input-field',
               fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
@@ -55,9 +61,9 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-          <input 
-            v-model="form.phone" 
-            type="tel" 
+          <input
+            v-model="form.phone"
+            type="tel"
             :class="[
               'input-field',
               fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
@@ -69,7 +75,7 @@
           <div v-if="fieldErrors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ fieldErrors.phone }}
           </div>
-          </div>
+        </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
           <PasswordInput
@@ -87,9 +93,9 @@
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role *</label>
-          <select 
-            v-model="form.role" 
-            required 
+          <select
+            v-model="form.role"
+            required
             :class="[
               'input-field',
               fieldErrors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
@@ -113,28 +119,48 @@
           <div v-if="fieldErrors.role" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ fieldErrors.role }}
           </div>
-          <p v-if="isSchoolAdmin" class="text-sm text-gray-500 mt-1">Role cannot be changed by School Admin</p>
+          <p v-if="isSchoolAdmin" class="text-sm text-gray-500 mt-1">
+            Role cannot be changed by School Admin
+          </p>
         </div>
       </div>
       <div class="flex justify-end gap-3">
         <NuxtLink to="/users" class="btn-secondary">Cancel</NuxtLink>
-        <button 
-          type="submit" 
-          class="btn-primary" 
+        <button
+          type="submit"
+          class="btn-primary"
           :disabled="saving"
           :class="{ 'opacity-50 cursor-not-allowed': saving }"
         >
           <span v-if="saving">
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             Saving...
           </span>
           <span v-else>Save Changes</span>
         </button>
       </div>
-      <div v-if="success" class="text-green-600 dark:text-green-400 mt-4">User updated successfully!</div>
+      <div v-if="success" class="text-green-600 dark:text-green-400 mt-4">
+        User updated successfully!
+      </div>
     </form>
   </div>
 </template>
@@ -205,7 +231,7 @@ const fetchUser = async () => {
   }
 };
 
-const handlePhoneInput = (event) => {
+const handlePhoneInput = event => {
   // Allow digits, spaces, dashes, plus sign, and parentheses
   const value = event.target.value;
   const cleaned = value.replace(/[^\d\s\-\(\)\+]/g, '');
@@ -232,7 +258,7 @@ const validatePhone = () => {
   return true;
 };
 
-const clearFieldError = (field) => {
+const clearFieldError = field => {
   if (fieldErrors.value[field]) {
     delete fieldErrors.value[field];
   }
@@ -243,14 +269,14 @@ const handleSubmit = async () => {
   success.value = false;
   error.value = '';
   fieldErrors.value = {};
-  
+
   try {
     // Validate phone number
     if (!validatePhone()) {
       saving.value = false;
       return;
     }
-    
+
     // Prepare update data - only include fields that can be updated
     const updateData = {
       first_name: form.value.first_name,
@@ -258,17 +284,17 @@ const handleSubmit = async () => {
       email: form.value.email,
       phone: form.value.phone
     };
-    
+
     // Only include role if user is not School Admin
     if (!isSchoolAdmin.value) {
       updateData.role = form.value.role;
     }
-    
+
     // Only include password if provided
     if (form.value.password) {
       updateData.password = form.value.password;
     }
-    
+
     const res = await Users.update(route.params.id, updateData);
     if (res.success) {
       success.value = true;
@@ -279,7 +305,7 @@ const handleSubmit = async () => {
     }
   } catch (e) {
     console.error('Error updating user:', e);
-    
+
     // Handle validation errors from backend
     if (e.response?.data?.errors) {
       Object.keys(e.response.data.errors).forEach(field => {
@@ -313,4 +339,4 @@ onMounted(fetchUser);
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
-</style> 
+</style>

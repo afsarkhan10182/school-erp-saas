@@ -36,7 +36,7 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
-  
+
   body {
     @apply transition-colors duration-300;
     background-color: var(--bg-primary);
@@ -51,38 +51,38 @@
     position: fixed !important;
     isolation: isolate;
   }
-  
+
   .main-content {
     z-index: 0 !important;
     position: relative !important;
   }
-  
+
   /* Prevent content from overlapping sidebar during hot reload */
   .sidebar-container * {
     z-index: inherit;
   }
-  
+
   /* Ensure proper stacking context */
   body {
     isolation: isolate;
   }
-  
+
   .btn-primary {
     @apply bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
   }
-  
+
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
   }
-  
+
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-200;
   }
-  
+
   /* Custom select styling with better dropdown arrow positioning */
   select.input-field {
     appearance: none;
@@ -92,30 +92,30 @@
     background-size: 16px;
     padding-right: 40px;
   }
-  
+
   /* Dark mode select styling */
   .dark select.input-field {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
-  
+
   /* Hover state for select */
   select.input-field:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
-  
+
   .dark select.input-field:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
-  
+
   /* Focus state for select */
   select.input-field:focus {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
-  
+
   .dark select.input-field:focus {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
-  
+
   .card {
     @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-all duration-200;
   }
@@ -163,7 +163,9 @@
   .table-row-hover:hover {
     background: linear-gradient(90deg, var(--gradient-primary), var(--gradient-secondary));
     color: #fff;
-    transition: background 0.2s, color 0.2s;
+    transition:
+      background 0.2s,
+      color 0.2s;
   }
 
   .table-dark {
@@ -174,7 +176,7 @@
   .sidebar-item {
     @apply flex items-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200;
   }
-  
+
   .sidebar-item.active {
     @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700;
   }
@@ -189,16 +191,19 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-} 
+}
 
 /* Global dark mode fix for select dropdowns */
 @media (prefers-color-scheme: dark) {
-  select, select option {
+  select,
+  select option {
     background-color: #1f2937 !important;
     color: #f9fafb !important;
   }
-  select option:checked, select option:focus, select option:hover {
+  select option:checked,
+  select option:focus,
+  select option:hover {
     background-color: #2563eb !important;
     color: #fff !important;
   }
-} 
+}

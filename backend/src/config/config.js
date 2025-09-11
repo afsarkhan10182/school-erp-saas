@@ -25,9 +25,9 @@ const config = {
     refreshExpirationDays: process.env.JWT_REFRESH_EXPIRATION_DAYS || 7 // 7 days
   },
   cors: {
-    origin: process.env.CORS_ORIGIN ? 
-      process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()) : 
-      ['http://localhost:3000', 'https://school.digitalfuzed.com'],
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+      : ['http://localhost:3000', 'https://school.digitalfuzed.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -37,7 +37,7 @@ const config = {
     enabled: redisEnabled,
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || '',
+    password: process.env.REDIS_PASSWORD || ''
   },
   uploads: {
     dir: process.env.UPLOADS_DIR || './uploads',
@@ -52,7 +52,7 @@ const config = {
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'text/csv',
-      'application/csv',
+      'application/csv'
     ]
   },
   logging: {
@@ -60,7 +60,7 @@ const config = {
     toFile: process.env.LOG_TO_FILE === 'true',
     file: {
       maxsize: process.env.LOG_FILE_MAXSIZE || 5 * 1024 * 1024, // 5MB
-      maxFiles: process.env.LOG_FILE_MAXFILES || 5,
+      maxFiles: process.env.LOG_FILE_MAXFILES || 5
     }
   },
   email: {
@@ -69,13 +69,13 @@ const config = {
     secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER || '',
-      pass: process.env.SMTP_PASS || '',
+      pass: process.env.SMTP_PASS || ''
     },
-    from: process.env.SMTP_FROM || 'School ERP <noreply@schoolerp.com>',
+    from: process.env.SMTP_FROM || 'School ERP <noreply@schoolerp.com>'
   },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   appName: process.env.APP_NAME || 'School ERP',
-  supportEmail: process.env.SUPPORT_EMAIL || 'support@schoolerp.com',
+  supportEmail: process.env.SUPPORT_EMAIL || 'support@schoolerp.com'
 };
 
 module.exports = config;

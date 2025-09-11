@@ -3,7 +3,7 @@
  * Handles calculations for academic year months, payment sequences, and validation
  */
 
-const { AcademicYear } = require('../models');
+const { AcademicYear } = require('~/models');
 const { logger } = require('./logger');
 
 /**
@@ -15,32 +15,36 @@ const getCurrentAcademicYearForSchool = async (schoolId = null) => {
   try {
     if (schoolId) {
       // First try to get the school's linked academic year
-      const { School } = require('../models');
+      const { School } = require('~/models');
       const school = await School.findByPk(schoolId, {
-        include: [{
-          model: AcademicYear,
-          as: 'currentAcademicYear',
-          where: { is_current: true },
-          required: false
-        }]
+        include: [
+          {
+            model: AcademicYear,
+            as: 'currentAcademicYear',
+            where: { is_current: true },
+            required: false
+          }
+        ]
       });
-      
+
       if (school?.currentAcademicYear) {
-        logger.info(`Found school-specific current academic year: ${school.currentAcademicYear.name}`);
+        logger.info(
+          `Found school-specific current academic year: ${school.currentAcademicYear.name}`
+        );
         return school.currentAcademicYear;
       }
     }
-    
+
     // Fallback to global current academic year
     const globalCurrentYear = await AcademicYear.findOne({
       where: { is_current: true }
     });
-    
+
     if (globalCurrentYear) {
       logger.info(`Using global current academic year: ${globalCurrentYear.name}`);
       return globalCurrentYear;
     }
-    
+
     logger.warn('No current academic year found globally');
     return null;
   } catch (error) {
@@ -58,18 +62,18 @@ const getCurrentAcademicYearForSchool = async (schoolId = null) => {
 const getAcademicYearMonths = (startingMonth, academicYear) => {
   const months = [];
   const [startYear] = academicYear.split('-').map(Number);
-  
+
   for (let i = 0; i < 12; i++) {
     const monthNumber = startingMonth + i;
     let year = startYear;
-    
+
     // If month goes beyond December, adjust year
     if (monthNumber > 12) {
       year = startYear + 1;
     }
-    
+
     const actualMonth = monthNumber > 12 ? monthNumber - 12 : monthNumber;
-    
+
     months.push({
       month: actualMonth,
       year: year,
@@ -78,7 +82,7 @@ const getAcademicYearMonths = (startingMonth, academicYear) => {
       isCurrentMonth: isCurrentAcademicMonth(actualMonth, year, startingMonth)
     });
   }
-  
+
   return months;
 };
 
@@ -87,16 +91,26 @@ const getAcademicYearMonths = (startingMonth, academicYear) => {
  * @param {number} month - Month number (1-12)
  * @returns {string} Month name
  */
-const getMonthName = (month) => {
+const getMonthName = month => {
   // Validate input
   if (!month || typeof month !== 'number' || month < 1 || month > 12) {
     console.warn(`Invalid month number: ${month}. Returning 'Unknown'.`);
     return 'Unknown';
   }
-  
+
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
   return monthNames[month - 1] || 'Unknown';
 };
@@ -112,13 +126,13 @@ const isCurrentAcademicMonth = (month, year, startingMonth) => {
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-12
   const currentYear = now.getFullYear();
-  
+
   // Calculate academic year for current date
   let academicYear = currentYear;
   if (currentMonth < startingMonth) {
     academicYear = currentYear - 1;
   }
-  
+
   return month === currentMonth && year === currentYear;
 };
 
@@ -133,25 +147,33 @@ const getEarliestPendingMonth = (invoices, startingMonth) => {
   if (!Array.isArray(invoices)) {
     throw new Error('Invoices must be an array');
   }
-  
-  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
+
+  if (
+    !startingMonth ||
+    typeof startingMonth !== 'number' ||
+    startingMonth < 1 ||
+    startingMonth > 12
+  ) {
     throw new Error('Starting month must be a valid number between 1 and 12');
   }
-  
+
   // Filter monthly invoices and sort by academic month sequence
   const monthlyInvoices = invoices
     .filter(inv => {
       // Ensure invoice has required properties
       if (!inv || typeof inv !== 'object') return false;
-      
+
       // Check if it's a monthly payment
-      const isMonthly = inv.payment_model === 'monthly' || 
-                       (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
-      
+      const isMonthly =
+        inv.payment_model === 'monthly' ||
+        (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
+
       // Ensure month and year are valid numbers
-      const hasValidMonth = inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
-      const hasValidYear = inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
-      
+      const hasValidMonth =
+        inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
+      const hasValidYear =
+        inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
+
       return isMonthly && hasValidMonth && hasValidYear;
     })
     .sort((a, b) => {
@@ -165,13 +187,15 @@ const getEarliestPendingMonth = (invoices, startingMonth) => {
         return 0;
       }
     });
-  
+
   // Find the first unpaid invoice
-  const firstUnpaid = monthlyInvoices.find(inv => 
-    inv.status === 'sent' || inv.status === 'overdue' || 
-    (inv.status === 'partial_paid' && inv.balance_amount > 0)
+  const firstUnpaid = monthlyInvoices.find(
+    inv =>
+      inv.status === 'sent' ||
+      inv.status === 'overdue' ||
+      (inv.status === 'partial_paid' && inv.balance_amount > 0)
   );
-  
+
   return firstUnpaid || null;
 };
 
@@ -187,15 +211,22 @@ const getAcademicMonthNumber = (month, year, startingMonth) => {
   if (!month || typeof month !== 'number' || month < 1 || month > 12) {
     throw new Error(`Invalid month: ${month}. Month must be a number between 1 and 12.`);
   }
-  
+
   if (!year || typeof year !== 'number' || year < 2000 || year > 2100) {
     throw new Error(`Invalid year: ${year}. Year must be a number between 2000 and 2100.`);
   }
-  
-  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
-    throw new Error(`Invalid starting month: ${startingMonth}. Starting month must be a number between 1 and 12.`);
+
+  if (
+    !startingMonth ||
+    typeof startingMonth !== 'number' ||
+    startingMonth < 1 ||
+    startingMonth > 12
+  ) {
+    throw new Error(
+      `Invalid starting month: ${startingMonth}. Starting month must be a number between 1 and 12.`
+    );
   }
-  
+
   // This is a simplified calculation - in practice you'd need the academic year context
   // For now, assuming the month is within the current academic year
   if (month >= startingMonth) {
@@ -215,27 +246,33 @@ const getAcademicMonthNumber = (month, year, startingMonth) => {
 const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) => {
   // Get all monthly invoices sorted by academic month
   const monthlyInvoices = allInvoices
-    .filter(inv => inv.payment_model === 'monthly' || (inv.feeStructure && inv.feeStructure.payment_model === 'monthly'))
+    .filter(
+      inv =>
+        inv.payment_model === 'monthly' ||
+        (inv.feeStructure && inv.feeStructure.payment_model === 'monthly')
+    )
     .sort((a, b) => {
       const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
       const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
       return aAcademicMonth - bAcademicMonth;
     });
-  
+
   // Find the earliest pending month
-  const earliestPending = monthlyInvoices.find(inv => 
-    inv.status === 'sent' || inv.status === 'overdue' || 
-    (inv.status === 'partial_paid' && inv.balance_amount > 0)
+  const earliestPending = monthlyInvoices.find(
+    inv =>
+      inv.status === 'sent' ||
+      inv.status === 'overdue' ||
+      (inv.status === 'partial_paid' && inv.balance_amount > 0)
   );
-  
+
   if (!earliestPending) {
     return { isValid: true, message: 'All invoices are paid' };
   }
-  
+
   // Check if selected invoices include the earliest pending month
   const selectedInvoiceIds = selectedInvoices.map(inv => inv.id);
   const hasEarliestPending = selectedInvoiceIds.includes(earliestPending.id);
-  
+
   if (!hasEarliestPending) {
     const monthName = getMonthName(earliestPending.month);
     return {
@@ -243,29 +280,28 @@ const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) =
       message: `You must pay ${monthName} ${earliestPending.year} before paying other months. Payment sequence must be maintained.`
     };
   }
-  
+
   // Check if all selected invoices are in sequence
-  const selectedSorted = selectedInvoices
-    .sort((a, b) => {
-      const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
-      const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
-      return aAcademicMonth - bAcademicMonth;
-    });
-  
+  const selectedSorted = selectedInvoices.sort((a, b) => {
+    const aAcademicMonth = getAcademicMonthNumber(a.month, a.year, startingMonth);
+    const bAcademicMonth = getAcademicMonthNumber(b.month, b.year, startingMonth);
+    return aAcademicMonth - bAcademicMonth;
+  });
+
   // Verify they are consecutive starting from earliest pending
   const earliestSelected = selectedSorted[0];
   const earliestSelectedAcademicMonth = getAcademicMonthNumber(
-    earliestSelected.month, 
-    earliestSelected.year, 
+    earliestSelected.month,
+    earliestSelected.year,
     startingMonth
   );
-  
+
   const earliestPendingAcademicMonth = getAcademicMonthNumber(
-    earliestPending.month, 
-    earliestPending.year, 
+    earliestPending.month,
+    earliestPending.year,
     startingMonth
   );
-  
+
   if (earliestSelectedAcademicMonth !== earliestPendingAcademicMonth) {
     const monthName = getMonthName(earliestPending.month);
     return {
@@ -273,15 +309,15 @@ const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) =
       message: `You must pay ${monthName} ${earliestPending.year} first. Cannot skip months.`
     };
   }
-  
+
   // Check if selected months are consecutive
   for (let i = 1; i < selectedSorted.length; i++) {
     const prev = selectedSorted[i - 1];
     const curr = selectedSorted[i];
-    
+
     const prevAcademicMonth = getAcademicMonthNumber(prev.month, prev.year, startingMonth);
     const currAcademicMonth = getAcademicMonthNumber(curr.month, curr.year, startingMonth);
-    
+
     if (currAcademicMonth !== prevAcademicMonth + 1) {
       const prevMonthName = getMonthName(prev.month);
       const currMonthName = getMonthName(curr.month);
@@ -291,7 +327,7 @@ const validatePaymentSequence = (selectedInvoices, allInvoices, startingMonth) =
       };
     }
   }
-  
+
   return { isValid: true, message: 'Payment sequence is valid' };
 };
 
@@ -307,24 +343,32 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
   if (!Array.isArray(invoices)) {
     throw new Error('Invoices must be an array');
   }
-  
-  if (!startingMonth || typeof startingMonth !== 'number' || startingMonth < 1 || startingMonth > 12) {
+
+  if (
+    !startingMonth ||
+    typeof startingMonth !== 'number' ||
+    startingMonth < 1 ||
+    startingMonth > 12
+  ) {
     throw new Error('Starting month must be a valid number between 1 and 12');
   }
-  
+
   const monthlyInvoices = invoices
     .filter(inv => {
       // Ensure invoice has required properties
       if (!inv || typeof inv !== 'object') return false;
-      
+
       // Check if it's a monthly payment
-      const isMonthly = inv.payment_model === 'monthly' || 
-                       (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
-      
+      const isMonthly =
+        inv.payment_model === 'monthly' ||
+        (inv.feeStructure && inv.feeStructure.payment_model === 'monthly');
+
       // Ensure month and year are valid numbers
-      const hasValidMonth = inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
-      const hasValidYear = inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
-      
+      const hasValidMonth =
+        inv.month && typeof inv.month === 'number' && inv.month >= 1 && inv.month <= 12;
+      const hasValidYear =
+        inv.year && typeof inv.year === 'number' && inv.year >= 2000 && inv.year <= 2100;
+
       return isMonthly && hasValidMonth && hasValidYear;
     })
     .sort((a, b) => {
@@ -337,17 +381,18 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
         return 0;
       }
     });
-  
+
   const availableMonths = [];
   let consecutiveCount = 0;
-  
+
   for (const invoice of monthlyInvoices) {
     if (consecutiveCount >= maxMonths) break;
-    
-    const isPending = invoice.status === 'sent' || 
-                     invoice.status === 'overdue' || 
-                     (invoice.status === 'partial_paid' && invoice.balance_amount > 0);
-    
+
+    const isPending =
+      invoice.status === 'sent' ||
+      invoice.status === 'overdue' ||
+      (invoice.status === 'partial_paid' && invoice.balance_amount > 0);
+
     if (isPending) {
       availableMonths.push(invoice);
       consecutiveCount++;
@@ -356,7 +401,7 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
       break;
     }
   }
-  
+
   return availableMonths;
 };
 
@@ -366,29 +411,29 @@ const getAvailablePaymentMonths = (invoices, startingMonth, maxMonths = 12) => {
  */
 const syncSchoolsToCurrentAcademicYear = async () => {
   try {
-    const { School, AcademicYear } = require('../models');
-    
+    const { School, AcademicYear } = require('~/models');
+
     // Get the current global academic year
     const currentYear = await AcademicYear.findOne({
       where: { is_current: true }
     });
-    
+
     if (!currentYear) {
       throw new Error('No current global academic year found');
     }
-    
+
     // Update all schools to link to the current academic year
     const [updatedCount] = await School.update(
       { current_academic_year_id: currentYear.id },
-      { 
-        where: { 
-          current_academic_year_id: { [require('sequelize').Op.ne]: currentYear.id } 
-        } 
+      {
+        where: {
+          current_academic_year_id: { [require('sequelize').Op.ne]: currentYear.id }
+        }
       }
     );
-    
+
     logger.info(`Synced ${updatedCount} schools to current academic year: ${currentYear.name}`);
-    
+
     return {
       success: true,
       updated_count: updatedCount,
@@ -409,4 +454,4 @@ module.exports = {
   getAvailablePaymentMonths,
   getCurrentAcademicYearForSchool,
   syncSchoolsToCurrentAcademicYear
-}; 
+};

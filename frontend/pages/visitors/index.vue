@@ -5,7 +5,9 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Visitor Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Track and manage school visitors</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+            Track and manage school visitors
+          </p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -28,8 +30,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Visitors</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.totalVisitors || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Total Visitors
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.totalVisitors || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -44,8 +50,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Currently Inside</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.currentlyInside || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Currently Inside
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.currentlyInside || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -60,8 +70,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Today's Visitors</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.todayVisitors || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    Today's Visitors
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.todayVisitors || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -76,8 +90,12 @@
               </div>
               <div class="ml-5 w-0 flex-1">
                 <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">This Week</dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">{{ stats.weekVisitors || 0 }}</dd>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    This Week
+                  </dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ stats.weekVisitors || 0 }}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -90,8 +108,13 @@
         <div class="px-4 py-5 sm:p-6">
           <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <select v-model="filters.status" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Status</label
+              >
+              <select
+                v-model="filters.status"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
                 <option value="">All Status</option>
                 <option value="inside">Inside</option>
                 <option value="left">Left</option>
@@ -99,8 +122,13 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Purpose</label>
-              <select v-model="filters.purpose" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Purpose</label
+              >
+              <select
+                v-model="filters.purpose"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
                 <option value="">All Purposes</option>
                 <option value="meeting">Meeting</option>
                 <option value="interview">Interview</option>
@@ -110,8 +138,13 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Range</label>
-              <select v-model="filters.dateRange" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Date Range</label
+              >
+              <select
+                v-model="filters.dateRange"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
                 <option value="today">Today</option>
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -119,8 +152,14 @@
               </select>
             </div>
             <div v-if="filters.dateRange === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
-              <input v-model="filters.fromDate" type="date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >From Date</label
+              >
+              <input
+                v-model="filters.fromDate"
+                type="date"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
             </div>
             <div class="flex items-end">
               <button
@@ -138,27 +177,63 @@
       <!-- Visitors Table -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Visitor Records</h3>
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+            Visitor Records
+          </h3>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Visitor</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Purpose</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contact Person</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entry Time</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Exit Time</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Visitor
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Purpose
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Contact Person
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Entry Time
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Exit Time
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="visitor in visitors" :key="visitor.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr
+                v-for="visitor in visitors"
+                :key="visitor.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
-                      <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                      <div
+                        class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"
+                      >
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                           {{ visitor.name?.charAt(0) }}
                         </span>
@@ -187,7 +262,10 @@
                   {{ visitor.exit_time ? formatDateTime(visitor.exit_time) : '-' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(visitor.status)" class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  <span
+                    :class="getStatusClass(visitor.status)"
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                  >
                     {{ getStatusText(visitor.status) }}
                   </span>
                 </td>
@@ -216,9 +294,9 @@
             </tbody>
           </table>
         </div>
-        
+
         <!-- Pagination -->
-        <Pagination 
+        <Pagination
           v-if="totalItems > 0"
           :pagination="{
             page: currentPage,
@@ -233,16 +311,23 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+      >
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
             {{ isEditing ? 'Edit Visitor' : 'Add New Visitor' }}
           </h3>
-          
+
           <form @submit.prevent="saveVisitor">
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Name *</label
+              >
               <input
                 v-model="form.name"
                 type="text"
@@ -253,7 +338,9 @@
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Phone *</label
+              >
               <input
                 v-model="form.phone"
                 type="tel"
@@ -265,8 +352,14 @@
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Purpose *</label>
-              <select v-model="form.purpose" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Purpose *</label
+              >
+              <select
+                v-model="form.purpose"
+                required
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              >
                 <option value="">Select purpose</option>
                 <option value="meeting">Meeting</option>
                 <option value="interview">Interview</option>
@@ -277,7 +370,9 @@
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact Person *</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Contact Person *</label
+              >
               <input
                 v-model="form.contact_person"
                 type="text"
@@ -288,7 +383,9 @@
             </div>
 
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notes</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Notes</label
+              >
               <textarea
                 v-model="form.notes"
                 rows="3"
@@ -310,7 +407,7 @@
                 :disabled="isSubmitting"
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Add') }}
+                {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Add' }}
               </button>
             </div>
           </form>
@@ -322,14 +419,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { 
-  Plus, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  Calendar,
-  Search
-} from 'lucide-vue-next';
+import { Plus, Users, Clock, CheckCircle, Calendar, Search } from 'lucide-vue-next';
 import Pagination from '~/components/Pagination.vue';
 
 // State
@@ -346,14 +436,13 @@ const currentPage = ref(1);
 const pageSize = ref(10);
 const totalItems = ref(0);
 
-
 // Filters
 const filters = reactive({
   status: '',
   purpose: '',
   dateRange: 'today',
   fromDate: '',
-  toDate: '',
+  toDate: ''
 });
 
 // Forms
@@ -362,7 +451,7 @@ const form = reactive({
   phone: '',
   purpose: '',
   contact_person: '',
-  notes: '',
+  notes: ''
 });
 
 // Methods
@@ -394,10 +483,9 @@ const fetchVisitors = async () => {
         notes: 'Parent-teacher meeting'
       }
     ];
-    
+
     visitors.value = mockVisitors;
     totalItems.value = mockVisitors.length;
-
   } catch (error) {
     console.error('Error fetching visitors:', error);
   } finally {
@@ -425,13 +513,13 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-const editVisitor = (visitor) => {
+const editVisitor = visitor => {
   Object.assign(form, {
     name: visitor.name,
     phone: visitor.phone,
     purpose: visitor.purpose,
     contact_person: visitor.contact_person,
-    notes: visitor.notes || '',
+    notes: visitor.notes || ''
   });
   editingId.value = visitor.id;
   isEditing.value = true;
@@ -450,7 +538,7 @@ const resetForm = () => {
     phone: '',
     purpose: '',
     contact_person: '',
-    notes: '',
+    notes: ''
   });
 };
 
@@ -475,10 +563,10 @@ const saveVisitor = async () => {
       };
       visitors.value.unshift(newVisitor);
     }
-    
+
     closeModal();
     await fetchStats();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -496,7 +584,7 @@ const saveVisitor = async () => {
   }
 };
 
-const markExit = async (visitor) => {
+const markExit = async visitor => {
   try {
     // Mock exit - replace with actual API call
     const index = visitors.value.findIndex(v => v.id === visitor.id);
@@ -504,9 +592,9 @@ const markExit = async (visitor) => {
       visitors.value[index].exit_time = new Date().toISOString();
       visitors.value[index].status = 'left';
     }
-    
+
     await fetchStats();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -522,51 +610,48 @@ const markExit = async (visitor) => {
   }
 };
 
-const viewVisitor = (visitor) => {
+const viewVisitor = visitor => {
   // Navigate to visitor detail page
   navigateTo(`/visitors/${visitor.id}`);
 };
 
-const goToPage = (page) => {
+const goToPage = page => {
   if (page >= 1) {
     currentPage.value = page;
     fetchVisitors();
   }
 };
 
-const onPageSizeChange = (newPageSize) => {
+const onPageSizeChange = newPageSize => {
   pageSize.value = newPageSize;
   currentPage.value = 1; // Reset to first page when page size changes
   fetchVisitors();
 };
 
-const formatDateTime = (dateTime) => {
+const formatDateTime = dateTime => {
   if (!dateTime) return '-';
   return new Date(dateTime).toLocaleString('en-IN');
 };
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     inside: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     left: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
   };
   return classes[status] || classes.left;
 };
 
-const getStatusText = (status) => {
+const getStatusText = status => {
   const texts = {
     inside: 'Inside',
     left: 'Left',
-    scheduled: 'Scheduled',
+    scheduled: 'Scheduled'
   };
   return texts[status] || status;
 };
 
 onMounted(async () => {
-  await Promise.all([
-    fetchVisitors(),
-    fetchStats()
-  ]);
+  await Promise.all([fetchVisitors(), fetchStats()]);
 });
 </script>

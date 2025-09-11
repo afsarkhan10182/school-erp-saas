@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../utils/logger');
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { logger } = require('~/utils/logger');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
 
 /**
  * Generate ID card for a student
@@ -36,23 +36,23 @@ const generateStudentIdCard = async (studentData, schoolData) => {
 
     // Generate HTML template for ID card
     const idCardHtml = generateIdCardHtml(idCardData);
-    
+
     // Save ID card data (in real implementation, save to database)
     const idCardPath = resolveUploadsPath('id-cards', `${idCardData.id}.html`);
     const idCardDir = path.dirname(idCardPath);
-    
+
     if (!fs.existsSync(idCardDir)) {
       try {
-      fs.mkdirSync(idCardDir, { recursive: true });
-    } catch (error) {
-      console.warn(`Warning: Could not create ID card directory at ${idCardDir}:`, error.message);
+        fs.mkdirSync(idCardDir, { recursive: true });
+      } catch (error) {
+        console.warn(`Warning: Could not create ID card directory at ${idCardDir}:`, error.message);
+      }
     }
-    }
-    
+
     fs.writeFileSync(idCardPath, idCardHtml);
-    
+
     logger.info(`ID card generated successfully for student: ${studentData.admission_number}`);
-    
+
     return {
       success: true,
       data: {
@@ -72,7 +72,7 @@ const generateStudentIdCard = async (studentData, schoolData) => {
 /**
  * Generate HTML template for ID card
  */
-const generateIdCardHtml = (data) => {
+const generateIdCardHtml = data => {
   return `
     <!DOCTYPE html>
     <html>
@@ -249,7 +249,7 @@ const generateIdCardHtml = (data) => {
 /**
  * Generate barcode for student
  */
-const generateBarcode = (admissionNumber) => {
+const generateBarcode = admissionNumber => {
   // Simple barcode representation
   return `|||| | ||| || | ||||`;
 };
@@ -257,7 +257,7 @@ const generateBarcode = (admissionNumber) => {
 /**
  * Generate QR code for student
  */
-const generateQRCode = (studentId) => {
+const generateQRCode = studentId => {
   // In real implementation, you would use a QR code library
   return `QR:${studentId}`;
 };
@@ -265,7 +265,7 @@ const generateQRCode = (studentId) => {
 /**
  * Get ID card by student ID
  */
-const getStudentIdCard = async (studentId) => {
+const getStudentIdCard = async studentId => {
   try {
     // In real implementation, fetch from database
     const idCardData = {
@@ -289,7 +289,7 @@ const getStudentIdCard = async (studentId) => {
 /**
  * Regenerate ID card
  */
-const regenerateIdCard = async (studentId) => {
+const regenerateIdCard = async studentId => {
   try {
     // In real implementation, fetch student and school data from database
     const studentData = {
@@ -308,7 +308,7 @@ const regenerateIdCard = async (studentId) => {
     };
 
     const schoolData = {
-      name: 'St. Mary\'s High School',
+      name: "St. Mary's High School",
       address: '123 Education Street, City',
       logo_url: null,
       principal_name: 'Dr. Jane Smith',

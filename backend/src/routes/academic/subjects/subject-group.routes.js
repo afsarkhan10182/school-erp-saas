@@ -7,11 +7,14 @@ const {
   deleteSubjectGroup,
   addSubjectsToGroup,
   removeSubjectsFromGroup,
-  getSubjectGroupsForDropdown,
+  getSubjectGroupsForDropdown
 } = require('~/controllers/academic/subjects/subject-group.controller');
 const { verifyToken, authorize } = require('~/middleware/auth');
 const { validate } = require('~/middleware/validate');
-const { createSubjectGroupValidator, updateSubjectGroupValidator } = require('~/validations/academic/subject-group.validation');
+const {
+  createSubjectGroupValidator,
+  updateSubjectGroupValidator
+} = require('~/validations/academic/subject-group.validation');
 
 const router = express.Router();
 
@@ -23,17 +26,15 @@ router.use(verifyToken);
  * @desc    Get all subject groups with filtering and pagination
  * @access  Private (school_admin, branch_admin)
  */
-router.get('/', 
-  authorize(['school_admin', 'branch_admin']),
-  getAllSubjectGroups
-);
+router.get('/', authorize(['school_admin', 'branch_admin']), getAllSubjectGroups);
 
 /**
  * @route   GET /api/subject-groups/dropdown
  * @desc    Get subject groups for dropdown
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/dropdown', 
+router.get(
+  '/dropdown',
   authorize(['school_admin', 'branch_admin', 'teacher']),
   getSubjectGroupsForDropdown
 );
@@ -43,17 +44,15 @@ router.get('/dropdown',
  * @desc    Get subject group by ID
  * @access  Private (school_admin, branch_admin, teacher)
  */
-router.get('/:id', 
-  authorize(['school_admin', 'branch_admin', 'teacher']),
-  getSubjectGroupById
-);
+router.get('/:id', authorize(['school_admin', 'branch_admin', 'teacher']), getSubjectGroupById);
 
 /**
  * @route   POST /api/subject-groups
  * @desc    Create new subject group
  * @access  Private (school_admin, branch_admin)
  */
-router.post('/', 
+router.post(
+  '/',
   authorize(['school_admin', 'branch_admin']),
   validate(createSubjectGroupValidator),
   createSubjectGroup
@@ -64,7 +63,8 @@ router.post('/',
  * @desc    Update subject group
  * @access  Private (school_admin, branch_admin)
  */
-router.put('/:id', 
+router.put(
+  '/:id',
   authorize(['school_admin', 'branch_admin']),
   validate(updateSubjectGroupValidator),
   updateSubjectGroup
@@ -75,27 +75,22 @@ router.put('/:id',
  * @desc    Delete subject group
  * @access  Private (school_admin, branch_admin)
  */
-router.delete('/:id', 
-  authorize(['school_admin', 'branch_admin']),
-  deleteSubjectGroup
-);
+router.delete('/:id', authorize(['school_admin', 'branch_admin']), deleteSubjectGroup);
 
 /**
  * @route   POST /api/subject-groups/:id/subjects
  * @desc    Add subjects to a subject group
  * @access  Private (school_admin, branch_admin)
  */
-router.post('/:id/subjects', 
-  authorize(['school_admin', 'branch_admin']),
-  addSubjectsToGroup
-);
+router.post('/:id/subjects', authorize(['school_admin', 'branch_admin']), addSubjectsToGroup);
 
 /**
  * @route   DELETE /api/subject-groups/:id/subjects
  * @desc    Remove subjects from a subject group
  * @access  Private (school_admin, branch_admin)
  */
-router.delete('/:id/subjects', 
+router.delete(
+  '/:id/subjects',
   authorize(['school_admin', 'branch_admin']),
   removeSubjectsFromGroup
 );

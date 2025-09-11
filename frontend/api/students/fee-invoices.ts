@@ -71,15 +71,15 @@ export const FeeInvoices = {
     return response.data;
   },
 
-  getSummary: async (params?: { 
-    academic_year?: string; 
-    class_name?: string; 
-    status?: string; 
-    branch_id?: string; 
-    search?: string; 
-    section?: string; 
-    from_date?: string; 
-    to_date?: string; 
+  getSummary: async (params?: {
+    academic_year?: string;
+    class_name?: string;
+    status?: string;
+    branch_id?: string;
+    search?: string;
+    section?: string;
+    from_date?: string;
+    to_date?: string;
     payment_model?: string;
     months?: number[];
   }) => {
@@ -159,7 +159,10 @@ export const FeeInvoices = {
     return response.data;
   },
 
-  getStudentPayments: async (studentId: string, params?: { page?: number; limit?: number; academic_year?: string }) => {
+  getStudentPayments: async (
+    studentId: string,
+    params?: { page?: number; limit?: number; academic_year?: string }
+  ) => {
     const api = createApiInstance();
     const response = await api.get(`/fee-invoices/student/${studentId}/payments`, { params });
     return response.data;
@@ -172,7 +175,13 @@ export const FeeInvoices = {
     return response.data;
   },
 
-  getStudentLedger: async (params: { student_id: string; academic_year?: string; status?: string; page?: number; limit?: number }) => {
+  getStudentLedger: async (params: {
+    student_id: string;
+    academic_year?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/fee-invoices/student-ledger', { params });
     return response.data;
@@ -196,7 +205,11 @@ export const FeeInvoices = {
     return response.data;
   },
 
-  getBreakdown: async (params: { student_id: string; fee_structure_id: string; academic_year: string }) => {
+  getBreakdown: async (params: {
+    student_id: string;
+    fee_structure_id: string;
+    academic_year: string;
+  }) => {
     const api = createApiInstance();
     const response = await api.get('/fee-invoices/breakdown', { params });
     return response.data;
@@ -254,7 +267,9 @@ export const FeeInvoices = {
     const api = createApiInstance();
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
-    const response = await api.get('/fee-invoices/monthly-payment-status', { params: cacheBustParams });
+    const response = await api.get('/fee-invoices/monthly-payment-status', {
+      params: cacheBustParams
+    });
     return response.data;
   }
 };

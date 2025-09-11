@@ -1,21 +1,21 @@
-const { sequelize } = require('../../config/database');
+const { sequelize } = require('~/config/database');
 const { Op } = require('sequelize');
-const { User, School, Branch } = require('../../models');
-const SchoolService = require('../../services/school/school.service');
-const AuthService = require('../../services/auth/auth.service');
-const { logger } = require('../../utils/logger');
-const ApiError = require('../../utils/ApiError');
-const { success, error, asyncHandler } = require('../../utils/apiResponse');
-const { validate } = require('../../middleware/validate');
-const { verifyToken, authorize } = require('../../middleware/auth');
-const RedisUtils = require('../../utils/redis-utils');
-const { RoleManager, ROLES } = require('../../utils/roleManager');
+const { User, School, Branch } = require('~/models');
+const SchoolService = require('~/services/school/school.service');
+const AuthService = require('~/services/auth/auth.service');
+const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/ApiError');
+const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const RedisUtils = require('~/utils/redis-utils');
+const { RoleManager, ROLES } = require('~/utils/roleManager');
 
 class SchoolController {
   static createSchool = asyncHandler(async (req, res) => {
     const schoolData = {
       ...req.body,
-      ...req.files, // Include uploaded files
+      ...req.files // Include uploaded files
     };
     const userId = req.user.id;
 
@@ -35,10 +35,10 @@ class SchoolController {
     const { page = 1, limit = 10, search, status } = req.query;
     const user = req.user;
 
-    logger.info('getAllSchools controller called with user:', { 
-      userId: user.id, 
-      userRole: user.role, 
-      schoolId: user.school_id 
+    logger.info('getAllSchools controller called with user:', {
+      userId: user.id,
+      userRole: user.role,
+      schoolId: user.school_id
     });
 
     // Apply tenant isolation for non-super admins
@@ -46,20 +46,25 @@ class SchoolController {
       if (user.school_id) {
         // School admin can only see their own school
         const school = await SchoolService.getSchoolById(user.school_id, user);
-        return success(res, { 
-          schools: [school], 
-          pagination: { page: 1, limit: 1, total: 1, pages: 1 } 
+        return success(res, {
+          schools: [school],
+          pagination: { page: 1, limit: 1, total: 1, pages: 1 }
         });
       } else {
         throw new ApiError(403, 'No school assigned');
       }
     }
 
-    logger.info('Calling SchoolService.getAllSchools with params:', { page, limit, search, status });
+    logger.info('Calling SchoolService.getAllSchools with params:', {
+      page,
+      limit,
+      search,
+      status
+    });
     const result = await SchoolService.getAllSchools({ page, limit, search, status });
-    logger.info('SchoolService.getAllSchools returned result:', { 
-      schoolsCount: result.schools?.length, 
-      pagination: result.pagination 
+    logger.info('SchoolService.getAllSchools returned result:', {
+      schoolsCount: result.schools?.length,
+      pagination: result.pagination
     });
     success(res, result);
   });
@@ -81,7 +86,7 @@ class SchoolController {
     const { id } = req.params;
     const updateData = {
       ...req.body,
-      ...req.files, // Include uploaded files
+      ...req.files // Include uploaded files
     };
     const userId = req.user.id;
 
@@ -119,7 +124,7 @@ class SchoolController {
           [Op.or]: [
             { first_name: { [Op.iLike]: `%${search}%` } },
             { last_name: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
+            { email: { [Op.iLike]: `%${search}%` } }
           ]
         }),
         ...(role && { role }),
@@ -131,17 +136,17 @@ class SchoolController {
         {
           model: School,
           as: 'school',
-          attributes: ['id', 'name', 'code'],
+          attributes: ['id', 'name', 'code']
         },
         {
           model: Branch,
           as: 'branch',
-          attributes: ['id', 'name', 'code'],
-        },
+          attributes: ['id', 'name', 'code']
+        }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
-      offset: (page - 1) * limit,
+      offset: (page - 1) * limit
     });
 
     const result = {
@@ -150,8 +155,8 @@ class SchoolController {
         page: parseInt(page),
         limit: parseInt(limit),
         total: users.count,
-        pages: Math.ceil(users.count / limit),
-      },
+        pages: Math.ceil(users.count / limit)
+      }
     };
 
     success(res, result);
@@ -174,9 +179,9 @@ class SchoolController {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const school = await SchoolService.updateSchool(id, { 
+    const school = await SchoolService.updateSchool(id, {
       status: 'suspended',
-      updated_by: userId 
+      updated_by: userId
     });
 
     // Clear related caches
@@ -191,9 +196,9 @@ class SchoolController {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const school = await SchoolService.updateSchool(id, { 
+    const school = await SchoolService.updateSchool(id, {
       status: 'active',
-      updated_by: userId 
+      updated_by: userId
     });
 
     // Clear related caches
@@ -225,7 +230,7 @@ class SchoolController {
     res.json({
       success: true,
       message: 'School updated successfully',
-      data: updatedSchool,
+      data: updatedSchool
     });
   });
 
@@ -245,7 +250,7 @@ class SchoolController {
     }
 
     // Import module configuration
-    const { ModuleConfig } = require('../../utils/moduleConfig');
+    const { ModuleConfig } = require('~/utils/moduleConfig');
 
     // Validate modules if provided
     if (modules && !ModuleConfig.validateModules(modules)) {
@@ -255,18 +260,18 @@ class SchoolController {
     // If subscription plan is provided, get plan details and update accordingly
     let updatedModules = modules;
     let updateData = {};
-    
+
     if (subscription_plan && subscription_plan !== school.subscription_plan) {
       // Get the plan details from the database
-      const { SubscriptionPlan } = require('../../models');
+      const { SubscriptionPlan } = require('~/models');
       const plan = await SubscriptionPlan.findOne({
-        where: { code: subscription_plan, is_active: true },
+        where: { code: subscription_plan, is_active: true }
       });
-      
+
       if (!plan) {
         throw new ApiError(400, 'Invalid subscription plan');
       }
-      
+
       // Update with plan details
       updateData = {
         subscription_plan: plan.code,
@@ -277,12 +282,16 @@ class SchoolController {
         // Update status based on plan type
         status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
       };
-      
+
       // If this is a new subscription, set start date
       if (!school.subscription_start_date) {
         updateData.subscription_start_date = new Date();
-        updateData.subscription_end_date = plan.billing_cycle === 'lifetime' ? null : 
-          new Date(Date.now() + (plan.billing_cycle === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000);
+        updateData.subscription_end_date =
+          plan.billing_cycle === 'lifetime'
+            ? null
+            : new Date(
+                Date.now() + (plan.billing_cycle === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000
+              );
       }
     } else {
       // Just update modules if no plan change
@@ -290,7 +299,7 @@ class SchoolController {
         updatedModules = modules;
       } else if (subscription_plan) {
         // Always pull modules from DB plan to avoid drift
-        const { SubscriptionPlan } = require('../../models');
+        const { SubscriptionPlan } = require('~/models');
         const plan = await SubscriptionPlan.findOne({
           where: { code: subscription_plan, is_active: true }
         });
@@ -299,18 +308,18 @@ class SchoolController {
         }
         updatedModules = plan.modules;
       }
-      
+
       if (updatedModules) {
         updateData.modules = updatedModules;
       }
     }
 
     const updatedSchool = await school.update(updateData);
-    
+
     res.json({
       success: true,
       message: 'School modules updated successfully',
-      data: updatedSchool,
+      data: updatedSchool
     });
   });
 
@@ -319,7 +328,10 @@ class SchoolController {
     const { id } = req.params;
 
     // School admin and branch admin can only view their own school's modules
-    if ((req.user.role === 'school_admin' || req.user.role === 'branch_admin') && req.user.school_id !== id) {
+    if (
+      (req.user.role === 'school_admin' || req.user.role === 'branch_admin') &&
+      req.user.school_id !== id
+    ) {
       throw new ApiError(403, 'You can only view your own school modules');
     }
 
@@ -328,8 +340,8 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { Module, SubscriptionPlan } = require('../../models');
-    
+    const { Module, SubscriptionPlan } = require('~/models');
+
     // Get school's subscription plan with modules
     const subscriptionPlan = await SubscriptionPlan.findOne({
       where: { code: school.subscription_plan, is_active: true },
@@ -337,7 +349,7 @@ class SchoolController {
         {
           model: Module,
           as: 'modules',
-          through: { 
+          through: {
             attributes: ['is_required', 'is_enabled', 'sort_order'],
             as: 'planModule'
           },
@@ -351,14 +363,17 @@ class SchoolController {
     // Get all available modules for comparison
     const allModules = await Module.findAll({
       where: { is_active: true },
-      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      order: [
+        ['sort_order', 'ASC'],
+        ['name', 'ASC']
+      ],
       attributes: ['id', 'code', 'name', 'description', 'icon', 'category', 'is_core']
     });
 
     // Get enabled modules for this school
     const enabledModules = subscriptionPlan?.modules || [];
     const enabledModuleCodes = enabledModules.map(m => m.code);
-    
+
     // Get school's disabled modules
     const disabledModules = school.disabled_modules || [];
 
@@ -367,7 +382,7 @@ class SchoolController {
       const isInPlan = enabledModuleCodes.includes(module.code);
       const isDisabled = disabledModules.includes(module.code);
       const isEnabled = isInPlan && !isDisabled;
-      
+
       return {
         id: module.id,
         key: module.code,
@@ -386,7 +401,10 @@ class SchoolController {
     // Get available subscription plans for upgrade
     const availablePlans = await SubscriptionPlan.findAll({
       where: { is_active: true },
-      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      order: [
+        ['sort_order', 'ASC'],
+        ['name', 'ASC']
+      ],
       attributes: ['code', 'name', 'description', 'price', 'billing_cycle'],
       include: [
         {
@@ -414,17 +432,20 @@ class SchoolController {
         subscription_plan: school.subscription_plan,
         plan_comparison: plansWithCurrentFlag,
         can_upgrade: req.user.role === 'school_admin',
-        modules_updated_at: school.modules_updated_at,
-      },
+        modules_updated_at: school.modules_updated_at
+      }
     });
   });
 
   // Get available subscription plans (for upgrade requests) - from DB only
   static getSubscriptionPlans = asyncHandler(async (req, res) => {
-    const { SubscriptionPlan } = require('../../models');
+    const { SubscriptionPlan } = require('~/models');
     const plans = await SubscriptionPlan.findAll({
       where: { is_active: true },
-      order: [['sort_order', 'ASC'], ['name', 'ASC']],
+      order: [
+        ['sort_order', 'ASC'],
+        ['name', 'ASC']
+      ],
       attributes: [
         'code',
         'name',
@@ -434,14 +455,14 @@ class SchoolController {
         'modules',
         'max_students',
         'max_branches',
-        'max_staff',
-      ],
+        'max_staff'
+      ]
     });
 
     res.json({
       success: true,
       message: 'Subscription plans retrieved successfully',
-      data: plans,
+      data: plans
     });
   });
 
@@ -465,8 +486,8 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    const { SubscriptionPlan } = require('../../models');
-    
+    const { SubscriptionPlan } = require('~/models');
+
     // Get requested plan from database
     const requestedPlanDetails = requested_plan
       ? await SubscriptionPlan.findOne({
@@ -492,14 +513,16 @@ class SchoolController {
     // Check if it's actually an upgrade (compare prices)
     const requestedPrice = requestedPlanDetails.price || 0;
     const currentPrice = currentPlanDetails.price || 0;
-    
+
     if (requestedPrice <= currentPrice) {
       throw new ApiError(400, 'Requested plan is not an upgrade');
     }
 
     // TODO: Create upgrade request in database
     // For now, just log the request
-    logger.info(`Upgrade request from school ${school.name} (${id}): ${requested_plan} - ${reason}`);
+    logger.info(
+      `Upgrade request from school ${school.name} (${id}): ${requested_plan} - ${reason}`
+    );
 
     res.json({
       success: true,
@@ -507,10 +530,10 @@ class SchoolController {
       data: {
         requested_plan: requested_plan,
         current_plan: school.subscription_plan,
-        reason: reason,
-      },
+        reason: reason
+      }
     });
   });
-};
+}
 
-module.exports = SchoolController; 
+module.exports = SchoolController;

@@ -10,15 +10,7 @@ class SubjectGroupController {
    * Get all subject groups with pagination and filtering
    */
   static getAllSubjectGroups = asyncHandler(async (req, res) => {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      class_id,
-      is_active,
-      school_id,
-      branch_id
-    } = req.query;
+    const { page = 1, limit = 10, search, class_id, is_active, school_id, branch_id } = req.query;
 
     const offset = (page - 1) * limit;
     const whereClause = {
@@ -78,15 +70,19 @@ class SubjectGroupController {
 
     const totalPages = Math.ceil(count / parseInt(limit));
 
-    success(res, {
-      subject_groups: rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count,
-        totalPages
-      }
-    }, 'Subject groups retrieved successfully');
+    success(
+      res,
+      {
+        subject_groups: rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: count,
+          totalPages
+        }
+      },
+      'Subject groups retrieved successfully'
+    );
   });
 
   /**
@@ -168,7 +164,12 @@ class SubjectGroupController {
       ]
     });
 
-    success(res, { subject_group: createdSubjectGroup }, 'Subject group created successfully', httpStatus.CREATED);
+    success(
+      res,
+      { subject_group: createdSubjectGroup },
+      'Subject group created successfully',
+      httpStatus.CREATED
+    );
   });
 
   /**
@@ -272,7 +273,10 @@ class SubjectGroupController {
     });
 
     if (existingSubjects.length !== subjectIds.length) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Some subjects do not exist or do not belong to this school');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Some subjects do not exist or do not belong to this school'
+      );
     }
 
     // Prepare subject group assignments
@@ -281,7 +285,7 @@ class SubjectGroupController {
       subject_id: subject.subject_id,
       sort_order: subject.sort_order || 0,
       is_required: subject.is_required !== false,
-      weightage: subject.weightage || 100.00
+      weightage: subject.weightage || 100.0
     }));
 
     // Bulk create assignments
@@ -343,7 +347,11 @@ class SubjectGroupController {
       ]
     });
 
-    success(res, { subject_group: updatedSubjectGroup }, 'Subjects removed from group successfully');
+    success(
+      res,
+      { subject_group: updatedSubjectGroup },
+      'Subjects removed from group successfully'
+    );
   });
 
   /**

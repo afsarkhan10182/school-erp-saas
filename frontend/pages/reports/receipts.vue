@@ -1,13 +1,19 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  <div
+    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+  >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div class="mb-4 sm:mb-0">
-          <h1 class="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+          <h1
+            class="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"
+          >
             Receipts Report
           </h1>
-          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">Payment collections and receipt tracking</p>
+          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">
+            Payment collections and receipt tracking
+          </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
           <!-- Column Selector -->
@@ -17,30 +23,55 @@
               class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                />
               </svg>
               Columns
-              <svg class="ml-1 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showColumnSelector }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="ml-1 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showColumnSelector }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
-            
+
             <!-- Column Selector Dropdown -->
-            <div 
+            <div
               v-show="showColumnSelector"
               class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
             >
               <div class="p-2">
-                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">Select Columns</h3>
+                <h3 class="text-xs font-medium text-gray-900 dark:text-white mb-2">
+                  Select Columns
+                </h3>
                 <div class="space-y-1">
-                  <label v-for="(column, index) in availableColumns" :key="column.key" class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs">
+                  <label
+                    v-for="(column, index) in availableColumns"
+                    :key="column.key"
+                    class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-1 rounded text-xs"
+                  >
                     <input
                       type="checkbox"
                       :checked="column.visible"
                       @change="toggleColumnVisibility(index)"
                       class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
                     />
-                    <span class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none">{{ column.label }}</span>
+                    <span
+                      class="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                      >{{ column.label }}</span
+                    >
                   </label>
                 </div>
                 <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
@@ -60,18 +91,23 @@
               </div>
             </div>
           </div>
-          
+
           <button
             @click="printReceiptsReport"
             :disabled="isLoading || payments.length === 0"
             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+              />
             </svg>
             Print Report
           </button>
-          
+
           <!-- Download Dropdown -->
           <div class="relative download-dropdown">
             <button
@@ -80,19 +116,35 @@
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               Download
-              <svg class="ml-2 h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': showDownloadDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              <svg
+                class="ml-2 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showDownloadDropdown }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
-            
+
             <!-- Dropdown Menu -->
-            <div 
+            <div
               v-show="showDownloadDropdown"
               class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
-              style="transform-origin: top right;"
+              style="transform-origin: top right"
             >
               <div class="py-1">
                 <button
@@ -100,7 +152,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   PDF
                 </button>
@@ -109,7 +166,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   Excel
                 </button>
@@ -118,7 +180,12 @@
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
                 >
                   <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   CSV
                 </button>
@@ -129,23 +196,36 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6">
+      <div
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6"
+      >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Report Filters</h2>
-          <button 
+          <button
             @click="clearFilters"
             class="px-4 py-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50 transition-colors duration-200"
           >
             Reset Filters
           </button>
         </div>
-        
+
         <div class="flex flex-wrap items-end gap-3 mb-4">
           <!-- Date Range -->
           <div class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range *</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Date Range *</label
+            >
             <div class="relative group">
-              <select v-model="filters.dateRange" @change="handleDateRangeChange" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+              <select
+                v-model="filters.dateRange"
+                @change="handleDateRangeChange"
+                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                style="
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  appearance: none !important;
+                "
+              >
                 <option value="">All Time</option>
                 <option value="today">Today</option>
                 <option value="yesterday">Yesterday</option>
@@ -154,8 +234,18 @@
                 <option value="custom">Custom Range</option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <svg
+                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -163,9 +253,19 @@
 
           <!-- Payment Method -->
           <div class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Method</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Payment Method</label
+            >
             <div class="relative group">
-              <select v-model="filters.payment_method" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+              <select
+                v-model="filters.payment_method"
+                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                style="
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  appearance: none !important;
+                "
+              >
                 <option value="">All Methods</option>
                 <option value="cash">Cash</option>
                 <option value="bank">Bank</option>
@@ -177,8 +277,18 @@
                 <option value="upi">UPI</option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <svg
+                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -186,31 +296,80 @@
 
           <!-- School dropdown for super admin -->
           <div v-if="userRole === 'super_admin'" class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >School</label
+            >
             <div class="relative group">
-              <select v-model="filters.school_id" @change="onSchoolChange" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+              <select
+                v-model="filters.school_id"
+                @change="onSchoolChange"
+                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                style="
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  appearance: none !important;
+                "
+              >
                 <option value="">All Schools</option>
-                <option v-for="school in schools" :key="school.id" :value="school.id">{{ school.name }}</option>
+                <option v-for="school in schools" :key="school.id" :value="school.id">
+                  {{ school.name }}
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <svg
+                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
           </div>
 
           <!-- Branch dropdown for super admin (when school selected) and school admin -->
-          <div v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'school_admin'" class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
+          <div
+            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'school_admin'"
+            class="flex-1 min-w-[150px]"
+          >
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Branch</label
+            >
             <div class="relative group">
-              <select v-model="filters.branch_id" @change="onBranchChange" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+              <select
+                v-model="filters.branch_id"
+                @change="onBranchChange"
+                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                style="
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  appearance: none !important;
+                "
+              >
                 <option value="">All Branches</option>
-                <option v-for="branch in branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
+                <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                  {{ branch.name }}
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <svg
+                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -218,30 +377,54 @@
 
           <!-- Student Search -->
           <div class="flex-1 min-w-[200px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Student Search</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Student Search</label
+            >
             <div class="relative">
-              <input 
-                v-model="filters.search" 
-                type="text" 
+              <input
+                v-model="filters.search"
+                type="text"
                 placeholder="Search by student name, admission number, or roll number"
                 @keyup.enter="() => fetchReceiptsData(1)"
                 class="w-full px-3 py-2 pl-10 pr-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
                 aria-label="Search students by name, admission number, or roll number"
               />
               <!-- Left search icon (always visible) -->
-              <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
               <!-- Right clear button (only when search has text) -->
-              <button 
+              <button
                 v-if="filters.search"
                 @click="clearSearch"
                 class="absolute right-2 top-2 p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
                 title="Clear search"
                 aria-label="Clear search"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -249,15 +432,38 @@
 
           <!-- Class dropdown - show when branch is selected -->
           <div v-if="filters.branch_id" class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Class</label
+            >
             <div class="relative group">
-              <select v-model="filters.class_id" @change="onClassChange" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500" style="-webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+              <select
+                v-model="filters.class_id"
+                @change="onClassChange"
+                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
+                style="
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  appearance: none !important;
+                "
+              >
                 <option value="">All Classes</option>
-                <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">{{ classItem.name }}</option>
+                <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
+                  {{ classItem.name }}
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                <svg
+                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -265,15 +471,33 @@
 
           <!-- Apply Filter Button -->
           <div class="flex-shrink-0">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">&nbsp;</label>
-            <button 
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >&nbsp;</label
+            >
+            <button
               @click="() => fetchReceiptsData(1)"
               :disabled="isLoading"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
             >
-              <svg v-if="isLoading" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                v-if="isLoading"
+                class="animate-spin w-4 h-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               <span v-if="isLoading">Loading...</span>
               <span v-else>Apply Filters</span>
@@ -282,19 +506,26 @@
         </div>
 
         <!-- Custom Date Range -->
-        <div v-if="filters.dateRange === 'custom'" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div
+          v-if="filters.dateRange === 'custom'"
+          class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+        >
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
-            <input 
-              v-model="filters.from_date" 
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >From Date</label
+            >
+            <input
+              v-model="filters.from_date"
               type="date"
               class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
-            <input 
-              v-model="filters.to_date" 
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >To Date</label
+            >
+            <input
+              v-model="filters.to_date"
               type="date"
               class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200"
             />
@@ -303,15 +534,21 @@
       </div>
 
       <!-- Summary Cards -->
-      <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6">
+      <div
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6"
+      >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
+          <div
+            class="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700"
+          >
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">
               {{ formatCurrency(summary.total_collected) }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-300 font-medium">Total Collected</div>
           </div>
-          <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div
+            class="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700"
+          >
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {{ summary.total_receipts }}
             </div>
@@ -321,73 +558,156 @@
       </div>
 
       <!-- Receipts Table -->
-      <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700">
+      <div
+        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700"
+      >
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             Receipts ({{ pagination.total_records }} total)
           </h3>
         </div>
-        
+
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th v-if="isColumnVisible('invoice_number')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice No</th>
-                <th v-if="isColumnVisible('receipt_number')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Receipt No</th>
-                <th v-if="isColumnVisible('payment_date')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                <th v-if="isColumnVisible('student_name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Student</th>
-                <th v-if="isColumnVisible('branch')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th v-if="isColumnVisible('class')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th v-if="isColumnVisible('section')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section</th>
-                <th v-if="isColumnVisible('payment_amount')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                <th v-if="isColumnVisible('payment_method')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
-                <th v-if="isColumnVisible('fee_type')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fee Type</th>
+                <th
+                  v-if="isColumnVisible('invoice_number')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Invoice No
+                </th>
+                <th
+                  v-if="isColumnVisible('receipt_number')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Receipt No
+                </th>
+                <th
+                  v-if="isColumnVisible('payment_date')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  v-if="isColumnVisible('student_name')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Student
+                </th>
+                <th
+                  v-if="isColumnVisible('branch')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Branch
+                </th>
+                <th
+                  v-if="isColumnVisible('class')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class
+                </th>
+                <th
+                  v-if="isColumnVisible('section')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Section
+                </th>
+                <th
+                  v-if="isColumnVisible('payment_amount')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Amount
+                </th>
+                <th
+                  v-if="isColumnVisible('payment_method')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Method
+                </th>
+                <th
+                  v-if="isColumnVisible('fee_type')"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Fee Type
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
               <tr v-if="isLoading">
-                <td :colspan="displayedColumns.length" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                <td
+                  :colspan="displayedColumns.length"
+                  class="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                >
                   Loading receipts...
                 </td>
               </tr>
               <tr v-else-if="payments.length === 0">
-                <td :colspan="displayedColumns.length" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                <td
+                  :colspan="displayedColumns.length"
+                  class="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                >
                   No receipts found for the selected filters
                 </td>
               </tr>
-              <tr v-else v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+              <tr
+                v-else
+                v-for="payment in payments"
+                :key="payment.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
                 <!-- Invoice Number -->
-                <td v-if="isColumnVisible('invoice_number')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('invoice_number')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <div class="flex flex-col">
-                    <span v-if="payment.invoice?.invoice_number" class="font-medium text-blue-600 dark:text-blue-400">
+                    <span
+                      v-if="payment.invoice?.invoice_number"
+                      class="font-medium text-blue-600 dark:text-blue-400"
+                    >
                       {{ payment.invoice.invoice_number }}
                     </span>
-                    <span v-else-if="payment.invoice?.id" class="font-medium text-blue-600 dark:text-blue-400">
+                    <span
+                      v-else-if="payment.invoice?.id"
+                      class="font-medium text-blue-600 dark:text-blue-400"
+                    >
                       {{ payment.invoice.id }}
                     </span>
-                    <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                      N/A
-                    </span>
+                    <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                   </div>
                 </td>
-                
+
                 <!-- Receipt Number -->
-                <td v-if="isColumnVisible('receipt_number')" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('receipt_number')"
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                >
                   <div class="flex items-center">
                     <span>{{ payment.receipt_number }}</span>
-                    <span v-if="payment.month_count > 1" class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white dark:bg-blue-500 dark:text-white" :title="getMonthsCovered(payment)">
+                    <span
+                      v-if="payment.month_count > 1"
+                      class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white dark:bg-blue-500 dark:text-white"
+                      :title="getMonthsCovered(payment)"
+                    >
                       {{ payment.month_count }} months
                     </span>
                   </div>
                 </td>
-                
+
                 <!-- Date -->
-                <td v-if="isColumnVisible('payment_date')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('payment_date')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   {{ formatDate(payment.payment_date) }}
                 </td>
-                
+
                 <!-- Student Name -->
-                <td v-if="isColumnVisible('student_name')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('student_name')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <div v-if="payment.student && payment.student.name">
                     <div class="font-medium">{{ payment.student.name }}</div>
                   </div>
@@ -395,51 +715,66 @@
                     Student data unavailable
                   </div>
                 </td>
-                
+
                 <!-- Branch -->
-                <td v-if="isColumnVisible('branch')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('branch')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span v-if="payment.branch" class="font-medium text-gray-900 dark:text-white">
                     {{ payment.branch }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
-                
+
                 <!-- Class -->
-                <td v-if="isColumnVisible('class')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('class')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span v-if="payment.student && payment.student.current_class">
                     {{ payment.student.current_class }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
-                
+
                 <!-- Section -->
-                <td v-if="isColumnVisible('section')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('section')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span v-if="payment.student && payment.student.section">
                     {{ payment.student.section }}
                   </span>
-                  <span v-else class="text-gray-500 dark:text-gray-400 italic">
-                    N/A
-                  </span>
+                  <span v-else class="text-gray-500 dark:text-gray-400 italic"> N/A </span>
                 </td>
-                
+
                 <!-- Amount -->
-                <td v-if="isColumnVisible('payment_amount')" class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
+                <td
+                  v-if="isColumnVisible('payment_amount')"
+                  class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400"
+                >
                   {{ formatCurrency(payment.payment_amount) }}
                 </td>
-                
+
                 <!-- Payment Method -->
-                <td v-if="isColumnVisible('payment_method')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" :class="getPaymentMethodClass(payment.payment_method)">
+                <td
+                  v-if="isColumnVisible('payment_method')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
+                  <span
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    :class="getPaymentMethodClass(payment.payment_method)"
+                  >
                     {{ payment.payment_method }}
                   </span>
                 </td>
-                
+
                 <!-- Fee Type -->
-                <td v-if="isColumnVisible('fee_type')" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="isColumnVisible('fee_type')"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   {{ payment.fee_type || 'N/A' }}
                 </td>
               </tr>
@@ -448,7 +783,7 @@
         </div>
 
         <!-- Pagination -->
-        <Pagination 
+        <Pagination
           v-if="pagination.total_records > 0"
           :pagination="pagination"
           item-label="receipts"
@@ -457,7 +792,6 @@
         />
       </div>
     </div>
-
   </div>
 </template>
 
@@ -480,11 +814,7 @@ definePageMeta({
 // Composables
 const { showToast } = useToast();
 const authStore = useAuthStore();
-const { 
-  generateReport,
-  isGenerating, 
-  generationProgress
-} = useExportService();
+const { generateReport, isGenerating, generationProgress } = useExportService();
 
 const { printReport: printReportCommon } = usePrintReport();
 
@@ -553,8 +883,8 @@ const filters = reactive({
 // Methods
 const handleDateRangeChange = () => {
   const today = new Date();
-  
-  const formatDate = (date) => {
+
+  const formatDate = date => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -608,7 +938,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
   }
   try {
     const params = {};
-    
+
     if (exportAll) {
       params.export_all = true;
     } else {
@@ -622,12 +952,12 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
     if (filters.payment_method) params.payment_method = filters.payment_method;
     if (filters.school_id) params.school_id = filters.school_id;
     if (filters.branch_id) params.branch_id = filters.branch_id;
-    
+
     // Add class ID if selected
     if (filters.class_id && filters.class_id !== '') {
       params.class_id = filters.class_id;
     }
-    
+
     // Add section name if selected
     if (filters.section_id && filters.section_id !== '') {
       const selectedSection = sections.value.find(sec => sec.id === filters.section_id);
@@ -635,11 +965,11 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
         params.section = selectedSection.name;
       }
     }
-    
+
     if (filters.search) params.search = filters.search;
 
     const response = await FeeInvoices.getReceiptsReport(params);
-    
+
     if (response.success) {
       const responsePayments = response.data.payments || [];
       const responseSummary = response.data.summary || {
@@ -647,7 +977,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
         total_receipts: 0,
         payment_methods: []
       };
-      
+
       if (exportAll) {
         // For export/print, return the data directly
         return responsePayments;
@@ -655,7 +985,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
         // For normal page display, update the reactive data
         payments.value = responsePayments;
         summary.value = responseSummary;
-        
+
         // Ensure pagination data exists
         const paginationData = response.data.pagination || {};
         pagination.value = {
@@ -690,7 +1020,7 @@ const fetchReceiptsData = async (page = 1, exportAll = false) => {
   }
 };
 
-const changePage = (page) => {
+const changePage = page => {
   if (page >= 1 && page <= pagination.value.total_pages) {
     pagination.value.current_page = page;
     pagination.value.page = page;
@@ -698,7 +1028,7 @@ const changePage = (page) => {
   }
 };
 
-const handlePageSizeChange = (newPageSize) => {
+const handlePageSizeChange = newPageSize => {
   pagination.value.per_page = newPageSize;
   pagination.value.limit = newPageSize; // Also update limit for Pagination component
   fetchReceiptsData(1);
@@ -714,7 +1044,7 @@ const clearFilters = () => {
   filters.class_id = '';
   filters.section_id = '';
   filters.search = '';
-  
+
   handleDateRangeChange();
   fetchReceiptsData(1);
 };
@@ -729,10 +1059,10 @@ const onSchoolChange = async () => {
   // Reset branch and class when school changes
   filters.branch_id = '';
   filters.class_id = '';
-  
+
   // Refetch branches for the selected school
   await fetchBranches();
-  
+
   // Refetch dependent data
   await fetchClasses();
 };
@@ -740,7 +1070,7 @@ const onSchoolChange = async () => {
 const onBranchChange = async () => {
   // Reset class when branch changes
   filters.class_id = '';
-  
+
   // Refetch dependent data
   await fetchClasses();
 };
@@ -768,14 +1098,14 @@ const fetchSchools = async () => {
 
 const fetchBranches = async () => {
   try {
-            const response = await Branches.getForDropdown();
-    
+    const response = await Branches.getForDropdown();
+
     // Dropdown endpoint returns data directly as an array
     let allBranches = response.data || [];
-    
+
     // Apply role-based filtering
     const user = authStore.user;
-    
+
     if (user && user.role) {
       if (user.role === 'super_admin') {
         // Super admin can see all branches, but filter by selected school if specified
@@ -813,7 +1143,7 @@ const fetchClasses = async () => {
       params.branch_id = filters.branch_id;
     }
     const response = await Classes.getAll(params);
-    
+
     // Handle different response structures
     if (response.success) {
       classes.value = response.data || [];
@@ -833,17 +1163,15 @@ const fetchClasses = async () => {
   }
 };
 
-
-
 // Unified download function following DRY principle
-const downloadReport = async (format) => {
+const downloadReport = async format => {
   try {
     closeDownloadDropdown();
-    
+
     if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
       return;
     }
-    
+
     const exportFilters = {
       from_date: filters.from_date,
       to_date: filters.to_date,
@@ -851,7 +1179,9 @@ const downloadReport = async (format) => {
       school_id: filters.school_id,
       branch_id: filters.branch_id,
       class_id: filters.class_id,
-      section: filters.section_id ? sections.value.find(sec => sec.id === filters.section_id)?.name : undefined,
+      section: filters.section_id
+        ? sections.value.find(sec => sec.id === filters.section_id)?.name
+        : undefined,
       search: filters.search
     };
 
@@ -866,14 +1196,13 @@ const downloadReport = async (format) => {
       key: col.key,
       header: col.label
     }));
-    
+
     await generateReport({
       report_type: 'receipts',
       format,
       filters: exportFilters,
       columns: selectedColumns
     });
-    
   } catch (error) {
     showToast(`Error downloading ${format.toUpperCase()} report`, 'error');
   }
@@ -883,22 +1212,21 @@ const downloadPDFReport = () => downloadReport('pdf');
 const downloadExcelReport = () => downloadReport('excel');
 const downloadCSVReport = () => downloadReport('csv');
 
-
 // Import formatCurrency from exportConfig to avoid duplication
-import { formatCurrency } from '~/utils/exportConfig';
+import { formatCurrency } from '~/utils/formatters';
 
-// Import formatDate from exportConfig to avoid duplication
-import { formatDate } from '~/utils/exportConfig';
+// Import formatDate from formatters to avoid duplication
+import { formatDate } from '~/utils/formatters';
 
 // Common function to format payment data for exports
-const formatPaymentDataForExport = (payment) => {
+const formatPaymentDataForExport = payment => {
   const formattedPayment = {};
-  
+
   // Use availableColumns configuration instead of manual checking
   availableColumns.value.forEach(column => {
     if (column.visible) {
       const key = column.key;
-      
+
       switch (key) {
         case 'invoice_number':
           if (payment.invoice?.invoice_number) {
@@ -909,7 +1237,7 @@ const formatPaymentDataForExport = (payment) => {
             formattedPayment[key] = 'N/A';
           }
           break;
-          
+
         case 'receipt_number':
           let receiptText = payment.receipt_number;
           if (payment.month_count > 1) {
@@ -917,11 +1245,11 @@ const formatPaymentDataForExport = (payment) => {
           }
           formattedPayment[key] = receiptText;
           break;
-          
+
         case 'payment_date':
           formattedPayment[key] = payment.payment_date;
           break;
-          
+
         case 'student_name':
           if (payment.student && payment.student.name) {
             formattedPayment[key] = payment.student.name;
@@ -929,11 +1257,11 @@ const formatPaymentDataForExport = (payment) => {
             formattedPayment[key] = 'Student data unavailable';
           }
           break;
-          
+
         case 'branch':
           formattedPayment[key] = payment.branch || 'N/A';
           break;
-          
+
         case 'class':
           if (payment.student && payment.student.current_class) {
             formattedPayment[key] = payment.student.current_class;
@@ -941,7 +1269,7 @@ const formatPaymentDataForExport = (payment) => {
             formattedPayment[key] = 'N/A';
           }
           break;
-          
+
         case 'section':
           if (payment.student && payment.student.section) {
             formattedPayment[key] = payment.student.section;
@@ -949,25 +1277,25 @@ const formatPaymentDataForExport = (payment) => {
             formattedPayment[key] = 'N/A';
           }
           break;
-          
+
         case 'payment_amount':
           formattedPayment[key] = formatCurrency(payment.payment_amount);
           break;
-          
+
         case 'payment_method':
           formattedPayment[key] = payment.payment_method;
           break;
-          
+
         case 'fee_type':
           formattedPayment[key] = payment.fee_type || 'N/A';
           break;
-          
+
         default:
           formattedPayment[key] = payment[key] || 'N/A';
       }
     }
   });
-  
+
   return formattedPayment;
 };
 
@@ -976,24 +1304,24 @@ const formatDataForExport = () => {
   return payments.value.map(payment => formatPaymentDataForExport(payment));
 };
 
-const getPaymentMethodClass = (method) => {
+const getPaymentMethodClass = method => {
   const classes = {
     cash: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     card: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     upi: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
     bank_transfer: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-    cheque: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    cheque: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
   };
   return classes[method] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
 };
 
-const getPaymentMethodText = (method) => {
+const getPaymentMethodText = method => {
   const texts = {
     cash: 'Cash',
     card: 'Card',
     upi: 'UPI',
     bank_transfer: 'Bank Transfer',
-    cheque: 'Cheque',
+    cheque: 'Cheque'
   };
   return texts[method] || method;
 };
@@ -1003,16 +1331,16 @@ const printReceiptsReport = async () => {
     if (!validateColumnVisibility('print')) {
       return;
     }
-    
+
     const allReceiptsData = await fetchReceiptsData(1, true);
-    
+
     if (allReceiptsData.length === 0) {
       showToast('No data to print. Please load some receipts first.', 'warning');
       return;
-    } 
-    
+    }
+
     const formattedData = allReceiptsData.map(payment => formatPaymentDataForExport(payment));
-    
+
     const reportData = {
       title: 'Receipts Report',
       data: formattedData,
@@ -1025,12 +1353,12 @@ const printReceiptsReport = async () => {
         'From Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.from_date),
         'To Date': filters.dateRange === 'all_time' ? 'All Time' : formatDate(filters.to_date),
         'Payment Method': filters.payment_method || 'All Methods',
-        'Search': filters.search || 'None'
+        Search: filters.search || 'None'
       },
       totalRecords: allReceiptsData.length,
       reportType: 'receipts'
     };
-    
+
     await printReportCommon(reportData, {
       showHeader: true,
       showSummary: true,
@@ -1057,15 +1385,15 @@ const toggleColumnSelector = () => {
 };
 
 const selectAllColumns = () => {
-  availableColumns.value.forEach(col => col.visible = true);
+  availableColumns.value.forEach(col => (col.visible = true));
 };
 
 const deselectAllColumns = () => {
-  availableColumns.value.forEach(col => col.visible = false);
+  availableColumns.value.forEach(col => (col.visible = false));
 };
 
 // Helper function to check if a column is visible
-const isColumnVisible = (columnKey) => {
+const isColumnVisible = columnKey => {
   const column = availableColumns.value.find(col => col.key === columnKey);
   return column ? column.visible : false;
 };
@@ -1091,13 +1419,13 @@ const validateDataAvailability = (action = 'export') => {
 };
 
 // Function to toggle column visibility
-const toggleColumnVisibility = (index) => {
+const toggleColumnVisibility = index => {
   availableColumns.value[index].visible = !availableColumns.value[index].visible;
 };
 
 // Close dropdown when clicking outside
 onMounted(() => {
-  document.addEventListener('click', (event) => {
+  document.addEventListener('click', event => {
     const dropdown = document.querySelector('.download-dropdown');
     if (dropdown && !dropdown.contains(event.target)) {
       closeDownloadDropdown();
@@ -1109,41 +1437,49 @@ onMounted(() => {
   });
 });
 
-
-const getPaymentMethodColor = (method) => {
+const getPaymentMethodColor = method => {
   const colors = {
-    'cash': 'bg-green-500',
-    'bank': 'bg-blue-500',
-    'online': 'bg-cyan-500',
-    'card': 'bg-purple-500',
-    'cheque': 'bg-yellow-500',
-    'wallet': 'bg-orange-500',
-    'bank_transfer': 'bg-indigo-500',
-    'upi': 'bg-pink-500'
+    cash: 'bg-green-500',
+    bank: 'bg-blue-500',
+    online: 'bg-cyan-500',
+    card: 'bg-purple-500',
+    cheque: 'bg-yellow-500',
+    wallet: 'bg-orange-500',
+    bank_transfer: 'bg-indigo-500',
+    upi: 'bg-pink-500'
   };
   return colors[method?.toLowerCase()] || 'bg-gray-500';
 };
 
-const getMonthsCovered = (payment) => {
+const getMonthsCovered = payment => {
   if (!payment.months || payment.months.length === 0) {
     return `${payment.month_count} months covered`;
   }
-  
+
   const monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
   ];
-  
+
   const sortedMonths = payment.months
     .sort((a, b) => {
       if (a.year !== b.year) return b.year - a.year;
       return b.month - a.month;
     })
     .map(m => `${monthNames[m.month - 1]} ${m.year}`);
-  
+
   return `Months covered: ${sortedMonths.join(', ')}`;
 };
-
 
 // Initialize
 onMounted(async () => {
@@ -1152,16 +1488,15 @@ onMounted(async () => {
   if (userRole.value === 'super_admin') {
     await fetchSchools();
   }
-  
+
   await fetchBranches();
-  
+
   // For branch admins, set their branch and load classes
   if (userRole.value === 'branch_admin' && branches.value.length > 0) {
     filters.branch_id = branches.value[0].id;
     await fetchClasses();
   }
-  
+
   fetchReceiptsData();
 });
 </script>
-

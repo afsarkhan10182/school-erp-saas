@@ -1,13 +1,27 @@
 <template>
   <div class="container mx-auto py-8 max-w-3xl">
     <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Add New Branch (Campus)</h1>
-    <form @submit.prevent="handleSubmit" class="space-y-8 bg-white dark:bg-gray-800 p-6 rounded shadow">
+    <form
+      @submit.prevent="handleSubmit"
+      class="space-y-8 bg-white dark:bg-gray-800 p-6 rounded shadow"
+    >
       <!-- School Selection -->
       <div>
-        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Select School *</label>
-        <div v-if="schoolsLoading" class="text-gray-500 dark:text-gray-400 mb-2">Loading schools...</div>
-        <div v-else-if="schools.length === 0" class="text-red-600 dark:text-red-400 mb-2">No schools available. Please create a school first.</div>
-        <select v-model="form.schoolId" required class="input-field" :disabled="schoolsLoading || schools.length === 0">
+        <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+          >Select School *</label
+        >
+        <div v-if="schoolsLoading" class="text-gray-500 dark:text-gray-400 mb-2">
+          Loading schools...
+        </div>
+        <div v-else-if="schools.length === 0" class="text-red-600 dark:text-red-400 mb-2">
+          No schools available. Please create a school first.
+        </div>
+        <select
+          v-model="form.schoolId"
+          required
+          class="input-field"
+          :disabled="schoolsLoading || schools.length === 0"
+        >
           <option value="">Select a school</option>
           <option v-for="school in schools" :key="school.id" :value="school.id">
             {{ school.name }} ({{ school.code }})
@@ -17,70 +31,175 @@
       <!-- Branch Info -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Branch Name *</label>
-          <input v-model="form.name" type="text" required class="input-field" placeholder="Enter branch name" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >Branch Name *</label
+          >
+          <input
+            v-model="form.name"
+            type="text"
+            required
+            class="input-field"
+            placeholder="Enter branch name"
+          />
         </div>
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Branch Code *</label>
-          <input v-model="form.code" type="text" required class="input-field" placeholder="e.g., MAIN, NORTH, SOUTH" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >Branch Code *</label
+          >
+          <input
+            v-model="form.code"
+            type="text"
+            required
+            class="input-field"
+            placeholder="e.g., MAIN, NORTH, SOUTH"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email *</label>
-          <input v-model="form.email" type="email" required class="input-field" placeholder="Branch email" />
+          <input
+            v-model="form.email"
+            type="email"
+            required
+            class="input-field"
+            placeholder="Branch email"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Mobile No</label>
-          <input v-model="form.phone" type="text" class="input-field" placeholder="Branch phone (optional)" @input="form.phone = form.phone.replace(/[^\d]/g, '')" />
+          <input
+            v-model="form.phone"
+            type="text"
+            class="input-field"
+            placeholder="Branch phone (optional)"
+            @input="form.phone = form.phone.replace(/[^\d]/g, '')"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency *</label>
-          <input v-model="form.currency" type="text" required class="input-field" placeholder="e.g. INR, USD" />
+          <input
+            v-model="form.currency"
+            type="text"
+            required
+            class="input-field"
+            placeholder="e.g. INR, USD"
+          />
         </div>
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency Symbol *</label>
-          <input v-model="form.currency_symbol" type="text" required class="input-field" placeholder="e.g. ₹, $" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >Currency Symbol *</label
+          >
+          <input
+            v-model="form.currency_symbol"
+            type="text"
+            required
+            class="input-field"
+            placeholder="e.g. ₹, $"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">City *</label>
-          <input v-model="form.city" type="text" required class="input-field" placeholder="Branch city" />
+          <input
+            v-model="form.city"
+            type="text"
+            required
+            class="input-field"
+            placeholder="Branch city"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">State *</label>
-          <input v-model="form.state" type="text" required class="input-field" placeholder="Branch state" />
+          <input
+            v-model="form.state"
+            type="text"
+            required
+            class="input-field"
+            placeholder="Branch state"
+          />
         </div>
       </div>
       <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Address</label>
-        <textarea v-model="form.address" class="input-field" rows="2" placeholder="Branch address (optional)"></textarea>
+        <textarea
+          v-model="form.address"
+          class="input-field"
+          rows="2"
+          placeholder="Branch address (optional)"
+        ></textarea>
       </div>
       <!-- File Uploads -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">System Logo</label>
-          <input ref="systemLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('system_logo', $event)" />
+          <input
+            ref="systemLogoInput"
+            type="file"
+            accept="image/*"
+            class="input-field"
+            @change="onFileChange('system_logo', $event)"
+          />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Text Logo</label>
-          <input ref="textLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('text_logo', $event)" />
+          <input
+            ref="textLogoInput"
+            type="file"
+            accept="image/*"
+            class="input-field"
+            @change="onFileChange('text_logo', $event)"
+          />
         </div>
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Printing Logo</label>
-          <input ref="printingLogoInput" type="file" accept="image/*" class="input-field" @change="onFileChange('printing_logo', $event)" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >Printing Logo</label
+          >
+          <input
+            ref="printingLogoInput"
+            type="file"
+            accept="image/*"
+            class="input-field"
+            @change="onFileChange('printing_logo', $event)"
+          />
         </div>
         <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Report Card Design (optional)</label>
-          <input ref="reportCardInput" type="file" accept="image/*,application/pdf" class="input-field" @change="onFileChange('report_card_design', $event)" />
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+            >Report Card Design (optional)</label
+          >
+          <input
+            ref="reportCardInput"
+            type="file"
+            accept="image/*,application/pdf"
+            class="input-field"
+            @change="onFileChange('report_card_design', $event)"
+          />
         </div>
       </div>
       <!-- Submit -->
       <div class="flex justify-end gap-3">
         <NuxtLink to="/branches" class="btn-secondary">Cancel</NuxtLink>
-        <button type="submit" class="btn-primary" :disabled="loading || !form.schoolId || !form.name || !form.code || !form.email || !form.currency || !form.currency_symbol || !form.city || !form.state || schoolsLoading || schools.length === 0">
+        <button
+          type="submit"
+          class="btn-primary"
+          :disabled="
+            loading ||
+            !form.schoolId ||
+            !form.name ||
+            !form.code ||
+            !form.email ||
+            !form.currency ||
+            !form.currency_symbol ||
+            !form.city ||
+            !form.state ||
+            schoolsLoading ||
+            schools.length === 0
+          "
+        >
           {{ loading ? 'Creating...' : 'Create Branch' }}
         </button>
       </div>
       <div v-if="error" class="text-red-600 dark:text-red-400 mt-4">{{ error }}</div>
-      <div v-if="success" class="text-green-600 dark:text-green-400 mt-4">Branch created successfully!</div>
+      <div v-if="success" class="text-green-600 dark:text-green-400 mt-4">
+        Branch created successfully!
+      </div>
     </form>
   </div>
 </template>
@@ -134,14 +253,18 @@ const onFileChange = (field, event) => {
 };
 
 // Inherit currency/currency_symbol from selected school
-watch(() => form.value.schoolId, (schoolId) => {
-  const school = schools.value.find(s => s.id === schoolId);
-  if (school) {
-    // Use subscription school data structure
-    form.value.currency = school.currency || school.settings?.currency || 'INR';
-    form.value.currency_symbol = school.currency_symbol || school.settings?.currency_symbol || '₹';
+watch(
+  () => form.value.schoolId,
+  schoolId => {
+    const school = schools.value.find(s => s.id === schoolId);
+    if (school) {
+      // Use subscription school data structure
+      form.value.currency = school.currency || school.settings?.currency || 'INR';
+      form.value.currency_symbol =
+        school.currency_symbol || school.settings?.currency_symbol || '₹';
+    }
   }
-});
+);
 
 const handleSubmit = async () => {
   success.value = false;
@@ -158,8 +281,10 @@ const handleSubmit = async () => {
   formData.append('address', form.value.address);
   if (fileInputs.value.system_logo) formData.append('system_logo', fileInputs.value.system_logo);
   if (fileInputs.value.text_logo) formData.append('text_logo', fileInputs.value.text_logo);
-  if (fileInputs.value.printing_logo) formData.append('printing_logo', fileInputs.value.printing_logo);
-  if (fileInputs.value.report_card_design) formData.append('report_card_design', fileInputs.value.report_card_design);
+  if (fileInputs.value.printing_logo)
+    formData.append('printing_logo', fileInputs.value.printing_logo);
+  if (fileInputs.value.report_card_design)
+    formData.append('report_card_design', fileInputs.value.report_card_design);
   const result = await createBranch(formData);
   if (result) {
     toastSuccess('Branch created successfully');
@@ -191,4 +316,4 @@ onMounted(async () => {
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
-</style> 
+</style>

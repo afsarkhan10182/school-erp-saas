@@ -1,9 +1,18 @@
 const express = require('express');
-const { verifyToken, setSchoolContext, setBranchContext, requireRole, authorize } = require('~/middleware/auth');
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole,
+  authorize
+} = require('~/middleware/auth');
 const { requireModuleAccess } = require('~/middleware/moduleAccess');
 const { validate } = require('~/middleware/validate');
 const ExamTypeController = require('~/controllers/academic/exams/exam-type.controller');
-const { createExamTypeValidator, updateExamTypeValidator } = require('~/validations/academic/exam-type.validation');
+const {
+  createExamTypeValidator,
+  updateExamTypeValidator
+} = require('~/validations/academic/exam-type.validation');
 
 const router = express.Router();
 
@@ -18,6 +27,10 @@ router.get('/active', ExamTypeController.getActiveExamTypes);
 // Individual exam type routes
 router.get('/:id', ExamTypeController.getExamTypeById);
 router.put('/:id', requireRole('school_admin', 'super_admin'), ExamTypeController.updateExamType);
-router.delete('/:id', requireRole('school_admin', 'super_admin'), ExamTypeController.deleteExamType);
+router.delete(
+  '/:id',
+  requireRole('school_admin', 'super_admin'),
+  ExamTypeController.deleteExamType
+);
 
 module.exports = router;

@@ -1,10 +1,7 @@
 const { body } = require('express-validator');
 
 const registerValidator = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+  body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
   body('password')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
@@ -31,16 +28,16 @@ const registerValidator = [
   body('phone')
     .optional({ checkFalsy: true })
     .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
+    .withMessage('Please provide a valid phone number')
 ];
 
 const loginValidator = [
   body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').notEmpty().withMessage('Password is required'),
+  body('password').notEmpty().withMessage('Password is required')
 ];
 
 const forgotPasswordValidator = [
-  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('email').isEmail().withMessage('Please provide a valid email')
 ];
 
 const resetPasswordValidator = [
@@ -55,7 +52,7 @@ const resetPasswordValidator = [
     .matches(/[0-9]/)
     .withMessage('Password must contain at least one number')
     .matches(/[!@#$%^&*(),.?":{}|<>\[\]\\/]/)
-    .withMessage('Password must contain at least one special character'),
+    .withMessage('Password must contain at least one special character')
 ];
 
 const schoolAdminRegisterValidator = [
@@ -66,22 +63,10 @@ const schoolAdminRegisterValidator = [
     .withMessage('School name is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('School name must be between 2 and 100 characters'),
-  body('address')
-    .trim()
-    .notEmpty()
-    .withMessage('Address is required'),
-  body('city')
-    .trim()
-    .notEmpty()
-    .withMessage('City is required'),
-  body('state')
-    .trim()
-    .notEmpty()
-    .withMessage('State is required'),
-  body('postalCode')
-    .trim()
-    .notEmpty()
-    .withMessage('Postal code is required'),
+  body('address').trim().notEmpty().withMessage('Address is required'),
+  body('city').trim().notEmpty().withMessage('City is required'),
+  body('state').trim().notEmpty().withMessage('State is required'),
+  body('postalCode').trim().notEmpty().withMessage('Postal code is required')
 ];
 
 module.exports = {
@@ -89,5 +74,5 @@ module.exports = {
   loginValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
-  schoolAdminRegisterValidator,
+  schoolAdminRegisterValidator
 };

@@ -14,9 +14,9 @@ export function createApiInstance(): AxiosInstance {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    },
+      Pragma: 'no-cache',
+      Expires: '0'
+    }
   });
 
   // Request interceptor - no need to manually add tokens since they're in secure cookies
@@ -34,34 +34,36 @@ export function createApiInstance(): AxiosInstance {
   // Response interceptor for error handling
   api.interceptors.response.use(
     (response: AxiosResponse) => response,
-    async (error) => {
+    async error => {
       const originalRequest = error.config;
-      
+
       // Safety check for originalRequest
       if (!originalRequest) {
         return Promise.reject(error);
       }
-      
+
       // Don't attempt token refresh for auth endpoints (login, logout, refresh)
-      const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                            originalRequest.url?.includes('/auth/logout') || 
-                            originalRequest.url?.includes('/auth/refresh-token');
-      
+      const isAuthEndpoint =
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/logout') ||
+        originalRequest.url?.includes('/auth/refresh-token');
+
       // Don't attempt token refresh for /auth/me endpoint (prevents logout loops)
       const isMeEndpoint = originalRequest.url?.includes('/auth/me');
-      
+
       // Handle 401 errors with automatic token refresh (only for non-auth endpoints)
-      if (error.response?.status === 401 && 
-          !originalRequest._retry && 
-          !isAuthEndpoint &&
-          !isMeEndpoint) {
-        
+      if (
+        error.response?.status === 401 &&
+        !originalRequest._retry &&
+        !isAuthEndpoint &&
+        !isMeEndpoint
+      ) {
         originalRequest._retry = true;
-        
+
         try {
           // Call refresh endpoint to get new tokens
           const refreshResponse = await api.post('/auth/refresh-token');
-          
+
           if (refreshResponse.status === 200) {
             // Retry the original request with new tokens (cookies are automatically included)
             return api(originalRequest);
@@ -77,15 +79,15 @@ export function createApiInstance(): AxiosInstance {
             }
           }
         }
-        
+
         return Promise.reject(new Error('Authentication required'));
       }
-      
+
       // For auth endpoints with 401, just reject the error without attempting refresh
       if (error.response?.status === 401 && (isAuthEndpoint || isMeEndpoint)) {
         return Promise.reject(error);
       }
-      
+
       return Promise.reject(error);
     }
   );

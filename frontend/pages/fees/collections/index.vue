@@ -17,8 +17,8 @@
           Refresh
         </button>
       </div>
-      <collection-table 
-        :collections="collections" 
+      <collection-table
+        :collections="collections"
         @view="handleViewCollection"
         @print="handlePrintCollection"
       />
@@ -67,7 +67,7 @@ const refreshCollections = () => {
   fetchCollections();
 };
 
-const handleViewCollection = (collection) => {
+const handleViewCollection = collection => {
   // Navigate to student fee ledger if student ID is available
   if (collection.student?.id) {
     router.push(`/students/${collection.student.id}/fee-ledger`);
@@ -77,12 +77,12 @@ const handleViewCollection = (collection) => {
   }
 };
 
-const handlePrintCollection = (collection) => {
+const handlePrintCollection = collection => {
   // Handle print functionality
   showInfo(`Printing receipt for collection ${collection.receipt_number}`);
 };
 
-const onPageSizeChange = (newLimit) => {
+const onPageSizeChange = newLimit => {
   pagination.limit = newLimit;
   fetchCollections();
 };
@@ -97,4 +97,3 @@ onMounted(() => {
   max-width: 1024px;
 }
 </style>
-

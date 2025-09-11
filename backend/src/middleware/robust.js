@@ -1,6 +1,6 @@
-const { logger } = require('../utils/logger');
-const { safeAsyncHandler, withTimeout } = require('../utils/apiResponse');
-const ApiError = require('../utils/ApiError');
+const { logger } = require('~/utils/logger');
+const { safeAsyncHandler, withTimeout } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/ApiError');
 const httpStatus = require('http-status');
 
 /**
@@ -23,21 +23,22 @@ const robustMiddleware = (middleware, options = {}) => {
 
   return (req, res, next) => {
     const startTime = Date.now();
-    
+
     try {
       // Call the middleware directly (Express middleware doesn't return promises)
-      middleware(req, res, (err) => {
+      middleware(req, res, err => {
         const duration = Date.now() - startTime;
-        
+
         // Log performance if middleware takes too long
-        if (duration > 1000) { // Log if takes more than 1 second
+        if (duration > 1000) {
+          // Log if takes more than 1 second
           logger.warn(`${name} took ${duration}ms to complete`, {
             url: req.originalUrl,
             method: req.method,
             duration
           });
         }
-        
+
         if (err) {
           logger.error(`${name} failed after ${duration}ms`, {
             url: req.originalUrl,
@@ -53,7 +54,8 @@ const robustMiddleware = (middleware, options = {}) => {
               return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 message: 'Critical middleware failed',
-                error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+                error:
+                  process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
               });
             }
             return;
@@ -78,10 +80,9 @@ const robustMiddleware = (middleware, options = {}) => {
           next();
         }
       });
-      
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       logger.error(`${name} failed after ${duration}ms`, {
         url: req.originalUrl,
         method: req.method,
@@ -155,7 +156,7 @@ const conditionalMiddleware = (condition, middleware, fallback = null) => {
   return async (req, res, next) => {
     try {
       const shouldRun = await condition(req, res);
-      
+
       if (shouldRun) {
         await middleware(req, res, next);
       } else if (fallback) {
@@ -185,49 +186,52 @@ const retryMiddleware = (middleware, options = {}) => {
     maxRetries = 3,
     delay = 1000, // 1 second
     backoff = 2, // Exponential backoff multiplier
-    retryCondition = (error) => true // Function to determine if error is retryable
+    retryCondition = error => true // Function to determine if error is retryable
   } = options;
 
   return async (req, res, next) => {
     let lastError;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await middleware(req, res, next);
         return; // Success, exit retry loop
       } catch (error) {
         lastError = error;
-        
+
         // Check if error is retryable
         if (!retryCondition(error)) {
           break;
         }
-        
+
         // If this is the last attempt, don't wait
         if (attempt === maxRetries) {
           break;
         }
-        
+
         // Wait before retry with exponential backoff
         const waitTime = delay * Math.pow(backoff, attempt - 1);
-        logger.warn(`Middleware failed, retrying in ${waitTime}ms (attempt ${attempt}/${maxRetries})`, {
-          url: req.originalUrl,
-          method: req.method,
-          error: error.message,
-          attempt
-        });
-        
+        logger.warn(
+          `Middleware failed, retrying in ${waitTime}ms (attempt ${attempt}/${maxRetries})`,
+          {
+            url: req.originalUrl,
+            method: req.method,
+            error: error.message,
+            attempt
+          }
+        );
+
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
-    
+
     // All retries failed
     logger.error(`Middleware failed after ${maxRetries} attempts`, {
       url: req.originalUrl,
       method: req.method,
       error: lastError.message
     });
-    
+
     next(lastError);
   };
 };
@@ -260,24 +264,25 @@ const circuitBreakerMiddleware = (middleware, options = {}) => {
         logger.info(`${name} circuit breaker transitioning to HALF_OPEN`);
       } else {
         logger.warn(`${name} circuit breaker is OPEN, skipping middleware`);
-        return next(new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'Service temporarily unavailable'));
+        return next(
+          new ApiError(httpStatus.SERVICE_UNAVAILABLE, 'Service temporarily unavailable')
+        );
       }
     }
 
     try {
       await middleware(req, res, next);
-      
+
       // Success - reset failure count and close circuit
       if (circuitState === 'HALF_OPEN') {
         circuitState = 'CLOSED';
         logger.info(`${name} circuit breaker transitioning to CLOSED`);
       }
       failureCount = 0;
-      
     } catch (error) {
       failureCount++;
       lastFailureTime = now;
-      
+
       logger.error(`${name} middleware failed (${failureCount}/${failureThreshold})`, {
         url: req.originalUrl,
         method: req.method,
@@ -305,16 +310,17 @@ const monitoredMiddleware = (middleware, name = 'Monitored Middleware') => {
   return async (req, res, next) => {
     const startTime = Date.now();
     const startMemory = process.memoryUsage();
-    
+
     try {
       await middleware(req, res, next);
-      
+
       const duration = Date.now() - startTime;
       const endMemory = process.memoryUsage();
       const memoryDiff = endMemory.heapUsed - startMemory.heapUsed;
-      
+
       // Log performance metrics
-      if (duration > 1000 || memoryDiff > 1024 * 1024) { // 1s or 1MB
+      if (duration > 1000 || memoryDiff > 1024 * 1024) {
+        // 1s or 1MB
         logger.info(`${name} performance metrics`, {
           url: req.originalUrl,
           method: req.method,
@@ -322,7 +328,6 @@ const monitoredMiddleware = (middleware, name = 'Monitored Middleware') => {
           memoryUsage: `${Math.round(memoryDiff / 1024)}KB`
         });
       }
-      
     } catch (error) {
       const duration = Date.now() - startTime;
       logger.error(`${name} failed after ${duration}ms`, {
@@ -343,4 +348,4 @@ module.exports = {
   retryMiddleware,
   circuitBreakerMiddleware,
   monitoredMiddleware
-}; 
+};

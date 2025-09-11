@@ -1,10 +1,17 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const config = require('../config/config');
-const ApiError = require('../utils/ApiError');
+const config = require('~/config/config');
+const ApiError = require('~/utils/ApiError');
 const httpStatus = require('http-status');
-const { resolveUploadsPath } = require('../utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/pathHelper');
+const {
+  getSchoolCodeFromId,
+  getSchoolUploadPath,
+  ensureSchoolUploadDir,
+  generateUniqueFilename,
+  getCurrentYear
+} = require('~/utils/storage');
 
 // Ensure upload directory exists
 const uploadDir = config.uploads?.dir || './uploads';
@@ -16,37 +23,66 @@ try {
     fs.mkdirSync(resolvedUploadDir, { recursive: true });
   }
 } catch (error) {
-  console.warn(`Warning: Could not create upload directory at ${resolvedUploadDir}:`, error.message);
-  console.warn('Upload functionality may not work properly. Please ensure the directory exists and has proper permissions.');
+  console.warn(
+    `Warning: Could not create upload directory at ${resolvedUploadDir}:`,
+    error.message
+  );
+  console.warn(
+    'Upload functionality may not work properly. Please ensure the directory exists and has proper permissions.'
+  );
 }
 
-// Configure storage
+// Configure storage with school-specific paths
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let subDir = 'documents';
-    if (file.fieldname === 'schoolLogo' || file.fieldname === 'receiptLogo' || file.fieldname === 'branchLogos') {
-      subDir = 'logos';
-    } else if (file.fieldname === 'profile_image' || file.fieldname === 'student_profile_picture' || file.fieldname === 'guardian_picture') {
-      subDir = 'profile-images';
-    }
-    
-    const fullPath = path.join(resolvedUploadDir, subDir);
-    
+  destination: async (req, file, cb) => {
     try {
-      if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
+      // Get school ID from request (should be set by auth middleware)
+      const schoolId = req.user?.school_id || req.school_id;
+
+      if (!schoolId) {
+        return cb(new Error('School ID is required for file uploads'), null);
       }
+
+      // Get school code from school ID
+      const schoolCode = await getSchoolCodeFromId(schoolId);
+
+      // Determine upload type based on field name
+      let uploadType = 'documents';
+      if (
+        file.fieldname === 'schoolLogo' ||
+        file.fieldname === 'receiptLogo' ||
+        file.fieldname === 'branchLogos'
+      ) {
+        uploadType = 'logos';
+      } else if (
+        file.fieldname === 'profile_image' ||
+        file.fieldname === 'student_profile_picture' ||
+        file.fieldname === 'guardian_picture'
+      ) {
+        uploadType = 'profile-images';
+      } else if (file.fieldname === 'id_card' || file.fieldname === 'student_id_card') {
+        uploadType = 'id-cards';
+      }
+
+      // Get current year for partitioning (optional)
+      const year = getCurrentYear();
+
+      // Ensure school-specific directory exists
+      const fullPath = ensureSchoolUploadDir(schoolCode, uploadType, year);
+
+      cb(null, fullPath);
     } catch (error) {
-      console.warn(`Warning: Could not create upload subdirectory at ${fullPath}:`, error.message);
+      cb(error, null);
     }
-    
-    cb(null, fullPath);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-  },
+    try {
+      const filename = generateUniqueFilename(file.originalname, file.fieldname);
+      cb(null, filename);
+    } catch (error) {
+      cb(error, null);
+    }
+  }
 });
 
 // File filter function
@@ -61,7 +97,7 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/csv',
-    'application/csv',
+    'application/csv'
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -82,13 +118,13 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024, // 5MB default
-  },
+    fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024 // 5MB default
+  }
 });
 
 // Middleware for handling single file upload
-const uploadSingle = (fieldName) => (req, res, next) => {
-  upload.single(fieldName)(req, res, (err) => {
+const uploadSingle = fieldName => (req, res, next) => {
+  upload.single(fieldName)(req, res, err => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return next(
@@ -105,7 +141,7 @@ const uploadSingle = (fieldName) => (req, res, next) => {
 };
 
 // Middleware for handling CSV file upload in memory
-const uploadCSV = (fieldName) => (req, res, next) => {
+const uploadCSV = fieldName => (req, res, next) => {
   const csvUpload = multer({
     storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
@@ -114,20 +150,17 @@ const uploadCSV = (fieldName) => (req, res, next) => {
         cb(null, true);
       } else {
         cb(
-          new ApiError(
-            httpStatus.BAD_REQUEST,
-            'Invalid file type. Only CSV files are allowed.'
-          ),
+          new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type. Only CSV files are allowed.'),
           false
         );
       }
     },
     limits: {
-      fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024, // 5MB default
-    },
+      fileSize: config.uploads?.maxFileSize || 5 * 1024 * 1024 // 5MB default
+    }
   });
 
-  csvUpload.single(fieldName)(req, res, (err) => {
+  csvUpload.single(fieldName)(req, res, err => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return next(
@@ -144,34 +177,33 @@ const uploadCSV = (fieldName) => (req, res, next) => {
 };
 
 // Middleware for handling multiple file uploads
-const uploadMultiple = (fieldName, maxCount = 5) => (req, res, next) => {
-  upload.array(fieldName, maxCount)(req, res, (err) => {
-    if (err) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return next(
-          new ApiError(
-            httpStatus.BAD_REQUEST,
-            `One or more files are too large. Max size is ${config.uploads?.maxFileSize || 5 * 1024 * 1024} bytes.`
-          )
-        );
+const uploadMultiple =
+  (fieldName, maxCount = 5) =>
+  (req, res, next) => {
+    upload.array(fieldName, maxCount)(req, res, err => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return next(
+            new ApiError(
+              httpStatus.BAD_REQUEST,
+              `One or more files are too large. Max size is ${config.uploads?.maxFileSize || 5 * 1024 * 1024} bytes.`
+            )
+          );
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return next(
+            new ApiError(httpStatus.BAD_REQUEST, `Maximum ${maxCount} files are allowed.`)
+          );
+        }
+        return next(new ApiError(httpStatus.BAD_REQUEST, err.message));
       }
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-        return next(
-          new ApiError(
-            httpStatus.BAD_REQUEST,
-            `Maximum ${maxCount} files are allowed.`
-          )
-        );
-      }
-      return next(new ApiError(httpStatus.BAD_REQUEST, err.message));
-    }
-    next();
-  });
-};
+      next();
+    });
+  };
 
 // Middleware for handling multiple fields with files
-const uploadFields = (fields) => (req, res, next) => {
-  upload.fields(fields)(req, res, (err) => {
+const uploadFields = fields => (req, res, next) => {
+  upload.fields(fields)(req, res, err => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return next(
@@ -192,5 +224,5 @@ module.exports = {
   uploadSingle,
   uploadCSV,
   uploadMultiple,
-  uploadFields,
+  uploadFields
 };

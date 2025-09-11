@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const StreamController = require('../controllers/stream.controller');
-const { verifyToken, requireRole, authorize } = require('../middleware/auth');
+const StreamController = require('~/controllers/stream.controller');
+const { verifyToken, requireRole, authorize } = require('~/middleware/auth');
 
 // Apply authentication middleware to all routes
 router.use(verifyToken);
@@ -15,7 +15,11 @@ router.use((req, res, next) => {
     school_id: req.user?.school_id,
     branch_id: req.user?.branch_id
   });
-  console.log('🔍 Streams route middleware - Allowed roles:', ['super_admin', 'school_admin', 'branch_admin']);
+  console.log('🔍 Streams route middleware - Allowed roles:', [
+    'super_admin',
+    'school_admin',
+    'branch_admin'
+  ]);
   next();
 });
 
@@ -39,4 +43,4 @@ router.put('/:id', StreamController.updateStream);
 // DELETE /api/streams/:id - Delete stream
 router.delete('/:id', StreamController.deleteStream);
 
-module.exports = router; 
+module.exports = router;

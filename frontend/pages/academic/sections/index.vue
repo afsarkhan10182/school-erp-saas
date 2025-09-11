@@ -5,7 +5,9 @@
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Section Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage academic sections for each class and branch</p>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+            Manage academic sections for each class and branch
+          </p>
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
@@ -21,31 +23,70 @@
       <!-- Sections List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Academic Sections</h3>
+          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+            Academic Sections
+          </h3>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Section Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Class</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stream</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Capacity</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Section Name
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Stream
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Branch
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Capacity
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="section in sections" :key="section.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+              <tr
+                v-for="section in sections"
+                :key="section.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                >
                   {{ section.name }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ section.class?.name }} ({{ section.class?.code }})
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <span v-if="section.stream" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                  <span
+                    v-if="section.stream"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                  >
                     {{ section.stream.name }} ({{ section.stream.code }})
                   </span>
                   <span v-else class="text-gray-400 dark:text-gray-500 text-xs">No Stream</span>
@@ -53,7 +94,9 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div class="flex items-center">
                     <span class="font-medium">{{ section.branch?.name }}</span>
-                    <span v-if="section.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1">({{ section.branch.code }})</span>
+                    <span v-if="section.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1"
+                      >({{ section.branch.code }})</span
+                    >
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -62,8 +105,10 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
                     :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': section.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': !section.is_active,
+                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
+                        section.is_active,
+                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
+                        !section.is_active
                     }"
                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                   >
@@ -97,17 +142,24 @@
       </div>
 
       <!-- Create/Edit Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+      <div
+        v-if="showModal"
+        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      >
+        <div
+          class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+        >
           <div class="mt-3">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {{ isEditing ? 'Edit Section' : 'Create New Section' }}
             </h3>
-            
+
             <form @submit.prevent="saveSection">
               <!-- School Selection (Super Admin Only) - Create Mode Only -->
               <div v-if="userRole === 'super_admin' && !isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >School *</label
+                >
                 <select
                   v-model="selectedSchoolId"
                   @change="onSchoolChange"
@@ -115,7 +167,9 @@
                   :disabled="loadingSchools"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="">{{ loadingSchools ? 'Loading schools...' : 'Select School' }}</option>
+                  <option value="">
+                    {{ loadingSchools ? 'Loading schools...' : 'Select School' }}
+                  </option>
                   <option v-for="school in schools" :key="school.id" :value="school.id">
                     {{ school.name }}
                   </option>
@@ -124,7 +178,9 @@
 
               <!-- Branch Selection (Super Admin & School Admin) - Create Mode Only -->
               <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Branch *</label
+                >
                 <select
                   v-model="selectedBranchId"
                   @change="onBranchChange"
@@ -132,7 +188,9 @@
                   :disabled="!selectedSchoolId || loadingBranches"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="">{{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}</option>
+                  <option value="">
+                    {{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}
+                  </option>
                   <option v-for="branch in branches" :key="branch.id" :value="branch.id">
                     {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
                   </option>
@@ -141,7 +199,9 @@
 
               <!-- Class Selection - Create Mode Only -->
               <div v-if="!isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Class *</label
+                >
                 <select
                   v-model="selectedClassId"
                   required
@@ -149,8 +209,14 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                   @change="onClassChange"
                 >
-                  <option value="">{{ loadingClasses ? 'Loading classes...' : 'Select Class' }}</option>
-                  <option v-for="classItem in availableClasses" :key="classItem.id" :value="classItem.id">
+                  <option value="">
+                    {{ loadingClasses ? 'Loading classes...' : 'Select Class' }}
+                  </option>
+                  <option
+                    v-for="classItem in availableClasses"
+                    :key="classItem.id"
+                    :value="classItem.id"
+                  >
                     {{ classItem.name }} ({{ classItem.code }})
                   </option>
                 </select>
@@ -158,7 +224,9 @@
 
               <!-- Stream Selection - Only if class has streams -->
               <div v-if="!isEditing && hasStreams" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stream *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Stream *</label
+                >
                 <select
                   v-model="selectedStreamId"
                   required
@@ -166,7 +234,9 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                   @change="onStreamChange"
                 >
-                  <option value="">{{ loadingStreams ? 'Loading streams...' : 'Select Stream' }}</option>
+                  <option value="">
+                    {{ loadingStreams ? 'Loading streams...' : 'Select Stream' }}
+                  </option>
                   <option v-for="stream in availableStreams" :key="stream.id" :value="stream.id">
                     {{ stream.name }} ({{ stream.code }})
                   </option>
@@ -177,29 +247,42 @@
               </div>
 
               <!-- Branch and Class Information Display for Edit Mode -->
-              <div v-if="isEditing" class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">📍 Section Information</h4>
+              <div
+                v-if="isEditing"
+                class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+              >
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                  📍 Section Information
+                </h4>
                 <div class="space-y-2">
                   <div v-if="userRole === 'super_admin'">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">School</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >School</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedSchoolName() }}
                     </p>
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Branch</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >Branch</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedBranchName() }}
                     </p>
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Class</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >Class</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedClassName() }}
                     </p>
                   </div>
                   <div v-if="hasStreams">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Stream</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >Stream</label
+                    >
                     <p class="text-sm text-gray-900 dark:text-white">
                       {{ getSelectedStreamName() }}
                     </p>
@@ -208,7 +291,9 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Section Name *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >Section Name *</label
+                >
                 <input
                   v-model="form.name"
                   type="text"
@@ -219,7 +304,9 @@
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Capacity</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >Capacity</label
+                >
                 <input
                   v-model="form.capacity"
                   type="number"
@@ -253,7 +340,7 @@
                   :disabled="isSubmitting || !canSubmit"
                   class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
-                  {{ isSubmitting ? 'Saving...' : (isEditing ? 'Update' : 'Create') }}
+                  {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
                 </button>
               </div>
             </form>
@@ -310,44 +397,56 @@ const form = reactive({
 // Computed property to check if form can be submitted
 const canSubmit = computed(() => {
   const hasBasicFields = form.name && selectedClassId.value;
-  
+
   if (userRole.value === 'super_admin') {
     if (!selectedSchoolId.value || !selectedBranchId.value) return false;
   } else if (userRole.value === 'school_admin') {
     if (!selectedBranchId.value) return false;
   }
-  
+
   // For classes with streams, stream is required
   if (hasStreams.value && !selectedStreamId.value) {
     return false;
   }
-  
+
   return hasBasicFields;
 });
 
 // Helper functions to get school, branch, and class names
 const getSelectedSchoolName = () => {
   if (userRole.value === 'super_admin') {
-    return selectedSchoolId.value ? schools.value.find(s => s.id === selectedSchoolId.value)?.name : 'N/A';
+    return selectedSchoolId.value
+      ? schools.value.find(s => s.id === selectedSchoolId.value)?.name
+      : 'N/A';
   } else {
-    return authStore.user?.school_id ? schools.value.find(s => s.id === authStore.user?.school_id)?.name : 'N/A';
+    return authStore.user?.school_id
+      ? schools.value.find(s => s.id === authStore.user?.school_id)?.name
+      : 'N/A';
   }
 };
 
 const getSelectedBranchName = () => {
   if (userRole.value === 'super_admin') {
-    return selectedBranchId.value ? branches.value.find(b => b.id === selectedBranchId.value)?.name : 'N/A';
+    return selectedBranchId.value
+      ? branches.value.find(b => b.id === selectedBranchId.value)?.name
+      : 'N/A';
   } else {
-    return selectedBranchId.value ? branches.value.find(b => b.id === selectedBranchId.value)?.name : 'N/A';
+    return selectedBranchId.value
+      ? branches.value.find(b => b.id === selectedBranchId.value)?.name
+      : 'N/A';
   }
 };
 
 const getSelectedClassName = () => {
-  return selectedClassId.value ? availableClasses.value.find(c => c.id === selectedClassId.value)?.name : 'N/A';
+  return selectedClassId.value
+    ? availableClasses.value.find(c => c.id === selectedClassId.value)?.name
+    : 'N/A';
 };
 
 const getSelectedStreamName = () => {
-  return selectedStreamId.value ? streams.value.find(s => s.id === selectedStreamId.value)?.name : 'N/A';
+  return selectedStreamId.value
+    ? streams.value.find(s => s.id === selectedStreamId.value)?.name
+    : 'N/A';
 };
 
 // Check if selected class has streams
@@ -394,19 +493,19 @@ const onBranchChange = async () => {
 };
 
 // Load streams for the selected class
-const loadStreamsForClass = async (classId) => {
+const loadStreamsForClass = async classId => {
   if (!classId) {
     streams.value = [];
     return;
   }
-  
+
   loadingStreams.value = true;
   try {
     const params = {
       class_id: classId,
       is_active: 'true'
     };
-    
+
     // Add role-based filters
     if (userRole.value === 'super_admin') {
       if (selectedSchoolId.value) params.school_id = selectedSchoolId.value;
@@ -418,7 +517,7 @@ const loadStreamsForClass = async (classId) => {
       params.school_id = authStore.user?.school_id;
       params.branch_id = authStore.user?.branch_id;
     }
-    
+
     const response = await Streams.getAll(params);
     streams.value = response.data || [];
   } catch (error) {
@@ -436,7 +535,7 @@ const onClassChange = async () => {
     form.capacity = 30;
     selectedStreamId.value = '';
   }
-  
+
   // Load streams for the selected class
   await loadStreamsForClass(selectedClassId.value);
 };
@@ -457,7 +556,7 @@ const fetchSections = async () => {
       sort_by: 'sort_order',
       sort_order: 'ASC'
     };
-    
+
     // Add role-based filters
     if (userRole.value === 'super_admin') {
       // Super admin can see all sections
@@ -468,7 +567,7 @@ const fetchSections = async () => {
       // Branch admin sees only their branch's sections
       params.branch_id = authStore.user?.branch_id;
     }
-    
+
     const response = await Sections.getAll(params);
     sections.value = response.data || [];
   } catch (error) {
@@ -482,7 +581,7 @@ const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   editingId.value = null;
-  
+
   // Initialize based on user role
   if (userRole.value === 'super_admin') {
     // Load schools for super admin
@@ -497,14 +596,14 @@ const openCreateModal = async () => {
     selectedBranchId.value = authStore.user?.branch_id;
     await fetchClasses(authStore.user?.school_id, authStore.user?.branch_id);
   }
-  
+
   showModal.value = true;
 };
 
-const editSection = async (section) => {
+const editSection = async section => {
   isEditing.value = true;
   editingId.value = section.id;
-  
+
   // Set context based on section data
   if (userRole.value === 'super_admin') {
     selectedSchoolId.value = section.branch?.school_id;
@@ -518,21 +617,21 @@ const editSection = async (section) => {
     selectedSchoolId.value = authStore.user?.school_id;
     selectedBranchId.value = authStore.user?.branch_id;
   }
-  
+
   // Load classes for the branch
   await fetchClasses(selectedSchoolId.value, selectedBranchId.value);
-  
+
   // Set form values
   selectedClassId.value = section.class_id;
   selectedStreamId.value = section.stream_id || '';
-  
+
   // Load streams for the section's class
   await loadStreamsForClass(section.class_id);
-  
+
   form.name = section.name;
   form.capacity = section.capacity;
   form.is_active = section.is_active;
-  
+
   showModal.value = true;
 };
 
@@ -561,12 +660,12 @@ const saveSection = async () => {
     if (isEditing.value) {
       await Sections.update(editingId.value, payload);
     } else {
-              await Sections.create(payload);
+      await Sections.create(payload);
     }
 
     closeModal();
     await fetchSections();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -593,13 +692,13 @@ const saveSection = async () => {
   }
 };
 
-const toggleStatus = async (section) => {
+const toggleStatus = async section => {
   try {
-          await Sections.update(section.id, {
+    await Sections.update(section.id, {
       is_active: !section.is_active
     });
     await fetchSections();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -615,15 +714,15 @@ const toggleStatus = async (section) => {
   }
 };
 
-const deleteSection = async (id) => {
+const deleteSection = async id => {
   if (!confirm('Are you sure you want to delete this section? This action cannot be undone.')) {
     return;
   }
-  
+
   try {
     await Sections.delete(id);
     await fetchSections();
-    
+
     // Show success message
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('show-toast', {
@@ -658,4 +757,3 @@ onMounted(() => {
   max-width: 1024px;
 }
 </style>
-

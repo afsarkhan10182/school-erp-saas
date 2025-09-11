@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { useCookie } from 'nuxt/app';
-import { Saas } from '~/api';
+import { Saas } from '~/api/administration/saas';
 
 export function useSubscriptions() {
   const schools = ref([]);
@@ -176,10 +176,12 @@ export function useSubscriptions() {
     error.value = '';
     try {
       const response = await Saas.createSchoolWithSubscription(formData);
-      
+
       if (!response.success) {
         // Create an error object that mimics axios error structure
-        const apiError = new Error(response.message || 'Failed to create school with subscription.');
+        const apiError = new Error(
+          response.message || 'Failed to create school with subscription.'
+        );
         (apiError as any).response = {
           data: response,
           status: 400
@@ -222,7 +224,12 @@ export function useSubscriptions() {
       const response = await Saas.getSchoolTransactions(schoolId, params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
-        pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
+        pagination.value = response.data.pagination || {
+          page: 1,
+          limit: 10,
+          total: transactions.value.length,
+          pages: 1
+        };
         return response;
       } else {
         error.value = response.message || 'Failed to fetch transactions.';
@@ -244,7 +251,12 @@ export function useSubscriptions() {
       const response = await Saas.getMyTransactions(params);
       if (response.success) {
         transactions.value = response.data.transactions || [];
-        pagination.value = response.data.pagination || { page: 1, limit: 10, total: transactions.value.length, pages: 1 };
+        pagination.value = response.data.pagination || {
+          page: 1,
+          limit: 10,
+          total: transactions.value.length,
+          pages: 1
+        };
         return response;
       } else {
         error.value = response.message || 'Failed to fetch transactions.';
@@ -440,7 +452,6 @@ export function useSubscriptions() {
       const response = await Saas.checkAllStatuses();
       return response.data;
     } catch (error) {
-      console.error('Error checking subscription statuses:', error);
       throw error;
     }
   };
@@ -475,4 +486,4 @@ export function useSubscriptions() {
     fetchSchoolRenewalRequests,
     checkAndUpdateAllStatuses
   };
-} 
+}

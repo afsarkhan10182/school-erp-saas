@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorize } = require('../../middleware/auth');
-const { validate } = require('../../middleware/validate');
-const BranchController = require('../../controllers/school/branch.controller');
+const { verifyToken, authorize } = require('~/middleware/auth');
+const { validate } = require('~/middleware/validate');
+const BranchController = require('~/controllers/school/branch.controller');
+const { createBranchValidator, updateBranchValidator } = require('~/validations/branch.validation');
+const { uploadFields } = require('~/middleware/upload');
 const {
-  createBranchValidator,
-  updateBranchValidator,
-} = require('../../validations/branch.validation');
-const { uploadFields } = require('../../middleware/upload');
-const { validateSubscriptionLimits, validateModuleAccess, checkSubscriptionStatus } = require('../../middleware/subscriptionValidation');
+  validateSubscriptionLimits,
+  validateModuleAccess,
+  checkSubscriptionStatus
+} = require('~/middleware/subscriptionValidation');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -24,7 +25,7 @@ router.post(
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
     { name: 'printing_logo', maxCount: 1 },
-    { name: 'report_card_design', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 }
   ]),
   validate(createBranchValidator),
   BranchController.createBranch
@@ -44,11 +45,7 @@ router.get(
 );
 
 // Branch Admin routes (can view their own branch) - Must come before /:id
-router.get(
-  '/my-branch',
-  authorize(['branch_admin']),
-  BranchController.getMyBranch
-);
+router.get('/my-branch', authorize(['branch_admin']), BranchController.getMyBranch);
 
 // School Admin routes (can manage branches in their school) - Must come before /:id
 router.get(
@@ -70,16 +67,12 @@ router.put(
     { name: 'system_logo', maxCount: 1 },
     { name: 'text_logo', maxCount: 1 },
     { name: 'printing_logo', maxCount: 1 },
-    { name: 'report_card_design', maxCount: 1 },
+    { name: 'report_card_design', maxCount: 1 }
   ]),
   validate(updateBranchValidator),
   BranchController.updateBranch
 );
 
-router.delete(
-  '/:id',
-  authorize(['super_admin']),
-  BranchController.deleteBranch
-);
+router.delete('/:id', authorize(['super_admin']), BranchController.deleteBranch);
 
-module.exports = router; 
+module.exports = router;

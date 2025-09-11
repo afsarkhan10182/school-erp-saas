@@ -4,7 +4,7 @@ const { logger } = require('./utils/logger');
 const { App } = require('./app');
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
   // In production, you might want to gracefully shut down the server
   if (process.env.NODE_ENV === 'production') {
@@ -23,7 +23,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Start the application
 const app = new App();
-app.start().catch((err) => {
+app.start().catch(err => {
   logger.error('Failed to start app:', err);
   process.exit(1);
 });

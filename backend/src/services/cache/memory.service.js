@@ -1,4 +1,4 @@
-const { logger } = require('../../utils/logger');
+const { logger } = require('~/utils/logger');
 
 class MemoryService {
   constructor() {
@@ -11,11 +11,14 @@ class MemoryService {
       deletes: 0,
       size: 0
     };
-    
+
     // Cleanup expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
   }
 
   async get(key) {
@@ -49,7 +52,7 @@ class MemoryService {
   async set(key, value, ttl = 3600) {
     try {
       const now = Date.now();
-      const expiresAt = ttl > 0 ? now + (ttl * 1000) : null;
+      const expiresAt = ttl > 0 ? now + ttl * 1000 : null;
 
       const entry = {
         value,
@@ -64,13 +67,13 @@ class MemoryService {
       }
 
       this.cache.set(key, entry);
-      
+
       if (expiresAt) {
         this.ttlMap.set(key, expiresAt);
       }
 
       this.stats.sets++;
-      
+
       logger.debug(`Memory cache set: ${key} (TTL: ${ttl}s)`);
       return true;
     } catch (error) {
@@ -82,7 +85,7 @@ class MemoryService {
   async del(key) {
     try {
       const existed = this.cache.has(key);
-      
+
       if (existed) {
         this.cache.delete(key);
         this.ttlMap.delete(key);
@@ -90,7 +93,7 @@ class MemoryService {
         this.stats.deletes++;
         logger.debug(`Memory cache deleted: ${key}`);
       }
-      
+
       return existed;
     } catch (error) {
       logger.error('Memory cache delete error:', error);
@@ -125,7 +128,7 @@ class MemoryService {
   async clear(pattern = '*') {
     try {
       let deletedCount = 0;
-      
+
       if (pattern === '*') {
         // Clear all entries
         deletedCount = this.cache.size;
@@ -135,22 +138,22 @@ class MemoryService {
       } else {
         // Clear entries matching pattern (simple string matching)
         const keysToDelete = [];
-        
+
         for (const key of this.cache.keys()) {
           if (key.includes(pattern.replace('*', ''))) {
             keysToDelete.push(key);
           }
         }
-        
+
         for (const key of keysToDelete) {
           this.cache.delete(key);
           this.ttlMap.delete(key);
           deletedCount++;
         }
-        
+
         this.stats.size = this.cache.size;
       }
-      
+
       logger.info(`Memory cache cleared ${deletedCount} entries for pattern: ${pattern}`);
       return deletedCount;
     } catch (error) {
@@ -163,7 +166,7 @@ class MemoryService {
     try {
       const now = Date.now();
       let cleanedCount = 0;
-      
+
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expiresAt && now > entry.expiresAt) {
           this.cache.delete(key);
@@ -171,9 +174,9 @@ class MemoryService {
           cleanedCount++;
         }
       }
-      
+
       this.stats.size = this.cache.size;
-      
+
       if (cleanedCount > 0) {
         logger.debug(`Memory cache cleanup: removed ${cleanedCount} expired entries`);
       }
@@ -185,9 +188,10 @@ class MemoryService {
   getStats() {
     return {
       ...this.stats,
-      hitRate: this.stats.hits + this.stats.misses > 0 
-        ? ((this.stats.hits / (this.stats.hits + this.stats.misses)) * 100).toFixed(2) + '%'
-        : '0%',
+      hitRate:
+        this.stats.hits + this.stats.misses > 0
+          ? ((this.stats.hits / (this.stats.hits + this.stats.misses)) * 100).toFixed(2) + '%'
+          : '0%',
       memoryUsage: this.getMemoryUsage(),
       entries: this.cache.size,
       ttlEntries: this.ttlMap.size
@@ -214,11 +218,11 @@ class MemoryService {
       // Test basic operations
       const testKey = 'health_check_' + Date.now();
       const testValue = { test: true, timestamp: Date.now() };
-      
+
       await this.set(testKey, testValue, 60);
       const retrieved = await this.get(testKey);
       await this.del(testKey);
-      
+
       if (retrieved && retrieved.test === true) {
         return {
           status: 'healthy',
@@ -263,4 +267,4 @@ process.on('SIGTERM', () => {
   }
 });
 
-module.exports = MemoryService; 
+module.exports = MemoryService;

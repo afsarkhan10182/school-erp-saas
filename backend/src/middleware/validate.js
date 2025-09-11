@@ -1,7 +1,7 @@
 const { validationResult } = require('express-validator');
-const apiResponse = require('../utils/apiResponse');
-const { safeMiddleware } = require('./robust');
-const { logger } = require('../utils/logger');
+const apiResponse = require('~/utils/apiResponse');
+const { safeMiddleware } = require('~/middleware/robust');
+const { logger } = require('~/utils/logger');
 
 // Test if validationError is available
 if (!apiResponse.validationError) {
@@ -15,7 +15,7 @@ const { validationError } = apiResponse;
  * @param {Array} validations - Array of validation chains
  * @returns {Function} - Express middleware function
  */
-const validate = (validations) => {
+const validate = validations => {
   const validationLogic = async (req, res, next) => {
     try {
       // Log the request body for debugging
@@ -49,8 +49,8 @@ const validate = (validations) => {
       return validationError(res, formattedErrors);
     } catch (error) {
       logger.error('Validation middleware error:', error);
-      return validationError(res, { 
-        validation: 'Validation process failed' 
+      return validationError(res, {
+        validation: 'Validation process failed'
       });
     }
   };
@@ -63,13 +63,11 @@ const validate = (validations) => {
  * @param {Array} validations - Array of validation chains for query params
  * @returns {Function} - Express middleware function
  */
-const validateQuery = (validations) => {
+const validateQuery = validations => {
   const queryValidationLogic = async (req, res, next) => {
     try {
-      req.query = Object.fromEntries(
-        Object.entries(req.query).map(([key, value]) => [key, value])
-      );
-      
+      req.query = Object.fromEntries(Object.entries(req.query).map(([key, value]) => [key, value]));
+
       await Promise.all(validations.map(validation => validation.run({ ...req, body: req.query })));
 
       const errors = validationResult({ ...req, body: req.query });
@@ -89,8 +87,8 @@ const validateQuery = (validations) => {
       return validationError(res, formattedErrors);
     } catch (error) {
       logger.error('Query validation middleware error:', error);
-      return validationError(res, { 
-        query: 'Query validation process failed' 
+      return validationError(res, {
+        query: 'Query validation process failed'
       });
     }
   };
@@ -103,10 +101,12 @@ const validateQuery = (validations) => {
  * @param {Array} validations - Array of validation chains for route params
  * @returns {Function} - Express middleware function
  */
-const validateParams = (validations) => {
+const validateParams = validations => {
   const paramsValidationLogic = async (req, res, next) => {
     try {
-      await Promise.all(validations.map(validation => validation.run({ ...req, body: req.params })));
+      await Promise.all(
+        validations.map(validation => validation.run({ ...req, body: req.params }))
+      );
 
       const errors = validationResult({ ...req, body: req.params });
       if (errors.isEmpty()) {
@@ -125,8 +125,8 @@ const validateParams = (validations) => {
       return validationError(res, formattedErrors);
     } catch (error) {
       logger.error('Params validation middleware error:', error);
-      return validationError(res, { 
-        params: 'Parameters validation process failed' 
+      return validationError(res, {
+        params: 'Parameters validation process failed'
       });
     }
   };
@@ -139,7 +139,7 @@ const validateParams = (validations) => {
  * @param {Object} sanitizers - Object with sanitization rules
  * @returns {Function} - Express middleware function
  */
-const sanitize = (sanitizers) => {
+const sanitize = sanitizers => {
   const sanitizeLogic = async (req, res, next) => {
     try {
       // Sanitize body
@@ -201,5 +201,5 @@ module.exports = {
   validate,
   validateQuery,
   validateParams,
-  sanitize,
+  sanitize
 };

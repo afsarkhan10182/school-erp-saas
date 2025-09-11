@@ -1,6 +1,6 @@
 const express = require('express');
-const { verifyToken, setSchoolContext, setBranchContext } = require('../middleware/auth');
-const { generateAttendanceTemplate } = require('../controllers/template.controller');
+const { verifyToken, setSchoolContext, setBranchContext } = require('~/middleware/auth');
+const { generateAttendanceTemplate } = require('~/controllers/template.controller');
 
 const router = express.Router();
 

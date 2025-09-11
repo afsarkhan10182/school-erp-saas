@@ -72,14 +72,18 @@ export const Student = {
   // Get student report with advanced filtering
   getReport: async (filters: StudentFilters = {}) => {
     const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Student>>('/students/report', { params: filters });
+    const response = await api.get<PaginatedResponse<Student>>('/students/report', {
+      params: filters
+    });
     return response.data;
   },
 
   // Get student statistics
   getStats: async (filters: StudentFilters = {}) => {
     const api = createApiInstance();
-    const response = await api.get<ApiResponse<StudentStats>>('/students/stats', { params: filters });
+    const response = await api.get<ApiResponse<StudentStats>>('/students/stats', {
+      params: filters
+    });
     return response.data;
   },
 
@@ -95,8 +99,8 @@ export const Student = {
     const api = createApiInstance();
     const response = await api.post('/students/bulk-import', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return response.data;
   },
