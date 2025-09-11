@@ -9,7 +9,6 @@ import {
   formatCurrency,
   getInitials,
   formatPhone,
-  truncateText,
   formatFileSize,
   generateId,
   isValidEmail,
@@ -18,6 +17,8 @@ import {
   calculateAge,
   getStatusBadgeClass
 } from '~/utils/formatters';
+
+import { truncateText } from '~/utils/textUtils';
 
 export const useFormatters = () => {
   return {

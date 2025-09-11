@@ -1,6 +1,6 @@
 import { ref, reactive, readonly } from 'vue';
 import { Attendance } from '~/api/students/attendance';
-import { Students } from '~/api/students/students';
+import { Students } from '~/api/students';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
 

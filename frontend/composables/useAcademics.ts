@@ -1,8 +1,8 @@
 import { ref, computed } from 'vue';
 import { AcademicYears } from '~/api/academic/academic-years';
-import { Classes } from '~/api/academic/classes';
-import { Streams } from '~/api/academic/streams';
-import { Sections } from '~/api/academic/sections';
+import { Classes } from '~/api/academic';
+import { Streams } from '~/api/academic';
+import { Sections } from '~/api/academic';
 
 interface AcademicYear {
   id: string;
