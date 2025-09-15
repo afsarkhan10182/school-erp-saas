@@ -13,7 +13,7 @@ import {
   csvTransformers,
   type CSVImportOptions,
   type CSVImportResult
-} from '~/utils/csvImport';
+} from '~/utils/csv-import';
 
 export const useCSVImport = () => {
   return {

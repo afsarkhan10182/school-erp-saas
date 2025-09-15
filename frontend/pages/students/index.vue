@@ -11,7 +11,7 @@
         </div>
         <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
           <button
-            @click="navigateTo('/students/form')"
+            @click="navigateTo('/students/create')"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             <PlusIcon class="-ml-1 mr-2 h-5 w-5" />
@@ -336,7 +336,7 @@
               Reset Filters
             </button>
             <button
-              @click="navigateTo('/students/form')"
+              @click="navigateTo('/students/create')"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

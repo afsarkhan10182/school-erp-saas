@@ -390,7 +390,7 @@ const handleLogoError = event => {
 };
 
 // Import centralized image utilities
-import { getLogoUrl } from '~/utils/imageUtils';
+import { getLogoUrl } from '~/utils/image';
 
 const getMonthName = month => {
   const months = [

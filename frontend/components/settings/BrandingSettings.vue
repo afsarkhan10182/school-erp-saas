@@ -102,7 +102,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
-import { getLogoUrl } from '~/utils/imageUtils';
+import { getLogoUrl } from '~/utils/image';
 import { Settings } from '~/api/administration/settings';
 import { useAuthStore } from '~/stores/auth';
 

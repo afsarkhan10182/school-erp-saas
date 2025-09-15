@@ -269,7 +269,7 @@ import { useToast } from '~/composables/useToast';
 import SubscriptionDetails from '~/components/SubscriptionDetails.vue';
 import UserAvatar from '~/components/UserAvatar.vue';
 import { Users } from '~/api';
-import { getProfileImageUrl } from '~/utils/imageUtils';
+import { getProfileImageUrl } from '~/utils/image';
 
 // Page meta
 definePageMeta({

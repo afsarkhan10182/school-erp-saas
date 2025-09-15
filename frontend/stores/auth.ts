@@ -100,7 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
         setTimeout(async () => {
           try {
             // Skip verification on login page
-            if (window.location.pathname === '/login') {
+            if (window.location.pathname === '/auth/login') {
               return;
             }
 
@@ -115,8 +115,8 @@ export const useAuthStore = defineStore('auth', () => {
               await silentLogout();
 
               // Redirect to login if not already there
-              if (window.location.pathname !== '/login') {
-                await navigateTo('/login');
+              if (window.location.pathname !== '/auth/login') {
+                await navigateTo('/auth/login');
               }
             }
           } catch (error) {
@@ -297,7 +297,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Force redirect to login page to ensure clean state
       if (import.meta.client) {
-        await navigateTo('/login');
+        await navigateTo('/auth/login');
       }
 
       // Reset logout flag after a delay
@@ -439,15 +439,15 @@ export const useAuthStore = defineStore('auth', () => {
         refreshToken.value = null;
 
         // Navigate to login if not already there
-        if (window.location.pathname !== '/login') {
-          navigateTo('/login');
+        if (window.location.pathname !== '/auth/login') {
+          navigateTo('/auth/login');
         }
       } else if (action === 'login') {
         // Refresh auth state from sessionStorage
         refreshFromStorage();
 
         // Navigate to dashboard if on login page
-        if (window.location.pathname === '/login') {
+        if (window.location.pathname === '/auth/login') {
           navigateTo('/dashboard');
         }
       }

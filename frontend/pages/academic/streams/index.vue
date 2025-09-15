@@ -709,7 +709,7 @@ onMounted(async () => {
       showToast('Please log in to access streams', 'error');
       // Wait a moment then redirect
       setTimeout(() => {
-        navigateTo('/login');
+        navigateTo('/auth/login');
       }, 2000);
       return;
     }

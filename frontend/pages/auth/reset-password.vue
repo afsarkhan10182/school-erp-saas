@@ -116,7 +116,7 @@
           <!-- Back to Login -->
           <div class="mt-6 pt-6 border-t border-white/20 text-center">
             <NuxtLink
-              to="/login"
+              to="/auth/login"
               class="text-blue-300 hover:text-blue-200 transition-colors text-sm"
             >
               ← Back to Login
@@ -143,7 +143,7 @@ import { Auth } from '~/api';
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
 
-definePageMeta({ layout: 'login' });
+// No layout needed - use default
 
 const route = useRoute();
 const router = useRouter();
@@ -188,7 +188,7 @@ const handleResetPassword = async () => {
     if (response.success) {
       success.value = 'Password reset successfully! Redirecting to login...';
       setTimeout(() => {
-        router.push('/login');
+        router.push('/auth/login');
       }, 2000);
     } else {
       error.value = response.message || 'Failed to reset password. Please try again.';

@@ -320,7 +320,7 @@ import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
 import { useModuleAccess } from '~/composables/useModuleAccess';
-import { getLogoUrl } from '~/utils/imageUtils';
+import { getLogoUrl } from '~/utils/image';
 import {
   Home,
   School,
@@ -519,7 +519,7 @@ const menuGroups = computed(() => {
             {
               id: 'new-student',
               title: 'New Student',
-              path: '/students/form',
+              path: '/students/create',
               icon: UserPlus,
               requiredModule: 'students'
             },
@@ -533,7 +533,7 @@ const menuGroups = computed(() => {
             {
               id: 'multiple-import',
               title: 'Multiple Import',
-              path: '/students/multiple-import',
+              path: '/students/import',
               icon: ClipboardList,
               requiredModule: 'students'
             }
@@ -593,7 +593,7 @@ const menuGroups = computed(() => {
             {
               id: 'exam-types',
               title: 'Exam Types',
-              path: '/academic/exam-types',
+              path: '/exams/types',
               icon: Tag,
               requiredModule: 'exams'
             }
@@ -748,7 +748,7 @@ const menuGroups = computed(() => {
         {
           id: 'new-student',
           title: 'New Student',
-          path: '/students/form',
+          path: '/students/create',
           icon: UserPlus
         },
         {
@@ -901,7 +901,7 @@ const handleMenuClick = (path, event) => {
 
 const logout = async () => {
   await authStore.logout();
-  await navigateTo('/login');
+  await navigateTo('/auth/login');
 };
 
 let mql;

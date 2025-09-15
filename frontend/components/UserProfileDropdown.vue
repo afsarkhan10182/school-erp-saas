@@ -130,7 +130,7 @@ const authStore = useAuthStore();
 const isOpen = ref(false);
 
 // Import centralized image utilities
-import { getProfileImageUrl } from '~/utils/imageUtils';
+import { getProfileImageUrl } from '~/utils/image';
 
 // Get school code for image URL generation
 const schoolCode = computed(() => {

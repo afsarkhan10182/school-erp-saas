@@ -135,7 +135,7 @@
 import { reactive, ref, onMounted, onUnmounted, watch } from 'vue';
 import { Settings } from '~/api/administration/settings';
 import { useAuthStore } from '~/stores/auth';
-import { getLogoUrl } from '~/utils/imageUtils';
+import { getLogoUrl } from '~/utils/image';
 import { useFormValidation } from '~/composables/useFormValidation';
 import { validationRules, validateForm } from '~/utils/validators';
 

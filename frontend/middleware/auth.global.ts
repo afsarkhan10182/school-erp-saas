@@ -7,7 +7,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   const authStore = useAuthStore();
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+  const publicRoutes = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/reset-password'
+  ];
   const isPublicRoute = publicRoutes.includes(to.path);
 
   // INSTANT CHECK: Look for HTTP-only cookie presence (prevents flash on new tabs)
@@ -29,7 +34,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   }
 
   // CASE 1: User is authenticated (via store or cookie) and trying to access login page
-  if (to.path === '/login' && (isAuthenticated || hasTokenCookie)) {
+  if (to.path === '/auth/login' && (isAuthenticated || hasTokenCookie)) {
     console.log('🔒 Redirecting authenticated user from login to dashboard');
     return navigateTo('/dashboard');
   }
@@ -45,7 +50,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
           // Only redirect if we're not on a public route
           if (!isPublicRoute) {
             console.log('🔒 Background auth check failed - redirecting to login');
-            await navigateTo('/login');
+            await navigateTo('/auth/login');
           }
         } else {
           console.log('🔒 Background auth check successful');
@@ -54,7 +59,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
         console.error('🔒 Background auth verification failed:', error);
         // Only redirect if we're not on a public route
         if (!isPublicRoute) {
-          await navigateTo('/login');
+          await navigateTo('/auth/login');
         }
       }
     });
@@ -67,7 +72,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   if (!isAuthenticated && !isPublicRoute && !hasTokenCookie) {
     console.log('🔒 No auth - redirecting to login');
     // No token cookie and not authenticated - redirect to login immediately
-    return navigateTo('/login');
+    return navigateTo('/auth/login');
   }
 
   // CASE 4: User is authenticated and accessing any route (normal navigation)

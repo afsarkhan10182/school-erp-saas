@@ -28,10 +28,10 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       await authStore.logout();
-      await navigateTo('/login');
+      await navigateTo('/auth/login');
     } catch (error) {
       // Force redirect even if logout fails
-      await navigateTo('/login');
+      await navigateTo('/auth/login');
     }
   };
 
@@ -42,7 +42,7 @@ export const useAuth = () => {
   const requireAuth = async () => {
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {
-      await navigateTo('/login');
+      await navigateTo('/auth/login');
       return false;
     }
     return true;

@@ -171,20 +171,22 @@ export function useModuleAccess() {
       '/reports/receipts': 'fees',
 
       '/students': 'students',
-      '/students/form': 'students',
-      '/students/multiple-import': 'students',
+      '/students/create': 'students',
+      '/students/import': 'students',
       '/reports/students': 'students',
 
       '/attendance': 'attendance',
       '/attendance/take': 'attendance',
-      '/attendance/bulk-import': 'attendance',
+      '/attendance/import': 'attendance',
       '/attendance/notify': 'attendance',
       '/reports/attendance': 'attendance',
 
       '/exams': 'exams',
       '/exams/report-cards': 'exams',
+      '/exams/marks-entry': 'exams',
+      '/exams/results': 'exams',
+      '/exams/types': 'exams',
       '/reports/exams': 'exams',
-      '/academic/exam-types': 'exams',
       '/academic/subjects': 'exams',
 
       '/library': 'library',

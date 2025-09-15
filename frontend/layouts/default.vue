@@ -82,7 +82,7 @@ const toggleSidebar = () => {
 
 const handleLogout = async () => {
   await authStore.logout();
-  await navigateTo('/login');
+  await navigateTo('/auth/login');
 };
 
 const pageTitle = computed(() => {

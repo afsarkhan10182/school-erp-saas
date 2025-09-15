@@ -18,7 +18,7 @@ import {
   getStatusBadgeClass
 } from '~/utils/formatters';
 
-import { truncateText } from '~/utils/textUtils';
+import { truncateText } from '~/utils/text';
 
 export const useFormatters = () => {
   return {

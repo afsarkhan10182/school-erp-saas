@@ -2962,7 +2962,7 @@ onMounted(async () => {
   try {
     if (!user.value) {
       showError('Please log in to access this page');
-      router.push('/login');
+      router.push('/auth/login');
       return;
     }
 

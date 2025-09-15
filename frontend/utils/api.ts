@@ -73,9 +73,9 @@ export function createApiInstance(): AxiosInstance {
           if (import.meta.client) {
             const authStore = useAuthStore();
             // Only logout if not already on login page
-            if (window.location.pathname !== '/login') {
+            if (window.location.pathname !== '/auth/login') {
               await authStore.logout();
-              await navigateTo('/login');
+              await navigateTo('/auth/login');
             }
           }
         }

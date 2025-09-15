@@ -1204,7 +1204,7 @@ import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/Pagination.vue';
 import UserAvatar from '~/components/UserAvatar.vue';
-import { formatMonthsForAPI } from '~/utils/academicYearUtils';
+import { formatMonthsForAPI } from '~/utils/academic-year';
 
 // Get auth store and toast
 const authStore = useAuthStore();

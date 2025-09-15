@@ -16,7 +16,7 @@ export default defineNuxtRouteMiddleware(async to => {
   if (authStore.user?.role === 'super_admin') return;
 
   // Skip for login/logout routes
-  if (to.path === '/login' || to.path === '/logout') return;
+  if (to.path === '/auth/login' || to.path === '/logout') return;
 
   // Skip for dashboard
   if (to.path === '/dashboard') return;

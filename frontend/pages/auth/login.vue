@@ -249,8 +249,6 @@ import { Auth } from '~/api';
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
 
-definePageMeta({ layout: 'login' });
-
 const form = reactive({
   email: '',
   password: '',

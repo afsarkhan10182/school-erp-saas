@@ -2,8 +2,8 @@ import { ref, readonly } from 'vue';
 import { Export } from '~/api/shared/export';
 import { useToast } from '~/composables/useToast';
 
-import type { ExportColumn, ExportFilters } from '~/utils/exportConfig';
-import { validateExportOptions, cleanExportFilters } from '~/utils/exportConfig';
+import type { ExportColumn, ExportFilters } from '~/utils/export';
+import { validateExportOptions, cleanExportFilters } from '~/utils/export';
 
 export interface ExportFormat {
   value: string;
