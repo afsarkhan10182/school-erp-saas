@@ -35,7 +35,9 @@
         <div class="header">
           <img
             v-if="receiptData.receipt_logo && receiptData.receipt_logo.trim() !== ''"
-            :src="getLogoUrl(receiptData.receipt_logo)"
+            :src="
+              getLogoUrl(receiptData.receipt_logo, schoolData?.code || schoolData?.school?.code)
+            "
             alt="Receipt Logo"
             class="receipt-logo"
             @error="handleLogoError"

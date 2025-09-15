@@ -1,7 +1,7 @@
 const express = require('express');
-const { verifyToken, setSchoolContext, setBranchContext } = require('~/middleware/auth');
-const { uploadCSV } = require('~/middleware/upload');
-const validate = require('~/middleware/validate');
+const { verifyToken, setSchoolContext, setBranchContext } = require('~/middleware/core/auth');
+const { uploadCSV } = require('~/middleware/shared/upload');
+const validate = require('~/middleware/shared/validate');
 const {
   upsertSession,
   saveRecords,
@@ -23,7 +23,7 @@ const AttendanceAnalyticsController = require('~/controllers/academic/attendance
 const {
   createAttendanceValidator,
   updateAttendanceValidator
-} = require('~/validations/academic/attendance.validation');
+} = require('~/validations/academic/attendance');
 
 const router = express.Router();
 

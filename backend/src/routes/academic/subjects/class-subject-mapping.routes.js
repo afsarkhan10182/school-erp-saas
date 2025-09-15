@@ -8,12 +8,12 @@ const {
   getSubjectsByClass,
   getClassesBySubject
 } = require('~/controllers/academic/subjects/class-subject-mapping.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createClassSubjectMappingValidator,
   updateClassSubjectMappingValidator
-} = require('~/validations/academic/class-subject-mapping.validation');
+} = require('~/validations/academic/class-subject-mapping');
 
 const router = express.Router();
 

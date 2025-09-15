@@ -5,16 +5,16 @@ const {
   sendAttendanceSummary,
   getNotificationSettings
 } = require('~/controllers/academic/attendance/attendance-notification.controller');
-const { verifyToken, authorize, setSchoolContext } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize, setSchoolContext } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createAttendanceNotificationValidator,
   updateAttendanceNotificationValidator
-} = require('~/validations/academic/attendance-notification.validation');
+} = require('~/validations/academic/attendance-notification');
 const {
   validateModuleAccess,
   checkSubscriptionStatus
-} = require('~/middleware/subscriptionValidation');
+} = require('~/middleware/administration/subscriptionValidation');
 const router = express.Router();
 
 // Middleware to ensure authentication

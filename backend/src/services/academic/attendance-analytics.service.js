@@ -8,8 +8,8 @@ const {
   School,
   Branch
 } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
 const AnalyticsService = require('~/services/shared/analytics.service');
 
 /**

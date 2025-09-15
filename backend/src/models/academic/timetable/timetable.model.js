@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('~/config/database');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 const Timetable = sequelize.define(
   'Timetable',

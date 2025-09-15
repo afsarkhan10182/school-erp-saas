@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const ExamStatusController = require('~/controllers/academic/exams/exam-status.controller');
-const { verifyToken } = require('~/middleware/auth');
-const { requireModuleAccess } = require('~/middleware/moduleAccess');
+const { verifyToken } = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
 
 // Apply authentication and module access middleware to all routes
 router.use(verifyToken);

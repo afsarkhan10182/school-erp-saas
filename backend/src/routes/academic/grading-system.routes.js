@@ -4,14 +4,14 @@ const {
   setSchoolContext,
   setBranchContext,
   requireRole
-} = require('~/middleware/auth');
-const { requireModuleAccess } = require('~/middleware/moduleAccess');
-const { validate } = require('~/middleware/validate');
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
+const { validate } = require('~/middleware/shared/validate');
 const GradingSystemController = require('~/controllers/academic/grading-system.controller');
 const {
   createGradingSystemValidator,
   updateGradingSystemValidator
-} = require('~/validations/academic/grading-system.validation');
+} = require('~/validations/academic/grading-system');
 const { EXAM_ROLES, EXAM_ADMIN_ROLES } = require('~/constants/roles');
 
 const router = express.Router();

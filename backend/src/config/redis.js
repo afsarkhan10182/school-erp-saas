@@ -1,6 +1,6 @@
 const { createClient } = require('redis');
 const config = require('./config');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 let redisClient = null;
 let redisConnectionAttempts = 0;

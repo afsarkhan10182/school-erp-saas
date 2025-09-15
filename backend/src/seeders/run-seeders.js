@@ -1,6 +1,6 @@
 const { seedModules } = require('./module-seeder');
 const { seedSubscriptionPlans } = require('./subscription-plan-seeder');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 async function runAllSeeders() {
   try {

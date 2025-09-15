@@ -1,18 +1,18 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { resolveUploadsPath } = require('~/utils/pathHelper');
+const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
 const {
   getSchoolFilePath,
   getSchoolFilePathWithArchive,
   getSchoolCodeFromId,
   getSchoolUploadStats,
   cleanupSchoolUploads
-} = require('~/utils/storage');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
+} = require('~/utils/shared/storage');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
 const httpStatus = require('http-status');
-const { verifyToken } = require('~/middleware/auth');
+const { verifyToken } = require('~/middleware/core/auth');
 
 const router = express.Router();
 

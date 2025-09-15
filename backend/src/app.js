@@ -2,11 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const { errorHandler, notFoundHandler, gracefulShutdown } = require('./middleware/errorHandler');
+const {
+  errorHandler,
+  notFoundHandler,
+  gracefulShutdown
+} = require('./middleware/shared/errorHandler');
 const { swaggerSpec, swaggerUi } = require('./config/swagger');
 const { testConnection } = require('./config/database');
 const { connectRedis, isRedisEnabled } = require('./config/redis');
-const { logger } = require('./utils/logger');
+const { logger } = require('./utils/shared/logger');
 const routes = require('./routes');
 const config = require('./config/config');
 
@@ -93,7 +97,7 @@ class App {
     this.app.use(require('cookie-parser')());
 
     // Static files
-    const { resolveUploadsPath } = require('./utils/pathHelper');
+    const { resolveUploadsPath } = require('./utils/shared/pathHelper');
     const uploadDir = config.uploads?.dir || './uploads';
     const resolvedUploadDir = uploadDir.startsWith('./') ? resolveUploadsPath() : uploadDir;
 

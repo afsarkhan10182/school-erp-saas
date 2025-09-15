@@ -1,5 +1,5 @@
 const { AcademicYear, User } = require('~/models');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const { validationResult } = require('express-validator');
 
@@ -415,7 +415,7 @@ class AcademicYearController {
         });
       }
 
-      const { syncSchoolsToCurrentAcademicYear } = require('~/utils/academicYearUtils');
+      const { syncSchoolsToCurrentAcademicYear } = require('~/utils/academic/academicYearUtils');
       const result = await syncSchoolsToCurrentAcademicYear();
 
       res.json({

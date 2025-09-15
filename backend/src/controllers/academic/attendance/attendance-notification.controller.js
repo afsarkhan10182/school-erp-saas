@@ -2,12 +2,12 @@ const {
   sendAbsenteeNotifications,
   sendLateArrivalNotifications,
   sendAttendanceSummaryNotifications
-} = require('~/services/attendance-notification.service');
+} = require('~/services/academic/attendance-notification.service');
 const { Student, Parent, StudentParent, Class, Section, Branch, School } = require('~/models');
 const { Op } = require('sequelize');
-const ApiError = require('~/utils/ApiError');
-const { logger } = require('~/utils/logger');
-const { apiResponse } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/shared/ApiError');
+const { logger } = require('~/utils/shared/logger');
+const { apiResponse } = require('~/utils/shared/apiResponse');
 
 /**
  * Send absence notifications to parents

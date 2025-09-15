@@ -1,6 +1,6 @@
 const { ExamStatus } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
-const ApiError = require('~/utils/ApiError');
+const ApiError = require('~/utils/shared/ApiError');
 const { Op } = require('sequelize');
 
 class ExamStatusService extends BaseService {

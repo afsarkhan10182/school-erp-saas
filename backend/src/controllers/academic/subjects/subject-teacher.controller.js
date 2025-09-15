@@ -1,8 +1,8 @@
 const { Op } = require('sequelize');
 const { SubjectTeacher, Subject, User, Class, School, Branch } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
-const { apiResponse } = require('~/utils/apiResponse');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { apiResponse } = require('~/utils/shared/apiResponse');
 const SubjectTeacherService = require('~/services/academic/subject-teacher.service');
 
 class SubjectTeacherController {

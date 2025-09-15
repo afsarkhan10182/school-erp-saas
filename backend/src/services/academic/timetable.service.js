@@ -1,8 +1,8 @@
 const { Op, Sequelize } = require('sequelize');
 const { Timetable, TimetableSlot, Class, Section, Subject, School, User } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
-const ApiError = require('~/utils/ApiError');
-const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { logger } = require('~/utils/shared/logger');
 
 class TimetableService extends BaseService {
   /**

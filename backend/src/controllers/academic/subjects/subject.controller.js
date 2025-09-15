@@ -1,8 +1,8 @@
 const { Op } = require('sequelize');
 const { Subject, Class, School, Branch, User } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
-const { apiResponse } = require('~/utils/apiResponse');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { apiResponse } = require('~/utils/shared/apiResponse');
 const SubjectService = require('~/services/academic/subject.service');
 const CommonService = require('~/services/shared/common.service');
 const QueryService = require('~/services/shared/query.service');

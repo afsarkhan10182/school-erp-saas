@@ -9,12 +9,12 @@ const {
   removeSubjectsFromGroup,
   getSubjectGroupsForDropdown
 } = require('~/controllers/academic/subjects/subject-group.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createSubjectGroupValidator,
   updateSubjectGroupValidator
-} = require('~/validations/academic/subject-group.validation');
+} = require('~/validations/academic/subject-group');
 
 const router = express.Router();
 

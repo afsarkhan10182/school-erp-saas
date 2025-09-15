@@ -1,6 +1,6 @@
 const { createClient } = require('redis');
 const config = require('~/config/config');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 class RedisService {
   constructor() {

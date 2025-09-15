@@ -10,12 +10,12 @@ const {
   upsertCalendarEntry,
   bulkCreateCalendar
 } = require('~/controllers/academic/academic-calendar.controller');
-const { verifyToken, authorize, setSchoolContext } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize, setSchoolContext } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createAcademicCalendarValidator,
   updateAcademicCalendarValidator
-} = require('~/validations/academic/academic-calendar.validation');
+} = require('~/validations/academic/academic-calendar');
 
 // Apply middleware
 router.use(verifyToken, setSchoolContext);

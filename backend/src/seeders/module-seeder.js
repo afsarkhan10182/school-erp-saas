@@ -1,5 +1,5 @@
 const { Module } = require('~/models');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 const defaultModules = [
   {

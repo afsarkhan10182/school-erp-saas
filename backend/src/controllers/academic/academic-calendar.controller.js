@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const ApiError = require('~/utils/ApiError');
-const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { logger } = require('~/utils/shared/logger');
 const { AcademicCalendar, School } = require('~/models');
 
 // Check if a date is a working day

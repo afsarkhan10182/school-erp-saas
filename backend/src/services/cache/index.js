@@ -1,6 +1,6 @@
 const RedisService = require('./redis.service');
 const MemoryService = require('./memory.service');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 class CacheService {
   constructor() {
