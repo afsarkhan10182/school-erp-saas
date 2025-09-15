@@ -62,7 +62,7 @@
 <script setup>
 import { computed } from 'vue';
 import StatusBadge from '~/components/ui/StatusBadge.vue';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 const props = defineProps({
   items: {

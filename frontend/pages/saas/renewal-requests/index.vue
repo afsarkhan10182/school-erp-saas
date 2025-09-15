@@ -266,7 +266,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { AlertCircle, FileText } from 'lucide-vue-next';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Page meta
 definePageMeta({

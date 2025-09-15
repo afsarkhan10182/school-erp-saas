@@ -1253,7 +1253,7 @@ import {
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import { AcademicYears, Classes, Sections, Streams, Branches, Schools } from '~/api';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';

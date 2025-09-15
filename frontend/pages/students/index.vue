@@ -747,10 +747,10 @@ import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import Pagination from '~/components/Pagination.vue';
-import UserAvatar from '~/components/UserAvatar.vue';
+import Pagination from '~/components/ui/Pagination.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { PlusIcon, Users, CheckCircle, UserPlus, GraduationCap } from 'lucide-vue-next';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const authStore = useAuthStore();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();

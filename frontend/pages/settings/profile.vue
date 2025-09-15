@@ -266,8 +266,8 @@ import { ref, computed, onMounted } from 'vue';
 import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import SubscriptionDetails from '~/components/SubscriptionDetails.vue';
-import UserAvatar from '~/components/UserAvatar.vue';
+import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { Users } from '~/api';
 import { getProfileImageUrl } from '~/utils/image';
 

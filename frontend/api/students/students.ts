@@ -110,6 +110,28 @@ export const Student = {
     const api = createApiInstance();
     const response = await api.get(`/students/${studentId}/invoice-breakdown`, { params });
     return response.data;
+  },
+
+  // Create student with form data (including file uploads)
+  createWithFormData: async (formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.post('/students', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Update student with form data (including file uploads)
+  updateWithFormData: async (studentId: string, formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.put(`/students/${studentId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
   }
 };
 

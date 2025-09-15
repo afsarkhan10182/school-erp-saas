@@ -167,23 +167,19 @@ const hide = () => {
 
 // Listen for custom events
 const handleShowToast = event => {
-  console.log('Toast event received:', event.detail);
   const { message: msg, type: toastType, duration } = event.detail;
-  console.log('Showing toast with message:', msg, 'type:', toastType);
   showToast(msg, toastType, duration);
 };
 
 onMounted(() => {
   if (import.meta.client) {
     window.addEventListener('show-toast', handleShowToast);
-    console.log('Toast component mounted, event listener added');
   }
 });
 
 onUnmounted(() => {
   if (import.meta.client) {
     window.removeEventListener('show-toast', handleShowToast);
-    console.log('Toast component unmounted, event listener removed');
   }
   if (timeoutId) {
     clearTimeout(timeoutId);

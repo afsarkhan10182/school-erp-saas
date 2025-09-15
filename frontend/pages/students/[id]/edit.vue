@@ -1,6 +1,6 @@
 <template>
   <div>
-    <StudentForm
+    <StudentRegistrationForm
       :is-editing="true"
       :student-id="studentId"
       :initial-data="studentData"
@@ -15,6 +15,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Students } from '~/api';
 import { useToast } from '~/composables/useToast';
+import StudentRegistrationForm from '~/components/forms/StudentRegistrationForm.vue';
 
 const route = useRoute();
 const { showError } = useToast();

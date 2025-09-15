@@ -577,7 +577,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useFormatters } from '~/composables/useFormatters';
 import { AcademicCalendar } from '~/api';
 import { termApi } from '~/api/academic/terms';
-import Modal from '~/components/Modal.vue';
+import Modal from '~/components/ui/Modal.vue';
 import CalendarEventForm from '~/components/forms/CalendarEventForm.vue';
 import TermForm from '~/components/forms/TermForm.vue';
 import { Plus, Calendar, Edit, Trash2 } from 'lucide-vue-next';

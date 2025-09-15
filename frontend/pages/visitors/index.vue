@@ -420,7 +420,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { Plus, Users, Clock, CheckCircle, Calendar, Search } from 'lucide-vue-next';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // State
 const visitors = ref([]);

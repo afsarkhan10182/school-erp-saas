@@ -674,16 +674,13 @@ const fetchStudents = async () => {
         // No streams, fetch all students for the class
         params.class_id = classId;
         params.limit = 1000; // Set high limit to get all students
-        console.log(
           '📚 Fee structure has single class:',
           selectedStructure.class_name,
           '(ID:',
           classId,
           ')'
         );
-        console.log('🔍 Fetching students with params:', params);
         const response = await Students.getAll(params);
-        console.log('📊 API response for single class:', response);
 
         // Handle different response structures
         let students = [];

@@ -585,7 +585,6 @@ const updateInvoiceAfterPayment = (studentId, invoiceId, updatedInvoiceData) => 
     // Update the main student summary as well
     if (mainStudent) {
       // This will trigger reactivity in the parent component
-      console.log('🔄 Emitting update to parent component...');
       // Note: We can't directly modify props, but the parent should handle this
     }
   }

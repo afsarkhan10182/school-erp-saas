@@ -33,12 +33,10 @@ await navigateTo('/settings/profile?tab=subscription');
 
 // Event handlers
 const handleDataLoaded = data => {
-  console.log('Subscription data loaded:', data);
 };
 
 const handleRenewalRequested = data => {
   showSuccess('Renewal request submitted successfully');
-  console.log('Renewal requested:', data);
 };
 </script>
 

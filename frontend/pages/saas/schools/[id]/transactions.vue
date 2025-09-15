@@ -297,7 +297,7 @@ import { useRoute } from 'vue-router';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue'; // Added import for Pagination component
+import Pagination from '~/components/ui/Pagination.vue'; // Added import for Pagination component
 
 const authStore = useAuthStore();
 const { showError } = useToast();

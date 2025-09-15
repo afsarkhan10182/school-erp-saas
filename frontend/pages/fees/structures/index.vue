@@ -1238,7 +1238,6 @@ const fetchSchools = async () => {
       availableSchools.value = [];
     }
   } catch (error) {
-    console.error('❌ Error fetching schools:', error);
     availableSchools.value = [];
   }
 };

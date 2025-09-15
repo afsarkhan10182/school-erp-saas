@@ -43,9 +43,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import Sidebar from '~/components/Sidebar.vue';
-import Header from '~/components/Header.vue';
-import Toast from '~/components/Toast.vue';
+import Sidebar from '~/components/layout/Sidebar.vue';
+import Header from '~/components/layout/Header.vue';
+import Toast from '~/components/ui/Toast.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useHydrationState } from '~/composables/useHydration';

@@ -650,6 +650,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Check, AlertCircle, X } from 'lucide-vue-next';
 import { Saas } from '~/api';
+import Modal from '~/components/ui/Modal.vue';
 
 // Types
 interface School {
@@ -1254,10 +1255,10 @@ const submitRenewalRequest = async () => {
       ...renewalForm.value
     });
 
-    if (response?.success) {
+    if (response) {
       showSuccess('Renewal request submitted successfully');
       showRenewalModal.value = false;
-      emit('renewal-requested', response.data);
+      emit('renewal-requested', response);
 
       // Reset form
       renewalForm.value = {
@@ -1269,7 +1270,7 @@ const submitRenewalRequest = async () => {
 
       await loadData(); // Reload to show the new request
     } else {
-      toastError(response?.message || 'Failed to submit renewal request');
+      toastError('Failed to submit renewal request');
     }
   } catch (err: any) {
     console.error('Error submitting renewal request:', err);

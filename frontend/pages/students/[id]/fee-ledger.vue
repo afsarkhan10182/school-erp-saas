@@ -876,8 +876,8 @@ import { useRoute } from 'vue-router';
 import { FileText, CheckCircle, DollarSign, AlertTriangle, Search, X } from 'lucide-vue-next';
 import { Students, Schools, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue';
-import ReceiptViewer from '~/components/ReceiptViewer.vue';
+import Pagination from '~/components/ui/Pagination.vue';
+import ReceiptViewer from '~/components/financial/ReceiptViewer.vue';
 
 const route = useRoute();
 const studentId = route.params.id;

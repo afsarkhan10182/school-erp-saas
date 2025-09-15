@@ -82,11 +82,9 @@ export interface ExamResultData {
 export const examApi = {
   // Create exam
   create: async (data: Partial<Exam>) => {
-    console.log('Exam API create called with:', data);
     const api = createApiInstance();
     try {
       const response = await api.post<ApiResponse<Exam>>('/exams', data);
-      console.log('Exam API create response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Exam API create error:', error);

@@ -272,8 +272,8 @@ import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Subjects, SubjectTeachers, Users } from '~/api';
-import Modal from '~/components/Modal.vue';
-import Pagination from '~/components/Pagination.vue';
+import Modal from '~/components/ui/Modal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import SubjectTeacherForm from '~/components/forms/SubjectTeacherForm.vue';
 import { Plus, BookOpen, CheckCircle, XCircle, Users as UsersIcon } from 'lucide-vue-next';
 

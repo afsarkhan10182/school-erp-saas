@@ -414,8 +414,8 @@ import { useToast } from '~/composables/useToast';
 import { Students } from '~/api';
 import { Streams } from '~/api';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
-import Modal from '~/components/Modal.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Modal from '~/components/ui/Modal.vue';
 
 // Meta
 definePageMeta({

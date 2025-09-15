@@ -322,7 +322,6 @@ const saveAcademicSettings = async data => {
   try {
     loadingStates.academic = true;
     // API call to save academic settings
-    console.log('Saving academic settings:', data);
     showToast('Academic settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving academic settings:', error);
@@ -336,7 +335,6 @@ const saveFeeSettings = async data => {
   try {
     loadingStates.fees = true;
     // API call to save fee settings
-    console.log('Saving fee settings:', data);
     showToast('Fee settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving fee settings:', error);
@@ -407,7 +405,6 @@ const saveNotificationSettings = async data => {
   try {
     loadingStates.notifications = true;
     // API call to save notification settings
-    console.log('Saving notification settings:', data);
     showToast('Notification settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving notification settings:', error);
@@ -421,7 +418,6 @@ const saveSecuritySettings = async data => {
   try {
     loadingStates.security = true;
     // API call to save security settings
-    console.log('Saving security settings:', data);
     showToast('Security settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving security settings:', error);
@@ -435,7 +431,6 @@ const saveIntegrationSettings = async data => {
   try {
     loadingStates.integrations = true;
     // API call to save integration settings
-    console.log('Saving integration settings:', data);
     showToast('Integration settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving integration settings:', error);
@@ -449,7 +444,6 @@ const saveBackupSettings = async data => {
   try {
     loadingStates.backup = true;
     // API call to save backup settings
-    console.log('Saving backup settings:', data);
     showToast('Backup settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving backup settings:', error);

@@ -328,8 +328,8 @@ import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { Schools, Branches, Classes, Sections, Attendance, AttendanceNotifications } from '~/api';
-import Modal from '~/components/Modal.vue';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import Modal from '~/components/ui/Modal.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import FilterCard from '~/components/ui/FilterCard.vue';
 
 // Removed reportTypeOptions as we now use date range filters

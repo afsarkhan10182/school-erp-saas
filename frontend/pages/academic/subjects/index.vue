@@ -388,8 +388,8 @@ import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Subjects } from '~/api';
-import Modal from '~/components/Modal.vue';
-import Pagination from '~/components/Pagination.vue';
+import Modal from '~/components/ui/Modal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import SubjectForm from '~/components/forms/SubjectForm.vue';
 import { Plus, BookOpen, CheckCircle, XCircle, Tag } from 'lucide-vue-next';
 

@@ -379,7 +379,7 @@ import { ref, onMounted } from 'vue';
 import { Saas } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
-import Modal from '~/components/Modal.vue';
+import Modal from '~/components/ui/Modal.vue';
 
 const { showSuccess, showError } = useToast();
 const authStore = useAuthStore();

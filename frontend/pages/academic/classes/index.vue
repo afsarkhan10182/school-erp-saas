@@ -610,9 +610,6 @@ const saveClass = async () => {
       } else {
         // Fallback: try to get branch from user context
         const branchContext = getBranchContext();
-        console.log('Branch context:', branchContext);
-        console.log('Available branches:', availableBranches.value);
-        console.log('Selected branch ID:', selectedBranchId.value);
 
         if (branchContext?.branchId) {
           payload.branch_id = branchContext.branchId;

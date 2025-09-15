@@ -510,7 +510,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { Plus, BookOpen, CheckCircle, Users, TrendingUp, RefreshCw } from 'lucide-vue-next';
-import Modal from '~/components/Modal.vue';
+import Modal from '~/components/ui/Modal.vue';
 import ExamTypeDropdown from '~/components/forms/ExamTypeDropdown.vue';
 import { useExams } from '~/composables/useExams';
 import { useToast } from '~/composables/useToast';

@@ -1202,8 +1202,8 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
-import Pagination from '~/components/Pagination.vue';
-import UserAvatar from '~/components/UserAvatar.vue';
+import Pagination from '~/components/ui/Pagination.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { formatMonthsForAPI } from '~/utils/academic-year';
 
 // Get auth store and toast

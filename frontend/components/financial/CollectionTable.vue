@@ -122,7 +122,7 @@
 </template>
 
 <script setup>
-import UserAvatar from '~/components/UserAvatar.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 defineProps({
   collections: {

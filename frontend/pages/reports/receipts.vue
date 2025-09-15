@@ -804,7 +804,7 @@ import { useBranchContext } from '~/composables/useBranchContext';
 import { useAuthStore } from '~/stores/auth';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Page metadata
 definePageMeta({

@@ -303,8 +303,8 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { Users, Schools, Branches } from '~/api';
-import PasswordInput from '~/components/PasswordInput.vue';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
+import PasswordInput from '~/components/ui/PasswordInput.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();

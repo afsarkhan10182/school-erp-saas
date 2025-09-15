@@ -688,7 +688,7 @@ import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
-import UserAvatar from '~/components/UserAvatar.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 const route = useRoute();
 const studentId = route.params.id;

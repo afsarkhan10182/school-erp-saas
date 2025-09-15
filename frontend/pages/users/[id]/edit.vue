@@ -171,7 +171,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Users } from '~/api';
-import PasswordInput from '~/components/PasswordInput.vue';
+import PasswordInput from '~/components/ui/PasswordInput.vue';
 
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();

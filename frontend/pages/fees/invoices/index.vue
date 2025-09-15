@@ -495,18 +495,20 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
 // Strategic imports: Direct for always-present, Async for on-demand
-import InvoiceFilters from '~/components/InvoiceFilters.vue';
-import InvoiceTable from '~/components/InvoiceTable.vue';
-import Pagination from '~/components/Pagination.vue';
+import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
+import InvoiceTable from '~/components/financial/InvoiceTable.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Async imports for modal components (only loaded when needed)
 const QuickCollectFeeModal = defineAsyncComponent(
-  () => import('~/components/QuickCollectFeeModal.vue')
+  () => import('~/components/financial/QuickCollectFeeModal.vue')
 );
 const GenerateInvoicesModal = defineAsyncComponent(
-  () => import('~/components/GenerateInvoicesModal.vue')
+  () => import('~/components/financial/GenerateInvoicesModal.vue')
 );
-const ReceiptViewer = defineAsyncComponent(() => import('~/components/ReceiptViewer.vue'));
+const ReceiptViewer = defineAsyncComponent(
+  () => import('~/components/financial/ReceiptViewer.vue')
+);
 
 // Composables
 const { showToast } = useToast();

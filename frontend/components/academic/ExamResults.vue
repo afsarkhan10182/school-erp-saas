@@ -306,8 +306,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import examApi from '~/api/academic/exams';
-import Modal from '~/components/Modal.vue';
-import BulkResultEntry from '~/components/BulkResultEntry.vue';
+import Modal from '~/components/ui/Modal.vue';
+import BulkResultEntry from '~/components/academic/BulkResultEntry.vue';
 import ResultForm from '~/components/forms/ResultForm.vue';
 
 // Props

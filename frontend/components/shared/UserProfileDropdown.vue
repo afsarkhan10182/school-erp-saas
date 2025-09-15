@@ -115,7 +115,7 @@ import {
   Users
 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
-import UserAvatar from '~/components/UserAvatar.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 const props = defineProps({
   user: {

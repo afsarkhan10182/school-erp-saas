@@ -327,7 +327,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 const authStore = useAuthStore();
 const { showError } = useToast();

@@ -492,7 +492,6 @@ watch(
 watch(
   () => props.streams,
   newStreams => {
-    console.log(
       '🔍 InvoiceFilters: streams prop changed:',
       newStreams?.length,
       'items:',
@@ -506,7 +505,6 @@ watch(
 watch(
   () => props.sections,
   newSections => {
-    console.log(
       '🔍 InvoiceFilters: sections prop changed:',
       newSections?.length,
       'items:',

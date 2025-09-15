@@ -405,7 +405,7 @@ import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { SubjectTeachers, Users } from '~/api';
-import Modal from '~/components/Modal.vue';
+import Modal from '~/components/ui/Modal.vue';
 import { Users as UsersIcon, BookOpen, CheckCircle, Clock } from 'lucide-vue-next';
 
 // Composables

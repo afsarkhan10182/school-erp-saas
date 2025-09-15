@@ -231,8 +231,8 @@ import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useExamOptions } from '~/composables/useExamOptions';
 import { useAcademics } from '~/composables/useAcademics';
-import FormField from '~/components/FormField.vue';
-import ExamTypeDropdown from './ExamTypeDropdown.vue';
+import FormField from '~/components/ui/FormField.vue';
+import ExamTypeDropdown from '~/components/forms/ExamTypeDropdown.vue';
 import {
   FileText,
   Award,

@@ -625,8 +625,8 @@ import { useAttendanceValidation } from '~/composables/useAttendanceValidation';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAuth } from '~/composables/useAuth';
 import { AcademicCalendar, Attendance, Students } from '~/api';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
-import Pagination from '~/components/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 const { showToast } = useToast();
 const authStore = useAuthStore();

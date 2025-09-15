@@ -1,10 +1,11 @@
 <template>
-  <StudentForm :mode="mode" :student-id="studentId" />
+  <StudentRegistrationForm :mode="mode" :student-id="studentId" />
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import StudentRegistrationForm from '~/components/forms/StudentRegistrationForm.vue';
 
 const route = useRoute();
 

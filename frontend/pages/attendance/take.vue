@@ -300,7 +300,6 @@ const save = async (publish: boolean) => {
     // Log records with remarks for verification
     const recordsWithRemarks = records.filter(r => r.remarks && r.remarks.trim() !== '');
     if (recordsWithRemarks.length > 0) {
-      console.log('Records with remarks:', recordsWithRemarks);
     }
 
     // Validate records have valid status values

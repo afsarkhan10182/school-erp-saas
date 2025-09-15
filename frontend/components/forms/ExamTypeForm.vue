@@ -151,7 +151,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
-import FormField from '~/components/FormField.vue';
+import FormField from '~/components/ui/FormField.vue';
 
 // Props
 const props = defineProps({

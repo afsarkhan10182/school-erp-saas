@@ -51,7 +51,6 @@ export function getImageUrl(
   const currentYear = year || new Date().getFullYear();
 
   const imageUrl = `${backendBase}/uploads/schools/${schoolCode}/${currentYear}/${type}/${filename}`;
-  console.log(imageUrl);
   return imageUrl;
 }
 

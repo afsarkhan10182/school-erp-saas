@@ -266,8 +266,8 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useFormatters } from '~/composables/useFormatters';
 import { classSubjectMappingApi } from '~/api/academic/class-subject-mapping';
 import { subjectApi } from '~/api/academic/subjects';
-import Modal from '~/components/Modal.vue';
-import Pagination from '~/components/Pagination.vue';
+import Modal from '~/components/ui/Modal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import ClassSubjectMappingForm from '~/components/forms/ClassSubjectMappingForm.vue';
 import { Plus, BookOpen, Edit, Trash2 } from 'lucide-vue-next';
 

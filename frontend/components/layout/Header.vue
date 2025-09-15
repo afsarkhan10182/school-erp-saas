@@ -46,7 +46,7 @@ import {
   Crown,
   Menu
 } from 'lucide-vue-next';
-import UserProfileDropdown from './UserProfileDropdown.vue';
+import UserProfileDropdown from '~/components/shared/UserProfileDropdown.vue';
 
 const props = defineProps({
   user: {

@@ -344,8 +344,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { ExamTypes } from '~/api';
-import Modal from '~/components/Modal.vue';
-import Pagination from '~/components/Pagination.vue';
+import Modal from '~/components/ui/Modal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import ExamTypeForm from '~/components/forms/ExamTypeForm.vue';
 import { Plus, FileText, CheckCircle, XCircle, Tag } from 'lucide-vue-next';
 
