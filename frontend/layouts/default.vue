@@ -22,7 +22,10 @@
         />
       </ClientOnly>
 
-      <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900">
+      <main
+        class="main-content relative flex-1 bg-gray-50 dark:bg-gray-900"
+        :class="{ 'p-6': isLoggedIn }"
+      >
         <template v-if="!isHydrated">
           <div class="animate-pulse">
             <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>

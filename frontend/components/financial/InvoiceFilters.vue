@@ -491,26 +491,14 @@ watch(
 // Watch for streams changes
 watch(
   () => props.streams,
-  newStreams => {
-      '🔍 InvoiceFilters: streams prop changed:',
-      newStreams?.length,
-      'items:',
-      newStreams
-    );
-  },
+  newStreams => {},
   { immediate: true, deep: true }
 );
 
 // Watch for sections changes
 watch(
   () => props.sections,
-  newSections => {
-      '🔍 InvoiceFilters: sections prop changed:',
-      newSections?.length,
-      'items:',
-      newSections
-    );
-  },
+  newSections => {},
   { immediate: true, deep: true }
 );
 

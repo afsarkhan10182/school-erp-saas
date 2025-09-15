@@ -156,10 +156,11 @@
               </button>
             </form>
 
-            <!-- Super Admin Login -->
+            <!-- Copyright -->
             <div class="mt-6 pt-6 border-t border-white/20">
-              <p class="text-white/60 text-sm text-center mb-4"></p>
-              <div class="flex gap-3">© 2025 School ERP - Developed by DigitalFuzed</div>
+              <p class="text-white/60 text-sm text-center">
+                © {{ currentYear }} School ERP - Developed by DigitalFuzed
+              </p>
             </div>
           </div>
         </div>
@@ -241,7 +242,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Auth } from '~/api';
@@ -270,6 +271,9 @@ const router = useRouter();
 const { login } = useAuth();
 
 const isDark = ref(false);
+
+// Dynamic year for copyright
+const currentYear = computed(() => new Date().getFullYear());
 
 // Apply theme using Nuxt's useHead - called once outside toggle
 const applyTheme = () => {

@@ -126,7 +126,7 @@
           <!-- Footer -->
           <div class="mt-6 pt-6 border-t border-white/20">
             <p class="text-white/60 text-sm text-center">
-              © 2025 School ERP - Developed by DigitalFuzed
+              © {{ currentYear }} School ERP - Developed by DigitalFuzed
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Lock } from 'lucide-vue-next';
 import { Auth } from '~/api';
 
@@ -157,6 +157,9 @@ const error = ref('');
 const success = ref('');
 const loading = ref(false);
 const token = ref('');
+
+// Dynamic year for copyright
+const currentYear = computed(() => new Date().getFullYear());
 
 // Get token from URL query parameter
 onMounted(() => {

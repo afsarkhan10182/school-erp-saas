@@ -338,6 +338,7 @@ import { Plus, GraduationCap, Calendar, Building2 } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Students } from '~/api';
 import { useToast } from '~/composables/useToast';
+import Modal from '~/components/ui/Modal.vue';
 
 const props = defineProps({
   show: {
@@ -674,12 +675,7 @@ const fetchStudents = async () => {
         // No streams, fetch all students for the class
         params.class_id = classId;
         params.limit = 1000; // Set high limit to get all students
-          '📚 Fee structure has single class:',
-          selectedStructure.class_name,
-          '(ID:',
-          classId,
-          ')'
-        );
+
         const response = await Students.getAll(params);
 
         // Handle different response structures
