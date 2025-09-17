@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface ConfigValue {
   value: any;
@@ -23,51 +23,34 @@ export interface SystemConfigParams {
 export const Config = {
   // School configuration
   getSchoolConfig: async (params: SchoolConfigParams) => {
-    const api = createApiInstance();
     const { schoolId, key } = params;
-    const response = await api.get(`/config/school/${schoolId}${key ? `/${key}` : ''}`);
-    return response.data;
+    return apiCall('get', `/config/school/${schoolId}${key ? `/${key}` : ''}`);
   },
 
   setSchoolConfig: async (params: SchoolConfigParams & { value: any; type: string }) => {
-    const api = createApiInstance();
     const { schoolId, key, value, type } = params;
-    const response = await api.put(`/config/school/${schoolId}/${key}`, { value, type });
-    return response.data;
+    return apiCall('put', `/config/school/${schoolId}/${key}`, { value, type });
   },
 
   // Module configuration
   getModuleConfig: async (params: ModuleConfigParams) => {
-    const api = createApiInstance();
     const { moduleCode, schoolId, key } = params;
-    const response = await api.get(
-      `/config/module/${moduleCode}/${schoolId}${key ? `/${key}` : ''}`
-    );
-    return response.data;
+    return apiCall('get', `/config/module/${moduleCode}/${schoolId}${key ? `/${key}` : ''}`);
   },
 
   setModuleConfig: async (params: ModuleConfigParams & { value: any; type: string }) => {
-    const api = createApiInstance();
     const { moduleCode, schoolId, key, value, type } = params;
-    const response = await api.put(`/config/module/${moduleCode}/${schoolId}/${key}`, {
-      value,
-      type
-    });
-    return response.data;
+    return apiCall('put', `/config/module/${moduleCode}/${schoolId}/${key}`, { value, type });
   },
 
   // System configuration
   getSystemConfig: async (params?: SystemConfigParams) => {
-    const api = createApiInstance();
     const { key } = params || {};
-    const response = await api.get(`/config/system${key ? `/${key}` : ''}`);
-    return response.data;
+    return apiCall('get', `/config/system${key ? `/${key}` : ''}`);
   },
 
   // Get enabled modules for a school
   getEnabledModules: async (schoolId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/config/modules/enabled/${schoolId}`);
-    return response.data;
+    return apiCall('get', `/config/modules/enabled/${schoolId}`);
   }
 };

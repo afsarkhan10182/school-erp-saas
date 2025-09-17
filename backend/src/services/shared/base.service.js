@@ -418,6 +418,53 @@ class BaseService {
     }
     return password;
   }
+
+  /**
+   * Build role-based where clause (from common-operations.service.js)
+   */
+  static buildRoleBasedWhere(user, additionalWhere = {}) {
+    let whereClause = { ...additionalWhere };
+
+    switch (user.role) {
+      case 'super_admin':
+        // Super admin can see all data
+        break;
+      case 'school_admin':
+        whereClause.school_id = user.school_id;
+        break;
+      case 'branch_admin':
+        whereClause.school_id = user.school_id;
+        whereClause.branch_id = user.branch_id;
+        break;
+      default:
+        // For other roles, add appropriate restrictions
+        whereClause.school_id = user.school_id;
+        if (user.branch_id) {
+          whereClause.branch_id = user.branch_id;
+        }
+    }
+
+    return whereClause;
+  }
+
+  /**
+   * Build search query with multiple fields (from common-operations.service.js)
+   */
+  static buildSearchQuery(search, fields, baseWhere = {}) {
+    if (!search || !fields || fields.length === 0) {
+      return baseWhere;
+    }
+
+    const { Op } = require('sequelize');
+    const searchConditions = fields.map(field => ({
+      [field]: { [Op.iLike]: `%${search}%` }
+    }));
+
+    return {
+      ...baseWhere,
+      [Op.or]: searchConditions
+    };
+  }
 }
 
 module.exports = BaseService;

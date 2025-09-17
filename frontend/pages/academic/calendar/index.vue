@@ -574,7 +574,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
-import { useFormatters } from '~/composables/useFormatters';
+import { formatDate, getStatusBadgeClass, getStatusLabel } from '~/utils/formatters';
 import { AcademicCalendar } from '~/api';
 import { termApi } from '~/api/academic/terms';
 import Modal from '~/components/ui/Modal.vue';
@@ -585,7 +585,7 @@ import { Plus, Calendar, Edit, Trash2 } from 'lucide-vue-next';
 // Composables
 const { showToast } = useToast();
 const { academicYears, fetchAcademicYears } = useAcademics();
-const { formatDate, getStatusBadgeClass, getStatusLabel } = useFormatters();
+// formatDate, getStatusBadgeClass, getStatusLabel imported directly from utils
 
 // Reactive data
 const loading = ref(false);

@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('~/config/database');
 const { logger } = require('~/utils/shared/logger');
-const { ModuleConfig } = require('~/utils/core/moduleConfig');
 
 const { ROLES } = require('~/utils/core/roleManager');
 

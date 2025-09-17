@@ -32,8 +32,7 @@ const { showSuccess, showError } = useToast();
 await navigateTo('/settings/profile?tab=subscription');
 
 // Event handlers
-const handleDataLoaded = data => {
-};
+const handleDataLoaded = data => {};
 
 const handleRenewalRequested = data => {
   showSuccess('Renewal request submitted successfully');

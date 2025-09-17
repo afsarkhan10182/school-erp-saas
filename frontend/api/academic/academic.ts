@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface AcademicParams {
   page?: number;
@@ -12,36 +12,26 @@ export interface AcademicParams {
 export const Academic = {
   // Classes
   getClasses: async (params?: AcademicParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/classes', { params });
-    return response.data;
+    return apiCall('get', '/classes', { params });
   },
 
   // Sections
   getSections: async (params?: AcademicParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/sections', { params });
-    return response.data;
+    return apiCall('get', '/sections', { params });
   },
 
   // Subjects
   getSubjects: async (params?: AcademicParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/subjects', { params });
-    return response.data;
+    return apiCall('get', '/subjects', { params });
   },
 
   // Timetables
   getMyTimetable: async (params?: AcademicParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/timetables/my-timetable', { params });
-    return response.data;
+    return apiCall('get', '/timetables/my-timetable', { params });
   },
 
   // Academic Settings
   getSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/academic/settings');
-    return response.data;
+    return apiCall('get', '/settings/academic');
   }
 };

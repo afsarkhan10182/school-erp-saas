@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { apiCall } from '~/utils/api';
 
 export interface SubjectTeacher {
   id: string;
@@ -51,69 +50,42 @@ export interface SubjectTeacherFilters {
 export const subjectTeacherApi = {
   // Get all subject-teacher assignments with pagination and filtering
   getAll: async (filters: SubjectTeacherFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<SubjectTeacher>>('/subject-teachers', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/subject-teachers', { params: filters });
   },
 
   // Get subject-teacher assignment by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<SubjectTeacher>>(`/subject-teachers/${id}`);
-    return response.data;
+    return apiCall('get', `/subject-teachers/${id}`);
   },
 
   // Create subject-teacher assignment
   create: async (data: Partial<SubjectTeacher>) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<SubjectTeacher>>('/subject-teachers', data);
-    return response.data;
+    return apiCall('post', '/subject-teachers', data);
   },
 
   // Update subject-teacher assignment
   update: async (id: string, data: Partial<SubjectTeacher>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<SubjectTeacher>>(`/subject-teachers/${id}`, data);
-    return response.data;
+    return apiCall('put', `/subject-teachers/${id}`, data);
   },
 
   // Delete subject-teacher assignment
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/subject-teachers/${id}`);
-    return response.data;
+    return apiCall('delete', `/subject-teachers/${id}`);
   },
 
   // Get assignments by subject
   getBySubject: async (subjectId: string, params?: { academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<SubjectTeacher[]>>(
-      `/subject-teachers/subject/${subjectId}`,
-      { params }
-    );
-    return response.data;
+    return apiCall('get', `/subject-teachers/subject/${subjectId}`, { params });
   },
 
   // Get assignments by teacher
   getByTeacher: async (teacherId: string, params?: { academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<SubjectTeacher[]>>(
-      `/subject-teachers/teacher/${teacherId}`,
-      { params }
-    );
-    return response.data;
+    return apiCall('get', `/subject-teachers/teacher/${teacherId}`, { params });
   },
 
   // Get teacher workload data
   getWorkload: async (filters: SubjectTeacherFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<{ workload: any[]; stats: any }>>(
-      '/subject-teachers/workload',
-      { params: filters }
-    );
-    return response.data;
+    return apiCall('get', '/subject-teachers/workload', { params: filters });
   }
 };
 

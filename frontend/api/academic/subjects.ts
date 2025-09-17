@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface Subject {
   id: string;
@@ -65,60 +65,30 @@ export interface SubjectStats {
   }>;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: {
-    subjects: T[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  };
-}
-
 export const subjectApi = {
   // Create subject
   create: async (data: Partial<Subject>) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<Subject>>('/subjects', data);
-    return response.data;
+    return apiCall('post', '/subjects', data);
   },
 
   // Get all subjects with pagination and filtering
   getAll: async (filters: SubjectFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Subject>>('/subjects', { params: filters });
-    return response.data;
+    return apiCall('get', '/subjects', { params: filters });
   },
 
   // Get subject by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<Subject>>(`/subjects/${id}`);
-    return response.data;
+    return apiCall('get', `/subjects/${id}`);
   },
 
   // Update subject
   update: async (id: string, data: Partial<Subject>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<Subject>>(`/subjects/${id}`, data);
-    return response.data;
+    return apiCall('put', `/subjects/${id}`, data);
   },
 
   // Delete subject
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/subjects/${id}`);
-    return response.data;
+    return apiCall('delete', `/subjects/${id}`);
   },
 
   // Get subjects for dropdown
@@ -127,17 +97,11 @@ export const subjectApi = {
     branch_id?: string;
     category?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<Subject[]>>('/subjects/dropdown', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/subjects/dropdown', { params: filters });
   },
 
   // Get subject statistics
   getStats: async () => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<{ stats: SubjectStats }>>('/subjects/stats');
-    return response.data;
+    return apiCall('get', '/subjects/stats');
   }
 };

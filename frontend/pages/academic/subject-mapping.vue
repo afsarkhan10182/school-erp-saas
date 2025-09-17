@@ -263,7 +263,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
-import { useFormatters } from '~/composables/useFormatters';
+import { getStatusBadgeClass } from '~/utils/formatters';
 import { classSubjectMappingApi } from '~/api/academic/class-subject-mapping';
 import { subjectApi } from '~/api/academic/subjects';
 import Modal from '~/components/ui/Modal.vue';
@@ -273,7 +273,7 @@ import { Plus, BookOpen, Edit, Trash2 } from 'lucide-vue-next';
 
 // Composables
 const { showToast } = useToast();
-const { getStatusBadgeClass } = useFormatters();
+// getStatusBadgeClass imported directly from utils
 const {
   classes: classOptions,
   loadClasses,

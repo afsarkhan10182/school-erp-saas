@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface Term {
   id: string;
@@ -51,77 +51,41 @@ export interface CreateTermData {
 
 export interface UpdateTermData extends Partial<CreateTermData> {}
 
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: {
-    terms: T[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  };
-}
-
 export const termApi = {
   // Get all terms with pagination and filtering
   getAll: async (filters: TermFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Term>>('/terms', { params: filters });
-    return response.data;
+    return apiCall('get', '/terms', { params: filters });
   },
 
   // Get term by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<{ term: Term }>>(`/terms/${id}`);
-    return response.data;
+    return apiCall('get', `/terms/${id}`);
   },
 
   // Create term
   create: async (data: CreateTermData) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<{ term: Term }>>('/terms', data);
-    return response.data;
+    return apiCall('post', '/terms', data);
   },
 
   // Update term
   update: async (id: string, data: UpdateTermData) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<{ term: Term }>>(`/terms/${id}`, data);
-    return response.data;
+    return apiCall('put', `/terms/${id}`, data);
   },
 
   // Delete term
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/terms/${id}`);
-    return response.data;
+    return apiCall('delete', `/terms/${id}`);
   },
 
   // Get current active term
   getCurrent: async (academicYearId?: string) => {
-    const api = createApiInstance();
     const params = academicYearId ? { academic_year_id: academicYearId } : {};
-    const response = await api.get<ApiResponse<{ term: Term }>>('/terms/current', { params });
-    return response.data;
+    return apiCall('get', '/terms/current', { params });
   },
 
   // Get terms for a specific academic year
   getByAcademicYear: async (academicYearId: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<{ terms: Term[] }>>(
-      `/terms/academic-year/${academicYearId}`
-    );
-    return response.data;
+    return apiCall('get', `/terms/academic-year/${academicYearId}`);
   }
 };
 

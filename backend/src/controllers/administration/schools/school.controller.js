@@ -249,12 +249,15 @@ class SchoolController {
       throw new ApiError(404, 'School not found');
     }
 
-    // Import module configuration
-    const { ModuleConfig } = require('~/utils/core/moduleConfig');
-
-    // Validate modules if provided
-    if (modules && !ModuleConfig.validateModules(modules)) {
-      throw new ApiError(400, 'Invalid modules provided');
+    // Validate modules if provided (using database validation)
+    if (modules && Array.isArray(modules)) {
+      // Basic validation - modules should be an array of strings
+      const invalidModules = modules.filter(
+        module => typeof module !== 'string' || module.trim() === ''
+      );
+      if (invalidModules.length > 0) {
+        throw new ApiError(400, 'Invalid modules provided');
+      }
     }
 
     // If subscription plan is provided, get plan details and update accordingly
@@ -377,6 +380,14 @@ class SchoolController {
     // Get school's disabled modules
     const disabledModules = school.disabled_modules || [];
 
+    logger.info(`School modules for ${school.name}:`, {
+      schoolId: school.id,
+      subscriptionPlan: school.subscription_plan,
+      enabledModuleCodes,
+      disabledModules,
+      planModules: enabledModules.map(m => ({ code: m.code, name: m.name }))
+    });
+
     // Create modules for display
     const modulesForDisplay = allModules.map(module => {
       const isInPlan = enabledModuleCodes.includes(module.code);
@@ -393,7 +404,7 @@ class SchoolController {
         category: module.category,
         is_core: module.is_core,
         enabled: isEnabled,
-        canEnable: req.user.role === 'super_admin', // Only super admin can enable/disable
+        canEnable: req.user.role === 'super_admin' && isInPlan, // Only super admin can enable/disable modules that are in the plan
         upgradeRequired: !isInPlan
       };
     });

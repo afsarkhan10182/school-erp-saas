@@ -32,7 +32,7 @@
                     Total Exams
                   </dt>
                   <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.total_exams || 0 }}
+                    {{ stats?.total_exams || 0 }}
                   </dd>
                 </dl>
               </div>
@@ -52,7 +52,7 @@
                     Active Exams
                   </dt>
                   <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.active_exams || 0 }}
+                    {{ stats?.active_exams || 0 }}
                   </dd>
                 </dl>
               </div>
@@ -72,7 +72,7 @@
                     Total Results
                   </dt>
                   <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.total_results || 0 }}
+                    {{ stats?.total_results || 0 }}
                   </dd>
                 </dl>
               </div>
@@ -92,7 +92,7 @@
                     Avg Percentage
                   </dt>
                   <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.average_percentage || 0 }}%
+                    {{ stats?.average_percentage || 0 }}%
                   </dd>
                 </dl>
               </div>

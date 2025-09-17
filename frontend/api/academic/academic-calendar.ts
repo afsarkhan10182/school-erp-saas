@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface AcademicCalendarEvent {
   id: string;
@@ -30,22 +30,11 @@ export interface CreateCalendarEventData {
 
 export interface UpdateCalendarEventData extends Partial<CreateCalendarEventData> {}
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
 export const AcademicCalendar = {
   // Get all calendar events with filtering and pagination
   async getAll(
     filters: AcademicCalendarFilters = {}
   ): Promise<{ data: { events: AcademicCalendarEvent[] } }> {
-    const api = createApiInstance();
     const params = new URLSearchParams();
 
     if (filters.academic_year) params.append('academic_year', filters.academic_year);
@@ -55,22 +44,17 @@ export const AcademicCalendar = {
     if (filters.page) params.append('page', filters.page.toString());
     if (filters.limit) params.append('limit', filters.limit.toString());
 
-    const response = await api.get(`/academic-calendar?${params.toString()}`);
-    return response.data;
+    return apiCall('get', `/academic-calendar?${params.toString()}`);
   },
 
   // Get calendar event by ID
   async getById(id: string): Promise<{ data: { event: AcademicCalendarEvent } }> {
-    const api = createApiInstance();
-    const response = await api.get(`/academic-calendar/${id}`);
-    return response.data;
+    return apiCall('get', `/academic-calendar/${id}`);
   },
 
   // Create new calendar event
   async create(data: CreateCalendarEventData): Promise<{ data: { event: AcademicCalendarEvent } }> {
-    const api = createApiInstance();
-    const response = await api.post('/academic-calendar', data);
-    return response.data;
+    return apiCall('post', '/academic-calendar', data);
   },
 
   // Update calendar event
@@ -78,40 +62,30 @@ export const AcademicCalendar = {
     id: string,
     data: UpdateCalendarEventData
   ): Promise<{ data: { event: AcademicCalendarEvent } }> {
-    const api = createApiInstance();
-    const response = await api.put(`/academic-calendar/${id}`, data);
-    return response.data;
+    return apiCall('put', `/academic-calendar/${id}`, data);
   },
 
   // Delete calendar event
   async delete(id: string): Promise<{ message: string }> {
-    const api = createApiInstance();
-    const response = await api.delete(`/academic-calendar/${id}`);
-    return response.data;
+    return apiCall('delete', `/academic-calendar/${id}`);
   },
 
   // Check if a date is a working day
   async checkWorkingDay(params: { date: string; academic_year?: string }): Promise<{
     data: { isWorkingDay: boolean; dayType: string; description?: string };
   }> {
-    const api = createApiInstance();
     const queryParams = new URLSearchParams();
     queryParams.append('date', params.date);
     if (params.academic_year) {
       queryParams.append('academic_year', params.academic_year);
     }
-    const response = await api.get(
-      `/academic-calendar/check-working-day?${queryParams.toString()}`
-    );
-    return response.data;
+    return apiCall('get', `/academic-calendar/check-working-day?${queryParams.toString()}`);
   },
 
   // Bulk create calendar events
   async bulkCreate(
     events: CreateCalendarEventData[]
   ): Promise<{ data: { events: AcademicCalendarEvent[] } }> {
-    const api = createApiInstance();
-    const response = await api.post('/academic-calendar/bulk', { events });
-    return response.data;
+    return apiCall('post', '/academic-calendar/bulk', { events });
   }
 };

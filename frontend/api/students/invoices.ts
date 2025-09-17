@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface InvoiceParams {
   payment_model?: 'monthly' | 'installment';
@@ -35,16 +35,12 @@ export interface StudentSummaryParams {
 
 export const Invoices = {
   getAll: async (params?: InvoiceParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/grouped', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/grouped', { params });
   },
 
   // New endpoint for paginated student-based invoice summaries
   getStudentSummary: async (params?: StudentSummaryParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/student-fee-summary', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/student-fee-summary', { params });
   },
 
   getSummary: async (params?: {
@@ -52,8 +48,6 @@ export const Invoices = {
     academic_year?: string;
     status?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/summary', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/summary', { params });
   }
 };

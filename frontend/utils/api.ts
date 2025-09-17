@@ -1,6 +1,5 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import type { ApiResponse, PaginatedResponse } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 
 export function createApiInstance(): AxiosInstance {
@@ -95,5 +94,16 @@ export function createApiInstance(): AxiosInstance {
   return api;
 }
 
-// Export createApiInstance as default for backward compatibility
-export default createApiInstance;
+/**
+ * Generic API call helper
+ * Reduces boilerplate in API service files
+ */
+export const apiCall = async (
+  method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+  endpoint: string,
+  data?: any
+) => {
+  const api = createApiInstance();
+  const response = await api[method](endpoint, data);
+  return response.data;
+};

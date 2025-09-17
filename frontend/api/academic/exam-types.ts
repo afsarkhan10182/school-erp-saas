@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { apiCall } from '~/utils/api';
 
 export interface ExamType {
   id: string;
@@ -27,51 +26,37 @@ export interface ExamTypeFilters {
 export const examTypeApi = {
   // Get all exam types with pagination and filtering
   getAll: async (filters: ExamTypeFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<ExamType>>('/exam-types', { params: filters });
-    return response.data;
+    return apiCall('get', '/exam-types', { params: filters });
   },
 
   // Get exam type by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamType>>(`/exam-types/${id}`);
-    return response.data;
+    return apiCall('get', `/exam-types/${id}`);
   },
 
   // Create exam type
   create: async (data: Partial<ExamType>) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<ExamType>>('/exam-types', data);
-    return response.data;
+    return apiCall('post', '/exam-types', data);
   },
 
   // Update exam type
   update: async (id: string, data: Partial<ExamType>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<ExamType>>(`/exam-types/${id}`, data);
-    return response.data;
+    return apiCall('put', `/exam-types/${id}`, data);
   },
 
   // Delete exam type
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/exam-types/${id}`);
-    return response.data;
+    return apiCall('delete', `/exam-types/${id}`);
   },
 
   // Get exam types for dropdown/select
   getForDropdown: async (params?: { school_id?: string; is_active?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamType[]>>('/exam-types/dropdown', { params });
-    return response.data;
+    return apiCall('get', '/exam-types/dropdown', { params });
   },
 
   // Get active exam types
   getActive: async (params?: { school_id?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamType[]>>('/exam-types/active', { params });
-    return response.data;
+    return apiCall('get', '/exam-types/active', { params });
   }
 };
 

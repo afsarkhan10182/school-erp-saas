@@ -9,6 +9,28 @@ let globalIsLoading = false;
 let globalLastFetch = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
+// Function to clear global module cache (called on logout)
+export const clearModuleCache = () => {
+  globalUserModules = [];
+  globalIsLoading = false;
+  globalLastFetch = 0;
+
+  if (import.meta.client) {
+    // Clear module cache
+    sessionStorage.removeItem('user-modules');
+    sessionStorage.removeItem('user-modules-time');
+    sessionStorage.removeItem('modules-updated-at');
+    sessionStorage.removeItem('modules-verified-this-session');
+    sessionStorage.removeItem('module-listener-setup');
+
+    // Clear school-specific module cache
+    const schoolKeys = Object.keys(sessionStorage).filter(
+      key => key.startsWith('modules-') || key.startsWith('school-')
+    );
+    schoolKeys.forEach(key => sessionStorage.removeItem(key));
+  }
+};
+
 export function useModuleAccess() {
   const authStore = useAuthStore();
   const userModules = ref<string[]>([]);
@@ -76,7 +98,7 @@ export function useModuleAccess() {
         if (response.success) {
           const allModules = response.data
             .filter((module: any) => module.is_active)
-            .map((module: any) => module.key || module.code);
+            .map((module: any) => module.code || module.key);
 
           globalUserModules = allModules;
           userModules.value = allModules;
@@ -87,6 +109,13 @@ export function useModuleAccess() {
             sessionStorage.setItem('user-modules', JSON.stringify(allModules));
             sessionStorage.setItem('user-modules-time', globalLastFetch.toString());
           }
+
+          console.log('✅ Super admin modules loaded:', allModules);
+        } else {
+          console.warn('❌ Failed to load super admin modules:', response.message);
+          // Set empty modules to prevent blocking
+          globalUserModules = [];
+          userModules.value = [];
         }
       } else {
         const schoolId = authStore.user?.school_id;
@@ -94,6 +123,8 @@ export function useModuleAccess() {
         if (!schoolId) {
           globalUserModules = [];
           userModules.value = [];
+          globalIsLoading = false;
+          isLoading.value = false;
           return;
         }
 
@@ -102,7 +133,7 @@ export function useModuleAccess() {
         if (response.success) {
           const enabledModules = response.data.modules
             .filter((module: any) => module.enabled)
-            .map((module: any) => module.key || module.code);
+            .map((module: any) => module.code || module.key);
 
           globalUserModules = enabledModules;
           userModules.value = enabledModules;
@@ -112,7 +143,20 @@ export function useModuleAccess() {
           if (import.meta.client) {
             sessionStorage.setItem('user-modules', JSON.stringify(enabledModules));
             sessionStorage.setItem('user-modules-time', globalLastFetch.toString());
+            sessionStorage.setItem('modules-updated-at', response.data.modules_updated_at);
           }
+
+          console.log('✅ Modules loaded successfully:', {
+            enabledModules,
+            totalModules: response.data.modules.length,
+            schoolId,
+            userRole: authStore.user?.role
+          });
+        } else {
+          console.warn('❌ Failed to load modules:', response.message);
+          // Set empty modules to prevent blocking
+          globalUserModules = [];
+          userModules.value = [];
         }
       }
     } catch (error) {
@@ -251,36 +295,48 @@ export function useModuleAccess() {
     await loadUserModules(true);
   };
 
-  // Check if modules have been updated (called on route navigation)
+  // Check if modules have been updated (only when needed)
   const checkModulesUpdated = async () => {
     if (!authStore.user?.school_id || authStore.user?.role === 'super_admin') return;
 
     try {
+      // Use existing API to get modules with timestamp
       const response = await Schools.getModules(authStore.user.school_id);
       if (response.success) {
         const serverTimestamp = response.data.modules_updated_at;
         const cachedTimestamp = sessionStorage.getItem('modules-updated-at');
 
-        // If timestamp changed, clear cache and reload
+        // If timestamp changed, clear cache and reload silently
         if (serverTimestamp !== cachedTimestamp) {
           clearModuleCache();
           sessionStorage.setItem('modules-updated-at', serverTimestamp);
           await loadUserModules(true);
+          // No toast notification - silent update
         }
       }
-    } catch (error) {}
+    } catch (error) {
+      console.warn('Failed to check module updates:', error);
+    }
   };
 
-  // Setup module change detection (check once per session)
+  // Setup module change detection (only when needed)
   const setupModuleChangeListener = () => {
     if (!import.meta.client) return;
 
-    // Check once when user first loads the app
-    setTimeout(() => {
-      if (authStore.isAuthenticated && authStore.user?.role !== 'super_admin') {
-        checkModulesUpdated();
-      }
-    }, 2000); // Wait 2 seconds after auth is ready
+    // Check if we've already set up the listener this session
+    const listenerSetup = sessionStorage.getItem('module-listener-setup');
+
+    if (!listenerSetup) {
+      // Only check once when user first loads the app
+      setTimeout(() => {
+        if (authStore.isAuthenticated && authStore.user?.role !== 'super_admin') {
+          checkModulesUpdated();
+        }
+      }, 1000); // Wait 1 second after auth is ready
+
+      // Mark as setup - no periodic checks
+      sessionStorage.setItem('module-listener-setup', 'true');
+    }
   };
 
   // Initialize modules from cache if available

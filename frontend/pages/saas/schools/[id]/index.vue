@@ -43,6 +43,7 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useSubscriptions } from '~/composables/useSubscriptions';
+import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
 
 // Page meta
 definePageMeta({
@@ -82,8 +83,7 @@ const loadSchoolDetails = async () => {
 };
 
 // Event handlers
-const handleDataLoaded = data => {
-};
+const handleDataLoaded = data => {};
 
 const handleRenewalRequested = data => {
   showSuccess('Renewal request submitted successfully');

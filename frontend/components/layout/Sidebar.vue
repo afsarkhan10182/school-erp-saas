@@ -845,8 +845,9 @@ const visibleMenuGroups = computed(() => {
 
   // For non-super admins, filter based on modules
   if (!userModules.value || userModules.value.length === 0) {
-    console.log('🔄 No user modules available');
-    return [];
+    console.log('🔄 No user modules available, showing basic menu');
+    // Return basic menu items that don't require modules
+    return menuGroups.value.filter(group => group.id === 'profile' || group.id === 'settings');
   }
 
   // Use the improved filtering from useModuleAccess

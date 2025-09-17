@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface SchoolParams {
   page?: number;
@@ -23,15 +23,11 @@ export interface SchoolData {
 
 export const Schools = {
   getAll: async (params?: SchoolParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/schools', { params });
-    return response.data;
+    return apiCall('get', '/schools', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/schools/${id}`);
-    return response.data;
+    return apiCall('get', `/schools/${id}`);
   },
 
   create: async (schoolData: FormData) => {
@@ -51,40 +47,30 @@ export const Schools = {
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/schools/${id}`);
-    return response.data;
+    return apiCall('delete', `/schools/${id}`);
   },
 
   // Module management (Super Admin controls, School Admin view-only)
   getModules: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/schools/${id}/modules`);
-    return response.data;
+    return apiCall('get', `/schools/${id}/modules`);
   },
 
   updateModules: async (id: string, modules: string[], subscriptionPlan?: string) => {
-    const api = createApiInstance();
-    const response = await api.put(`/schools/${id}/modules`, {
+    return apiCall('put', `/schools/${id}/modules`, {
       modules,
       subscription_plan: subscriptionPlan
     });
-    return response.data;
   },
 
   // Subscription plans
   getSubscriptionPlans: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/schools/subscription-plans');
-    return response.data;
+    return apiCall('get', '/schools/subscription-plans');
   },
 
   requestUpgrade: async (schoolId: string, requestedPlan: string, reason: string) => {
-    const api = createApiInstance();
-    const response = await api.post(`/schools/${schoolId}/request-upgrade`, {
+    return apiCall('post', `/schools/${schoolId}/request-upgrade`, {
       requested_plan: requestedPlan,
       reason
     });
-    return response.data;
   }
 };

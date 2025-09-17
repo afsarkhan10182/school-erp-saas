@@ -910,99 +910,32 @@ const availableModules = computed(() => {
     return [];
   }
 
-  // Module definitions with proper details
-  const moduleDefinitions: Record<string, any> = {
-    students: {
-      name: 'Student Management',
-      description: 'Admit students, manage profiles, class assignments, and student records',
-      icon: '👥',
-      is_core: true
-    },
-    fees: {
-      name: 'Fee Management',
-      description: 'Fee types, structures, invoices, payments, and collections',
-      icon: '💰',
-      is_core: true
-    },
-    attendance: {
-      name: 'Attendance Management',
-      description: 'Track student and staff attendance with reports and notifications',
-      icon: '📊',
-      is_core: false
-    },
-    exams: {
-      name: 'Examination Management',
-      description: 'Create and manage exams, results, and grade reports',
-      icon: '📝',
-      is_core: false
-    },
-    hr: {
-      name: 'HR Management',
-      description: 'Manage staff, payroll, and human resources',
-      icon: '👨‍💼',
-      is_core: false
-    },
-    transport: {
-      name: 'Transport Management',
-      description: 'Manage school transport, routes, and vehicle tracking',
-      icon: '🚌',
-      is_core: false
-    },
-    library: {
-      name: 'Library Management',
-      description: 'Manage books, borrowing, and library operations',
-      icon: '📚',
-      is_core: false
-    },
-    settings: {
-      name: 'System Settings',
-      description: 'Configure school settings, academic years, and system preferences',
-      icon: '⚙️',
-      is_core: true
-    },
-    reports: {
-      name: 'Reports & Analytics',
-      description: 'Generate reports, analytics, and insights',
-      icon: '📈',
-      is_core: false
-    }
-  };
+  // Use database-driven module data instead of hardcoded definitions
+  // All module information should come from the API response
 
-  // Transform modules to display format with proper interface
+  // Transform modules to display format using database data
   return modules.map((module: any) => {
     if (typeof module === 'string') {
-      const moduleDef = moduleDefinitions[module] || {
-        name: module.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-        description: 'Module description',
-        icon: '📦',
-        is_core: false
-      };
-
+      // For string modules, use the string as-is (should not happen with proper API)
       return {
         id: module,
         code: module,
-        name: moduleDef.name,
-        enabled: true, // Default to enabled for string modules
-        is_core: moduleDef.is_core,
-        icon: moduleDef.icon,
-        description: moduleDef.description
+        name: module.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        enabled: true,
+        is_core: false,
+        icon: '📦',
+        description: 'Module description'
       };
     } else if (typeof module === 'object') {
-      const moduleDef = moduleDefinitions[module.code || module.id || module.name] || {
-        name: module.name || module.code || module.id,
-        description: module.description || 'Module description',
-        icon: module.icon || '📦',
-        is_core: module.is_core || false
-      };
-
+      // Use database data directly - no hardcoded fallbacks
       return {
         id: module.code || module.id || module.name,
         code: module.code || module.id || module.name,
-        name: moduleDef.name,
-        enabled: module.is_enabled !== false, // Use is_enabled from database
-        is_core: moduleDef.is_core,
-        icon: moduleDef.icon,
-        description: moduleDef.description
+        name: module.name || module.code || module.id,
+        enabled: module.is_enabled !== false,
+        is_core: module.is_core || false,
+        icon: module.icon || '📦',
+        description: module.description || 'Module description'
       };
     }
     return {

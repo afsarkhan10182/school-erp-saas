@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface FeeInvoiceParams {
   page?: number;
@@ -30,45 +30,31 @@ export interface PaymentData {
 
 export const FeeInvoices = {
   getCombinedReceipt: async (receiptGroupId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/grouped-receipts/${receiptGroupId}`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/grouped-receipts/${receiptGroupId}`);
   },
 
   getReceiptByNumber: async (receiptNumber: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/receipt/${receiptNumber}`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/receipt/${receiptNumber}`);
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/${id}`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/${id}`);
   },
 
   generateInvoices: async (invoiceData: any) => {
-    const api = createApiInstance();
-    const response = await api.post('/fee-invoices/generate', invoiceData);
-    return response.data;
+    return apiCall('post', '/fee-invoices/generate', invoiceData);
   },
 
   recordPayment: async (id: string, paymentData: any) => {
-    const api = createApiInstance();
-    const response = await api.post(`/fee-invoices/${id}/payment`, paymentData);
-    return response.data;
+    return apiCall('post', `/fee-invoices/${id}/payment`, paymentData);
   },
 
   updateInvoice: async (id: string, invoiceData: any) => {
-    const api = createApiInstance();
-    const response = await api.put(`/fee-invoices/${id}`, invoiceData);
-    return response.data;
+    return apiCall('put', `/fee-invoices/${id}`, invoiceData);
   },
 
   cancelInvoice: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.put(`/fee-invoices/${id}/cancel`);
-    return response.data;
+    return apiCall('put', `/fee-invoices/${id}/cancel`);
   },
 
   getSummary: async (params?: {
@@ -83,63 +69,45 @@ export const FeeInvoices = {
     payment_model?: string;
     months?: number[];
   }) => {
-    const api = createApiInstance();
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
-    const response = await api.get('/fee-invoices/summary', { params: cacheBustParams });
-    return response.data;
+    return apiCall('get', '/fee-invoices/summary', { params: cacheBustParams });
   },
 
   getReceipt: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/${id}/receipt`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/${id}/receipt`);
   },
 
   // New payment tracking endpoints
   getInvoicePayments: async (id: string, params?: { page?: number; limit?: number }) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/${id}/payments`, { params });
-    return response.data;
+    return apiCall('get', `/fee-invoices/${id}/payments`, { params });
   },
 
   getPaymentById: async (paymentId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/payment/${paymentId}`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/payment/${paymentId}`);
   },
 
   // Generate receipt data for a specific payment (on-demand - returns structured data)
   generateReceipt: async (paymentId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/payment/${paymentId}/generate-receipt`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/payment/${paymentId}/generate-receipt`);
   },
 
   // Generate receipt data for an invoice (on-demand)
   generateInvoiceReceipt: async (invoiceId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/${invoiceId}/generate-receipt`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/${invoiceId}/generate-receipt`);
   },
 
   // Legacy endpoints (deprecated - use generate* endpoints instead)
   getPaymentReceiptData: async (paymentId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/payment/${paymentId}/receipt-data`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/payment/${paymentId}/receipt-data`);
   },
 
   getCombinedReceiptData: async (paymentIds: string[]) => {
-    const api = createApiInstance();
-    const response = await api.post('/fee-invoices/receipts/combined-data', { paymentIds });
-    return response.data;
+    return apiCall('post', '/fee-invoices/receipts/combined-data', { paymentIds });
   },
 
   getInvoiceReceiptData: async (invoiceId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/${invoiceId}/receipt-data`);
-    return response.data;
+    return apiCall('get', `/fee-invoices/${invoiceId}/receipt-data`);
   },
 
   // Receipts Report (payments only)
@@ -154,25 +122,19 @@ export const FeeInvoices = {
     page?: number;
     limit?: number;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/receipts-report', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/receipts-report', { params });
   },
 
   getStudentPayments: async (
     studentId: string,
     params?: { page?: number; limit?: number; academic_year?: string }
   ) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-invoices/student/${studentId}/payments`, { params });
-    return response.data;
+    return apiCall('get', `/fee-invoices/student/${studentId}/payments`, { params });
   },
 
   // Smart payment allocation (amount-based with receipt grouping)
   recordSmartPayment: async (paymentData: PaymentData) => {
-    const api = createApiInstance();
-    const response = await api.post('/fee-invoices/smart-payment', paymentData);
-    return response.data;
+    return apiCall('post', '/fee-invoices/smart-payment', paymentData);
   },
 
   getStudentLedger: async (params: {
@@ -182,27 +144,19 @@ export const FeeInvoices = {
     page?: number;
     limit?: number;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/student-ledger', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/student-ledger', { params });
   },
 
   getStudentDues: async (params: { student_id: string; academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/student-dues', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/student-dues', { params });
   },
 
   getAvailableMonths: async (params: { student_id: string; academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/available-months', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/available-months', { params });
   },
 
   getGroupedReceipts: async (params: { student_id: string; academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/grouped-receipts', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/grouped-receipts', { params });
   },
 
   getBreakdown: async (params: {
@@ -210,39 +164,29 @@ export const FeeInvoices = {
     fee_structure_id: string;
     academic_year: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-invoices/breakdown', { params });
-    return response.data;
+    return apiCall('get', '/fee-invoices/breakdown', { params });
   },
 
   adjustInvoice: async (id: string, adjustmentData: any) => {
-    const api = createApiInstance();
-    const response = await api.post(`/fee-invoices/${id}/adjust`, adjustmentData);
-    return response.data;
+    return apiCall('post', `/fee-invoices/${id}/adjust`, adjustmentData);
   },
 
   applyLateFees: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.post(`/fee-invoices/${id}/late-fees`);
-    return response.data;
+    return apiCall('post', `/fee-invoices/${id}/late-fees`);
   },
 
   // Report and export methods
   getReport: async (params?: FeeInvoiceParams) => {
-    const api = createApiInstance();
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
-    const response = await api.get('/fee-invoices/report', { params: cacheBustParams });
-    return response.data;
+    return apiCall('get', '/fee-invoices/report', { params: cacheBustParams });
   },
 
   // Get report grouped by students with proper pagination
   getReportGrouped: async (params?: FeeInvoiceParams) => {
-    const api = createApiInstance();
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
-    const response = await api.get('/fee-invoices/report-grouped', { params: cacheBustParams });
-    return response.data;
+    return apiCall('get', '/fee-invoices/report-grouped', { params: cacheBustParams });
   },
 
   exportReport: async (endpoint: string, queryString: string) => {
@@ -264,12 +208,8 @@ export const FeeInvoices = {
     page?: number;
     limit?: number;
   }) => {
-    const api = createApiInstance();
     // Add cache-busting parameter
     const cacheBustParams = { ...params, _t: Date.now() };
-    const response = await api.get('/fee-invoices/monthly-payment-status', {
-      params: cacheBustParams
-    });
-    return response.data;
+    return apiCall('get', '/fee-invoices/monthly-payment-status', { params: cacheBustParams });
   }
 };

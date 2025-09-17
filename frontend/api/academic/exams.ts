@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface Exam {
   id: string;
@@ -82,10 +81,8 @@ export interface ExamResultData {
 export const examApi = {
   // Create exam
   create: async (data: Partial<Exam>) => {
-    const api = createApiInstance();
     try {
-      const response = await api.post<ApiResponse<Exam>>('/exams', data);
-      return response.data;
+      return await apiCall('post', '/exams', data);
     } catch (error) {
       console.error('Exam API create error:', error);
       throw error;
@@ -94,87 +91,47 @@ export const examApi = {
 
   // Get all exams with pagination and filtering
   getAll: async (filters: ExamFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Exam>>('/exams', { params: filters });
-    return response.data;
+    return apiCall('get', '/exams', { params: filters });
   },
 
   // Get exam by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<Exam>>(`/exams/${id}`);
-    return response.data;
+    return apiCall('get', `/exams/${id}`);
   },
 
   // Update exam
   update: async (id: string, data: Partial<Exam>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<Exam>>(`/exams/${id}`, data);
-    return response.data;
+    return apiCall('put', `/exams/${id}`, data);
   },
 
   // Delete exam
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/exams/${id}`);
-    return response.data;
+    return apiCall('delete', `/exams/${id}`);
   },
 
   // Get exam statistics
   getStats: async (params?: { academic_year?: string; date_from?: string; date_to?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<any>>('/exams/stats', { params });
-    return response.data;
+    return apiCall('get', '/exams/stats', { params });
   },
 
   // Bulk create exam results
   bulkCreateResults: async (examId: string, results: ExamResultData[]) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<{ message: string; results_count: number }>>(
-      `/exams/${examId}/results`,
-      { results }
-    );
-    return response.data;
+    return apiCall('post', `/exams/${examId}/results`, { results });
   },
 
   // Get exam results
   getResults: async (examId: string) => {
-    const api = createApiInstance();
-    const response = await api.get<
-      ApiResponse<{
-        exam: Exam;
-        results: ExamResult[];
-        summary: {
-          total_students: number;
-          present_students: number;
-          absent_students: number;
-          average_percentage: number;
-          highest_percentage: number;
-          lowest_percentage: number;
-          grade_distribution: Record<string, number>;
-        };
-      }>
-    >(`/exams/${examId}/results`);
-    return response.data;
+    return apiCall('get', `/exams/${examId}/results`);
   },
 
   // Update single exam result
   updateResult: async (resultId: string, data: Partial<ExamResult>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<{ message: string; result: ExamResult }>>(
-      `/exams/results/${resultId}`,
-      data
-    );
-    return response.data;
+    return apiCall('put', `/exams/results/${resultId}`, data);
   },
 
   // Export exam results
   exportResults: async (examId: string, format: string = 'pdf') => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<any>>(`/exams/${examId}/results/export`, {
-      params: { format }
-    });
-    return response.data;
+    return apiCall('get', `/exams/${examId}/results/export`, { params: { format } });
   },
 
   // Get student exam history
@@ -187,21 +144,12 @@ export const examApi = {
       exam_type?: string;
     }
   ) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<ExamResult>>(
-      `/exams/student/${studentId}/history`,
-      { params }
-    );
-    return response.data;
+    return apiCall('get', `/exams/student/${studentId}/history`, { params });
   },
 
   // Calculate grade based on percentage
   calculateGrade: async (percentage: number) => {
-    const api = createApiInstance();
-    const response = await api.get<
-      ApiResponse<{ grade: string; grade_points?: number; is_passing: boolean }>
-    >('/exams/calculate-grade', { params: { percentage } });
-    return response.data;
+    return apiCall('get', '/exams/calculate-grade', { params: { percentage } });
   },
 
   // Generate report card
@@ -240,44 +188,30 @@ export const examApi = {
   },
 
   bulkUpdateResults: async (examId: string, results: ExamResultData[]) => {
-    const api = createApiInstance();
-    const response = await api.put(`/exams/${examId}/results/bulk`, { results });
-    return response.data;
+    return apiCall('put', `/exams/${examId}/results/bulk`, { results });
   },
 
   // Optimized exam results methods
   processBulkResultsOptimized: async (examId: string, results: ExamResultData[]) => {
-    const api = createApiInstance();
-    const response = await api.post(`/exams/${examId}/results/bulk-optimized`, { results });
-    return response.data;
+    return apiCall('post', `/exams/${examId}/results/bulk-optimized`, { results });
   },
 
   getExamStatistics: async (examId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/exams/${examId}/results/statistics`);
-    return response.data;
+    return apiCall('get', `/exams/${examId}/results/statistics`);
   },
 
   getResultAnalytics: async (examId: string, period?: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/exams/${examId}/results/analytics`, {
-      params: { period }
-    });
-    return response.data;
+    return apiCall('get', `/exams/${examId}/results/analytics`, { params: { period } });
   },
 
   getClassPerformance: async (examId: string, classId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/exams/${examId}/results/class/${classId}/performance`);
-    return response.data;
+    return apiCall('get', `/exams/${examId}/results/class/${classId}/performance`);
   },
 
   getStudentPerformanceHistory: async (studentId: string, academicYear: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/students/${studentId}/performance-history`, {
+    return apiCall('get', `/students/${studentId}/performance-history`, {
       params: { academic_year: academicYear }
     });
-    return response.data;
   }
 };
 

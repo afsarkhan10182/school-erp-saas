@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface SaasParams {
   page?: number;
@@ -12,59 +12,41 @@ export interface SaasParams {
 
 export const Saas = {
   getSchoolsWithSubscriptions: async (params?: SaasParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/schools', { params });
-    return response.data;
+    return apiCall('get', '/subscriptions/schools', { params });
   },
 
   getSchoolWithSubscription: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/subscriptions/schools/${id}`);
-    return response.data;
+    return apiCall('get', `/subscriptions/schools/${id}`);
   },
 
   getPlans: async (params?: SaasParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/plans', { params });
-    return response.data;
+    return apiCall('get', '/subscriptions/plans', { params });
   },
 
   // Get available modules for plan creation
   getAvailableModules: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/available-modules');
-    return response.data;
+    return apiCall('get', '/subscriptions/available-modules');
   },
 
   // Active plans for school/branch admins (limited fields)
   getActivePlansForSchools: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/plans/active');
-    return response.data;
+    return apiCall('get', '/subscriptions/plans/active');
   },
 
   getPlanById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/subscriptions/plans/${id}`);
-    return response.data;
+    return apiCall('get', `/subscriptions/plans/${id}`);
   },
 
   createPlan: async (planData: any) => {
-    const api = createApiInstance();
-    const response = await api.post('/subscriptions/plans', planData);
-    return response.data;
+    return apiCall('post', '/subscriptions/plans', planData);
   },
 
   updatePlan: async (id: string, planData: any) => {
-    const api = createApiInstance();
-    const response = await api.put(`/subscriptions/plans/${id}`, planData);
-    return response.data;
+    return apiCall('put', `/subscriptions/plans/${id}`, planData);
   },
 
   deletePlan: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/subscriptions/plans/${id}`);
-    return response.data;
+    return apiCall('delete', `/subscriptions/plans/${id}`);
   },
 
   createSchoolWithSubscription: async (schoolData: FormData) => {
@@ -87,9 +69,7 @@ export const Saas = {
     schoolId: string,
     params?: { page?: number; limit?: number; payment_status?: string; payment_method?: string }
   ) => {
-    const api = createApiInstance();
-    const response = await api.get(`/subscriptions/schools/${schoolId}/transactions`, { params });
-    return response.data;
+    return apiCall('get', `/subscriptions/schools/${schoolId}/transactions`, { params });
   },
 
   getMyTransactions: async (params?: {
@@ -98,42 +78,31 @@ export const Saas = {
     payment_status?: string;
     payment_method?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/my-transactions', { params });
-    return response.data;
+    return apiCall('get', '/subscriptions/my-transactions', { params });
   },
 
   createManualTransaction: async (transactionData: any) => {
-    const api = createApiInstance();
-    const response = await api.post(
+    return apiCall(
+      'post',
       `/subscriptions/schools/${transactionData.school_id}/transactions`,
       transactionData
     );
-    return response.data;
   },
 
   getSubscriptionStats: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/stats');
-    return response.data;
+    return apiCall('get', '/subscriptions/stats');
   },
 
   getUsage: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/usage');
-    return response.data;
+    return apiCall('get', '/subscriptions/usage');
   },
 
   suspendSchool: async (schoolId: string) => {
-    const api = createApiInstance();
-    const response = await api.patch(`/schools/${schoolId}/suspend`);
-    return response.data;
+    return apiCall('patch', `/schools/${schoolId}/suspend`);
   },
 
   reactivateSchool: async (schoolId: string) => {
-    const api = createApiInstance();
-    const response = await api.patch(`/schools/${schoolId}/reactivate`);
-    return response.data;
+    return apiCall('patch', `/schools/${schoolId}/reactivate`);
   },
 
   // Renewal Requests
@@ -144,52 +113,35 @@ export const Saas = {
     school_id?: string;
     request_type?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/renewal-requests', { params });
-    return response.data;
+    return apiCall('get', '/subscriptions/renewal-requests', { params });
   },
 
   createRenewalRequest: async (requestData: any) => {
-    const api = createApiInstance();
-    const response = await api.post('/subscriptions/renewal-requests', requestData);
-    return response.data;
+    return apiCall('post', '/subscriptions/renewal-requests', requestData);
   },
 
   reviewRenewalRequest: async (requestId: string, reviewData: any) => {
-    const api = createApiInstance();
-    const response = await api.put(
-      `/subscriptions/renewal-requests/${requestId}/review`,
-      reviewData
-    );
-    return response.data;
+    return apiCall('put', `/subscriptions/renewal-requests/${requestId}/review`, reviewData);
   },
 
   // School admin: list own school's renewal requests
   getSchoolRenewalRequests: async (params?: { page?: number; limit?: number; status?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/subscriptions/school/renewal-requests', { params });
-    return response.data;
+    return apiCall('get', '/subscriptions/school/renewal-requests', { params });
   },
 
   checkAllStatuses: async () => {
-    const api = createApiInstance();
-    const response = await api.post('/subscriptions/check-all-statuses');
-    return response.data;
+    return apiCall('post', '/subscriptions/check-all-statuses');
   },
 
   // Simple module toggle
   toggleSchoolModule: async (schoolId: string, moduleCode: string, enabled: boolean) => {
-    const api = createApiInstance();
-    const response = await api.post(`/subscriptions/schools/${schoolId}/toggle-module`, {
+    return apiCall('post', `/subscriptions/schools/${schoolId}/toggle-module`, {
       module_code: moduleCode,
       enabled: enabled
     });
-    return response.data;
   },
 
   getAvailableModulesForSchool: async (schoolId: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/subscriptions/schools/${schoolId}/available-modules`);
-    return response.data;
+    return apiCall('get', `/subscriptions/schools/${schoolId}/available-modules`);
   }
 };

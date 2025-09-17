@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface FeeTypeParams {
   page?: number;
@@ -16,32 +16,22 @@ export interface FeeTypeData {
 
 export const FeeTypes = {
   getAll: async (params?: FeeTypeParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-types', { params });
-    return response.data;
+    return apiCall('get', '/fee-types', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-types/${id}`);
-    return response.data;
+    return apiCall('get', `/fee-types/${id}`);
   },
 
   create: async (feeTypeData: FeeTypeData) => {
-    const api = createApiInstance();
-    const response = await api.post('/fee-types', feeTypeData);
-    return response.data;
+    return apiCall('post', '/fee-types', feeTypeData);
   },
 
   update: async (id: string, feeTypeData: FeeTypeData) => {
-    const api = createApiInstance();
-    const response = await api.put(`/fee-types/${id}`, feeTypeData);
-    return response.data;
+    return apiCall('put', `/fee-types/${id}`, feeTypeData);
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/fee-types/${id}`);
-    return response.data;
+    return apiCall('delete', `/fee-types/${id}`);
   }
 };

@@ -1,7 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('~/config/database');
 const { logger } = require('~/utils/shared/logger');
-const { ModuleConfig } = require('~/utils/core/moduleConfig');
 const ApiError = require('~/utils/shared/ApiError');
 
 const Student = sequelize.define(
