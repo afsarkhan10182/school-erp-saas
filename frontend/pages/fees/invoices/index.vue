@@ -493,7 +493,7 @@ import {
 import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 // Strategic imports: Direct for always-present, Async for on-demand
 import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
 import InvoiceTable from '~/components/financial/InvoiceTable.vue';
@@ -529,8 +529,8 @@ import { useSchools } from '~/composables/useSchools';
 
 const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
 
-// Auth store
-const authStore = useAuthStore();
+// Auth composable
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 
 // State
 const invoices = ref([]);
@@ -572,9 +572,7 @@ const filters = reactive({
 // Use existing data from composables - no need to redeclare
 
 // Role-based computed properties
-const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
-const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
-const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
+// Role checks are now available from useAuth composable
 
 // Check if any filters are applied (for debugging purposes)
 const hasAppliedFilters = computed(() => {
@@ -639,9 +637,9 @@ const totalPagesForGroups = computed(() => {
 
 // Auto-set branch filter based on user role
 const setDefaultBranchFilter = () => {
-  if (authStore.currentUser?.role === 'branch_admin') {
+  if (isBranchAdmin.value) {
     // Branch admin should be restricted to their branch
-    filters.branch_id = authStore.currentUser.branch_id;
+    filters.branch_id = user.value?.branch_id;
   }
 };
 
@@ -1022,7 +1020,7 @@ const onBranchChange = async branchId => {
   filters.stream = '';
 
   // Refresh classes for the new branch
-  const schoolId = authStore.currentUser?.school_id;
+  const schoolId = user.value?.school_id;
   if (branchId && branchId !== '') {
     // Specific branch selected - fetch classes for that branch
     await fetchClasses(schoolId, branchId);
@@ -1043,8 +1041,8 @@ const onClassChange = async classId => {
   filters.stream = '';
 
   // Fetch streams and sections for the selected class
-  const schoolId = authStore.currentUser?.school_id;
-  const branchId = filters.branch_id || authStore.currentUser?.branch_id;
+  const schoolId = user.value?.school_id;
+  const branchId = filters.branch_id || user.value?.branch_id;
 
   console.log('🔍 Fetching streams/sections with:', { schoolId, branchId, classId });
   console.log('🔍 filters.branch_id is empty?', !filters.branch_id);
@@ -1980,7 +1978,7 @@ const allFeeStructures = computed(() => {
 const onModalSchoolChange = async schoolId => {
   if (schoolId) {
     // For super admin, filter branches by selected school
-    if (authStore.isSuperAdmin) {
+    if (isSuperAdmin.value) {
       await fetchBranches();
     }
   }
@@ -1998,8 +1996,8 @@ const onModalClassChange = async className => {
     const classItem = classes.value.find(c => c.name === className);
     if (classItem) {
       // Get the current branch ID from the modal form or user context
-      const branchId = authStore.currentUser?.branch_id;
-      await fetchSections(authStore.currentUser?.school_id, branchId, classItem.id);
+      const branchId = user.value?.branch_id;
+      await fetchSections(user.value?.school_id, branchId, classItem.id);
     }
   }
 };
@@ -2025,17 +2023,17 @@ const fetchBranches = async () => {
   try {
     let response;
 
-    if (authStore.isSuperAdmin) {
+    if (isSuperAdmin.value) {
       // Super admin can see all branches
       response = await Branches.getForDropdown();
       branches.value = response.data || [];
-    } else if (authStore.isSchoolAdmin) {
+    } else if (isSchoolAdmin.value) {
       // School admin sees only their school's branches
-      response = await Branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
+      response = await Branches.getForDropdown({ school_id: user.value?.school_id });
       branches.value = response.data || [];
-    } else if (authStore.isBranchAdmin) {
+    } else if (isBranchAdmin.value) {
       // Branch admin sees only their branch
-      response = await Branches.getById(authStore.currentUser?.branch_id);
+      response = await Branches.getById(user.value?.branch_id);
       branches.value = response.data ? [response.data] : [];
     } else {
       // Default fallback
@@ -2053,7 +2051,7 @@ const fetchBranches = async () => {
 const loadAcademicData = async () => {
   try {
     // Get user context for API calls
-    const schoolId = authStore.currentUser?.school_id;
+    const schoolId = user.value?.school_id;
 
     // Load academic years and classes for filters with individual error handling
     const promises = [];
@@ -2103,7 +2101,7 @@ const loadAcademicData = async () => {
 // Load school data for receipt viewer
 const loadSchoolData = async () => {
   try {
-    const schoolId = authStore.currentUser?.school_id;
+    const schoolId = user.value?.school_id;
     if (schoolId) {
       const response = await Schools.getById(schoolId);
       if (response.data) {

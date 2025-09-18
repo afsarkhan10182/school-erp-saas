@@ -78,6 +78,12 @@ router.post('/:id/reactivate', authorize(['super_admin']), SchoolController.reac
 
 // Module management routes (Super Admin controls, School Admin and Branch Admin view-only)
 router.get(
+  '/:id/modules/timestamp',
+  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  SchoolController.getSchoolModulesTimestamp
+);
+
+router.get(
   '/:id/modules',
   authorize(['super_admin', 'school_admin', 'branch_admin']),
   SchoolController.getSchoolModules

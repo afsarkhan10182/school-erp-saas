@@ -335,7 +335,7 @@
 <script setup>
 import { ref, reactive, watch, computed } from 'vue';
 import { Search } from 'lucide-vue-next';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 
 const props = defineProps({
   filters: {
@@ -370,23 +370,23 @@ const props = defineProps({
 
 const emit = defineEmits(['filter-change', 'clear-filters', 'branch-change', 'class-change']);
 
-// Auth store
-const authStore = useAuthStore();
+// Auth composable
+const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
 
 // Computed properties for role-based logic
 const shouldShowBranchFilter = computed(() => {
   // Super admin can always see branch filter
-  if (authStore.isSuperAdmin) {
+  if (isSuperAdmin.value) {
     return true;
   }
 
   // School admin can see branch filter only if they have multiple branches
-  if (authStore.isSchoolAdmin) {
+  if (isSchoolAdmin.value) {
     return props.branches.length > 1;
   }
 
   // Branch admin should not see branch filter (they're fixed to one branch)
-  if (authStore.isBranchAdmin) {
+  if (isBranchAdmin.value) {
     return false;
   }
 
@@ -396,18 +396,18 @@ const shouldShowBranchFilter = computed(() => {
 
 const availableBranches = computed(() => {
   // Super admin sees all branches
-  if (authStore.isSuperAdmin) {
+  if (isSuperAdmin.value) {
     return props.branches;
   }
 
   // School admin sees only their school's branches
-  if (authStore.isSchoolAdmin) {
-    return props.branches.filter(branch => branch.school_id === authStore.currentUser?.school_id);
+  if (isSchoolAdmin.value) {
+    return props.branches.filter(branch => branch.school_id === user.value?.school_id);
   }
 
   // Branch admin sees only their branch
-  if (authStore.isBranchAdmin) {
-    return props.branches.filter(branch => branch.id === authStore.currentUser?.branch_id);
+  if (isBranchAdmin.value) {
+    return props.branches.filter(branch => branch.id === user.value?.branch_id);
   }
 
   return [];

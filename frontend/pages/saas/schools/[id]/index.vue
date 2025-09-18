@@ -40,7 +40,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
@@ -51,7 +51,7 @@ definePageMeta({
 });
 
 const route = useRoute();
-const authStore = useAuthStore();
+const { isSuperAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
 const { getSchoolWithSubscription } = useSubscriptions();
 
@@ -60,8 +60,7 @@ const school = ref(null);
 const schoolName = ref('Loading...');
 
 // Access control - only Super Admin can access subscription details
-const user = authStore.user;
-if (user?.role !== 'super_admin') {
+if (!isSuperAdmin.value) {
   showError('Access denied. Only Super Admin can view subscription details.');
   await navigateTo('/dashboard');
 }

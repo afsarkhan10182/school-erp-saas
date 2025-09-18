@@ -315,7 +315,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
@@ -377,27 +377,20 @@ const saveSidebarState = isOpen => {
   }
 };
 
-const authStore = useAuthStore();
+const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
 const logoError = ref(false);
 
 // School logo and name
 const schoolLogo = computed(() => {
-  const school = authStore.currentSchool;
+  const school = user.value?.school;
   // Reset logo error when school changes
   logoError.value = false;
 
-  console.log('🏫 School logo debug:', {
-    school: school,
-    logo: school?.logo,
-    currentSchool: authStore.currentSchool,
-    user: authStore.user
-  });
-
   if (school?.logo) {
     const config = useRuntimeConfig();
-    const schoolCode = school.code || authStore.user?.school?.code;
+    const schoolCode = school.code || user.value?.school?.code;
     const apiBase = config.public?.apiBase;
 
     const logoUrl = getLogoUrl(school.logo, schoolCode, apiBase);
@@ -413,14 +406,14 @@ const schoolLogo = computed(() => {
 });
 
 const schoolName = computed(() => {
-  return authStore.currentSchool?.name || authStore.user?.school?.name || '';
+  return user.value?.school?.name || '';
 });
 
 // Handle logo error fallback
 const handleLogoError = event => {
   console.error('🚫 School logo failed to load:', {
     src: event.target?.src,
-    school: authStore.currentSchool
+    school: user.value?.school
   });
   logoError.value = true;
 };
@@ -438,12 +431,9 @@ watch(
   }
 );
 
-// Role checks - use authStore for consistency
-const isSuperAdmin = computed(() => authStore.user?.role === 'super_admin');
-const isSchoolAdmin = computed(() => authStore.user?.role === 'school_admin');
-const isBranchAdmin = computed(() => authStore.user?.role === 'branch_admin');
-const isAccountant = computed(() => authStore.user?.role === 'accountant');
-const isReceptionist = computed(() => authStore.user?.role === 'receptionist');
+// Additional role checks for specific roles
+const isAccountant = computed(() => user.value?.role === 'accountant');
+const isReceptionist = computed(() => user.value?.role === 'receptionist');
 
 // Menu configuration
 const menuGroups = computed(() => {
@@ -576,6 +566,13 @@ const menuGroups = computed(() => {
               title: 'Streams',
               path: '/academic/streams',
               icon: BookOpen
+            },
+            {
+              id: 'class-management',
+              title: 'Class Management',
+              path: '/academic/class-management',
+              icon: BookOpen,
+              requiredModule: 'exams'
             },
             {
               id: 'sections',
@@ -839,7 +836,7 @@ const visibleMenuGroups = computed(() => {
   console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
 
   // Super admin: show all menu groups
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     return menuGroups.value;
   }
 
@@ -901,7 +898,8 @@ const handleMenuClick = (path, event) => {
 };
 
 const logout = async () => {
-  await authStore.logout();
+  const { logout: logoutUser } = useAuth();
+  await logoutUser();
   await navigateTo('/auth/login');
 };
 
@@ -944,6 +942,37 @@ watch(
   },
   { deep: true }
 );
+
+// Listen for module refresh from other tabs and background checks
+onMounted(() => {
+  if (import.meta.client) {
+    const handleStorageChange = e => {
+      if (e.key === 'modules-refresh') {
+        console.log('🔄 Module refresh detected, reloading...');
+        loadUserModules(true);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // Background refresh every 15 minutes to catch changes
+    const backgroundRefresh = setInterval(
+      async () => {
+        try {
+          const { checkModulesUpdated } = useModuleAccess();
+          await checkModulesUpdated();
+        } catch (error) {
+          console.warn('Background module check failed:', error);
+        }
+      },
+      15 * 60 * 1000
+    ); // 15 minutes
+
+    onUnmounted(() => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(backgroundRefresh);
+    });
+  }
+});
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', checkMobile);

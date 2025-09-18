@@ -327,6 +327,34 @@ class SchoolController {
   });
 
   // Get school module settings (read-only for School Admin and Branch Admin)
+  static getSchoolModulesTimestamp = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // School admin and branch admin can only view their own school's modules
+    if (
+      (req.user.role === 'school_admin' || req.user.role === 'branch_admin') &&
+      req.user.school_id !== id
+    ) {
+      throw new ApiError(403, 'You can only view your own school modules');
+    }
+
+    const school = await School.findByPk(id, {
+      attributes: ['id', 'modules_updated_at']
+    });
+
+    if (!school) {
+      throw new ApiError(404, 'School not found');
+    }
+
+    success(
+      res,
+      {
+        modules_updated_at: school.modules_updated_at
+      },
+      'Modules timestamp retrieved successfully'
+    );
+  });
+
   static getSchoolModules = asyncHandler(async (req, res) => {
     const { id } = req.params;
 

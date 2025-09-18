@@ -60,8 +60,8 @@ class UserService {
   }
 
   // Get all users with pagination and filtering
-  static async getAllUsers({ page = 1, limit = 10, search, role, status, school_id }) {
-    const cacheKey = `users:list:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}:${school_id || 'all'}`;
+  static async getAllUsers({ page = 1, limit = 10, search, role, status, school_id, branch_id }) {
+    const cacheKey = `users:list:${page}:${limit}:${search || 'all'}:${role || 'all'}:${status || 'all'}:${school_id || 'all'}:${branch_id || 'all'}`;
 
     return BaseService.getFromCache(
       cacheKey,
@@ -107,6 +107,11 @@ class UserService {
         // Apply school filter if provided
         if (school_id) {
           where.school_id = school_id;
+        }
+
+        // Apply branch filter if provided
+        if (branch_id) {
+          where.branch_id = branch_id;
         }
 
         const { count, rows } = await User.findAndCountAll({

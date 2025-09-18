@@ -132,7 +132,7 @@
         </div>
 
         <!-- School Selection (Super Admin only) -->
-        <div v-if="authStore.user?.role === 'super_admin'">
+        <div v-if="isSuperAdmin">
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
             School <span class="text-red-500">*</span>
           </label>
@@ -159,12 +159,7 @@
         </div>
 
         <!-- Branch Selection (Super Admin & School Admin) -->
-        <div
-          v-if="
-            (authStore.user?.role === 'super_admin' && formData.school_id) ||
-            authStore.user?.role === 'school_admin'
-          "
-        >
+        <div v-if="(isSuperAdmin && formData.school_id) || isSchoolAdmin">
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
             Branch <span class="text-red-500">*</span>
           </label>
@@ -298,7 +293,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
@@ -306,12 +301,11 @@ import { Users, Schools, Branches } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
-const authStore = useAuthStore();
+const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin and School Admin can access user management
-const user = authStore.user;
-if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
+if (!isSuperAdmin.value && !isSchoolAdmin.value) {
   showError('Access denied. Only Super Admin and School Admin can manage users.');
   await navigateTo('/dashboard');
 }
@@ -330,7 +324,7 @@ const isLoadingBranches = ref(false);
 
 // Available roles based on current user's role
 const availableRoles = computed(() => {
-  const currentUserRole = authStore.user?.role;
+  const currentUserRole = user.value?.role;
 
   if (!currentUserRole) {
     return [];
@@ -365,9 +359,9 @@ const formData = ref({
   phone: '',
   role: '',
   password: '',
-  school_id: authStore.user?.school_id || '',
+  school_id: user.value?.school_id || '',
   branch_id: '',
-  created_by: authStore.user?.id || null
+  created_by: user.value?.id || null
 });
 
 // Validation errors
@@ -434,16 +428,13 @@ const validationRules = {
   },
 
   school_id: value => {
-    if (authStore.user?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       if (!value) return 'School selection is required';
     }
     return null;
   },
   branch_id: value => {
-    if (
-      (authStore.user?.role === 'super_admin' && formData.value.school_id) ||
-      authStore.user?.role === 'school_admin'
-    ) {
+    if ((isSuperAdmin.value && formData.value.school_id) || isSchoolAdmin.value) {
       if (!value) return 'Branch selection is required';
     }
     return null;
@@ -453,21 +444,21 @@ const validationRules = {
 // Form validation
 const isFormValid = computed(() => {
   // Don't validate if auth store is not ready
-  if (!authStore.user?.role) {
+  if (!user.value?.role) {
     return false;
   }
 
   const requiredFields = ['first_name', 'last_name', 'email', 'role'];
 
   // Add conditional required fields based on role only if auth store is ready
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     requiredFields.push('school_id');
     if (formData.value.school_id) {
       requiredFields.push('branch_id');
     }
   }
 
-  if (authStore.user?.role === 'school_admin') {
+  if (isSchoolAdmin.value) {
     requiredFields.push('branch_id');
   }
 
@@ -488,7 +479,7 @@ const isFormValid = computed(() => {
 
 // Validate a specific field
 const validateField = fieldName => {
-  if (validationRules[fieldName] && authStore.user?.role) {
+  if (validationRules[fieldName] && user.value?.role) {
     const error = validationRules[fieldName](formData.value[fieldName]);
     if (error) {
       errors.value[fieldName] = error;
@@ -547,13 +538,13 @@ const handleSubmit = async () => {
     }
 
     // Auto-set school_id and branch_id based on user role
-    if (authStore.user?.role === 'school_admin') {
-      payload.school_id = authStore.user.school_id;
+    if (isSchoolAdmin.value) {
+      payload.school_id = user.value.school_id;
     }
 
-    if (authStore.user?.role === 'branch_admin') {
-      payload.school_id = authStore.user.school_id;
-      payload.branch_id = authStore.user.branch_id;
+    if (user.value?.role === 'branch_admin') {
+      payload.school_id = user.value.school_id;
+      payload.branch_id = user.value.branch_id;
     }
 
     // Send the request
@@ -637,7 +628,7 @@ const handleSubmit = async () => {
 
 // Fetch schools (for super admin)
 const fetchSchools = async () => {
-  if (authStore.user?.role !== 'super_admin') return;
+  if (!isSuperAdmin.value) return;
 
   isLoadingSchools.value = true;
   try {
@@ -654,7 +645,7 @@ const fetchSchools = async () => {
 
 // Fetch branches (for school admin and super admin when school is selected)
 const fetchBranches = async (schoolId = null) => {
-  const targetSchoolId = schoolId || authStore.user?.school_id;
+  const targetSchoolId = schoolId || user.value?.school_id;
 
   if (!targetSchoolId) {
     return;
@@ -677,19 +668,19 @@ const fetchBranches = async (schoolId = null) => {
 // Handle role change
 const onRoleChange = () => {
   // Only clear school_id for super admin, keep branch_id as is
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     formData.value.school_id = '';
     formData.value.branch_id = '';
   }
 
   // Validate the role field only if auth store is ready
-  if (authStore.user?.role) {
+  if (user.value?.role) {
     validateField('role');
   }
 
   // Auto-set school_id for non-super admins
-  if (authStore.user?.role !== 'super_admin') {
-    formData.value.school_id = authStore.user?.school_id;
+  if (!isSuperAdmin.value) {
+    formData.value.school_id = user.value?.school_id;
   }
 };
 
@@ -734,17 +725,17 @@ const closePasswordModal = () => {
 // Initialize component
 onMounted(async () => {
   // Auto-set school_id for non-super admins
-  if (authStore.user?.role !== 'super_admin') {
-    formData.value.school_id = authStore.user?.school_id;
+  if (!isSuperAdmin.value) {
+    formData.value.school_id = user.value?.school_id;
   }
 
   // Fetch schools for super admin
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     await fetchSchools();
   }
 
   // Fetch branches for school admin
-  if (authStore.user?.role === 'school_admin') {
+  if (isSchoolAdmin.value) {
     await fetchBranches();
   }
 

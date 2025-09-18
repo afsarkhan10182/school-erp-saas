@@ -801,7 +801,7 @@ import { FeeInvoices, Schools, Branches, Classes } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranchContext } from '~/composables/useBranchContext';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -813,7 +813,7 @@ definePageMeta({
 
 // Composables
 const { showToast } = useToast();
-const authStore = useAuthStore();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { generateReport, isGenerating, generationProgress } = useExportService();
 
 const { printReport: printReportCommon } = usePrintReport();
@@ -865,7 +865,7 @@ const displayedColumns = computed(() => {
 });
 
 // User role for conditional filtering
-const userRole = computed(() => authStore.currentUser?.role || 'branch_admin');
+const userRole = computed(() => user.value?.role || 'branch_admin');
 
 // Filters
 const filters = reactive({
@@ -1104,22 +1104,22 @@ const fetchBranches = async () => {
     let allBranches = response.data || [];
 
     // Apply role-based filtering
-    const user = authStore.user;
+    const currentUser = user.value;
 
-    if (user && user.role) {
-      if (user.role === 'super_admin') {
+    if (currentUser && currentUser.role) {
+      if (currentUser.role === 'super_admin') {
         // Super admin can see all branches, but filter by selected school if specified
         if (filters.school_id) {
           branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
         } else {
           branches.value = [];
         }
-      } else if (user.role === 'school_admin') {
+      } else if (currentUser.role === 'school_admin') {
         // School admin can see all branches in their school
-        branches.value = allBranches.filter(branch => branch.school_id === user.school_id);
-      } else if (user.role === 'branch_admin') {
+        branches.value = allBranches.filter(branch => branch.school_id === currentUser.school_id);
+      } else if (currentUser.role === 'branch_admin') {
         // Branch admin can only see their own branch
-        branches.value = allBranches.filter(branch => branch.id === user.branch_id);
+        branches.value = allBranches.filter(branch => branch.id === currentUser.branch_id);
       } else {
         branches.value = [];
       }

@@ -49,7 +49,7 @@ import { useRouter, useRoute } from 'vue-router';
 import Sidebar from '~/components/layout/Sidebar.vue';
 import Header from '~/components/layout/Header.vue';
 import Toast from '~/components/ui/Toast.vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
@@ -60,15 +60,13 @@ const { isMobile } = useMobileDetection();
 const sidebarOpen = ref(true); // Default to open for desktop
 
 const route = useRoute();
-const authStore = useAuthStore();
+const { user } = useAuth();
 const { initializeBranchContext } = useBranchContext();
-
-const user = computed(() => authStore.currentUser);
-const isLoggedIn = computed(() => authStore.isLoggedIn);
+const { isLoggedIn } = useAuth();
 
 const shouldRender = computed(() => {
   if (import.meta.server) return true;
-  return !authStore.isInitializing && isHydrated.value;
+  return isHydrated.value;
 });
 
 const mainContentClasses = computed(() => {
@@ -84,7 +82,8 @@ const toggleSidebar = () => {
 };
 
 const handleLogout = async () => {
-  await authStore.logout();
+  const { logout } = useAuth();
+  await logout();
   await navigateTo('/auth/login');
 };
 
@@ -159,7 +158,7 @@ onMounted(async () => {
     });
   }
 
-  if (authStore.isLoggedIn) {
+  if (isLoggedIn.value) {
     await initializeBranchContext();
   }
 });

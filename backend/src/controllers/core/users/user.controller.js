@@ -111,7 +111,7 @@ class UserController {
   // Get all users with role-based access control
   static async getAllUsers(req, res, next) {
     try {
-      const { page = 1, limit = 10, search, role, status } = req.query;
+      const { page = 1, limit = 10, search, role, status, branch_id } = req.query;
       const { user } = req;
 
       // If school admin, only show users from their school
@@ -123,7 +123,8 @@ class UserController {
         search,
         role,
         status,
-        school_id
+        school_id,
+        branch_id
       });
 
       res.json({

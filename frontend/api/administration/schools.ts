@@ -51,6 +51,10 @@ export const Schools = {
   },
 
   // Module management (Super Admin controls, School Admin view-only)
+  getModulesTimestamp: async (id: string) => {
+    return apiCall('get', `/schools/${id}/modules/timestamp`);
+  },
+
   getModules: async (id: string) => {
     return apiCall('get', `/schools/${id}/modules`);
   },

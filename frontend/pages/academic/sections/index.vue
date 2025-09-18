@@ -355,7 +355,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { Sections } from '~/api';
 import { Plus } from 'lucide-vue-next';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
@@ -369,8 +369,8 @@ const isSubmitting = ref(false);
 const editingId = ref(null);
 
 // Auth and user context
-const authStore = useAuthStore();
-const userRole = computed(() => authStore.user?.role);
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const userRole = computed(() => user.value?.role);
 
 // Composables
 const { classes: availableClasses, fetchClasses, loading: loadingClasses } = useAcademics();
@@ -419,8 +419,8 @@ const getSelectedSchoolName = () => {
       ? schools.value.find(s => s.id === selectedSchoolId.value)?.name
       : 'N/A';
   } else {
-    return authStore.user?.school_id
-      ? schools.value.find(s => s.id === authStore.user?.school_id)?.name
+    return user.value?.school_id
+      ? schools.value.find(s => s.id === user.value?.school_id)?.name
       : 'N/A';
   }
 };
@@ -488,7 +488,7 @@ const onSchoolChange = async () => {
 const onBranchChange = async () => {
   selectedClassId.value = '';
   if (selectedBranchId.value) {
-    await fetchClasses(selectedSchoolId.value || authStore.user?.school_id, selectedBranchId.value);
+    await fetchClasses(selectedSchoolId.value || user.value?.school_id, selectedBranchId.value);
   }
 };
 
@@ -511,11 +511,11 @@ const loadStreamsForClass = async classId => {
       if (selectedSchoolId.value) params.school_id = selectedSchoolId.value;
       if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
     } else if (userRole.value === 'school_admin') {
-      params.school_id = authStore.user?.school_id;
+      params.school_id = user.value?.school_id;
       if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
     } else if (userRole.value === 'branch_admin') {
-      params.school_id = authStore.user?.school_id;
-      params.branch_id = authStore.user?.branch_id;
+      params.school_id = user.value?.school_id;
+      params.branch_id = user.value?.branch_id;
     }
 
     const response = await Streams.getAll(params);
@@ -562,10 +562,10 @@ const fetchSections = async () => {
       // Super admin can see all sections
     } else if (userRole.value === 'school_admin') {
       // School admin sees only their school's sections
-      params.school_id = authStore.user?.school_id;
+      params.school_id = user.value?.school_id;
     } else if (userRole.value === 'branch_admin') {
       // Branch admin sees only their branch's sections
-      params.branch_id = authStore.user?.branch_id;
+      params.branch_id = user.value?.branch_id;
     }
 
     const response = await Sections.getAll(params);
@@ -588,13 +588,13 @@ const openCreateModal = async () => {
     await fetchSchools();
   } else if (userRole.value === 'school_admin') {
     // Set school and load branches for school admin
-    selectedSchoolId.value = authStore.user?.school_id;
-    await fetchBranches(authStore.user?.school_id);
+    selectedSchoolId.value = user.value?.school_id;
+    await fetchBranches(user.value?.school_id);
   } else if (userRole.value === 'branch_admin') {
     // Set school and branch for branch admin, load classes
-    selectedSchoolId.value = authStore.user?.school_id;
-    selectedBranchId.value = authStore.user?.branch_id;
-    await fetchClasses(authStore.user?.school_id, authStore.user?.branch_id);
+    selectedSchoolId.value = user.value?.school_id;
+    selectedBranchId.value = user.value?.branch_id;
+    await fetchClasses(user.value?.school_id, user.value?.branch_id);
   }
 
   showModal.value = true;
@@ -610,12 +610,12 @@ const editSection = async section => {
     await fetchBranches(section.branch?.school_id);
     selectedBranchId.value = section.branch_id;
   } else if (userRole.value === 'school_admin') {
-    selectedSchoolId.value = authStore.user?.school_id;
-    await fetchBranches(authStore.user?.school_id);
+    selectedSchoolId.value = user.value?.school_id;
+    await fetchBranches(user.value?.school_id);
     selectedBranchId.value = section.branch_id;
   } else {
-    selectedSchoolId.value = authStore.user?.school_id;
-    selectedBranchId.value = authStore.user?.branch_id;
+    selectedSchoolId.value = user.value?.school_id;
+    selectedBranchId.value = user.value?.branch_id;
   }
 
   // Load classes for the branch

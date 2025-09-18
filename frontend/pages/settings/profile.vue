@@ -183,7 +183,7 @@
       >
         <div class="px-4 py-5 sm:p-6">
           <SubscriptionDetails
-            :school-id="authStore.user.school_id"
+            :school-id="user.school_id"
             title="My Plan"
             subtitle="Your subscription overview"
             plan-section-title="Plan Overview"
@@ -264,7 +264,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
@@ -276,7 +276,7 @@ definePageMeta({
   layout: 'default'
 });
 
-const authStore = useAuthStore();
+const { user, updateUser } = useAuth();
 const { showSuccess, showError } = useToast();
 const config = useRuntimeConfig();
 const apiBase = config.public?.apiBase;
@@ -297,7 +297,7 @@ const form = ref({
 const loading = ref(false);
 const changingPassword = ref(false);
 const imageUploading = ref(false);
-const user = computed(() => authStore.user);
+// user is already available from useAuth composable
 
 // Password form data
 const passwordForm = ref({
@@ -411,15 +411,15 @@ const updateProfile = async () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Update auth store with latest user data
-      await authStore.checkAuth();
+      // Auth check is handled by the composable
 
       // Update form data with the latest user data
-      if (authStore.user) {
+      if (user.value) {
         form.value = {
-          first_name: authStore.user.first_name || '',
-          last_name: authStore.user.last_name || '',
-          email: authStore.user.email || '',
-          phone: authStore.user.phone || '',
+          first_name: user.value.first_name || '',
+          last_name: user.value.last_name || '',
+          email: user.value.email || '',
+          phone: user.value.phone || '',
           profile_image: null,
           profilePreview: null
         };

@@ -26,6 +26,8 @@ const Subject = require('./academic/subjects/subject.model');
 const SubjectTeacher = require('./academic/subjects/subject-teacher.model');
 const SubjectGroup = require('./academic/subjects/subject-group.model');
 const SubjectGroupSubject = require('./academic/subjects/subject-group-subject.model');
+const ClassSubjectAssignment = require('./academic/subjects/class-subject-assignment.model');
+const ClassTeacher = require('./academic/class-teacher.model');
 const GradingSystem = require('./academic/exams/grading-system.model');
 const GradeScale = require('./academic/exams/grade-scale.model');
 const AttendanceSession = require('./academic/attendance/attendance-session.model');
@@ -61,6 +63,8 @@ const models = {
   SubjectTeacher,
   SubjectGroup,
   SubjectGroupSubject,
+  ClassSubjectAssignment,
+  ClassTeacher,
   GradingSystem,
   GradeScale,
   AttendanceSession,

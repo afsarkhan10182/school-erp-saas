@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { Saas } from '~/api/administration/saas';
 import { Schools } from '~/api/administration/schools';
 
@@ -32,14 +32,14 @@ export const clearModuleCache = () => {
 };
 
 export function useModuleAccess() {
-  const authStore = useAuthStore();
+  const { user, isSuperAdmin } = useAuth();
   const userModules = ref<string[]>([]);
   const isLoading = ref(false);
 
   // Check if a module is enabled for the current user's school
   const isModuleEnabled = (moduleCode: string): boolean => {
     // Super admin has access to all modules
-    if (authStore.user?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       return true;
     }
 
@@ -92,7 +92,7 @@ export function useModuleAccess() {
     isLoading.value = true;
 
     try {
-      if (authStore.user?.role === 'super_admin') {
+      if (isSuperAdmin.value) {
         // Super admin has access to all modules - load all available modules
         const response = await Saas.getAvailableModules();
         if (response.success) {
@@ -118,7 +118,7 @@ export function useModuleAccess() {
           userModules.value = [];
         }
       } else {
-        const schoolId = authStore.user?.school_id;
+        const schoolId = user.value?.school_id;
 
         if (!schoolId) {
           globalUserModules = [];
@@ -145,13 +145,6 @@ export function useModuleAccess() {
             sessionStorage.setItem('user-modules-time', globalLastFetch.toString());
             sessionStorage.setItem('modules-updated-at', response.data.modules_updated_at);
           }
-
-          console.log('✅ Modules loaded successfully:', {
-            enabledModules,
-            totalModules: response.data.modules.length,
-            schoolId,
-            userRole: authStore.user?.role
-          });
         } else {
           console.warn('❌ Failed to load modules:', response.message);
           // Set empty modules to prevent blocking
@@ -172,7 +165,7 @@ export function useModuleAccess() {
   // Filter menu items based on module access
   const filterMenuByModules = (menuItems: any[]): any[] => {
     // Super admin: return everything as-is
-    if (authStore.user?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       return menuItems;
     }
 
@@ -232,6 +225,7 @@ export function useModuleAccess() {
       '/exams/types': 'exams',
       '/reports/exams': 'exams',
       '/academic/subjects': 'exams',
+      '/academic/class-management': 'exams',
 
       '/library': 'library',
       '/reports/library': 'library',
@@ -297,11 +291,11 @@ export function useModuleAccess() {
 
   // Check if modules have been updated (only when needed)
   const checkModulesUpdated = async () => {
-    if (!authStore.user?.school_id || authStore.user?.role === 'super_admin') return;
+    if (!user.value?.school_id || isSuperAdmin.value) return;
 
     try {
       // Use existing API to get modules with timestamp
-      const response = await Schools.getModules(authStore.user.school_id);
+      const response = await Schools.getModules(user.value.school_id);
       if (response.success) {
         const serverTimestamp = response.data.modules_updated_at;
         const cachedTimestamp = sessionStorage.getItem('modules-updated-at');
@@ -329,7 +323,7 @@ export function useModuleAccess() {
     if (!listenerSetup) {
       // Only check once when user first loads the app
       setTimeout(() => {
-        if (authStore.isAuthenticated && authStore.user?.role !== 'super_admin') {
+        if (user.value && !isSuperAdmin.value) {
           checkModulesUpdated();
         }
       }, 1000); // Wait 1 second after auth is ready

@@ -275,6 +275,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Schools, Saas } from '~/api';
 
 const authStore = useAuthStore();
@@ -460,6 +461,20 @@ const toggleModule = async (moduleCode, enabled) => {
 
       // Force reactivity update
       modules.value = [...modules.value];
+
+      // Clear module cache and reload modules to refresh sidebar immediately
+      const { clearModuleCache, loadUserModules } = useModuleAccess();
+      clearModuleCache();
+      await loadUserModules(true); // Force reload modules
+
+      // Set refresh flags for middleware optimization
+      if (import.meta.client) {
+        const timestamp = Date.now().toString();
+        localStorage.setItem('modules-refresh', timestamp);
+        sessionStorage.setItem('modules-refresh', 'true');
+        // Also set a global flag for immediate detection
+        sessionStorage.setItem('last-module-change', timestamp);
+      }
 
       showToastNotification(
         `Module "${module.name}" ${enabled ? 'enabled' : 'disabled'} successfully`,

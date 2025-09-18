@@ -23,7 +23,8 @@ const attendanceNotificationRoutes = require('./academic/attendance/attendance-n
 const subjectRoutes = require('./academic/subjects/subject.routes');
 const subjectTeacherRoutes = require('./academic/subjects/subject-teacher.routes');
 const subjectGroupRoutes = require('./academic/subjects/subject-group.routes');
-const classSubjectMappingRoutes = require('./academic/subjects/class-subject-mapping.routes');
+const classSubjectAssignmentRoutes = require('./academic/subjects/class-subject-assignment.routes');
+const classTeacherRoutes = require('./academic/class-teacher.routes');
 
 // Academic term routes
 const termRoutes = require('./academic/term.routes');
@@ -74,7 +75,8 @@ router.use('/streams', streamRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/subject-teachers', subjectTeacherRoutes);
 router.use('/subject-groups', subjectGroupRoutes);
-router.use('/class-subject-mappings', classSubjectMappingRoutes);
+router.use('/class-subject-assignments', classSubjectAssignmentRoutes);
+router.use('/class-teachers', classTeacherRoutes);
 
 // Academic term routes
 router.use('/terms', termRoutes);

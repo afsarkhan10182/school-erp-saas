@@ -104,7 +104,7 @@
         <div class="p-6">
           <form @submit.prevent="handleSubmit" class="space-y-6">
             <!-- School Selection (Super Admin Only) -->
-            <div v-if="authStore.currentUser?.role === 'super_admin'">
+            <div v-if="isSuperAdmin">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 School <span class="text-red-500">*</span>
               </label>
@@ -123,7 +123,7 @@
                 Branch <span class="text-red-500">*</span>
               </label>
               <!-- Show read-only branch info for branch admin -->
-              <div v-if="authStore.currentUser?.role === 'branch_admin'" class="mt-1">
+              <div v-if="isBranchAdmin" class="mt-1">
                 <div
                   class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white"
                 >
@@ -139,14 +139,14 @@
                 v-model="form.branch_id"
                 :options="branchOptions"
                 :placeholder="
-                  authStore.currentUser?.role === 'super_admin'
+                  isSuperAdmin
                     ? form.school_id
                       ? 'Select Branch'
                       : 'Select School First'
                     : 'Select Branch'
                 "
                 :loading="branchesLoading"
-                :disabled="authStore.currentUser?.role === 'super_admin' && !form.school_id"
+                :disabled="isSuperAdmin && !form.school_id"
                 @update:model-value="onBranchChange"
               />
             </div>
@@ -406,7 +406,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
@@ -423,7 +423,7 @@ definePageMeta({
   title: 'Multiple Import'
 });
 
-const authStore = useAuthStore();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
 const {
@@ -468,7 +468,7 @@ const form = reactive({
 const canSubmit = computed(() => {
   const hasBasicFields = form.branch_id && form.class_id && selectedFile.value;
 
-  if (authStore.currentUser?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     if (!form.school_id) return false;
   }
 
@@ -586,10 +586,7 @@ const onBranchChange = async () => {
 
   if (form.branch_id) {
     try {
-      const schoolId =
-        authStore.currentUser?.role === 'super_admin'
-          ? form.school_id
-          : authStore.currentUser?.school_id;
+      const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
 
       await fetchClasses(schoolId, form.branch_id);
 
@@ -624,15 +621,15 @@ const loadStreamsForClass = async classId => {
     };
 
     // Add role-based filters
-    if (authStore.currentUser?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       if (form.school_id) params.school_id = form.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === 'school_admin') {
-      params.school_id = authStore.currentUser?.school_id;
+    } else if (isSchoolAdmin.value) {
+      params.school_id = user.value?.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (authStore.currentUser?.role === 'branch_admin') {
-      params.school_id = authStore.currentUser?.school_id;
-      params.branch_id = authStore.currentUser?.branch_id;
+    } else if (isBranchAdmin.value) {
+      params.school_id = user.value?.school_id;
+      params.branch_id = user.value?.branch_id;
     }
 
     const response = await Streams.getAll(params);
@@ -658,15 +655,12 @@ const onClassChange = async () => {
       // Load streams for the selected class
       await loadStreamsForClass(form.class_id);
 
-      const schoolId =
-        authStore.currentUser?.role === 'super_admin'
-          ? form.school_id
-          : authStore.currentUser?.school_id;
+      const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
 
       await fetchSections(schoolId, form.branch_id, form.class_id);
 
       // If no sections found and we're super admin, try without branch_id
-      if (sections.value.length === 0 && authStore.currentUser?.role === 'super_admin') {
+      if (sections.value.length === 0 && isSuperAdmin.value) {
         await fetchSections(schoolId, null, form.class_id);
       }
 
@@ -879,8 +873,8 @@ const handleSubmit = async () => {
     formData.append('csv_file', selectedFile.value);
 
     // Set branch_id based on user role
-    if (authStore.currentUser?.role === 'branch_admin') {
-      formData.append('branch_id', authStore.currentUser?.branch_id);
+    if (isBranchAdmin.value) {
+      formData.append('branch_id', user.value?.branch_id);
     } else {
       formData.append('branch_id', form.branch_id);
     }
@@ -891,7 +885,7 @@ const handleSubmit = async () => {
     formData.append('academic_year_id', form.academic_year_id);
 
     // Add school_id for super admin
-    if (authStore.currentUser?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       formData.append('school_id', form.school_id);
     }
 
@@ -937,8 +931,7 @@ const handleSubmit = async () => {
 // Initialize form data
 async function initializeForm() {
   // Fetch and auto-select current academic year
-  const schoolId =
-    authStore.currentUser?.role === 'super_admin' ? null : authStore.currentUser?.school_id;
+  const schoolId = isSuperAdmin.value ? null : user.value?.school_id;
   await fetchAcademicYears(schoolId);
 
   // Auto-select current academic year
@@ -946,7 +939,7 @@ async function initializeForm() {
     form.academic_year_id = currentAcademicYear.value.id;
   }
 
-  if (authStore.currentUser?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     // Load schools for super admin
     await fetchSchools();
 
@@ -957,12 +950,12 @@ async function initializeForm() {
     }
   } else {
     // For school admin and branch admin, load branches directly
-    await fetchBranches(authStore.currentUser?.school_id);
+    await fetchBranches(user.value?.school_id);
 
-    if (authStore.currentUser?.role === 'branch_admin') {
+    if (isBranchAdmin.value) {
       // For branch admin, set their assigned branch
-      form.branch_id = authStore.currentUser?.branch_id;
-      userBranch.value = branches.value.find(b => b.id === authStore.currentUser?.branch_id);
+      form.branch_id = user.value?.branch_id;
+      userBranch.value = branches.value.find(b => b.id === user.value?.branch_id);
       await onBranchChange();
     } else {
       // For school admin, auto-select branch if there's only one

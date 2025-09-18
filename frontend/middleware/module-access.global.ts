@@ -1,8 +1,15 @@
+import { useAuth } from '~/composables/useAuth';
+
+// Smart cache with timestamp-based change detection
+let lastModuleCheck = 0;
+let lastModulesUpdatedAt = '';
+const MODULE_CHECK_INTERVAL = 10000; // 10 seconds cache
+
 export default defineNuxtRouteMiddleware(async to => {
   // Skip middleware on server-side
   if (process.server) return;
 
-  const authStore = useAuthStore();
+  const { user } = useAuth();
   const {
     canAccessRoute,
     loadUserModules,
@@ -13,7 +20,7 @@ export default defineNuxtRouteMiddleware(async to => {
   } = useModuleAccess();
 
   // Skip for super admin
-  if (authStore.user?.role === 'super_admin') return;
+  if (user.value?.role === 'super_admin') return;
 
   // Skip for login/logout routes
   if (to.path === '/auth/login' || to.path === '/logout') return;
@@ -21,18 +28,10 @@ export default defineNuxtRouteMiddleware(async to => {
   // Skip for dashboard
   if (to.path === '/dashboard') return;
 
-  // Wait for auth initialization to complete
-  if (authStore.isInitializing) {
-    // Wait for auth to initialize (max 3 seconds)
-    let attempts = 0;
-    while (authStore.isInitializing && attempts < 30) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-  }
+  // Auth composable handles initialization automatically
 
-  // If still not authenticated after waiting, redirect to login
-  if (!authStore.isAuthenticated || !authStore.user) {
+  // If still not authenticated, redirect to login
+  if (!user.value) {
     return navigateTo('/auth/login');
   }
 
@@ -61,20 +60,61 @@ export default defineNuxtRouteMiddleware(async to => {
   // Normalize the route path for consistent checking
   const routePath = to.path.replace(/\/$/, '');
 
+  // SMART: Check modules_updated_at timestamp before loading
+  const now = Date.now();
+  const shouldCheckTimestamp =
+    now - lastModuleCheck > MODULE_CHECK_INTERVAL || // Time-based cache
+    (import.meta.client && sessionStorage.getItem('modules-refresh')) || // Change flag
+    (import.meta.client && localStorage.getItem('modules-refresh')); // Cross-tab change
+
+  if (shouldCheckTimestamp) {
+    try {
+      console.log('🔍 Checking modules_updated_at timestamp for route:', routePath);
+
+      // First, check if modules have been updated (lightweight timestamp call)
+      const schoolId = user.value?.school_id;
+      if (schoolId) {
+        try {
+          const { Schools } = await import('~/api/administration/schools');
+          const response = await Schools.getModulesTimestamp(schoolId);
+
+          if (response.success) {
+            const serverTimestamp = response.data.modules_updated_at;
+
+            // Only reload if timestamp actually changed
+            if (serverTimestamp !== lastModulesUpdatedAt) {
+              console.log('🔄 Timestamp changed, reloading modules...');
+              await loadUserModules(true);
+              lastModulesUpdatedAt = serverTimestamp;
+            } else {
+              console.log('✅ Modules unchanged, using cache');
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to check modules timestamp, falling back to full reload:', error);
+          await loadUserModules(true);
+        }
+      }
+
+      lastModuleCheck = now;
+
+      // Clear refresh flags
+      if (import.meta.client) {
+        sessionStorage.removeItem('modules-refresh');
+        localStorage.removeItem('modules-refresh');
+      }
+    } catch (error) {
+      console.warn('Failed to check modules timestamp:', error);
+      // Fallback: reload modules if timestamp check fails
+      await loadUserModules(true);
+    }
+  } else {
+    console.log('⏰ Using cached modules (10s cache)');
+  }
+
   // Check if user can access the route
   if (!canAccessRoute(routePath)) {
-    // Before redirecting, check if modules have been updated
-    if (authStore.isAuthenticated && authStore.user?.role && !authStore.isSuperAdmin) {
-      try {
-        await checkModulesUpdated();
-        // Re-check access after potential update
-        if (canAccessRoute(routePath)) {
-          return; // Access granted after update
-        }
-      } catch (error) {
-        console.warn('Failed to check module updates in middleware:', error);
-      }
-    }
+    console.log('🚫 Access denied for route:', routePath);
 
     // Redirect to dashboard with error message
     return navigateTo({

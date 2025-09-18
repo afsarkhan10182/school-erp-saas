@@ -168,17 +168,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { Users } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 
-const authStore = useAuthStore();
+const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin and School Admin can access user management
-const user = authStore.user;
-if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
+if (!isSuperAdmin.value && !isSchoolAdmin.value) {
   showError('Access denied. Only Super Admin and School Admin can manage users.');
   await navigateTo('/dashboard');
 }
@@ -201,10 +200,7 @@ const form = ref({
   password: ''
 });
 
-// Check if current user is School Admin
-const isSchoolAdmin = computed(() => {
-  return authStore.user?.role === 'school_admin';
-});
+// isSchoolAdmin is already available from useAuth composable
 
 const fetchUser = async () => {
   loading.value = true;
