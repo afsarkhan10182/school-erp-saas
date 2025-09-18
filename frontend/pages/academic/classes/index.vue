@@ -47,6 +47,7 @@
                   Branch
                 </th>
                 <th
+                  v-if="streamsEnabled"
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Streams
@@ -92,7 +93,10 @@
                     >
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="streamsEnabled"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span
                     v-if="classItem.has_stream"
                     class="text-blue-600 dark:text-blue-400 font-medium"
@@ -327,7 +331,7 @@
                 </label>
               </div>
 
-              <div class="mb-6">
+              <div v-if="streamsEnabled" class="mb-6">
                 <label class="flex items-center">
                   <input
                     v-model="form.has_stream"
@@ -375,7 +379,9 @@ import { Plus } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useToast } from '~/composables/useToast';
+import { useAcademicSettings } from '~/utils/settings';
 
+const { isStreamsEnabled } = useAcademicSettings();
 const { showError, showWarning } = useToast();
 
 const classes = ref([]);
@@ -384,6 +390,7 @@ const showModal = ref(false);
 const isEditing = ref(false);
 const isSubmitting = ref(false);
 const editingId = ref(null);
+const streamsEnabled = ref(false);
 
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { getBranchContext } = useBranchContext();
@@ -410,6 +417,16 @@ const resetForm = () => {
   form.has_stream = false;
   selectedSchoolId.value = '';
   selectedBranchId.value = '';
+};
+
+// Load streams setting on component mount
+const loadStreamsSetting = async () => {
+  try {
+    const result = await isStreamsEnabled(true);
+    streamsEnabled.value = result;
+  } catch (error) {
+    streamsEnabled.value = false;
+  }
 };
 
 // Helper functions to get school and branch names
@@ -713,6 +730,9 @@ const deleteClass = async id => {
 
 onMounted(async () => {
   fetchClasses();
+
+  // Load streams setting
+  await loadStreamsSetting();
 
   // Fetch schools for super admin
   if (isSuperAdmin.value) {

@@ -120,7 +120,7 @@ class UserService {
             {
               model: School,
               as: 'school',
-              attributes: ['id', 'name', 'code']
+              attributes: ['id', 'name', 'code', 'logo']
             },
             {
               model: Branch,
@@ -152,7 +152,7 @@ class UserService {
             {
               model: School,
               as: 'school',
-              attributes: ['id', 'name', 'code', 'status']
+              attributes: ['id', 'name', 'code', 'status', 'logo']
             },
             {
               model: Branch,

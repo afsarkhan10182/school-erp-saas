@@ -113,11 +113,16 @@ class AcademicSettingsController {
       }
     };
 
+    const classSettings = {
+      enableStreams: settings.class_streams_enabled === true
+    };
+
     success(res, {
       academicYear,
       termSettings,
       gradingSystem,
-      attendanceSettings
+      attendanceSettings,
+      classSettings
     });
   });
 
@@ -125,7 +130,8 @@ class AcademicSettingsController {
   static updateAcademicSettings = asyncHandler(async (req, res) => {
     const user = req.user;
     const schoolId = user.school_id;
-    const { academicYear, termSettings, gradingSystem, attendanceSettings } = req.body;
+    const { academicYear, termSettings, gradingSystem, attendanceSettings, classSettings } =
+      req.body;
 
     // For super_admin, allow access without school_id but require school_id in request
     if (!schoolId && user.role !== 'super_admin') {
@@ -178,6 +184,11 @@ class AcademicSettingsController {
       if (attendanceSettings.workingDays) {
         settingsUpdate.working_days = attendanceSettings.workingDays;
       }
+    }
+
+    // Handle class settings
+    if (classSettings) {
+      settingsUpdate.class_streams_enabled = classSettings.enableStreams;
     }
 
     // Update school settings

@@ -320,6 +320,7 @@ import { useRuntimeConfig } from '#app';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
 import { useModuleAccess } from '~/composables/useModuleAccess';
+import { useAcademicSettings } from '~/utils/settings';
 import { getLogoUrl } from '~/utils/image';
 import {
   Home,
@@ -369,6 +370,10 @@ const {
   isLoading: modulesLoading,
   userModules
 } = useModuleAccess();
+
+// Academic settings
+const { isStreamsEnabled } = useAcademicSettings();
+const streamsEnabled = ref(false);
 
 // Function to save sidebar state
 const saveSidebarState = isOpen => {
@@ -434,6 +439,16 @@ watch(
 // Additional role checks for specific roles
 const isAccountant = computed(() => user.value?.role === 'accountant');
 const isReceptionist = computed(() => user.value?.role === 'receptionist');
+
+// Load streams setting
+const loadStreamsSetting = async () => {
+  try {
+    const result = await isStreamsEnabled();
+    streamsEnabled.value = result;
+  } catch (error) {
+    streamsEnabled.value = false;
+  }
+};
 
 // Menu configuration
 const menuGroups = computed(() => {
@@ -561,12 +576,17 @@ const menuGroups = computed(() => {
               path: '/academic/classes',
               icon: GraduationCap
             },
-            {
-              id: 'streams',
-              title: 'Streams',
-              path: '/academic/streams',
-              icon: BookOpen
-            },
+            // Streams - only show if streams are enabled
+            ...(streamsEnabled.value
+              ? [
+                  {
+                    id: 'streams',
+                    title: 'Streams',
+                    path: '/academic/streams',
+                    icon: BookOpen
+                  }
+                ]
+              : []),
             {
               id: 'class-management',
               title: 'Class Management',
@@ -932,6 +952,9 @@ onMounted(async () => {
 
   // Load user modules for menu filtering
   await loadUserModules();
+
+  // Load streams setting for conditional menu display
+  await loadStreamsSetting();
 });
 
 // Watch for module changes to update sidebar

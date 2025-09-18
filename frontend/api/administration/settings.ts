@@ -40,6 +40,10 @@ export const Settings = {
     return apiCall('get', '/settings/academic');
   },
 
+  updateAcademicSettings: async (data: any) => {
+    return apiCall('put', '/settings/academic', data);
+  },
+
   // Fee settings
   getFeeSettings: async () => {
     return apiCall('get', '/settings/fee');

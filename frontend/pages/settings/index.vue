@@ -304,10 +304,23 @@ const saveSchoolSettings = async data => {
       // Also update user's school information
       if (authStore.user) {
         authStore.updateUser({
-          school_name: response.data.school.name
+          school_name: response.data.school.name,
+          school: {
+            id: response.data.school.id,
+            name: response.data.school.name,
+            code: response.data.school.code,
+            logo: response.data.school.logo || ''
+          }
         });
       }
     }
+
+    // No need for custom events - the cache clearing above is sufficient
+
+    // Clear school settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
 
     showToast('School settings saved successfully', 'success');
   } catch (error) {
@@ -321,7 +334,16 @@ const saveSchoolSettings = async data => {
 const saveAcademicSettings = async data => {
   try {
     loadingStates.academic = true;
-    // API call to save academic settings
+
+    // Make API call to save academic settings
+    const { Settings } = await import('~/api/administration/settings');
+    await Settings.updateAcademicSettings(data);
+
+    // Clear academic settings cache after successful save
+    const { useAcademicSettings } = await import('~/utils/settings');
+    const { clearCache } = useAcademicSettings();
+    clearCache('academic');
+
     showToast('Academic settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving academic settings:', error);
@@ -375,6 +397,11 @@ const saveBrandingSettings = async data => {
     const { Settings } = await import('~/api/administration/settings');
     await Settings.updateBrandingSettings(formData);
 
+    // Clear branding settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
+
     showToast('Branding settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving branding settings:', error);
@@ -391,6 +418,11 @@ const saveSystemSettings = async data => {
     // Make API call to save system settings
     const { Settings } = await import('~/api/administration/settings');
     await Settings.updateSystemSettings(data);
+
+    // Clear system settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
 
     showToast('System settings saved successfully', 'success');
   } catch (error) {

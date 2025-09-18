@@ -184,9 +184,17 @@ const isSaving = ref(false);
 const isLoading = ref(false);
 
 // Methods
-const loadSchoolSettings = async () => {
+const loadSchoolSettings = async (forceRefresh = false) => {
   try {
     isLoading.value = true;
+
+    // Clear cache if force refresh is requested
+    if (forceRefresh) {
+      const { useSchoolSettings } = await import('~/utils/settings');
+      const { clearCache } = useSchoolSettings();
+      clearCache();
+    }
+
     const response = await Settings.getSchoolSettings();
 
     if (response.success && response.data) {
@@ -285,13 +293,7 @@ const saveSettings = async () => {
       contactInfo,
       operationalSettings
     };
-    await emit('save', settingsData);
-
-    // Only reload settings if there's no pending file upload
-    // This prevents overwriting the preview state with server data
-    if (!schoolInfo.logoFile) {
-      await loadSchoolSettings();
-    }
+    emit('save', settingsData);
   } catch (error) {
     handleApiError(error);
   } finally {

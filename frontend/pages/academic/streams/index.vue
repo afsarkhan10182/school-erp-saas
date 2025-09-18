@@ -368,12 +368,25 @@
 </template>
 
 <script setup lang="ts">
+// Apply settings check middleware for streams
+definePageMeta({
+  middleware: 'settings-check',
+  settingsCheck: {
+    setting: 'streams',
+    redirectPath: '/academic/sections',
+    errorMessage:
+      'Streams feature is currently disabled. Please enable streams in Academic Settings to access this feature.',
+    errorCode: 'streams_disabled'
+  }
+});
+
 import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
+import { useAcademicSettings } from '~/utils/settings';
 import { Streams } from '~/api';
 import Pagination from '~/components/ui/Pagination.vue';
 
@@ -383,6 +396,7 @@ const { user } = useAuth();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches, fetchBranches } = useBranches();
 const { classes, fetchClasses } = useAcademics();
+const { isStreamsEnabled } = useAcademicSettings();
 
 // Reactive data
 const streams = ref<any[]>([]);
@@ -699,6 +713,37 @@ const getSelectedClassName = () => {
 // Load initial data
 onMounted(async () => {
   try {
+    // Check streams setting first (fallback check)
+    console.log('🔍 Fallback: Checking streams setting...');
+    try {
+      const streamsEnabled = await isStreamsEnabled();
+      if (!streamsEnabled) {
+        console.log('🚫 Streams are disabled, redirecting to sections...');
+        showToast('Streams feature is disabled. Please enable it in Academic Settings.', 'error');
+        await navigateTo({
+          path: '/academic/sections',
+          query: {
+            error: 'streams_disabled',
+            message:
+              'Streams feature is currently disabled. Please enable streams in Academic Settings to access this feature.'
+          }
+        });
+        return;
+      }
+      console.log('✅ Streams are enabled');
+    } catch (error) {
+      console.error('❌ Error checking streams setting:', error);
+      showToast('Unable to verify streams setting. Please try again.', 'error');
+      await navigateTo({
+        path: '/academic/sections',
+        query: {
+          error: 'streams_check_failed',
+          message: 'Unable to verify streams setting. Please try again.'
+        }
+      });
+      return;
+    }
+
     // Check authentication first
     console.log('🔍 Checking authentication status...');
     console.log('User:', user.value);

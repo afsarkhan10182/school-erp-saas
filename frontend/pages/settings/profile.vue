@@ -276,7 +276,7 @@ definePageMeta({
   layout: 'default'
 });
 
-const { user, updateUser } = useAuth();
+const { user, updateUser, checkAuth } = useAuth();
 const { showSuccess, showError } = useToast();
 const config = useRuntimeConfig();
 const apiBase = config.public?.apiBase;
@@ -407,23 +407,11 @@ const updateProfile = async () => {
     console.log('📥 Profile update response:', response);
 
     if (response.success) {
-      // Small delay to ensure server processes the image upload
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Refresh user data from server to get the latest information
+      await checkAuth();
 
-      // Update auth store with latest user data
-      // Auth check is handled by the composable
-
-      // Update form data with the latest user data
-      if (user.value) {
-        form.value = {
-          first_name: user.value.first_name || '',
-          last_name: user.value.last_name || '',
-          email: user.value.email || '',
-          phone: user.value.phone || '',
-          profile_image: null,
-          profilePreview: null
-        };
-      }
+      // Update form with fresh user data
+      initializeForm();
 
       showSuccess('Profile updated successfully');
     } else {

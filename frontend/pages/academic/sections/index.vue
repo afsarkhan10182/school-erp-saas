@@ -1,6 +1,35 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Streams Disabled Alert -->
+      <div
+        v-if="$route.query.error === 'streams_disabled'"
+        class="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
+      >
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              Streams Feature Disabled
+            </h3>
+            <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+              {{
+                $route.query.message ||
+                'Streams feature is currently disabled. Please enable streams in Academic Settings to access the streams management page.'
+              }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
@@ -42,6 +71,7 @@
                   Class
                 </th>
                 <th
+                  v-if="streamsEnabled"
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Stream
@@ -82,7 +112,10 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {{ section.class?.name }} ({{ section.class?.code }})
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="streamsEnabled"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span
                     v-if="section.stream"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
@@ -222,8 +255,8 @@
                 </select>
               </div>
 
-              <!-- Stream Selection - Only if class has streams -->
-              <div v-if="!isEditing && hasStreams" class="mb-4">
+              <!-- Stream Selection - Only if streams are enabled and class has streams -->
+              <div v-if="streamsEnabled && !isEditing && hasStreams" class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Stream *</label
                 >
@@ -279,7 +312,7 @@
                       {{ getSelectedClassName() }}
                     </p>
                   </div>
-                  <div v-if="hasStreams">
+                  <div v-if="streamsEnabled && hasStreams">
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
                       >Stream</label
                     >
@@ -359,6 +392,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
+import { useAcademicSettings } from '~/utils/settings';
 import { Streams } from '~/api';
 
 const sections = ref([]);
@@ -371,6 +405,10 @@ const editingId = ref(null);
 // Auth and user context
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const userRole = computed(() => user.value?.role);
+
+// Academic settings
+const { isStreamsEnabled } = useAcademicSettings();
+const streamsEnabled = ref(false);
 
 // Composables
 const { classes: availableClasses, fetchClasses, loading: loadingClasses } = useAcademics();
@@ -404,8 +442,8 @@ const canSubmit = computed(() => {
     if (!selectedBranchId.value) return false;
   }
 
-  // For classes with streams, stream is required
-  if (hasStreams.value && !selectedStreamId.value) {
+  // For classes with streams, stream is required (only if streams are enabled)
+  if (streamsEnabled.value && hasStreams.value && !selectedStreamId.value) {
     return false;
   }
 
@@ -494,7 +532,7 @@ const onBranchChange = async () => {
 
 // Load streams for the selected class
 const loadStreamsForClass = async classId => {
-  if (!classId) {
+  if (!classId || !streamsEnabled.value) {
     streams.value = [];
     return;
   }
@@ -536,8 +574,10 @@ const onClassChange = async () => {
     selectedStreamId.value = '';
   }
 
-  // Load streams for the selected class
-  await loadStreamsForClass(selectedClassId.value);
+  // Load streams for the selected class (only if streams are enabled)
+  if (streamsEnabled.value) {
+    await loadStreamsForClass(selectedClassId.value);
+  }
 };
 
 // Stream change handler
@@ -625,8 +665,10 @@ const editSection = async section => {
   selectedClassId.value = section.class_id;
   selectedStreamId.value = section.stream_id || '';
 
-  // Load streams for the section's class
-  await loadStreamsForClass(section.class_id);
+  // Load streams for the section's class (only if streams are enabled)
+  if (streamsEnabled.value) {
+    await loadStreamsForClass(section.class_id);
+  }
 
   form.name = section.name;
   form.capacity = section.capacity;
@@ -652,8 +694,8 @@ const saveSection = async () => {
       class_id: selectedClassId.value
     };
 
-    // Add stream_id if stream is selected
-    if (selectedStreamId.value) {
+    // Add stream_id if stream is selected and streams are enabled
+    if (streamsEnabled.value && selectedStreamId.value) {
       payload.stream_id = selectedStreamId.value;
     }
 
@@ -747,7 +789,18 @@ const deleteSection = async id => {
   }
 };
 
-onMounted(() => {
+// Load streams setting on component mount
+const loadStreamsSetting = async () => {
+  try {
+    const result = await isStreamsEnabled(true);
+    streamsEnabled.value = result;
+  } catch (error) {
+    streamsEnabled.value = false;
+  }
+};
+
+onMounted(async () => {
+  await loadStreamsSetting();
   fetchSections();
 });
 </script>
