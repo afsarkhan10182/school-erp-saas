@@ -283,7 +283,7 @@ class SchoolController {
         max_branches: plan.max_branches,
         modules: plan.modules,
         // Update status based on plan type
-        status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
+        status: 'active'
       };
 
       // If this is a new subscription, set start date

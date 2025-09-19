@@ -77,7 +77,7 @@ class SchoolService {
           max_staff: plan.max_staff,
           max_branches: plan.max_branches,
           modules: plan.modules,
-          status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active',
+          status: 'active',
           subscription_start_date: new Date(),
           subscription_end_date:
             plan.billing_cycle === 'lifetime'
@@ -240,7 +240,7 @@ class SchoolService {
           max_staff: plan.max_staff,
           max_branches: plan.max_branches,
           modules: plan.modules,
-          status: plan.billing_cycle === 'lifetime' ? 'lifetime' : 'active',
+          status: 'active',
           subscription_start_date: new Date(),
           subscription_end_date:
             plan.billing_cycle === 'lifetime'

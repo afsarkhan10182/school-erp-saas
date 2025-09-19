@@ -149,7 +149,7 @@ const updateSchoolValidator = [
 
   body('subscription_plan')
     .optional()
-    .isIn(['trial', 'basic', 'premium', 'enterprise', 'lifetime'])
+    .isIn(['TRIAL', 'BASIC', 'PREMIUM', 'ENTERPRISE', 'LIFETIME'])
     .withMessage('Invalid subscription plan'),
 
   body('max_students')
@@ -167,7 +167,10 @@ const updateSchoolValidator = [
     .isInt({ min: 1 })
     .withMessage('Max branches must be a positive integer'),
 
-  body('status').optional().isIn(['active', 'inactive', 'suspended']).withMessage('Invalid status')
+  body('status')
+    .optional()
+    .isIn(['trial', 'active', 'suspended', 'expired'])
+    .withMessage('Invalid status')
 ];
 
 module.exports = {

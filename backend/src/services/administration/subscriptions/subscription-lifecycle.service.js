@@ -224,7 +224,7 @@ class SubscriptionLifecycleService {
             max_students: requestedPlan.max_students,
             max_staff: requestedPlan.max_staff,
             max_branches: requestedPlan.max_branches,
-            status: requestedPlan.billing_cycle === 'lifetime' ? 'lifetime' : 'active'
+            status: 'active'
           },
           { transaction }
         );
@@ -429,7 +429,12 @@ class SubscriptionLifecycleService {
       const activeSchools = await School.count({ where: { status: 'active' } });
       const trialSchools = await School.count({ where: { status: 'trial' } });
       const expiredSchools = await School.count({ where: { status: 'expired' } });
-      const lifetimeSchools = await School.count({ where: { status: 'lifetime' } });
+      const lifetimeSchools = await School.count({
+        where: {
+          subscription_plan: 'LIFETIME',
+          status: 'active'
+        }
+      });
 
       // Get plan distribution
       const planDistribution = await School.findAll({

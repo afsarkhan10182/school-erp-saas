@@ -119,7 +119,7 @@ const School = sequelize.define(
       comment: 'calendar: Jan-Dec, academic: June-May or custom starting month'
     },
     status: {
-      type: DataTypes.ENUM('trial', 'active', 'expired', 'lifetime', 'suspended'),
+      type: DataTypes.ENUM('trial', 'active', 'expired', 'suspended'),
       allowNull: false,
       defaultValue: 'trial'
     },

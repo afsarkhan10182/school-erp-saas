@@ -105,8 +105,8 @@ class AuthService {
         throw new ApiError(403, 'Your account is not active. Please contact support.');
       }
 
-      // Check if school is active (allow active, trial, and lifetime statuses)
-      if (user.school && !['active', 'trial', 'lifetime'].includes(user.school.status)) {
+      // Check if school is active (allow active, trial, and suspended statuses)
+      if (user.school && !['active', 'trial', 'suspended'].includes(user.school.status)) {
         throw new ApiError(403, 'Your school account is not active. Please contact support.');
       }
 

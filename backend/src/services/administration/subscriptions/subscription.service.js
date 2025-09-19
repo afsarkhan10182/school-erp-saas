@@ -1171,7 +1171,7 @@ class SubscriptionService {
 
     if (isLifetime) {
       return {
-        status: 'lifetime',
+        status: 'active',
         message: 'Lifetime subscription - no expiration',
         days_remaining: null,
         is_lifetime: true
@@ -1914,7 +1914,7 @@ class SubscriptionService {
   // Calculate school status based on plan and dates
   static calculateSchoolStatus(planCode, startDate, endDate) {
     if (planCode === 'LIFETIME') {
-      return 'lifetime';
+      return 'active';
     }
 
     const now = new Date();
