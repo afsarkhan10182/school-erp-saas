@@ -46,12 +46,14 @@
                 {{
                   receiptData.trust_name ||
                   schoolData.trust_name ||
-                  'HAJI OMAR MOOSA EDUCATIONAL TRUST'
                 }}
               </div>
             </div>
             <div class="school-section">
-              <div class="school-name">HUDA {{ schoolType }}{{ branchDisplay }}</div>
+              <div class="school-name">
+                {{ receiptData.school_name || schoolData.name || 'demo school' }} {{ schoolType
+                }}{{ branchDisplay }}
+              </div>
               <div class="school-address">{{ receiptData.school_address }}</div>
             </div>
           </div>
