@@ -161,7 +161,7 @@ const loadBrandingSettings = async () => {
           schoolName: data.receiptSettings.schoolName || authStore.currentSchool?.name || '',
           defaultReceiptTitle: data.receiptSettings.defaultReceiptTitle || 'Fee Receipt',
           receiptLogo: data.receiptSettings.receiptLogo || '',
-          trustName: data.receiptSettings.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+          trustName: data.receiptSettings.trustName,
           receiptFooter: data.receiptSettings.receiptFooter || '',
           showSchoolLogo: data.receiptSettings.showSchoolLogo !== false,
           showReceiptLogo: data.receiptSettings.showReceiptLogo !== false,

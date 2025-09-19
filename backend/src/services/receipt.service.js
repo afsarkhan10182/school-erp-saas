@@ -130,7 +130,7 @@ const generateReceiptData = async paymentId => {
       schoolName: school.name,
       schoolLogo: school.logo_url || '',
       receiptLogo: '',
-      trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      trustName: '',
       showSchoolLogo: true,
       showReceiptLogo: true,
       showSchoolAddress: true,
@@ -187,7 +187,7 @@ const generateReceiptData = async paymentId => {
       receipt_logo: receiptCustomization.showReceiptLogo
         ? receiptCustomization.receiptLogo || null
         : null,
-      trust_name: receiptCustomization.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      trust_name: receiptCustomization.trustName,
       // Branch information with customization
       branch_name: receiptCustomization.showBranchInfo
         ? branchReceiptSettings.name || student.branch?.name
