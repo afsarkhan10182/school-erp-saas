@@ -131,7 +131,7 @@ const getReceiptSettings = async (req, res, next) => {
     let receiptSettings = {
       schoolName: school.name,
       receiptLogo: '',
-      trustName: 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      trustName: '',
       defaultReceiptTitle: 'Fee Receipt',
       showSchoolLogo: true,
       showReceiptLogo: true,
@@ -220,7 +220,7 @@ const updateReceiptSettings = async (req, res, next) => {
         : receiptSettings.receiptLogo !== undefined
           ? receiptSettings.receiptLogo
           : currentSettings.receiptLogo || '',
-      trustName: receiptSettings.trustName || 'HAJI OMAR MOOSA EDUCATIONAL TRUST',
+      trustName: receiptSettings.trustName,
       defaultReceiptTitle: receiptSettings.defaultReceiptTitle || 'Fee Receipt',
       showSchoolLogo: receiptSettings.showSchoolLogo !== false,
       showReceiptLogo: receiptSettings.showReceiptLogo !== false,
