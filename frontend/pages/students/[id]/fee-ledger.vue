@@ -692,15 +692,6 @@
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">Payment Receipt</h3>
             <div class="flex space-x-2">
-              <!-- <button
-                @click="printReceipt"
-                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Receipt
-              </button> -->
               <button
                 @click="showReceiptModal = false"
                 class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
@@ -820,15 +811,6 @@
               <div v-if="selectedReceiptFromList" class="h-full">
                 <div class="flex justify-between items-center mb-4">
                   <h4 class="font-medium text-gray-900 dark:text-white">Receipt Preview</h4>
-                  <!-- <button
-                    @click="printReceipt"
-                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print Receipt
-                  </button> -->
                 </div>
 
                 <div v-if="isLoadingReceiptContent" class="flex justify-center items-center h-64">
@@ -933,8 +915,21 @@ const fetchStudent = async () => {
     // Also fetch school data for receipt display
     if (response.data.school_id) {
       try {
-        const schoolResponse = await Schools.getById(response.data.school_id);
-        schoolData.value = schoolResponse.data;
+        // Load school settings instead of basic school data to get trust name
+        const { Settings } = await import('~/api/administration/settings');
+        const schoolResponse = await Settings.getSchoolSettings();
+        if (schoolResponse.success && schoolResponse.data) {
+          // Combine school info with settings for receipt display
+          schoolData.value = {
+            ...schoolResponse.data.schoolInfo,
+            address: schoolResponse.data.contactInfo?.address || '', // Include address from contact info
+            trust_name: schoolResponse.data.schoolInfo?.trustName || '', // Set trust_name in main object
+            receiptSchoolName: schoolResponse.data.schoolInfo?.receiptSchoolName || '', // Include receipt school name
+            settings: {
+              trust_name: schoolResponse.data.schoolInfo?.trustName || ''
+            }
+          };
+        }
       } catch (schoolError) {
         console.error('Error fetching school data:', schoolError);
         // Don't show error for school data, just use defaults
@@ -1481,82 +1476,6 @@ watch(
   },
   { deep: true }
 );
-
-// Print receipt
-const printReceipt = () => {
-  if (selectedReceipt.value) {
-    const printWindow = window.open('', '_blank');
-    const receiptHtml = document.querySelector('.receipt-content').innerHTML;
-
-    const printStyles = `
-      <style>
-        body { 
-          font-family: Arial, sans-serif; 
-          margin: 0; 
-          padding: 20px; 
-          background-color: #ffffff;
-          color: #000000;
-        }
-        .receipt {
-          width: 400px;
-          background: white;
-          border: 1px solid #ddd;
-          margin: 0 auto;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-          text-align: center;
-          padding: 15px;
-          border-bottom: 2px solid #333;
-          background: #f8f9fa;
-          color: #000;
-        }
-        .trust-name, .school-name, .school-type, .school-address {
-          color: #000 !important;
-        }
-        .receipt-title {
-          color: #000 !important;
-        }
-        .info-label, .info-value {
-          color: #000 !important;
-        }
-        .fee-table th, .fee-table td {
-          color: #000 !important;
-          border-color: #000 !important;
-        }
-        .summary-section {
-          background: #f8f9fa !important;
-          color: #000 !important;
-        }
-        .remaining-info {
-          background: #fff3cd !important;
-          color: #856404 !important;
-        }
-      </style>
-    `;
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Payment Receipt - Print</title>
-        ${printStyles}
-      </head>
-      <body>
-        ${receiptHtml}
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
-  }
-};
 
 // Utility functions
 const formatCurrency = amount => {

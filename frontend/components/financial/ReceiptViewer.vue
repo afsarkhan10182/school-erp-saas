@@ -45,15 +45,22 @@
           <div class="header-content">
             <div class="trust-section">
               <div class="trust-name">
-                {{ receiptData.trust_name || schoolData.trust_name }}
+                {{
+                  schoolData.trust_name ||
+                  schoolData.settings?.trust_name ||
+                  receiptData.trust_name ||
+                  ''
+                }}
               </div>
             </div>
             <div class="school-section">
               <div class="school-name">
-                {{ receiptData.school_name || schoolData.name || 'demo school' }} {{ schoolType
-                }}{{ branchDisplay }}
+                {{ schoolData.receiptSchoolName || schoolData.name || receiptData.school_name }}
+                {{ schoolType }}{{ branchDisplay }}
               </div>
-              <div class="school-address">{{ receiptData.school_address }}</div>
+              <div class="school-address">
+                {{ schoolData.address || receiptData.school_address }}
+              </div>
             </div>
           </div>
         </div>

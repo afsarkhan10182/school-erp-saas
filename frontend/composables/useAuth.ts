@@ -67,6 +67,7 @@ export const useAuth = () => {
     isLoggedIn: computed(() => authStore.isLoggedIn),
     isLoading: computed(() => authStore.isLoading),
     userRole: computed(() => authStore.userRole),
+    currentSchool: computed(() => authStore.currentSchool),
 
     // Role checks
     isSuperAdmin: computed(() => authStore.isSuperAdmin),

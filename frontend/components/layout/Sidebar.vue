@@ -382,7 +382,7 @@ const saveSidebarState = isOpen => {
   }
 };
 
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user, currentSchool } = useAuth();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
 const logoError = ref(false);
@@ -411,7 +411,9 @@ const schoolLogo = computed(() => {
 });
 
 const schoolName = computed(() => {
-  return user.value?.school?.name || '';
+  // Use currentSchool from auth store (updated when settings change)
+  // Fallback to user.school.name for backward compatibility
+  return currentSchool.value?.name || user.value?.school?.name || '';
 });
 
 // Handle logo error fallback

@@ -31,6 +31,31 @@
           </div>
           <div>
             <label class="block font-medium mb-2 text-gray-700 dark:text-gray-300"
+              >Trust Name</label
+            >
+            <input
+              v-model="schoolInfo.trustName"
+              type="text"
+              class="input-field"
+              placeholder="Enter trust name"
+            />
+          </div>
+          <div>
+            <label class="block font-medium mb-2 text-gray-700 dark:text-gray-300"
+              >Receipt School Name</label
+            >
+            <input
+              v-model="schoolInfo.receiptSchoolName"
+              type="text"
+              class="input-field"
+              placeholder="Enter school name for receipts (optional)"
+            />
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Leave empty to use the main school name on receipts
+            </p>
+          </div>
+          <div>
+            <label class="block font-medium mb-2 text-gray-700 dark:text-gray-300"
               >School Address</label
             >
             <textarea
@@ -160,6 +185,8 @@ const { fieldErrors, hasErrors, clearErrors, clearFieldError, setFieldError, han
 // Reactive data
 const schoolInfo = reactive({
   name: '',
+  trustName: '',
+  receiptSchoolName: '', // New field for receipt-specific school name
   type: '',
   establishmentYear: '',
   principalName: '',
@@ -204,6 +231,8 @@ const loadSchoolSettings = async (forceRefresh = false) => {
       if (data.schoolInfo) {
         Object.assign(schoolInfo, {
           name: data.schoolInfo.name || authStore.currentSchool?.name || '',
+          trustName: data.schoolInfo.trustName || '',
+          receiptSchoolName: data.schoolInfo.receiptSchoolName || '', // Load receipt school name
           type: data.schoolInfo.type || '',
           establishmentYear: data.schoolInfo.establishmentYear || '',
           principalName: data.schoolInfo.principalName || '',

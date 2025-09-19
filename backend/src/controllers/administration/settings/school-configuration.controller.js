@@ -47,6 +47,8 @@ class SchoolConfigurationController {
     const schoolInfo = {
       name: school.name,
       code: school.code,
+      trustName: settings.trust_name || '',
+      receiptSchoolName: settings.receipt_school_name || '', // New field for receipt-specific school name
       type: settings.type || '',
       establishmentYear: settings.establishment_year || '',
       principalName: settings.principal_name || '',
@@ -128,6 +130,8 @@ class SchoolConfigurationController {
       updateData.name = schoolInfo.name;
       // School code cannot be changed - it's used for student IDs, receipts, and file storage
       // updateData.code = schoolInfo.code; // REMOVED - School code is immutable
+      settingsUpdate.trust_name = schoolInfo.trustName;
+      settingsUpdate.receipt_school_name = schoolInfo.receiptSchoolName; // New field for receipt-specific school name
       settingsUpdate.type = schoolInfo.type;
       settingsUpdate.establishment_year = schoolInfo.establishmentYear;
       settingsUpdate.principal_name = schoolInfo.principalName;
