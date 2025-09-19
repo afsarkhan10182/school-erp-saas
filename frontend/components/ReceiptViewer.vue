@@ -43,10 +43,7 @@
           <div class="header-content">
             <div class="trust-section">
               <div class="trust-name">
-                {{
-                  receiptData.trust_name ||
-                  schoolData.trust_name ||
-                }}
+                {{ receiptData.trust_name || schoolData.trust_name }}
               </div>
             </div>
             <div class="school-section">
