@@ -236,7 +236,7 @@ const FeeInvoice = sequelize.define(
     timestamps: true,
     underscored: true,
     indexes: [
-      { fields: ['school_id', 'invoice_number'], unique: true },
+      { fields: ['school_id', 'branch_id', 'invoice_number'], unique: true },
       { fields: ['student_id'] },
       { fields: ['fee_structure_id'] },
       { fields: ['school_id'] },

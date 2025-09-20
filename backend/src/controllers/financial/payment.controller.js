@@ -245,8 +245,46 @@ const recordPayment = async (req, res, next) => {
       feeStructureClass: invoice.feeStructure?.class_name
     });
 
+    // Get branch_id from invoice if not provided in request
+    const branchId = req.branchId || invoice.branch_id;
+
+    if (!branchId) {
+      logger.error('No branch_id available for receipt generation', {
+        reqBranchId: req.branchId,
+        invoiceBranchId: invoice.branch_id,
+        invoiceId: invoice.id,
+        schoolId: req.schoolId
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Branch ID is required for receipt generation'
+      });
+    }
+
+    // Get current academic year (no fallbacks - must be set by super admin)
+    const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+    const currentAcademicYear = await getCurrentAcademicYearForSchool();
+
+    if (!currentAcademicYear) {
+      throw new ApiError(400, 'No current academic year is set. Please contact the administrator.');
+    }
+
+    const academicYear = currentAcademicYear.name;
+
+    // Debug logging
+    logger.info('Payment academic year debug:', {
+      currentAcademicYear: currentAcademicYear.name,
+      invoiceAcademicYear: invoice.academic_year,
+      finalAcademicYear: academicYear,
+      schoolId: req.schoolId
+    });
+
     // Generate unique receipt number for this payment
-    const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });
+    const tempReceipt = await generateUniqueReceiptNumber(classCode, {
+      school_id: req.schoolId,
+      branch_id: branchId,
+      academic_year: academicYear
+    });
     const receiptNumber = tempReceipt.receipt_number;
 
     // Create payment record with the generated receipt number
@@ -265,7 +303,8 @@ const recordPayment = async (req, res, next) => {
       payment_status: 'completed',
       notes,
       school_id: req.schoolId,
-      branch_id: req.branchId,
+      branch_id: branchId,
+      academic_year: academicYear,
       created_by: req.user.id
     };
 

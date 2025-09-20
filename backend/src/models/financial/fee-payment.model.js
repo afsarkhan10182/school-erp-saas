@@ -108,6 +108,11 @@ const FeePayment = sequelize.define(
         key: 'id'
       }
     },
+    academic_year: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      comment: 'Academic year for the payment'
+    },
     created_by: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -132,10 +137,10 @@ const FeePayment = sequelize.define(
     indexes: [
       { fields: ['payment_number'], unique: true },
       { fields: ['invoice_id'] },
-
       { fields: ['student_id'] },
       { fields: ['school_id'] },
       { fields: ['branch_id'] },
+      { fields: ['academic_year'] },
       { fields: ['payment_date'] },
       { fields: ['payment_status'] },
       { fields: ['payment_method'] }

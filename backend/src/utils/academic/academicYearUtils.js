@@ -3,53 +3,33 @@
  * Handles calculations for academic year months, payment sequences, and validation
  */
 
-const { AcademicYear } = require('~/models');
-const { logger } = require('../shared/logger');
+const { logger } = require('~/utils/shared/logger');
 
 /**
- * Get the current academic year for a school
- * @param {string} schoolId - School ID (optional)
- * @returns {Promise<Object|null>} Current academic year object or null
+ * Get the current academic year (no fallbacks - must be set by super admin)
+ * @returns {Promise<Object>} Current academic year object
+ * @throws {Error} If no current academic year is found
  */
-const getCurrentAcademicYearForSchool = async (schoolId = null) => {
+const getCurrentAcademicYearForSchool = async () => {
   try {
-    if (schoolId) {
-      // First try to get the school's linked academic year
-      const { School } = require('~/models');
-      const school = await School.findByPk(schoolId, {
-        include: [
-          {
-            model: AcademicYear,
-            as: 'currentAcademicYear',
-            where: { is_current: true },
-            required: false
-          }
-        ]
-      });
+    const { AcademicYear } = require('~/models');
 
-      if (school?.currentAcademicYear) {
-        logger.info(
-          `Found school-specific current academic year: ${school.currentAcademicYear.name}`
-        );
-        return school.currentAcademicYear;
-      }
-    }
-
-    // Fallback to global current academic year
-    const globalCurrentYear = await AcademicYear.findOne({
+    // Get the academic year where is_current = true
+    const currentYear = await AcademicYear.findOne({
       where: { is_current: true }
     });
 
-    if (globalCurrentYear) {
-      logger.info(`Using global current academic year: ${globalCurrentYear.name}`);
-      return globalCurrentYear;
+    if (!currentYear) {
+      throw new Error(
+        'No current academic year is set. Please contact the administrator to set the current academic year.'
+      );
     }
 
-    logger.warn('No current academic year found globally');
-    return null;
+    logger.info(`Using current academic year: ${currentYear.name}`);
+    return currentYear;
   } catch (error) {
-    logger.error('Error getting current academic year for school:', error);
-    return null;
+    logger.error('Error getting current academic year:', error);
+    throw error; // Re-throw to let controllers handle it
   }
 };
 

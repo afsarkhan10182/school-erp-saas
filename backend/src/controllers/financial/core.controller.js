@@ -121,94 +121,117 @@ const getClassCode = async (feeStructure, student = null) => {
   return 'GEN';
 };
 
-// Optimized version that uses pre-fetched max numbers
-const generateUniqueInvoiceNumberOptimized = (
-  classCode,
-  invoiceData,
-  maxInvoiceNumbersMap = new Map(),
-  receiptOnly = false
-) => {
-  const { school_id } = invoiceData;
+// Old optimized function removed - now using counter-based system
 
-  // Get the highest existing invoice number for this specific class from pre-fetched data
-  const maxNumber = maxInvoiceNumbersMap.get(classCode) || 0;
-  const nextId = maxNumber + 1;
-
-  // Update the map for the next invoice with the same class code
-  maxInvoiceNumbersMap.set(classCode, nextId);
-
-  // Generate invoice number using class-specific sequential ID
-  const invoiceNumber = `INV-${classCode}-${nextId}`;
+// Generate unique invoice number using counter table with academic year scoping (bulletproof solution)
+const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly = false) => {
+  const { school_id, branch_id, academic_year } = invoiceData;
 
   if (receiptOnly) {
-    // For receipt generation, just return the invoice number without creating a database record
-    return { invoice_number: invoiceNumber };
+    // For receipt generation, just return a placeholder
+    return { invoice_number: `INV-${classCode}-PLACEHOLDER` };
   }
 
-  // Create the real invoice with the generated invoice number
-  return FeeInvoice.create({
-    ...invoiceData,
-    invoice_number: invoiceNumber
-  });
-};
+  // Handle case where branch_id might be null/undefined
+  const safeBranchId = branch_id || null;
 
-// Generate unique invoice number using class-specific sequential numbering
-const generateUniqueInvoiceNumber = async (classCode, invoiceData, receiptOnly = false) => {
-  const { school_id } = invoiceData;
-
-  // Get the highest existing invoice number for this specific class
+  // Get next invoice number using atomic counter with academic year scoping
+  // This ensures each school/branch/class/year combination starts from 1
   const result = await sequelize.query(
-    `SELECT MAX(CAST(SUBSTRING(invoice_number FROM 'INV-${classCode}-([0-9]+)$') AS INTEGER)) as max_number
-     FROM fee_invoices 
-     WHERE school_id = :school_id 
-     AND invoice_number LIKE 'INV-${classCode}-%'`,
+    `INSERT INTO invoice_counters (school_id, branch_id, class_code, academic_year, invoice_count, created_at, updated_at)
+     VALUES (:school_id, :branch_id, :class_code, :academic_year, 1, NOW(), NOW())
+     ON CONFLICT (school_id, branch_id, class_code, academic_year)
+     DO UPDATE SET invoice_count = invoice_counters.invoice_count + 1, updated_at = NOW()
+     RETURNING invoice_count`,
     {
       type: sequelize.QueryTypes.SELECT,
-      replacements: { school_id }
+      replacements: {
+        school_id,
+        branch_id: safeBranchId,
+        class_code: classCode,
+        academic_year: academic_year
+      }
     }
   );
 
-  const maxNumber = result[0].max_number || 0;
-  const nextId = maxNumber + 1;
+  const invoiceCount = result[0].invoice_count;
+  const invoiceNumber = `INV-${classCode}-${invoiceCount}`;
 
-  // Generate invoice number using class-specific sequential ID
-  const invoiceNumber = `INV-${classCode}-${nextId}`;
+  logger.info('Generated invoice number using counter with academic year scoping:', {
+    invoiceNumber,
+    invoiceCount,
+    classCode,
+    school_id,
+    branch_id,
+    academic_year
+  });
 
-  if (receiptOnly) {
-    // For receipt generation, just return the invoice number without creating a database record
-    return { invoice_number: invoiceNumber };
-  }
+  // Audit log for counter tracking
+  logger.info('INVOICE_COUNTER_AUDIT:', {
+    school_id,
+    branch_id,
+    class_code: classCode,
+    academic_year,
+    invoice_count: invoiceCount,
+    timestamp: new Date().toISOString()
+  });
 
-  // Create the real invoice with the generated invoice number
+  // Create the invoice with the proper number
   const realInvoice = await FeeInvoice.create({
     ...invoiceData,
-    invoice_number: invoiceNumber
+    invoice_number: invoiceNumber,
+    academic_year: academic_year
   });
 
   return realInvoice; // Return the complete invoice object
 };
 
-// Generate unique receipt number using class-specific sequential numbering
+// Generate unique receipt number using counter table with academic year scoping (bulletproof solution)
 const generateUniqueReceiptNumber = async (classCode, context = {}) => {
-  const { school_id } = context;
+  const { school_id, branch_id, academic_year } = context;
 
-  // Get the highest existing receipt number for this specific class
+  // Handle case where branch_id might be null/undefined
+  const safeBranchId = branch_id || null;
+
+  // Get next receipt number using atomic counter with academic year scoping
   const result = await sequelize.query(
-    `SELECT MAX(CAST(SUBSTRING(receipt_number FROM 'RCP-${classCode}-([0-9]+)$') AS INTEGER)) as max_number
-     FROM fee_payments 
-     WHERE school_id = :school_id 
-     AND receipt_number LIKE 'RCP-${classCode}-%'`,
+    `INSERT INTO invoice_counters (school_id, branch_id, class_code, academic_year, receipt_count, created_at, updated_at)
+     VALUES (:school_id, :branch_id, :class_code, :academic_year, 1, NOW(), NOW())
+     ON CONFLICT (school_id, branch_id, class_code, academic_year)
+     DO UPDATE SET receipt_count = invoice_counters.receipt_count + 1, updated_at = NOW()
+     RETURNING receipt_count`,
     {
       type: sequelize.QueryTypes.SELECT,
-      replacements: { school_id }
+      replacements: {
+        school_id,
+        branch_id: safeBranchId,
+        class_code: classCode,
+        academic_year: academic_year
+      }
     }
   );
 
-  const maxNumber = result[0].max_number || 0;
-  const nextId = maxNumber + 1;
+  const receiptCount = result[0].receipt_count;
+  const receiptNumber = `RCP-${classCode}-${receiptCount}`;
 
-  // Generate receipt number using class-specific sequential ID
-  const receiptNumber = `RCP-${classCode}-${nextId}`;
+  logger.info('Generated receipt number using counter with academic year scoping:', {
+    receiptNumber,
+    receiptCount,
+    classCode,
+    school_id,
+    branch_id,
+    academic_year
+  });
+
+  // Audit log for counter tracking
+  logger.info('RECEIPT_COUNTER_AUDIT:', {
+    school_id,
+    branch_id,
+    class_code: classCode,
+    academic_year,
+    receipt_count: receiptCount,
+    timestamp: new Date().toISOString()
+  });
 
   return { receipt_number: receiptNumber };
 };
@@ -357,28 +380,7 @@ const generateInvoices = async (req, res, next) => {
       }
     });
 
-    // OPTIMIZATION: Batch fetch max invoice numbers for all class codes
-    const maxInvoiceNumbersMap = new Map();
-    if (allClassCodes.size > 0) {
-      const classCodesArray = Array.from(allClassCodes);
-      const maxInvoiceNumbers = await sequelize.query(
-        `SELECT 
-           SUBSTRING(invoice_number FROM 'INV-([A-Z0-9]+)-([0-9]+)$') as class_code,
-           MAX(CAST(SUBSTRING(invoice_number FROM 'INV-[A-Z0-9]+-([0-9]+)$') AS INTEGER)) as max_number
-         FROM fee_invoices 
-         WHERE school_id = :school_id 
-         AND invoice_number ~ '^INV-[A-Z0-9]+-[0-9]+$'
-         GROUP BY class_code`,
-        {
-          type: sequelize.QueryTypes.SELECT,
-          replacements: { school_id: req.schoolId }
-        }
-      );
-
-      maxInvoiceNumbers.forEach(row => {
-        maxInvoiceNumbersMap.set(row.class_code, row.max_number || 0);
-      });
-    }
+    // Counter system handles numbering automatically - no optimization needed
 
     // Group students by fee structure context to handle multiple fee structures
     const invoices = [];
@@ -631,56 +633,52 @@ const generateInvoices = async (req, res, next) => {
 
               // Generate unique invoice number (optimized)
               const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
-              const invoice = await generateUniqueInvoiceNumberOptimized(
-                classCode,
-                {
-                  student_id: student.id,
-                  fee_structure_id: feeStructure.id,
-                  academic_year: feeStructure.academic_year,
-                  class_name: feeStructure.class_name,
-                  section: feeStructure.section,
-                  fee_type_name: feeStructure.feeType?.name || 'Fee',
-                  fee_type_id: feeStructure.fee_type_id,
-                  invoice_date: new Date(),
-                  due_date: calculatedDueDate,
-                  amount:
-                    parseFloat(feeStructure.monthly_payment_amount) ||
+              const invoice = await generateUniqueInvoiceNumber(classCode, {
+                student_id: student.id,
+                fee_structure_id: feeStructure.id,
+                academic_year: feeStructure.academic_year,
+                class_name: feeStructure.class_name,
+                section: feeStructure.section,
+                fee_type_name: feeStructure.feeType?.name || 'Fee',
+                fee_type_id: feeStructure.fee_type_id,
+                invoice_date: new Date(),
+                due_date: calculatedDueDate,
+                amount:
+                  parseFloat(feeStructure.monthly_payment_amount) ||
+                  parseFloat(feeStructure.amount) ||
+                  0,
+                base_amount:
+                  parseFloat(feeStructure.monthly_payment_amount) ||
+                  parseFloat(feeStructure.amount) ||
+                  0,
+                discount_amount: parseFloat(feeStructure.discount_amount) || 0,
+                tax_amount: parseFloat(feeStructure.tax_amount) || 0,
+                total_amount:
+                  (parseFloat(feeStructure.monthly_payment_amount) ||
                     parseFloat(feeStructure.amount) ||
-                    0,
-                  base_amount:
-                    parseFloat(feeStructure.monthly_payment_amount) ||
+                    0) -
+                  (parseFloat(feeStructure.discount_amount) || 0) +
+                  (parseFloat(feeStructure.tax_amount) || 0),
+                paid_amount: 0.0,
+                balance_amount:
+                  (parseFloat(feeStructure.monthly_payment_amount) ||
                     parseFloat(feeStructure.amount) ||
-                    0,
-                  discount_amount: parseFloat(feeStructure.discount_amount) || 0,
-                  tax_amount: parseFloat(feeStructure.tax_amount) || 0,
-                  total_amount:
-                    (parseFloat(feeStructure.monthly_payment_amount) ||
-                      parseFloat(feeStructure.amount) ||
-                      0) -
-                    (parseFloat(feeStructure.discount_amount) || 0) +
-                    (parseFloat(feeStructure.tax_amount) || 0),
-                  paid_amount: 0.0,
-                  balance_amount:
-                    (parseFloat(feeStructure.monthly_payment_amount) ||
-                      parseFloat(feeStructure.amount) ||
-                      0) -
-                    (parseFloat(feeStructure.discount_amount) || 0) +
-                    (parseFloat(feeStructure.tax_amount) || 0),
-                  status: 'sent',
-                  payment_status: 'pending',
-                  installment_number: 1,
-                  total_installments: 1,
-                  payment_model: 'monthly',
-                  month: academicMonth.month,
-                  year: academicMonth.year,
-                  notes:
-                    notes || `Monthly payment for ${academicMonth.display} - ${feeStructure.name}`,
-                  school_id: req.schoolId,
-                  branch_id: feeStructure.branch_id || req.branchId,
-                  created_by: req.user.id
-                },
-                maxInvoiceNumbersMap
-              );
+                    0) -
+                  (parseFloat(feeStructure.discount_amount) || 0) +
+                  (parseFloat(feeStructure.tax_amount) || 0),
+                status: 'sent',
+                payment_status: 'pending',
+                installment_number: 1,
+                total_installments: 1,
+                payment_model: 'monthly',
+                month: academicMonth.month,
+                year: academicMonth.year,
+                notes:
+                  notes || `Monthly payment for ${academicMonth.display} - ${feeStructure.name}`,
+                school_id: req.schoolId,
+                branch_id: feeStructure.branch_id || req.branchId,
+                created_by: req.user.id
+              });
               invoices.push(invoice); // Store the invoice object
             }
           } else {
@@ -703,45 +701,41 @@ const generateInvoices = async (req, res, next) => {
 
               // Generate unique invoice number (optimized)
               const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
-              const invoice = await generateUniqueInvoiceNumberOptimized(
-                classCode,
-                {
-                  student_id: student.id,
-                  fee_structure_id: feeStructure.id,
-                  academic_year: feeStructure.academic_year,
-                  class_name: feeStructure.class_name,
-                  section: feeStructure.section,
-                  fee_type_name: feeStructure.feeType?.name || 'Fee',
-                  fee_type_id: feeStructure.fee_type_id,
-                  invoice_date: new Date(),
-                  due_date: calculatedDueDate,
-                  amount: parseFloat(feeStructure.amount) || 0,
-                  base_amount: parseFloat(feeStructure.amount) || 0,
-                  discount_amount: parseFloat(feeStructure.discount_amount) || 0,
-                  tax_amount: parseFloat(feeStructure.tax_amount) || 0,
-                  total_amount:
-                    (parseFloat(feeStructure.amount) || 0) -
-                    (parseFloat(feeStructure.discount_amount) || 0) +
-                    (parseFloat(feeStructure.tax_amount) || 0),
-                  paid_amount: 0.0,
-                  balance_amount:
-                    (parseFloat(feeStructure.amount) || 0) -
-                    (parseFloat(feeStructure.discount_amount) || 0) +
-                    (parseFloat(feeStructure.tax_amount) || 0),
-                  status: 'sent',
-                  payment_status: 'pending',
-                  installment_number: 1, // Always 1 for one-time full fee
-                  total_installments: 1, // Always 1 for one-time full fee
-                  payment_model: 'installment',
-                  notes:
-                    notes ||
-                    `One-time full fee payment for ${feeStructure.academic_year} - ${feeStructure.name}`,
-                  school_id: req.schoolId,
-                  branch_id: feeStructure.branch_id || req.branchId,
-                  created_by: req.user.id
-                },
-                maxInvoiceNumbersMap
-              );
+              const invoice = await generateUniqueInvoiceNumber(classCode, {
+                student_id: student.id,
+                fee_structure_id: feeStructure.id,
+                academic_year: feeStructure.academic_year,
+                class_name: feeStructure.class_name,
+                section: feeStructure.section,
+                fee_type_name: feeStructure.feeType?.name || 'Fee',
+                fee_type_id: feeStructure.fee_type_id,
+                invoice_date: new Date(),
+                due_date: calculatedDueDate,
+                amount: parseFloat(feeStructure.amount) || 0,
+                base_amount: parseFloat(feeStructure.amount) || 0,
+                discount_amount: parseFloat(feeStructure.discount_amount) || 0,
+                tax_amount: parseFloat(feeStructure.tax_amount) || 0,
+                total_amount:
+                  (parseFloat(feeStructure.amount) || 0) -
+                  (parseFloat(feeStructure.discount_amount) || 0) +
+                  (parseFloat(feeStructure.tax_amount) || 0),
+                paid_amount: 0.0,
+                balance_amount:
+                  (parseFloat(feeStructure.amount) || 0) -
+                  (parseFloat(feeStructure.discount_amount) || 0) +
+                  (parseFloat(feeStructure.tax_amount) || 0),
+                status: 'sent',
+                payment_status: 'pending',
+                installment_number: 1, // Always 1 for one-time full fee
+                total_installments: 1, // Always 1 for one-time full fee
+                payment_model: 'installment',
+                notes:
+                  notes ||
+                  `One-time full fee payment for ${feeStructure.academic_year} - ${feeStructure.name}`,
+                school_id: req.schoolId,
+                branch_id: feeStructure.branch_id || req.branchId,
+                created_by: req.user.id
+              });
               invoices.push(invoice); // Store the invoice object
             } else if (feeStructure.installment_type === 'multiple') {
               // Multiple Installments: Generate multiple invoices based on installment_amounts and installment_due_dates
@@ -804,7 +798,7 @@ const generateInvoices = async (req, res, next) => {
 
                 // Generate unique invoice number for this installment (optimized)
                 const classCode = getClassCodeOptimized(feeStructure, student, classCodesMap);
-                const invoice = await generateUniqueInvoiceNumberOptimized(
+                const invoice = await generateUniqueInvoiceNumber(
                   classCode,
                   {
                     student_id: student.id,

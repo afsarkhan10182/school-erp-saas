@@ -211,8 +211,35 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
     // Use the same class code logic as invoice generation to ensure consistency
     const classCode = await getClassCode(invoice.feeStructure, invoice.student);
 
+    // Get branch_id from invoice if not provided in request
+    const branchId = req.branchId || invoice.branch_id;
+
+    if (!branchId) {
+      logger.error('No branch_id available for advanced payment receipt generation', {
+        reqBranchId: req.branchId,
+        invoiceBranchId: invoice.branch_id,
+        invoiceId: invoice.id,
+        schoolId: req.schoolId
+      });
+      throw new ApiError(400, 'Branch ID is required for advanced payment receipt generation');
+    }
+
+    // Get current academic year (no fallbacks - must be set by super admin)
+    const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+    const currentAcademicYear = await getCurrentAcademicYearForSchool();
+
+    if (!currentAcademicYear) {
+      throw new ApiError(400, 'No current academic year is set. Please contact the administrator.');
+    }
+
+    const academicYear = currentAcademicYear.name;
+
     // Generate unique receipt number for this payment
-    const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });
+    const tempReceipt = await generateUniqueReceiptNumber(classCode, {
+      school_id: req.schoolId,
+      branch_id: branchId,
+      academic_year: academicYear
+    });
     const receiptNumber = tempReceipt.receipt_number;
 
     // Create payment record
@@ -243,7 +270,8 @@ const recordFlexibleInstallmentPayment = async (req, res, next) => {
       },
       notes: notes || `Flexible installment payment - ${installment_number || 'Custom'}`,
       school_id: req.schoolId,
-      branch_id: req.branchId,
+      branch_id: branchId,
+      academic_year: academicYear,
       created_by: req.user.id
     };
 

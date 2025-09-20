@@ -836,8 +836,34 @@ const recordSmartPayment = async (req, res, next) => {
       schoolId: req.schoolId
     });
 
+    // Get branch_id from first invoice if not provided in request
+    const branchId = req.branchId || pendingInvoices[0].branch_id;
+
+    if (!branchId) {
+      logger.error('No branch_id available for smart payment receipt generation', {
+        reqBranchId: req.branchId,
+        invoiceBranchId: pendingInvoices[0].branch_id,
+        schoolId: req.schoolId
+      });
+      throw new ApiError(400, 'Branch ID is required for smart payment receipt generation');
+    }
+
+    // Get current academic year (no fallbacks - must be set by super admin)
+    const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+    const currentAcademicYear = await getCurrentAcademicYearForSchool();
+
+    if (!currentAcademicYear) {
+      throw new ApiError(400, 'No current academic year is set. Please contact the administrator.');
+    }
+
+    const academicYear = currentAcademicYear.name;
+
     // Generate a single receipt number for this payment (no groups)
-    const tempReceipt = await generateUniqueReceiptNumber(classCode, { school_id: req.schoolId });
+    const tempReceipt = await generateUniqueReceiptNumber(classCode, {
+      school_id: req.schoolId,
+      branch_id: branchId,
+      academic_year: academicYear
+    });
     const receiptNumber = tempReceipt.receipt_number;
 
     logger.info('Smart payment - Receipt number generated:', {
@@ -897,6 +923,19 @@ const recordSmartPayment = async (req, res, next) => {
       const newBalanceAmount = parseFloat(invoice.total_amount || 0) - newPaidAmount;
 
       try {
+        // Get branch_id from invoice if not provided in request
+        const branchId = req.branchId || invoice.branch_id;
+
+        if (!branchId) {
+          logger.error('No branch_id available for smart payment creation', {
+            reqBranchId: req.branchId,
+            invoiceBranchId: invoice.branch_id,
+            invoiceId: invoice.id,
+            schoolId: req.schoolId
+          });
+          throw new ApiError(400, 'Branch ID is required for smart payment creation');
+        }
+
         // Create payment record for historical tracking
         const paymentData = {
           payment_number: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -910,7 +949,8 @@ const recordSmartPayment = async (req, res, next) => {
           payment_status: 'completed',
           notes: `Smart payment allocation - ${notes || ''}`,
           school_id: req.schoolId,
-          branch_id: req.branchId,
+          branch_id: branchId,
+          academic_year: academicYear,
           created_by: req.user.id
         };
 
@@ -1008,7 +1048,7 @@ const recordSmartPayment = async (req, res, next) => {
     }).then(invoices => invoices.filter(invoice => invoice.receipt_number === receiptNumber));
 
     // Get school data with receipt settings for receipt generation
-    const school = await School.findByPk(req.schoolId, {
+    const schoolForReceipt = await School.findByPk(req.schoolId, {
       attributes: [
         'id',
         'name',
@@ -1036,7 +1076,7 @@ const recordSmartPayment = async (req, res, next) => {
       totalApplied,
       payment_method,
       transaction_id,
-      school,
+      schoolForReceipt,
       student,
       receiptNumber, // Pass the receipt number to preserve historical state
       branch // Pass branch data for receipt customization
@@ -1110,8 +1150,8 @@ const getAvailableMonths = async (req, res, next) => {
     }
 
     // Get school to determine starting month
-    const school = await School.findByPk(req.schoolId);
-    const startingMonth = school.starting_month || 6; // Default to June
+    const schoolForStartingMonth = await School.findByPk(req.schoolId);
+    const startingMonth = schoolForStartingMonth.starting_month || 6; // Default to June
 
     // Get monthly payment invoices using shared utility
     let monthlyInvoices = [];
