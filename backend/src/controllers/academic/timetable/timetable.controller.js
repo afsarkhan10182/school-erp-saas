@@ -1,8 +1,8 @@
 const httpStatus = require('http-status');
-const ApiError = require('~/utils/ApiError');
-const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/shared/ApiError');
+const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
 const { Timetable, TimetableSlot } = require('~/models');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 const TimetableService = require('~/services/academic/timetable.service');
 
 class TimetableController {

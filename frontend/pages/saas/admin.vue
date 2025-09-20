@@ -114,15 +114,14 @@
 <script setup>
 import { ref } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 
-const authStore = useAuthStore();
+const { isSuperAdmin } = useAuth();
 const { showSuccess, showError } = useToast();
 
 // Access control - only Super Admin can access this page
-const user = authStore.user;
-if (user?.role !== 'super_admin') {
+if (!isSuperAdmin.value) {
   showError('Access denied. Only Super Admin can access subscription management.');
   await navigateTo('/dashboard');
 }

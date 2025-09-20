@@ -183,7 +183,7 @@
       >
         <div class="px-4 py-5 sm:p-6">
           <SubscriptionDetails
-            :school-id="authStore.user.school_id"
+            :school-id="user.school_id"
             title="My Plan"
             subtitle="Your subscription overview"
             plan-section-title="Plan Overview"
@@ -264,19 +264,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
-import SubscriptionDetails from '~/components/SubscriptionDetails.vue';
-import UserAvatar from '~/components/UserAvatar.vue';
+import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { Users } from '~/api';
-import { getProfileImageUrl } from '~/utils/imageUtils';
+import { getProfileImageUrl } from '~/utils/image';
 
 // Page meta
 definePageMeta({
   layout: 'default'
 });
 
-const authStore = useAuthStore();
+const { user, updateUser, checkAuth } = useAuth();
 const { showSuccess, showError } = useToast();
 const config = useRuntimeConfig();
 const apiBase = config.public?.apiBase;
@@ -297,7 +297,7 @@ const form = ref({
 const loading = ref(false);
 const changingPassword = ref(false);
 const imageUploading = ref(false);
-const user = computed(() => authStore.user);
+// user is already available from useAuth composable
 
 // Password form data
 const passwordForm = ref({
@@ -407,23 +407,11 @@ const updateProfile = async () => {
     console.log('📥 Profile update response:', response);
 
     if (response.success) {
-      // Small delay to ensure server processes the image upload
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Refresh user data from server to get the latest information
+      await checkAuth();
 
-      // Update auth store with latest user data
-      await authStore.checkAuth();
-
-      // Update form data with the latest user data
-      if (authStore.user) {
-        form.value = {
-          first_name: authStore.user.first_name || '',
-          last_name: authStore.user.last_name || '',
-          email: authStore.user.email || '',
-          phone: authStore.user.phone || '',
-          profile_image: null,
-          profilePreview: null
-        };
-      }
+      // Update form with fresh user data
+      initializeForm();
 
       showSuccess('Profile updated successfully');
     } else {

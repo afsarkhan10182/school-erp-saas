@@ -456,8 +456,8 @@ import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Exams } from '~/api';
 import { Students } from '~/api';
-import BulkMarksEntry from '~/components/BulkMarksEntry.vue';
-import ExamResults from '~/components/ExamResults.vue';
+import BulkMarksEntry from '~/components/academic/BulkMarksEntry.vue';
+import ExamResults from '~/components/academic/ExamResults.vue';
 
 // Composables
 const { showToast } = useToast();

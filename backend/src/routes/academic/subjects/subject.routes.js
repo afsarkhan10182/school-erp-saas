@@ -8,12 +8,12 @@ const {
   getSubjectsForDropdown,
   getSubjectStats
 } = require('~/controllers/academic/subjects/subject.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createSubjectValidator,
   updateSubjectValidator
-} = require('~/validations/academic/subject.validation');
+} = require('~/validations/academic/subject');
 
 const router = express.Router();
 

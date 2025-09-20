@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
-const ApiError = require('~/utils/ApiError');
-const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/shared/ApiError');
+const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
 const {
   Exam,
   ExamType,
@@ -12,7 +12,7 @@ const {
   School,
   Branch
 } = require('~/models');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const ExamService = require('~/services/academic/exam.service');
 const ReportCardService = require('~/services/academic/report-card.service');
@@ -195,10 +195,25 @@ class ExamController {
 
     const reportCardService = new ReportCardService();
 
+    // Get current academic year from system if not provided
+    let currentAcademicYear = academic_year;
+    if (!currentAcademicYear) {
+      const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+      const academicYearData = await getCurrentAcademicYearForSchool(req.schoolId);
+      currentAcademicYear = academicYearData?.name;
+
+      if (!currentAcademicYear) {
+        return res.status(400).json({
+          success: false,
+          message: 'Academic year is required for report card generation'
+        });
+      }
+    }
+
     // Generate comprehensive report card
     const reportCardData = await reportCardService.generateReportCard(
       studentId,
-      academic_year || '2024-25',
+      currentAcademicYear,
       exam_types,
       { autoPrint: auto_print === 'true' }
     );
@@ -206,12 +221,12 @@ class ExamController {
     // Generate report card in requested format
     const reportCardContent = await reportCardService.generateReportCardInFormat(
       studentId,
-      academic_year || '2024-25',
+      currentAcademicYear,
       format,
       { autoPrint: auto_print === 'true' }
     );
 
-    const fileName = `report-card-${reportCardData.student.admission_number}-${academic_year || '2024-25'}`;
+    const fileName = `report-card-${reportCardData.student.admission_number}-${currentAcademicYear}`;
 
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');

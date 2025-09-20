@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { apiCall } from '~/utils/api';
 
 export interface ExamStatus {
   id: string;
@@ -28,55 +27,37 @@ export interface ExamStatusFilters {
 export const examStatusApi = {
   // Get all exam statuses with pagination and filtering
   getAll: async (filters: ExamStatusFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<ExamStatus>>('/exam-statuses', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/exam-statuses', { params: filters });
   },
 
   // Get exam status by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamStatus>>(`/exam-statuses/${id}`);
-    return response.data;
+    return apiCall('get', `/exam-statuses/${id}`);
   },
 
   // Create exam status
   create: async (data: Partial<ExamStatus>) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<ExamStatus>>('/exam-statuses', data);
-    return response.data;
+    return apiCall('post', '/exam-statuses', data);
   },
 
   // Update exam status
   update: async (id: string, data: Partial<ExamStatus>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<ExamStatus>>(`/exam-statuses/${id}`, data);
-    return response.data;
+    return apiCall('put', `/exam-statuses/${id}`, data);
   },
 
   // Delete exam status
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/exam-statuses/${id}`);
-    return response.data;
+    return apiCall('delete', `/exam-statuses/${id}`);
   },
 
   // Get exam statuses for dropdown/select
   getForDropdown: async (params?: { school_id?: string; is_active?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamStatus[]>>('/exam-statuses/dropdown', {
-      params
-    });
-    return response.data;
+    return apiCall('get', '/exam-statuses/dropdown', { params });
   },
 
   // Get active exam statuses
   getActive: async (params?: { school_id?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<ExamStatus[]>>('/exam-statuses/active', { params });
-    return response.data;
+    return apiCall('get', '/exam-statuses/active', { params });
   }
 };
 

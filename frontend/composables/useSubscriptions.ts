@@ -376,12 +376,14 @@ export function useSubscriptions() {
       if (response.success) {
         return response.data;
       } else {
-        error.value = response.message || 'Failed to create renewal request.';
-        return null;
+        const errorMessage = response.message || 'Failed to create renewal request.';
+        error.value = errorMessage;
+        throw new Error(errorMessage);
       }
     } catch (e: any) {
-      error.value = e.response?.data?.message || 'Network error.';
-      return null;
+      const errorMessage = e.response?.data?.message || e.message || 'Network error.';
+      error.value = errorMessage;
+      throw new Error(errorMessage);
     } finally {
       loading.value = false;
     }

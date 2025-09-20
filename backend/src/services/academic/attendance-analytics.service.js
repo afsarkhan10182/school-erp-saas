@@ -8,8 +8,8 @@ const {
   School,
   Branch
 } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
 const AnalyticsService = require('~/services/shared/analytics.service');
 
 /**
@@ -48,14 +48,20 @@ class AttendanceAnalyticsService {
       });
 
       // Get current period data
-      const currentData = await this.getAttendanceData(baseWhere, startDate, endDate);
+      const currentData = await this.getAttendanceData(
+        baseWhere,
+        startDate,
+        endDate,
+        academic_year
+      );
 
       // Get previous period data for comparison
       const previousPeriod = this.getPreviousPeriod(period, startDate, endDate);
       const previousData = await this.getAttendanceData(
         baseWhere,
         previousPeriod.startDate,
-        previousPeriod.endDate
+        previousPeriod.endDate,
+        academic_year
       );
 
       // Generate analytics
@@ -264,8 +270,15 @@ class AttendanceAnalyticsService {
         ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
       };
 
+      // Build session where condition
+      const sessionWhere = {
+        date: {
+          [Op.between]: [startDate, endDate]
+        }
+      };
+
       if (academic_year) {
-        whereClause.academic_year = academic_year;
+        sessionWhere.academic_year = academic_year;
       }
 
       // Get student attendance records
@@ -275,12 +288,9 @@ class AttendanceAnalyticsService {
           {
             model: AttendanceSession,
             as: 'session',
-            attributes: ['date', 'attendance_type'],
-            where: {
-              date: {
-                [Op.between]: [startDate, endDate]
-              }
-            }
+            attributes: ['date', 'attendance_type', 'academic_year'],
+            where: sessionWhere,
+            required: true
           }
         ],
         order: [['session', 'date', 'DESC']]
@@ -339,9 +349,8 @@ class AttendanceAnalyticsService {
       whereClause.section_id = filters.section_id;
     }
 
-    if (filters.academic_year) {
-      whereClause.academic_year = filters.academic_year;
-    }
+    // Note: academic_year filtering will be handled through include conditions
+    // since AttendanceRecord doesn't have academic_year column directly
 
     if (filters.date_from && filters.date_to) {
       whereClause.date = {
@@ -359,7 +368,7 @@ class AttendanceAnalyticsService {
   /**
    * Get attendance data for analytics
    */
-  static async getAttendanceData(baseWhere, startDate, endDate) {
+  static async getAttendanceData(baseWhere, startDate, endDate, academicYear = null) {
     const whereClause = {
       ...baseWhere,
       date: {
@@ -367,20 +376,25 @@ class AttendanceAnalyticsService {
       }
     };
 
+    // Build include conditions
+    const includeConditions = [
+      {
+        model: Student,
+        as: 'student',
+        attributes: ['id', 'class_id', 'section_id']
+      },
+      {
+        model: AttendanceSession,
+        as: 'session',
+        attributes: ['date', 'academic_year'],
+        where: academicYear ? { academic_year: academicYear } : undefined,
+        required: true
+      }
+    ];
+
     return await AttendanceRecord.findAll({
       where: whereClause,
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          attributes: ['id', 'class_id', 'section_id']
-        },
-        {
-          model: AttendanceSession,
-          as: 'session',
-          attributes: ['date', 'academic_year']
-        }
-      ]
+      include: includeConditions
     });
   }
 

@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface LoginCredentials {
   email: string;
@@ -12,16 +12,12 @@ export interface ResetPasswordData {
 
 export const Auth = {
   login: async (credentials: LoginCredentials) => {
-    const api = createApiInstance();
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+    return apiCall('post', '/auth/login', credentials);
   },
 
   logout: async () => {
-    const api = createApiInstance();
     try {
-      const response = await api.post('/auth/logout');
-      return response.data;
+      return await apiCall('post', '/auth/logout');
     } catch (error: any) {
       // If logout fails due to authentication issues, still return success
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -36,26 +32,18 @@ export const Auth = {
   },
 
   refresh: async () => {
-    const api = createApiInstance();
-    const response = await api.post('/auth/refresh-token');
-    return response.data;
+    return apiCall('post', '/auth/refresh-token');
   },
 
   me: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/auth/me');
-    return response.data;
+    return apiCall('get', '/auth/me');
   },
 
   forgotPassword: async (email: string) => {
-    const api = createApiInstance();
-    const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
+    return apiCall('post', '/auth/forgot-password', { email });
   },
 
   resetPassword: async (token: string, password: string) => {
-    const api = createApiInstance();
-    const response = await api.post('/auth/reset-password', { token, password });
-    return response.data;
+    return apiCall('post', '/auth/reset-password', { token, password });
   }
 };

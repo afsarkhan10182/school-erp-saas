@@ -4,16 +4,16 @@ const {
   setSchoolContext,
   setBranchContext,
   requireRole
-} = require('~/middleware/auth');
-const { requireModuleAccess } = require('~/middleware/moduleAccess');
-const { validate } = require('~/middleware/validate');
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
+const { validate } = require('~/middleware/shared/validate');
 const TimetableController = require('~/controllers/academic/timetable/timetable.controller');
 const {
   createTimetableValidator,
   updateTimetableValidator,
   createTimetableSlotValidator,
   updateTimetableSlotValidator
-} = require('~/validations/academic/timetable.validation');
+} = require('~/validations/academic/timetable');
 const { TIMETABLE_ROLES, TIMETABLE_ADMIN_ROLES, TEACHER_ROLES } = require('~/constants/roles');
 
 const router = express.Router();

@@ -22,7 +22,7 @@ export default defineNuxtConfig({
   // App config
   app: {
     head: {
-      title: 'School ERP SaaS',
+      title: 'DigitalFuzed - School ERP SaaS',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },

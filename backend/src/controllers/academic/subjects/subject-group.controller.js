@@ -1,9 +1,9 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const ApiError = require('~/utils/ApiError');
-const { success, error, asyncHandler } = require('~/utils/apiResponse');
+const ApiError = require('~/utils/shared/ApiError');
+const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
 const { SubjectGroup, Subject, SubjectGroupSubject, Class, School, User } = require('~/models');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 class SubjectGroupController {
   /**

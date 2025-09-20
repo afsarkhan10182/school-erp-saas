@@ -617,19 +617,18 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, onUnmounted } from 'vue';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAttendanceValidation } from '~/composables/useAttendanceValidation';
 import { useDropdowns } from '~/composables/useDropdowns';
-import { useAuth } from '~/composables/useAuth';
 import { AcademicCalendar, Attendance, Students } from '~/api';
-import EnhancedDropdown from '~/components/EnhancedDropdown.vue';
-import Pagination from '~/components/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 const { showToast } = useToast();
-const authStore = useAuthStore();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns();
@@ -640,8 +639,6 @@ const {
   getTimeSettings,
   getValidationRules
 } = useAttendanceValidation();
-
-const { isSuperAdmin, isSchoolAdmin } = useAuth();
 
 // State
 const loading = ref(false);

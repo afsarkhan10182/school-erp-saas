@@ -10,12 +10,12 @@ const {
   getSubjectTeachersForDropdown,
   getTeacherWorkload
 } = require('~/controllers/academic/subjects/subject-teacher.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createSubjectTeacherValidator,
   updateSubjectTeacherValidator
-} = require('~/validations/academic/subject-teacher.validation');
+} = require('~/validations/academic/subject-teacher');
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface StreamParams {
   page?: number;
@@ -21,33 +21,23 @@ export interface StreamData {
 
 export const Streams = {
   getAll: async (params?: StreamParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/streams', { params });
-    return response.data;
+    return apiCall('get', '/streams', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/streams/${id}`);
-    return response.data;
+    return apiCall('get', `/streams/${id}`);
   },
 
   create: async (streamData: StreamData) => {
-    const api = createApiInstance();
-    const response = await api.post('/streams', streamData);
-    return response.data;
+    return apiCall('post', '/streams', streamData);
   },
 
   update: async (id: string, streamData: StreamData) => {
-    const api = createApiInstance();
-    const response = await api.put(`/streams/${id}`, streamData);
-    return response.data;
+    return apiCall('put', `/streams/${id}`, streamData);
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/streams/${id}`);
-    return response.data;
+    return apiCall('delete', `/streams/${id}`);
   },
 
   // Get streams for dropdown/select
@@ -56,8 +46,6 @@ export const Streams = {
     branch_id?: string;
     class_id?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/streams/dropdown', { params });
-    return response.data;
+    return apiCall('get', '/streams/dropdown', { params });
   }
 };

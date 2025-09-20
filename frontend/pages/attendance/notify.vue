@@ -257,8 +257,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { AttendanceNotifications, Classes, Sections, Attendance } from '~/api';
-import Modal from '~/components/Modal.vue';
-import Toast from '~/components/Toast.vue';
+import Modal from '~/components/ui/Modal.vue';
+import Toast from '~/components/ui/Toast.vue';
 
 // Page metadata
 definePageMeta({

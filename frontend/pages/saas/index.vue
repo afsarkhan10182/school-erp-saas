@@ -325,15 +325,13 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
-import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
-const authStore = useAuthStore();
+const { isSuperAdmin, user } = useAuth();
 const { showError } = useToast();
 
 // Access control - only Super Admin can access subscriptions
-const user = computed(() => authStore.user);
 
 const {
   schools,

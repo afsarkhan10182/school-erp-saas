@@ -209,15 +209,14 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { useBranches } from '~/composables/useBranches';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useSchools } from '~/composables/useSchools';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 
-const authStore = useAuthStore();
+const { isSuperAdmin } = useAuth();
 const { showError } = useToast();
 
 // Access control - only Super Admin can access branches
-const user = authStore.user;
-if (user?.role !== 'super_admin') {
+if (!isSuperAdmin.value) {
   showError('Access denied. Only Super Admin can manage branches.');
   await navigateTo('/dashboard');
 }

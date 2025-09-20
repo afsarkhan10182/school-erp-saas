@@ -8,12 +8,9 @@ const {
   getTermsByAcademicYear,
   getCurrentTerm
 } = require('~/controllers/academic/term.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
-const {
-  createTermValidator,
-  updateTermValidator
-} = require('~/validations/academic/term.validation');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
+const { createTermValidator, updateTermValidator } = require('~/validations/academic/term');
 
 const router = express.Router();
 

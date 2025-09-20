@@ -1,8 +1,8 @@
 const { Op } = require('sequelize');
 const { SubjectTeacher, Subject, User, Class, School, Branch } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
-const { apiResponse } = require('~/utils/apiResponse');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const apiResponse = require('~/utils/shared/apiResponse');
 const SubjectTeacherService = require('~/services/academic/subject-teacher.service');
 
 class SubjectTeacherController {
@@ -92,15 +92,19 @@ class SubjectTeacherController {
 
       const totalPages = Math.ceil(count / parseInt(limit));
 
-      return apiResponse(res, 200, 'Subject teachers retrieved successfully', {
-        subjectTeachers: rows,
-        pagination: {
-          current_page: parseInt(page),
-          total_pages: totalPages,
-          total_records: count,
-          limit: parseInt(limit)
-        }
-      });
+      return apiResponse.success(
+        res,
+        {
+          subjectTeachers: rows,
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: totalPages,
+            total_records: count,
+            limit: parseInt(limit)
+          }
+        },
+        'Subject teachers retrieved successfully'
+      );
     } catch (error) {
       logger.error('Error in getAllSubjectTeachers:', error);
       next(new ApiError(500, 'Failed to retrieve subject teachers'));
@@ -149,9 +153,11 @@ class SubjectTeacherController {
         });
       }
 
-      return apiResponse(res, 200, 'Subject teacher assignment retrieved successfully', {
-        subjectTeacher
-      });
+      return apiResponse.success(
+        res,
+        { subjectTeacher },
+        'Subject teacher assignment retrieved successfully'
+      );
     } catch (error) {
       logger.error('Error in getSubjectTeacherById:', error);
       next(new ApiError(500, 'Failed to retrieve subject teacher assignment'));
@@ -190,9 +196,11 @@ class SubjectTeacherController {
         ]
       });
 
-      return apiResponse(res, 201, 'Subject teacher assignment created successfully', {
-        subjectTeacher: createdAssignment
-      });
+      return apiResponse.created(
+        res,
+        { subjectTeacher: createdAssignment },
+        'Subject teacher assignment created successfully'
+      );
     } catch (error) {
       logger.error('Error in createSubjectTeacher:', error);
       next(new ApiError(500, 'Failed to create subject teacher assignment'));
@@ -239,9 +247,11 @@ class SubjectTeacherController {
         ]
       });
 
-      return apiResponse(res, 200, 'Subject teacher assignment updated successfully', {
-        subjectTeacher: updatedAssignment
-      });
+      return apiResponse.success(
+        res,
+        { subjectTeacher: updatedAssignment },
+        'Subject teacher assignment updated successfully'
+      );
     } catch (error) {
       logger.error('Error in updateSubjectTeacher:', error);
       next(new ApiError(500, 'Failed to update subject teacher assignment'));
@@ -264,7 +274,7 @@ class SubjectTeacherController {
 
       await subjectTeacher.destroy();
 
-      return apiResponse(res, 200, 'Subject teacher assignment deleted successfully');
+      return apiResponse.success(res, null, 'Subject teacher assignment deleted successfully');
     } catch (error) {
       logger.error('Error in deleteSubjectTeacher:', error);
       next(new ApiError(500, 'Failed to delete subject teacher assignment'));
@@ -292,7 +302,11 @@ class SubjectTeacherController {
         ]
       });
 
-      return apiResponse(res, 200, 'Subject teachers retrieved successfully', { subjectTeachers });
+      return apiResponse.success(
+        res,
+        { subjectTeachers },
+        'Subject teachers retrieved successfully'
+      );
     } catch (error) {
       logger.error('Error in getSubjectTeachersBySubject:', error);
       next(new ApiError(500, 'Failed to retrieve subject teachers'));
@@ -320,7 +334,11 @@ class SubjectTeacherController {
         ]
       });
 
-      return apiResponse(res, 200, 'Subject teachers retrieved successfully', { subjectTeachers });
+      return apiResponse.success(
+        res,
+        { subjectTeachers },
+        'Subject teachers retrieved successfully'
+      );
     } catch (error) {
       logger.error('Error in getSubjectTeachersByTeacher:', error);
       next(new ApiError(500, 'Failed to retrieve subject teachers'));
@@ -358,9 +376,11 @@ class SubjectTeacherController {
         attributes: ['id']
       });
 
-      return apiResponse(res, 200, 'Subject teachers for dropdown retrieved successfully', {
-        subjectTeachers
-      });
+      return apiResponse.success(
+        res,
+        { subjectTeachers },
+        'Subject teachers for dropdown retrieved successfully'
+      );
     } catch (error) {
       logger.error('Error in getSubjectTeachersForDropdown:', error);
       next(new ApiError(500, 'Failed to retrieve subject teachers for dropdown'));

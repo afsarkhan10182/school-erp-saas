@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface ClassParams {
   page?: number;
@@ -20,44 +20,30 @@ export interface ClassData {
 
 export const Classes = {
   getAll: async (params?: ClassParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/classes', { params });
-    return response.data;
+    return apiCall('get', '/classes', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/classes/${id}`);
-    return response.data;
+    return apiCall('get', `/classes/${id}`);
   },
 
   create: async (classData: ClassData) => {
-    const api = createApiInstance();
-    const response = await api.post('/classes', classData);
-    return response.data;
+    return apiCall('post', '/classes', classData);
   },
 
   update: async (id: string, classData: ClassData) => {
-    const api = createApiInstance();
-    const response = await api.put(`/classes/${id}`, classData);
-    return response.data;
+    return apiCall('put', `/classes/${id}`, classData);
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/classes/${id}`);
-    return response.data;
+    return apiCall('delete', `/classes/${id}`);
   },
 
   getDropdown: async (params?: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/classes/dropdown${params ? `?${params}` : ''}`);
-    return response.data;
+    return apiCall('get', `/classes/dropdown${params ? `?${params}` : ''}`);
   },
 
   getStats: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/classes/stats');
-    return response.data;
+    return apiCall('get', '/classes/stats');
   }
 };

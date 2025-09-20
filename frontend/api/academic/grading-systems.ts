@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { apiCall } from '~/utils/api';
 
 export interface GradeScale {
   id?: string;
@@ -56,64 +55,42 @@ export interface UpdateGradingSystemData extends Partial<CreateGradingSystemData
 export const gradingSystemApi = {
   // Get all grading systems
   getAll: async (filters: GradingSystemFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<GradingSystem>>('/grading-systems', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/grading-systems', { params: filters });
   },
 
   // Get grading system by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<GradingSystem>>(`/grading-systems/${id}`);
-    return response.data;
+    return apiCall('get', `/grading-systems/${id}`);
   },
 
   // Get default grading system
   getDefault: async () => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<GradingSystem>>('/grading-systems/default');
-    return response.data;
+    return apiCall('get', '/grading-systems/default');
   },
 
   // Create grading system
   create: async (data: CreateGradingSystemData) => {
-    const api = createApiInstance();
-    const response = await api.post<ApiResponse<GradingSystem>>('/grading-systems', data);
-    return response.data;
+    return apiCall('post', '/grading-systems', data);
   },
 
   // Update grading system
   update: async (id: string, data: Partial<CreateGradingSystemData>) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<GradingSystem>>(`/grading-systems/${id}`, data);
-    return response.data;
+    return apiCall('put', `/grading-systems/${id}`, data);
   },
 
   // Delete grading system
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete<ApiResponse<{ message: string }>>(`/grading-systems/${id}`);
-    return response.data;
+    return apiCall('delete', `/grading-systems/${id}`);
   },
 
   // Set default grading system
   setDefault: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.put<ApiResponse<GradingSystem>>(
-      `/grading-systems/${id}/set-default`
-    );
-    return response.data;
+    return apiCall('put', `/grading-systems/${id}/set-default`);
   },
 
   // Test grade calculation
   testCalculation: async (percentage: number) => {
-    const api = createApiInstance();
-    const response = await api.get<
-      ApiResponse<{ grade: string; grade_points?: number; is_passing: boolean }>
-    >('/grading-systems/test-calculation', { params: { percentage } });
-    return response.data;
+    return apiCall('get', '/grading-systems/test-calculation', { params: { percentage } });
   }
 };
 

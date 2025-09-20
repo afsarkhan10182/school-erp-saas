@@ -4,15 +4,12 @@ const {
   setSchoolContext,
   setBranchContext,
   requireRole
-} = require('~/middleware/auth');
-const { requireModuleAccess } = require('~/middleware/moduleAccess');
-const { validate } = require('~/middleware/validate');
-const { upload } = require('~/middleware/upload');
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
+const { validate } = require('~/middleware/shared/validate');
+const { upload } = require('~/middleware/shared/upload');
 const ExamController = require('~/controllers/academic/exams/exam.controller');
-const {
-  createExamValidator,
-  updateExamValidator
-} = require('~/validations/academic/exam.validation');
+const { createExamValidator, updateExamValidator } = require('~/validations/academic/exam');
 const { EXAM_ROLES, EXAM_ADMIN_ROLES } = require('~/constants/roles');
 
 const router = express.Router();

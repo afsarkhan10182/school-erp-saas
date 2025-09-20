@@ -347,7 +347,6 @@
             <select v-model="form.subscriptionData.status" required class="input-field">
               <option value="trial">Trial</option>
               <option value="active">Active</option>
-              <option value="lifetime">Lifetime</option>
               <option value="suspended">Suspended</option>
               <option value="expired">Expired</option>
             </select>
@@ -376,7 +375,9 @@
               @change="autoSetTrialEndDate"
             />
           </div>
-          <div v-if="form.subscriptionData.status !== 'lifetime'">
+          <div
+            v-if="form.subscriptionData.status !== 'lifetime' && selectedPlan?.code !== 'LIFETIME'"
+          >
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
             <input v-model="form.subscriptionData.end_date" type="date" class="input-field" />
           </div>

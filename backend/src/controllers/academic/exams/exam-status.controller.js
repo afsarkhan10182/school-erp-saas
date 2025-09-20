@@ -1,5 +1,5 @@
 const ExamStatusService = require('~/services/academic/exam-status.service');
-const { logger } = require('~/utils/logger');
+const { logger } = require('~/utils/shared/logger');
 
 class ExamStatusController {
   /**

@@ -1,5 +1,4 @@
-import { createApiInstance } from '~/utils/api';
-import type { ApiResponse, PaginatedResponse } from '~/types';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface Student {
   id: string;
@@ -57,34 +56,22 @@ export interface StudentStats {
 export const Student = {
   // Get all students with pagination and filtering
   getAll: async (filters: StudentFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Student>>('/students', { params: filters });
-    return response.data;
+    return apiCall('get', '/students', { params: filters });
   },
 
   // Get student by ID
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<Student>>(`/students/${id}`);
-    return response.data;
+    return apiCall('get', `/students/${id}`);
   },
 
   // Get student report with advanced filtering
   getReport: async (filters: StudentFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<PaginatedResponse<Student>>('/students/report', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/students/report', { params: filters });
   },
 
   // Get student statistics
   getStats: async (filters: StudentFilters = {}) => {
-    const api = createApiInstance();
-    const response = await api.get<ApiResponse<StudentStats>>('/students/stats', {
-      params: filters
-    });
-    return response.data;
+    return apiCall('get', '/students/stats', { params: filters });
   },
 
   // Get import template
@@ -107,8 +94,28 @@ export const Student = {
 
   // Get invoice breakdown for student
   getInvoiceBreakdown: async (studentId: string, params: any) => {
+    return apiCall('get', `/students/${studentId}/invoice-breakdown`, { params });
+  },
+
+  // Create student with form data (including file uploads)
+  createWithFormData: async (formData: FormData) => {
     const api = createApiInstance();
-    const response = await api.get(`/students/${studentId}/invoice-breakdown`, { params });
+    const response = await api.post('/students', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  // Update student with form data (including file uploads)
+  updateWithFormData: async (studentId: string, formData: FormData) => {
+    const api = createApiInstance();
+    const response = await api.put(`/students/${studentId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return response.data;
   }
 };

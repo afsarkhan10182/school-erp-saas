@@ -493,20 +493,22 @@ import {
 import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 // Strategic imports: Direct for always-present, Async for on-demand
-import InvoiceFilters from '~/components/InvoiceFilters.vue';
-import InvoiceTable from '~/components/InvoiceTable.vue';
-import Pagination from '~/components/Pagination.vue';
+import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
+import InvoiceTable from '~/components/financial/InvoiceTable.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Async imports for modal components (only loaded when needed)
 const QuickCollectFeeModal = defineAsyncComponent(
-  () => import('~/components/QuickCollectFeeModal.vue')
+  () => import('~/components/financial/QuickCollectFeeModal.vue')
 );
 const GenerateInvoicesModal = defineAsyncComponent(
-  () => import('~/components/GenerateInvoicesModal.vue')
+  () => import('~/components/financial/GenerateInvoicesModal.vue')
 );
-const ReceiptViewer = defineAsyncComponent(() => import('~/components/ReceiptViewer.vue'));
+const ReceiptViewer = defineAsyncComponent(
+  () => import('~/components/financial/ReceiptViewer.vue')
+);
 
 // Composables
 const { showToast } = useToast();
@@ -527,8 +529,8 @@ import { useSchools } from '~/composables/useSchools';
 
 const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
 
-// Auth store
-const authStore = useAuthStore();
+// Auth composable
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 
 // State
 const invoices = ref([]);
@@ -570,9 +572,7 @@ const filters = reactive({
 // Use existing data from composables - no need to redeclare
 
 // Role-based computed properties
-const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
-const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
-const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
+// Role checks are now available from useAuth composable
 
 // Check if any filters are applied (for debugging purposes)
 const hasAppliedFilters = computed(() => {
@@ -637,9 +637,9 @@ const totalPagesForGroups = computed(() => {
 
 // Auto-set branch filter based on user role
 const setDefaultBranchFilter = () => {
-  if (authStore.currentUser?.role === 'branch_admin') {
+  if (isBranchAdmin.value) {
     // Branch admin should be restricted to their branch
-    filters.branch_id = authStore.currentUser.branch_id;
+    filters.branch_id = user.value?.branch_id;
   }
 };
 
@@ -1020,7 +1020,7 @@ const onBranchChange = async branchId => {
   filters.stream = '';
 
   // Refresh classes for the new branch
-  const schoolId = authStore.currentUser?.school_id;
+  const schoolId = user.value?.school_id;
   if (branchId && branchId !== '') {
     // Specific branch selected - fetch classes for that branch
     await fetchClasses(schoolId, branchId);
@@ -1041,8 +1041,8 @@ const onClassChange = async classId => {
   filters.stream = '';
 
   // Fetch streams and sections for the selected class
-  const schoolId = authStore.currentUser?.school_id;
-  const branchId = filters.branch_id || authStore.currentUser?.branch_id;
+  const schoolId = user.value?.school_id;
+  const branchId = filters.branch_id || user.value?.branch_id;
 
   console.log('🔍 Fetching streams/sections with:', { schoolId, branchId, classId });
   console.log('🔍 filters.branch_id is empty?', !filters.branch_id);
@@ -1444,324 +1444,6 @@ const viewCombinedReceipt = async combinedInvoice => {
   }
 };
 
-const printReceipt = () => {
-  if (!selectedReceipt.value) return;
-
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank');
-  const receiptData = selectedReceipt.value.receipt_data || selectedReceipt.value;
-
-  // Add print-specific styles
-  const printStyles = `
-    <style>
-      @media print {
-        body { margin: 0; padding: 0; }
-        .receipt { 
-          width: 100% !important; 
-          max-width: none !important; 
-          margin: 0 !important; 
-          box-shadow: none !important; 
-          border: none !important; 
-        }
-        .header { 
-          background: #f8f9fa !important; 
-          color: #000 !important; 
-        }
-        .trust-name, .school-name, .school-type, .school-address { 
-          color: #000 !important; 
-        }
-        .receipt-title { 
-          color: #000 !important; 
-        }
-        .info-label, .info-value { 
-          color: #000 !important; 
-        }
-        .fee-table th, .fee-table td { 
-          color: #000 !important; 
-          border-color: #000 !important; 
-        }
-        .summary-section { 
-          background: #f8f9fa !important; 
-          color: #000 !important; 
-        }
-        .remaining-info { 
-          background: #fff3cd !important; 
-          color: #856404 !important; 
-        }
-        .signature-line { 
-          border-color: #000 !important; 
-        }
-      }
-      body { 
-        font-family: Arial, sans-serif; 
-        margin: 0; 
-        padding: 20px; 
-        background-color: #ffffff;
-        color: #000000;
-      }
-      .receipt {
-        width: 400px;
-        background: white;
-        border: 1px solid #ddd;
-        margin: 0 auto;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-      .header {
-        text-align: center;
-        padding: 15px;
-        border-bottom: 2px solid #333;
-        background: #f8f9fa;
-        color: #000;
-      }
-      .trust-name, .school-name, .school-type, .school-address {
-        color: #000 !important;
-      }
-      .receipt-title {
-        color: #000 !important;
-      }
-      .info-label, .info-value {
-        color: #000 !important;
-      }
-      .fee-table th, .fee-table td {
-        color: #000 !important;
-        border-color: #000 !important;
-      }
-      .summary-section {
-        background: #f8f9fa !important;
-        color: #000 !important;
-      }
-      .remaining-info {
-        background: #fff3cd !important;
-        color: #856404 !important;
-      }
-    </style>
-  `;
-
-  // Helper functions for formatting
-  const formatDate = dateString => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-IN');
-  };
-
-  const formatCurrency = amount => {
-    if (!amount) return '0';
-    return parseFloat(amount).toLocaleString('en-IN');
-  };
-
-  const getMonthName = month => {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ];
-    return months[month - 1] || 'Unknown';
-  };
-
-  const isJuniorCollege =
-    receiptData.class_name && receiptData.class_name.toLowerCase().includes('junior');
-  const schoolType = isJuniorCollege ? 'JUNIOR COLLEGE' : 'ENGLISH MEDIUM SCHOOL';
-  const isMonthlyPayment = receiptData.payment_model === 'monthly';
-  const isCombinedPayment = receiptData.payment_model === 'combined';
-
-  // Helper function to parse paid months string
-  const parsePaidMonths = paidMonthsString => {
-    if (!paidMonthsString) return [];
-    return paidMonthsString.split(',').map(month => {
-      const [monthNum, year] = month.trim().split(' ');
-      return {
-        month: parseInt(monthNum),
-        year: parseInt(year),
-        monthName: getMonthName(parseInt(monthNum))
-      };
-    });
-  };
-
-  // Check if this is a smart payment response
-  const isSmartPayment = receiptData.summary && receiptData.receipt_group_id;
-
-  // Parse paid months for smart payment
-  const paidMonths = isSmartPayment ? parsePaidMonths(receiptData.summary.paid_months) : [];
-
-  // Generate HTML from structured data
-  const receiptHtml = `
-    <div class="receipt">
-      <div class="header">
-        <div class="trust-name" style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 5px;"></div>
-        <div class="school-name" style="font-size: 16px; font-weight: bold; color: #000; margin-bottom: 5px; text-transform: uppercase;">${receiptData.school_name || 'School Name'}</div>
-        <div class="school-type" style="font-size: 12px; color: #666; margin-bottom: 5px;">ENGLISH MEDIUM SCHOOL</div>
-        <div class="school-address" style="font-size: 11px; color: #666; margin-bottom: 10px;">${receiptData.school_address}</div>
-      </div>
-      
-      <div class="receipt-title" style="text-align: center; font-size: 18px; font-weight: bold; color: #000; margin: 15px 0; text-transform: uppercase;">
-        MULTIPLE MONTHS PAYMENT RECEIPT
-      </div>
-      
-      <div class="receipt-info" style="padding: 15px;">
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Invoice No:</span>
-          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.receipt_group_id : receiptData.invoice_number || receiptData.receipt_number || 'N/A'}</span>
-        </div>
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Date:</span>
-          <span class="info-value" style="color: #000;">${formatDate(new Date())}</span>
-        </div>
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Name of the Pupil:</span>
-          <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.student_name : receiptData.student_name || 'N/A'}</span>
-        </div>
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Std. & Div.:</span>
-          <span class="info-value" style="color: #000;">C12</span>
-        </div>
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Roll No:</span>
-          <span class="info-value" style="color: #000;">3246</span>
-        </div>
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">G.R. No:</span>
-          <span class="info-value" style="color: #000;">3246</span>
-        </div>
-        
-        ${
-          isSmartPayment && paidMonths.length > 0
-            ? `
-        <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-          <span class="info-label" style="font-weight: bold; color: #333;">Months Covered:</span>
-          <span class="info-value" style="color: #000;">${paidMonths.map(m => `${m.monthName} ${m.year}`).join(', ')}</span>
-        </div>
-        `
-            : ''
-        }
-        
-        ${
-          isSmartPayment && paidMonths.length > 0
-            ? `
-        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-          <thead>
-            <tr>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Month</th>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Fee Type</th>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${paidMonths
-              .map(month => {
-                const amountPerMonth =
-                  receiptData.summary.total_applied_amount / receiptData.summary.months_covered;
-                return `
-                <tr>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${month.monthName} ${month.year}</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">TUITION FEES</td>
-                  <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">₹${formatCurrency(amountPerMonth)}</td>
-                </tr>
-              `;
-              })
-              .join('')}
-          </tbody>
-        </table>
-        `
-            : `
-        <table class="fee-table" style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-          <thead>
-            <tr>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Particulars</th>
-              <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; background-color: #f8f9fa; font-weight: bold;">Amount (₹)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${receiptData.fee_type_name || 'Tuition Fees'}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">${formatCurrency(receiptData.payment_amount || 0)}</td>
-            </tr>
-          </tbody>
-        </table>
-        `
-        }
-        
-        <div class="summary-section" style="margin: 15px 0; padding: 10px; background-color: #f8f9fa; border: 1px solid #ddd;">
-          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span class="info-label" style="font-weight: bold; color: #333;">Total Amount:</span>
-            <span class="info-value" style="color: #000;">₹${formatCurrency(isSmartPayment ? receiptData.summary.total_applied_amount : receiptData.payment_amount || 0)}</span>
-          </div>
-          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span class="info-label" style="font-weight: bold; color: #333;">Payment Method:</span>
-            <span class="info-value" style="color: #000;">${isSmartPayment ? receiptData.summary.payment_mode.toUpperCase() : (receiptData.payment_method || 'cash').toUpperCase()}</span>
-          </div>
-        </div>
-        
-        ${
-          isSmartPayment
-            ? `
-        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
-          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Monthly Payment Summary</div>
-          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Months:</span>
-            <span class="info-value" style="color: #000;">${receiptData.summary.remaining_invoices} months</span>
-          </div>
-          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Balance:</span>
-            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.summary.remaining_balance)}</span>
-          </div>
-        </div>
-        `
-            : `
-        <div class="remaining-info" style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 15px 0; border-radius: 5px;">
-          <div class="remaining-title" style="font-weight: bold; color: #856404; margin-bottom: 5px;">Outstanding Balance</div>
-          <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span class="info-label" style="font-weight: bold; color: #333;">Remaining Amount:</span>
-            <span class="info-value" style="color: #000;">₹${formatCurrency(receiptData.remaining_balance || 0)}</span>
-          </div>
-        </div>
-        `
-        }
-      </div>
-      
-      <div class="signature-section" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
-        <div class="signature" style="text-align: center; font-size: 11px;">
-          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
-          ${isJuniorCollege ? 'Cashier Signature' : "Receiver's Signature"}
-        </div>
-        <div class="signature" style="text-align: center; font-size: 11px;">
-          <div class="signature-line" style="width: 100px; border-top: 1px solid #000; margin: 5px auto;"></div>
-          Date
-        </div>
-      </div>
-    </div>
-  `;
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Payment Receipt - Print</title>
-      ${printStyles}
-    </head>
-    <body>
-      ${receiptHtml}
-    </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-
-  // Wait for content to load then print
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 500);
-};
-
 // Add missing methods referenced in template
 const getInvoiceNumber = invoice => {
   return invoice.invoice_number || invoice.id;
@@ -1978,7 +1660,7 @@ const allFeeStructures = computed(() => {
 const onModalSchoolChange = async schoolId => {
   if (schoolId) {
     // For super admin, filter branches by selected school
-    if (authStore.isSuperAdmin) {
+    if (isSuperAdmin.value) {
       await fetchBranches();
     }
   }
@@ -1996,8 +1678,8 @@ const onModalClassChange = async className => {
     const classItem = classes.value.find(c => c.name === className);
     if (classItem) {
       // Get the current branch ID from the modal form or user context
-      const branchId = authStore.currentUser?.branch_id;
-      await fetchSections(authStore.currentUser?.school_id, branchId, classItem.id);
+      const branchId = user.value?.branch_id;
+      await fetchSections(user.value?.school_id, branchId, classItem.id);
     }
   }
 };
@@ -2023,17 +1705,17 @@ const fetchBranches = async () => {
   try {
     let response;
 
-    if (authStore.isSuperAdmin) {
+    if (isSuperAdmin.value) {
       // Super admin can see all branches
       response = await Branches.getForDropdown();
       branches.value = response.data || [];
-    } else if (authStore.isSchoolAdmin) {
+    } else if (isSchoolAdmin.value) {
       // School admin sees only their school's branches
-      response = await Branches.getForDropdown({ school_id: authStore.currentUser?.school_id });
+      response = await Branches.getForDropdown({ school_id: user.value?.school_id });
       branches.value = response.data || [];
-    } else if (authStore.isBranchAdmin) {
+    } else if (isBranchAdmin.value) {
       // Branch admin sees only their branch
-      response = await Branches.getById(authStore.currentUser?.branch_id);
+      response = await Branches.getById(user.value?.branch_id);
       branches.value = response.data ? [response.data] : [];
     } else {
       // Default fallback
@@ -2051,7 +1733,7 @@ const fetchBranches = async () => {
 const loadAcademicData = async () => {
   try {
     // Get user context for API calls
-    const schoolId = authStore.currentUser?.school_id;
+    const schoolId = user.value?.school_id;
 
     // Load academic years and classes for filters with individual error handling
     const promises = [];
@@ -2101,11 +1783,22 @@ const loadAcademicData = async () => {
 // Load school data for receipt viewer
 const loadSchoolData = async () => {
   try {
-    const schoolId = authStore.currentUser?.school_id;
+    const schoolId = user.value?.school_id;
     if (schoolId) {
-      const response = await Schools.getById(schoolId);
-      if (response.data) {
-        schoolData.value = response.data;
+      // Load school settings instead of basic school data to get trust name
+      const { Settings } = await import('~/api/administration/settings');
+      const response = await Settings.getSchoolSettings();
+      if (response.success && response.data) {
+        // Combine school info with settings for receipt display
+        schoolData.value = {
+          ...response.data.schoolInfo,
+          address: response.data.contactInfo?.address || '', // Include address from contact info
+          trust_name: response.data.schoolInfo?.trustName || '', // Set trust_name in main object
+          receiptSchoolName: response.data.schoolInfo?.receiptSchoolName || '', // Include receipt school name
+          settings: {
+            trust_name: response.data.schoolInfo?.trustName || ''
+          }
+        };
       }
     }
   } catch (error) {

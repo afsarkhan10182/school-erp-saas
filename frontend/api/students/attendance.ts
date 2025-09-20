@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface AttendanceSession {
   date: string;
@@ -36,21 +36,15 @@ export interface AttendanceReportParams {
 
 export const Attendance = {
   upsertSession: async (data: AttendanceSession) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance/session', data);
-    return response.data;
+    return apiCall('post', '/attendance/session', data);
   },
 
   saveRecords: async (data: AttendanceRecord) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance/records', data);
-    return response.data;
+    return apiCall('post', '/attendance/records', data);
   },
 
   getSession: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/attendance/sessions/${id}`);
-    return response.data;
+    return apiCall('get', `/attendance/sessions/${id}`);
   },
 
   listSessions: async (params?: {
@@ -62,15 +56,11 @@ export const Attendance = {
     section_id?: string;
     status?: 'draft' | 'published';
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/sessions', { params });
-    return response.data;
+    return apiCall('get', '/attendance/sessions', { params });
   },
 
   getReport: async (params: AttendanceReportParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/reports', { params });
-    return response.data;
+    return apiCall('get', '/attendance/reports', { params });
   },
 
   exportReport: async (queryString: string) => {
@@ -82,9 +72,7 @@ export const Attendance = {
   },
 
   bulkImport: async (rows: any[]) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance/bulk-import', { rows });
-    return response.data;
+    return apiCall('post', '/attendance/bulk-import', { rows });
   },
 
   // File upload for bulk import
@@ -131,9 +119,7 @@ export const Attendance = {
     section_id?: string;
     academic_year?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics', { params });
   },
 
   getAnalyticsSummary: async (params?: {
@@ -142,9 +128,7 @@ export const Attendance = {
     section_id?: string;
     academic_year?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics/summary', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics/summary', { params });
   },
 
   getAttendanceTrends: async (params?: {
@@ -156,15 +140,11 @@ export const Attendance = {
     academic_year?: string;
     group_by?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics/trends', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics/trends', { params });
   },
 
   getClassPerformance: async (params?: { period?: string; academic_year?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics/performance/classes', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics/performance/classes', { params });
   },
 
   getStudentPerformance: async (params?: {
@@ -173,9 +153,7 @@ export const Attendance = {
     section_id?: string;
     academic_year?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics/performance/students', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics/performance/students', { params });
   },
 
   getAttendanceAlerts: async (params?: {
@@ -184,9 +162,7 @@ export const Attendance = {
     section_id?: string;
     academic_year?: string;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/analytics/alerts', { params });
-    return response.data;
+    return apiCall('get', '/attendance/analytics/alerts', { params });
   },
 
   exportAnalytics: async (params?: {
@@ -218,9 +194,7 @@ export const Attendance = {
     page?: number;
     limit?: number;
   }) => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance/reports/detailed', { params });
-    return response.data;
+    return apiCall('get', '/attendance/reports/detailed', { params });
   },
 
   getStudentAttendanceHistory: async (
@@ -232,8 +206,6 @@ export const Attendance = {
       academic_year?: string;
     }
   ) => {
-    const api = createApiInstance();
-    const response = await api.get(`/attendance/student/${studentId}/history`, { params });
-    return response.data;
+    return apiCall('get', `/attendance/student/${studentId}/history`, { params });
   }
 };

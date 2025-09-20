@@ -114,9 +114,9 @@
 import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { Classes, Sections, Students, Attendance } from '~/api';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 
-const auth = useAuthStore();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const loading = ref(false);
 const saving = ref(false);
 const session = ref<any>(null);
@@ -215,7 +215,7 @@ const createOrGetSession = async () => {
   try {
     // Ensure context
     // @ts-ignore
-    if (!auth.currentSchool?.id || !auth.currentBranch?.id) {
+    if (!user.value?.school?.id || !user.value?.branch?.id) {
       showToast('Select a school/branch to proceed', 'error');
       return;
     }
@@ -230,9 +230,9 @@ const createOrGetSession = async () => {
       // Pass context explicitly for super_admin or when token lacks branch
       // Backend setSchoolContext/setBranchContext will pick these
       // @ts-ignore
-      school_id: auth.currentSchool?.id,
+      school_id: user.value?.school?.id,
       // @ts-ignore
-      branch_id: auth.currentBranch?.id
+      branch_id: user.value?.branch?.id
     } as any);
 
     // Handle different response structures and ensure reactivity
@@ -300,7 +300,6 @@ const save = async (publish: boolean) => {
     // Log records with remarks for verification
     const recordsWithRemarks = records.filter(r => r.remarks && r.remarks.trim() !== '');
     if (recordsWithRemarks.length > 0) {
-      console.log('Records with remarks:', recordsWithRemarks);
     }
 
     // Validate records have valid status values

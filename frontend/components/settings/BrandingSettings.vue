@@ -102,7 +102,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
-import { getLogoUrl } from '~/utils/imageUtils';
+import { getLogoUrl } from '~/utils/image';
 import { Settings } from '~/api/administration/settings';
 import { useAuthStore } from '~/stores/auth';
 
@@ -134,7 +134,6 @@ const receiptSettings = reactive({
   schoolName: '',
   defaultReceiptTitle: 'Fee Receipt',
   receiptLogo: '',
-  trustName: '',
   receiptFooter: '',
   showSchoolLogo: true,
   showReceiptLogo: true,
@@ -161,7 +160,6 @@ const loadBrandingSettings = async () => {
           schoolName: data.receiptSettings.schoolName || authStore.currentSchool?.name || '',
           defaultReceiptTitle: data.receiptSettings.defaultReceiptTitle || 'Fee Receipt',
           receiptLogo: data.receiptSettings.receiptLogo || '',
-          trustName: data.receiptSettings.trustName,
           receiptFooter: data.receiptSettings.receiptFooter || '',
           showSchoolLogo: data.receiptSettings.showSchoolLogo !== false,
           showReceiptLogo: data.receiptSettings.showReceiptLogo !== false,

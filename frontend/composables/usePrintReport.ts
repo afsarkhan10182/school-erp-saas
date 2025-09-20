@@ -1,7 +1,7 @@
 // Common Print Report Composable
 // Reusable print functionality for all reports
 
-import { calculateReportSummary, formatCellValue, getCellAlignment } from '~/utils/exportConfig';
+import { calculateReportSummary, formatCellValue, getCellAlignment } from '~/utils/export';
 
 export interface PrintReportData {
   title: string;

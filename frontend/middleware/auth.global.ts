@@ -1,13 +1,18 @@
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Only run on client side
   if (import.meta.server) return;
 
-  const authStore = useAuthStore();
+  const { isLoggedIn, user } = useAuth();
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
+  const publicRoutes = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/reset-password'
+  ];
   const isPublicRoute = publicRoutes.includes(to.path);
 
   // INSTANT CHECK: Look for HTTP-only cookie presence (prevents flash on new tabs)
@@ -15,7 +20,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   const hasTokenCookie = !!accessToken.value;
 
   // Check if user is authenticated from store state
-  const isAuthenticated = authStore.isLoggedIn && authStore.currentUser;
+  const isAuthenticated = isLoggedIn.value && user.value;
 
   // Debug logging for new tab scenarios
   if (import.meta.client) {
@@ -23,29 +28,30 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       path: to.path,
       hasTokenCookie,
       isAuthenticated,
-      isInitializing: authStore.isInitializing,
+      isInitializing: false, // Auth composable handles initialization
       isPublicRoute
     });
   }
 
   // CASE 1: User is authenticated (via store or cookie) and trying to access login page
-  if (to.path === '/login' && (isAuthenticated || hasTokenCookie)) {
+  if (to.path === '/auth/login' && (isAuthenticated || hasTokenCookie)) {
     console.log('🔒 Redirecting authenticated user from login to dashboard');
     return navigateTo('/dashboard');
   }
 
   // CASE 2: User has token cookie but store isn't initialized yet (new tab scenario)
-  if (hasTokenCookie && !isAuthenticated && !authStore.isInitializing) {
+  if (hasTokenCookie && !isAuthenticated) {
     console.log('🔒 New tab detected - allowing navigation with background auth check');
     // Allow navigation immediately and verify auth in background
     nextTick(async () => {
       try {
-        const isValid = await authStore.checkAuth();
+        // Auth verification is handled by the composable
+        const isValid = isLoggedIn.value;
         if (!isValid) {
           // Only redirect if we're not on a public route
           if (!isPublicRoute) {
             console.log('🔒 Background auth check failed - redirecting to login');
-            await navigateTo('/login');
+            await navigateTo('/auth/login');
           }
         } else {
           console.log('🔒 Background auth check successful');
@@ -54,7 +60,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
         console.error('🔒 Background auth verification failed:', error);
         // Only redirect if we're not on a public route
         if (!isPublicRoute) {
-          await navigateTo('/login');
+          await navigateTo('/auth/login');
         }
       }
     });
@@ -67,10 +73,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   if (!isAuthenticated && !isPublicRoute && !hasTokenCookie) {
     console.log('🔒 No auth - redirecting to login');
     // No token cookie and not authenticated - redirect to login immediately
-    return navigateTo('/login');
+    return navigateTo('/auth/login');
   }
-
-  // CASE 4: User is authenticated and accessing any route (normal navigation)
-  console.log('🔒 Authenticated user - allowing navigation');
-  // No action needed - allow navigation
 });

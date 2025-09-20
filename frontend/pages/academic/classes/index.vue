@@ -47,6 +47,7 @@
                   Branch
                 </th>
                 <th
+                  v-if="streamsEnabled"
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Streams
@@ -92,7 +93,10 @@
                     >
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td
+                  v-if="streamsEnabled"
+                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                >
                   <span
                     v-if="classItem.has_stream"
                     class="text-blue-600 dark:text-blue-400 font-medium"
@@ -159,7 +163,7 @@
             <form @submit.prevent="saveClass">
               <!-- School Selector for Super Admin -->
               <div
-                v-if="authStore.user?.role === 'super_admin' && !isEditing"
+                v-if="isSuperAdmin && !isEditing"
                 class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
               >
                 <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
@@ -215,14 +219,7 @@
               </div>
 
               <!-- Branch Selector for School Admin -->
-              <div
-                v-if="
-                  authStore.user?.role === 'school_admin' &&
-                  !isEditing &&
-                  availableBranches.length > 1
-                "
-                class="mb-4"
-              >
+              <div v-if="isSchoolAdmin && !isEditing && availableBranches.length > 1" class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Branch *</label
                 >
@@ -240,11 +237,7 @@
 
               <!-- Branch Information Display for School Admin with Single Branch -->
               <div
-                v-if="
-                  authStore.user?.role === 'school_admin' &&
-                  !isEditing &&
-                  availableBranches.length === 1
-                "
+                v-if="isSchoolAdmin && !isEditing && availableBranches.length === 1"
                 class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
               >
                 <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
@@ -270,7 +263,7 @@
                   📍 Branch Information
                 </h4>
                 <div class="space-y-2">
-                  <div v-if="authStore.user?.role === 'super_admin'">
+                  <div v-if="isSuperAdmin">
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
                       >School</label
                     >
@@ -338,7 +331,7 @@
                 </label>
               </div>
 
-              <div class="mb-6">
+              <div v-if="streamsEnabled" class="mb-6">
                 <label class="flex items-center">
                   <input
                     v-model="form.has_stream"
@@ -383,10 +376,12 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Classes, Schools, Branches } from '~/api';
 import { Plus } from 'lucide-vue-next';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useToast } from '~/composables/useToast';
+import { useAcademicSettings } from '~/utils/settings';
 
+const { isStreamsEnabled } = useAcademicSettings();
 const { showError, showWarning } = useToast();
 
 const classes = ref([]);
@@ -395,8 +390,9 @@ const showModal = ref(false);
 const isEditing = ref(false);
 const isSubmitting = ref(false);
 const editingId = ref(null);
+const streamsEnabled = ref(false);
 
-const authStore = useAuthStore();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { getBranchContext } = useBranchContext();
 
 // School/Branch selection for super admin
@@ -423,6 +419,16 @@ const resetForm = () => {
   selectedBranchId.value = '';
 };
 
+// Load streams setting on component mount
+const loadStreamsSetting = async () => {
+  try {
+    const result = await isStreamsEnabled(true);
+    streamsEnabled.value = result;
+  } catch (error) {
+    streamsEnabled.value = false;
+  }
+};
+
 // Helper functions to get school and branch names
 const getSelectedSchoolName = () => {
   if (!selectedSchoolId.value) return 'Not selected';
@@ -438,7 +444,7 @@ const getSelectedBranchName = () => {
 
 // Fetch schools for super admin
 const fetchSchools = async () => {
-  if (authStore.user?.role !== 'super_admin') return;
+  if (!isSuperAdmin.value) return;
 
   try {
     const response = await Schools.getAll();
@@ -467,12 +473,12 @@ const fetchBranchesForSchool = async schoolId => {
 
 // Fetch branches for current user's school
 const fetchBranchesForCurrentSchool = async () => {
-  if (authStore.user?.role === 'super_admin') return; // Super admin uses school selection
+  if (isSuperAdmin.value) return; // Super admin uses school selection
 
   try {
-    const schoolId = authStore.user?.school_id;
+    const schoolId = user.value?.school_id;
     if (!schoolId) {
-      console.error('No school_id found for user:', authStore.user);
+      console.error('No school_id found for user:', user.value);
       return;
     }
 
@@ -481,7 +487,7 @@ const fetchBranchesForCurrentSchool = async () => {
     availableBranches.value = response.data || [];
 
     // Auto-select the only branch for School Admin if there's only one
-    if (authStore.user?.role === 'school_admin' && availableBranches.value.length === 1) {
+    if (isSchoolAdmin.value && availableBranches.value.length === 1) {
       selectedBranchId.value = availableBranches.value[0].id;
     }
   } catch (error) {
@@ -540,7 +546,7 @@ const editClass = async classItem => {
   editingId.value = classItem.id;
 
   // Set school and branch context for super admin
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     selectedSchoolId.value = classItem.school_id;
     // Load branches for the school
     if (classItem.school_id) {
@@ -584,7 +590,7 @@ const saveClass = async () => {
     };
 
     // Add school_id and branch_id for super admin when creating a new class
-    if (!isEditing.value && authStore.user?.role === 'super_admin') {
+    if (!isEditing.value && isSuperAdmin.value) {
       if (!selectedSchoolId.value || !selectedBranchId.value) {
         showWarning('Please select both school and branch first to create the class');
         return;
@@ -595,7 +601,7 @@ const saveClass = async () => {
     }
 
     // Add branch_id for school admin when creating a new class
-    if (!isEditing.value && authStore.user?.role === 'school_admin') {
+    if (!isEditing.value && isSchoolAdmin.value) {
       // For School Admin, branch_id is always required
       if (availableBranches.length > 1 && !selectedBranchId.value) {
         showWarning('Please select a branch first to create the class');
@@ -610,15 +616,12 @@ const saveClass = async () => {
       } else {
         // Fallback: try to get branch from user context
         const branchContext = getBranchContext();
-        console.log('Branch context:', branchContext);
-        console.log('Available branches:', availableBranches.value);
-        console.log('Selected branch ID:', selectedBranchId.value);
 
         if (branchContext?.branchId) {
           payload.branch_id = branchContext.branchId;
-        } else if (authStore.user?.branch_id) {
+        } else if (user.value?.branch_id) {
           // Use user's assigned branch as last resort
-          payload.branch_id = authStore.user.branch_id;
+          payload.branch_id = user.value.branch_id;
         } else {
           showError('Unable to determine branch. Please refresh the page and try again.');
           return;
@@ -728,13 +731,16 @@ const deleteClass = async id => {
 onMounted(async () => {
   fetchClasses();
 
+  // Load streams setting
+  await loadStreamsSetting();
+
   // Fetch schools for super admin
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     fetchSchools();
   }
 
   // Fetch branches for school admin
-  if (authStore.user?.role === 'school_admin') {
+  if (isSchoolAdmin.value) {
     await fetchBranchesForCurrentSchool();
   }
 });

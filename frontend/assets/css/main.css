@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global checkbox cursor pointer */
+@layer base {
+  input[type='checkbox'] {
+    cursor: pointer;
+  }
+}
+
 @layer base {
   :root {
     /* Light theme variables */

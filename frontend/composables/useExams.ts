@@ -41,7 +41,12 @@ export const useExams = () => {
       totalPages: 0
     },
     filters: {},
-    stats: null
+    stats: {
+      total_exams: 0,
+      active_exams: 0,
+      total_results: 0,
+      average_percentage: 0
+    }
   });
 
   // Computed
@@ -285,7 +290,12 @@ export const useExams = () => {
       totalPages: 0
     };
     state.filters = {};
-    state.stats = null;
+    state.stats = {
+      total_exams: 0,
+      active_exams: 0,
+      total_results: 0,
+      average_percentage: 0
+    };
   };
 
   return {

@@ -288,7 +288,7 @@
                       <button
                         v-if="
                           !isSchoolAdmin ||
-                          (user.role !== 'school_admin' && user.id !== authStore.user?.id)
+                          (user.role !== 'school_admin' && user.id !== user.value?.id)
                         "
                         @click="confirmDelete(user)"
                         class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
@@ -374,15 +374,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { Users, Branches } from '~/api';
 import { useToast } from 'vue-toastification';
 
-const authStore = useAuthStore();
+const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
 
 // Access control - only Super Admin and School Admin can access user management
-const user = authStore.user;
-if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
+if (!isSuperAdmin.value && !isSchoolAdmin.value) {
   // Show error toast
   if (typeof window !== 'undefined') {
     const event = new CustomEvent('show-toast', {
@@ -395,8 +394,6 @@ if (user?.role !== 'super_admin' && user?.role !== 'school_admin') {
   }
   await navigateTo('/dashboard');
 }
-
-const { user: currentUser } = useAuthStore();
 const users = ref([]);
 const branches = ref([]);
 const searchQuery = ref('');
@@ -413,11 +410,9 @@ const newStaff = ref({
   email: '',
   password: '',
   role: 'teacher',
-  school_id: authStore.user?.school_id,
+  school_id: user.value?.school_id,
   branch_id: ''
 });
-
-const isSchoolAdmin = computed(() => authStore.user?.role === 'school_admin');
 
 // Format role for display
 const formatRole = role => {
@@ -506,8 +501,8 @@ const updateRoleCounts = () => {
 
 const fetchBranches = async () => {
   try {
-    if (authStore.user?.school_id) {
-      const response = await Branches.getForDropdown({ school_id: authStore.user.school_id });
+    if (user.value?.school_id) {
+      const response = await Branches.getForDropdown({ school_id: user.value.school_id });
       branches.value = response.data || [];
     }
   } catch (error) {
@@ -525,7 +520,7 @@ const fetchUsers = async (showLoading = true) => {
     if (isSchoolAdmin.value) {
       // Use the users endpoint with school_id filter for school admins
       response = await Users.getAll({
-        schoolId: authStore.user.school_id,
+        schoolId: user.value.school_id,
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
         search: searchQuery.value || undefined
       });

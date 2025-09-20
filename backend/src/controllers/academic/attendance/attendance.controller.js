@@ -1,7 +1,7 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const ApiError = require('~/utils/ApiError');
-const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { logger } = require('~/utils/shared/logger');
 const {
   AttendanceSession,
   AttendanceRecord,
@@ -10,10 +10,10 @@ const {
   Class,
   Section
 } = require('~/models');
-const { sendSMS } = require('~/utils/sms');
-const attendanceExportService = require('~/services/attendance-export.service');
-const AttendanceValidationService = require('~/services/attendance-validation.service');
-const { sendEmail } = require('~/utils/email');
+const { sendSMS } = require('~/utils/communication/sms');
+const attendanceExportService = require('~/services/academic/attendance-export.service');
+const AttendanceValidationService = require('~/services/academic/attendance-validation.service');
+const { sendEmail } = require('~/utils/communication/email');
 
 // Create or get an attendance session for a class/section/date/period
 const upsertSession = async (req, res, next) => {

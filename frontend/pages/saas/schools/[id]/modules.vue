@@ -24,6 +24,7 @@
         </div>
       </div>
       <div class="flex gap-3">
+        <button @click="refreshData" class="btn-secondary" :disabled="loading">🔄 Refresh</button>
         <NuxtLink :to="`/saas/schools/${$route.params.id}/edit`" class="btn-secondary">
           Edit School
         </NuxtLink>
@@ -270,10 +271,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Schools, Saas } from '~/api';
 
 const authStore = useAuthStore();
@@ -321,25 +323,65 @@ const loadSchoolModules = async () => {
   try {
     const schoolId = route.params.id;
 
+    // Try to load from sessionStorage first for better performance
+    if (import.meta.client) {
+      const cachedSchool = sessionStorage.getItem(`school-${schoolId}`);
+      const cachedModules = sessionStorage.getItem(`modules-${schoolId}`);
+
+      if (cachedSchool && cachedModules) {
+        try {
+          school.value = JSON.parse(cachedSchool);
+          modules.value = JSON.parse(cachedModules);
+          console.log('Loaded from cache:', { school: school.value, modules: modules.value });
+        } catch (cacheError) {
+          console.warn('Cache parse error:', cacheError);
+        }
+      }
+    }
+
     // Load school details
     const schoolResponse = await Schools.getById(schoolId);
     if (schoolResponse.success) {
       school.value = schoolResponse.data.school;
+
+      // Save to sessionStorage for persistence
+      if (import.meta.client) {
+        sessionStorage.setItem(`school-${schoolId}`, JSON.stringify(school.value));
+      }
     }
 
     // Load school modules
     const modulesResponse = await Schools.getModules(schoolId);
+    console.log('Modules API response:', modulesResponse);
+
     if (modulesResponse.success) {
       modules.value = modulesResponse.data.modules.map(module => {
         // Ensure enabled property is properly set
         const isEnabled = module.enabled !== false && module.enabled !== 'false';
+        console.log(`Module ${module.code}:`, {
+          originalEnabled: module.enabled,
+          processedEnabled: isEnabled,
+          isInPlan: !module.upgradeRequired,
+          canEnable: module.canEnable,
+          fullModule: module
+        });
         return {
           ...module,
-          enabled: isEnabled,
-          icon: getModuleIcon(module.code || module.name),
-          description: getModuleDescription(module.code || module.name)
+          enabled: isEnabled
+          // Use database data directly - no hardcoded icons/descriptions
         };
       });
+
+      // Log specific modules for debugging
+      const examModule = modules.value.find(m => m.code === 'exams');
+      const attendanceModule = modules.value.find(m => m.code === 'attendance');
+      console.log('Exam module:', examModule);
+      console.log('Attendance module:', attendanceModule);
+
+      // Save to sessionStorage for persistence
+      if (import.meta.client) {
+        sessionStorage.setItem(`modules-${schoolId}`, JSON.stringify(modules.value));
+      }
     }
 
     // Load plan details if available
@@ -369,6 +411,15 @@ const toggleModule = async (moduleCode, enabled) => {
   const module = modules.value.find(m => m.code === moduleCode);
   if (!module || module.is_core) return;
 
+  console.log('Toggle module:', {
+    moduleCode,
+    enabled,
+    module,
+    schoolId: route.params.id,
+    isExamModule: moduleCode === 'exams',
+    isAttendanceModule: moduleCode === 'attendance'
+  });
+
   // Check if this is the last enabled non-core module being disabled
   if (!enabled) {
     const enabledNonCoreModules = modules.value.filter(
@@ -389,11 +440,41 @@ const toggleModule = async (moduleCode, enabled) => {
   saving.value = true;
 
   try {
+    console.log('Calling toggleSchoolModule API:', {
+      schoolId: route.params.id,
+      moduleCode,
+      enabled
+    });
+
     const response = await Saas.toggleSchoolModule(route.params.id, moduleCode, enabled);
+
+    console.log('Toggle API response:', response);
 
     if (response.success) {
       // Update the module state
       module.enabled = enabled;
+
+      // Update sessionStorage immediately
+      if (import.meta.client) {
+        sessionStorage.setItem(`modules-${route.params.id}`, JSON.stringify(modules.value));
+      }
+
+      // Force reactivity update
+      modules.value = [...modules.value];
+
+      // Clear module cache and reload modules to refresh sidebar immediately
+      const { clearModuleCache, loadUserModules } = useModuleAccess();
+      clearModuleCache();
+      await loadUserModules(true); // Force reload modules
+
+      // Set refresh flags for middleware optimization
+      if (import.meta.client) {
+        const timestamp = Date.now().toString();
+        localStorage.setItem('modules-refresh', timestamp);
+        sessionStorage.setItem('modules-refresh', 'true');
+        // Also set a global flag for immediate detection
+        sessionStorage.setItem('last-module-change', timestamp);
+      }
 
       showToastNotification(
         `Module "${module.name}" ${enabled ? 'enabled' : 'disabled'} successfully`,
@@ -427,70 +508,54 @@ const hideToast = () => {
   showToast.value = false;
 };
 
-// Helper functions for module icons and descriptions
-const getModuleIcon = moduleCode => {
-  const code = moduleCode.toLowerCase();
-  const icons = {
-    students: '👥',
-    student: '👥',
-    attendance: '📊',
-    exam: '📝',
-    examination: '📝',
-    library: '📚',
-    transport: '🚌',
-    hr: '👤',
-    system: '⚙️',
-    settings: '⚙️',
-    fee: '💰',
-    payment: '💰',
-    financial: '💰',
-    report: '📈',
-    analytics: '📈',
-    advanced: '📈'
-  };
+// Refresh data manually
+const refreshData = async () => {
+  modules.value = [];
+  school.value = null;
+  await loadSchoolModules();
+};
 
-  for (const [key, icon] of Object.entries(icons)) {
-    if (code.includes(key)) {
-      return icon;
+// Use database-driven module data instead of hardcoded helper functions
+// All module information (icons, descriptions) should come from the API response
+
+// Watch for route changes to handle navigation
+watch(
+  () => route.params.id,
+  (newSchoolId, oldSchoolId) => {
+    if (newSchoolId !== oldSchoolId) {
+      // Different school, reload data
+      modules.value = [];
+      school.value = null;
+      loadSchoolModules();
+    }
+  },
+  { immediate: false }
+);
+
+// Load data on mount only if not already loaded
+onMounted(async () => {
+  const schoolId = route.params.id;
+
+  // Try to load from sessionStorage first
+  if (import.meta.client) {
+    const cachedModules = sessionStorage.getItem(`modules-${schoolId}`);
+    const cachedSchool = sessionStorage.getItem(`school-${schoolId}`);
+
+    if (cachedModules && cachedSchool) {
+      try {
+        modules.value = JSON.parse(cachedModules);
+        school.value = JSON.parse(cachedSchool);
+        return; // Use cached data
+      } catch (e) {
+        console.warn('Failed to parse cached data:', e);
+      }
     }
   }
 
-  return '📦';
-};
-
-const getModuleDescription = moduleCode => {
-  const code = moduleCode.toLowerCase();
-  const descriptions = {
-    students: 'Admit students, manage profiles, class assignments, and student records',
-    student: 'Admit students, manage profiles, class assignments, and student records',
-    attendance: 'Track student and staff attendance with reports and notifications',
-    exam: 'Exam schedules, results, grades, and academic performance tracking',
-    examination: 'Exam schedules, results, grades, and academic performance tracking',
-    library: 'Book catalog, issue/return, fine management, and library reports',
-    transport: 'Bus routes, vehicle management, student transportation tracking',
-    hr: 'Staff management, payroll, leave management, and HR reports',
-    system: 'School configuration, user management, and system preferences',
-    settings: 'School configuration, user management, and system preferences',
-    fee: 'Fee types, structures, invoices, payments, and collections',
-    payment: 'Fee types, structures, invoices, payments, and collections',
-    financial: 'Fee types, structures, invoices, payments, and collections',
-    report: 'Comprehensive analytics, custom reports, and data export',
-    analytics: 'Comprehensive analytics, custom reports, and data export',
-    advanced: 'Comprehensive analytics, custom reports, and data export'
-  };
-
-  for (const [key, description] of Object.entries(descriptions)) {
-    if (code.includes(key)) {
-      return description;
-    }
+  // Only load if modules are empty (first visit) or if we need to refresh
+  if (modules.value.length === 0 || !school.value) {
+    await loadSchoolModules();
   }
-
-  return 'Module description';
-};
-
-// Load data on mount
-onMounted(() => {
-  loadSchoolModules();
 });
 </script>
 

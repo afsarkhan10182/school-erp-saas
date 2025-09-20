@@ -775,7 +775,7 @@
               />
             </div>
             <!-- School dropdown for super admin -->
-            <div v-if="authStore.user?.role === 'super_admin'">
+            <div v-if="isSuperAdmin">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >School</label
               >
@@ -1251,15 +1251,15 @@ import {
   Printer
 } from 'lucide-vue-next';
 import { Students } from '~/api';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
-import Pagination from '~/components/Pagination.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import { AcademicYears, Classes, Sections, Streams, Branches, Schools } from '~/api';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';
 
-// Get auth store and toast
-const authStore = useAuthStore();
+// Get auth composable and toast
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { showToast } = useToast();
 
 // Get print and export composables
@@ -1330,16 +1330,16 @@ const filters = reactive({
 
 // Initialize filters based on user role
 const initializeFilters = () => {
-  if (authStore.user?.role === 'super_admin') {
+  if (isSuperAdmin.value) {
     // Super admin can select any school
     filters.school_id = '';
-  } else if (authStore.user?.role === 'school_admin') {
+  } else if (isSchoolAdmin.value) {
     // School admin is restricted to their school
-    filters.school_id = authStore.user?.school_id || '';
-  } else if (authStore.user?.role === 'branch_admin') {
+    filters.school_id = user.value?.school_id || '';
+  } else if (isBranchAdmin.value) {
     // Branch admin is restricted to their school and branch
-    filters.school_id = authStore.user?.school_id || '';
-    filters.branch_id = authStore.user?.branch_id || '';
+    filters.school_id = user.value?.school_id || '';
+    filters.branch_id = user.value?.branch_id || '';
   }
 };
 
@@ -1584,7 +1584,7 @@ const loadBranches = async () => {
 
 const loadSchools = async () => {
   try {
-    if (authStore.user?.role === 'super_admin') {
+    if (isSuperAdmin.value) {
       const response = await Schools.getAll();
       schools.value = response.data || [];
     }
@@ -2213,18 +2213,7 @@ onMounted(async () => {
     console.log('🚀 Initializing student report page...');
 
     // Wait for auth store to initialize
-    if (authStore.isInitializing) {
-      await new Promise(resolve => {
-        const checkInit = () => {
-          if (!authStore.isInitializing) {
-            resolve(true);
-          } else {
-            setTimeout(checkInit, 50);
-          }
-        };
-        checkInit();
-      });
-    }
+    // Auth composable handles initialization automatically
 
     await Promise.all([
       loadAcademicYears(),

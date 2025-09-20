@@ -80,6 +80,8 @@
 
 <script setup lang="ts">
 import { useDropdowns } from '~/composables/useDropdowns';
+import FormField from '~/components/ui/FormField.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 interface Props {
   modelValue?: Record<string, any>;

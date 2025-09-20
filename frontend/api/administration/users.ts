@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface UserParams {
   page?: number;
@@ -32,33 +32,23 @@ export interface PasswordData {
 
 export const Users = {
   getAll: async (params?: UserParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/users', { params });
-    return response.data;
+    return apiCall('get', '/users', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/users/${id}`);
-    return response.data;
+    return apiCall('get', `/users/${id}`);
   },
 
   create: async (userData: UserData) => {
-    const api = createApiInstance();
-    const response = await api.post('/users', userData);
-    return response.data;
+    return apiCall('post', '/users', userData);
   },
 
   update: async (id: string, userData: UserData) => {
-    const api = createApiInstance();
-    const response = await api.put(`/users/${id}`, userData);
-    return response.data;
+    return apiCall('put', `/users/${id}`, userData);
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/users/${id}`);
-    return response.data;
+    return apiCall('delete', `/users/${id}`);
   },
 
   updateProfile: async (profileData: FormData) => {
@@ -70,8 +60,6 @@ export const Users = {
   },
 
   changePassword: async (passwordData: PasswordData) => {
-    const api = createApiInstance();
-    const response = await api.post('/users/change-password', passwordData);
-    return response.data;
+    return apiCall('post', '/users/change-password', passwordData);
   }
 };

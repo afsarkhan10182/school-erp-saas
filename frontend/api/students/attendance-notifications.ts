@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface AbsenceNotificationData {
   absentStudents: Array<{ student_id: string; remarks?: string }>;
@@ -43,26 +43,18 @@ export interface AttendanceSummaryData {
 
 export const AttendanceNotifications = {
   sendAbsenceNotifications: async (data: AbsenceNotificationData) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance-notifications/absence', data);
-    return response.data;
+    return apiCall('post', '/attendance-notifications/absence', data);
   },
 
   sendLateArrivalNotifications: async (data: LateArrivalNotificationData) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance-notifications/late-arrival', data);
-    return response.data;
+    return apiCall('post', '/attendance-notifications/late-arrival', data);
   },
 
   sendAttendanceSummary: async (data: AttendanceSummaryData) => {
-    const api = createApiInstance();
-    const response = await api.post('/attendance-notifications/summary', data);
-    return response.data;
+    return apiCall('post', '/attendance-notifications/summary', data);
   },
 
   getNotificationSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/attendance-notifications/settings');
-    return response.data;
+    return apiCall('get', '/attendance-notifications/settings');
   }
 };

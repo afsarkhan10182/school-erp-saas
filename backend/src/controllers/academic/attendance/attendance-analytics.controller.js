@@ -1,6 +1,6 @@
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
-const { apiResponse } = require('~/utils/apiResponse');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { apiResponse } = require('~/utils/shared/apiResponse');
 const AttendanceAnalyticsService = require('~/services/academic/attendance-analytics.service');
 const CommonService = require('~/services/shared/common.service');
 

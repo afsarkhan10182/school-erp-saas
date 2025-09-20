@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, LoginCredentials, AuthResponse } from '~/types';
 import { Auth } from '~/api/shared/auth';
+import { clearModuleCache } from '~/composables/useModuleAccess';
 
 interface AuthState {
   user: User | null;
@@ -35,6 +36,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Helper function to clear all auth data
   const clearAuthData = () => {
+    // Clear module access cache first
+    clearModuleCache();
+
     if (import.meta.client) {
       // Clear user data from sessionStorage (for incognito isolation)
       sessionStorage.removeItem('auth-user');
@@ -100,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
         setTimeout(async () => {
           try {
             // Skip verification on login page
-            if (window.location.pathname === '/login') {
+            if (window.location.pathname === '/auth/login') {
               return;
             }
 
@@ -115,8 +119,8 @@ export const useAuthStore = defineStore('auth', () => {
               await silentLogout();
 
               // Redirect to login if not already there
-              if (window.location.pathname !== '/login') {
-                await navigateTo('/login');
+              if (window.location.pathname !== '/auth/login') {
+                await navigateTo('/auth/login');
               }
             }
           } catch (error) {
@@ -204,6 +208,20 @@ export const useAuthStore = defineStore('auth', () => {
         // Brief wait for cookies to be set
         if (import.meta.client) {
           await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Force refresh module cache after login to ensure fresh data
+        if (import.meta.client) {
+          // Clear any stale module cache and force refresh
+          clearModuleCache();
+
+          // Trigger module loading after login
+          setTimeout(() => {
+            const { loadUserModules } = useModuleAccess();
+            loadUserModules(true).catch(error => {
+              console.warn('Failed to load modules after login:', error);
+            });
+          }, 500); // Small delay to ensure auth state is ready
         }
 
         // Ensure initialization is complete
@@ -297,7 +315,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Force redirect to login page to ensure clean state
       if (import.meta.client) {
-        await navigateTo('/login');
+        await navigateTo('/auth/login');
       }
 
       // Reset logout flag after a delay
@@ -439,15 +457,15 @@ export const useAuthStore = defineStore('auth', () => {
         refreshToken.value = null;
 
         // Navigate to login if not already there
-        if (window.location.pathname !== '/login') {
-          navigateTo('/login');
+        if (window.location.pathname !== '/auth/login') {
+          navigateTo('/auth/login');
         }
       } else if (action === 'login') {
         // Refresh auth state from sessionStorage
         refreshFromStorage();
 
         // Navigate to dashboard if on login page
-        if (window.location.pathname === '/login') {
+        if (window.location.pathname === '/auth/login') {
           navigateTo('/dashboard');
         }
       }

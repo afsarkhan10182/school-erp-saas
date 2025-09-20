@@ -371,7 +371,7 @@
               </div>
             </div>
             <!-- School dropdown for super admin -->
-            <div v-if="authStore.user?.role === 'super_admin'">
+            <div v-if="isSuperAdmin">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >School</label
               >
@@ -1198,16 +1198,16 @@ import {
   FeeTypes
 } from '~/api';
 import { Dashboard } from '~/api/shared/dashboard';
-import { useAuthStore } from '~/stores/auth';
+import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
-import Pagination from '~/components/Pagination.vue';
-import UserAvatar from '~/components/UserAvatar.vue';
-import { formatMonthsForAPI } from '~/utils/academicYearUtils';
+import Pagination from '~/components/ui/Pagination.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
+import { formatMonthsForAPI } from '~/utils/academic-year';
 
 // Get auth store and toast
-const authStore = useAuthStore();
+const { user, isSuperAdmin } = useAuth();
 const { showToast } = useToast();
 
 // Export services
@@ -2132,7 +2132,7 @@ const fetchReport = async () => {
 const fetchSchools = async () => {
   try {
     // Only fetch schools for super admin
-    if (authStore.user?.role !== 'super_admin') {
+    if (!isSuperAdmin.value) {
       schools.value = [];
       return;
     }
@@ -2172,30 +2172,23 @@ const fetchBranches = async () => {
     console.log('🌿 All branches before filtering:', allBranches.length, allBranches);
 
     // Apply role-based filtering
-    const user = authStore.user;
-    console.log('👤 Current user:', user);
+    const currentUser = user.value;
 
-    if (user && user.role) {
-      console.log('🔒 Applying role-based filtering for role:', user.role);
-
-      if (user.role === 'super_admin') {
-        console.log('👑 Super admin user, filtering branches');
+    if (currentUser && currentUser.role) {
+      if (currentUser.role === 'super_admin') {
         // Super admin can see all branches, but filter by selected school if specified
         if (filters.school_id) {
-          console.log('🏫 Filtering branches by selected school:', filters.school_id);
           branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
         } else {
           console.log('🏫 No school selected, showing all branches');
           branches.value = allBranches;
         }
-      } else if (user.role === 'school_admin') {
-        console.log('🏫 School admin user, filtering by school_id:', user.school_id);
+      } else if (currentUser.role === 'school_admin') {
         // School admin can see all branches in their school
-        branches.value = allBranches.filter(branch => branch.school_id === user.school_id);
-      } else if (user.role === 'branch_admin') {
-        console.log('🏢 Branch admin user, filtering by branch_id:', user.branch_id);
+        branches.value = allBranches.filter(branch => branch.school_id === currentUser.school_id);
+      } else if (currentUser.role === 'branch_admin') {
         // Branch admin can only see their own branch
-        branches.value = allBranches.filter(branch => branch.id === user.branch_id);
+        branches.value = allBranches.filter(branch => branch.id === currentUser.branch_id);
       } else {
         console.log('⚠️ Unknown user role, showing no branches');
         branches.value = [];

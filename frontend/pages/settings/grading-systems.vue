@@ -564,7 +564,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { gradingSystemApi } from '~/api/academic/grading-systems';
-import Modal from '~/components/Modal.vue';
+import Modal from '~/components/ui/Modal.vue';
 
 // Composables
 const { showToast } = useToast();

@@ -1,5 +1,5 @@
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
 
 class BaseService {
   /**
@@ -345,7 +345,7 @@ class BaseService {
    */
   static async getFromCache(cacheKey, fetchFunction, ttl = 600) {
     try {
-      const RedisUtils = require('~/utils/redis-utils');
+      const RedisUtils = require('~/utils/shared/redis-utils');
       const cachedData = await RedisUtils.get(cacheKey);
 
       if (cachedData) {
@@ -374,7 +374,7 @@ class BaseService {
    */
   static async clearCache(keys) {
     try {
-      const RedisUtils = require('~/utils/redis-utils');
+      const RedisUtils = require('~/utils/shared/redis-utils');
 
       if (Array.isArray(keys)) {
         for (const key of keys) {
@@ -417,6 +417,53 @@ class BaseService {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     return password;
+  }
+
+  /**
+   * Build role-based where clause (from common-operations.service.js)
+   */
+  static buildRoleBasedWhere(user, additionalWhere = {}) {
+    let whereClause = { ...additionalWhere };
+
+    switch (user.role) {
+      case 'super_admin':
+        // Super admin can see all data
+        break;
+      case 'school_admin':
+        whereClause.school_id = user.school_id;
+        break;
+      case 'branch_admin':
+        whereClause.school_id = user.school_id;
+        whereClause.branch_id = user.branch_id;
+        break;
+      default:
+        // For other roles, add appropriate restrictions
+        whereClause.school_id = user.school_id;
+        if (user.branch_id) {
+          whereClause.branch_id = user.branch_id;
+        }
+    }
+
+    return whereClause;
+  }
+
+  /**
+   * Build search query with multiple fields (from common-operations.service.js)
+   */
+  static buildSearchQuery(search, fields, baseWhere = {}) {
+    if (!search || !fields || fields.length === 0) {
+      return baseWhere;
+    }
+
+    const { Op } = require('sequelize');
+    const searchConditions = fields.map(field => ({
+      [field]: { [Op.iLike]: `%${search}%` }
+    }));
+
+    return {
+      ...baseWhere,
+      [Op.or]: searchConditions
+    };
   }
 }
 

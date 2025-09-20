@@ -688,7 +688,7 @@ import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
-import UserAvatar from '~/components/UserAvatar.vue';
+import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
@@ -713,7 +713,7 @@ const fetchStudent = async () => {
     // Handle specific error cases
     if (error.response?.status === 401) {
       // User not authenticated, redirect to login
-      await navigateTo('/login');
+      await navigateTo('/auth/login');
     } else if (error.response?.status === 403) {
       // User not authorized
       console.error('User not authorized to view this student');

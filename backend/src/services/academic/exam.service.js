@@ -14,8 +14,8 @@ const {
   GradeScale
 } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
-const ApiError = require('~/utils/ApiError');
-const { logger } = require('~/utils/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { logger } = require('~/utils/shared/logger');
 
 class ExamService extends BaseService {
   /**
@@ -921,7 +921,8 @@ class ExamService extends BaseService {
 
     return new Promise((resolve, reject) => {
       const results = [];
-      const tempPath = path.join(__dirname, '../../../uploads/temp', file.filename);
+      const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
+      const tempPath = resolveUploadsPath('temp', file.filename);
 
       try {
         const csvContent = fs.readFileSync(tempPath, 'utf-8');
@@ -981,7 +982,8 @@ class ExamService extends BaseService {
     const fs = require('fs');
 
     const workbook = new ExcelJS.Workbook();
-    const tempPath = path.join(__dirname, '../../../uploads/temp', file.filename);
+    const { resolveUploadsPath } = require('~/utils/shared/pathHelper');
+    const tempPath = resolveUploadsPath('temp', file.filename);
 
     await workbook.xlsx.readFile(tempPath);
     const worksheet = workbook.getWorksheet(1);

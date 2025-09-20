@@ -55,6 +55,9 @@ const config = {
       'application/csv'
     ]
   },
+  templates: {
+    dir: process.env.TEMPLATES_DIR || './templates'
+  },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
     toFile: process.env.LOG_TO_FILE === 'true',

@@ -393,8 +393,8 @@
             >
               <option value="trial">Trial</option>
               <option value="active">Active</option>
-              <option value="lifetime">Lifetime</option>
               <option value="suspended">Suspended</option>
+              <option value="expired">Expired</option>
             </select>
           </div>
           <div v-if="form.subscriptionData.status === 'trial'">
@@ -425,7 +425,8 @@
           <div
             v-if="
               form.subscriptionData.status !== 'lifetime' &&
-              selectedPlan?.billing_cycle !== 'lifetime'
+              selectedPlan?.billing_cycle !== 'lifetime' &&
+              selectedPlan?.code !== 'LIFETIME'
             "
           >
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
@@ -824,8 +825,8 @@ const onPlanChange = () => {
         endDate.setFullYear(endDate.getFullYear() + 1);
         break;
       case 'lifetime':
-        endDate.setFullYear(endDate.getFullYear() + 100); // Set to far future
-        break;
+        form.value.subscriptionData.end_date = ''; // Lifetime plans have no end date
+        return;
     }
 
     form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
@@ -907,12 +908,10 @@ const handleStatusChange = () => {
     form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
   } else if (
     form.value.subscriptionData.status === 'active' &&
-    selectedPlan?.billing_cycle === 'lifetime'
+    (selectedPlan?.billing_cycle === 'lifetime' || selectedPlan?.code === 'LIFETIME')
   ) {
-    const startDate = new Date(form.value.subscriptionData.start_date);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(startDate.getFullYear() + 100); // Set to far future
-    form.value.subscriptionData.end_date = endDate.toISOString().split('T')[0];
+    // Lifetime plans have no end date
+    form.value.subscriptionData.end_date = '';
   }
 };
 

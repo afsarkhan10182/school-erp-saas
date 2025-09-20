@@ -78,8 +78,28 @@ export const useConfig = () => {
         throw new Error('No school ID available');
       }
 
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('Module configuration API not implemented yet');
+      // Handle academic module configuration through academic settings API
+      if (moduleCode === 'academic') {
+        const { Settings } = await import('~/api/administration/settings');
+        const response = await Settings.getAcademicSettings();
+
+        if (response.success && response.data) {
+          // Map specific keys to their values
+          switch (key) {
+            case 'working_days':
+              return response.data.attendanceSettings?.workingDays || null;
+            case 'attendance_cutoff_time':
+              return response.data.attendanceSettings?.timeSettings?.cutoffTime || null;
+            case 'subject_categories':
+              return response.data.subjectCategories || null;
+            default:
+              return response.data;
+          }
+        }
+      }
+
+      // For other modules, throw error as they're not implemented yet
+      throw new Error(`Module configuration API for ${moduleCode} not implemented yet`);
     } catch (error: any) {
       errors.value.set('module_config', error.message);
       throw error;

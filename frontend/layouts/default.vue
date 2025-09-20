@@ -22,7 +22,10 @@
         />
       </ClientOnly>
 
-      <main class="main-content relative p-6 flex-1 bg-gray-50 dark:bg-gray-900">
+      <main
+        class="main-content relative flex-1 bg-gray-50 dark:bg-gray-900"
+        :class="{ 'p-6': isLoggedIn }"
+      >
         <template v-if="!isHydrated">
           <div class="animate-pulse">
             <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
@@ -43,10 +46,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import Sidebar from '~/components/Sidebar.vue';
-import Header from '~/components/Header.vue';
-import Toast from '~/components/Toast.vue';
-import { useAuthStore } from '~/stores/auth';
+import Sidebar from '~/components/layout/Sidebar.vue';
+import Header from '~/components/layout/Header.vue';
+import Toast from '~/components/ui/Toast.vue';
+import { useAuth } from '~/composables/useAuth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
@@ -57,15 +60,13 @@ const { isMobile } = useMobileDetection();
 const sidebarOpen = ref(true); // Default to open for desktop
 
 const route = useRoute();
-const authStore = useAuthStore();
+const { user } = useAuth();
 const { initializeBranchContext } = useBranchContext();
-
-const user = computed(() => authStore.currentUser);
-const isLoggedIn = computed(() => authStore.isLoggedIn);
+const { isLoggedIn } = useAuth();
 
 const shouldRender = computed(() => {
   if (import.meta.server) return true;
-  return !authStore.isInitializing && isHydrated.value;
+  return isHydrated.value;
 });
 
 const mainContentClasses = computed(() => {
@@ -81,8 +82,9 @@ const toggleSidebar = () => {
 };
 
 const handleLogout = async () => {
-  await authStore.logout();
-  await navigateTo('/login');
+  const { logout } = useAuth();
+  await logout();
+  await navigateTo('/auth/login');
 };
 
 const pageTitle = computed(() => {
@@ -156,7 +158,7 @@ onMounted(async () => {
     });
   }
 
-  if (authStore.isLoggedIn) {
+  if (isLoggedIn.value) {
     await initializeBranchContext();
   }
 });

@@ -1,6 +1,6 @@
 require('dotenv').config();
 require('module-alias/register');
-const { logger } = require('./utils/logger');
+const { logger } = require('./utils/shared/logger');
 const { App } = require('./app');
 
 // Handle uncaught exceptions

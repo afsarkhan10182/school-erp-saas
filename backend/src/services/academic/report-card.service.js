@@ -11,9 +11,10 @@ const {
   GradingSystem,
   GradeScale
 } = require('~/models');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
-const TemplateEngine = require('~/templates/template-engine');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
+const { resolveTemplatesPath } = require('~/utils/shared/pathHelper');
+const TemplateEngine = require(resolveTemplatesPath('template-engine'));
 
 class ReportCardService {
   constructor() {

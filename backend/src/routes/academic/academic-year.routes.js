@@ -10,12 +10,12 @@ const {
   getAcademicYearsForDropdown,
   syncSchoolsToCurrentAcademicYear
 } = require('~/controllers/academic/academic-year.controller');
-const { verifyToken, authorize } = require('~/middleware/auth');
-const { validate } = require('~/middleware/validate');
+const { verifyToken, authorize } = require('~/middleware/core/auth');
+const { validate } = require('~/middleware/shared/validate');
 const {
   createAcademicYear: createAcademicYearValidation,
   updateAcademicYear: updateAcademicYearValidation
-} = require('~/validations/academic/academic-year.validation');
+} = require('~/validations/academic/academic-year');
 
 const router = express.Router();
 

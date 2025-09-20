@@ -304,10 +304,23 @@ const saveSchoolSettings = async data => {
       // Also update user's school information
       if (authStore.user) {
         authStore.updateUser({
-          school_name: response.data.school.name
+          school_name: response.data.school.name,
+          school: {
+            id: response.data.school.id,
+            name: response.data.school.name,
+            code: response.data.school.code,
+            logo: response.data.school.logo || ''
+          }
         });
       }
     }
+
+    // No need for custom events - the cache clearing above is sufficient
+
+    // Clear school settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
 
     showToast('School settings saved successfully', 'success');
   } catch (error) {
@@ -321,8 +334,16 @@ const saveSchoolSettings = async data => {
 const saveAcademicSettings = async data => {
   try {
     loadingStates.academic = true;
-    // API call to save academic settings
-    console.log('Saving academic settings:', data);
+
+    // Make API call to save academic settings
+    const { Settings } = await import('~/api/administration/settings');
+    await Settings.updateAcademicSettings(data);
+
+    // Clear academic settings cache after successful save
+    const { useAcademicSettings } = await import('~/utils/settings');
+    const { clearCache } = useAcademicSettings();
+    clearCache('academic');
+
     showToast('Academic settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving academic settings:', error);
@@ -336,7 +357,6 @@ const saveFeeSettings = async data => {
   try {
     loadingStates.fees = true;
     // API call to save fee settings
-    console.log('Saving fee settings:', data);
     showToast('Fee settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving fee settings:', error);
@@ -377,6 +397,11 @@ const saveBrandingSettings = async data => {
     const { Settings } = await import('~/api/administration/settings');
     await Settings.updateBrandingSettings(formData);
 
+    // Clear branding settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
+
     showToast('Branding settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving branding settings:', error);
@@ -394,6 +419,11 @@ const saveSystemSettings = async data => {
     const { Settings } = await import('~/api/administration/settings');
     await Settings.updateSystemSettings(data);
 
+    // Clear system settings cache after successful save
+    const { useSchoolSettings } = await import('~/utils/settings');
+    const { clearCache } = useSchoolSettings();
+    clearCache();
+
     showToast('System settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving system settings:', error);
@@ -407,7 +437,6 @@ const saveNotificationSettings = async data => {
   try {
     loadingStates.notifications = true;
     // API call to save notification settings
-    console.log('Saving notification settings:', data);
     showToast('Notification settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving notification settings:', error);
@@ -421,7 +450,6 @@ const saveSecuritySettings = async data => {
   try {
     loadingStates.security = true;
     // API call to save security settings
-    console.log('Saving security settings:', data);
     showToast('Security settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving security settings:', error);
@@ -435,7 +463,6 @@ const saveIntegrationSettings = async data => {
   try {
     loadingStates.integrations = true;
     // API call to save integration settings
-    console.log('Saving integration settings:', data);
     showToast('Integration settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving integration settings:', error);
@@ -449,7 +476,6 @@ const saveBackupSettings = async data => {
   try {
     loadingStates.backup = true;
     // API call to save backup settings
-    console.log('Saving backup settings:', data);
     showToast('Backup settings saved successfully', 'success');
   } catch (error) {
     console.error('Error saving backup settings:', error);

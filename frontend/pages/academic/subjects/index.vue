@@ -6,379 +6,156 @@
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Subject Management</h1>
           <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage academic subjects for each class and branch
+            Manage subjects, class assignments, and teacher assignments in one place
           </p>
         </div>
-        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
-          <button
-            @click="openCreateModal"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Plus class="-ml-1 mr-2 h-5 w-5" />
-            Add Subject
-          </button>
-        </div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <BookOpen class="h-6 w-6 text-gray-400" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Total Subjects
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.total || 0 }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <CheckCircle class="h-6 w-6 text-green-400" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Active Subjects
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.active || 0 }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <XCircle class="h-6 w-6 text-red-400" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Inactive Subjects
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.inactive || 0 }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <Tag class="h-6 w-6 text-blue-400" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Categories
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ stats.byCategory?.length || 0 }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filters -->
+      <!-- Branch Selection -->
       <div
+        v-if="shouldShowBranchFilter"
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
       >
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <!-- Search -->
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Search</label
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Branch Selection</h3>
+          <div class="flex items-center space-x-2">
+            <Building2 class="h-5 w-5 text-indigo-600" />
+            <span class="text-sm text-gray-600 dark:text-gray-400"
+              >Select branch to manage subjects</span
             >
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Search subject name, code..."
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @input="debouncedSearch"
-            />
           </div>
+        </div>
 
-          <!-- Category -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Category</label
-            >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- School Selection (Super Admin only) -->
+          <div v-if="isSuperAdmin">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              School
+            </label>
             <select
-              v-model="filters.category"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadSubjects"
+              v-model="selectedSchoolId"
+              @change="onSchoolChange"
+              class="input-field"
+              :disabled="schoolsLoading"
             >
-              <option value="">All Categories</option>
-              <option value="core">Core</option>
-              <option value="elective">Elective</option>
-              <option value="extra_curricular">Extra Curricular</option>
-              <option value="language">Language</option>
-              <option value="science">Science</option>
-              <option value="arts">Arts</option>
-              <option value="commerce">Commerce</option>
+              <option value="">Select School</option>
+              <option v-if="schoolsLoading" value="" disabled>Loading schools...</option>
+              <option v-for="school in availableSchools" :key="school.id" :value="school.id">
+                {{ school.name }}
+              </option>
             </select>
           </div>
 
-          <!-- Status -->
+          <!-- Branch Selection -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Status</label
-            >
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Branch <span class="text-red-500">*</span>
+            </label>
             <select
-              v-model="filters.is_active"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadSubjects"
+              v-model="selectedBranchId"
+              @change="onBranchChange"
+              class="input-field"
+              :disabled="!selectedSchoolId || branchesLoading"
+              required
             >
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
+              <option value="">
+                {{ branchesLoading ? 'Loading branches...' : 'Select Branch' }}
+              </option>
+              <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+              </option>
             </select>
-          </div>
-
-          <!-- Clear Filters -->
-          <div class="flex items-end">
-            <button
-              @click="clearFilters"
-              class="w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Clear Filters
-            </button>
           </div>
         </div>
       </div>
 
-      <!-- Subjects Table -->
+      <!-- Branch Info for Branch Admin -->
       <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+        v-else-if="isBranchAdmin"
+        class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
       >
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Subjects</h3>
-        </div>
-
-        <div v-if="loading" class="p-8 text-center">
-          <div
-            class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-blue-500 hover:bg-blue-400 transition ease-in-out duration-150 cursor-not-allowed"
-          >
-            <svg
-              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Loading subjects...
-          </div>
-        </div>
-
-        <div v-else-if="subjects.length === 0" class="p-8 text-center">
-          <div class="text-gray-500 dark:text-gray-400">
-            <BookOpen class="mx-auto h-12 w-12 text-gray-400" />
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-              No subjects found
-            </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Get started by creating a new subject.
+        <div class="flex items-center">
+          <Building2 class="h-5 w-5 text-blue-600 mr-2" />
+          <div>
+            <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Your Branch: {{ user?.branch_name || 'Your Branch' }}
+            </h4>
+            <p class="text-xs text-blue-700 dark:text-blue-300">
+              Managing subjects for your assigned branch
             </p>
-            <div class="mt-6">
-              <button
-                @click="openCreateModal"
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Plus class="-ml-1 mr-2 h-5 w-5" />
-                Add Subject
-              </button>
-            </div>
           </div>
         </div>
+      </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Subject
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Category
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Class
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Credits
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="subject in subjects"
-                :key="subject.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">
-                      {{ subject.name }}
-                    </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ subject.code }}</div>
-                    <div
-                      v-if="subject.description"
-                      class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-xs"
-                    >
-                      {{ subject.description }}
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    :class="{
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200':
-                        subject.category === 'core',
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
-                        subject.category === 'elective',
-                      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200':
-                        subject.category === 'extra_curricular',
-                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200':
-                        subject.category === 'language',
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
-                        subject.category === 'science',
-                      'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200':
-                        subject.category === 'arts',
-                      'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200':
-                        subject.category === 'commerce'
-                    }"
-                  >
-                    {{ subject.category.replace('_', ' ').toUpperCase() }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ subject.class?.name || 'All Classes' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ subject.credit_hours || 1 }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
-                        subject.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
-                        !subject.is_active
-                    }"
-                  >
-                    {{ subject.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex space-x-2">
-                    <button
-                      @click="editSubject(subject)"
-                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      @click="deleteSubject(subject)"
-                      class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Tab Navigation -->
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
+      >
+        <div class="border-b border-gray-200 dark:border-gray-700">
+          <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              @click="activeTab = tab.id"
+              :class="[
+                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors',
+                activeTab === tab.id
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              ]"
+            >
+              <component :is="tab.icon" class="w-5 h-5 inline-block mr-2" />
+              {{ tab.name }}
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Tab Content -->
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+      >
+        <!-- Branch Selection Required Message -->
+        <div v-if="!selectedBranchId && shouldShowBranchFilter" class="p-8 text-center">
+          <Building2 class="mx-auto h-12 w-12 text-gray-400" />
+          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Select a Branch</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Please select a branch to manage subjects and assignments.
+          </p>
         </div>
 
-        <!-- Pagination -->
-        <div
-          v-if="subjects.length > 0"
-          class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
-        >
-          <Pagination
-            :current-page="filters.page"
-            :total-pages="totalPages"
-            :total-items="totalItems"
-            @page-change="handlePageChange"
+        <!-- Subjects Tab -->
+        <div v-else-if="activeTab === 'subjects'" class="p-6">
+          <SubjectsTab
+            :subjects="subjects"
+            :loading="subjectsLoading"
+            :class-options="classOptions"
+            :selected-branch="selectedBranch"
+            @refresh="loadSubjects"
+            @create="handleSubjectCreate"
+            @update="handleSubjectUpdate"
+            @delete="handleSubjectDelete"
+          />
+        </div>
+
+        <!-- Teacher Assignment Tab -->
+        <div v-else-if="activeTab === 'teacher-assignment'" class="p-6">
+          <TeacherAssignmentTab
+            :assignments="teacherAssignments"
+            :classes="classes"
+            :subjects="subjects"
+            :teachers="teacherOptions"
+            :loading="assignmentsLoading"
+            :academic-years="academicYearOptions"
+            :branch-id="selectedBranchId"
+            @refresh="loadTeacherAssignments"
+            @assign="handleTeacherAssign"
+            @update="handleTeacherUpdate"
+            @remove="handleTeacherRemove"
           />
         </div>
       </div>
     </div>
-
-    <!-- Create/Edit Subject Modal -->
-    <Modal :show="showModal" @close="closeModal">
-      <template #header>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          {{ isEditing ? 'Edit Subject' : 'Create New Subject' }}
-        </h3>
-      </template>
-
-      <template #body>
-        <SubjectForm
-          :subject="editingSubject"
-          :classes="classOptions"
-          @submit="handleSubjectSubmit"
-          @cancel="closeModal"
-        />
-      </template>
-    </Modal>
   </div>
 </template>
 
@@ -387,140 +164,396 @@ import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
-import { Subjects } from '~/api';
-import Modal from '~/components/Modal.vue';
-import Pagination from '~/components/Pagination.vue';
-import SubjectForm from '~/components/forms/SubjectForm.vue';
-import { Plus, BookOpen, CheckCircle, XCircle, Tag } from 'lucide-vue-next';
+import { useAuth } from '~/composables/useAuth';
+import { Subjects, SubjectTeachers, Users } from '~/api';
+import { Schools } from '~/api/administration/schools';
+import { Branches } from '~/api/administration/branches';
+import { AcademicYears } from '~/api/academic/academic-years';
+import { Classes } from '~/api/academic/classes';
+import { BookOpen, UserCheck, Building2 } from 'lucide-vue-next';
+
+// Import tab components
+import SubjectsTab from '~/components/academic/SubjectsTab.vue';
+import TeacherAssignmentTab from '~/components/academic/TeacherAssignmentTab.vue';
 
 // Composables
 const { showToast } = useToast();
-const { classOptions, loadClasses } = useDropdowns();
+const { classOptions } = useDropdowns();
 const { academicYears, fetchAcademicYears } = useAcademics();
+const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+
+// Tab configuration
+const tabs = [
+  { id: 'subjects', name: 'Subjects', icon: BookOpen },
+  { id: 'teacher-assignment', name: 'Subject Teachers', icon: UserCheck }
+];
 
 // Reactive data
-const loading = ref(false);
+const activeTab = ref('subjects');
 const subjects = ref([]);
-const stats = ref({});
-const totalItems = ref(0);
-const totalPages = ref(0);
-const showModal = ref(false);
-const isEditing = ref(false);
-const editingSubject = ref(null);
+const classes = ref([]);
+const teacherAssignments = ref([]);
+const teacherOptions = ref([]);
+const subjectsLoading = ref(false);
+const assignmentsLoading = ref(false);
 
-// Filters
-const filters = ref({
-  page: 1,
-  limit: 10,
-  search: '',
-  category: '',
-  is_active: ''
+// Branch selection
+const selectedSchoolId = ref('');
+const selectedBranchId = ref('');
+const selectedBranch = ref(null);
+const availableSchools = ref([]);
+const availableBranches = ref([]);
+const schoolsLoading = ref(false);
+const branchesLoading = ref(false);
+
+const shouldShowBranchFilter = computed(() => {
+  const shouldShow = isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value;
+  return shouldShow;
+});
+
+const academicYearOptions = computed(() => {
+  return academicYears.value.map(year => ({
+    value: year.name,
+    label: year.name + (year.is_current ? ' (Current)' : '')
+  }));
+});
+
+const currentAcademicYear = computed(() => {
+  return academicYears.value.find(year => year.is_current) || null;
 });
 
 // Methods
-const loadSubjects = async () => {
+const loadSchools = async () => {
   try {
-    loading.value = true;
-    const response = await Subjects.getAll(filters.value);
+    schoolsLoading.value = true;
+    const response = await Schools.getAll();
+    availableSchools.value = response.data?.schools || response.data?.items || response.data || [];
+  } catch (error) {
+    showToast('Failed to load schools', 'error');
+    console.error('Error loading schools:', error);
+  } finally {
+    schoolsLoading.value = false;
+  }
+};
+
+const loadBranches = async schoolId => {
+  try {
+    branchesLoading.value = true;
+    const response = await Branches.getForDropdown({ school_id: schoolId });
+    availableBranches.value = response.data || [];
+  } catch (error) {
+    showToast('Failed to load branches', 'error');
+    console.error('Error loading branches:', error);
+  } finally {
+    branchesLoading.value = false;
+  }
+};
+
+const loadTeachers = async () => {
+  try {
+    const response = await Users.getAll({ role: 'teacher' });
+    teacherOptions.value = (response.data.users || response.data.rows || []).map(teacher => ({
+      value: teacher.id,
+      label: `${teacher.first_name} ${teacher.last_name} (${teacher.email})`
+    }));
+  } catch (error) {
+    console.error('Error loading teachers:', error);
+    showToast('Failed to load teachers', 'error');
+  }
+};
+
+// Load academic data for the selected branch (similar to student registration form)
+const loadAcademicDataForBranch = async () => {
+  try {
+    if (!selectedSchoolId.value || !selectedBranchId.value) {
+      console.log('loadAcademicDataForBranch: Missing school_id or branch_id');
+      return;
+    }
+
+    console.log(
+      'loadAcademicDataForBranch: Loading for school_id:',
+      selectedSchoolId.value,
+      'branch_id:',
+      selectedBranchId.value
+    );
+
+    // Load academic years for the school
+    await fetchAcademicYears(selectedSchoolId.value);
+
+    console.log('loadAcademicDataForBranch: Academic years loaded:', academicYears.value?.length);
+    console.log('loadAcademicDataForBranch: Academic years data:', academicYears.value);
+
+    // Set current academic year if available
+    if (academicYears.value?.length > 0) {
+      const currentYear = academicYears.value.find(y => y.is_current) || academicYears.value[0];
+      if (currentYear) {
+        console.log(
+          'loadAcademicDataForBranch: Found current year:',
+          currentYear.name,
+          'is_current:',
+          currentYear.is_current
+        );
+      } else {
+        console.log('loadAcademicDataForBranch: No current year found');
+      }
+    } else {
+      console.log('loadAcademicDataForBranch: No academic years found');
+    }
+  } catch (error) {
+    console.error('loadAcademicDataForBranch error:', error);
+    showToast('Failed to load academic data for branch', 'error');
+  }
+};
+
+const loadSubjects = async () => {
+  if (!selectedBranchId.value) return;
+
+  try {
+    subjectsLoading.value = true;
+    const response = await Subjects.getAll({
+      limit: 1000,
+      branch_id: selectedBranchId.value
+    });
     subjects.value = response.data.subjects;
-    totalItems.value = response.data.pagination.total;
-    totalPages.value = response.data.pagination.totalPages;
   } catch (error) {
     showToast('Failed to load subjects', 'error');
     console.error('Error loading subjects:', error);
   } finally {
-    loading.value = false;
+    subjectsLoading.value = false;
   }
 };
 
-const loadStats = async () => {
+const loadClassesData = async () => {
+  if (!selectedBranchId.value) return;
+
   try {
-    const response = await Subjects.getStats();
-    stats.value = response.data.stats;
+    // Load classes for teacher assignments
+    const classesResponse = await Classes.getDropdown(`branch_id=${selectedBranchId.value}`);
+    classes.value =
+      classesResponse.data?.classes || classesResponse.data?.data || classesResponse.data || [];
   } catch (error) {
-    console.error('Error loading stats:', error);
+    showToast('Failed to load classes', 'error');
+    console.error('Error loading classes:', error);
   }
 };
 
-let searchTimeout = null;
-const debouncedSearch = () => {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-  searchTimeout = setTimeout(() => {
-    filters.value.page = 1;
-    loadSubjects();
-  }, 300);
-};
-
-const clearFilters = () => {
-  filters.value = {
-    page: 1,
-    limit: 10,
-    search: '',
-    category: '',
-    is_active: ''
-  };
-  loadSubjects();
-};
-
-const handlePageChange = page => {
-  filters.value.page = page;
-  loadSubjects();
-};
-
-const openCreateModal = () => {
-  isEditing.value = false;
-  editingSubject.value = null;
-  showModal.value = true;
-};
-
-const editSubject = subject => {
-  isEditing.value = true;
-  editingSubject.value = subject;
-  showModal.value = true;
-};
-
-const deleteSubject = async subject => {
-  if (!confirm(`Are you sure you want to delete "${subject.name}"?`)) return;
+const loadTeacherAssignments = async () => {
+  if (!selectedBranchId.value) return;
 
   try {
-    await Subjects.delete(subject.id);
+    assignmentsLoading.value = true;
+    const response = await SubjectTeachers.getAll({
+      limit: 1000,
+      branch_id: selectedBranchId.value
+    });
+    teacherAssignments.value = response.data.assignments;
+  } catch (error) {
+    showToast('Failed to load teacher assignments', 'error');
+    console.error('Error loading assignments:', error);
+  } finally {
+    assignmentsLoading.value = false;
+  }
+};
+
+// Branch selection handlers
+
+// School and branch change handlers
+const onSchoolChange = async () => {
+  selectedBranchId.value = '';
+  if (selectedSchoolId.value) {
+    await loadBranches(selectedSchoolId.value);
+  } else {
+    availableBranches.value = [];
+  }
+};
+
+const onBranchChange = async () => {
+  if (selectedBranchId.value) {
+    const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
+    selectedBranch.value = branch;
+    console.log('Selected branch:', selectedBranch.value);
+
+    // Load academic data for the selected branch
+    await loadAcademicDataForBranch();
+
+    // Load other data
+    await Promise.all([loadSubjects(), loadClassesData(), loadTeacherAssignments()]);
+  } else {
+    selectedBranch.value = null;
+  }
+};
+
+// Event handlers
+const handleSubjectCreate = async subjectData => {
+  try {
+    await Subjects.create({ ...subjectData, branch_id: selectedBranchId.value });
+    showToast('Subject created successfully', 'success');
+    await loadSubjects();
+  } catch (error) {
+    showToast('Failed to create subject', 'error');
+    console.error('Error creating subject:', error);
+  }
+};
+
+const handleSubjectUpdate = async (id, subjectData) => {
+  try {
+    await Subjects.update(id, subjectData);
+    showToast('Subject updated successfully', 'success');
+    await loadSubjects();
+  } catch (error) {
+    showToast('Failed to update subject', 'error');
+    console.error('Error updating subject:', error);
+  }
+};
+
+const handleSubjectDelete = async id => {
+  try {
+    await Subjects.delete(id);
     showToast('Subject deleted successfully', 'success');
-    loadSubjects();
-    loadStats();
+    await loadSubjects();
   } catch (error) {
     showToast('Failed to delete subject', 'error');
     console.error('Error deleting subject:', error);
   }
 };
 
-const handleSubjectSubmit = async subjectData => {
+const handleTeacherAssign = async assignmentData => {
   try {
-    if (editingSubject.value) {
-      await Subjects.update(editingSubject.value.id, subjectData);
-      showToast('Subject updated successfully', 'success');
-    } else {
-      await Subjects.create(subjectData);
-      showToast('Subject created successfully', 'success');
-    }
-    closeModal();
-    loadSubjects();
-    loadStats();
+    await SubjectTeachers.create({ ...assignmentData, branch_id: selectedBranchId.value });
+    showToast('Teacher assigned successfully', 'success');
+    await loadTeacherAssignments();
   } catch (error) {
-    showToast(error.response?.data?.message || 'Failed to save subject', 'error');
-    console.error('Error in handleSubjectSubmit:', error);
+    showToast('Failed to assign teacher', 'error');
+    console.error('Error assigning teacher:', error);
   }
 };
 
-const closeModal = () => {
-  showModal.value = false;
-  editingSubject.value = null;
-  isEditing.value = false;
+const handleTeacherUpdate = async (id, assignmentData) => {
+  try {
+    await SubjectTeachers.update(id, assignmentData);
+    showToast('Teacher assignment updated successfully', 'success');
+    await loadTeacherAssignments();
+  } catch (error) {
+    showToast('Failed to update teacher assignment', 'error');
+    console.error('Error updating assignment:', error);
+  }
+};
+
+const handleTeacherRemove = async id => {
+  try {
+    await SubjectTeachers.delete(id);
+    showToast('Teacher assignment removed successfully', 'success');
+    await loadTeacherAssignments();
+  } catch (error) {
+    showToast('Failed to remove teacher assignment', 'error');
+    console.error('Error removing assignment:', error);
+  }
+};
+
+// Initialize
+const initialize = async () => {
+  try {
+    // Load academic years first
+    await fetchAcademicYears();
+
+    // Check if we have a current academic year
+    let currentYear = academicYears.value.find(year => year.is_current);
+
+    // If no current year found, try to get it directly from API
+    if (!currentYear) {
+      try {
+        const currentYearResponse = await AcademicYears.getCurrent();
+        if (currentYearResponse.data) {
+          currentYear = currentYearResponse.data;
+          // Add to academic years array if not already there
+          if (!academicYears.value.find(year => year.id === currentYear.id)) {
+            academicYears.value.push(currentYear);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching current academic year:', error);
+      }
+    }
+
+    if (!currentYear) {
+      showToast(
+        'No current academic year is set. Please contact administrator to set up academic years.',
+        'error'
+      );
+      console.error('No current academic year found. Academic years:', academicYears.value);
+      return;
+    }
+
+    await loadTeachers();
+
+    // Set up based on user role
+    if (isSuperAdmin.value) {
+      await loadSchools();
+    } else if (isSchoolAdmin.value) {
+      // Auto-select user's school and load branches
+      selectedSchoolId.value = user.value?.school_id;
+      if (selectedSchoolId.value) {
+        await loadBranches(selectedSchoolId.value);
+        // Auto-select if only one branch
+        if (availableBranches.value.length === 1) {
+          selectedBranchId.value = availableBranches.value[0].id;
+          await onBranchChange();
+        }
+      }
+    } else if (isBranchAdmin.value) {
+      // Auto-select user's branch
+      selectedSchoolId.value = user.value?.school_id;
+      selectedBranchId.value = user.value?.branch_id;
+      selectedBranch.value = {
+        id: user.value?.branch_id,
+        name: user.value?.branch_name || 'Your Branch'
+      };
+      // Add the branch to availableBranches for display
+      availableBranches.value = [selectedBranch.value];
+
+      // Load academic data for the branch first
+      await loadAcademicDataForBranch();
+
+      // Load data for the selected branch
+      await Promise.all([loadSubjects(), loadClassesData(), loadTeacherAssignments()]);
+    }
+  } catch (error) {
+    console.error('Error initializing subjects page:', error);
+    showToast('Failed to initialize page', 'error');
+  }
 };
 
 // Lifecycle
-onMounted(async () => {
-  await Promise.all([loadClasses(), fetchAcademicYears(), loadSubjects(), loadStats()]);
-});
+onMounted(initialize);
 </script>
+
+<style scoped>
+.input-field {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  outline: none;
+  background-color: white;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-field:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark .input-field {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: white;
+}
+
+.dark .input-field:focus {
+  border-color: #3b82f6;
+}
+</style>

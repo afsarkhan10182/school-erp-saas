@@ -91,23 +91,20 @@ export interface AuthState {
   lastAuthCheck: number;
 }
 
-// API Response types
+// API Response types - Standardized
 export interface ApiResponse<T> {
   success: boolean;
-  message: string;
   data: T;
-  errors?: string[];
+  message?: string;
 }
 
 export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: {
-    items: T[];
-    total: number;
-    page: number;
+  data: T[];
+  pagination: {
+    current_page: number;
+    total_pages: number;
+    total_count: number;
     limit: number;
-    totalPages: number;
   };
 }
 
@@ -237,4 +234,26 @@ export interface Student {
   updated_by?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// Additional API types
+export interface ApiError {
+  success: false;
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+}
+
+export interface FilterParams extends PaginationParams {
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  academic_year?: string;
 }

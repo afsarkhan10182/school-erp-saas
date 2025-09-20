@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface BranchParams {
   page?: number;
@@ -22,21 +22,15 @@ export interface BranchData {
 
 export const Branches = {
   getAll: async (params?: BranchParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/branches', { params });
-    return response.data;
+    return apiCall('get', '/branches', { params });
   },
 
   getBySchool: async (schoolId: string, params?: { page?: number; limit?: number }) => {
-    const api = createApiInstance();
-    const response = await api.get(`/branches/school/${schoolId}`, { params });
-    return response.data;
+    return apiCall('get', `/branches/school/${schoolId}`, { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/branches/${id}`);
-    return response.data;
+    return apiCall('get', `/branches/${id}`);
   },
 
   create: async (branchData: BranchData | FormData) => {
@@ -56,15 +50,11 @@ export const Branches = {
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/branches/${id}`);
-    return response.data;
+    return apiCall('delete', `/branches/${id}`);
   },
 
   // Get branches for dropdown/select
   getForDropdown: async (params?: { school_id?: string; status?: string }) => {
-    const api = createApiInstance();
-    const response = await api.get('/branches/dropdown', { params });
-    return response.data;
+    return apiCall('get', '/branches/dropdown', { params });
   }
 };

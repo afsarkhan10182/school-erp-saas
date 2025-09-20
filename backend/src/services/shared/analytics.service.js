@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
-const { logger } = require('~/utils/logger');
-const ApiError = require('~/utils/ApiError');
+const { logger } = require('~/utils/shared/logger');
+const ApiError = require('~/utils/shared/ApiError');
 
 /**
  * Reusable Analytics Service

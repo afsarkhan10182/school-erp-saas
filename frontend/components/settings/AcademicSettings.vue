@@ -152,6 +152,27 @@
         </div>
       </div>
 
+      <!-- Class Configuration Settings -->
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+      >
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Class Configuration
+        </h3>
+        <div class="space-y-4">
+          <div class="flex items-center">
+            <input
+              v-model="classSettings.enableStreams"
+              type="checkbox"
+              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              Enable streams for classes
+            </label>
+          </div>
+        </div>
+      </div>
+
       <!-- Error Summary -->
       <div v-if="hasErrors" class="bg-red-50 border border-red-200 rounded-lg p-4">
         <h4 class="text-sm font-medium text-red-800 mb-2">Please correct the following errors:</h4>
@@ -175,7 +196,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { useFormValidation } from '~/composables/useFormValidation';
 import { validationRules, validateForm } from '~/utils/validators';
 
@@ -209,6 +230,32 @@ const attendanceSettings = reactive({
     sunday: false
   }
 });
+
+const classSettings = reactive({
+  enableStreams: false
+});
+
+// Load existing settings
+const loadSettings = async () => {
+  try {
+    const { Settings } = await import('~/api/administration/settings');
+    const response = await Settings.getAcademicSettings();
+
+    if (response.success && response.data) {
+      // Load attendance settings
+      if (response.data.attendanceSettings) {
+        Object.assign(attendanceSettings, response.data.attendanceSettings);
+      }
+
+      // Load class settings
+      if (response.data.classSettings) {
+        Object.assign(classSettings, response.data.classSettings);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading academic settings:', error);
+  }
+};
 
 const isSaving = ref(false);
 
@@ -245,7 +292,8 @@ const saveSettings = async () => {
   isSaving.value = true;
   try {
     const settingsData = {
-      attendanceSettings
+      attendanceSettings,
+      classSettings
     };
     await emit('save', settingsData);
   } catch (error) {
@@ -255,9 +303,16 @@ const saveSettings = async () => {
   }
 };
 
+// Load settings on component mount
+onMounted(() => {
+  loadSettings();
+});
+
 // Expose methods for parent component
 defineExpose({
   attendanceSettings,
-  saveSettings
+  classSettings,
+  saveSettings,
+  loadSettings
 });
 </script>

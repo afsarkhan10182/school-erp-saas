@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface SchoolSettings {
   schoolInfo: any;
@@ -25,9 +25,7 @@ export interface SystemSettings {
 export const Settings = {
   // School settings
   getSchoolSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/settings/school');
-    return response.data;
+    return apiCall('get', '/settings/school');
   },
 
   updateSchoolSettings: async (data: FormData | any) => {
@@ -39,23 +37,21 @@ export const Settings = {
 
   // Academic settings
   getAcademicSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/settings/academic');
-    return response.data;
+    return apiCall('get', '/settings/academic');
+  },
+
+  updateAcademicSettings: async (data: any) => {
+    return apiCall('put', '/settings/academic', data);
   },
 
   // Fee settings
   getFeeSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/settings/fee');
-    return response.data;
+    return apiCall('get', '/settings/fee');
   },
 
   // Branding settings
   getBrandingSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/settings/branding');
-    return response.data;
+    return apiCall('get', '/settings/branding');
   },
 
   updateBrandingSettings: async (formData: FormData) => {
@@ -70,36 +66,26 @@ export const Settings = {
 
   // System settings
   getSystemSettings: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/settings/system');
-    return response.data;
+    return apiCall('get', '/settings/system');
   },
 
   updateSystemSettings: async (data: any) => {
-    const api = createApiInstance();
-    const response = await api.put('/settings/system', data);
-    return response.data;
+    return apiCall('put', '/settings/system', data);
   },
 
   // Config export
   exportConfig: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/config/export');
-    return response.data;
+    return apiCall('get', '/config/export');
   },
 
   // Config reset to defaults
   resetToDefaults: async () => {
-    const api = createApiInstance();
-    const response = await api.post('/config/reset-defaults');
-    return response.data;
+    return apiCall('post', '/config/reset-defaults');
   },
 
   // Config backup
   createBackup: async () => {
-    const api = createApiInstance();
-    const response = await api.post('/config/backup');
-    return response.data;
+    return apiCall('post', '/config/backup');
   },
 
   // Config import

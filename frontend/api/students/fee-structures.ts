@@ -1,4 +1,4 @@
-import { createApiInstance } from '~/utils/api';
+import { apiCall } from '~/utils/api';
 
 export interface FeeStructureParams {
   page?: number;
@@ -22,45 +22,31 @@ export interface FeeStructureData {
 
 export const FeeStructures = {
   getAll: async (params?: FeeStructureParams) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-structures', { params });
-    return response.data;
+    return apiCall('get', '/fee-structures', { params });
   },
 
   getWithContext: async (params?: { payment_model?: string; page?: number; limit?: number }) => {
-    const api = createApiInstance();
-    const response = await api.get('/fee-structures/with-context', { params });
-    return response.data;
+    return apiCall('get', '/fee-structures/with-context', { params });
   },
 
   getById: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.get(`/fee-structures/${id}`);
-    return response.data;
+    return apiCall('get', `/fee-structures/${id}`);
   },
 
   create: async (data: FeeStructureData) => {
-    const api = createApiInstance();
-    const response = await api.post('/fee-structures', data);
-    return response.data;
+    return apiCall('post', '/fee-structures', data);
   },
 
   update: async (id: string, data: FeeStructureData) => {
-    const api = createApiInstance();
-    const response = await api.put(`/fee-structures/${id}`, data);
-    return response.data;
+    return apiCall('put', `/fee-structures/${id}`, data);
   },
 
   delete: async (id: string) => {
-    const api = createApiInstance();
-    const response = await api.delete(`/fee-structures/${id}`);
-    return response.data;
+    return apiCall('delete', `/fee-structures/${id}`);
   },
 
   // New clone functionality
   clone: async (id: string, cloneData: any) => {
-    const api = createApiInstance();
-    const response = await api.post(`/fee-structures/${id}/clone`, cloneData);
-    return response.data;
+    return apiCall('post', `/fee-structures/${id}/clone`, cloneData);
   }
 };

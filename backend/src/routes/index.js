@@ -1,21 +1,21 @@
 const express = require('express');
-const authRoutes = require('./auth/auth.routes');
-const userRoutes = require('./user/user.routes');
-const schoolRoutes = require('./school/school.routes');
-const branchRoutes = require('./school/branch.routes');
-const subscriptionRoutes = require('./subscription/subscription.routes');
-const dashboardRoutes = require('./dashboard/dashboard.routes');
-const healthRoutes = require('./health/health');
-const studentRoutes = require('./student.routes');
-const feeTypeRoutes = require('./fee-type.routes');
-const feeStructureRoutes = require('./fee-structure.routes');
-const feeInvoiceRoutes = require('./fee-invoice.routes');
+const authRoutes = require('./core/auth/auth.routes');
+const userRoutes = require('./core/users/user.routes');
+const schoolRoutes = require('./administration/schools/school.routes');
+const branchRoutes = require('./administration/schools/branch.routes');
+const subscriptionRoutes = require('./administration/subscriptions/subscription.routes');
+const dashboardRoutes = require('./shared/dashboard.routes');
+const healthRoutes = require('./shared/health.routes');
+const studentRoutes = require('./academic/student.routes');
+const feeTypeRoutes = require('./financial/fee-type.routes');
+const feeStructureRoutes = require('./financial/fee-structure.routes');
+const feeInvoiceRoutes = require('./financial/fee-invoice.routes');
 
 const academicYearRoutes = require('./academic/academic-year.routes');
 const academicCalendarRoutes = require('./academic/academic-calendar.routes');
-const classRoutes = require('./class.routes');
-const sectionRoutes = require('./section.routes');
-const streamRoutes = require('./stream.routes');
+const classRoutes = require('./academic/class.routes');
+const sectionRoutes = require('./academic/section.routes');
+const streamRoutes = require('./academic/stream.routes');
 const attendanceRoutes = require('./academic/attendance/attendance.routes');
 const attendanceNotificationRoutes = require('./academic/attendance/attendance-notification.routes');
 
@@ -23,7 +23,8 @@ const attendanceNotificationRoutes = require('./academic/attendance/attendance-n
 const subjectRoutes = require('./academic/subjects/subject.routes');
 const subjectTeacherRoutes = require('./academic/subjects/subject-teacher.routes');
 const subjectGroupRoutes = require('./academic/subjects/subject-group.routes');
-const classSubjectMappingRoutes = require('./academic/subjects/class-subject-mapping.routes');
+const classSubjectAssignmentRoutes = require('./academic/subjects/class-subject-assignment.routes');
+const classTeacherRoutes = require('./academic/class-teacher.routes');
 
 // Academic term routes
 const termRoutes = require('./academic/term.routes');
@@ -35,11 +36,11 @@ const gradingSystemRoutes = require('./academic/grading-system.routes');
 
 // Academic timetable routes
 const timetableRoutes = require('./academic/timetable/timetable.routes');
-const templateRoutes = require('./template.routes');
-const exportRoutes = require('./export.routes');
+const templateRoutes = require('./shared/template.routes');
+const exportRoutes = require('./shared/export.routes');
 
 // Settings routes
-const settingsRoutes = require('./settings/settings.routes');
+const settingsRoutes = require('./administration/settings/system-setting.routes');
 
 // Upload routes
 const uploadRoutes = require('./shared/uploads.routes');
@@ -74,7 +75,8 @@ router.use('/streams', streamRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/subject-teachers', subjectTeacherRoutes);
 router.use('/subject-groups', subjectGroupRoutes);
-router.use('/class-subject-mappings', classSubjectMappingRoutes);
+router.use('/class-subject-assignments', classSubjectAssignmentRoutes);
+router.use('/class-teachers', classTeacherRoutes);
 
 // Academic term routes
 router.use('/terms', termRoutes);

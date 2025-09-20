@@ -44,7 +44,7 @@ onMounted(async () => {
   if (authStore.isLoggedIn) {
     await navigateTo('/dashboard');
   } else {
-    await navigateTo('/login');
+    await navigateTo('/auth/login');
   }
 });
 </script>
