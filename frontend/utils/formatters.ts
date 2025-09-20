@@ -212,3 +212,37 @@ export const getStatusBadgeClass = (
     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
   );
 };
+
+/**
+ * Get status label for display
+ * @param status - Status string
+ * @returns Human-readable status label
+ */
+export const getStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    // General statuses
+    active: 'Active',
+    inactive: 'Inactive',
+    pending: 'Pending',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+
+    // Academic statuses
+    passed: 'Passed',
+    failed: 'Failed',
+    absent: 'Absent',
+    present: 'Present',
+
+    // Financial statuses
+    paid: 'Paid',
+    partial_paid: 'Partial Paid',
+    unpaid: 'Unpaid',
+    overdue: 'Overdue',
+
+    // Term statuses
+    current: 'Current',
+    upcoming: 'Upcoming'
+  };
+
+  return labels[status?.toLowerCase()] || status || 'Unknown';
+};
