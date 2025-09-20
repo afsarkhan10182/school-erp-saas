@@ -20,13 +20,46 @@
         </div>
       </div>
 
+      <!-- Branch Filter for School Admin -->
+      <div
+        v-if="isSchoolAdmin && availableBranches.length > 1"
+        class="bg-white dark:bg-gray-800 shadow rounded-md mb-6"
+      >
+        <div class="px-4 py-5 sm:px-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                Filter by Branch
+              </h3>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Select a branch to view its classes
+              </p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <label
+                for="branch-filter"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Branch:
+              </label>
+              <select
+                id="branch-filter"
+                v-model="selectedBranchId"
+                @change="onBranchChange"
+                class="block w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Branches</option>
+                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                  {{ branch.name }} ({{ branch.code }})
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Classes List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-        <div class="px-4 py-5 sm:px-6">
-          <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            Academic Classes
-          </h3>
-        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -145,6 +178,19 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <Pagination
+          v-if="pagination.total > 0"
+          :pagination="{
+            page: pagination.page,
+            limit: pagination.limit,
+            total: pagination.total
+          }"
+          item-label="classes"
+          @page-changed="goToPage"
+          @page-size-changed="changeLimit"
+        />
       </div>
 
       <!-- Create/Edit Modal -->
@@ -380,6 +426,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useBranchContext } from '~/composables/useBranchContext';
 import { useToast } from '~/composables/useToast';
 import { useAcademicSettings } from '~/utils/settings';
+import Pagination from '~/components/ui/Pagination.vue';
 
 const { isStreamsEnabled } = useAcademicSettings();
 const { showError, showWarning } = useToast();
@@ -391,6 +438,13 @@ const isEditing = ref(false);
 const isSubmitting = ref(false);
 const editingId = ref(null);
 const streamsEnabled = ref(false);
+
+// Pagination
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0
+});
 
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { getBranchContext } = useBranchContext();
@@ -437,9 +491,9 @@ const getSelectedSchoolName = () => {
 };
 
 const getSelectedBranchName = () => {
-  if (!selectedBranchId.value) return 'Not selected';
+  if (!selectedBranchId.value) return 'All Branches';
   const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
-  return branch ? `${branch.name} ${branch.code ? `(${branch.code})` : ''}` : 'Unknown branch';
+  return branch ? `${branch.name} (${branch.code})` : 'Unknown branch';
 };
 
 // Fetch schools for super admin
@@ -508,6 +562,22 @@ const onSchoolChange = async () => {
 
 // Handle branch selection change
 const onBranchChange = async () => {
+  pagination.page = 1; // Reset to first page when branch changes
+  await fetchClasses();
+};
+
+// Pagination functions
+const goToPage = async page => {
+  const totalPages = Math.ceil(pagination.total / pagination.limit);
+  if (page >= 1 && page <= totalPages) {
+    pagination.page = page;
+    await fetchClasses();
+  }
+};
+
+const changeLimit = async newLimit => {
+  pagination.limit = newLimit;
+  pagination.page = 1; // Reset to first page
   await fetchClasses();
 };
 
@@ -516,7 +586,9 @@ const fetchClasses = async () => {
   try {
     const params = {
       sort_by: 'sort_order',
-      sort_order: 'ASC'
+      sort_order: 'ASC',
+      page: pagination.page,
+      limit: pagination.limit
     };
 
     // Add branch filter if selected
@@ -526,6 +598,11 @@ const fetchClasses = async () => {
 
     const response = await Classes.getAll(params);
     classes.value = response.data || [];
+
+    // Update pagination info from response
+    if (response.pagination) {
+      pagination.total = response.pagination.total;
+    }
   } catch (error) {
     console.error('Error fetching classes:', error);
   } finally {
