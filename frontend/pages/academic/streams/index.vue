@@ -239,7 +239,7 @@
               >
                 <option value="">{{ loading ? 'Loading branches...' : 'Select Branch' }}</option>
                 <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                  {{ branch.name }}
                 </option>
               </select>
             </div>

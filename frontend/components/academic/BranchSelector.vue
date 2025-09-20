@@ -29,7 +29,7 @@
           :value="branch.id"
           class="bg-gray-800 text-white"
         >
-          {{ branch.name }} ({{ branch.code }})
+          {{ branch.name }}
         </option>
       </select>
 
