@@ -131,9 +131,6 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div v-if="structure.branch" class="flex items-center">
                     <span class="font-medium">{{ structure.branch.name }}</span>
-                    <span v-if="structure.branch.code" class="text-gray-500 dark:text-gray-400 ml-1"
-                      >({{ structure.branch.code }})</span
-                    >
                   </div>
                   <div v-else class="text-sm text-gray-500 dark:text-gray-400">All Branches</div>
                 </td>
@@ -249,7 +246,7 @@
                   >
                     <option value="">Select a school first</option>
                     <option v-for="school in availableSchools" :key="school.id" :value="school.id">
-                      {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
+                      {{ school.name }}
                     </option>
                   </select>
                 </div>

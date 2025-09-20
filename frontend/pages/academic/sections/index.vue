@@ -122,9 +122,6 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div class="flex items-center">
                     <span class="font-medium">{{ section.branch?.name }}</span>
-                    <span v-if="section.branch?.code" class="text-gray-500 dark:text-gray-400 ml-1"
-                      >({{ section.branch.code }})</span
-                    >
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -220,7 +217,7 @@
                     {{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}
                   </option>
                   <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                    {{ branch.name }}
                   </option>
                 </select>
               </div>

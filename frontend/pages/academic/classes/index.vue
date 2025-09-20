@@ -46,11 +46,11 @@
                 id="branch-filter"
                 v-model="selectedBranchId"
                 @change="onBranchChange"
-                class="block w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                class="block w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               >
                 <option value="">All Branches</option>
                 <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }} ({{ branch.code }})
+                  {{ branch.name }}
                 </option>
               </select>
             </div>
@@ -119,11 +119,6 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <div v-if="classItem.branch" class="flex items-center">
                     <span class="font-medium">{{ classItem.branch?.name }}</span>
-                    <span
-                      v-if="classItem.branch?.code"
-                      class="text-gray-500 dark:text-gray-400 ml-1"
-                      >({{ classItem.branch.code }})</span
-                    >
                   </div>
                 </td>
                 <td
@@ -251,7 +246,7 @@
                         :key="branch.id"
                         :value="branch.id"
                       >
-                        {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                        {{ branch.name }}
                       </option>
                     </select>
                   </div>
@@ -276,7 +271,7 @@
                 >
                   <option value="">Select a branch</option>
                   <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }} {{ branch.code ? `(${branch.code})` : '' }}
+                    {{ branch.name }}
                   </option>
                 </select>
               </div>
@@ -291,9 +286,6 @@
                 </h4>
                 <div class="text-sm text-blue-800 dark:text-blue-200">
                   <strong>{{ availableBranches[0].name }}</strong>
-                  <span v-if="availableBranches[0].code" class="text-blue-600 dark:text-blue-300">
-                    ({{ availableBranches[0].code }})</span
-                  >
                   <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1"
                     >This is your only branch - automatically selected</span
                   >
@@ -493,7 +485,7 @@ const getSelectedSchoolName = () => {
 const getSelectedBranchName = () => {
   if (!selectedBranchId.value) return 'All Branches';
   const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
-  return branch ? `${branch.name} (${branch.code})` : 'Unknown branch';
+  return branch ? branch.name : 'Unknown branch';
 };
 
 // Fetch schools for super admin
