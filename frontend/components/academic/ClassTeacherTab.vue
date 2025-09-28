@@ -103,6 +103,7 @@
 
       <template #body>
         <ClassTeacherForm
+          ref="classTeacherForm"
           :allocation="editingAllocation"
           :classes="classes"
           :sections="sections"
@@ -177,6 +178,7 @@ const showAssignModal = ref(false);
 const showEditModal = ref(false);
 const isEditing = ref(false);
 const editingAllocation = ref(null);
+const classTeacherForm = ref(null);
 
 // Computed
 const classTeachers = computed(() => {
@@ -206,13 +208,26 @@ const deleteAllocation = async id => {
   }
 };
 
-const handleSubmit = data => {
-  if (isEditing.value) {
-    emit('update', data);
-  } else {
-    emit('assign', data);
+const handleSubmit = async data => {
+  try {
+    if (isEditing.value) {
+      await emit('update', data);
+    } else {
+      await emit('assign', data);
+    }
+    closeModal();
+  } catch (error) {
+    console.error('Error in handleSubmit:', error);
+
+    // Handle backend validation errors
+    if (error.response?.data?.errors && classTeacherForm.value) {
+      classTeacherForm.value.setBackendErrors(error.response.data.errors);
+    }
+
+    // Don't close modal if there are validation errors
+    // The error will be handled by the parent component's error handling
+    return;
   }
-  closeModal();
 };
 
 const closeModal = () => {

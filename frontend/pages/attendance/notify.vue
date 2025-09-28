@@ -256,7 +256,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { AttendanceNotifications, Classes, Sections, Attendance } from '~/api';
+import { useAcademics } from '~/composables/useAcademics';
+import { useToast } from '~/composables/useToast';
+import { AttendanceNotifications, Attendance } from '~/api';
 import Modal from '~/components/ui/Modal.vue';
 import Toast from '~/components/ui/Toast.vue';
 
@@ -264,6 +266,10 @@ import Toast from '~/components/ui/Toast.vue';
 definePageMeta({
   title: 'Attendance Notifications'
 });
+
+// Composables
+const { classes, sections, fetchClasses, fetchSections, loading, error } = useAcademics();
+const { showSuccess, showError, showWarning } = useToast();
 
 // Reactive data
 const settings = ref(null);
@@ -289,6 +295,11 @@ const toast = ref({
 
 // Methods
 const showToast = (type, message) => {
+  if (type === 'success') showSuccess(message);
+  else if (type === 'error') showError(message);
+  else if (type === 'warning') showWarning(message);
+
+  // Also show local toast for visual feedback
   toast.value = { show: true, type, message };
   setTimeout(() => {
     toast.value.show = false;
@@ -329,15 +340,14 @@ const getNotificationDescription = () => {
 
 const loadDropdowns = async () => {
   try {
-    const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' });
-    classOptions.value = (classes.data?.rows || classes.data || []).map(c => ({
+    await fetchClasses(); // ✅ Now auto-resolves schoolId/branchId from auth
+    classOptions.value = classes.value.map(c => ({
       label: c.name,
       value: c.id
     }));
   } catch (error) {
     console.error('Error loading classes:', error);
-    // Log error but don't show toast for dropdown loading
-    console.error('Failed to load classes:', error);
+    showError('Failed to load classes');
   }
 };
 
@@ -348,20 +358,14 @@ const loadSections = async () => {
   }
 
   try {
-    const sections = await Sections.getAll({
-      page: 1,
-      limit: 100,
-      is_active: 'true',
-      class_id: sendForm.value.class_id
-    });
-    sectionOptions.value = (sections.data?.rows || sections.data || []).map(s => ({
+    await fetchSections({ classId: sendForm.value.class_id });
+    sectionOptions.value = sections.value.map(s => ({
       label: s.name,
       value: s.id
     }));
   } catch (error) {
     console.error('Error loading sections:', error);
-    // Log error but don't show toast for dropdown loading
-    console.error('Failed to load sections:', error);
+    showError('Failed to load sections');
   }
 };
 

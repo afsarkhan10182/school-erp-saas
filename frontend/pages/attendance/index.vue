@@ -372,16 +372,11 @@
           />
         </div>
         <div>
-          <select
+          <EnhancedDropdown
             v-model="filterStatus"
-            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">All Status</option>
-            <option value="present">Present</option>
-            <option value="absent">Absent</option>
-            <option value="late">Late</option>
-            <option value="excused">Excused</option>
-          </select>
+            :options="statusOptions"
+            placeholder="All Status"
+          />
         </div>
       </div>
 
@@ -470,15 +465,12 @@
                 {{ student.admission_number }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <select
+                <EnhancedDropdown
                   v-model="attendanceRecords[student.id].status"
-                  class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white text-sm"
-                >
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
-                  <option value="late">Late</option>
-                  <option value="excused">Excused</option>
-                </select>
+                  :options="statusOptions.filter(opt => opt.value !== '')"
+                  placeholder="Select Status"
+                  class="text-sm"
+                />
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
@@ -622,16 +614,18 @@ import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAttendanceValidation } from '~/composables/useAttendanceValidation';
-import { useDropdowns } from '~/composables/useDropdowns';
+import { useAttendance } from '~/composables/useAttendance';
+import { useAcademics } from '~/composables/useAcademics';
 import { AcademicCalendar, Attendance, Students } from '~/api';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
 const { showToast } = useToast();
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { saveAttendance, loading: attendanceLoading } = useAttendance();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
-const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns();
+const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const {
   attendanceSettings,
   loadAttendanceSettings,
@@ -661,6 +655,15 @@ const branchOptions = computed(() =>
     label: branch.name
   }))
 );
+
+// Status filter options
+const statusOptions = [
+  { value: '', label: 'All Status' },
+  { value: 'present', label: 'Present' },
+  { value: 'absent', label: 'Absent' },
+  { value: 'late', label: 'Late' },
+  { value: 'excused', label: 'Excused' }
+];
 
 // Form
 const form = reactive({
@@ -1040,7 +1043,9 @@ const saveAttendanceDraft = async () => {
       return;
     }
 
-    await saveAttendance('temp', records, false); // false = draft mode
+    // Create session first, then save attendance
+    const sessionId = await createAttendanceSession();
+    await saveAttendance(sessionId, records, false); // false = draft mode
     showToast('Attendance draft saved successfully', 'success');
 
     // Don't clear form for draft - allow further editing
@@ -1078,7 +1083,9 @@ const submitAttendance = async () => {
       return;
     }
 
-    await saveAttendance('temp', records, true); // true = publish mode
+    // Create session first, then save attendance
+    const sessionId = await createAttendanceSession();
+    await saveAttendance(sessionId, records, true); // true = publish mode
     showToast('Attendance submitted successfully - Parents will be notified', 'success');
 
     // Clear form after successful submission
@@ -1095,39 +1102,26 @@ const submitAttendance = async () => {
   }
 };
 
-const saveAttendance = async (sessionId: string, records: any[], publish: boolean) => {
-  // First, create or get the attendance session
-  let actualSessionId = sessionId;
+const createAttendanceSession = async () => {
+  try {
+    const sessionResponse = await Attendance.upsertSession({
+      date: form.date,
+      attendance_type: 'daily',
+      class_id: form.class_id,
+      section_id: form.section_id || null,
+      academic_year: form.academic_year || undefined
+    });
 
-  if (sessionId === 'temp') {
-    try {
-      const sessionResponse = await Attendance.upsertSession({
-        date: form.date,
-        attendance_type: 'daily',
-        class_id: form.class_id,
-        section_id: form.section_id || null,
-        academic_year: form.academic_year || undefined
-      });
-
-      if (sessionResponse.success && sessionResponse.data) {
-        actualSessionId = sessionResponse.data.id;
-      } else {
-        throw new Error('Failed to create attendance session');
-      }
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message || error?.message || 'Failed to create attendance session';
-      throw new Error(message);
+    if (sessionResponse.success && sessionResponse.data) {
+      return sessionResponse.data.id;
+    } else {
+      throw new Error('Failed to create attendance session');
     }
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message || error?.message || 'Failed to create attendance session';
+    throw new Error(message);
   }
-
-  // Now save the records with the actual session ID
-  const response = await Attendance.saveRecords({
-    session_id: actualSessionId,
-    records,
-    publish
-  });
-  return response;
 };
 
 // Watch for date changes with debounce

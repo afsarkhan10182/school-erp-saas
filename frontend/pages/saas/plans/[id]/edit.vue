@@ -124,7 +124,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 
 const authStore = useAuthStore();
-const { showError } = useToast();
+const { showError, showSuccess } = useToast();
 
 // Access control - only Super Admin can access subscription plans
 const user = authStore.user;
@@ -210,16 +210,7 @@ const handleSubmit = async () => {
   const result = await updatePlan(route.params.id, form.value);
   if (result) {
     // Show success toast and redirect
-    if (typeof window !== 'undefined') {
-      // Create and dispatch a custom event for toast notification
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Subscription plan updated successfully!',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess('Subscription plan updated successfully!');
     // Redirect to list page
     await navigateTo('/saas/plans');
   }

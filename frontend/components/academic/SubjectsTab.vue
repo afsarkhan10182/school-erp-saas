@@ -17,41 +17,6 @@
       </button>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <BookOpen class="h-8 w-8 text-indigo-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Subjects</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-              {{ subjects.length }}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <CheckCircle class="h-8 w-8 text-green-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Active</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ activeSubjects }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <Tag class="h-8 w-8 text-blue-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Categories</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-              {{ uniqueCategories }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Subjects List -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <div v-if="loading" class="p-8 text-center">
@@ -139,7 +104,7 @@
       </template>
 
       <template #body>
-        <SimplifiedSubjectForm
+        <SubjectForm
           :subject="editingSubject"
           :selected-branch="selectedBranch"
           @submit="handleSubmit"
@@ -153,9 +118,9 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { Plus, BookOpen, CheckCircle, Tag } from 'lucide-vue-next';
+import { Plus, BookOpen } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
-import SimplifiedSubjectForm from '~/components/forms/SimplifiedSubjectForm.vue';
+import SubjectForm from '~/components/forms/SubjectForm.vue';
 
 // Props
 const props = defineProps({
@@ -188,16 +153,6 @@ const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const isEditing = ref(false);
 const editingSubject = ref(null);
-
-// Computed
-const activeSubjects = computed(() => {
-  return props.subjects.filter(subject => subject.is_active).length;
-});
-
-const uniqueCategories = computed(() => {
-  const categories = new Set(props.subjects.map(subject => subject.category));
-  return categories.size;
-});
 
 // Methods
 const getCategoryBadgeClass = category => {

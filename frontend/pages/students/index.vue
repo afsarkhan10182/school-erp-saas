@@ -747,6 +747,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
+import { useStudents } from '~/composables/useStudents';
 import Pagination from '~/components/ui/Pagination.vue';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { PlusIcon, Users, CheckCircle, UserPlus, GraduationCap } from 'lucide-vue-next';
@@ -765,14 +766,13 @@ const {
   fetchStreams,
   fetchSections
 } = useAcademics();
+const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
+const { students, loading: studentsLoading, loadStudents } = useStudents();
 
 // Separate loading states for better UX
 const classesLoading = ref(false);
 const sectionsLoading = ref(false);
 const streamsLoading = ref(false);
-const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
-
-const students = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
 const stats = ref({});
@@ -921,7 +921,10 @@ const onBranchChange = async () => {
     classesLoading.value = true;
     try {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
-      await fetchClasses(schoolId, selectedBranch.value);
+      await fetchClasses({
+        schoolId: schoolId,
+        branchId: selectedBranch.value
+      });
     } catch (error) {
       // Error loading classes
     } finally {
@@ -942,8 +945,8 @@ const onClassChange = async () => {
     try {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
       await Promise.all([
-        fetchSections(schoolId, selectedBranch.value, selectedClass.value),
-        fetchStreams(schoolId, selectedBranch.value, selectedClass.value)
+        fetchSections({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value }),
+        fetchStreams({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value })
       ]);
     } finally {
       sectionsLoading.value = false;
@@ -1027,28 +1030,17 @@ const fetchStudents = async (page = 1) => {
       params.stream_id = selectedStream.value;
     }
 
-    const response = await Students.getAll(params);
+    const result = await loadStudents(params);
 
-    if (response.success) {
-      // Backend returns: { success: true, data: students[], pagination: {...} }
-      if (response.data && response.pagination) {
-        // Handle paginated response from backend
-        students.value = response.data || [];
-        currentPage.value = response.pagination.current_page || page;
-        pageSize.value = response.pagination.limit || pageSize.value;
-        totalItems.value = response.pagination.total_count || 0;
+    if (result.data && result.pagination) {
+      // Handle paginated response from backend
+      students.value = result.data || [];
+      currentPage.value = result.pagination.current_page || page;
+      pageSize.value = result.pagination.limit || pageSize.value;
+      totalItems.value = result.pagination.total_count || 0;
 
-        // Reset to page 1 if no data and we're not on page 1
-        if (students.value.length === 0 && currentPage.value > 1) {
-          currentPage.value = 1;
-        }
-      } else if (response.data && Array.isArray(response.data)) {
-        // Handle array response (fallback)
-        students.value = response.data;
-        totalItems.value = response.data.length;
-      } else {
-        students.value = [];
-        totalItems.value = 0;
+      // Reset to page 1 if no data and we're not on page 1
+      if (students.value.length === 0 && currentPage.value > 1) {
         currentPage.value = 1;
       }
     } else {
@@ -1152,7 +1144,10 @@ onMounted(async () => {
 
   // Load classes and sections for branch admin users
   if (isBranchAdmin.value && selectedBranch.value) {
-    await fetchClasses(authStore.currentUser?.school_id, selectedBranch.value);
+    await fetchClasses({
+      schoolId: authStore.currentUser?.school_id,
+      branchId: selectedBranch.value
+    });
   }
 
   if (isBranchAdmin.value) {

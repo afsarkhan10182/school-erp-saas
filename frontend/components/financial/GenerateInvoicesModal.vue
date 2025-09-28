@@ -1,5 +1,5 @@
 <template>
-  <Modal :show="show" @close="$emit('close')">
+  <Modal :show="show" @close="$emit('close')" size="4xl">
     <template #header>
       <h3 class="text-lg font-medium text-gray-900 dark:text-white">Generate Invoices</h3>
     </template>

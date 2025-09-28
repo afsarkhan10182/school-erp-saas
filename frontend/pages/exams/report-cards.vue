@@ -242,13 +242,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { useDropdowns } from '~/composables/useDropdowns';
+import { useAcademics } from '~/composables/useAcademics';
 import { Exams } from '~/api/academic';
 import { Students } from '~/api/students';
 
 // Composables
 const { showToast } = useToast();
-const { classes, sections, loadAllDropdowns } = useDropdowns();
+const { classes, sections, fetchClasses, fetchSections } = useAcademics();
 
 // Reactive data
 const loading = ref(false);

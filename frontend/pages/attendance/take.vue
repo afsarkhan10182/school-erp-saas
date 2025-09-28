@@ -113,17 +113,29 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { Classes, Sections, Students, Attendance } from '~/api';
+import { useAcademics } from '~/composables/useAcademics';
+import { useAttendance } from '~/composables/useAttendance';
+import { useStudents } from '~/composables/useStudents';
 import { useAuth } from '~/composables/useAuth';
 
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
-const loading = ref(false);
-const saving = ref(false);
-const session = ref<any>(null);
+const { classes, sections, fetchClasses, fetchSections, classOptions, sectionOptions } =
+  useAcademics();
+const {
+  currentSession,
+  students,
+  attendanceRecords,
+  loading,
+  saving,
+  createSession,
+  loadStudents,
+  saveAttendance
+} = useAttendance();
+const { loadStudents: loadStudentsFromComposable } = useStudents();
 
 // Computed property to check if we have a valid session
 const hasValidSession = computed(() => {
-  return !!(session.value && session.value.id);
+  return !!(currentSession.value && currentSession.value.id);
 });
 
 const form = reactive<{
@@ -146,9 +158,6 @@ const typeOptions = [
   { label: 'Daily', value: 'daily' },
   { label: 'Period', value: 'period' }
 ];
-const classOptions = ref<any[]>([]);
-const sectionOptions = ref<any[]>([]);
-const students = ref<any[]>([]);
 const recordByStudent = reactive<
   Record<string, { status: 'present' | 'absent' | 'late' | 'excused'; remarks?: string }>
 >({});
@@ -157,43 +166,27 @@ const { showToast } = useToast();
 
 const loadDropdowns = async () => {
   try {
-    const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' });
-    classOptions.value = (classes.data?.rows || classes.data || []).map((c: any) => ({
-      label: c.name,
-      value: c.id
-    }));
-
-    const sections = await Sections.getAll({ page: 1, limit: 100, is_active: 'true' });
-    sectionOptions.value = (sections.data?.rows || sections.data || []).map((s: any) => ({
-      label: s.name,
-      value: s.id
-    }));
+    await fetchClasses();
+    await fetchSections();
   } catch (error: any) {
     console.error('Error loading dropdowns:', error);
     showToast('Failed to load classes and sections', 'error');
   }
 };
 
-const loadStudents = async () => {
+const loadStudentsData = async () => {
   if (!form.class_id) return;
   try {
-    const res = await Students.getAll({
-      page: 1,
-      limit: 1000,
-      class_id: form.class_id,
-      section_id: form.section_id as any
-    });
-    const rows = (res as any).data?.rows || (res as any).data || [];
-    students.value = rows;
+    await loadStudents(form.class_id, form.section_id || undefined);
 
     // Clear existing records and initialize for all students
     Object.keys(recordByStudent).forEach(key => delete recordByStudent[key]);
-    rows.forEach((s: any) => {
+    students.value.forEach((s: any) => {
       recordByStudent[s.id] = { status: 'present', remarks: '' };
     });
 
     // Auto-create session if we have date and students
-    if (form.date && rows.length > 0 && !session.value) {
+    if (form.date && students.value.length > 0 && !currentSession.value) {
       await createOrGetSession();
     }
   } catch (error: any) {
@@ -202,15 +195,13 @@ const loadStudents = async () => {
   }
 };
 
-watch(() => [form.class_id, form.section_id], loadStudents);
+watch(() => [form.class_id, form.section_id], loadStudentsData);
 
 const createOrGetSession = async () => {
   if (!form.date || !form.class_id) {
     showToast('Please select date and class first', 'error');
     return;
   }
-
-  loading.value = true;
 
   try {
     // Ensure context
@@ -220,45 +211,21 @@ const createOrGetSession = async () => {
       return;
     }
 
-    const res = await Attendance.upsertSession({
+    const sessionData = await createSession({
       date: form.date,
-      attendance_type: form.attendance_type,
-      period_number: form.attendance_type === 'period' ? form.period_number || 1 : null,
+      attendance_type: 'daily',
       academic_year: form.academic_year || undefined,
       class_id: form.class_id!,
-      section_id: form.section_id || null,
+      section_id: form.section_id || undefined,
       // Pass context explicitly for super_admin or when token lacks branch
       // Backend setSchoolContext/setBranchContext will pick these
       // @ts-ignore
       school_id: user.value?.school?.id,
       // @ts-ignore
       branch_id: user.value?.branch?.id
-    } as any);
+    });
 
-    // Handle different response structures and ensure reactivity
-    let sessionData = null;
-    if (res && res.success && res.data) {
-      sessionData = res.data;
-    } else if (res && res.data) {
-      sessionData = res.data;
-    } else if (res) {
-      sessionData = res;
-    } else {
-      throw new Error('Invalid response from server');
-    }
-
-    // Ensure the session has an ID
-    if (!sessionData || !sessionData.id) {
-      console.error('Session data missing ID:', sessionData);
-      throw new Error('Session created but missing ID');
-    }
-
-    // Force reactivity update
-    session.value = null;
-    await nextTick();
-    session.value = sessionData;
-
-    await loadStudents();
+    await loadStudentsData();
 
     if (students.value.length === 0) {
       showToast('Session created but no students found for this class/section', 'warning');
@@ -269,10 +236,6 @@ const createOrGetSession = async () => {
     console.error('Create/Load Session error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to create/load session';
     showToast(msg, 'error');
-    session.value = null;
-    students.value = [];
-  } finally {
-    loading.value = false;
   }
 };
 
@@ -288,7 +251,6 @@ const save = async (publish: boolean) => {
     return;
   }
 
-  saving.value = true;
   try {
     // Ensure all students have attendance records with proper defaults
     const records = students.value.map((s: any) => ({
@@ -310,11 +272,11 @@ const save = async (publish: boolean) => {
       return;
     }
 
-    await Attendance.saveRecords({
-      session_id: session.value.id,
-      records,
-      publish
-    });
+    if (currentSession.value?.id) {
+      await saveAttendance(currentSession.value.id, records, publish);
+    } else {
+      throw new Error('No valid session found');
+    }
 
     showToast(
       publish ? 'Attendance published successfully' : 'Draft saved successfully',
@@ -324,8 +286,6 @@ const save = async (publish: boolean) => {
     console.error('Save attendance error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to save attendance';
     showToast(msg, 'error');
-  } finally {
-    saving.value = false;
   }
 };
 

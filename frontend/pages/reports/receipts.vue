@@ -215,40 +215,12 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Date Range *</label
             >
-            <div class="relative group">
-              <select
-                v-model="filters.dateRange"
-                @change="handleDateRangeChange"
-                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                style="
-                  -webkit-appearance: none !important;
-                  -moz-appearance: none !important;
-                  appearance: none !important;
-                "
-              >
-                <option value="">All Time</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="filters.dateRange"
+              :options="dateRangeOptions"
+              placeholder="Select Date Range"
+              @change="handleDateRangeChange"
+            />
           </div>
 
           <!-- Payment Method -->
@@ -256,42 +228,11 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Payment Method</label
             >
-            <div class="relative group">
-              <select
-                v-model="filters.payment_method"
-                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                style="
-                  -webkit-appearance: none !important;
-                  -moz-appearance: none !important;
-                  appearance: none !important;
-                "
-              >
-                <option value="">All Methods</option>
-                <option value="cash">Cash</option>
-                <option value="bank">Bank</option>
-                <option value="online">Online</option>
-                <option value="card">Card</option>
-                <option value="cheque">Cheque</option>
-                <option value="wallet">Wallet</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="upi">UPI</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="filters.payment_method"
+              :options="paymentMethodOptions"
+              placeholder="All Payment Methods"
+            />
           </div>
 
           <!-- School dropdown for super admin -->
@@ -299,38 +240,12 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >School</label
             >
-            <div class="relative group">
-              <select
-                v-model="filters.school_id"
-                @change="onSchoolChange"
-                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                style="
-                  -webkit-appearance: none !important;
-                  -moz-appearance: none !important;
-                  appearance: none !important;
-                "
-              >
-                <option value="">All Schools</option>
-                <option v-for="school in schools" :key="school.id" :value="school.id">
-                  {{ school.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="filters.school_id"
+              :options="schoolOptions"
+              placeholder="All Schools"
+              @change="onSchoolChange"
+            />
           </div>
 
           <!-- Branch dropdown for super admin (when school selected) and school admin -->
@@ -341,38 +256,12 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Branch</label
             >
-            <div class="relative group">
-              <select
-                v-model="filters.branch_id"
-                @change="onBranchChange"
-                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                style="
-                  -webkit-appearance: none !important;
-                  -moz-appearance: none !important;
-                  appearance: none !important;
-                "
-              >
-                <option value="">All Branches</option>
-                <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="filters.branch_id"
+              :options="branchOptions"
+              placeholder="All Branches"
+              @change="onBranchChange"
+            />
           </div>
 
           <!-- Student Search -->
@@ -435,38 +324,12 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Class</label
             >
-            <div class="relative group">
-              <select
-                v-model="filters.class_id"
-                @change="onClassChange"
-                class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                style="
-                  -webkit-appearance: none !important;
-                  -moz-appearance: none !important;
-                  appearance: none !important;
-                "
-              >
-                <option value="">All Classes</option>
-                <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-                  {{ classItem.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="filters.class_id"
+              :options="classOptions"
+              placeholder="All Classes"
+              @change="onClassChange"
+            />
           </div>
 
           <!-- Apply Filter Button -->
@@ -797,14 +660,16 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { FeeInvoices, Schools, Branches, Classes } from '~/api';
+import { FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
-import { useBranchContext } from '~/composables/useBranchContext';
+import { useBranches } from '~/composables/useBranches';
+import { useSchools } from '~/composables/useSchools';
 import { useAuth } from '~/composables/useAuth';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/ui/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Page metadata
 definePageMeta({
@@ -815,8 +680,55 @@ definePageMeta({
 const { showToast } = useToast();
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { generateReport, isGenerating, generationProgress } = useExportService();
-
 const { printReport: printReportCommon } = usePrintReport();
+
+// Academic composables
+const { classes, sections, fetchClasses, fetchSections } = useAcademics();
+const { branches, fetchBranches } = useBranches();
+const { schools, fetchSchools } = useSchools();
+
+// Dropdown options
+const dateRangeOptions = [
+  { value: '', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'custom', label: 'Custom Range' }
+];
+
+const paymentMethodOptions = [
+  { value: '', label: 'All Methods' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'bank', label: 'Bank' },
+  { value: 'online', label: 'Online' },
+  { value: 'card', label: 'Card' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'wallet', label: 'Wallet' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'upi', label: 'UPI' }
+];
+
+const schoolOptions = computed(() => [
+  ...schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }))
+]);
+
+const branchOptions = computed(() => [
+  ...branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+]);
+
+const classOptions = computed(() => [
+  ...classes.value.map(cls => ({
+    value: cls.id,
+    label: cls.name
+  }))
+]);
 
 // State
 const isLoading = ref(false);
@@ -839,11 +751,8 @@ const pagination = ref({
 const showDownloadDropdown = ref(false); // Track download dropdown state
 const showColumnSelector = ref(false); // Track column selector state
 
-// Dropdown data
-const schools = ref([]);
-const branches = ref([]);
-const classes = ref([]);
-const sections = ref([]);
+// Dropdown data - using composables
+// schools, branches, classes, sections are now provided by composables
 
 // Available columns for selection
 const availableColumns = ref([
@@ -1078,89 +987,6 @@ const onBranchChange = async () => {
 const onClassChange = async () => {
   // No additional action needed when class changes
   // Sections are not used in receipts report
-};
-
-// Dropdown data loading methods
-const fetchSchools = async () => {
-  if (userRole.value === 'super_admin') {
-    try {
-      const response = await Schools.getAll();
-      if (response.success) {
-        schools.value = response.data.schools || [];
-      }
-    } catch (error) {
-      console.error('Error loading schools:', error);
-      showToast('Error loading schools', 'error');
-      schools.value = [];
-    }
-  }
-};
-
-const fetchBranches = async () => {
-  try {
-    const response = await Branches.getForDropdown();
-
-    // Dropdown endpoint returns data directly as an array
-    let allBranches = response.data || [];
-
-    // Apply role-based filtering
-    const currentUser = user.value;
-
-    if (currentUser && currentUser.role) {
-      if (currentUser.role === 'super_admin') {
-        // Super admin can see all branches, but filter by selected school if specified
-        if (filters.school_id) {
-          branches.value = allBranches.filter(branch => branch.school_id === filters.school_id);
-        } else {
-          branches.value = [];
-        }
-      } else if (currentUser.role === 'school_admin') {
-        // School admin can see all branches in their school
-        branches.value = allBranches.filter(branch => branch.school_id === currentUser.school_id);
-      } else if (currentUser.role === 'branch_admin') {
-        // Branch admin can only see their own branch
-        branches.value = allBranches.filter(branch => branch.id === currentUser.branch_id);
-      } else {
-        branches.value = [];
-      }
-    } else {
-      branches.value = [];
-    }
-  } catch (error) {
-    console.error('❌ Error fetching branches:', error);
-    showToast('Error fetching branches', 'error');
-    branches.value = [];
-  }
-};
-
-const fetchClasses = async () => {
-  try {
-    const params = {};
-    if (filters.school_id) {
-      params.school_id = filters.school_id;
-    }
-    if (filters.branch_id) {
-      params.branch_id = filters.branch_id;
-    }
-    const response = await Classes.getAll(params);
-
-    // Handle different response structures
-    if (response.success) {
-      classes.value = response.data || [];
-    } else if (response.data?.items) {
-      classes.value = response.data.items;
-    } else if (response.data?.classes) {
-      classes.value = response.data.classes;
-    } else if (Array.isArray(response.data)) {
-      classes.value = response.data;
-    } else {
-      classes.value = [];
-    }
-  } catch (error) {
-    console.error('Error fetching classes:', error);
-    showToast('Error fetching classes', 'error');
-    classes.value = [];
-  }
 };
 
 // Unified download function following DRY principle

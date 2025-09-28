@@ -1,104 +1,81 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Teacher -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Teacher <span class="text-red-500">*</span>
-        </label>
-        <select
-          v-model="form.teacher_id"
-          required
-          :class="[
-            'input-field',
-            errors.teacher_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('teacher_id')"
-          @change="clearError('teacher_id')"
-        >
-          <option value="">Select Teacher</option>
-          <option v-for="teacher in teachers" :key="teacher.value" :value="teacher.value">
-            {{ teacher.label }}
-          </option>
-        </select>
-        <div v-if="errors.teacher_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.teacher_id }}
-        </div>
-      </div>
+  <form @submit.prevent="handleSubmit" class="space-y-4">
+    <!-- Teacher -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Teacher <span class="text-red-500">*</span>
+      </label>
+      <EnhancedDropdown
+        v-model="form.teacher_id"
+        :options="teachers"
+        placeholder="Select Teacher"
+        :required="true"
+        :error="errors.teacher_id"
+        @blur="validateField('teacher_id')"
+        @change="clearError('teacher_id')"
+      />
+    </div>
 
-      <!-- Subject -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Subject <span class="text-red-500">*</span>
-        </label>
-        <select
-          v-model="form.subject_id"
-          required
-          :class="[
-            'input-field',
-            errors.subject_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('subject_id')"
-          @change="clearError('subject_id')"
-        >
-          <option value="">Select Subject</option>
-          <option v-for="subject in subjects" :key="subject.value" :value="subject.value">
-            {{ subject.label }}
-          </option>
-        </select>
-        <div v-if="errors.subject_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.subject_id }}
-        </div>
-      </div>
+    <!-- Subject -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Subject <span class="text-red-500">*</span>
+      </label>
+      <EnhancedDropdown
+        v-model="form.subject_id"
+        :options="subjects"
+        placeholder="Select Subject"
+        :required="true"
+        :error="errors.subject_id"
+        @blur="validateField('subject_id')"
+        @change="clearError('subject_id')"
+      />
+    </div>
 
-      <!-- Class -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Class
-        </label>
-        <select
-          v-model="form.class_id"
-          :class="[
-            'input-field',
-            errors.class_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('class_id')"
-          @change="clearError('class_id')"
-        >
-          <option value="">All Classes</option>
-          <option v-for="cls in classes" :key="cls.value" :value="cls.value">
-            {{ cls.label }}
-          </option>
-        </select>
-        <div v-if="errors.class_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.class_id }}
-        </div>
+    <!-- Class -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Class <span class="text-red-500">*</span>
+      </label>
+      <EnhancedDropdown
+        v-model="form.class_id"
+        :options="classOptions"
+        placeholder="Select Class"
+        :required="true"
+        :error="errors.class_id"
+        @blur="validateField('class_id')"
+        @change="onClassChange"
+      />
+      <!-- Debug info -->
+      <div v-if="classOptions.length === 0" class="text-sm text-red-500 mt-1">
+        No classes available. Please check if classes are loaded for this branch.
       </div>
+    </div>
 
-      <!-- Academic Year -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Academic Year <span class="text-red-500">*</span>
-        </label>
-        <select
-          v-model="form.academic_year"
-          required
-          :class="[
-            'input-field',
-            errors.academic_year ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('academic_year')"
-          @change="clearError('academic_year')"
-        >
-          <option value="">Select Academic Year</option>
-          <option v-for="year in academicYears" :key="year.value" :value="year.value">
-            {{ year.label }}
-          </option>
-        </select>
-        <div v-if="errors.academic_year" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.academic_year }}
-        </div>
-      </div>
+    <!-- Stream Selection (if streams exist) -->
+    <div v-if="showStreams">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Stream
+      </label>
+      <EnhancedDropdown
+        v-model="form.stream_id"
+        :options="streamOptions"
+        placeholder="Select Stream"
+        @change="onStreamChange"
+      />
+    </div>
+
+    <!-- Section Selection -->
+    <div v-if="showSections">
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Section
+      </label>
+      <EnhancedDropdown
+        v-model="form.section_id"
+        :options="sectionOptions"
+        placeholder="All Sections"
+        @change="clearError('section_id')"
+      />
     </div>
 
     <!-- Primary Teacher Toggle -->
@@ -113,9 +90,6 @@
           Set as primary teacher for this subject
         </span>
       </label>
-      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        Primary teachers are the main instructors for the subject
-      </p>
     </div>
 
     <!-- Form Actions -->
@@ -130,7 +104,7 @@
       <button
         type="submit"
         :disabled="isSubmitting"
-        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {{ isSubmitting ? 'Saving...' : props.assignment ? 'Update Assignment' : 'Assign Teacher' }}
       </button>
@@ -142,6 +116,9 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { validationRules } from '~/utils/validators';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { Streams } from '~/api/academic/streams';
+import { Sections } from '~/api/academic/sections';
 
 // Props
 const props = defineProps({
@@ -164,6 +141,14 @@ const props = defineProps({
   academicYears: {
     type: Array,
     default: () => []
+  },
+  schoolId: {
+    type: String,
+    default: ''
+  },
+  branchId: {
+    type: String,
+    default: ''
   }
 });
 
@@ -177,12 +162,42 @@ const { showToast } = useToast();
 const isSubmitting = ref(false);
 const errors = ref({});
 
+// Reactive data for cascading dropdowns
+const availableStreams = ref([]);
+const availableSections = ref([]);
+const showStreams = ref(false);
+const showSections = ref(false);
+
+// Computed
+const classOptions = computed(() => {
+  if (!props.classes || props.classes.length === 0) {
+    return [];
+  }
+  // Classes are already formatted by TeacherAssignmentTab
+  return props.classes;
+});
+
+const streamOptions = computed(() => {
+  return availableStreams.value.map(stream => ({
+    value: stream.id,
+    label: stream.name
+  }));
+});
+
+const sectionOptions = computed(() => {
+  return availableSections.value.map(section => ({
+    value: section.id,
+    label: section.name
+  }));
+});
+
 // Form data
 const form = reactive({
   teacher_id: '',
   subject_id: '',
   class_id: '',
-  academic_year: '',
+  stream_id: '',
+  section_id: '',
   is_primary: false
 });
 
@@ -190,15 +205,18 @@ const form = reactive({
 const validationSchema = {
   teacher_id: [val => validationRules.required(val, 'Teacher')],
   subject_id: [val => validationRules.required(val, 'Subject')],
-  class_id: [
-    val => {
-      if (val && !validationRules.uuid(val)) {
-        return 'Invalid class ID format';
-      }
-      return null;
-    }
-  ],
-  academic_year: [val => validationRules.required(val, 'Academic Year')]
+  class_id: [val => validationRules.required(val, 'Class')]
+  // academic_year is auto-set, no validation needed
+};
+
+// Check for duplicate assignment
+const checkDuplicateAssignment = () => {
+  if (form.teacher_id && form.subject_id && form.class_id) {
+    // This is a simple frontend check - the backend will do the actual validation
+    // We could add more sophisticated checking here if needed
+    return false; // Let backend handle the validation
+  }
+  return false;
 };
 
 // Methods
@@ -221,6 +239,102 @@ const clearError = fieldName => {
   delete errors.value[fieldName];
 };
 
+// Cascading dropdown methods
+const onClassChange = async () => {
+  // Clear any existing class_id validation errors
+  clearError('class_id');
+
+  // Reset dependent fields
+  form.stream_id = '';
+  form.section_id = '';
+
+  if (!form.class_id) {
+    showStreams.value = false;
+    showSections.value = false;
+    return;
+  }
+
+  try {
+    // Load streams for the class using dropdown API
+    const streamsResponse = await Streams.getForDropdown({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      class_id: form.class_id
+    });
+
+    if (streamsResponse.data && streamsResponse.data.length > 0) {
+      // Show streams first
+      availableStreams.value = streamsResponse.data;
+      showStreams.value = true;
+      showSections.value = false;
+    } else {
+      // No streams, show sections directly
+      await loadSectionsForClass();
+    }
+  } catch (error) {
+    console.error('Error loading streams:', error);
+    // Fallback: try to load sections directly
+    await loadSectionsForClass();
+  }
+};
+
+const onStreamChange = async () => {
+  form.section_id = '';
+
+  if (!form.stream_id) {
+    showSections.value = false;
+    return;
+  }
+
+  // Load sections for selected stream
+  await loadSectionsForStream();
+};
+
+const loadSectionsForClass = async () => {
+  try {
+    const params = new URLSearchParams({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      class_id: form.class_id
+    });
+
+    const sectionsResponse = await Sections.getDropdown(params.toString());
+
+    if (sectionsResponse.data && sectionsResponse.data.length > 0) {
+      availableSections.value = sectionsResponse.data;
+      showSections.value = true;
+    } else {
+      showSections.value = false;
+    }
+  } catch (error) {
+    console.error('Error loading sections for class:', error);
+    showSections.value = false;
+  }
+};
+
+const loadSectionsForStream = async () => {
+  try {
+    const params = new URLSearchParams({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      class_id: form.class_id,
+      stream_id: form.stream_id
+    });
+
+    const sectionsResponse = await Sections.getDropdown(params.toString());
+
+    if (sectionsResponse.data && sectionsResponse.data.length > 0) {
+      availableSections.value = sectionsResponse.data;
+      showSections.value = true;
+    } else {
+      showSections.value = false;
+    }
+  } catch (error) {
+    console.error('Error loading sections for stream:', error);
+    showSections.value = false;
+  }
+};
+
 const handleSubmit = async () => {
   // Validate all fields
   const fieldNames = Object.keys(validationSchema);
@@ -241,14 +355,27 @@ const handleSubmit = async () => {
   isSubmitting.value = true;
 
   try {
+    // Get current academic year automatically
+    const currentYear = props.academicYears.find(year => year.is_current);
+    const academicYear = currentYear ? currentYear.name : '';
+
     const assignmentData = {
       teacher_id: form.teacher_id,
       subject_id: form.subject_id,
-      class_id: form.class_id || null,
-      academic_year: form.academic_year,
+      class_id: form.class_id,
+      academic_year: academicYear,
       is_primary: form.is_primary
     };
 
+    // Only include stream_id and section_id if they have valid values
+    if (form.stream_id && form.stream_id.trim() !== '') {
+      assignmentData.stream_id = form.stream_id;
+    }
+    if (form.section_id && form.section_id.trim() !== '') {
+      assignmentData.section_id = form.section_id;
+    }
+
+    console.log('Submitting assignment data:', assignmentData);
     emit('submit', assignmentData);
   } catch (error) {
     console.error('Error in form submission:', error);
@@ -263,21 +390,60 @@ const resetForm = () => {
     teacher_id: '',
     subject_id: '',
     class_id: '',
-    academic_year: '',
+    stream_id: '',
+    section_id: '',
     is_primary: false
   });
   errors.value = {};
+  showStreams.value = false;
+  showSections.value = false;
+  availableStreams.value = [];
+  availableSections.value = [];
 };
 
-const populateForm = assignment => {
+const loadStreamsAndSectionsForEdit = async () => {
+  try {
+    // Load streams for the class
+    const streamsResponse = await Streams.getForDropdown({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      class_id: form.class_id
+    });
+
+    if (streamsResponse.data && streamsResponse.data.length > 0) {
+      availableStreams.value = streamsResponse.data;
+      showStreams.value = true;
+
+      // If we have a stream_id, load sections for that stream
+      if (form.stream_id) {
+        await loadSectionsForStream();
+      }
+    } else {
+      // No streams, load sections directly for the class
+      await loadSectionsForClass();
+    }
+  } catch (error) {
+    console.error('Error loading streams and sections for edit:', error);
+    // Fallback: try to load sections directly
+    await loadSectionsForClass();
+  }
+};
+
+const populateForm = async assignment => {
   if (assignment) {
     Object.assign(form, {
       teacher_id: assignment.teacher_id || '',
       subject_id: assignment.subject_id || '',
       class_id: assignment.class_id || '',
-      academic_year: assignment.academic_year || '',
+      stream_id: assignment.stream_id || '',
+      section_id: assignment.section_id || '',
       is_primary: assignment.is_primary || false
     });
+
+    // If editing and we have a class_id, load the streams and sections
+    if (assignment.class_id) {
+      await loadStreamsAndSectionsForEdit();
+    }
   } else {
     resetForm();
   }
@@ -286,45 +452,14 @@ const populateForm = assignment => {
 // Watchers
 watch(
   () => props.assignment,
-  newAssignment => {
-    populateForm(newAssignment);
+  async newAssignment => {
+    await populateForm(newAssignment);
   },
   { immediate: true }
 );
 
 // Lifecycle
-onMounted(() => {
-  populateForm(props.assignment);
+onMounted(async () => {
+  await populateForm(props.assignment);
 });
 </script>
-
-<style scoped>
-.input-field {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  outline: none;
-  background-color: white;
-  color: #111827;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.input-field:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.dark .input-field {
-  border-color: #4b5563;
-  background-color: #1f2937;
-  color: white;
-}
-
-.dark .input-field:focus {
-  border-color: #3b82f6;
-}
-</style>

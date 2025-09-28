@@ -124,20 +124,6 @@
       </div>
     </div>
 
-    <!-- Summary -->
-    <div
-      v-if="form.class_id && form.subject_ids.length > 0"
-      class="bg-indigo-50 dark:bg-indigo-900 rounded-lg p-4"
-    >
-      <h4 class="text-sm font-medium text-indigo-900 dark:text-indigo-200 mb-2">
-        Assignment Summary
-      </h4>
-      <p class="text-sm text-indigo-700 dark:text-indigo-300">
-        This will create {{ form.subject_ids.length }} assignments for the selected
-        class/stream/section
-      </p>
-    </div>
-
     <!-- Form Actions -->
     <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
       <button

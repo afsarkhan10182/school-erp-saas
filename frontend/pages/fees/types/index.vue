@@ -173,22 +173,14 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >School *</label
                   >
-                  <select
+                  <EnhancedDropdown
                     v-model="selectedSchoolId"
+                    :options="schoolOptions"
+                    placeholder="Select a school first"
                     required
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.school_id
-                        ? 'border-red-300 dark:border-red-600'
-                        : 'border-gray-300 dark:border-gray-600'
-                    ]"
-                    @change="onSchoolChange"
-                  >
-                    <option value="">Select a school first</option>
-                    <option v-for="school in availableSchools" :key="school.id" :value="school.id">
-                      {{ school.name }}
-                    </option>
-                  </select>
+                    :error="validationErrors.school_id"
+                    @update:model-value="onSchoolChange"
+                  />
                   <div
                     v-if="validationErrors.school_id"
                     class="mt-1 text-xs text-red-600 dark:text-red-400"
@@ -202,21 +194,13 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Branch *</label
                   >
-                  <select
+                  <EnhancedDropdown
                     v-model="selectedBranchId"
+                    :options="branchOptions"
+                    placeholder="Select a branch"
                     required
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.branch_id
-                        ? 'border-red-300 dark:border-red-600'
-                        : 'border-gray-300 dark:border-gray-600'
-                    ]"
-                  >
-                    <option value="">Select a branch</option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }}
-                    </option>
-                  </select>
+                    :error="validationErrors.branch_id"
+                  />
                   <div
                     v-if="validationErrors.branch_id"
                     class="mt-1 text-xs text-red-600 dark:text-red-400"
@@ -253,23 +237,14 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Branch *</label
                   >
-                  <select
+                  <EnhancedDropdown
                     v-model="selectedBranchId"
+                    :options="branchOptions"
+                    placeholder="Select a branch"
                     :required="!isEditing"
                     :disabled="isEditing"
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      validationErrors.branch_id
-                        ? 'border-red-300 dark:border-red-600'
-                        : 'border-gray-300 dark:border-gray-600',
-                      isEditing ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : ''
-                    ]"
-                  >
-                    <option value="">Select a branch</option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }}
-                    </option>
-                  </select>
+                    :error="validationErrors.branch_id"
+                  />
                   <div
                     v-if="validationErrors.branch_id"
                     class="mt-1 text-xs text-red-600 dark:text-red-400"
@@ -351,21 +326,13 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Category *</label
                 >
-                <select
+                <EnhancedDropdown
                   v-model="form.category"
+                  :options="categoryOptions"
+                  placeholder="Select Category"
                   required
-                  :class="[
-                    'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                    validationErrors.category
-                      ? 'border-red-300 dark:border-red-600'
-                      : 'border-gray-300 dark:border-gray-600'
-                  ]"
-                >
-                  <option value="academic">Academic</option>
-                  <option value="transport">Transport</option>
-                  <option value="hostel">Hostel</option>
-                  <option value="other">Other</option>
-                </select>
+                  :error="validationErrors.category"
+                />
                 <div
                   v-if="validationErrors.category"
                   class="mt-1 text-xs text-red-600 dark:text-red-400"
@@ -425,7 +392,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { Schools, FeeTypes } from '~/api';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
 
 // SSR-safe window check
@@ -434,6 +403,8 @@ const isClient = import.meta.client;
 // Get auth context
 const { user } = useAuth();
 const { showSuccess, showError } = useToast();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchBranches } = useBranches();
 const router = useRouter();
 const route = useRoute();
 
@@ -446,12 +417,34 @@ const editingId = ref(null);
 
 // School selector for super admin
 const selectedSchoolId = ref('');
-const availableSchools = ref([]);
+
+// Dropdown options
+const schoolOptions = computed(() => [
+  ...schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }))
+]);
+
+const branchOptions = computed(() => [
+  ...availableBranches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+]);
+
+const categoryOptions = [
+  { value: 'academic', label: 'Academic' },
+  { value: 'transport', label: 'Transport' },
+  { value: 'hostel', label: 'Hostel' },
+  { value: 'library', label: 'Library' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'other', label: 'Other' }
+];
 
 // Branch selector for school admin (only for modal)
 const selectedBranchId = ref('');
 const availableBranches = ref([]);
-const { fetchBranches } = useBranches();
 
 const form = ref({
   name: '',
@@ -476,26 +469,10 @@ const resetForm = () => {
   validationErrors.value = {};
 };
 
-// Fetch schools for super admin
-const fetchSchools = async () => {
+// Fetch schools for super admin - using composable
+const loadSchools = async () => {
   if (user.value?.role !== 'super_admin') return;
-
-  try {
-    const response = await Schools.getAll();
-
-    // Handle both paginated and non-paginated responses
-    if (response.data?.schools) {
-      availableSchools.value = response.data.schools;
-    } else if (response.data?.items) {
-      availableSchools.value = response.data.items;
-    } else if (response.data) {
-      availableSchools.value = response.data;
-    } else {
-      availableSchools.value = [];
-    }
-  } catch (error) {
-    availableSchools.value = [];
-  }
+  await fetchSchools();
 };
 
 // Handle school selection change

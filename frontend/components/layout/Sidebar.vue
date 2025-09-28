@@ -345,7 +345,8 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronDown,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -624,6 +625,12 @@ const menuGroups = computed(() => {
           icon: ClipboardList,
           children: [
             {
+              id: 'timetable',
+              title: 'Timetable Management',
+              path: '/academic/timetable',
+              icon: Calendar
+            },
+            {
               id: 'exams',
               title: 'Exams',
               path: '/exams',
@@ -753,6 +760,23 @@ const menuGroups = computed(() => {
             //   ]
             // }
           ]
+        }
+      ]
+    });
+  }
+
+  // Teacher Dashboard (Teachers only)
+  if (user.value?.role === 'teacher') {
+    groups.push({
+      id: 'teacher-dashboard',
+      title: 'My Schedule',
+      items: [
+        {
+          id: 'my-timetable',
+          title: 'My Timetable',
+          path: '/academic/timetables',
+          icon: Clock,
+          requiredModule: 'exams'
         }
       ]
     });

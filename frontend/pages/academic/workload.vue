@@ -402,7 +402,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { SubjectTeachers, Users } from '~/api';
 import Modal from '~/components/ui/Modal.vue';
@@ -410,8 +409,7 @@ import { Users as UsersIcon, BookOpen, CheckCircle, Clock } from 'lucide-vue-nex
 
 // Composables
 const { showToast } = useToast();
-const { classOptions, loadClasses } = useDropdowns();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const { classOptions, academicYears, fetchClasses, fetchAcademicYears } = useAcademics();
 
 // Reactive data
 const loading = ref(false);

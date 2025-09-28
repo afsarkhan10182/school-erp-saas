@@ -5,7 +5,7 @@ export interface UserParams {
   limit?: number;
   role?: string;
   schoolId?: string;
-  branchId?: string;
+  branch_id?: string;
 }
 
 export interface UserData {

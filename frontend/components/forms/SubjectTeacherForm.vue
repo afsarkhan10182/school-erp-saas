@@ -180,7 +180,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Subjects } from '~/api';
 
@@ -217,8 +216,10 @@ const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
 const { showToast } = useToast();
-const { sectionOptions, loadSections } = useDropdowns();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const { 
+  sectionOptions, academicYears,
+  fetchSections, fetchAcademicYears
+} = useAcademics();
 
 // Reactive data
 const isSubmitting = ref(false);

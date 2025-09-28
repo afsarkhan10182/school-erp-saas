@@ -713,28 +713,13 @@
                 >Date Range</label
               >
               <div class="relative group">
-                <select
+                <EnhancedDropdown
                   v-model="filters.dateRange"
-                  @change="handleDateRangeChange"
+                  :options="dateRangeOptions"
+                  placeholder="All Time"
                   :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="all_time">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="week">This Week</option>
-                  <option value="last_week">Last Week</option>
-                  <option value="month">This Month</option>
-                  <option value="last_month">Last Month</option>
-                  <option value="quarter">This Quarter</option>
-                  <option value="year">This Year</option>
-                  <option value="custom">Custom Range</option>
-                </select>
+                  @update:model-value="handleDateRangeChange"
+                />
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
                     class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
@@ -1253,14 +1238,31 @@ import {
 import { Students } from '~/api';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
+import { useAcademics } from '~/composables/useAcademics';
+import { useSchools } from '~/composables/useSchools';
+import { useBranches } from '~/composables/useBranches';
 import Pagination from '~/components/ui/Pagination.vue';
-import { AcademicYears, Classes, Sections, Streams, Branches, Schools } from '~/api';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Get auth composable and toast
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { showToast } = useToast();
+
+// Academic composables
+const {
+  academicYears,
+  classes,
+  sections,
+  streams,
+  fetchAcademicYears,
+  fetchClasses,
+  fetchSections,
+  fetchStreams
+} = useAcademics();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchBranches } = useBranches();
 
 // Get print and export composables
 const { printReport: printReportUtil } = usePrintReport();
@@ -1269,12 +1271,6 @@ const { generateReport, isGenerating } = useExportService();
 // State
 const completeStudentsData = ref([]); // Paginated data for table
 const stats = ref({});
-const academicYears = ref([]);
-const classes = ref([]);
-const sections = ref([]);
-const streams = ref([]);
-const branches = ref([]);
-const schools = ref([]); // Add schools for super admin
 const isLoading = ref(false);
 const isInitializing = ref(true);
 const showDownloadDropdown = ref(false); // Track download dropdown state
@@ -1292,6 +1288,68 @@ const pagination = ref({
   per_page: 10,
   limit: 10
 });
+
+// Dropdown options
+const dateRangeOptions = [
+  { value: 'all_time', label: 'All Time' },
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'week', label: 'This Week' },
+  { value: 'last_week', label: 'Last Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'quarter', label: 'This Quarter' },
+  { value: 'year', label: 'This Year' },
+  { value: 'custom', label: 'Custom Range' }
+];
+
+const schoolOptions = computed(() => [
+  { value: '', label: 'All Schools' },
+  ...schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }))
+]);
+
+const branchOptions = computed(() => [
+  { value: '', label: 'All Branches' },
+  ...branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+]);
+
+const classOptions = computed(() => [
+  { value: '', label: 'All Classes' },
+  ...classes.value.map(cls => ({
+    value: cls.id,
+    label: cls.name
+  }))
+]);
+
+const sectionOptions = computed(() => [
+  { value: '', label: 'All Sections' },
+  ...sections.value.map(section => ({
+    value: section.id,
+    label: section.name
+  }))
+]);
+
+const streamOptions = computed(() => [
+  { value: '', label: 'All Streams' },
+  ...streams.value.map(stream => ({
+    value: stream.id,
+    label: stream.name
+  }))
+]);
+
+const statusOptions = [
+  { value: '', label: 'All Status' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'graduated', label: 'Graduated' },
+  { value: 'transferred', label: 'Transferred' }
+];
 
 // Summary data from backend (for accurate totals)
 const summaryData = ref({
@@ -1538,58 +1596,28 @@ const loadStats = async () => {
 };
 
 const loadAcademicYears = async () => {
-  try {
-    const response = await AcademicYears.getAll();
-    academicYears.value = response.data || [];
-  } catch (error) {
-    showToast('Error loading academic years', 'error');
-  }
+  await fetchAcademicYears();
 };
 
 const loadClasses = async () => {
-  try {
-    const response = await Classes.getAll();
-    classes.value = response.data || [];
-  } catch (error) {
-    showToast('Error loading classes', 'error');
-  }
+  await fetchClasses();
 };
 
 const loadSections = async () => {
-  try {
-    const response = await Sections.getAll();
-    sections.value = response.data || [];
-  } catch (error) {
-    showToast('Error loading sections', 'error');
-  }
+  await fetchSections();
 };
 
 const loadStreams = async () => {
-  try {
-    const response = await Streams.getAll();
-    streams.value = response.data || [];
-  } catch (error) {
-    console.error('Error loading streams:', error);
-  }
+  await fetchStreams();
 };
 
 const loadBranches = async () => {
-  try {
-    const response = await Branches.getForDropdown();
-    branches.value = response.data || [];
-  } catch (error) {
-    console.error('Error loading branches:', error);
-  }
+  await fetchBranches();
 };
 
 const loadSchools = async () => {
-  try {
-    if (isSuperAdmin.value) {
-      const response = await Schools.getAll();
-      schools.value = response.data || [];
-    }
-  } catch (error) {
-    console.error('Error loading schools:', error);
+  if (isSuperAdmin.value) {
+    await fetchSchools();
   }
 };
 

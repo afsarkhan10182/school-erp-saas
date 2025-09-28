@@ -267,7 +267,7 @@
     </div>
 
     <!-- Bulk Entry Modal -->
-    <Modal v-if="showBulkEntry" @close="showBulkEntry = false" size="xl">
+    <Modal v-if="showBulkEntry" @close="showBulkEntry = false" size="4xl">
       <template #header>
         <h3 class="text-lg font-medium text-gray-900 dark:text-white">
           Enter Exam Results - {{ exam?.name }}

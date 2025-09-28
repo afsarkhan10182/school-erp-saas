@@ -1023,10 +1023,15 @@ const onBranchChange = async branchId => {
   const schoolId = user.value?.school_id;
   if (branchId && branchId !== '') {
     // Specific branch selected - fetch classes for that branch
-    await fetchClasses(schoolId, branchId);
+    await fetchClasses({
+      schoolId: schoolId,
+      branchId: branchId
+    });
   } else {
     // "All Branches" selected or no branch - fetch all classes
-    await fetchClasses(schoolId);
+    await fetchClasses({
+      schoolId: schoolId
+    });
   }
 };
 
@@ -1056,8 +1061,8 @@ const onClassChange = async classId => {
           '🔍 "All Branches" selected - fetching streams/sections without branch filtering'
         );
         const [streamsResult, sectionsResult] = await Promise.all([
-          fetchStreams(schoolId, null, classId),
-          fetchSections(schoolId, null, classId)
+          fetchStreams({ schoolId, classId }),
+          fetchSections({ schoolId, classId })
         ]);
 
         console.log('🔍 Streams API response:', streamsResult);
@@ -1068,8 +1073,8 @@ const onClassChange = async classId => {
           '🔍 Specific branch selected - fetching streams/sections with branch filtering'
         );
         const [streamsResult, sectionsResult] = await Promise.all([
-          fetchStreams(schoolId, branchId, classId),
-          fetchSections(schoolId, branchId, classId)
+          fetchStreams({ schoolId, branchId, classId }),
+          fetchSections({ schoolId, branchId, classId })
         ]);
 
         console.log('🔍 Streams API response:', streamsResult);
@@ -1604,7 +1609,7 @@ const getMonthName = month => {
 const loadAcademicDataForModal = async () => {
   try {
     // Only fetch when modal is opened
-    await Promise.all([fetchAcademicYears(), fetchClasses(), fetchSchools()]);
+    await Promise.all([fetchAcademicYears(), fetchClasses({}), fetchSchools()]);
   } catch (error) {
     // Error loading academic data
   }
@@ -1669,7 +1674,7 @@ const onModalSchoolChange = async schoolId => {
 const onModalBranchChange = async branchId => {
   if (branchId) {
     // Fetch classes for the selected branch
-    await fetchClasses();
+    await fetchClasses({});
   }
 };
 
@@ -1679,7 +1684,7 @@ const onModalClassChange = async className => {
     if (classItem) {
       // Get the current branch ID from the modal form or user context
       const branchId = user.value?.branch_id;
-      await fetchSections(user.value?.school_id, branchId, classItem.id);
+      await fetchSections({ schoolId: user.value?.school_id, branchId, classId: classItem.id });
     }
   }
 };

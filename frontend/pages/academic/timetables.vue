@@ -15,15 +15,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Academic Year</label
           >
-          <select
+          <EnhancedDropdown
             v-model="selectedAcademicYear"
-            @change="loadMyTimetable"
-            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option v-for="year in academicYears" :key="year.id" :value="year.name">
-              {{ year.name }}
-            </option>
-          </select>
+            :options="academicYearOptions"
+            placeholder="Select Academic Year"
+            @update:model-value="loadMyTimetable"
+          />
         </div>
       </div>
     </div>
@@ -166,6 +163,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { Academic } from '~/api';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { academicYears, fetchAcademicYears } = useAcademics();
@@ -176,6 +174,14 @@ const loading = ref(false);
 const error = ref(null);
 const myTimetable = ref(null);
 const selectedAcademicYear = ref('');
+
+// Computed
+const academicYearOptions = computed(() =>
+  academicYears.value.map(year => ({
+    value: year.name,
+    label: year.name
+  }))
+);
 
 // Week days configuration
 const weekDays = [

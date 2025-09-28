@@ -381,15 +381,16 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useExamOptions } from '~/composables/useExamOptions';
-import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Exams } from '~/api';
 
 // Composables
 const { showToast } = useToast();
 const { examTypeOptions, loadAllExamOptions } = useExamOptions();
-const { classOptions, loadClasses } = useDropdowns();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const { 
+  classOptions, academicYears,
+  fetchClasses, fetchAcademicYears
+} = useAcademics();
 
 // Reactive data
 const loading = ref(false);

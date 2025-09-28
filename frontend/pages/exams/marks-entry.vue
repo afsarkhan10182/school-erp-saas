@@ -22,16 +22,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Exam Type</label
           >
-          <select
+          <EnhancedDropdown
             v-model="selectedExamType"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadExams"
-          >
-            <option value="">All Exam Types</option>
-            <option v-for="type in examTypeOptions" :key="type.value" :value="type.value">
-              {{ type.label }}
-            </option>
-          </select>
+            :options="examTypeDropdownOptions"
+            placeholder="All Exam Types"
+            @update:model-value="loadExams"
+          />
         </div>
 
         <!-- Class -->
@@ -39,16 +35,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Class</label
           >
-          <select
+          <EnhancedDropdown
             v-model="selectedClass"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadExams"
-          >
-            <option value="">All Classes</option>
-            <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-              {{ cls.label }}
-            </option>
-          </select>
+            :options="classDropdownOptions"
+            placeholder="All Classes"
+            @update:model-value="loadExams"
+          />
         </div>
 
         <!-- Academic Year -->
@@ -56,16 +48,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Academic Year</label
           >
-          <select
+          <EnhancedDropdown
             v-model="selectedAcademicYear"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadExams"
-          >
-            <option value="">All Years</option>
-            <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
-              {{ year.label }}
-            </option>
-          </select>
+            :options="academicYearDropdownOptions"
+            placeholder="All Years"
+            @update:model-value="loadExams"
+          />
         </div>
       </div>
 
@@ -452,18 +440,17 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useExamOptions } from '~/composables/useExamOptions';
-import { useDropdowns } from '~/composables/useDropdowns';
 import { useAcademics } from '~/composables/useAcademics';
 import { Exams } from '~/api';
 import { Students } from '~/api';
 import BulkMarksEntry from '~/components/academic/BulkMarksEntry.vue';
 import ExamResults from '~/components/academic/ExamResults.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
 const { examTypeOptions, loadAllExamOptions } = useExamOptions();
-const { classOptions, loadClasses } = useDropdowns();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const { classOptions, academicYears, fetchClasses, fetchAcademicYears } = useAcademics();
 
 // Reactive data
 const loading = ref(false);
@@ -479,13 +466,24 @@ const selectedClass = ref('');
 const selectedAcademicYear = ref('');
 const showResultsManagement = ref(false);
 
-// Computed
-const academicYearOptions = computed(() => {
-  return academicYears.value.map(year => ({
+// Dropdown options
+const examTypeDropdownOptions = computed(() => [
+  { value: '', label: 'Select Exam Type' },
+  ...examTypeOptions.value
+]);
+
+const classDropdownOptions = computed(() => [
+  { value: '', label: 'Select Class' },
+  ...classOptions.value
+]);
+
+const academicYearDropdownOptions = computed(() => [
+  { value: '', label: 'Select Academic Year' },
+  ...academicYears.value.map(year => ({
     value: year.name,
     label: year.name + (year.is_current ? ' (Current)' : '')
-  }));
-});
+  }))
+]);
 
 const presentCount = computed(
   () => students.value.filter(student => !studentMarks.value[student.id]?.is_absent).length

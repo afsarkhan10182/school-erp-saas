@@ -1,8 +1,13 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { AcademicYears } from '~/api/academic/academic-years';
 import { Classes } from '~/api/academic';
 import { Streams } from '~/api/academic';
 import { Sections } from '~/api/academic';
+import { subjectApi } from '~/api/academic/subjects';
+import { Users } from '~/api/administration/users';
+import { useToast } from '~/composables/useToast';
+import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
 
 interface AcademicYear {
   id: string;
@@ -54,13 +59,100 @@ interface Section {
   };
 }
 
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  category?: string;
+  credit_hours?: number;
+  is_active?: boolean;
+}
+
+interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  is_active?: boolean;
+}
+
+interface DropdownOption {
+  label: string;
+  value: string | number;
+}
+
 export function useAcademics() {
+  const { showToast } = useToast();
+  const { user } = useAuth();
+  const authStore = useAuthStore();
+
+  // Raw data
   const academicYears = ref<AcademicYear[]>([]);
   const classes = ref<Class[]>([]);
   const streams = ref<Stream[]>([]);
   const sections = ref<Section[]>([]);
+  const subjects = ref<Subject[]>([]);
+  const teachers = ref<Teacher[]>([]);
+
+  // Dropdown options
+  const classOptions = ref<DropdownOption[]>([]);
+  const streamOptions = ref<DropdownOption[]>([]);
+  const sectionOptions = ref<DropdownOption[]>([]);
+  const subjectOptions = ref<DropdownOption[]>([]);
+  const teacherOptions = ref<DropdownOption[]>([]);
+
   const loading = ref(false);
   const error = ref<string | null>(null);
+
+  // Watchers to populate dropdown options when data changes
+  watch(
+    classes,
+    newClasses => {
+      classOptions.value = newClasses.map((cls: any) => ({
+        value: cls.id,
+        label: cls.name,
+        class_id: cls.id
+      }));
+    },
+    { immediate: true }
+  );
+
+  watch(
+    sections,
+    newSections => {
+      sectionOptions.value = newSections.map((section: any) => ({
+        value: section.id,
+        label: section.name,
+        class_id: section.class_id
+      }));
+    },
+    { immediate: true }
+  );
+
+  watch(
+    subjects,
+    newSubjects => {
+      subjectOptions.value = newSubjects.map((subject: any) => ({
+        value: subject.id,
+        label: `${subject.name} (${subject.code})`,
+        category: subject.category,
+        credit_hours: subject.credit_hours
+      }));
+    },
+    { immediate: true }
+  );
+
+  watch(
+    teachers,
+    newTeachers => {
+      teacherOptions.value = newTeachers.map((teacher: any) => ({
+        value: teacher.id,
+        label: `${teacher.first_name || 'Unknown'} ${teacher.last_name || 'Teacher'} (${teacher.email || 'No Email'})`
+      }));
+    },
+    { immediate: true }
+  );
 
   // Computed properties for active items
   const activeAcademicYears = computed(() =>
@@ -96,25 +188,59 @@ export function useAcademics() {
     }
   };
 
-  const fetchClasses = async (schoolId?: string, branchId?: string) => {
+  const fetchClasses = async (options?: {
+    schoolId?: string;
+    branchId?: string;
+    // Table data options
+    page?: number;
+    limit?: number;
+    sort_by?: string;
+    sort_order?: string;
+    // API endpoint selection
+    useTableData?: boolean; // true for table data, false for dropdown data
+  }) => {
     loading.value = true;
     error.value = null;
     try {
-      const params = new URLSearchParams();
-      if (schoolId) params.append('school_id', schoolId);
-      if (branchId) params.append('branch_id', branchId);
+      if (options?.useTableData) {
+        // Use getAll for table data with pagination
+        const params: any = {};
+        if (options.schoolId) params.school_id = options.schoolId;
+        if (options.branchId) params.branch_id = options.branchId;
+        if (options.page) params.page = options.page;
+        if (options.limit) params.limit = options.limit;
+        if (options.sort_by) params.sort_by = options.sort_by;
+        if (options.sort_order) params.sort_order = options.sort_order;
 
-      const response = await Classes.getDropdown(params.toString());
-      classes.value = response.data || [];
+        const response = await Classes.getAll(params);
+        classes.value = response.data || [];
+        return response; // Return full response for pagination info
+      } else {
+        // Use getDropdown for dropdown data (default behavior)
+        const params = new URLSearchParams();
+        if (options?.schoolId) params.append('school_id', options.schoolId);
+        if (options?.branchId) params.append('branch_id', options.branchId);
+
+        const response = await Classes.getDropdown(params.toString());
+        classes.value = response.data || [];
+        return response;
+      }
     } catch (err) {
       error.value = 'Failed to fetch classes';
       classes.value = [];
+      throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  const fetchStreams = async (schoolId?: string, branchId?: string, classId?: string) => {
+  const fetchStreams = async (
+    options: {
+      schoolId?: string;
+      branchId?: string;
+      classId?: string;
+    } = {}
+  ) => {
     loading.value = true;
     error.value = null;
     try {
@@ -123,9 +249,9 @@ export function useAcademics() {
         branch_id?: string;
         class_id?: string;
       } = {};
-      if (schoolId) params.school_id = schoolId;
-      if (branchId) params.branch_id = branchId;
-      if (classId) params.class_id = classId;
+      if (options?.schoolId) params.school_id = options.schoolId;
+      if (options?.branchId) params.branch_id = options.branchId;
+      if (options?.classId) params.class_id = options.classId;
 
       const response = await Streams.getForDropdown(params);
       streams.value = response.data || [];
@@ -137,14 +263,25 @@ export function useAcademics() {
     }
   };
 
-  const fetchSections = async (schoolId?: string, branchId?: string, classId?: string) => {
+  const fetchSections = async (
+    options: {
+      schoolId?: string;
+      branchId?: string;
+      classId?: string;
+    } = {}
+  ) => {
     loading.value = true;
     error.value = null;
     try {
       const params = new URLSearchParams();
-      if (schoolId) params.append('school_id', schoolId);
-      if (branchId && branchId !== '') params.append('branch_id', branchId);
-      if (classId) params.append('class_id', classId);
+
+      // Auto-resolve from auth context if not provided (following existing pattern)
+      const resolvedSchoolId = options?.schoolId || authStore.currentSchool?.id;
+      const resolvedBranchId = options?.branchId || authStore.currentBranch?.id;
+
+      if (resolvedSchoolId) params.append('school_id', resolvedSchoolId);
+      if (resolvedBranchId && resolvedBranchId !== '') params.append('branch_id', resolvedBranchId);
+      if (options?.classId) params.append('class_id', options.classId);
 
       const response = await Sections.getDropdown(params.toString());
       sections.value = response.data || [];
@@ -168,31 +305,170 @@ export function useAcademics() {
   };
 
   const loadSectionsByClass = async (classId: string, schoolId?: string, branchId?: string) => {
-    return await fetchSections(schoolId, branchId, classId);
+    return await fetchSections({ schoolId, branchId, classId });
   };
 
   const loadStreamsByClass = async (classId: string, schoolId?: string, branchId?: string) => {
-    return await fetchStreams(schoolId, branchId, classId);
+    return await fetchStreams({ schoolId, branchId, classId });
+  };
+
+  // Subjects management
+  const fetchSubjects = async (
+    options: {
+      schoolId?: string;
+      branchId?: string;
+      classId?: string;
+      streamId?: string;
+      category?: string;
+    } = {}
+  ) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const params: any = {};
+      if (options?.schoolId) params.school_id = options.schoolId;
+      if (options?.branchId) params.branch_id = options.branchId;
+      if (options?.classId) params.class_id = options.classId;
+      if (options?.streamId) params.stream_id = options.streamId;
+      if (options?.category) params.category = options.category;
+
+      const response = await subjectApi.getForDropdown(params);
+
+      // Handle different API response structures
+      let subjectsData = [];
+      if (response.data && Array.isArray(response.data)) {
+        subjectsData = response.data;
+      } else if (response.data && response.data.subjects && Array.isArray(response.data.subjects)) {
+        subjectsData = response.data.subjects;
+      }
+
+      subjects.value = subjectsData;
+
+      // Update dropdown options
+      subjectOptions.value = subjects.value.map((subject: any) => ({
+        value: subject.id,
+        label: `${subject.name} (${subject.code})`,
+        category: subject.category,
+        credit_hours: subject.credit_hours
+      }));
+    } catch (err) {
+      error.value = 'Failed to fetch subjects';
+      subjects.value = [];
+      subjectOptions.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Teachers management
+  const fetchTeachers = async (options: { schoolId?: string; branchId?: string } = {}) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const params: any = {
+        role: 'teacher',
+        limit: 1000
+      };
+      if (options?.schoolId) params.school_id = options.schoolId;
+      if (options?.branchId) params.branch_id = options.branchId;
+
+      const response = await Users.getAll(params);
+      teachers.value = response.data?.users || [];
+
+      // Update dropdown options
+      teacherOptions.value = teachers.value.map((teacher: any) => ({
+        value: teacher.id,
+        label: `${teacher.first_name || 'Unknown'} ${teacher.last_name || 'Teacher'} (${teacher.email || 'No Email'})`
+      }));
+    } catch (err) {
+      error.value = 'Failed to fetch teachers';
+      teachers.value = [];
+      teacherOptions.value = [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Utility methods
+  const getClassName = (classId: string | number): string => {
+    const cls = classOptions.value.find(c => c.value === classId);
+    return cls?.label || 'Unknown Class';
+  };
+
+  const getSectionName = (sectionId: string | number): string => {
+    const section = sectionOptions.value.find(s => s.value === sectionId);
+    return section?.label || 'Unknown Section';
+  };
+
+  const getSubjectName = (subjectId: string | number): string => {
+    const subject = subjectOptions.value.find(s => s.value === subjectId);
+    return subject?.label || 'Unknown Subject';
+  };
+
+  const getTeacherName = (teacherId: string | number): string => {
+    const teacher = teacherOptions.value.find(t => t.value === teacherId);
+    return teacher?.label || 'Unknown Teacher';
+  };
+
+  // Reset all data
+  const resetAll = () => {
+    academicYears.value = [];
+    classes.value = [];
+    streams.value = [];
+    sections.value = [];
+    subjects.value = [];
+    teachers.value = [];
+    classOptions.value = [];
+    streamOptions.value = [];
+    sectionOptions.value = [];
+    subjectOptions.value = [];
+    teacherOptions.value = [];
+    error.value = null;
   };
 
   return {
+    // Raw data
     academicYears,
     classes,
     streams,
     sections,
+    subjects,
+    teachers,
+
+    // Dropdown options
+    classOptions,
+    streamOptions,
+    sectionOptions,
+    subjectOptions,
+    teacherOptions,
+
+    // State
     loading,
     error,
+
+    // Computed
     activeAcademicYears,
     activeClasses,
     activeStreams,
     activeSections,
     currentAcademicYear,
+
+    // Fetch methods
     fetchAcademicYears,
     fetchClasses,
     fetchStreams,
     fetchSections,
+    fetchSubjects,
+    fetchTeachers,
+
+    // Utility methods
     getCurrentAcademicYear,
     loadSectionsByClass,
-    loadStreamsByClass
+    loadStreamsByClass,
+    getClassName,
+    getSectionName,
+    getSubjectName,
+    getTeacherName,
+    resetAll
   };
 }

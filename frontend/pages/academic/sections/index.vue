@@ -385,7 +385,10 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useAcademicSettings } from '~/utils/settings';
+import { useToast } from '~/composables/useToast';
 import { Streams } from '~/api';
+
+const { showError, showSuccess } = useToast();
 
 const sections = ref([]);
 const isLoading = ref(false);
@@ -518,7 +521,10 @@ const onSchoolChange = async () => {
 const onBranchChange = async () => {
   selectedClassId.value = '';
   if (selectedBranchId.value) {
-    await fetchClasses(selectedSchoolId.value || user.value?.school_id, selectedBranchId.value);
+    await fetchClasses({
+      schoolId: selectedSchoolId.value || user.value?.school_id,
+      branchId: selectedBranchId.value
+    });
   }
 };
 
@@ -626,7 +632,10 @@ const openCreateModal = async () => {
     // Set school and branch for branch admin, load classes
     selectedSchoolId.value = user.value?.school_id;
     selectedBranchId.value = user.value?.branch_id;
-    await fetchClasses(user.value?.school_id, user.value?.branch_id);
+    await fetchClasses({
+      schoolId: user.value?.school_id,
+      branchId: user.value?.branch_id
+    });
   }
 
   showModal.value = true;
@@ -651,7 +660,10 @@ const editSection = async section => {
   }
 
   // Load classes for the branch
-  await fetchClasses(selectedSchoolId.value, selectedBranchId.value);
+  await fetchClasses({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 
   // Set form values
   selectedClassId.value = section.class_id;
@@ -701,26 +713,10 @@ const saveSection = async () => {
     await fetchSections();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: `Section ${isEditing.value ? 'updated' : 'created'} successfully!`,
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess(`Section ${isEditing.value ? 'updated' : 'created'} successfully!`);
   } catch (error) {
     // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error saving section. Please try again.',
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showError('Error saving section. Please try again.');
   } finally {
     isSubmitting.value = false;
   }
@@ -734,15 +730,7 @@ const toggleStatus = async section => {
     await fetchSections();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: `Section ${section.is_active ? 'deactivated' : 'activated'} successfully!`,
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess(`Section ${section.is_active ? 'deactivated' : 'activated'} successfully!`);
   } catch (error) {
     // Error handling
   }
@@ -758,26 +746,10 @@ const deleteSection = async id => {
     await fetchSections();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Section deleted successfully!',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess('Section deleted successfully!');
   } catch (error) {
     // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error deleting section. Please try again.',
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showError('Error deleting section. Please try again.');
   }
 };
 

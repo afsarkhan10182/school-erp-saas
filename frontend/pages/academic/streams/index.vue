@@ -585,7 +585,10 @@ const onBranchChange = async () => {
   if (form.branch_id) {
     const schoolId = userRole.value === 'super_admin' ? form.school_id : user.value?.school_id;
     console.log('🔍 Fetching classes for school:', schoolId, 'branch:', form.branch_id);
-    await fetchClasses(schoolId, form.branch_id);
+    await fetchClasses({
+      schoolId: schoolId,
+      branchId: form.branch_id
+    });
   }
 };
 
@@ -777,13 +780,16 @@ onMounted(async () => {
       classesResult = { status: 'fulfilled', value: [] };
     } else if (userRole.value === 'school_admin') {
       // For school admin, load classes for their school
-      classesResult = await Promise.allSettled([fetchClasses(user.value?.school_id)]).then(
+      classesResult = await Promise.allSettled([fetchClasses({ schoolId: user.value?.school_id })]).then(
         results => results[0]
       );
     } else if (userRole.value === 'branch_admin') {
       // For branch admin, load classes for their branch
       classesResult = await Promise.allSettled([
-        fetchClasses(user.value?.school_id, user.value?.branch_id)
+        fetchClasses({
+          schoolId: user.value?.school_id,
+          branchId: user.value?.branch_id
+        })
       ]).then(results => results[0]);
     } else {
       classesResult = { status: 'fulfilled', value: [] };

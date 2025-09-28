@@ -45,9 +45,6 @@ export const useAuthStore = defineStore('auth', () => {
       sessionStorage.removeItem('current-branch');
       sessionStorage.removeItem('current-school');
       sessionStorage.removeItem('last-auth-check');
-
-      // Clear any theme or other auth-related data
-      localStorage.removeItem('theme');
     }
 
     // Clear auth token cookies

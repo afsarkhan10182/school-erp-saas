@@ -327,6 +327,7 @@ import { ref, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
+import { useAcademics } from '~/composables/useAcademics';
 import { Schools, Branches, Classes, Sections, Attendance, AttendanceNotifications } from '~/api';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';

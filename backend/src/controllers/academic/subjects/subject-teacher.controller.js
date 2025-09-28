@@ -1,9 +1,19 @@
 const { Op } = require('sequelize');
-const { SubjectTeacher, Subject, User, Class, School, Branch } = require('~/models');
+const {
+  SubjectTeacher,
+  Subject,
+  User,
+  Class,
+  Section,
+  Stream,
+  School,
+  Branch
+} = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const ApiError = require('~/utils/shared/ApiError');
 const apiResponse = require('~/utils/shared/apiResponse');
 const SubjectTeacherService = require('~/services/academic/subject-teacher.service');
+const CommonService = require('~/services/shared/common.service');
 
 class SubjectTeacherController {
   // Get all subject-teacher assignments with filtering and pagination
@@ -23,26 +33,16 @@ class SubjectTeacherController {
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
-      let whereClause = {};
 
-      // Role-based access control
-      if (req.user.role === 'super_admin') {
-        // Super admin can see all assignments
-      } else if (req.user.role === 'school_admin') {
-        whereClause.school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        whereClause.school_id = req.user.school_id;
-        whereClause.branch_id = req.user.branch_id;
-      } else if (req.user.role === 'teacher') {
+      // Build role-based where clause using common service
+      let whereClause = CommonService.buildRoleBasedWhere(req.user);
+
+      // Special handling for teacher role
+      if (req.user.role === 'teacher') {
         whereClause.teacher_id = req.user.id;
-      } else {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
       }
 
-      // Add filters
+      // Add query filters (these can override role-based restrictions for super_admin and school_admin)
       if (subject_id) whereClause.subject_id = subject_id;
       if (teacher_id) whereClause.teacher_id = teacher_id;
       if (class_id) whereClause.class_id = class_id;
@@ -65,6 +65,18 @@ class SubjectTeacherController {
         {
           model: Class,
           as: 'class',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
+          model: Section,
+          as: 'section',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
+          model: Stream,
+          as: 'stream',
           attributes: ['id', 'name'],
           required: false
         },
@@ -167,10 +179,30 @@ class SubjectTeacherController {
   // Create new subject-teacher assignment
   static async createSubjectTeacher(req, res, next) {
     try {
+      // Security check: Ensure user can only create assignments for their authorized school/branch
+      const requestedSchoolId = req.body.school_id || req.user.school_id;
+      const requestedBranchId = req.body.branch_id || req.user.branch_id;
+
+      // Validate school access
+      if (req.user.role !== 'super_admin' && req.user.school_id !== requestedSchoolId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot create assignment for different school'
+        });
+      }
+
+      // Validate branch access
+      if (req.user.role === 'branch_admin' && req.user.branch_id !== requestedBranchId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Cannot create assignment for different branch'
+        });
+      }
+
       const assignmentData = {
         ...req.body,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id,
+        school_id: requestedSchoolId,
+        branch_id: requestedBranchId,
         created_by: req.user.id
       };
 
@@ -348,11 +380,15 @@ class SubjectTeacherController {
   // Get subject teachers for dropdown
   static async getSubjectTeachersForDropdown(req, res, next) {
     try {
-      const { class_id, subject_id } = req.query;
-      let whereClause = {};
+      const { class_id, subject_id, branch_id } = req.query;
 
+      // Build role-based where clause using common service
+      let whereClause = CommonService.buildRoleBasedWhere(req.user);
+
+      // Add query filters
       if (class_id) whereClause.class_id = class_id;
       if (subject_id) whereClause.subject_id = subject_id;
+      if (branch_id) whereClause.branch_id = branch_id;
 
       const subjectTeachers = await SubjectTeacher.findAll({
         where: whereClause,
@@ -399,22 +435,9 @@ class SubjectTeacherController {
       } = req.query;
 
       const offset = (parseInt(page) - 1) * parseInt(limit);
-      let whereClause = {};
 
-      // Role-based access control
-      if (req.user.role === 'super_admin') {
-        // Super admin can see all assignments
-      } else if (req.user.role === 'school_admin') {
-        whereClause.school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        whereClause.school_id = req.user.school_id;
-        whereClause.branch_id = req.user.branch_id;
-      } else {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
+      // Build role-based where clause using common service
+      let whereClause = CommonService.buildRoleBasedWhere(req.user);
 
       // Add filters
       if (teacher_id) {

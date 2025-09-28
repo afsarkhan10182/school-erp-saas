@@ -294,8 +294,6 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
-import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { Users, Schools, Branches } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
