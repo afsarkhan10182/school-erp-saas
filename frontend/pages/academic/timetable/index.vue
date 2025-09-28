@@ -153,7 +153,7 @@
               <button
                 @click="applyFilters"
                 :disabled="!canApplyFilters"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar class="w-4 h-4 mr-2" />
                 Apply Filters
@@ -165,7 +165,7 @@
               <button
                 @click="openAddSchedule"
                 :disabled="!selectedBranchId || !selectedClass || !selectedDay"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus class="w-4 h-4 mr-2" />
                 {{ selectedDay ? `Edit ${getDayName(selectedDay)} Schedule` : 'Manage Schedule' }}
@@ -672,6 +672,8 @@ const schedule = ref([]);
 const timetable = ref(null);
 const hasAppliedFilters = ref(false);
 const isEditingExistingSlots = ref(false);
+const checkingSubjects = ref(false);
+const hasCheckedSubjects = ref(false);
 
 // Form state
 const form = ref({
@@ -700,13 +702,13 @@ const weekDays = [
   { value: 7, label: 'SATURDAY' }
 ];
 
-// Dynamic periods based on actual schedule data, sorted by time
+// Dynamic periods based on chronological order of time slots
 const periods = computed(() => {
   if (!schedule.value || schedule.value.length === 0) {
     return [];
   }
 
-  // Get all unique time slots and sort them by start time
+  // Get all unique time slots and sort them chronologically
   const timeSlots = schedule.value
     .map(slot => ({
       startTime: slot.start_time,
@@ -718,15 +720,16 @@ const periods = computed(() => {
         // Remove duplicates based on start and end time
         index === self.findIndex(s => s.startTime === slot.startTime && s.endTime === slot.endTime)
     )
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-    .map((slot, index) => ({
-      number: index + 1,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      name: `Period ${index + 1}`
-    }));
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  return timeSlots;
+  // Create period objects with chronological numbering
+  return timeSlots.map((slot, index) => ({
+    number: index + 1, // Chronological period number (1, 2, 3...)
+    originalPeriodNumber: slot.periodNumber, // Keep original for reference
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    name: `Period ${index + 1}`
+  }));
 });
 
 // Computed - Academic year is now automatic via useTimetables composable
@@ -783,7 +786,14 @@ const filteredSubjectOptions = computed(() => {
 
 // Check if class has no subjects assigned
 const hasNoSubjectsAssigned = computed(() => {
-  return selectedClass.value && classAssignments.value && classAssignments.value.length === 0;
+  // Only show warning if we've completed checking and confirmed no assignments
+  return (
+    selectedClass.value &&
+    hasCheckedSubjects.value &&
+    !checkingSubjects.value &&
+    classAssignments.value &&
+    classAssignments.value.length === 0
+  );
 });
 
 // Check if the form is valid
@@ -861,14 +871,6 @@ const onClassChange = async () => {
   selectedStream.value = '';
   schedule.value = [];
   hasAppliedFilters.value = false;
-
-  if (selectedClass.value) {
-    const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
-    await Promise.all([
-      fetchSections({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value }),
-      fetchStreams({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value })
-    ]);
-  }
 };
 
 const onSectionChange = () => {
@@ -919,7 +921,10 @@ const loadSchedule = async () => {
       academic_year: selectedAcademicYear.value
     });
 
-    // Note: updateFilters() already calls loadTimetables(), so we don't need to call it again
+    // Wait for the composable to finish loading
+    while (timetablesLoading.value) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     if (timetables.value.length > 0) {
       // Get the first timetable (backend should return only matching timetables)
@@ -940,21 +945,19 @@ const loadSchedule = async () => {
   }
 };
 
-// Time-based slot lookup - find by day and time period
+// Chronological period-based slot lookup - find by day and chronological period
 const getSlotForDayAndPeriod = (day, periodIndex) => {
-  // Get the time period info from the column
+  // Get the chronological period info from the column
   const period = periods.value[periodIndex];
   if (!period) return null;
 
-  // Find slot for specific day and time
-  const slot = schedule.value.find(
-    slot =>
-      String(slot.day_of_week) === String(day) &&
-      slot.start_time === period.startTime &&
-      slot.end_time === period.endTime
-  );
+  // Get all slots for this day and sort them chronologically
+  const daySlots = schedule.value
+    .filter(slot => String(slot.day_of_week) === String(day))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-  return slot;
+  // Return the slot at the chronological position
+  return daySlots[periodIndex] || null;
 };
 
 const openAddSchedule = async () => {
@@ -1236,6 +1239,8 @@ const saveSchedule = async () => {
 
     showToast('Schedule saved successfully', 'success');
     closeAddModal();
+
+    // Force refresh the schedule data
     await loadSchedule();
   } catch (error) {
     console.error('❌ BRUTE FORCE: Save failed:', error);
@@ -1249,10 +1254,15 @@ const saveSchedule = async () => {
 const fetchClassAssignments = async () => {
   if (!selectedClass.value || !selectedAcademicYear.value || !selectedBranchId.value) {
     classAssignments.value = [];
+    checkingSubjects.value = false;
+    hasCheckedSubjects.value = false;
     return;
   }
 
   try {
+    checkingSubjects.value = true;
+    hasCheckedSubjects.value = false;
+
     // Use selectedSchoolId if available, otherwise fall back to auth store school_id
     const schoolId = selectedSchoolId.value || authStore.currentUser?.school_id;
 
@@ -1276,45 +1286,27 @@ const fetchClassAssignments = async () => {
   } catch (error) {
     console.error('Error fetching class assignments:', error);
     classAssignments.value = [];
+  } finally {
+    checkingSubjects.value = false;
+    hasCheckedSubjects.value = true;
   }
 };
 
-// Watch for changes in selected class to load class assignments
-watch(selectedClass, async newClassId => {
-  if (newClassId) {
-    await fetchClassAssignments();
-  } else {
-    classAssignments.value = [];
-  }
-});
-
-// Watch for changes in selected branch to reload class assignments
-watch(selectedBranchId, async newBranchId => {
-  if (newBranchId && selectedClass.value) {
-    await fetchClassAssignments();
-  } else {
-    classAssignments.value = [];
-  }
-});
+// Note: fetchClassAssignments is now handled in the main selectedClass watcher above
 
 // Academic year is now automatic - no watcher needed
+// Removed redundant watchers for branch and school - only class change triggers fetchClassAssignments
 
-// Watch for changes in selected school to reload class assignments
-watch(selectedSchoolId, async newSchoolId => {
-  if (newSchoolId && selectedClass.value && selectedBranchId.value) {
-    await fetchClassAssignments();
-  } else {
-    classAssignments.value = [];
-  }
-});
-
-// Watch for class changes to fetch sections and streams
+// Watch for class changes to fetch sections, streams, and class assignments
 watch(selectedClass, async newClass => {
   if (newClass && selectedBranchId.value) {
-    // Fetch sections and streams for the selected class
+    const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
+
+    // Fetch sections, streams, and class assignments in parallel
     await Promise.all([
-      fetchSections({ branchId: selectedBranchId.value }),
-      fetchStreams({ branchId: selectedBranchId.value })
+      fetchSections({ schoolId, branchId: selectedBranchId.value, classId: newClass }),
+      fetchStreams({ schoolId, branchId: selectedBranchId.value, classId: newClass }),
+      fetchClassAssignments()
     ]);
 
     // Reset section and stream selections
@@ -1326,6 +1318,8 @@ watch(selectedClass, async newClass => {
     selectedSection.value = '';
     selectedStream.value = '';
     selectedDay.value = '';
+    classAssignments.value = [];
+    hasCheckedSubjects.value = false;
   }
 });
 
@@ -1347,7 +1341,7 @@ const printTimetable = async () => {
     // Prepare timetable data for printing
     const timetableData = prepareTimetableForPrint();
 
-    // Use the common print report system
+    // Use the common print report system with timetable-specific options
     await printReport(timetableData, {
       showHeader: true,
       showSummary: false,
@@ -1373,13 +1367,28 @@ const prepareTimetableForPrint = () => {
     };
 
     // Add each period as a column
-    periods.value.forEach(period => {
-      const slot = getSlotForDayAndPeriod(day.value, period.number);
-      const periodKey = `period_${period.startTime.replace(':', '_')}`;
+    periods.value.forEach((period, index) => {
+      const slot = getSlotForDayAndPeriod(day.value, index);
+      const periodKey = `period_${period.number}`;
 
-      if (slot && slot.subject?.name) {
-        dayRow[periodKey] =
-          `${slot.subject.name}${slot.teacher?.first_name ? ` - ${slot.teacher.first_name} ${slot.teacher.last_name || ''}`.trim() : ''}${slot.room_number ? ` (${slot.room_number})` : ''}`;
+      if (slot) {
+        if (slot.slot_type === 'break') {
+          dayRow[periodKey] = 'BREAK';
+        } else if (slot.subject?.name) {
+          const teacherName = slot.teacher?.first_name
+            ? `${slot.teacher.first_name} ${slot.teacher.last_name || ''}`.trim()
+            : '';
+          const roomInfo = slot.room_number ? ` (${slot.room_number})` : '';
+          const timeInfo =
+            slot.start_time && slot.end_time
+              ? ` [${slot.start_time.substring(0, 5)}-${slot.end_time.substring(0, 5)}]`
+              : '';
+
+          dayRow[periodKey] =
+            `${slot.subject.name}${teacherName ? ` - ${teacherName}` : ''}${roomInfo}${timeInfo}`;
+        } else {
+          dayRow[periodKey] = 'N/A';
+        }
       } else {
         dayRow[periodKey] = 'N/A';
       }
@@ -1388,14 +1397,30 @@ const prepareTimetableForPrint = () => {
     printData.push(dayRow);
   });
 
-  // Create columns for the grid
+  // Create columns for the grid with period times
   const columns = [
     { key: 'day', header: 'Day' },
     ...periods.value.map(period => ({
-      key: `period_${period.startTime.replace(':', '_')}`,
-      header: `${period.startTime} - ${period.endTime}`
+      key: `period_${period.number}`,
+      header: `Period ${period.number}${period.startTime ? ` (${period.startTime.substring(0, 5)}-${period.endTime.substring(0, 5)})` : ''}`
     }))
   ];
+
+  // Calculate timetable statistics
+  const totalPeriods = periods.value.length;
+  const totalDays = printData.length;
+  const totalSubjects = new Set();
+  const totalTeachers = new Set();
+
+  // Count unique subjects and teachers
+  schedule.value.forEach(slot => {
+    if (slot.subject?.name && slot.slot_type !== 'break') {
+      totalSubjects.add(slot.subject.name);
+    }
+    if (slot.teacher?.first_name && slot.slot_type !== 'break') {
+      totalTeachers.add(`${slot.teacher.first_name} ${slot.teacher.last_name || ''}`.trim());
+    }
+  });
 
   return {
     title: `Timetable - ${getClassName(selectedClass.value)}${selectedSection.value ? ' ' + getSectionName(selectedSection.value) : ''}`,
@@ -1404,9 +1429,17 @@ const prepareTimetableForPrint = () => {
     filters: {
       class: getClassName(selectedClass.value),
       section: selectedSection.value ? getSectionName(selectedSection.value) : 'All Sections',
-      academic_year: selectedAcademicYear.value
+      academic_year: selectedAcademicYear.value,
+      branch: selectedBranch.value?.name || 'Unknown Branch'
     },
-    reportType: 'timetable'
+    reportType: 'timetable',
+    // Add timetable-specific metadata for better summary
+    timetableStats: {
+      totalPeriods,
+      totalDays,
+      totalSubjects: totalSubjects.size,
+      totalTeachers: totalTeachers.size
+    }
   };
 };
 

@@ -37,10 +37,8 @@ export function useTimetables() {
   const selectedBranchId = ref('');
   const selectedBranch = ref<{ id: string; name: string } | null>(null);
 
-  // Filters
+  // Filters (removed page and limit from filters to avoid duplication)
   const filters = ref({
-    page: 1,
-    limit: 10,
     search: '',
     class_id: '',
     section_id: '',
@@ -143,29 +141,42 @@ export function useTimetables() {
   };
 
   const loadTimetables = async () => {
+    // Prevent multiple simultaneous calls
+    if (timetablesLoading.value) {
+      return;
+    }
+
     try {
       timetablesLoading.value = true;
       filters.value.academic_year = selectedAcademicYear.value;
-      filters.value.page = pagination.value.page;
-      filters.value.limit = pagination.value.limit;
 
-      const response = await Timetables.getAll(filters.value);
-      console.log('🔍 API Response:', response);
+      // Combine filters with pagination for API call
+      const apiParams = {
+        ...filters.value,
+        page: pagination.value.page,
+        limit: pagination.value.limit
+      };
+
+      // Validate required filters
+      if (!filters.value.academic_year) {
+        console.warn('Academic year not set, skipping timetable load');
+        timetables.value = [];
+        return;
+      }
+
+      const response = await Timetables.getAll(apiParams);
 
       if (response.success) {
         timetables.value = response.data.timetables || [];
         pagination.value.total = response.data.pagination?.total || 0;
-        console.log('🔍 Timetables loaded:', timetables.value.length);
-        if (timetables.value.length > 0) {
-          console.log('🔍 First timetable:', timetables.value[0]);
-          console.log('🔍 First timetable slots:', timetables.value[0].slots);
-        }
       } else {
         showToast('Failed to load timetables', 'error');
+        timetables.value = [];
       }
     } catch (error) {
       console.error('Error loading timetables:', error);
       showToast('Error loading timetables', 'error');
+      timetables.value = [];
     } finally {
       timetablesLoading.value = false;
     }
@@ -256,23 +267,28 @@ export function useTimetables() {
     }
   };
 
-  const updateFilters = (newFilters: any) => {
-    filters.value = { ...filters.value, ...newFilters };
-    pagination.value.page = 1; // Reset to first page
-    loadTimetables();
-  };
-
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages.value) {
-      pagination.value.page = page;
-      loadTimetables();
+  const updateFilters = async (newFilters: any) => {
+    try {
+      filters.value = { ...filters.value, ...newFilters };
+      pagination.value.page = 1; // Reset to first page
+      await loadTimetables();
+    } catch (error) {
+      console.error('Error updating filters:', error);
+      showToast('Error updating filters', 'error');
     }
   };
 
-  const changeLimit = (newLimit: number) => {
+  const goToPage = async (page: number) => {
+    if (page >= 1 && page <= totalPages.value) {
+      pagination.value.page = page;
+      await loadTimetables();
+    }
+  };
+
+  const changeLimit = async (newLimit: number) => {
     pagination.value.limit = newLimit;
     pagination.value.page = 1; // Reset to first page
-    loadTimetables();
+    await loadTimetables();
   };
 
   const initialize = async () => {

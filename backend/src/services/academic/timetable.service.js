@@ -281,6 +281,9 @@ class TimetableService extends BaseService {
         }
       });
 
+      // Sort existing slots by start_time to get chronological order
+      const sortedSlots = existingSlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
       // Check if slot already exists for this day and period - if so, update it instead of creating new
       const existingSlot = existingSlots.find(
         slot => slot.period_number === slotData.period_number
@@ -342,8 +345,22 @@ class TimetableService extends BaseService {
         );
       }
 
+      // Auto-assign period number based on chronological order
+      const allSlotsForDay = [
+        ...existingSlots,
+        { start_time: slotData.start_time, end_time: slotData.end_time }
+      ];
+      const chronologicallySorted = allSlotsForDay.sort((a, b) =>
+        a.start_time.localeCompare(b.start_time)
+      );
+      const newSlotIndex = chronologicallySorted.findIndex(
+        slot => slot.start_time === slotData.start_time && slot.end_time === slotData.end_time
+      );
+      const correctPeriodNumber = newSlotIndex + 1;
+
       const slot = await TimetableSlot.create({
         ...slotData,
+        period_number: correctPeriodNumber, // Override with chronologically correct period number
         timetable_id: timetableId,
         created_by: user.id,
         updated_by: user.id
