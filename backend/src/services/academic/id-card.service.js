@@ -45,7 +45,7 @@ const generateStudentIdCard = async (studentData, schoolData) => {
       try {
         fs.mkdirSync(idCardDir, { recursive: true });
       } catch (error) {
-        console.warn(`Warning: Could not create ID card directory at ${idCardDir}:`, error.message);
+        // Directory creation failed, will be handled by the calling function
       }
     }
 

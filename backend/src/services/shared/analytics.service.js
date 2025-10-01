@@ -22,6 +22,11 @@ class AnalyticsService {
     const now = new Date();
     let startDate, endDate;
 
+    // Validate period parameter
+    if (!period || typeof period !== 'string') {
+      period = 'this_month'; // Default fallback
+    }
+
     switch (period) {
       case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -48,22 +53,12 @@ class AnalyticsService {
           startOfWeek.getMonth(),
           startOfWeek.getDate()
         );
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        break;
-      case 'last_week':
-        const lastWeekStart = new Date(now);
-        lastWeekStart.setDate(now.getDate() - now.getDay() - 7);
-        const lastWeekEnd = new Date(now);
-        lastWeekEnd.setDate(now.getDate() - now.getDay() - 1);
-        startDate = new Date(
-          lastWeekStart.getFullYear(),
-          lastWeekStart.getMonth(),
-          lastWeekStart.getDate()
-        );
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
         endDate = new Date(
-          lastWeekEnd.getFullYear(),
-          lastWeekEnd.getMonth(),
-          lastWeekEnd.getDate(),
+          endOfWeek.getFullYear(),
+          endOfWeek.getMonth(),
+          endOfWeek.getDate(),
           23,
           59,
           59
@@ -71,32 +66,22 @@ class AnalyticsService {
         break;
       case 'this_month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        break;
-      case 'last_month':
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-        startDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), lastMonth.getDate());
-        endDate = new Date(
-          lastMonthEnd.getFullYear(),
-          lastMonthEnd.getMonth(),
-          lastMonthEnd.getDate()
-        );
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         break;
       case 'this_year':
         startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        break;
-      case 'last_year':
-        startDate = new Date(now.getFullYear() - 1, 0, 1);
-        endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
         break;
       case 'custom':
         if (!customStart || !customEnd) {
-          throw new ApiError(400, 'Custom start and end dates are required for custom period');
+          // If custom period is selected but no dates provided, default to this_month
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        } else {
+          // Simple date creation
+          startDate = new Date(customStart);
+          endDate = new Date(customEnd);
         }
-        startDate = new Date(customStart);
-        endDate = new Date(customEnd);
         break;
       default:
         throw new ApiError(400, `Invalid period: ${period}`);

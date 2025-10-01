@@ -213,9 +213,6 @@ export function useModuleAccess() {
       '/reports/students': 'students',
 
       '/attendance': 'attendance',
-      '/attendance/take': 'attendance',
-      '/attendance/import': 'attendance',
-      '/attendance/notify': 'attendance',
       '/reports/attendance': 'attendance',
 
       '/exams': 'exams',

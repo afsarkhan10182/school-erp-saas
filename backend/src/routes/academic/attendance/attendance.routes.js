@@ -8,14 +8,11 @@ const {
   getSession,
   listSessions,
   getReport,
-  bulkImport,
   notifyAbsentees,
   exportReport,
-  bulkImportFile,
   exportPDFReport,
   exportExcelReport,
-  getSummary,
-  generateImportTemplate
+  getSummary
 } = require('~/controllers/academic/attendance/attendance.controller');
 
 // Import enhanced analytics controller
@@ -39,10 +36,7 @@ router.get('/reports/export', exportReport);
 router.get('/reports/export/pdf', exportPDFReport);
 router.get('/reports/export/excel', exportReport);
 router.get('/reports/summary', getSummary);
-router.get('/import-template', generateImportTemplate);
-router.post('/bulk-import', bulkImport);
 router.post('/notify-absentees', notifyAbsentees);
-router.post('/bulk-import/file', uploadCSV('file'), bulkImportFile);
 
 // Enhanced Analytics Routes
 router.get('/analytics', AttendanceAnalyticsController.getAttendanceAnalytics);

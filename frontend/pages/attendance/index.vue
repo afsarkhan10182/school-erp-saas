@@ -27,26 +27,12 @@
               ></path>
             </svg>
             <span class="text-sm text-orange-800 dark:text-orange-200">
-              <strong>Cut-off Time:</strong> Attendance must be submitted before 4:00 PM today
+              <strong>Cut-off Time:</strong> Attendance must be submitted before
+              {{ timeSettings?.cutoffTime || attendanceSettings?.timeSettings?.cutoffTime }}
+              today
             </span>
           </div>
         </div>
-      </div>
-      <div class="flex gap-2">
-        <button
-          @click="showBulkImport = true"
-          class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-            ></path>
-          </svg>
-          Import from Excel/CSV
-        </button>
       </div>
     </div>
 
@@ -304,7 +290,7 @@
         <!-- Load Students Button -->
         <div class="flex items-center">
           <button
-            @click="loadStudents"
+            @click="loadStudentsForAttendance"
             :disabled="!form.class_id || loading"
             class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap"
           >
@@ -462,11 +448,17 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{ student.admission_number }}
+                {{ student.roll_number || student.admission_number }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <EnhancedDropdown
-                  v-model="attendanceRecords[student.id].status"
+                  :model-value="(attendanceRecords as any)[student.id]?.status || defaultStatus"
+                  @update:model-value="
+                    (value: string) =>
+                      updateStudentRecord(student.id, {
+                        status: value as 'present' | 'absent' | 'late' | 'excused'
+                      })
+                  "
                   :options="statusOptions.filter(opt => opt.value !== '')"
                   placeholder="Select Status"
                   class="text-sm"
@@ -474,7 +466,13 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <input
-                  v-model="attendanceRecords[student.id].remarks"
+                  :value="(attendanceRecords as any)[student.id]?.remarks || ''"
+                  @input="
+                    (event: Event) =>
+                      updateStudentRecord(student.id, {
+                        remarks: (event.target as HTMLInputElement)?.value || ''
+                      })
+                  "
                   type="text"
                   placeholder="Optional remarks..."
                   class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white text-sm w-full"
@@ -488,10 +486,10 @@
       <!-- Pagination -->
       <Pagination
         v-if="totalStudents > pageSize"
-        :current-page="currentPage"
-        :total-items="totalStudents"
-        :page-size="pageSize"
+        :pagination="pagination"
+        item-label="students"
         @page-changed="handlePageChange"
+        @page-size-changed="handlePageSizeChange"
       />
 
       <!-- Action Buttons -->
@@ -574,36 +572,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Bulk Import Modal -->
-    <div
-      v-if="showBulkImport"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Import Attendance from Excel/CSV
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Upload an Excel or CSV file with attendance data. The file should contain columns for
-          Date, Class, Student ID, and Status.
-        </p>
-        <input type="file" accept=".xlsx,.xls,.csv" class="w-full mb-4" />
-        <div class="flex justify-end gap-3">
-          <button
-            @click="showBulkImport = false"
-            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Import
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -613,32 +581,39 @@ import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
-import { useAttendanceValidation } from '~/composables/useAttendanceValidation';
+import { useAcademicSettings } from '~/utils/settings';
 import { useAttendance } from '~/composables/useAttendance';
 import { useAcademics } from '~/composables/useAcademics';
-import { AcademicCalendar, Attendance, Students } from '~/api';
+import { Attendance } from '~/api';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
+// Composables - Following common reusable patterns
 const { showToast } = useToast();
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
-const { saveAttendance, loading: attendanceLoading } = useAttendance();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
-const {
-  attendanceSettings,
-  loadAttendanceSettings,
-  validateAttendanceSubmission,
-  getTimeSettings,
-  getValidationRules
-} = useAttendanceValidation();
+const { getAttendanceSettings, getWorkingDays, getCutoffTime } = useAcademicSettings();
 
-// State
-const loading = ref(false);
-const saving = ref(false);
-const students = ref<any[]>([]);
-const showBulkImport = ref(false);
+// Use the improved attendance composable directly
+const {
+  students,
+  attendanceRecords,
+  loading,
+  saving,
+  error,
+  pagination,
+  getAttendanceStats,
+  hasChanges,
+  loadStudents,
+  saveAttendance,
+  createSession,
+  updateStudentRecord,
+  getFilteredStudents
+} = useAttendance();
+
+// State - Use composable state directly
 const workingDayStatus = ref<any>(null);
 const showCutoffWarning = ref(false);
 
@@ -657,13 +632,14 @@ const branchOptions = computed(() =>
 );
 
 // Status filter options
-const statusOptions = [
+// Status options - will be loaded from database settings later
+const statusOptions = ref([
   { value: '', label: 'All Status' },
   { value: 'present', label: 'Present' },
   { value: 'absent', label: 'Absent' },
   { value: 'late', label: 'Late' },
   { value: 'excused', label: 'Excused' }
-];
+]);
 
 // Form
 const form = reactive({
@@ -675,57 +651,95 @@ const form = reactive({
   academic_year: ''
 });
 
-// Attendance records
-const attendanceRecords = reactive<
-  Record<string, { status: 'present' | 'absent' | 'late' | 'excused'; remarks: string }>
->({});
 const searchQuery = ref('');
 const filterStatus = ref('');
 
+// Settings state
+const attendanceSettings = ref<any>(null);
+const workingDays = ref<any>(null);
+const validationRules = ref<any>(null);
+const timeSettings = ref<any>(null);
+
+// Load status options from database settings
+const loadStatusOptions = async () => {
+  try {
+    const settings = await getAttendanceSettings();
+    if (settings?.statusOptions && Array.isArray(settings.statusOptions)) {
+      statusOptions.value = [
+        { value: '', label: 'All Status' },
+        ...settings.statusOptions.map((option: any) => ({
+          value: option.value,
+          label: option.label
+        }))
+      ];
+    }
+  } catch (error) {
+    // No fallback - will use default status options
+  }
+};
+
 // Pagination
 const currentPage = ref(1);
-const pageSize = ref(20);
+const pageSize = ref(10);
 
-// Computed
-const presentCount = computed(
-  () => Object.values(attendanceRecords).filter(r => r.status === 'present').length
-);
-const absentCount = computed(
-  () => Object.values(attendanceRecords).filter(r => r.status === 'absent').length
-);
-const lateCount = computed(
-  () => Object.values(attendanceRecords).filter(r => r.status === 'late').length
-);
+// Computed - Use composable statistics
+const attendanceStats = computed(() => getAttendanceStats.value);
+const presentCount = computed(() => attendanceStats.value.present);
+const absentCount = computed(() => attendanceStats.value.absent);
+const lateCount = computed(() => attendanceStats.value.late);
 
-const totalStudents = computed(() => students.value.length);
-
-const hasChanges = computed(() => Object.keys(attendanceRecords).length > 0);
+// Default status from database settings
+const defaultStatus = computed(() => {
+  return attendanceSettings.value?.defaultStatus;
+});
+const totalStudents = computed(() => {
+  // Use server pagination data instead of client-side filtering
+  return pagination.total;
+});
 
 const canSubmit = computed(() => {
-  if (!workingDayStatus.value?.is_working_day) return false;
+  // Allow submission if we have students and it's not a future date
+  if (students.value.length === 0) return false;
 
-  // For previous days, always allow submission
   const selectedDate = new Date(form.date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   selectedDate.setHours(0, 0, 0, 0);
 
+  // For previous days, always allow submission
   if (selectedDate < today) {
-    return true; // ✅ Allow submission for previous days
+    return true;
   }
 
-  // For today, check cut-off time
+  // For today, check if it's a working day and cut-off time
   if (selectedDate.getTime() === today.getTime()) {
-    const timeSettings = getTimeSettings.value;
-    const currentTime = new Date();
-    const cutoffTime = new Date();
-    const [cutoffHour, cutoffMinute] = timeSettings.cutoffTime.split(':').map(Number);
-    cutoffTime.setHours(cutoffHour, cutoffMinute, 0, 0);
+    // If working day status is not loaded yet, allow submission
+    if (!workingDayStatus.value) {
+      return true;
+    }
 
-    return currentTime <= cutoffTime;
+    // Check working day enforcement
+    const enforceWorkingDays = validationRules.value?.enforceWorkingDays === true;
+    if (enforceWorkingDays && !workingDayStatus.value.is_working_day) {
+      return false;
+    }
+
+    // Check cut-off time using settings from API
+    const enforceCutoffTime = validationRules.value?.enforceCutoffTime === true;
+    if (!enforceCutoffTime) {
+      return true;
+    }
+    const currentTime = new Date();
+    const cutoffTimeDate = new Date();
+    const cutoffTimeString =
+      timeSettings.value?.cutoffTime || attendanceSettings.value?.timeSettings?.cutoffTime;
+    const [cutoffHour, cutoffMinute] = cutoffTimeString.split(':').map(Number);
+    cutoffTimeDate.setHours(cutoffHour, cutoffMinute, 0, 0);
+
+    return currentTime <= cutoffTimeDate;
   }
 
-  return false; // ❌ Don't allow future dates
+  return false;
 });
 
 const filteredStudents = computed(() => {
@@ -734,7 +748,7 @@ const filteredStudents = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
-      student =>
+      (student: any) =>
         student.first_name?.toLowerCase().includes(query) ||
         student.last_name?.toLowerCase().includes(query) ||
         student.admission_number?.toLowerCase().includes(query)
@@ -743,97 +757,64 @@ const filteredStudents = computed(() => {
 
   if (filterStatus.value) {
     filtered = filtered.filter(
-      student => attendanceRecords[student.id]?.status === filterStatus.value
+      (student: any) => attendanceRecords.value[student.id]?.status === filterStatus.value
     );
   }
 
+  // No client-side pagination - server handles it
   return filtered;
 });
 
 // Methods
 const checkWorkingDay = async () => {
   try {
-    // Debug: Log the attendance settings
-    console.log('Current attendance settings:', attendanceSettings.value);
-
-    const workingDayValidation = validateAttendanceSubmission(form.date, [], false);
-    console.log('Working day validation result:', workingDayValidation);
-
-    if (!workingDayValidation.isValid) {
-      // Provide more descriptive status based on the validation message
-      let dayType = 'invalid';
-      let description = workingDayValidation.message;
-
-      // Try to determine a better day type based on the validation message
-      if (workingDayValidation.message.toLowerCase().includes('weekend')) {
-        dayType = 'weekend';
-        description = 'Weekend - No classes scheduled';
-      } else if (workingDayValidation.message.toLowerCase().includes('holiday')) {
-        dayType = 'holiday';
-        description = 'Holiday - School closed';
-      } else if (workingDayValidation.message.toLowerCase().includes('non-working')) {
-        dayType = 'non-working';
-        description = 'Non-working day';
-      } else if (workingDayValidation.message.toLowerCase().includes('future')) {
-        dayType = 'future';
-        description = 'Future date - Planning mode';
-      } else if (workingDayValidation.message.toLowerCase().includes('past')) {
-        dayType = 'invalid';
-        description = 'Past date - Cannot mark attendance';
-      } else if (workingDayValidation.message.toLowerCase().includes('sunday')) {
-        dayType = 'holiday';
-        description = 'Sunday - Holiday';
-      } else if (workingDayValidation.message.toLowerCase().includes('saturday')) {
-        dayType = 'holiday';
-        description = 'Saturday - Holiday';
-      } else if (
-        workingDayValidation.message.toLowerCase().includes('monday') ||
-        workingDayValidation.message.toLowerCase().includes('tuesday') ||
-        workingDayValidation.message.toLowerCase().includes('wednesday') ||
-        workingDayValidation.message.toLowerCase().includes('thursday') ||
-        workingDayValidation.message.toLowerCase().includes('friday')
-      ) {
-        dayType = 'non-working';
-        description = 'Non-working day';
-      }
-
-      workingDayStatus.value = {
-        is_working_day: false,
-        day_type: dayType,
-        description: description
-      };
+    // Use already loaded settings (loaded in onMounted)
+    if (!attendanceSettings.value) {
       return;
     }
 
-    const response = await AcademicCalendar.checkWorkingDay({
-      date: form.date,
-      academic_year: form.academic_year
-    });
-    workingDayStatus.value = response.data;
+    const selectedDate = new Date(form.date);
+    const dayOfWeek = selectedDate.getDay();
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dayOfWeek];
+
+    // Always check working days from database settings
+    const isWorkingDay = workingDays.value?.[dayName] === true;
+    let dayType = isWorkingDay ? 'working' : 'non-working';
+    let description = isWorkingDay ? 'Working Day' : 'Non-Working Day';
+
+    // Check if working days enforcement is enabled (for blocking vs warning)
+    const enforceWorkingDays = validationRules.value?.enforceWorkingDays === true;
+
+    workingDayStatus.value = {
+      is_working_day: isWorkingDay,
+      day_type: dayType,
+      description: description
+    };
 
     // Only show cut-off warning for today's attendance AND if enforceCutoffTime is enabled
-    const selectedDate = new Date(form.date);
+    const selectedDateForWarning = new Date(form.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
+    selectedDateForWarning.setHours(0, 0, 0, 0);
 
-    if (selectedDate.getTime() === today.getTime()) {
+    if (selectedDateForWarning.getTime() === today.getTime()) {
       // Check if enforceCutoffTime is enabled in settings
-      const enforceCutoffTime =
-        attendanceSettings.value?.validationRules?.enforceCutoffTime === true;
+      const enforceCutoffTime = validationRules.value?.enforceCutoffTime === true;
 
       if (enforceCutoffTime) {
-        const timeSettings = getTimeSettings.value;
         const currentTime = new Date();
         const warningTime = new Date();
-        const [warningHour, warningMinute] = timeSettings.cutoffTime.split(':').map(Number);
+        const cutoffTime =
+          timeSettings.value?.cutoffTime || attendanceSettings.value?.timeSettings?.cutoffTime;
+        const [warningHour, warningMinute] = cutoffTime.split(':').map(Number);
         warningTime.setHours(warningHour - 1, warningMinute, 0, 0);
         showCutoffWarning.value = currentTime > warningTime;
       } else {
-        showCutoffWarning.value = false; // Don't show warning if enforceCutoffTime is disabled
+        showCutoffWarning.value = false;
       }
     } else {
-      showCutoffWarning.value = false; // Don't show warning for previous days
+      showCutoffWarning.value = false;
     }
   } catch (error) {
     workingDayStatus.value = {
@@ -846,46 +827,108 @@ const checkWorkingDay = async () => {
 
 const markAllPresent = () => {
   students.value.forEach(student => {
-    if (attendanceRecords[student.id]) {
-      attendanceRecords[student.id].status = 'present';
-    }
+    updateStudentRecord(student.id, { status: 'present' });
   });
 };
 
 const markAllAbsent = () => {
   students.value.forEach(student => {
-    if (attendanceRecords[student.id]) {
-      attendanceRecords[student.id].status = 'absent';
-    }
+    updateStudentRecord(student.id, { status: 'absent' });
+  });
+};
+
+const markAllDefault = () => {
+  students.value.forEach(student => {
+    updateStudentRecord(student.id, { status: defaultStatus.value });
   });
 };
 
 const onSchoolChange = async (schoolId: string) => {
+  // Only Super Admins can change school
+  if (!isSuperAdmin.value) return;
+
   form.school_id = schoolId;
   form.branch_id = '';
-  await fetchAllBranches(schoolId);
+  form.class_id = '';
+  form.section_id = '';
+
+  try {
+    await fetchAllBranches({ school_id: schoolId });
+
+    // Clear students when school changes
+    students.value = [];
+    Object.keys(attendanceRecords.value).forEach(key => {
+      delete attendanceRecords.value[key];
+    });
+  } catch (error) {
+    showToast('Error loading branches', 'error');
+  }
 };
 
 const onBranchChange = async (branchId: string) => {
+  // Only Super Admins and School Admins can change branch
+  if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
+
   form.branch_id = branchId;
   form.class_id = '';
   form.section_id = '';
-  await loadClasses();
+
+  try {
+    await fetchClasses({ branchId });
+
+    // Clear students when branch changes
+    students.value = [];
+    Object.keys(attendanceRecords.value).forEach(key => {
+      delete attendanceRecords.value[key];
+    });
+  } catch (error) {
+    showToast('Error loading classes', 'error');
+  }
 };
 
 const onClassChange = async (classId: string) => {
   form.class_id = classId;
   form.section_id = '';
-  await loadSections(classId);
+
+  try {
+    await fetchSections({ classId });
+
+    // Clear students when class changes
+    students.value = [];
+    Object.keys(attendanceRecords.value).forEach(key => {
+      delete attendanceRecords.value[key];
+    });
+  } catch (error) {
+    showToast('Error loading sections', 'error');
+  }
 };
 
-const loadStudents = async () => {
+const onSectionChange = async (sectionId: string) => {
+  form.section_id = sectionId;
+
+  // Clear students when section changes
+  students.value = [];
+  Object.keys(attendanceRecords.value).forEach(key => {
+    delete attendanceRecords.value[key];
+  });
+};
+
+const loadStudentsForAttendance = async () => {
   if (!form.class_id) {
     showToast('Please select a class first', 'error');
     return;
   }
 
-  loading.value = true;
+  // Validate required fields based on user role
+  if (isSuperAdmin.value && (!form.school_id || !form.branch_id)) {
+    showToast('Please select school and branch first', 'error');
+    return;
+  } else if (isSchoolAdmin.value && !form.branch_id) {
+    showToast('Please select branch first', 'error');
+    return;
+  }
+  // Branch Admin doesn't need additional validation as they have fixed school and branch
+
   try {
     // Check if it's a working day using validation service
     await checkWorkingDay();
@@ -917,105 +960,75 @@ const loadStudents = async () => {
       }
     }
 
-    // Check if attendance already exists for this date and class
-    try {
-      const existingSessionResponse = await Attendance.listSessions({
+    // Optimized: Load students and check sessions in parallel
+    const [studentsResult, existingSessionResponse] = await Promise.all([
+      loadStudents(form.class_id, form.section_id, currentPage.value, pageSize.value),
+      Attendance.listSessions({
         date_from: form.date,
         date_to: form.date,
         class_id: form.class_id,
-        section_id: form.section_id || undefined,
-        status: 'published'
-      });
+        section_id: form.section_id || undefined
+      }).catch(() => ({ success: false, data: [] })) // Graceful fallback
+    ]);
 
-      if (
-        existingSessionResponse.success &&
-        existingSessionResponse.data?.items &&
-        existingSessionResponse.data.items.length > 0
-      ) {
-        const existingSession = existingSessionResponse.data.items[0];
+    // Check if attendance already exists
+    if (
+      existingSessionResponse.success &&
+      existingSessionResponse.data &&
+      existingSessionResponse.data.length > 0
+    ) {
+      const existingSession = existingSessionResponse.data[0];
+      const sessionStatus = existingSession.status === 'published' ? 'published' : 'draft';
+      showToast(
+        `⚠️ Attendance ${sessionStatus} already exists for ${form.date}. Loading existing data for editing.`,
+        'warning'
+      );
+
+      // Load existing attendance data
+      const sessionResponse = await Attendance.getSession(existingSession.id);
+      if (sessionResponse.success && sessionResponse.data) {
+        const existingRecords = sessionResponse.data.records || [];
+
+        // Clear existing attendance records and populate with existing data
+        attendanceRecords.value = {};
+        students.value.forEach(student => {
+          const existingRecord = existingRecords.find(
+            (record: any) => record.student_id === student.id
+          );
+          attendanceRecords.value[student.id] = {
+            student_id: student.id,
+            status: existingRecord?.status || defaultStatus.value,
+            remarks: existingRecord?.remarks || ''
+          };
+        });
+
         showToast(
-          `⚠️ Attendance already exists for ${form.date}. Loading existing data for editing.`,
-          'warning'
+          `Loaded ${students.value.length} students with existing attendance data`,
+          'success'
         );
-
-        // Load existing attendance data
-        const sessionResponse = await Attendance.getSession(existingSession.id);
-        if (sessionResponse.success && sessionResponse.data) {
-          const existingRecords = sessionResponse.data.records || [];
-
-          // Load students first
-          const response = await Students.getAll({
-            class_id: form.class_id,
-            section: form.section_id,
-            branch_id: form.branch_id,
-            page: currentPage.value,
-            limit: pageSize.value
-          });
-
-          if (response.success && response.data) {
-            students.value = Array.isArray(response.data) ? response.data : [];
-
-            // Initialize attendance records with existing data
-            students.value.forEach(student => {
-              const existingRecord = existingRecords.find(
-                (record: any) => record.student_id === student.id
-              );
-              attendanceRecords[student.id] = {
-                status: existingRecord?.status || 'present',
-                remarks: existingRecord?.remarks || ''
-              };
-            });
-
-            showToast(
-              `Loaded ${students.value.length} students with existing attendance data`,
-              'success'
-            );
-            loading.value = false;
-            return;
-          }
-        }
+        return;
       }
-    } catch (error) {
-      // If check fails, continue with normal flow
-      console.log('Could not check existing attendance:', error);
     }
-
-    const response = await Students.getAll({
-      class_id: form.class_id,
-      section: form.section_id,
-      branch_id: form.branch_id,
-      page: currentPage.value,
-      limit: pageSize.value
-    });
-
-    if (response.success && response.data) {
-      students.value = Array.isArray(response.data) ? response.data : [];
-    } else {
-      students.value = [];
-    }
-
-    // Initialize attendance records
-    students.value.forEach(student => {
-      if (!attendanceRecords[student.id]) {
-        attendanceRecords[student.id] = {
-          status: 'present',
-          remarks: ''
-        };
-      }
-    });
 
     showToast(`Loaded ${students.value.length} students`, 'success');
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Failed to load students';
     showToast(message, 'error');
-  } finally {
-    loading.value = false;
+    students.value = [];
   }
 };
 
-const handlePageChange = (page: number) => {
+const handlePageChange = async (page: number) => {
   currentPage.value = page;
-  loadStudents();
+  // Reload students with new page
+  await loadStudents(form.class_id, form.section_id, currentPage.value, pageSize.value);
+};
+
+const handlePageSizeChange = async (newPageSize: number) => {
+  pageSize.value = newPageSize;
+  currentPage.value = 1; // Reset to first page when page size changes
+  // Reload students with new page size
+  await loadStudents(form.class_id, form.section_id, currentPage.value, pageSize.value);
 };
 
 const saveAttendanceDraft = async () => {
@@ -1030,31 +1043,29 @@ const saveAttendanceDraft = async () => {
   }
 
   try {
-    saving.value = true;
     const records = students.value.map(student => ({
       student_id: student.id,
-      status: attendanceRecords[student.id]?.status || 'present',
-      remarks: attendanceRecords[student.id]?.remarks || ''
+      status: attendanceRecords.value[student.id]?.status || defaultStatus.value,
+      remarks: attendanceRecords.value[student.id]?.remarks || ''
     }));
 
-    const validation = validateAttendanceSubmission(form.date, records, false);
-    if (!validation.isValid) {
-      showToast(validation.message, 'error');
+    // Simple validation for draft submission
+    if (records.length === 0) {
+      showToast('No attendance records to save', 'error');
       return;
     }
 
     // Create session first, then save attendance
     const sessionId = await createAttendanceSession();
-    await saveAttendance(sessionId, records, false); // false = draft mode
+    await saveAttendance(sessionId, records, false);
     showToast('Attendance draft saved successfully', 'success');
 
-    // Don't clear form for draft - allow further editing
+    // Refresh data to show updated values
+    await loadStudentsForAttendance();
   } catch (error: any) {
     const message =
       error?.response?.data?.message || error?.message || 'Failed to save attendance draft';
     showToast(message, 'error');
-  } finally {
-    saving.value = false;
   }
 };
 
@@ -1070,53 +1081,43 @@ const submitAttendance = async () => {
   }
 
   try {
-    saving.value = true;
     const records = students.value.map(student => ({
       student_id: student.id,
-      status: attendanceRecords[student.id]?.status || 'present',
-      remarks: attendanceRecords[student.id]?.remarks || ''
+      status: attendanceRecords.value[student.id]?.status || defaultStatus.value,
+      remarks: attendanceRecords.value[student.id]?.remarks || ''
     }));
 
-    const validation = validateAttendanceSubmission(form.date, records, true);
-    if (!validation.isValid) {
-      showToast(validation.message, 'error');
+    // Simple validation for final submission
+    if (records.length === 0) {
+      showToast('No attendance records to submit', 'error');
       return;
     }
 
-    // Create session first, then save attendance
+    // Create session first, then save attendance using composable
     const sessionId = await createAttendanceSession();
-    await saveAttendance(sessionId, records, true); // true = publish mode
+    await saveAttendance(sessionId, records, true);
     showToast('Attendance submitted successfully - Parents will be notified', 'success');
 
-    // Clear form after successful submission
-    students.value = [];
-    Object.keys(attendanceRecords).forEach(key => {
-      delete attendanceRecords[key];
-    });
+    // Refresh the current data to show updated values
+    await loadStudentsForAttendance();
   } catch (error: any) {
     const message =
       error?.response?.data?.message || error?.message || 'Failed to submit attendance';
     showToast(message, 'error');
-  } finally {
-    saving.value = false;
   }
 };
 
 const createAttendanceSession = async () => {
   try {
-    const sessionResponse = await Attendance.upsertSession({
+    const session = await createSession({
       date: form.date,
       attendance_type: 'daily',
       class_id: form.class_id,
-      section_id: form.section_id || null,
+      section_id: form.section_id || undefined,
       academic_year: form.academic_year || undefined
     });
 
-    if (sessionResponse.success && sessionResponse.data) {
-      return sessionResponse.data.id;
-    } else {
-      throw new Error('Failed to create attendance session');
-    }
+    return session.id;
   } catch (error: any) {
     const message =
       error?.response?.data?.message || error?.message || 'Failed to create attendance session';
@@ -1141,21 +1142,44 @@ watch(
   }
 );
 
+// Note: Search and filter changes don't reset pagination with server-side pagination
+// The server handles filtering and pagination
+
 // Initialize
 onMounted(async () => {
   try {
-    // Load attendance settings first
-    await loadAttendanceSettings();
+    // Load academic settings first
+    attendanceSettings.value = await getAttendanceSettings();
+    workingDays.value = await getWorkingDays();
+    timeSettings.value = { cutoffTime: await getCutoffTime() };
+    validationRules.value = attendanceSettings.value?.validationRules;
 
-    // Load initial data
-    await fetchSchools();
-    await loadClasses();
-    await checkWorkingDay();
+    // Load status options from database
+    await loadStatusOptions();
 
     // Set academic year from current date
     const currentYear = new Date().getFullYear();
     form.academic_year = `${currentYear}-${currentYear + 1}`;
+
+    // Initialize based on user role
+    if (isSuperAdmin.value) {
+      // Super Admin: Load schools, then branches will be loaded when school is selected
+      await fetchSchools();
+    } else if (isSchoolAdmin.value) {
+      // School Admin: Load branches for their school directly
+      form.school_id = user.value?.school_id || '';
+      await fetchAllBranches({ school_id: form.school_id });
+    } else if (isBranchAdmin.value) {
+      // Branch Admin: Load classes for their branch directly
+      form.school_id = user.value?.school_id || '';
+      form.branch_id = user.value?.branch_id || '';
+      await fetchClasses({ branchId: form.branch_id });
+    }
+
+    // Check working day after settings are loaded
+    await checkWorkingDay();
   } catch (error) {
+    console.error('Error initializing attendance page:', error);
     showToast('Error initializing attendance page', 'error');
   }
 });

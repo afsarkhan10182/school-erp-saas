@@ -242,10 +242,19 @@ class AttendanceAnalyticsController {
         return res.status(200).json(exportData);
       } else if (format === 'csv') {
         // Convert to CSV format
-        const csvData = this.convertToCSV(exportData);
+        const csvData = AttendanceAnalyticsController.convertToCSV(exportData);
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
         return res.status(200).send(csvData);
+      } else if (format === 'xlsx' || format === 'excel') {
+        // Convert to Excel format
+        const excelBuffer = await AttendanceAnalyticsController.convertToExcel(exportData);
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+        return res.status(200).send(excelBuffer);
       } else {
         // Default to JSON for other formats
         res.setHeader('Content-Type', 'application/json');
@@ -329,6 +338,93 @@ class AttendanceAnalyticsController {
     });
 
     return csvRows.join('\n');
+  }
+
+  /**
+   * Convert analytics data to Excel format
+   */
+  static async convertToExcel(data) {
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+
+    // Overview sheet
+    const overviewSheet = workbook.addWorksheet('Overview');
+    overviewSheet.addRow(['Attendance Analytics Overview']);
+    overviewSheet.addRow(['Generated At:', data.metadata.generatedAt]);
+    overviewSheet.addRow(['Filters:', JSON.stringify(data.metadata.filters)]);
+    overviewSheet.addRow([]);
+
+    if (data.analytics.overview) {
+      const overview = data.analytics.overview;
+      overviewSheet.addRow(['Metric', 'Current', 'Previous', 'Change', 'Change %']);
+      Object.entries(overview.comparison).forEach(([metric, values]) => {
+        overviewSheet.addRow([
+          metric,
+          values.current,
+          values.previous,
+          values.change,
+          `${values.changePercentage}%`
+        ]);
+      });
+    }
+
+    // Class Performance sheet
+    if (data.analytics.classPerformance && data.analytics.classPerformance.length > 0) {
+      const classSheet = workbook.addWorksheet('Class Performance');
+      classSheet.addRow([
+        'Class',
+        'Total',
+        'Present',
+        'Absent',
+        'Late',
+        'Excused',
+        'Attendance Rate'
+      ]);
+
+      data.analytics.classPerformance.forEach(classData => {
+        classSheet.addRow([
+          classData.class.name,
+          classData.total,
+          classData.present,
+          classData.absent,
+          classData.late,
+          classData.excused,
+          `${classData.attendanceRate}%`
+        ]);
+      });
+    }
+
+    // Detailed Records sheet
+    if (
+      data.detailedReport &&
+      data.detailedReport.records &&
+      data.detailedReport.records.length > 0
+    ) {
+      const recordsSheet = workbook.addWorksheet('Detailed Records');
+      recordsSheet.addRow([
+        'Date',
+        'Student',
+        'Admission Number',
+        'Class',
+        'Section',
+        'Status',
+        'Remarks'
+      ]);
+
+      data.detailedReport.records.forEach(record => {
+        recordsSheet.addRow([
+          record.session.date,
+          `${record.student.first_name} ${record.student.last_name}`,
+          record.student.admission_number,
+          record.student.class?.name || 'N/A',
+          record.student.sectionInfo?.name || 'N/A',
+          record.status,
+          record.remarks || ''
+        ]);
+      });
+    }
+
+    return await workbook.xlsx.writeBuffer();
   }
 }
 

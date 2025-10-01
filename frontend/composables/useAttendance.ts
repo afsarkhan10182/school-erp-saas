@@ -41,12 +41,13 @@ interface PaginationData {
 /**
  * Composable for managing attendance operations
  * Centralizes all attendance-related business logic
+ * Follows common reusable patterns for data fetching and state management
  */
 export const useAttendance = () => {
-  const { showError, showSuccess } = useToast();
+  const { showToast } = useToast();
   const auth = useAuthStore();
 
-  // State management
+  // State management - centralized and reactive
   const sessions = ref<AttendanceSession[]>([]);
   const currentSession = ref<AttendanceSession | null>(null);
   const students = ref<any[]>([]);
@@ -57,12 +58,13 @@ export const useAttendance = () => {
 
   const pagination = reactive<PaginationData>({
     page: 1,
-    limit: 20,
+    limit: 10,
     total: 0
   });
 
   /**
    * Load attendance sessions with filters
+   * Uses consistent error handling and loading patterns
    */
   const loadSessions = async (filters: AttendanceFilters = {}) => {
     try {
@@ -75,19 +77,25 @@ export const useAttendance = () => {
         ...filters
       };
 
-      const response = (await Attendance.listSessions(params)) as any;
-      const data = response.data || [];
-      const total = response.pagination?.total || data.length;
+      const response = await Attendance.listSessions(params);
 
-      sessions.value = data;
-      pagination.total = total;
+      if (response.success && response.data) {
+        sessions.value = response.data.items || response.data || [];
+        pagination.total = response.data.pagination?.total || sessions.value.length;
+      } else {
+        sessions.value = [];
+        pagination.total = 0;
+      }
     } catch (err: any) {
       error.value = 'Failed to load attendance sessions';
-      // Only show toast for unexpected errors, not for normal data loading
-      if (err?.response?.status !== 404) {
+      sessions.value = [];
+      pagination.total = 0;
+
+      // Only show toast for server errors, not for empty results
+      if (err?.response?.status >= 500) {
         const msg =
           err?.response?.data?.message || err?.message || 'Failed to load attendance sessions';
-        showError(msg);
+        showToast(msg, 'error');
       }
     } finally {
       loading.value = false;
@@ -96,6 +104,7 @@ export const useAttendance = () => {
 
   /**
    * Create or get existing attendance session
+   * Uses consistent API patterns and error handling
    */
   const createSession = async (sessionData: {
     date: string;
@@ -119,28 +128,16 @@ export const useAttendance = () => {
 
       const response = await Attendance.upsertSession(payload);
 
-      // Handle different response structures
-      let sessionResult = null;
-      if (response && response.success && response.data) {
-        sessionResult = response.data;
-      } else if (response && response.data) {
-        sessionResult = response.data;
-      } else if (response) {
-        sessionResult = response;
+      if (response.success && response.data) {
+        currentSession.value = response.data;
+        return response.data;
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error(response.message || 'Failed to create session');
       }
-
-      if (!sessionResult || !sessionResult.id) {
-        throw new Error('Session created but missing ID');
-      }
-
-      currentSession.value = sessionResult;
-      return sessionResult;
     } catch (err: any) {
       error.value = 'Failed to create session';
       const msg = err?.response?.data?.message || err?.message || 'Failed to create session';
-      showError(msg);
+      showToast(msg, 'error');
       throw err;
     } finally {
       loading.value = false;
@@ -149,15 +146,21 @@ export const useAttendance = () => {
 
   /**
    * Load students for a class/section
+   * Uses consistent API patterns and initializes attendance records
    */
-  const loadStudents = async (classId: string, sectionId?: string) => {
+  const loadStudents = async (
+    classId: string,
+    sectionId?: string,
+    page: number = 1,
+    limit: number = 10
+  ) => {
     try {
       loading.value = true;
       error.value = null;
 
       const params: any = {
-        page: 1,
-        limit: 1000,
+        page: page,
+        limit: limit,
         class_id: classId
       };
 
@@ -165,28 +168,49 @@ export const useAttendance = () => {
         params.section_id = sectionId;
       }
 
-      const response = (await Students.getAll(params)) as any;
-      const data = response.data || [];
+      const response = await Students.getAll(params);
 
-      students.value = data;
+      if (response.success && response.data) {
+        const data = Array.isArray(response.data) ? response.data : response.data.items || [];
+        students.value = data;
 
-      // Initialize attendance records for all students
-      attendanceRecords.value = {};
-      data.forEach((student: any) => {
-        attendanceRecords.value[student.id] = {
-          student_id: student.id,
-          status: 'present',
-          remarks: ''
-        };
-      });
+        // Update pagination info
+        pagination.page = response.pagination?.current_page || page;
+        pagination.total = response.pagination?.total_count || data.length;
+        pagination.limit = response.pagination?.limit || limit;
 
-      return data;
+        // Initialize attendance records for new students only (preserve existing data)
+        data.forEach((student: any) => {
+          if (!attendanceRecords.value[student.id]) {
+            attendanceRecords.value[student.id] = {
+              student_id: student.id,
+              status: 'present',
+              remarks: ''
+            };
+          }
+        });
+
+        return data;
+      } else {
+        students.value = [];
+        attendanceRecords.value = {};
+        pagination.page = 1;
+        pagination.total = 0;
+        pagination.limit = limit;
+        return [];
+      }
     } catch (err: any) {
       error.value = 'Failed to load students';
+      students.value = [];
+      attendanceRecords.value = {};
+      pagination.page = 1;
+      pagination.total = 0;
+      pagination.limit = limit;
+
       // Only show toast for server errors, not for empty results
       if (err?.response?.status >= 500) {
         const msg = err?.response?.data?.message || err?.message || 'Failed to load students';
-        showError(msg);
+        showToast(msg, 'error');
       }
     } finally {
       loading.value = false;
@@ -195,6 +219,7 @@ export const useAttendance = () => {
 
   /**
    * Save attendance records
+   * Uses consistent validation and error handling
    */
   const saveAttendance = async (
     sessionId: string,
@@ -205,6 +230,7 @@ export const useAttendance = () => {
       saving.value = true;
       error.value = null;
 
+      // Validate inputs
       if (!sessionId) {
         throw new Error('Session ID is required');
       }
@@ -226,14 +252,17 @@ export const useAttendance = () => {
         publish
       });
 
-      const message = publish ? 'Attendance published successfully' : 'Draft saved successfully';
-      showSuccess(message);
-
-      return response;
+      if (response.success) {
+        const message = publish ? 'Attendance published successfully' : 'Draft saved successfully';
+        showToast(message, 'success');
+        return response;
+      } else {
+        throw new Error(response.message || 'Failed to save attendance');
+      }
     } catch (err: any) {
       error.value = 'Failed to save attendance';
       const msg = err?.response?.data?.message || err?.message || 'Failed to save attendance';
-      showError(msg);
+      showToast(msg, 'error');
       throw err;
     } finally {
       saving.value = false;
@@ -242,6 +271,7 @@ export const useAttendance = () => {
 
   /**
    * Get session details with records
+   * Uses consistent API patterns and error handling
    */
   const getSessionDetails = async (sessionId: string) => {
     try {
@@ -249,11 +279,16 @@ export const useAttendance = () => {
       error.value = null;
 
       const response = await Attendance.getSession(sessionId);
-      return response.data;
+
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to load session details');
+      }
     } catch (err: any) {
       error.value = 'Failed to load session details';
       const msg = err?.response?.data?.message || err?.message || 'Failed to load session details';
-      showError(msg);
+      showToast(msg, 'error');
       throw err;
     } finally {
       loading.value = false;
@@ -292,16 +327,150 @@ export const useAttendance = () => {
     pagination.page = page;
   };
 
+  /**
+   * Get attendance statistics
+   */
+  const getAttendanceStats = computed(() => {
+    const records = Object.values(attendanceRecords.value);
+    const total = records.length;
+    const present = records.filter(r => r.status === 'present').length;
+    const absent = records.filter(r => r.status === 'absent').length;
+    const late = records.filter(r => r.status === 'late').length;
+    const excused = records.filter(r => r.status === 'excused').length;
+
+    return {
+      total,
+      present,
+      absent,
+      late,
+      excused,
+      presentPercentage: total > 0 ? Math.round((present / total) * 100) : 0
+    };
+  });
+
+  /**
+   * Check if attendance has changes
+   */
+  const hasChanges = computed(() => {
+    return Object.keys(attendanceRecords.value).length > 0;
+  });
+
+  /**
+   * Get filtered students based on search and status
+   */
+  const getFilteredStudents = (searchQuery: string = '', statusFilter: string = '') => {
+    return students.value.filter(student => {
+      const matchesSearch =
+        !searchQuery ||
+        student.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.roll_number?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        !statusFilter || attendanceRecords.value[student.id]?.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  // Analytics state
+  const analytics = ref<any>(null);
+  const analyticsLoading = ref(false);
+
+  /**
+   * Load attendance analytics
+   */
+  const loadAnalytics = async (filters: any = {}) => {
+    try {
+      analyticsLoading.value = true;
+      error.value = null;
+
+      const response = await Attendance.getAnalytics(filters);
+
+      if (response.success && response.data) {
+        analytics.value = response.data;
+        return response.data;
+      } else {
+        // If this_month returns no data, try last_month as fallback
+        if (filters.period === 'this_month') {
+          const fallbackFilters = { ...filters, period: 'last_month' };
+          const fallbackResponse = await Attendance.getAnalytics(fallbackFilters);
+
+          if (fallbackResponse.success && fallbackResponse.data) {
+            analytics.value = fallbackResponse.data;
+            return fallbackResponse.data;
+          }
+        }
+
+        throw new Error(response.message || 'Failed to load analytics');
+      }
+    } catch (err: any) {
+      error.value = 'Failed to load analytics';
+      const msg = err?.response?.data?.message || err?.message || 'Failed to load analytics';
+      showToast(msg, 'error');
+      throw err;
+    } finally {
+      analyticsLoading.value = false;
+    }
+  };
+
+  /**
+   * Export analytics data
+   */
+  const exportAnalytics = async (filters: any = {}) => {
+    try {
+      analyticsLoading.value = true;
+      error.value = null;
+
+      const response = await Attendance.exportAnalytics({ ...filters, format: 'xlsx' });
+
+      if (response.data) {
+        // Create download link for blob response
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute(
+          'download',
+          `attendance-analytics-${new Date().toISOString().split('T')[0]}.xlsx`
+        );
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        showToast('Analytics exported successfully', 'success');
+        return response;
+      } else {
+        throw new Error('No data received from export');
+      }
+    } catch (err: any) {
+      error.value = 'Failed to export analytics';
+      const msg = err?.response?.data?.message || err?.message || 'Failed to export analytics';
+      showToast(msg, 'error');
+      throw err;
+    } finally {
+      analyticsLoading.value = false;
+    }
+  };
+
   return {
     // State
     sessions: readonly(sessions),
     currentSession: readonly(currentSession),
-    students: readonly(students),
+    students,
     attendanceRecords,
     loading: readonly(loading),
     saving: readonly(saving),
     error: readonly(error),
     pagination,
+
+    // Analytics state
+    analytics,
+    analyticsLoading: readonly(analyticsLoading),
+
+    // Computed
+    getAttendanceStats,
+    hasChanges,
 
     // Methods
     loadSessions,
@@ -310,7 +479,12 @@ export const useAttendance = () => {
     saveAttendance,
     getSessionDetails,
     updateStudentRecord,
+    getFilteredStudents,
     resetState,
-    setPage
+    setPage,
+
+    // Analytics methods
+    loadAnalytics,
+    exportAnalytics
   };
 };

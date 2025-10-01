@@ -260,7 +260,7 @@ class AttendanceValidationService {
 
     // Log to database or external audit system
     // This is where you'd implement your audit logging
-    console.log('AUDIT LOG:', logData);
+    // Audit log data processed
   }
 
   static async checkGraceMode(ruleName, settings) {
