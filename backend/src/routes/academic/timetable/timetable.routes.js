@@ -21,10 +21,15 @@ const router = express.Router();
 /**
  * @route /api/timetables
  * @desc Timetable management routes
- * @access Private (authenticated users with exams module access)
+ * @access Private (authenticated users with academic_management module access)
  */
-// All timetable routes require auth, school/branch context, and exams module access
-router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess('exams'));
+// All timetable routes require auth, school/branch context, and academic_management module access
+router.use(
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireModuleAccess('academic_management')
+);
 
 // ===== TIMETABLE MANAGEMENT ROUTES =====
 

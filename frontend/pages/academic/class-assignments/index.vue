@@ -4,9 +4,9 @@
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Management</h1>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Assignments</h1>
           <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage classes, sections, class assignments, and class teachers
+            Assign subjects and teachers to classes
           </p>
         </div>
       </div>
