@@ -76,9 +76,15 @@ class TimetableService extends BaseService {
       }
 
       if (class_id) whereClause.class_id = class_id;
-      if (section_id) whereClause.section_id = section_id;
+      if (section_id !== undefined) {
+        if (section_id === '' || section_id === null) {
+          whereClause.section_id = null;
+        } else {
+          whereClause.section_id = section_id;
+        }
+      }
       if (academic_year) whereClause.academic_year = academic_year;
-      if (is_active !== '') whereClause.is_active = is_active === 'true';
+      if (is_active !== undefined && is_active !== '') whereClause.is_active = is_active === 'true';
       if (branch_id) whereClause.branch_id = branch_id;
 
       const { count, rows } = await Timetable.findAndCountAll({
@@ -98,6 +104,35 @@ class TimetableService extends BaseService {
             model: School,
             as: 'school',
             attributes: ['id', 'name', 'code']
+          },
+          {
+            model: TimetableSlot,
+            as: 'slots',
+            attributes: [
+              'id',
+              'day_of_week',
+              'period_number',
+              'start_time',
+              'end_time',
+              'subject_id',
+              'teacher_id',
+              'room_number',
+              'slot_type',
+              'is_active',
+              'notes'
+            ],
+            include: [
+              {
+                model: Subject,
+                as: 'subject',
+                attributes: ['id', 'name', 'code']
+              },
+              {
+                model: User,
+                as: 'teacher',
+                attributes: ['id', 'first_name', 'last_name', 'email']
+              }
+            ]
           }
         ],
         order: [['created_at', 'DESC']],
@@ -238,21 +273,94 @@ class TimetableService extends BaseService {
         throw new ApiError(404, 'Timetable not found');
       }
 
-      // Validate slot doesn't conflict
-      const conflictingSlot = await TimetableSlot.findOne({
+      // Validate slot doesn't conflict with existing slots
+      const existingSlots = await TimetableSlot.findAll({
         where: {
           timetable_id: timetableId,
-          day_of_week: slotData.day_of_week,
-          period_number: slotData.period_number
+          day_of_week: slotData.day_of_week
         }
       });
 
-      if (conflictingSlot) {
-        throw new ApiError(400, 'A slot already exists for this day and period');
+      // Sort existing slots by start_time to get chronological order
+      const sortedSlots = existingSlots.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+      // Check if slot already exists for this day and period - if so, update it instead of creating new
+      const existingSlot = existingSlots.find(
+        slot => slot.period_number === slotData.period_number
+      );
+
+      if (existingSlot) {
+        // Update existing slot instead of creating new one
+        // Only update fields that are provided and not null (except for break slots)
+        const updateData = {
+          start_time: slotData.start_time,
+          end_time: slotData.end_time,
+          room_number: slotData.room_number,
+          slot_type: slotData.slot_type,
+          updated_by: user.id
+        };
+
+        // Only update subject/teacher if not a break
+        if (slotData.slot_type !== 'break') {
+          updateData.subject_id = slotData.subject_id;
+          updateData.teacher_id = slotData.teacher_id;
+        } else {
+          // For break slots, set subject and teacher to null
+          updateData.subject_id = null;
+          updateData.teacher_id = null;
+        }
+
+        await existingSlot.update(updateData);
+        return existingSlot;
       }
+
+      // Helper function to normalize time format (HH:MM or HH:MM:SS -> HH:MM:SS)
+      const normalizeTime = timeStr => {
+        if (!timeStr) return timeStr;
+        const parts = timeStr.split(':');
+        if (parts.length === 2) {
+          return `${parts[0]}:${parts[1]}:00`; // Add seconds if missing
+        }
+        return timeStr; // Already has seconds
+      };
+
+      // Check for time overlap conflicts
+      const timeConflict = existingSlots.find(slot => {
+        const newStart = normalizeTime(slotData.start_time);
+        const newEnd = normalizeTime(slotData.end_time);
+        const existingStart = normalizeTime(slot.start_time);
+        const existingEnd = normalizeTime(slot.end_time);
+
+        // Check if times overlap: (newStart < existingEnd) && (newEnd > existingStart)
+        // Adjacent times should NOT conflict (e.g., 9:00:00-10:00:00 and 10:00:00-11:00:00)
+        const hasOverlap = newStart < existingEnd && newEnd > existingStart;
+
+        return hasOverlap;
+      });
+
+      if (timeConflict) {
+        throw new ApiError(
+          400,
+          `Time conflict detected! Another slot exists from ${timeConflict.start_time} to ${timeConflict.end_time} on the same day`
+        );
+      }
+
+      // Auto-assign period number based on chronological order
+      const allSlotsForDay = [
+        ...existingSlots,
+        { start_time: slotData.start_time, end_time: slotData.end_time }
+      ];
+      const chronologicallySorted = allSlotsForDay.sort((a, b) =>
+        a.start_time.localeCompare(b.start_time)
+      );
+      const newSlotIndex = chronologicallySorted.findIndex(
+        slot => slot.start_time === slotData.start_time && slot.end_time === slotData.end_time
+      );
+      const correctPeriodNumber = newSlotIndex + 1;
 
       const slot = await TimetableSlot.create({
         ...slotData,
+        period_number: correctPeriodNumber, // Override with chronologically correct period number
         timetable_id: timetableId,
         created_by: user.id,
         updated_by: user.id
@@ -283,6 +391,54 @@ class TimetableService extends BaseService {
 
       if (!slot) {
         throw new ApiError(404, 'Timetable slot not found');
+      }
+
+      // If updating time-related fields, check for conflicts
+      if (updateData.start_time || updateData.end_time || updateData.day_of_week) {
+        const existingSlots = await TimetableSlot.findAll({
+          where: {
+            timetable_id: slot.timetable_id,
+            day_of_week: updateData.day_of_week || slot.day_of_week,
+            id: { [Op.ne]: slotId } // Exclude current slot
+          }
+        });
+
+        // No need to check for period conflicts when updating - just update the slot
+
+        // Helper function to normalize time format (HH:MM or HH:MM:SS -> HH:MM:SS)
+        const normalizeTime = timeStr => {
+          if (!timeStr) return timeStr;
+          const parts = timeStr.split(':');
+          if (parts.length === 2) {
+            return `${parts[0]}:${parts[1]}:00`; // Add seconds if missing
+          }
+          return timeStr; // Already has seconds
+        };
+
+        // Check for time overlap conflicts
+        const newStartTime = updateData.start_time || slot.start_time;
+        const newEndTime = updateData.end_time || slot.end_time;
+
+        const timeConflict = existingSlots.find(existingSlot => {
+          const normalizedNewStart = normalizeTime(newStartTime);
+          const normalizedNewEnd = normalizeTime(newEndTime);
+          const normalizedExistingStart = normalizeTime(existingSlot.start_time);
+          const normalizedExistingEnd = normalizeTime(existingSlot.end_time);
+
+          // Check if times overlap: (newStart < existingEnd) && (newEnd > existingStart)
+          const hasOverlap =
+            normalizedNewStart < normalizedExistingEnd &&
+            normalizedNewEnd > normalizedExistingStart;
+
+          return hasOverlap;
+        });
+
+        if (timeConflict) {
+          throw new ApiError(
+            400,
+            `Time conflict detected! Another slot exists from ${timeConflict.start_time} to ${timeConflict.end_time} on the same day`
+          );
+        }
       }
 
       await slot.update({

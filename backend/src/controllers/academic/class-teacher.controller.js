@@ -60,7 +60,96 @@ class ClassTeacherController {
   // Create class teacher assignment
   static async createClassTeacher(req, res, next) {
     try {
-      const { class_id, section_id, stream_id, teacher_id, academic_year } = req.body;
+      const { class_id, section_id, stream_id, teacher_id, academic_year, branch_id } = req.body;
+
+      // Determine school_id and branch_id based on user role (following class controller pattern)
+      let school_id, final_branch_id;
+
+      if (req.user.role === 'super_admin') {
+        school_id = req.body.school_id;
+        final_branch_id = branch_id;
+
+        if (!school_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'School ID is required for super admin'
+          });
+        }
+        if (!final_branch_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Branch ID is required for super admin'
+          });
+        }
+      } else if (req.user.role === 'school_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = branch_id;
+
+        if (!final_branch_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Branch ID is required'
+          });
+        }
+      } else if (req.user.role === 'branch_admin') {
+        school_id = req.user.school_id;
+        final_branch_id = req.user.branch_id; // Branch admin can only create for their branch
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions to create class teacher assignment'
+        });
+      }
+
+      // Validate that teacher exists and belongs to the correct school/branch
+      const teacher = await User.findByPk(teacher_id);
+      if (!teacher) {
+        return res.status(404).json({
+          success: false,
+          message: 'Teacher not found'
+        });
+      }
+
+      // Check if teacher belongs to the correct school
+      if (teacher.school_id !== school_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Teacher does not belong to the selected school'
+        });
+      }
+
+      // For branch admin, also check if teacher belongs to the same branch
+      if (req.user.role === 'branch_admin' && teacher.branch_id !== final_branch_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Teacher does not belong to your branch'
+        });
+      }
+
+      // Validate that class exists and belongs to the correct school/branch
+      const classRecord = await Class.findByPk(class_id);
+      if (!classRecord) {
+        return res.status(404).json({
+          success: false,
+          message: 'Class not found'
+        });
+      }
+
+      // Check if class belongs to the correct school
+      if (classRecord.school_id !== school_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class does not belong to the selected school'
+        });
+      }
+
+      // Check if class belongs to the correct branch
+      if (classRecord.branch_id !== final_branch_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Class does not belong to the selected branch'
+        });
+      }
 
       // Validate unique class teacher assignment
       const existingAllocation = await ClassTeacher.findOne({
@@ -69,10 +158,16 @@ class ClassTeacherController {
           section_id: section_id || null,
           stream_id: stream_id || null,
           academic_year,
-          school_id: req.user.school_id,
-          branch_id: req.user.branch_id,
+          school_id: school_id,
+          branch_id: final_branch_id,
           is_active: true
-        }
+        },
+        include: [
+          { model: Class, as: 'class' },
+          { model: Section, as: 'section' },
+          { model: Stream, as: 'stream' },
+          { model: User, as: 'teacher' }
+        ]
       });
 
       if (existingAllocation) {
@@ -87,13 +182,34 @@ class ClassTeacherController {
           errorMessage += ` in stream ${existingAllocation.stream?.name || 'Unknown'}`;
         }
         errorMessage += ` for academic year ${academic_year}`;
+        errorMessage += ` (Currently assigned to: ${existingAllocation.teacher?.first_name || 'Unknown'} ${existingAllocation.teacher?.last_name || ''})`;
 
-        throw new ApiError(400, errorMessage);
+        return res.status(400).json({
+          success: false,
+          message: errorMessage
+        });
       }
 
-      // Optional: Check if teacher is already assigned to the SAME class-section-stream combination
-      // This allows teachers to be assigned to multiple different classes
-      // Remove this validation if you want to allow multiple assignments per teacher
+      // Check if the same teacher is already assigned to this exact class-section-stream combination
+      const teacherAlreadyAssigned = await ClassTeacher.findOne({
+        where: {
+          teacher_id,
+          class_id,
+          section_id: section_id || null,
+          stream_id: stream_id || null,
+          academic_year,
+          school_id: school_id,
+          branch_id: final_branch_id,
+          is_active: true
+        }
+      });
+
+      if (teacherAlreadyAssigned) {
+        return res.status(400).json({
+          success: false,
+          message: 'This teacher is already assigned to this class for the same academic year'
+        });
+      }
 
       const allocation = await ClassTeacher.create({
         class_id,
@@ -101,8 +217,8 @@ class ClassTeacherController {
         stream_id: stream_id || null,
         teacher_id,
         academic_year,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id,
+        school_id: school_id,
+        branch_id: final_branch_id,
         created_by: req.user.id,
         updated_by: req.user.id
       });

@@ -2001,7 +2001,10 @@ const loadAcademicData = async () => {
     // Load academic years and classes in parallel
     const [academicYearsResult, classesResult] = await Promise.all([
       fetchAcademicYears(form.school_id),
-      fetchClasses(form.school_id, form.branch_id)
+      fetchClasses({
+        schoolId: form.school_id,
+        branchId: form.branch_id
+      })
     ]);
 
     console.log('🔍 loadAcademicData: Academic years loaded:', academicYears.value?.length);
@@ -2758,7 +2761,10 @@ const mapClassAndSectionNames = async () => {
   if (classes.value.length === 0 && form.school_id && form.branch_id) {
     console.log('🔍 HACK: Force loading classes...');
     try {
-      await fetchClasses(form.school_id, form.branch_id);
+      await fetchClasses({
+        schoolId: form.school_id,
+        branchId: form.branch_id
+      });
       console.log('🔍 HACK: Classes loaded:', classes.value.length);
     } catch (error) {
       console.error('❌ HACK: Failed to load classes:', error);

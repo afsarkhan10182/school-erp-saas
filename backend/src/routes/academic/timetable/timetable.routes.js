@@ -21,34 +21,70 @@ const router = express.Router();
 /**
  * @route /api/timetables
  * @desc Timetable management routes
- * @access Private (authenticated users with timetable module access)
+ * @access Private (authenticated users with academic_management module access)
  */
-
-// All timetable routes require auth, school/branch context, and timetable module access
-router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess('timetables'));
+// All timetable routes require auth, school/branch context, and academic_management module access
+router.use(
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireModuleAccess('academic_management')
+);
 
 // ===== TIMETABLE MANAGEMENT ROUTES =====
 
 /**
  * @route POST /api/timetables
- * @desc Create a new timetable
- * @access Private (TIMETABLE_ROLES)
+ * @desc Create a new timetable (Admin only)
+ * @access Private (TIMETABLE_ADMIN_ROLES)
  * @body {string} name, {string} class_id, {string} section_id, {string} academic_year, {boolean} is_active
  */
 router.post(
   '/',
-  requireRole(...TIMETABLE_ROLES),
+  requireRole(...TIMETABLE_ADMIN_ROLES),
   validate(createTimetableValidator),
   TimetableController.createTimetable
 );
 
 /**
  * @route GET /api/timetables
- * @desc Get all timetables with pagination and filtering
- * @access Private (TIMETABLE_ROLES)
+ * @desc Get all timetables with pagination and filtering (Admin only)
+ * @access Private (TIMETABLE_ADMIN_ROLES)
  * @query {number} page, {number} limit, {string} search, {string} class_id, {string} section_id
  */
-router.get('/', TimetableController.getAllTimetables);
+router.get('/', requireRole(...TIMETABLE_ADMIN_ROLES), TimetableController.getAllTimetables);
+
+// ===== TEACHER TIMETABLE ROUTES =====
+
+/**
+ * @route GET /api/timetables/my-timetable
+ * @desc Get current user's teaching schedule (teachers and admins)
+ * @access Private (TIMETABLE_ROLES)
+ */
+router.get('/my-timetable', requireRole(...TIMETABLE_ROLES), TimetableController.getMyTimetable);
+
+/**
+ * @route GET /api/timetables/teacher/:teacherId
+ * @desc Get timetable for specific teacher (Admin only)
+ * @access Private (TIMETABLE_ADMIN_ROLES)
+ * @param {string} teacherId - Teacher ID
+ */
+router.get(
+  '/teacher/:teacherId',
+  requireRole(...TIMETABLE_ADMIN_ROLES),
+  TimetableController.getTeacherTimetable
+);
+
+/**
+ * @route GET /api/timetables/teachers/all
+ * @desc Get all teacher timetables
+ * @access Private (TIMETABLE_ADMIN_ROLES)
+ */
+router.get(
+  '/teachers/all',
+  requireRole(...TIMETABLE_ADMIN_ROLES),
+  TimetableController.getAllTeacherTimetables
+);
 
 /**
  * @route GET /api/timetables/:id
@@ -79,34 +115,6 @@ router.put(
  * @param {string} id - Timetable ID
  */
 router.delete('/:id', requireRole(...TIMETABLE_ADMIN_ROLES), TimetableController.deleteTimetable);
-
-// ===== TEACHER TIMETABLE ROUTES =====
-
-/**
- * @route GET /api/timetables/my-timetable
- * @desc Get current teacher's timetable
- * @access Private (TEACHER_ROLES)
- */
-router.get('/my-timetable', requireRole(...TEACHER_ROLES), TimetableController.getMyTimetable);
-
-/**
- * @route GET /api/timetables/teacher/:teacherId
- * @desc Get timetable for specific teacher
- * @access Private (TIMETABLE_ROLES)
- * @param {string} teacherId - Teacher ID
- */
-router.get('/teacher/:teacherId', TimetableController.getTeacherTimetable);
-
-/**
- * @route GET /api/timetables/teachers/all
- * @desc Get all teacher timetables
- * @access Private (TIMETABLE_ADMIN_ROLES)
- */
-router.get(
-  '/teachers/all',
-  requireRole(...TIMETABLE_ADMIN_ROLES),
-  TimetableController.getAllTeacherTimetables
-);
 
 // ===== TIMETABLE SLOT ROUTES (NESTED) =====
 

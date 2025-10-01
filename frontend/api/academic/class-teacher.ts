@@ -34,6 +34,7 @@ export interface ClassTeacherFilters {
   class_id?: string;
   section_id?: string;
   academic_year?: string;
+  branch_id?: string;
   page?: number;
   limit?: number;
 }
@@ -41,15 +42,19 @@ export interface ClassTeacherFilters {
 export interface CreateClassTeacherData {
   class_id: string;
   section_id?: string;
+  stream_id?: string;
   teacher_id: string;
   academic_year: string;
+  branch_id: string;
 }
 
 export interface UpdateClassTeacherData {
   class_id?: string;
   section_id?: string;
+  stream_id?: string;
   teacher_id?: string;
   academic_year?: string;
+  branch_id?: string;
 }
 
 export interface ClassTeachersResponse {
@@ -74,26 +79,24 @@ export interface ClassTeacherResponse {
   message: string;
 }
 
-class ClassTeacherAPI {
-  async getAll(filters: ClassTeacherFilters = {}): Promise<ClassTeachersResponse> {
+export const ClassTeachers = {
+  getAll: async (filters: ClassTeacherFilters = {}) => {
     return apiCall('get', '/class-teachers', { params: filters });
-  }
+  },
 
-  async getById(id: string): Promise<ClassTeacherResponse> {
+  getById: async (id: string) => {
     return apiCall('get', `/class-teachers/${id}`);
-  }
+  },
 
-  async create(data: CreateClassTeacherData): Promise<ClassTeacherResponse> {
+  create: async (data: CreateClassTeacherData) => {
     return apiCall('post', '/class-teachers', data);
-  }
+  },
 
-  async update(id: string, data: UpdateClassTeacherData): Promise<ClassTeacherResponse> {
+  update: async (id: string, data: UpdateClassTeacherData) => {
     return apiCall('put', `/class-teachers/${id}`, data);
-  }
+  },
 
-  async delete(id: string): Promise<void> {
+  delete: async (id: string) => {
     return apiCall('delete', `/class-teachers/${id}`);
   }
-}
-
-export const classTeacherApi = new ClassTeacherAPI();
+};

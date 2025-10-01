@@ -90,6 +90,7 @@ class ClassSubjectAssignmentAPI {
     section_id?: string;
     stream_id?: string;
     academic_year?: string;
+    branch_id?: string;
     search?: string;
   }): Promise<AssignmentsResponse> {
     return apiCall('get', '/class-subject-assignments', { params });

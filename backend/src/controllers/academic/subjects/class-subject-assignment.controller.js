@@ -33,6 +33,7 @@ class ClassSubjectAssignmentController {
         section_id = '',
         stream_id = '',
         academic_year = '',
+        branch_id = '',
         search = ''
       } = req.query;
 
@@ -48,6 +49,7 @@ class ClassSubjectAssignmentController {
       if (section_id) whereClause.section_id = section_id;
       if (stream_id) whereClause.stream_id = stream_id;
       if (academic_year) whereClause.academic_year = academic_year;
+      if (branch_id) whereClause.branch_id = branch_id;
 
       // Build search query
       if (search) {
@@ -58,30 +60,36 @@ class ClassSubjectAssignmentController {
         );
       }
 
+      console.log('🔍 GET assignments with whereClause:', JSON.stringify(whereClause, null, 2));
+
       const { count, rows } = await ClassSubjectAssignment.findAndCountAll({
         where: whereClause,
         include: [
           {
             model: Class,
             as: 'class',
-            attributes: ['id', 'name', 'code']
+            attributes: ['id', 'name', 'code'],
+            where: branch_id ? { branch_id } : {}
           },
           {
             model: Subject,
             as: 'subject',
-            attributes: ['id', 'name', 'code', 'category']
+            attributes: ['id', 'name', 'code', 'category'],
+            where: branch_id ? { branch_id } : {}
           },
           {
             model: Section,
             as: 'section',
             attributes: ['id', 'name', 'capacity'],
-            required: false
+            required: false,
+            where: branch_id ? { branch_id } : {}
           },
           {
             model: Stream,
             as: 'stream',
             attributes: ['id', 'name', 'code'],
-            required: false
+            required: false,
+            where: branch_id ? { branch_id } : {}
           },
           {
             model: School,
@@ -101,6 +109,23 @@ class ClassSubjectAssignmentController {
       });
 
       const totalPages = Math.ceil(count / actualLimit);
+
+      console.log('🔍 Found assignments count:', count);
+      console.log(
+        '🔍 Sample assignments:',
+        JSON.stringify(
+          rows.slice(0, 2).map(r => ({
+            id: r.id,
+            class_id: r.class_id,
+            subject_id: r.subject_id,
+            academic_year: r.academic_year,
+            branch_id: r.branch_id,
+            school_id: r.school_id
+          })),
+          null,
+          2
+        )
+      );
 
       return apiResponse.success(
         res,
@@ -323,23 +348,32 @@ class ClassSubjectAssignmentController {
           }
 
           // Check if assignment already exists
+          const duplicateCheckWhere = {
+            class_id,
+            subject_id,
+            section_id: section_id || null,
+            stream_id: stream_id || null,
+            academic_year,
+            school_id: req.user.school_id,
+            branch_id: assignmentData.branch_id || req.user.branch_id || null
+          };
+
+          console.log(
+            '🔍 Checking for duplicate assignment with criteria:',
+            JSON.stringify(duplicateCheckWhere, null, 2)
+          );
+
           const existingAssignment = await ClassSubjectAssignment.findOne({
-            where: {
-              class_id,
-              subject_id,
-              section_id: section_id || null,
-              stream_id: stream_id || null,
-              academic_year,
-              school_id: req.user.school_id,
-              branch_id: req.user.branch_id || null
-            }
+            where: duplicateCheckWhere
           });
 
           if (existingAssignment) {
-            errors.push({
-              assignment: assignmentData,
-              error: 'Assignment already exists'
-            });
+            console.log(
+              '🔍 Found existing assignment:',
+              JSON.stringify(existingAssignment.toJSON(), null, 2)
+            );
+            console.log('🔍 Skipping duplicate assignment - already exists in database');
+            // Instead of erroring, skip this assignment silently
             continue;
           }
 
@@ -351,7 +385,7 @@ class ClassSubjectAssignmentController {
             stream_id,
             academic_year,
             school_id: req.user.school_id,
-            branch_id: req.user.branch_id,
+            branch_id: assignmentData.branch_id || req.user.branch_id,
             created_by: req.user.id,
             updated_by: req.user.id
           });

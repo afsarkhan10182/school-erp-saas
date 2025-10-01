@@ -287,12 +287,20 @@ const applyTheme = () => {
 const toggleTheme = () => {
   isDark.value = !isDark.value;
 
-  // Use Nuxt's useCookie for theme persistence
-  const themeCookie = useCookie('theme');
-  themeCookie.value = isDark.value ? 'dark' : 'light';
+  if (import.meta.client) {
+    // Use the same approach as theme.client.ts
+    if (isDark.value) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
 
-  // Apply theme
-  applyTheme();
+    // Also update cookie for SSR consistency
+    const themeCookie = useCookie('theme');
+    themeCookie.value = isDark.value ? 'dark' : 'light';
+  }
 };
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
@@ -395,12 +403,11 @@ const checkExistingAuth = async () => {
 
 // Use Nuxt 3's onMounted lifecycle hook for theme setup and auth check
 onMounted(() => {
-  // Set theme using Nuxt's useCookie for better SSR handling
-  const themeCookie = useCookie('theme', { default: () => 'dark' });
-  isDark.value = themeCookie.value === 'dark';
-
-  // Apply theme
-  applyTheme();
+  // Don't override theme - let theme.client.ts handle it
+  // Just sync with existing DOM state
+  if (import.meta.client) {
+    isDark.value = document.documentElement.classList.contains('dark');
+  }
 
   // Run auth check after component is mounted
   checkExistingAuth();

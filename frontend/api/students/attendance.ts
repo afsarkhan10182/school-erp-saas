@@ -71,28 +71,6 @@ export const Attendance = {
     return response;
   },
 
-  bulkImport: async (rows: any[]) => {
-    return apiCall('post', '/attendance/bulk-import', { rows });
-  },
-
-  // File upload for bulk import
-  uploadBulkImportFile: async (file: File) => {
-    const api = createApiInstance();
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await api.post('/attendance/bulk-import/file', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  },
-
-  // Get attendance import template
-  getImportTemplate: async () => {
-    const api = createApiInstance();
-    const response = await api.get('/templates/attendance-import', { responseType: 'blob' });
-    return response;
-  },
-
   // Export reports
   exportPdfReport: async (queryParams: string) => {
     const api = createApiInstance();

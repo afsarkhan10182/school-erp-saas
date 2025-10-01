@@ -11,7 +11,7 @@
 
       <div class="flex items-center gap-3">
         <button
-          @click="exportAnalytics"
+          @click="handleExportAnalytics"
           :disabled="loading"
           class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
         >
@@ -33,82 +33,75 @@
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <!-- School (for Super Admin) -->
+        <div v-if="isSuperAdmin">
+          <EnhancedDropdown
+            v-model="filters.school_id"
+            :options="schoolOptions"
+            label="School"
+            placeholder="All Schools"
+            @change="onSchoolChange"
+          />
+        </div>
+
+        <!-- Branch (for Super Admin and School Admin) -->
+        <div v-if="isSuperAdmin || isSchoolAdmin">
+          <EnhancedDropdown
+            v-model="filters.branch_id"
+            :options="branchOptions"
+            label="Branch"
+            placeholder="All Branches"
+            @change="onBranchChange"
+          />
+        </div>
+
         <!-- Period -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Period</label
-          >
-          <select
+          <EnhancedDropdown
             v-model="filters.period"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
-          >
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="this_week">This Week</option>
-            <option value="last_week">Last Week</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="this_year">This Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
+            :options="periodOptions"
+            label="Period"
+            @change="loadAnalyticsData"
+          />
         </div>
 
         <!-- Class -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Class</label
-          >
-          <select
+          <EnhancedDropdown
             v-model="filters.class_id"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
-          >
-            <option value="">All Classes</option>
-            <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-              {{ cls.label }}
-            </option>
-          </select>
+            :options="classOptions"
+            label="Class"
+            placeholder="All Classes"
+            @change="loadAnalyticsData"
+          />
         </div>
 
         <!-- Section -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Section</label
-          >
-          <select
+          <EnhancedDropdown
             v-model="filters.section_id"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
-          >
-            <option value="">All Sections</option>
-            <option v-for="sec in sectionOptions" :key="sec.value" :value="sec.value">
-              {{ sec.label }}
-            </option>
-          </select>
+            :options="sectionOptions"
+            label="Section"
+            placeholder="All Sections"
+            @change="loadAnalyticsData"
+          />
         </div>
 
         <!-- Academic Year -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Academic Year</label
-          >
-          <select
+          <EnhancedDropdown
             v-model="filters.academic_year"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
-          >
-            <option value="">All Years</option>
-            <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
-              {{ year.label }}
-            </option>
-          </select>
+            :options="academicYearOptions"
+            label="Academic Year"
+            placeholder="All Years"
+            @change="loadAnalyticsData"
+          />
         </div>
 
         <!-- Refresh Button -->
         <div class="flex items-end">
           <button
-            @click="loadAnalytics"
+            @click="loadAnalyticsData"
             :disabled="loading"
             class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
@@ -156,7 +149,7 @@
             v-model="filters.custom_start_date"
             type="date"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
+            @change="loadAnalyticsData"
           />
         </div>
         <div>
@@ -167,7 +160,7 @@
             v-model="filters.custom_end_date"
             type="date"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            @change="loadAnalytics"
+            @change="loadAnalyticsData"
           />
         </div>
       </div>
@@ -592,31 +585,68 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { useDropdowns } from '~/composables/useDropdowns';
+import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
-import { Attendance } from '~/api/students/attendance';
+import { useSchools } from '~/composables/useSchools';
+import { useBranches } from '~/composables/useBranches';
+import { useAttendance } from '~/composables/useAttendance';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
-const { classOptions, sectionOptions, loadAllDropdowns } = useDropdowns();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchAllBranches } = useBranches();
+const {
+  classOptions,
+  sectionOptions,
+  academicYears,
+  fetchClasses,
+  fetchSections,
+  fetchAcademicYears
+} = useAcademics();
 
-// Reactive data
-const loading = ref(false);
-const analytics = ref(null);
+// Use attendance composable for analytics
+const { analytics, analyticsLoading: loading, loadAnalytics, exportAnalytics } = useAttendance();
 
 // Filters
 const filters = ref({
   period: 'this_month',
+  school_id: '',
+  branch_id: '',
   class_id: '',
   section_id: '',
   academic_year: '',
   custom_start_date: '',
   custom_end_date: ''
 });
+
+// Computed options for dropdowns
+const schoolOptions = computed(() =>
+  schools.value.map((school: any) => ({
+    value: school.id,
+    label: school.name
+  }))
+);
+
+const branchOptions = computed(() =>
+  branches.value.map((branch: any) => ({
+    value: branch.id,
+    label: branch.name
+  }))
+);
+
+const periodOptions = computed(() => [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'this_week', label: 'This Week' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'custom', label: 'Custom Range' }
+]);
 
 // Computed
 const academicYearOptions = computed(() => {
@@ -627,72 +657,106 @@ const academicYearOptions = computed(() => {
 });
 
 // Methods
-const loadAnalytics = async () => {
-  try {
-    loading.value = true;
+const onSchoolChange = async () => {
+  filters.value.branch_id = '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
 
+  if (filters.value.school_id) {
+    await fetchAllBranches({ school_id: filters.value.school_id });
+  } else {
+    branches.value = [];
+  }
+};
+
+const onBranchChange = async () => {
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+
+  if (filters.value.branch_id) {
+    await fetchClasses({ branchId: filters.value.branch_id });
+  } else {
+    classOptions.value = [];
+  }
+};
+
+const loadAnalyticsData = async () => {
+  try {
     const params = { ...filters.value };
 
     // Remove empty values
     Object.keys(params).forEach(key => {
-      if (params[key] === '') {
-        delete params[key];
+      if (params[key as keyof typeof params] === '') {
+        delete params[key as keyof typeof params];
       }
     });
 
-    const response = await Attendance.getAnalytics(params);
-    analytics.value = response.data;
+    // Check if we have minimum required parameters
+    if (!params.school_id && !user.value?.school_id) {
+      return;
+    }
+
+    // Ensure we have school_id from user if not in params
+    if (!params.school_id && user.value?.school_id) {
+      params.school_id = user.value.school_id;
+    }
+
+    await loadAnalytics(params);
   } catch (error) {
-    showToast('Failed to load attendance analytics', 'error');
-    console.error('Error loading analytics:', error);
-  } finally {
-    loading.value = false;
+    // Error handling is done in the composable
   }
 };
 
-const exportAnalytics = async () => {
+const handleExportAnalytics = async () => {
   try {
-    const params = { ...filters.value, format: 'xlsx' };
+    const params = { ...filters.value };
 
     // Remove empty values
     Object.keys(params).forEach(key => {
-      if (params[key] === '') {
-        delete params[key];
+      if (params[key as keyof typeof params] === '') {
+        delete params[key as keyof typeof params];
       }
     });
 
-    const response = await Attendance.exportAnalytics(params);
-
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute(
-      'download',
-      `attendance-analytics-${new Date().toISOString().split('T')[0]}.xlsx`
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-    showToast('Analytics exported successfully', 'success');
+    await exportAnalytics(params);
   } catch (error) {
-    showToast('Failed to export analytics', 'error');
-    console.error('Error exporting analytics:', error);
+    // Error handling is done in the composable
   }
 };
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([loadAllDropdowns(), fetchAcademicYears()]);
+  try {
+    // Load academic years first
+    await fetchAcademicYears();
 
-  // Set default academic year
-  const currentYear = academicYears.value.find(year => year.is_current);
-  if (currentYear) {
-    filters.value.academic_year = currentYear.name;
+    // Set default academic year
+    const currentYear = academicYears.value.find(year => year.is_current);
+    if (currentYear) {
+      filters.value.academic_year = currentYear.name;
+    }
+
+    // Initialize based on user role
+    if (isSuperAdmin.value) {
+      // Super Admin: Load schools, then branches will be loaded when school is selected
+      await fetchSchools();
+    } else if (isSchoolAdmin.value) {
+      // School Admin: Load branches for their school directly
+      filters.value.school_id = user.value?.school_id || '';
+      await fetchAllBranches({ school_id: filters.value.school_id });
+    } else if (isBranchAdmin.value) {
+      // Branch Admin: Load classes for their branch directly
+      filters.value.school_id = user.value?.school_id || '';
+      filters.value.branch_id = user.value?.branch_id || '';
+      await fetchClasses({ branchId: filters.value.branch_id });
+    }
+
+    // Load analytics with current filters (only if we have required filters)
+    if (filters.value.school_id || user.value?.school_id) {
+      await loadAnalyticsData();
+    }
+  } catch (error) {
+    showToast('Error loading analytics data', 'error');
   }
-
-  await loadAnalytics();
 });
 </script>

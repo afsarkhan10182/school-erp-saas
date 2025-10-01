@@ -4,9 +4,9 @@
       <!-- Header -->
       <div class="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Management</h1>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Assignments</h1>
           <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage classes, sections, class assignments, and class teachers
+            Assign subjects and teachers to classes
           </p>
         </div>
       </div>
@@ -21,7 +21,7 @@
           <div class="flex items-center space-x-2">
             <Building2 class="h-5 w-5 text-indigo-600" />
             <span class="text-sm text-gray-600 dark:text-gray-400"
-              >Select branch to manage class teachers</span
+              >Select branch to manage classes and assignments</span
             >
           </div>
         </div>
@@ -29,40 +29,27 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- School Selection (Super Admin only) -->
           <div v-if="isSuperAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              School
-            </label>
-            <select
+            <EnhancedDropdown
               v-model="selectedSchoolId"
-              @change="onSchoolChange"
-              class="input-field"
-              :disabled="schoolsLoading"
-            >
-              <option value="">Select School</option>
-              <option v-if="schoolsLoading" value="" disabled>Loading schools...</option>
-              <option v-for="school in availableSchools" :key="school.id" :value="school.id">
-                {{ school.name }}
-              </option>
-            </select>
+              :options="schoolOptions"
+              label="School"
+              placeholder="Select School"
+              :loading="schoolsLoading"
+              @update:model-value="onSchoolChange"
+            />
           </div>
 
-          <!-- Branch Selection -->
+          <!-- Branch Selection using EnhancedDropdown -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch
-            </label>
-            <select
+            <EnhancedDropdown
               v-model="selectedBranchId"
-              @change="onBranchChange"
-              class="input-field"
-              :disabled="branchesLoading"
-            >
-              <option value="">Select Branch</option>
-              <option v-if="branchesLoading" value="" disabled>Loading branches...</option>
-              <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                {{ branch.name }}
-              </option>
-            </select>
+              :options="branchOptions"
+              label="Branch"
+              placeholder="Select Branch"
+              :loading="branchesLoading"
+              :disabled="isSuperAdmin && !selectedSchoolId"
+              @update:model-value="onBranchChange"
+            />
           </div>
         </div>
       </div>
@@ -135,6 +122,19 @@
             @assign="handleClassSubjectAssign"
             @unassign="handleClassSubjectUnassign"
           />
+
+          <!-- Pagination for Classes -->
+          <Pagination
+            v-if="classes.length > 0"
+            :pagination="{
+              page: classPagination.page,
+              limit: classPagination.limit,
+              total: classPagination.total || classes.length
+            }"
+            item-label="classes"
+            @page-changed="goToClassPage"
+            @page-size-changed="changeClassLimit"
+          />
         </div>
 
         <!-- Class Teachers Tab -->
@@ -148,11 +148,23 @@
             :loading="classTeacherLoading"
             :academicYears="academicYearOptions"
             :branchId="selectedBranchId"
-            :schoolId="user?.school_id"
             @refresh="loadClassTeacherAllocations"
             @assign="handleClassTeacherAssign"
             @update="handleClassTeacherUpdate"
             @remove="handleClassTeacherRemove"
+          />
+
+          <!-- Pagination for Class Teachers -->
+          <Pagination
+            v-if="classTeacherAllocations.length > 0"
+            :pagination="{
+              page: classTeacherPagination.page,
+              limit: classTeacherPagination.limit,
+              total: classTeacherPagination.total || classTeacherAllocations.length
+            }"
+            item-label="class teachers"
+            @page-changed="goToClassTeacherPage"
+            @page-size-changed="changeClassTeacherLimit"
           />
         </div>
       </div>
@@ -165,89 +177,117 @@ import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
-import { Schools } from '~/api/administration/schools';
-import { Branches } from '~/api/administration/branches';
-import { classTeacherApi } from '~/api/academic/class-teacher';
+import { useSchools } from '~/composables/useSchools';
+import { useBranches } from '~/composables/useBranches';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
-import { Subjects } from '~/api';
-import { AcademicYears } from '~/api/academic/academic-years';
-import { Classes } from '~/api/academic/classes';
-import { Sections } from '~/api/academic/sections';
-import { Streams } from '~/api/academic/streams';
-import { Users } from '~/api';
+import { ClassTeachers } from '~/api/academic/class-teacher';
 import { Building2, Users as UsersIcon, UserCheck } from 'lucide-vue-next';
 
 // Import tab components
 import ClassAssignmentTab from '~/components/academic/ClassAssignmentTab.vue';
 import ClassTeacherTab from '~/components/academic/ClassTeacherTab.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables
 const { showToast } = useToast();
-const { academicYears, fetchAcademicYears } = useAcademics();
+const {
+  academicYears,
+  classes,
+  subjects,
+  teachers,
+  sections,
+  streams,
+  classOptions,
+  streamOptions,
+  sectionOptions,
+  subjectOptions,
+  teacherOptions,
+  fetchAcademicYears,
+  fetchClasses,
+  fetchSubjects,
+  fetchTeachers,
+  fetchSections,
+  fetchStreams
+} = useAcademics();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchBranches } = useBranches();
 const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
 
 // Tab configuration
 const tabs = [
-  { id: 'class-assignment', name: 'Class Assignment', icon: UsersIcon },
-  { id: 'class-teachers', name: 'Class Teachers', icon: UserCheck }
+  { id: 'class-assignment', name: 'Class Subject Assignment', icon: UsersIcon },
+  { id: 'class-teachers', name: 'Assign Class Teachers', icon: UserCheck }
 ];
 
 // Reactive data
 const activeTab = ref('class-assignment');
-const classes = ref([]);
-const sections = ref([]);
-const streams = ref([]);
-const subjects = ref([]);
 const classSubjectMappings = ref([]);
 const classTeacherAllocations = ref([]);
-const teacherOptions = ref([]);
 const mappingsLoading = ref(false);
 const classTeacherLoading = ref(false);
+
+// Pagination for class teachers
+const classTeacherPagination = reactive({
+  page: 1,
+  limit: 10, // Consistent with class pagination
+  total: 0
+});
+
+// Pagination for classes (not class assignments)
+const classPagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0
+});
 
 // Branch selection
 const selectedSchoolId = ref('');
 const selectedBranchId = ref('');
 const selectedBranch = ref(null);
-const availableSchools = ref([]);
-const availableBranches = ref([]);
-const schoolsLoading = ref(false);
-const branchesLoading = ref(false);
 
 const shouldShowBranchFilter = computed(() => {
-  const shouldShow = isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value;
-  return shouldShow;
+  // Only show branch selection for Super Admin and School Admin
+  // Branch Admin should only see their own branch (no selection needed)
+  return isSuperAdmin.value || isSchoolAdmin.value;
 });
 
 const academicYearOptions = computed(() => {
   return academicYears.value || [];
 });
 
+// Convert schools to options format for EnhancedDropdown
+const schoolOptions = computed(() => {
+  return schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }));
+});
+
+// Convert branches to options format for EnhancedDropdown
+const branchOptions = computed(() => {
+  return branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }));
+});
+
 // Methods
 const loadClasses = async () => {
   if (!selectedBranchId.value) return;
-
-  try {
-    const response = await Classes.getAll({ branch_id: selectedBranchId.value });
-    classes.value = response.data || [];
-  } catch (error) {
-    showToast('Failed to load classes', 'error');
-    console.error('Error loading classes:', error);
-  }
+  await fetchClasses({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value,
+    useTableData: true
+  });
 };
 
 const loadSubjects = async () => {
   if (!selectedBranchId.value) return;
-
-  try {
-    const response = await Subjects.getAll({
-      limit: 1000,
-      branch_id: selectedBranchId.value
-    });
-    subjects.value = response.data.subjects || [];
-  } catch (error) {
-    showToast('Failed to load subjects', 'error');
-    console.error('Error loading subjects:', error);
-  }
+  await fetchSubjects({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 };
 
 const loadClassSubjectMappings = async () => {
@@ -256,10 +296,15 @@ const loadClassSubjectMappings = async () => {
   try {
     mappingsLoading.value = true;
     const response = await classSubjectAssignmentApi.getAll({
-      limit: 1000,
+      page: classPagination.page,
+      limit: classPagination.limit,
+      school_id: selectedSchoolId.value,
       branch_id: selectedBranchId.value
     });
+    console.log('🔍 API Response for class-subject mappings:', response);
+    console.log('🔍 Assignments from API:', response.data.assignments);
     classSubjectMappings.value = response.data.assignments || [];
+    console.log('🔍 Set classSubjectMappings to:', classSubjectMappings.value);
   } catch (error) {
     showToast('Failed to load class-subject assignments', 'error');
     console.error('Error loading mappings:', error);
@@ -270,50 +315,18 @@ const loadClassSubjectMappings = async () => {
 
 const loadSections = async () => {
   if (!selectedBranchId.value) return;
-
-  try {
-    // Extract sections from classes data (embedded in class objects)
-    const allSections = [];
-    classes.value.forEach(cls => {
-      if (cls.sections && Array.isArray(cls.sections)) {
-        cls.sections.forEach(section => {
-          allSections.push({
-            ...section,
-            class_id: cls.id,
-            class_name: cls.name
-          });
-        });
-      }
-    });
-    sections.value = allSections;
-  } catch (error) {
-    showToast('Failed to load sections', 'error');
-    console.error('Error loading sections:', error);
-  }
+  await fetchSections({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 };
 
 const loadStreams = async () => {
   if (!selectedBranchId.value) return;
-
-  try {
-    // Extract streams from classes data (embedded in class objects)
-    const allStreams = [];
-    classes.value.forEach(cls => {
-      if (cls.streams && Array.isArray(cls.streams)) {
-        cls.streams.forEach(stream => {
-          allStreams.push({
-            ...stream,
-            class_id: cls.id,
-            class_name: cls.name
-          });
-        });
-      }
-    });
-    streams.value = allStreams;
-  } catch (error) {
-    showToast('Failed to load streams', 'error');
-    console.error('Error loading streams:', error);
-  }
+  await fetchStreams({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 };
 
 const loadClassTeacherAllocations = async () => {
@@ -321,12 +334,17 @@ const loadClassTeacherAllocations = async () => {
 
   try {
     classTeacherLoading.value = true;
-    const response = await classTeacherApi.getAll({
-      limit: 1000,
+
+    const response = await ClassTeachers.getAll({
+      page: classTeacherPagination.page,
+      limit: classTeacherPagination.limit,
+      school_id: selectedSchoolId.value,
       branch_id: selectedBranchId.value
     });
-    // Fix: Extract classTeachers from nested data structure
-    classTeacherAllocations.value = response.data?.classTeachers || [];
+
+    // Use the known response structure from our backend
+    classTeacherAllocations.value = response.data.classTeachers || [];
+    classTeacherPagination.total = response.data.pagination.total;
   } catch (error) {
     showToast('Failed to load class teacher allocations', 'error');
     console.error('Error loading class teacher allocations:', error);
@@ -337,57 +355,24 @@ const loadClassTeacherAllocations = async () => {
 
 const loadTeachers = async () => {
   if (!selectedBranchId.value) return;
-
-  try {
-    const response = await Users.getAll({
-      role: 'teacher',
-      branch_id: selectedBranchId.value,
-      limit: 1000
-    });
-    // Fix: Access teachers from response.data.users, not response.data
-    teacherOptions.value = response.data?.users || [];
-  } catch (error) {
-    console.error('Error loading teachers:', error);
-    showToast('Failed to load teachers', 'error');
-  }
+  await fetchTeachers({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 };
 
 const loadSchools = async () => {
   if (!isSuperAdmin.value) return;
-
-  try {
-    schoolsLoading.value = true;
-    const response = await Schools.getAll();
-    availableSchools.value = response.data.schools || [];
-  } catch (error) {
-    showToast('Failed to load schools', 'error');
-    console.error('Error loading schools:', error);
-  } finally {
-    schoolsLoading.value = false;
-  }
+  await fetchSchools();
 };
 
 const loadBranches = async () => {
-  try {
-    branchesLoading.value = true;
-    let response;
-
-    if (isSuperAdmin.value && selectedSchoolId.value) {
-      response = await Branches.getAll({ school_id: selectedSchoolId.value });
-    } else if (isSchoolAdmin.value) {
-      response = await Branches.getAll({ school_id: user.value.school_id });
-    } else if (isBranchAdmin.value) {
-      response = await Branches.getAll({ school_id: user.value.school_id });
-    }
-
-    if (response) {
-      availableBranches.value = response.data.branches || [];
-    }
-  } catch (error) {
-    showToast('Failed to load branches', 'error');
-    console.error('Error loading branches:', error);
-  } finally {
-    branchesLoading.value = false;
+  if (isSuperAdmin.value && selectedSchoolId.value) {
+    await fetchBranches(selectedSchoolId.value);
+  } else if (isSchoolAdmin.value) {
+    await fetchBranches(user.value.school_id);
+  } else if (isBranchAdmin.value) {
+    await fetchBranches(user.value.school_id);
   }
 };
 
@@ -397,11 +382,21 @@ const onSchoolChange = async () => {
   await loadBranches();
 };
 
-const onBranchChange = async () => {
-  const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
-  selectedBranch.value = branch;
+const onBranchChange = async branchId => {
+  // Set the selected branch ID
+  selectedBranchId.value = branchId;
+
+  // Find the selected branch object
+  const branchObj = branches.value.find(b => b.id === branchId);
+  selectedBranch.value = branchObj;
 
   if (selectedBranchId.value) {
+    // Reset pagination when branch changes
+    classTeacherPagination.page = 1;
+    classTeacherPagination.total = 0;
+    classPagination.page = 1;
+    classPagination.total = 0;
+
     // Load classes first, then extract sections and streams from classes
     await loadClasses();
     await Promise.all([
@@ -418,42 +413,84 @@ const onBranchChange = async () => {
 // Event handlers
 const handleClassTeacherAssign = async data => {
   try {
-    await classTeacherApi.create(data);
+    await ClassTeachers.create(data);
     showToast('Class teacher assigned successfully', 'success');
     await loadClassTeacherAllocations();
   } catch (error) {
-    showToast('Failed to assign class teacher', 'error');
     console.error('Error assigning class teacher:', error);
+
+    // Show the specific error message from the backend
+    const errorMessage = error.response?.data?.message || 'Failed to assign class teacher';
+    showToast(errorMessage, 'error');
+
+    // Re-throw the error so the form can handle it
+    throw error;
   }
 };
 
 const handleClassTeacherUpdate = async data => {
   try {
-    await classTeacherApi.update(data.id, data);
+    await ClassTeachers.update(data.id, data);
     showToast('Class teacher updated successfully', 'success');
     await loadClassTeacherAllocations();
   } catch (error) {
-    showToast('Failed to update class teacher', 'error');
     console.error('Error updating class teacher:', error);
+
+    // Show the specific error message from the backend
+    const errorMessage = error.response?.data?.message || 'Failed to update class teacher';
+    showToast(errorMessage, 'error');
+
+    // Re-throw the error so the form can handle it
+    throw error;
   }
 };
 
 const handleClassTeacherRemove = async id => {
   try {
-    await classTeacherApi.delete(id);
+    await ClassTeachers.delete(id);
     showToast('Class teacher removed successfully', 'success');
     await loadClassTeacherAllocations();
   } catch (error) {
-    showToast('Failed to remove class teacher', 'error');
+    // Show the specific error message from the backend
+    const errorMessage = error.response?.data?.message || 'Failed to remove class teacher';
+    showToast(errorMessage, 'error');
     console.error('Error removing class teacher:', error);
   }
+};
+
+// Pagination handlers for class teachers
+const goToClassTeacherPage = async page => {
+  const totalPages = Math.ceil(classTeacherPagination.total / classTeacherPagination.limit);
+  if (page >= 1 && page <= totalPages) {
+    classTeacherPagination.page = page;
+    await loadClassTeacherAllocations();
+  }
+};
+
+const changeClassTeacherLimit = async newLimit => {
+  classTeacherPagination.limit = newLimit;
+  classTeacherPagination.page = 1; // Reset to first page
+  await loadClassTeacherAllocations();
+};
+
+// Pagination handlers for classes
+const goToClassPage = async page => {
+  const totalPages = Math.ceil(classPagination.total / classPagination.limit);
+  if (page >= 1 && page <= totalPages) {
+    classPagination.page = page;
+    await Promise.all([loadClasses(), loadClassSubjectMappings()]);
+  }
+};
+
+const changeClassLimit = async newLimit => {
+  classPagination.limit = newLimit;
+  classPagination.page = 1; // Reset to first page
+  await Promise.all([loadClasses(), loadClassSubjectMappings()]);
 };
 
 // Class Subject Assignment handlers
 const handleClassSubjectAssign = async mappingData => {
   try {
-    console.log('Bulk assign data:', mappingData);
-
     // Create individual assignments for each subject
     const assignments = mappingData.subject_ids.map(subjectId => {
       const assignment = {
@@ -463,24 +500,15 @@ const handleClassSubjectAssign = async mappingData => {
           mappingData.section_id && mappingData.section_id !== '' ? mappingData.section_id : null,
         stream_id:
           mappingData.stream_id && mappingData.stream_id !== '' ? mappingData.stream_id : null,
-        academic_year: mappingData.academic_year
+        academic_year: mappingData.academic_year,
+        school_id: selectedSchoolId.value,
+        branch_id: selectedBranchId.value
       };
-
-      console.log('Assignment data:', {
-        section_id: assignment.section_id,
-        section_id_type: typeof assignment.section_id,
-        section_id_length: assignment.section_id?.length,
-        stream_id: assignment.stream_id,
-        stream_id_type: typeof assignment.stream_id,
-        stream_id_length: assignment.stream_id?.length
-      });
 
       return assignment;
     });
 
     const className = classes.value.find(cls => cls.id === mappingData.class_id)?.name || 'Class';
-
-    console.log('Creating assignments:', assignments);
 
     // Use the new simple assignment API
     const response = await classSubjectAssignmentApi.bulkCreate({ assignments });
@@ -516,12 +544,16 @@ onMounted(async () => {
   await fetchAcademicYears();
 
   if (shouldShowBranchFilter.value) {
+    // Super Admin and School Admin - show branch selection
     await loadSchools();
     await loadBranches();
-  } else {
-    // For non-admin users, use their assigned branch
+  } else if (isBranchAdmin.value) {
+    // Branch Admin - use their assigned branch directly
     selectedBranchId.value = user.value.branch_id;
-    selectedBranch.value = { id: user.value.branch_id, name: user.value.branch_name };
+    selectedBranch.value = {
+      id: user.value.branch_id,
+      name: user.value.branch_name || 'Your Branch'
+    };
 
     if (selectedBranchId.value) {
       // Load classes first, then extract sections and streams from classes

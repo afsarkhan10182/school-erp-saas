@@ -40,6 +40,7 @@ class AttendanceAnalyticsService {
 
       // Build base where clause
       const baseWhere = this.buildBaseWhereClause(user, {
+        branch_id: filters.branch_id,
         class_id,
         section_id,
         academic_year,
@@ -64,9 +65,12 @@ class AttendanceAnalyticsService {
         academic_year
       );
 
+      // Get total student count for the filtered criteria
+      const totalStudentCount = await this.getTotalStudentCount(baseWhere, academic_year);
+
       // Generate analytics
       const analytics = {
-        overview: this.generateOverviewAnalytics(currentData, previousData),
+        overview: this.generateOverviewAnalytics(currentData, previousData, totalStudentCount),
         trends: this.generateTrendAnalytics(currentData, previousData),
         classPerformance: await this.generateClassPerformanceAnalytics(
           baseWhere,
@@ -110,6 +114,7 @@ class AttendanceAnalyticsService {
 
       // Build where clause
       const whereClause = this.buildBaseWhereClause(user, {
+        branch_id: filters.branch_id,
         class_id,
         section_id,
         academic_year,
@@ -198,6 +203,7 @@ class AttendanceAnalyticsService {
       );
 
       const baseWhere = this.buildBaseWhereClause(user, {
+        branch_id: filters.branch_id,
         class_id,
         section_id,
         academic_year,
@@ -337,8 +343,13 @@ class AttendanceAnalyticsService {
       school_id: user.school_id
     };
 
+    // Handle branch_id filtering
     if (user.role === 'branch_admin') {
+      // Branch admin can only see their branch
       whereClause.branch_id = user.branch_id;
+    } else if (filters.branch_id) {
+      // Super admin or school admin can filter by specific branch
+      whereClause.branch_id = filters.branch_id;
     }
 
     if (filters.class_id) {
@@ -369,12 +380,20 @@ class AttendanceAnalyticsService {
    * Get attendance data for analytics
    */
   static async getAttendanceData(baseWhere, startDate, endDate, academicYear = null) {
-    const whereClause = {
-      ...baseWhere,
+    // Ensure dates are valid Date objects
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Build session where clause for date and academic year filtering
+    const sessionWhere = {
       date: {
-        [Op.between]: [startDate, endDate]
+        [Op.between]: [start, end]
       }
     };
+
+    if (academicYear) {
+      sessionWhere.academic_year = academicYear;
+    }
 
     // Build include conditions
     const includeConditions = [
@@ -387,23 +406,56 @@ class AttendanceAnalyticsService {
         model: AttendanceSession,
         as: 'session',
         attributes: ['date', 'academic_year'],
-        where: academicYear ? { academic_year: academicYear } : undefined,
+        where: sessionWhere,
         required: true
       }
     ];
 
-    return await AttendanceRecord.findAll({
-      where: whereClause,
+    const result = await AttendanceRecord.findAll({
+      where: baseWhere,
       include: includeConditions
     });
+
+    return result;
+  }
+
+  /**
+   * Get total student count for the filtered criteria
+   */
+  static async getTotalStudentCount(baseWhere, academicYear = null) {
+    const studentWhere = {
+      school_id: baseWhere.school_id,
+      status: 'active'
+    };
+
+    if (baseWhere.branch_id) {
+      studentWhere.branch_id = baseWhere.branch_id;
+    }
+    if (baseWhere.class_id) {
+      studentWhere.class_id = baseWhere.class_id;
+    }
+    if (baseWhere.section_id) {
+      studentWhere.section_id = baseWhere.section_id;
+    }
+
+    const count = await Student.count({
+      where: studentWhere
+    });
+
+    return count;
   }
 
   /**
    * Generate overview analytics
    */
-  static generateOverviewAnalytics(currentData, previousData) {
+  static generateOverviewAnalytics(currentData, previousData, totalStudentCount = null) {
     const currentStats = this.calculateAttendanceStats(currentData);
     const previousStats = this.calculateAttendanceStats(previousData);
+
+    // Use total student count if provided, otherwise use calculated count
+    if (totalStudentCount !== null) {
+      currentStats.total = totalStudentCount;
+    }
 
     return {
       current: currentStats,
@@ -423,15 +475,20 @@ class AttendanceAnalyticsService {
    * Calculate attendance statistics
    */
   static calculateAttendanceStats(records) {
-    const total = records.length;
+    // Count unique students, not total records
+    const uniqueStudents = new Set(records.map(r => r.student_id));
+    const totalStudents = uniqueStudents.size;
+
     const present = records.filter(r => r.status === 'present').length;
     const absent = records.filter(r => r.status === 'absent').length;
     const late = records.filter(r => r.status === 'late').length;
     const excused = records.filter(r => r.status === 'excused').length;
-    const attendanceRate = AnalyticsService.calculatePercentage(present + late, total);
+    const totalRecords = records.length;
+    const attendanceRate = AnalyticsService.calculatePercentage(present + late, totalRecords);
 
     return {
-      total,
+      total: totalStudents, // Total unique students
+      totalRecords: totalRecords, // Total attendance records
       present,
       absent,
       late,

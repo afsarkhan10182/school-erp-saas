@@ -1202,6 +1202,8 @@ import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
+import { useAcademics } from '~/composables/useAcademics';
+import { useBranches } from '~/composables/useBranches';
 import Pagination from '~/components/ui/Pagination.vue';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { formatMonthsForAPI } from '~/utils/academic-year';
@@ -1683,7 +1685,7 @@ const onSchoolChange = async () => {
   await fetchBranches();
 
   // Refetch dependent data
-  await Promise.all([fetchClasses(), fetchSections()]);
+  await Promise.all([fetchClasses({}), fetchSections()]);
 };
 
 const onBranchChange = async () => {
@@ -1692,7 +1694,7 @@ const onBranchChange = async () => {
   filters.section_id = '';
 
   // Refetch dependent data
-  await Promise.all([fetchClasses(), fetchSections()]);
+  await Promise.all([fetchClasses({}), fetchSections()]);
 };
 
 const onClassChange = async () => {
@@ -1701,7 +1703,7 @@ const onClassChange = async () => {
   filters.section_id = '';
 
   // First fetch streams for the selected class
-  await fetchStreams();
+  await fetchStreams({});
 
   // Then fetch sections (streams will be empty if class has no streams)
   await fetchSections();

@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDropdowns } from '~/composables/useDropdowns';
+import { useAcademics } from '~/composables/useAcademics';
 import FormField from '~/components/ui/FormField.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
@@ -105,7 +105,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 // Use centralized dropdown composable
-const { classOptions, sectionOptions, loadClasses, loadSections } = useDropdowns();
+const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 
 // Local filter state
 const localFilters = ref({

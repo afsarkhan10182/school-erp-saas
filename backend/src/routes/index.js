@@ -36,7 +36,6 @@ const gradingSystemRoutes = require('./academic/grading-system.routes');
 
 // Academic timetable routes
 const timetableRoutes = require('./academic/timetable/timetable.routes');
-const templateRoutes = require('./shared/template.routes');
 const exportRoutes = require('./shared/export.routes');
 
 // Settings routes
@@ -94,9 +93,6 @@ router.use('/attendance', attendanceRoutes);
 
 // Attendance Notification routes
 router.use('/attendance-notifications', attendanceNotificationRoutes);
-
-// Template routes
-router.use('/templates', templateRoutes);
 
 // Export routes
 router.use('/export', exportRoutes);

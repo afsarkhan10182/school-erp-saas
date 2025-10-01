@@ -1,179 +1,101 @@
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Subject Name -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Subject Name <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model="form.name"
-          type="text"
-          required
-          :class="[
-            'input-field',
-            errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          placeholder="Mathematics"
-          @blur="validateField('name')"
-          @input="clearError('name')"
-        />
-        <div v-if="errors.name" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.name }}
-        </div>
-      </div>
-
-      <!-- Subject Code -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Subject Code <span class="text-red-500">*</span>
-        </label>
-        <input
-          v-model="form.code"
-          type="text"
-          required
-          :class="[
-            'input-field',
-            errors.code ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          placeholder="MATH101"
-          @blur="validateField('code')"
-          @input="clearError('code')"
-        />
-        <div v-if="errors.code" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.code }}
-        </div>
-      </div>
-
-      <!-- Category -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Category <span class="text-red-500">*</span>
-        </label>
-        <select
-          v-model="form.category"
-          required
-          :class="[
-            'input-field',
-            errors.category ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('category')"
-          @change="clearError('category')"
-        >
-          <option value="">Select Category</option>
-          <option
-            v-for="category in subjectCategories"
-            :key="category.value"
-            :value="category.value"
-          >
-            {{ category.label }}
-          </option>
-        </select>
-        <div v-if="errors.category" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.category }}
-        </div>
-      </div>
-
-      <!-- Credit Hours -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Credit Hours
-        </label>
-        <input
-          v-model.number="form.credit_hours"
-          type="number"
-          min="1"
-          max="10"
-          :class="[
-            'input-field',
-            errors.credit_hours ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          placeholder="1"
-          @blur="validateField('credit_hours')"
-          @input="clearError('credit_hours')"
-        />
-        <div v-if="errors.credit_hours" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.credit_hours }}
-        </div>
-      </div>
-
-      <!-- Class (Optional) -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Class (Optional)
-        </label>
-        <select
-          v-model="form.class_id"
-          :class="[
-            'input-field',
-            errors.class_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-          ]"
-          @blur="validateField('class_id')"
-          @change="clearError('class_id')"
-        >
-          <option value="">All Classes</option>
-          <option v-for="cls in classes" :key="cls.value" :value="cls.value">
-            {{ cls.label }}
-          </option>
-        </select>
-        <div v-if="errors.class_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.class_id }}
-        </div>
-      </div>
-
-      <!-- Status -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Status
-        </label>
-        <div class="flex items-center space-x-4">
-          <label class="flex items-center">
-            <input
-              v-model="form.is_active"
-              type="radio"
-              :value="true"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-            />
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
-          </label>
-          <label class="flex items-center">
-            <input
-              v-model="form.is_active"
-              type="radio"
-              :value="false"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-            />
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Inactive</span>
-          </label>
-        </div>
-        <div v-if="errors.is_active" class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {{ errors.is_active }}
-        </div>
+    <!-- Subject Name -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Subject Name <span class="text-red-500">*</span>
+      </label>
+      <input
+        v-model="form.name"
+        type="text"
+        required
+        :class="[
+          'input-field',
+          errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+        ]"
+        placeholder="Mathematics"
+        @blur="validateField('name')"
+        @input="clearError('name')"
+      />
+      <div v-if="errors.name" class="mt-1 text-sm text-red-600 dark:text-red-400">
+        {{ errors.name }}
       </div>
     </div>
 
-    <!-- Description -->
+    <!-- Subject Code -->
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Description
+        Subject Code
       </label>
-      <textarea
-        v-model="form.description"
-        rows="3"
+      <input
+        v-model="form.code"
+        type="text"
         :class="[
           'input-field',
-          errors.description ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+          errors.code ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
         ]"
-        placeholder="Brief description of the subject..."
-        @blur="validateField('description')"
-        @input="clearError('description')"
-      ></textarea>
-      <div v-if="errors.description" class="mt-1 text-sm text-red-600 dark:text-red-400">
-        {{ errors.description }}
+        placeholder="MATH101 (optional)"
+        @blur="validateField('code')"
+        @input="clearError('code')"
+      />
+      <div v-if="errors.code" class="mt-1 text-sm text-red-600 dark:text-red-400">
+        {{ errors.code }}
       </div>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        {{ form.description?.length || 0 }}/500 characters
+        Leave empty to auto-generate from subject name
       </p>
+    </div>
+
+    <!-- Category -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Category <span class="text-red-500">*</span>
+      </label>
+      <select
+        v-model="form.category"
+        required
+        :class="[
+          'input-field',
+          errors.category ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+        ]"
+        @blur="validateField('category')"
+        @change="clearError('category')"
+      >
+        <option value="">Select Category</option>
+        <option v-for="category in subjectCategories" :key="category.value" :value="category.value">
+          {{ category.label }}
+        </option>
+      </select>
+      <div v-if="errors.category" class="mt-1 text-sm text-red-600 dark:text-red-400">
+        {{ errors.category }}
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Status
+      </label>
+      <div class="flex items-center space-x-4">
+        <label class="flex items-center">
+          <input
+            v-model="form.is_active"
+            type="radio"
+            :value="true"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+          />
+          <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+        </label>
+        <label class="flex items-center">
+          <input
+            v-model="form.is_active"
+            type="radio"
+            :value="false"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+          />
+          <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Inactive</span>
+        </label>
+      </div>
     </div>
 
     <!-- Form Actions -->
@@ -199,18 +121,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { validationRules, commonSchemas, validateForm } from '~/utils/validators';
-import { useConfig } from '~/composables/useConfig';
+import { validationRules } from '~/utils/validators';
 
 // Props
 const props = defineProps({
   subject: {
     type: Object,
     default: null
-  },
-  classes: {
-    type: Array,
-    default: () => []
   }
 });
 
@@ -219,56 +136,52 @@ const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
 const { showToast } = useToast();
-const config = useConfig();
 
 // Reactive data
 const isSubmitting = ref(false);
 const errors = ref({});
-const subjectCategories = ref([]);
+
+// Subject categories
+const subjectCategories = ref([
+  { value: 'core', label: 'Core' },
+  { value: 'elective', label: 'Elective' },
+  { value: 'extra_curricular', label: 'Extra Curricular' },
+  { value: 'language', label: 'Language' },
+  { value: 'science', label: 'Science' },
+  { value: 'arts', label: 'Arts' },
+  { value: 'commerce', label: 'Commerce' }
+]);
 
 // Form data
 const form = reactive({
   name: '',
   code: '',
-  description: '',
   category: 'core',
-  credit_hours: 1,
-  is_active: true,
-  class_id: ''
+  is_active: true
 });
 
-// Validation schema using common utilities
+// Validation schema
 const validationSchema = {
   name: [
     val => validationRules.required(val, 'Subject name'),
     val => validationRules.minLength(val, 2, 'Subject name'),
     val => validationRules.maxLength(val, 100, 'Subject name')
   ],
-  code: [...commonSchemas.code, val => validationRules.required(val, 'Subject code')],
-  category: [
-    val => validationRules.required(val, 'Category'),
+  code: [
     val => {
-      const validCategories = subjectCategories.value.map(cat => cat.value);
-      return validCategories.includes(val) ? null : 'Invalid category selected';
-    }
-  ],
-  credit_hours: [
+      if (val && val.length > 0 && val.length < 2) {
+        return 'Subject code must be at least 2 characters';
+      }
+      return null;
+    },
     val => {
-      if (val && (val < 1 || val > 10)) {
-        return 'Credit hours must be between 1 and 10';
+      if (val && val.length > 20) {
+        return 'Subject code must be less than 20 characters';
       }
       return null;
     }
   ],
-  description: [commonSchemas.description[0]], // maxLength
-  class_id: [
-    val => {
-      if (val && !validationRules.uuid(val)) {
-        return 'Invalid class ID format';
-      }
-      return null;
-    }
-  ]
+  category: [val => validationRules.required(val, 'Category')]
 };
 
 // Methods
@@ -287,18 +200,23 @@ const validateField = fieldName => {
   delete errors.value[fieldName];
 };
 
-const validateFormData = () => {
-  const formErrors = validateForm(form, validationSchema);
-  errors.value = formErrors;
-  return Object.keys(formErrors).length === 0;
-};
-
 const clearError = fieldName => {
   delete errors.value[fieldName];
 };
 
 const handleSubmit = async () => {
-  if (!validateFormData()) {
+  // Validate all fields
+  const fieldNames = Object.keys(validationSchema);
+  let hasErrors = false;
+
+  fieldNames.forEach(fieldName => {
+    validateField(fieldName);
+    if (errors.value[fieldName]) {
+      hasErrors = true;
+    }
+  });
+
+  if (hasErrors) {
     showToast('Please fix the validation errors', 'error');
     return;
   }
@@ -306,18 +224,15 @@ const handleSubmit = async () => {
   isSubmitting.value = true;
 
   try {
-    // Prepare form data
-    const formData = {
+    // Auto-generate code if not provided
+    const subjectData = {
       name: form.name.trim(),
-      code: form.code.trim(),
-      description: form.description.trim() || null,
+      code: form.code.trim() || generateCode(form.name),
       category: form.category,
-      credit_hours: form.credit_hours,
-      is_active: form.is_active,
-      class_id: form.class_id || null
+      is_active: form.is_active
     };
 
-    emit('submit', formData);
+    emit('submit', subjectData);
   } catch (error) {
     console.error('Error in form submission:', error);
     showToast('An error occurred while saving', 'error');
@@ -326,15 +241,24 @@ const handleSubmit = async () => {
   }
 };
 
+const generateCode = name => {
+  // Simple code generation: first 3 letters + random number
+  const prefix = name
+    .replace(/[^a-zA-Z]/g, '')
+    .substring(0, 3)
+    .toUpperCase();
+  const random = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, '0');
+  return `${prefix}${random}`;
+};
+
 const resetForm = () => {
   Object.assign(form, {
     name: '',
     code: '',
-    description: '',
     category: 'core',
-    credit_hours: 1,
-    is_active: true,
-    class_id: ''
+    is_active: true
   });
   errors.value = {};
 };
@@ -344,11 +268,8 @@ const populateForm = subject => {
     Object.assign(form, {
       name: subject.name || '',
       code: subject.code || '',
-      description: subject.description || '',
       category: subject.category || 'core',
-      credit_hours: subject.credit_hours || 1,
-      is_active: subject.is_active !== undefined ? subject.is_active : true,
-      class_id: subject.class_id || ''
+      is_active: subject.is_active !== undefined ? subject.is_active : true
     });
   } else {
     resetForm();
@@ -364,25 +285,39 @@ watch(
   { immediate: true }
 );
 
-// Load subject categories
-const loadSubjectCategories = async () => {
-  try {
-    subjectCategories.value = await config.getSubjectCategories();
-  } catch (error) {
-    console.error('Failed to load subject categories:', error);
-    subjectCategories.value = [];
-  }
-};
-
 // Lifecycle
-onMounted(async () => {
+onMounted(() => {
   populateForm(props.subject);
-  await loadSubjectCategories();
 });
 </script>
 
 <style scoped>
 .input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  outline: none;
+  background-color: white;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-field:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark .input-field {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: white;
+}
+
+.dark .input-field:focus {
+  border-color: #3b82f6;
 }
 </style>

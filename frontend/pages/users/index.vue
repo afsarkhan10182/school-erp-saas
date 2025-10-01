@@ -383,15 +383,7 @@ const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
 // Access control - only Super Admin and School Admin can access user management
 if (!isSuperAdmin.value && !isSchoolAdmin.value) {
   // Show error toast
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('show-toast', {
-      detail: {
-        message: 'Access denied. Only Super Admin and School Admin can manage users.',
-        type: 'error'
-      }
-    });
-    window.dispatchEvent(event);
-  }
+  useToast().error('Access denied. Only Super Admin and School Admin can manage users.');
   await navigateTo('/dashboard');
 }
 const users = ref([]);

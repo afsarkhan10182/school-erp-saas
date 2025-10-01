@@ -2,54 +2,48 @@
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <!-- Class Selection -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Class <span class="text-red-500">*</span>
-      </label>
-      <select v-model="form.class_id" required @change="onClassChange" class="input-field">
-        <option value="">Select Class</option>
-        <option v-for="cls in classes" :key="cls.id" :value="cls.id">
-          {{ cls.name }}
-        </option>
-      </select>
+      <EnhancedDropdown
+        v-model="form.class_id"
+        :options="classOptions"
+        label="Class"
+        placeholder="Select Class"
+        :required="true"
+        :error="errors.class_id"
+        @update:model-value="onClassChange"
+      />
     </div>
 
     <!-- Stream Selection (if streams exist) -->
     <div v-if="showStreams">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Stream
-      </label>
-      <select v-model="form.stream_id" @change="onStreamChange" class="input-field">
-        <option value="">Select Stream</option>
-        <option v-for="stream in availableStreams" :key="stream.id" :value="stream.id">
-          {{ stream.name }}
-        </option>
-      </select>
+      <EnhancedDropdown
+        v-model="form.stream_id"
+        :options="streamOptions"
+        label="Stream"
+        placeholder="Select Stream"
+        @update:model-value="onStreamChange"
+      />
     </div>
 
     <!-- Section Selection -->
     <div v-if="showSections">
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Section
-      </label>
-      <select v-model="form.section_id" class="input-field">
-        <option value="">All Sections</option>
-        <option v-for="section in availableSections" :key="section.id" :value="section.id">
-          {{ section.name }}
-        </option>
-      </select>
+      <EnhancedDropdown
+        v-model="form.section_id"
+        :options="sectionOptions"
+        label="Section"
+        placeholder="All Sections"
+      />
     </div>
 
     <!-- Teacher Selection -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Class Teacher <span class="text-red-500">*</span>
-      </label>
-      <select v-model="form.teacher_id" required class="input-field">
-        <option value="">Select Teacher</option>
-        <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
-          {{ teacher.first_name }} {{ teacher.last_name }}
-        </option>
-      </select>
+      <EnhancedDropdown
+        v-model="form.teacher_id"
+        :options="teacherOptions"
+        label="Class Teacher"
+        placeholder="Select Teacher"
+        :required="true"
+        :error="errors.teacher_id"
+      />
     </div>
 
     <!-- Form Actions -->
@@ -67,6 +61,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { Streams } from '~/api/academic/streams';
 import { Sections } from '~/api/academic/sections';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Props
 const props = defineProps({
@@ -94,11 +89,11 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  schoolId: {
+  branchId: {
     type: String,
     default: ''
   },
-  branchId: {
+  schoolId: {
     type: String,
     default: ''
   }
@@ -128,8 +123,53 @@ const availableSections = ref([]);
 const showStreams = ref(false);
 const showSections = ref(false);
 
+// Computed options for EnhancedDropdown
+const classOptions = computed(() => {
+  return props.classes.map(cls => ({
+    value: cls.id,
+    label: cls.name
+  }));
+});
+
+const streamOptions = computed(() => {
+  return availableStreams.value.map(stream => ({
+    value: stream.id,
+    label: stream.name
+  }));
+});
+
+const sectionOptions = computed(() => {
+  return availableSections.value.map(section => ({
+    value: section.id,
+    label: section.name
+  }));
+});
+
+const teacherOptions = computed(() => {
+  return props.teachers.map(teacher => ({
+    value: teacher.value,
+    label: teacher.label
+  }));
+});
+
 // Methods
 const handleSubmit = async () => {
+  // Clear previous errors
+  errors.value = {};
+
+  // Client-side validation
+  if (!form.class_id) {
+    errors.value.class_id = 'Class is required';
+  }
+  if (!form.teacher_id) {
+    errors.value.teacher_id = 'Teacher is required';
+  }
+
+  // If there are validation errors, don't submit
+  if (Object.keys(errors.value).length > 0) {
+    return;
+  }
+
   isSubmitting.value = true;
 
   try {
@@ -142,8 +182,14 @@ const handleSubmit = async () => {
       section_id: form.section_id && form.section_id !== '' ? form.section_id : null,
       stream_id: form.stream_id && form.stream_id !== '' ? form.stream_id : null,
       teacher_id: form.teacher_id,
-      academic_year: academicYear
+      academic_year: academicYear,
+      branch_id: props.branchId
     };
+
+    // Include id for update operations
+    if (props.allocation && props.allocation.id) {
+      allocationData.id = props.allocation.id;
+    }
 
     emit('submit', allocationData);
   } catch (error) {
@@ -246,6 +292,26 @@ const resetForm = () => {
   errors.value = {};
 };
 
+const setBackendErrors = backendErrors => {
+  errors.value = {};
+
+  if (backendErrors) {
+    // Map backend field names to form field names
+    if (backendErrors.class_id) {
+      errors.value.class_id = backendErrors.class_id;
+    }
+    if (backendErrors.teacher_id) {
+      errors.value.teacher_id = backendErrors.teacher_id;
+    }
+    if (backendErrors.section_id) {
+      errors.value.section_id = backendErrors.section_id;
+    }
+    if (backendErrors.stream_id) {
+      errors.value.stream_id = backendErrors.stream_id;
+    }
+  }
+};
+
 const populateForm = allocation => {
   if (allocation) {
     Object.assign(form, {
@@ -273,14 +339,14 @@ watch(
   { immediate: true }
 );
 
+// Expose methods for parent component
+defineExpose({
+  setBackendErrors,
+  resetForm
+});
+
 // Lifecycle
 onMounted(() => {
   populateForm(props.allocation);
 });
 </script>
-
-<style scoped>
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
-</style>

@@ -22,7 +22,7 @@
 
       <!-- Branch Filter for School Admin -->
       <div
-        v-if="isSchoolAdmin && availableBranches.length > 1"
+        v-if="isSchoolAdmin && branches.length > 1"
         class="bg-white dark:bg-gray-800 shadow rounded-md mb-6"
       >
         <div class="px-4 py-5 sm:px-6">
@@ -42,17 +42,13 @@
               >
                 Branch:
               </label>
-              <select
-                id="branch-filter"
+              <EnhancedDropdown
                 v-model="selectedBranchId"
-                @change="onBranchChange"
-                class="block w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">All Branches</option>
-                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
+                :options="branchOptions"
+                placeholder="All Branches"
+                @update:model-value="onBranchChange"
+                class="w-40"
+              />
             </div>
           </div>
         </div>
@@ -215,40 +211,24 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >School *</label
                     >
-                    <select
+                    <EnhancedDropdown
                       v-model="selectedSchoolId"
+                      :options="schoolOptions"
+                      placeholder="Select a school first"
                       required
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                      @change="onSchoolChange"
-                    >
-                      <option value="">Select a school first</option>
-                      <option
-                        v-for="school in availableSchools"
-                        :key="school.id"
-                        :value="school.id"
-                      >
-                        {{ school.name }} {{ school.code ? `(${school.code})` : '' }}
-                      </option>
-                    </select>
+                      @update:model-value="onSchoolChange"
+                    />
                   </div>
                   <div v-if="selectedSchoolId">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >Branch *</label
                     >
-                    <select
+                    <EnhancedDropdown
                       v-model="selectedBranchId"
+                      :options="branchOptions"
+                      placeholder="Select a branch"
                       required
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="">Select a branch</option>
-                      <option
-                        v-for="branch in availableBranches"
-                        :key="branch.id"
-                        :value="branch.id"
-                      >
-                        {{ branch.name }}
-                      </option>
-                    </select>
+                    />
                   </div>
                   <div
                     v-if="!selectedSchoolId || !selectedBranchId"
@@ -260,32 +240,28 @@
               </div>
 
               <!-- Branch Selector for School Admin -->
-              <div v-if="isSchoolAdmin && !isEditing && availableBranches.length > 1" class="mb-4">
+              <div v-if="isSchoolAdmin && !isEditing && branches.length > 1" class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Branch *</label
                 >
-                <select
+                <EnhancedDropdown
                   v-model="selectedBranchId"
+                  :options="branchOptions"
+                  placeholder="Select a branch"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Select a branch</option>
-                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
+                />
               </div>
 
               <!-- Branch Information Display for School Admin with Single Branch -->
               <div
-                v-if="isSchoolAdmin && !isEditing && availableBranches.length === 1"
+                v-if="isSchoolAdmin && !isEditing && branches.length === 1"
                 class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
               >
                 <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
                   📍 Branch Information
                 </h4>
                 <div class="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>{{ availableBranches[0].name }}</strong>
+                  <strong>{{ branches[0].name }}</strong>
                   <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1"
                     >This is your only branch - automatically selected</span
                   >
@@ -297,9 +273,6 @@
                 v-if="isEditing"
                 class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
               >
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                  📍 Branch Information
-                </h4>
                 <div class="space-y-2">
                   <div v-if="isSuperAdmin">
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
@@ -411,20 +384,24 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { Classes, Schools, Branches } from '~/api';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { Classes } from '~/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
-import { useBranchContext } from '~/composables/useBranchContext';
+import { useSchools } from '~/composables/useSchools';
+import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
 import { useAcademicSettings } from '~/utils/settings';
+import { useAcademics } from '~/composables/useAcademics';
 import Pagination from '~/components/ui/Pagination.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { isStreamsEnabled } = useAcademicSettings();
-const { showError, showWarning } = useToast();
+const { showError, showWarning, showSuccess } = useToast();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchBranches, availableBranches } = useBranches();
+const { classes, fetchClasses } = useAcademics();
 
-const classes = ref([]);
-const isLoading = ref(false);
 const showModal = ref(false);
 const isEditing = ref(false);
 const isSubmitting = ref(false);
@@ -438,14 +415,26 @@ const pagination = reactive({
   total: 0
 });
 
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
-const { getBranchContext } = useBranchContext();
+const { user, isSuperAdmin, isSchoolAdmin } = useAuth();
+
+// Dropdown options
+const schoolOptions = computed(() => [
+  ...schools.value.map(school => ({
+    value: school.id,
+    label: school.name
+  }))
+]);
+
+const branchOptions = computed(() => [
+  ...branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+]);
 
 // School/Branch selection for super admin
 const selectedSchoolId = ref('');
 const selectedBranchId = ref('');
-const availableSchools = ref([]);
-const availableBranches = ref([]);
 
 const form = reactive({
   name: '',
@@ -478,67 +467,64 @@ const loadStreamsSetting = async () => {
 // Helper functions to get school and branch names
 const getSelectedSchoolName = () => {
   if (!selectedSchoolId.value) return 'Not selected';
-  const school = availableSchools.value.find(s => s.id === selectedSchoolId.value);
+  const school = schools.value.find(s => s.id === selectedSchoolId.value);
   return school ? `${school.name} ${school.code ? `(${school.code})` : ''}` : 'Unknown school';
 };
 
 const getSelectedBranchName = () => {
   if (!selectedBranchId.value) return 'All Branches';
-  const branch = availableBranches.value.find(b => b.id === selectedBranchId.value);
+  const branch = branches.value.find(b => b.id === selectedBranchId.value);
   return branch ? branch.name : 'Unknown branch';
 };
 
-// Fetch schools for super admin
-const fetchSchools = async () => {
+// Load schools for super admin
+const loadSchoolsData = async () => {
   if (!isSuperAdmin.value) return;
 
   try {
-    const response = await Schools.getAll();
-    availableSchools.value = response.data?.schools || [];
+    await fetchSchools();
+    if (schools.value.length === 0) {
+      showWarning('No schools found');
+    }
   } catch (error) {
-    console.error('Error fetching schools:', error);
-    availableSchools.value = [];
+    showError('Failed to load schools');
   }
 };
 
-// Fetch branches when school is selected
-const fetchBranchesForSchool = async schoolId => {
+// Load branches when school is selected
+const loadBranchesData = async schoolId => {
   if (!schoolId) {
-    availableBranches.value = [];
     return;
   }
 
   try {
-    const response = await Branches.getForDropdown({ school_id: schoolId });
-    availableBranches.value = response.data || [];
+    await fetchBranches(schoolId);
+    if (branches.value.length === 0) {
+      showWarning('No branches found for this school');
+    }
   } catch (error) {
-    console.error('Error fetching branches:', error);
-    availableBranches.value = [];
+    showError('Failed to load branches');
   }
 };
 
-// Fetch branches for current user's school
-const fetchBranchesForCurrentSchool = async () => {
+// Load branches for current user's school
+const loadBranchesForCurrentSchool = async () => {
   if (isSuperAdmin.value) return; // Super admin uses school selection
 
   try {
     const schoolId = user.value?.school_id;
     if (!schoolId) {
-      console.error('No school_id found for user:', user.value);
       return;
     }
 
-    const response = await Branches.getForDropdown({ school_id: schoolId });
-
-    availableBranches.value = response.data || [];
+    await fetchBranches(schoolId);
 
     // Auto-select the only branch for School Admin if there's only one
-    if (isSchoolAdmin.value && availableBranches.value.length === 1) {
-      selectedBranchId.value = availableBranches.value[0].id;
+    if (isSchoolAdmin.value && branches.value.length === 1) {
+      selectedBranchId.value = branches.value[0].id;
     }
   } catch (error) {
-    console.error('Error fetching branches for current school:', error);
-    availableBranches.value = [];
+    showError('Failed to load branches for current school');
   }
 };
 
@@ -546,16 +532,14 @@ const fetchBranchesForCurrentSchool = async () => {
 const onSchoolChange = async () => {
   selectedBranchId.value = '';
   if (selectedSchoolId.value) {
-    await fetchBranchesForSchool(selectedSchoolId.value);
-  } else {
-    availableBranches.value = [];
+    await loadBranchesData(selectedSchoolId.value);
   }
 };
 
 // Handle branch selection change
 const onBranchChange = async () => {
   pagination.page = 1; // Reset to first page when branch changes
-  await fetchClasses();
+  await loadClasses();
 };
 
 // Pagination functions
@@ -563,42 +547,39 @@ const goToPage = async page => {
   const totalPages = Math.ceil(pagination.total / pagination.limit);
   if (page >= 1 && page <= totalPages) {
     pagination.page = page;
-    await fetchClasses();
+    await loadClasses();
   }
 };
 
 const changeLimit = async newLimit => {
   pagination.limit = newLimit;
   pagination.page = 1; // Reset to first page
-  await fetchClasses();
+  await loadClasses();
 };
 
-const fetchClasses = async () => {
-  isLoading.value = true;
+const loadClasses = async () => {
   try {
-    const params = {
+    const options = {
       sort_by: 'sort_order',
       sort_order: 'ASC',
       page: pagination.page,
-      limit: pagination.limit
+      limit: pagination.limit,
+      useTableData: true // Use table data endpoint
     };
 
     // Add branch filter if selected
     if (selectedBranchId.value) {
-      params.branch_id = selectedBranchId.value;
+      options.branchId = selectedBranchId.value;
     }
 
-    const response = await Classes.getAll(params);
-    classes.value = response.data || [];
+    const response = await fetchClasses(options);
 
     // Update pagination info from response
     if (response.pagination) {
       pagination.total = response.pagination.total;
     }
   } catch (error) {
-    console.error('Error fetching classes:', error);
-  } finally {
-    isLoading.value = false;
+    showError('Failed to fetch classes');
   }
 };
 
@@ -620,9 +601,9 @@ const editClass = async classItem => {
     // Load branches for the school
     if (classItem.school_id) {
       try {
-        await fetchBranchesForSchool(classItem.school_id);
+        await fetchBranches(classItem.school_id);
       } catch (error) {
-        console.error('Error fetching branches for edit:', error);
+        showError('Failed to fetch branches for edit');
       }
     }
   }
@@ -671,34 +652,21 @@ const saveClass = async () => {
 
     // Add branch_id for school admin when creating a new class
     if (!isEditing.value && isSchoolAdmin.value) {
-      // For School Admin, branch_id is always required
-      if (availableBranches.length > 1 && !selectedBranchId.value) {
+      if (branches.value.length > 1 && !selectedBranchId.value) {
         showWarning('Please select a branch first to create the class');
         return;
       }
 
       if (selectedBranchId.value) {
         payload.branch_id = selectedBranchId.value;
-      } else if (availableBranches.length === 1) {
+      } else if (branches.value.length === 1) {
         // Auto-select the only branch
-        payload.branch_id = availableBranches[0].id;
+        payload.branch_id = branches.value[0].id;
       } else {
-        // Fallback: try to get branch from user context
-        const branchContext = getBranchContext();
-
-        if (branchContext?.branchId) {
-          payload.branch_id = branchContext.branchId;
-        } else if (user.value?.branch_id) {
-          // Use user's assigned branch as last resort
-          payload.branch_id = user.value.branch_id;
-        } else {
-          showError('Unable to determine branch. Please refresh the page and try again.');
-          return;
-        }
+        showError('Please select a branch to create the class');
+        return;
       }
     }
-
-    // Branch admin doesn't need to specify branch_id - it's automatically their branch
 
     if (isEditing.value) {
       await Classes.update(editingId.value, payload);
@@ -707,32 +675,12 @@ const saveClass = async () => {
     }
 
     closeModal();
-    await fetchClasses();
+    await loadClasses();
 
     // Show success message
-    if (import.meta.client) {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: `Class ${isEditing.value ? 'updated' : 'created'} successfully!`,
-          type: 'success',
-          duration: 5000
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess(`Class ${isEditing.value ? 'updated' : 'created'} successfully!`);
   } catch (error) {
-    console.error('Error saving class:', error);
-    // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error saving class. Please try again.',
-          type: 'error',
-          duration: 5000
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showError('Error saving class. Please try again.');
   } finally {
     isSubmitting.value = false;
   }
@@ -743,21 +691,12 @@ const toggleStatus = async classItem => {
     await Classes.update(classItem.id, {
       is_active: !classItem.is_active
     });
-    await fetchClasses();
+    await loadClasses();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: `Class ${classItem.is_active ? 'deactivated' : 'activated'} successfully!`,
-          type: 'success',
-          duration: 5000
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess(`Class ${classItem.is_active ? 'deactivated' : 'activated'} successfully!`);
   } catch (error) {
-    console.error('Error toggling class status:', error);
+    showError('Failed to toggle class status');
   }
 };
 
@@ -768,49 +707,26 @@ const deleteClass = async id => {
 
   try {
     await Classes.delete(id);
-    await fetchClasses();
+    await loadClasses();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Class deleted successfully!',
-          type: 'success',
-          duration: 5000
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess('Class deleted successfully!');
   } catch (error) {
-    console.error('Error deleting class:', error);
-    // Show error message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Error deleting class. Please try again.',
-          type: 'error',
-          duration: 5000
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showError('Error deleting class. Please try again.');
   }
 };
 
 onMounted(async () => {
-  fetchClasses();
-
   // Load streams setting
   await loadStreamsSetting();
 
-  // Fetch schools for super admin
+  // Initialize data based on user role
   if (isSuperAdmin.value) {
-    fetchSchools();
+    await loadSchoolsData();
+  } else {
+    await loadBranchesForCurrentSchool();
   }
 
-  // Fetch branches for school admin
-  if (isSchoolAdmin.value) {
-    await fetchBranchesForCurrentSchool();
-  }
+  await loadClasses();
 });
 </script>

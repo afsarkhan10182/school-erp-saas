@@ -1,10 +1,63 @@
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Branches } from '~/api/administration/branches';
+import { useAuthStore } from '~/stores/auth';
 
 export function useBranches() {
+  const authStore = useAuthStore();
   const branches = ref<any[]>([]);
   const loading = ref(false);
   const error = ref('');
+
+  // Computed properties for context
+  const currentBranch = computed(() => authStore.currentBranch);
+  const availableBranches = computed(() => authStore.availableBranches);
+  const currentSchool = computed(() => authStore.currentSchool);
+  const canSwitchBranches = computed(() => {
+    const role = authStore.userRole;
+    return role === 'super_admin' || role === 'school_admin';
+  });
+
+  // Fetch branches for the current user (context-aware)
+  const fetchBranchesForUser = async () => {
+    if (!authStore.isLoggedIn) {
+      return;
+    }
+
+    loading.value = true;
+    error.value = '';
+
+    try {
+      let response;
+
+      if (authStore.isSuperAdmin) {
+        // Super admin can see all branches
+        response = await Branches.getForDropdown();
+      } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
+        // School admin can see branches of their school
+        response = await Branches.getForDropdown({
+          school_id: authStore.currentSchool.id
+        });
+      } else {
+        // Other roles can only see their assigned branch
+        if (authStore.currentBranch) {
+          authStore.setAvailableBranches([authStore.currentBranch]);
+        }
+        return;
+      }
+
+      if (response.success) {
+        const branchesData = response.data || [];
+        authStore.setAvailableBranches(branchesData);
+        branches.value = branchesData;
+      } else {
+        error.value = response.message || 'Failed to fetch branches.';
+      }
+    } catch (e) {
+      error.value = 'Network error while fetching branches.';
+    } finally {
+      loading.value = false;
+    }
+  };
 
   // Fetch all branches for a school
   const fetchBranches = async (schoolId: string) => {
@@ -153,10 +206,20 @@ export function useBranches() {
   };
 
   return {
+    // Data
     branches,
     loading,
     error,
+
+    // Context
+    currentBranch,
+    availableBranches,
+    currentSchool,
+    canSwitchBranches,
+
+    // Methods
     fetchBranches,
+    fetchBranchesForUser,
     fetchAllBranches,
     createBranch,
     getBranchById,

@@ -421,6 +421,9 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Plus, Users, Clock, CheckCircle, Calendar, Search } from 'lucide-vue-next';
 import Pagination from '~/components/ui/Pagination.vue';
+import { useToast } from '~/composables/useToast';
+
+const { showSuccess } = useToast();
 
 // State
 const visitors = ref([]);
@@ -568,15 +571,7 @@ const saveVisitor = async () => {
     await fetchStats();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: `Visitor ${isEditing.value ? 'updated' : 'added'} successfully!`,
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess(`Visitor ${isEditing.value ? 'updated' : 'added'} successfully!`);
   } catch (error) {
     console.error('Error saving visitor:', error);
   } finally {
@@ -596,15 +591,7 @@ const markExit = async visitor => {
     await fetchStats();
 
     // Show success message
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('show-toast', {
-        detail: {
-          message: 'Visitor exit marked successfully!',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(event);
-    }
+    showSuccess('Visitor exit marked successfully!');
   } catch (error) {
     console.error('Error marking exit:', error);
   }

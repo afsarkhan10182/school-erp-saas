@@ -345,7 +345,9 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronDown,
-  FileText
+  FileText,
+  Clock,
+  Edit
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -550,7 +552,7 @@ const menuGroups = computed(() => {
     });
   }
 
-  // Academic Management
+  // Academic Module
   if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'academic',
@@ -591,10 +593,10 @@ const menuGroups = computed(() => {
               : []),
             {
               id: 'class-management',
-              title: 'Class Management',
-              path: '/academic/class-management',
+              title: 'Class Assignments',
+              path: '/academic/class-assignments',
               icon: BookOpen,
-              requiredModule: 'exams'
+              requiredModule: 'academic_management'
             },
             {
               id: 'sections',
@@ -607,32 +609,36 @@ const menuGroups = computed(() => {
               title: 'Subjects',
               path: '/academic/subjects',
               icon: BookOpen,
-              requiredModule: 'exams'
+              requiredModule: 'academic_management'
             },
             {
-              id: 'exam-types',
-              title: 'Exam Types',
-              path: '/exams/types',
-              icon: Tag,
-              requiredModule: 'exams'
+              id: 'timetable',
+              title: 'Timetable',
+              path: '/academic/timetable',
+              icon: Calendar,
+              requiredModule: 'academic_management'
             }
           ]
-        },
+        }
+      ]
+    });
+  }
+
+  // Attendance Module
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'attendance',
+      title: 'Attendance Management',
+      items: [
         {
-          id: 'academic-operations',
-          title: 'Academic Operations',
+          id: 'attendance-management',
+          title: 'Attendance',
           icon: ClipboardList,
+          requiredModule: 'attendance',
           children: [
             {
-              id: 'exams',
-              title: 'Exams',
-              path: '/exams',
-              icon: FileText,
-              requiredModule: 'exams'
-            },
-            {
               id: 'attendance-sessions',
-              title: 'Attendance',
+              title: 'Take Attendance',
               path: '/attendance',
               icon: ClipboardList,
               requiredModule: 'attendance'
@@ -643,6 +649,59 @@ const menuGroups = computed(() => {
               path: '/attendance/analytics',
               icon: BarChart3,
               requiredModule: 'attendance'
+            }
+          ]
+        }
+      ]
+    });
+  }
+
+  // Exams Module
+  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'exams',
+      title: 'Exam Management',
+      items: [
+        {
+          id: 'exam-management',
+          title: 'Exam',
+          icon: FileText,
+          requiredModule: 'exams',
+          children: [
+            {
+              id: 'exams',
+              title: 'Exams',
+              path: '/exams',
+              icon: FileText,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'exam-types',
+              title: 'Exam Types',
+              path: '/exams/types',
+              icon: Tag,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'marks-entry',
+              title: 'Marks Entry',
+              path: '/exams/marks-entry',
+              icon: Edit,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'exam-results',
+              title: 'Exam Results',
+              path: '/exams/results',
+              icon: BarChart3,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'report-cards',
+              title: 'Report Cards',
+              path: '/exams/report-cards',
+              icon: FileText,
+              requiredModule: 'exams'
             }
           ]
         }
@@ -753,6 +812,23 @@ const menuGroups = computed(() => {
             //   ]
             // }
           ]
+        }
+      ]
+    });
+  }
+
+  // Teacher Dashboard (Teachers only)
+  if (user.value?.role === 'teacher') {
+    groups.push({
+      id: 'teacher-dashboard',
+      title: 'My Schedule',
+      items: [
+        {
+          id: 'my-timetable',
+          title: 'My Timetable',
+          path: '/academic/timetables',
+          icon: Clock,
+          requiredModule: 'exams'
         }
       ]
     });

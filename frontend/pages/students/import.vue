@@ -588,7 +588,10 @@ const onBranchChange = async () => {
     try {
       const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
 
-      await fetchClasses(schoolId, form.branch_id);
+      await fetchClasses({
+        schoolId: schoolId,
+        branchId: form.branch_id
+      });
 
       // Auto-select class if there's only one
       if (classes.value.length === 1) {
@@ -657,11 +660,11 @@ const onClassChange = async () => {
 
       const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
 
-      await fetchSections(schoolId, form.branch_id, form.class_id);
+      await fetchSections({ schoolId, branchId: form.branch_id, classId: form.class_id });
 
       // If no sections found and we're super admin, try without branch_id
       if (sections.value.length === 0 && isSuperAdmin.value) {
-        await fetchSections(schoolId, null, form.class_id);
+        await fetchSections({ schoolId, classId: form.class_id });
       }
 
       // Auto-select section if there's only one

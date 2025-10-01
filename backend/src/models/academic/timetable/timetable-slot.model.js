@@ -16,18 +16,11 @@ const TimetableSlot = sequelize.define(
       references: { model: 'timetables', key: 'id' }
     },
     day_of_week: {
-      type: DataTypes.ENUM(
-        'monday',
-        'tuesday',
-        'wednesday',
-        'thursday',
-        'friday',
-        'saturday',
-        'sunday'
-      ),
+      type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
-        notEmpty: { msg: 'Day of week is required' }
+        min: { args: [1], msg: 'Day of week must be between 1 (Monday) and 7 (Sunday)' },
+        max: { args: [7], msg: 'Day of week must be between 1 (Monday) and 7 (Sunday)' }
       }
     },
     period_number: {

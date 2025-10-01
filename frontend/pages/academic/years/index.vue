@@ -370,6 +370,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
+import { useAcademics } from '~/composables/useAcademics';
 import { AcademicYears } from '~/api';
 import { useAuth } from '~/composables/useAuth';
 
@@ -379,6 +380,10 @@ definePageMeta({
 
 const { showToast } = useToast();
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const {
+  academicYears: academicYearsFromComposable,
+  fetchAcademicYears: fetchAcademicYearsFromComposable
+} = useAcademics();
 
 const academicYears = ref([]);
 const loading = ref(true);
@@ -403,9 +408,9 @@ const fetchAcademicYears = async () => {
     loading.value = true;
     authError.value = '';
 
-    // Fetch academic years list
-    const response = await AcademicYears.getAll();
-    academicYears.value = response.data || [];
+    // Fetch academic years list using composable
+    await fetchAcademicYearsFromComposable();
+    academicYears.value = academicYearsFromComposable.value || [];
 
     // Fetch current academic year with schools count
     try {

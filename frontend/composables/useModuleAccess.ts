@@ -213,9 +213,6 @@ export function useModuleAccess() {
       '/reports/students': 'students',
 
       '/attendance': 'attendance',
-      '/attendance/take': 'attendance',
-      '/attendance/import': 'attendance',
-      '/attendance/notify': 'attendance',
       '/reports/attendance': 'attendance',
 
       '/exams': 'exams',
@@ -224,8 +221,11 @@ export function useModuleAccess() {
       '/exams/results': 'exams',
       '/exams/types': 'exams',
       '/reports/exams': 'exams',
-      '/academic/subjects': 'exams',
-      '/academic/class-management': 'exams',
+
+      // Academic Management Module
+      '/academic/subjects': 'academic_management',
+      '/academic/class-assignments': 'academic_management',
+      '/academic/timetable': 'academic_management',
 
       '/library': 'library',
       '/reports/library': 'library',

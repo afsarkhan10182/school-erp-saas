@@ -1283,7 +1283,10 @@ const onBranchChange = async () => {
     try {
       const schoolId =
         user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
-      await fetchClasses(schoolId, selectedBranchId.value);
+      await fetchClasses({
+        schoolId: schoolId,
+        branchId: selectedBranchId.value
+      });
     } catch (error) {
       console.error('Error loading classes for branch:', error);
     }
@@ -1373,7 +1376,10 @@ const loadFormData = async () => {
     }
 
     // Load classes
-    await fetchClasses(schoolId, branchId);
+    await fetchClasses({
+      schoolId: schoolId,
+      branchId: branchId
+    });
 
     // Load fee types
     await fetchFeeTypes();

@@ -10,7 +10,15 @@ const createTimetableValidator = [
 
   body('class_id').isUUID().withMessage('Invalid class ID format'),
 
-  body('section_id').optional().isUUID().withMessage('Invalid section ID format'),
+  body('section_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid section ID format'),
 
   body('academic_year')
     .trim()
@@ -35,9 +43,25 @@ const createTimetableValidator = [
 const createTimetableSlotValidator = [
   param('id').isUUID().withMessage('Invalid timetable ID format'),
 
-  body('subject_id').isUUID().withMessage('Invalid subject ID format'),
+  body('subject_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid subject ID format'),
 
-  body('teacher_id').isUUID().withMessage('Invalid teacher ID format'),
+  body('teacher_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid teacher ID format'),
 
   body('day_of_week')
     .isInt({ min: 1, max: 7 })
@@ -76,9 +100,25 @@ const updateTimetableSlotValidator = [
 
   param('slotId').isUUID().withMessage('Invalid slot ID format'),
 
-  body('subject_id').optional().isUUID().withMessage('Invalid subject ID format'),
+  body('subject_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid subject ID format'),
 
-  body('teacher_id').optional().isUUID().withMessage('Invalid teacher ID format'),
+  body('teacher_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid teacher ID format'),
 
   body('day_of_week')
     .optional()
@@ -129,7 +169,15 @@ const updateTimetableValidator = [
 
   body('class_id').optional().isUUID().withMessage('Invalid class ID format'),
 
-  body('section_id').optional().isUUID().withMessage('Invalid section ID format'),
+  body('section_id')
+    .optional({ nullable: true })
+    .custom(value => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    })
+    .withMessage('Invalid section ID format'),
 
   body('academic_year')
     .optional()

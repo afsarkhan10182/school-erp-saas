@@ -9,13 +9,11 @@
         </p>
       </div>
       <div class="flex items-center space-x-4">
-        <!-- Academic Year Filter -->
-        <select v-model="selectedAcademicYear" class="input-field" @change="loadAssignments">
-          <option value="">Select Academic Year</option>
-          <option v-for="year in academicYears" :key="year.value" :value="year.value">
-            {{ year.label }}
-          </option>
-        </select>
+        <!-- Current Academic Year Display -->
+        <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <Calendar class="h-4 w-4" />
+          <span>Academic Year: {{ currentAcademicYearName }}</span>
+        </div>
         <button
           @click="showAssignModal = true"
           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -26,41 +24,6 @@
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <UserCheck class="h-8 w-8 text-blue-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Assignments</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-              {{ assignments.length }}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <Users class="h-8 w-8 text-green-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Teachers Assigned</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ uniqueTeachers }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-        <div class="flex items-center">
-          <Star class="h-8 w-8 text-yellow-600" />
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Primary Teachers</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-              {{ primaryTeachers }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Assignments List -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <div v-if="loading" class="p-8 text-center">
@@ -68,11 +31,14 @@
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading assignments...</p>
       </div>
 
-      <div v-else-if="!selectedAcademicYear" class="p-8 text-center">
+      <div
+        v-else-if="!currentAcademicYearName || currentAcademicYearName === 'Not Set'"
+        class="p-8 text-center"
+      >
         <Calendar class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Select Academic Year</h3>
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No Academic Year</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Choose an academic year to view and manage teacher assignments.
+          No current academic year is set. Please contact administrator.
         </p>
       </div>
 
@@ -98,37 +64,38 @@
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Teacher
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Subject
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Class
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                v-if="streamsEnabled"
+                class="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Stream
+              </th>
+              <th
+                class="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Section
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Type
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Academic Year
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Actions
               </th>
@@ -140,44 +107,54 @@
               :key="assignment.id"
               class="hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
+                  <div class="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
                     <div
-                      class="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center"
+                      class="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center"
                     >
-                      <span class="text-sm font-medium text-indigo-600 dark:text-indigo-300">
+                      <span
+                        class="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-300"
+                      >
                         {{
                           getInitials(assignment.teacher?.first_name, assignment.teacher?.last_name)
                         }}
                       </span>
                     </div>
                   </div>
-                  <div class="ml-4">
+                  <div class="ml-2 sm:ml-4">
                     <div class="text-sm font-medium text-gray-900 dark:text-white">
                       {{ assignment.teacher?.first_name }} {{ assignment.teacher?.last_name }}
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       {{ assignment.teacher?.email }}
                     </div>
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900 dark:text-white">
                   {{ assignment.subject?.name }}
                 </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">
+                <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {{ assignment.subject?.code }}
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                 {{ assignment.class?.name || 'All Classes' }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+              <td
+                v-if="streamsEnabled"
+                class="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+              >
+                {{ assignment.stream?.name || 'All Streams' }}
+              </td>
+              <td
+                class="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+              >
                 {{ assignment.section?.name || 'All Sections' }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                 <span
                   :class="[
                     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -190,24 +167,19 @@
                   {{ assignment.is_primary ? 'Primary' : 'Secondary' }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{ assignment.academic_year }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex justify-end space-x-2">
-                  <button
-                    @click="editAssignment(assignment)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  >
-                    <Edit class="h-4 w-4" />
-                  </button>
-                  <button
-                    @click="removeAssignment(assignment)"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <Trash2 class="h-4 w-4" />
-                  </button>
-                </div>
+              <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button
+                  @click="editAssignment(assignment)"
+                  class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="removeAssignment(assignment)"
+                  class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           </tbody>
@@ -226,10 +198,12 @@
       <template #body>
         <TeacherAssignmentForm
           :assignment="editingAssignment"
-          :classes="classes"
-          :subjects="subjects"
-          :teachers="teachers"
+          :classes="formattedClasses"
+          :subjects="formattedSubjects"
+          :teachers="formattedTeachers"
           :academic-years="academicYears"
+          :school-id="schoolId"
+          :branch-id="branchId"
           @submit="handleSubmit"
           @cancel="closeModal"
         />
@@ -239,9 +213,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { Plus, UserCheck, Users, Star, Calendar, Edit, Trash2 } from 'lucide-vue-next';
+import { useAcademicSettings } from '~/utils/settings';
+import { Plus, UserCheck, Star, Calendar } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import TeacherAssignmentForm from '~/components/forms/TeacherAssignmentForm.vue';
 
@@ -270,6 +245,14 @@ const props = defineProps({
   academicYears: {
     type: Array,
     default: () => []
+  },
+  schoolId: {
+    type: String,
+    default: ''
+  },
+  branchId: {
+    type: String,
+    default: ''
   }
 });
 
@@ -278,22 +261,41 @@ const emit = defineEmits(['refresh', 'assign', 'update', 'remove']);
 
 // Composables
 const { showToast } = useToast();
+const { isStreamsEnabled } = useAcademicSettings();
 
 // Reactive data
-const selectedAcademicYear = ref('');
 const showAssignModal = ref(false);
 const showEditModal = ref(false);
 const isEditing = ref(false);
 const editingAssignment = ref(null);
+const streamsEnabled = ref(false);
 
-// Computed
-const uniqueTeachers = computed(() => {
-  const teacherIds = new Set(props.assignments.map(a => a.teacher_id));
-  return teacherIds.size;
+// Computed - Current academic year name
+const currentAcademicYearName = computed(() => {
+  const currentYear = props.academicYears.find(year => year.is_current);
+  return currentYear ? currentYear.name : 'Not Set';
 });
 
-const primaryTeachers = computed(() => {
-  return props.assignments.filter(a => a.is_primary).length;
+// Computed - Format data for dropdowns
+const formattedSubjects = computed(() => {
+  return props.subjects.map(subject => ({
+    value: subject.id,
+    label: `${subject.name} (${subject.code})`
+  }));
+});
+
+const formattedClasses = computed(() => {
+  return props.classes.map(cls => ({
+    value: cls.id,
+    label: cls.name
+  }));
+});
+
+const formattedTeachers = computed(() => {
+  return props.teachers.map(teacher => ({
+    value: teacher.value,
+    label: teacher.label
+  }));
 });
 
 // Methods
@@ -341,25 +343,18 @@ const closeModal = () => {
   editingAssignment.value = null;
 };
 
-const loadAssignments = () => {
-  if (props.selectedAcademicYear) {
-    emit('refresh');
+// Load streams setting on component mount
+const loadStreamsSetting = async () => {
+  try {
+    const result = await isStreamsEnabled(true);
+    streamsEnabled.value = result;
+  } catch (error) {
+    streamsEnabled.value = false;
   }
 };
 
-// Watchers
-watch(
-  () => props.selectedAcademicYear,
-  () => {
-    if (props.selectedAcademicYear) {
-      loadAssignments();
-    }
-  }
-);
+// Load streams setting on mount
+onMounted(() => {
+  loadStreamsSetting();
+});
 </script>
-
-<style scoped>
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
-</style>

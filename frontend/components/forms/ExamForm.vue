@@ -228,9 +228,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
-import { useDropdowns } from '~/composables/useDropdowns';
-import { useExamOptions } from '~/composables/useExamOptions';
 import { useAcademics } from '~/composables/useAcademics';
+import { useExamOptions } from '~/composables/useExamOptions';
 import FormField from '~/components/ui/FormField.vue';
 import ExamTypeDropdown from '~/components/forms/ExamTypeDropdown.vue';
 import {
@@ -270,8 +269,8 @@ const emit = defineEmits(['submit', 'cancel']);
 // Composables
 const { showToast } = useToast();
 const { examStatusOptions, durationTypeOptions, loadAllExamOptions } = useExamOptions();
-const { academicYears, fetchAcademicYears } = useAcademics();
-const { subjectOptions, loadSubjects, loadSections } = useDropdowns();
+const { academicYears, subjectOptions, fetchAcademicYears, fetchSubjects, fetchSections } =
+  useAcademics();
 
 // Reactive data
 const loading = ref(false);
@@ -315,7 +314,7 @@ const sectionOptions = computed(() => {
   return [{ value: '', label: 'All Sections' }, ...(props.sections || [])];
 });
 
-// Use subjectOptions from useDropdowns composable
+// Use subjectOptions from useAcademics composable
 
 // Simple validation for exam type
 const validateExamType = () => {

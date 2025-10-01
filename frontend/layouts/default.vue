@@ -50,7 +50,7 @@ import Sidebar from '~/components/layout/Sidebar.vue';
 import Header from '~/components/layout/Header.vue';
 import Toast from '~/components/ui/Toast.vue';
 import { useAuth } from '~/composables/useAuth';
-import { useBranchContext } from '~/composables/useBranchContext';
+import { useBranches } from '~/composables/useBranches';
 import { useHydrationState } from '~/composables/useHydration';
 import { useMobileDetection } from '~/composables/useMobileDetection';
 
@@ -61,7 +61,7 @@ const sidebarOpen = ref(true); // Default to open for desktop
 
 const route = useRoute();
 const { user } = useAuth();
-const { initializeBranchContext } = useBranchContext();
+const { fetchBranchesForUser } = useBranches();
 const { isLoggedIn } = useAuth();
 
 const shouldRender = computed(() => {
@@ -98,8 +98,26 @@ const pageTitle = computed(() => {
     '/branches': 'Branches',
     '/students': 'Students',
     '/fees': 'Fee Management',
+    '/academic/class-assignments': 'Class Assignments',
+    '/academic/subjects': 'Subjects',
+    '/academic/timetable': 'Timetable',
+    '/academic/classes': 'Classes',
+    '/academic/sections': 'Sections',
+    '/academic/streams': 'Streams',
+    '/academic/years': 'Academic Years',
+    '/academic/calendar': 'Academic Calendar',
+    '/academic/workload': 'Teacher Workload',
+    '/academic/timetables': 'Timetables',
     '/academic': 'Academic Management',
+    '/attendance': 'Attendance',
+    '/attendance/analytics': 'Attendance Analytics',
+    '/exams': 'Exams',
+    '/exams/types': 'Exam Types',
+    '/exams/marks-entry': 'Marks Entry',
+    '/exams/results': 'Exam Results',
+    '/exams/report-cards': 'Report Cards',
     '/reports': 'Reports',
+    '/reports/attendance': 'Attendance Reports',
     '/settings': 'Settings',
     '/saas': 'Subscriptions'
   };
@@ -115,13 +133,21 @@ const isDark = ref(false);
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
-  const themeCookie = useCookie('theme');
-  themeCookie.value = isDark.value ? 'dark' : 'light';
-  useHead({
-    htmlAttrs: {
-      class: isDark.value ? 'dark' : ''
+
+  if (import.meta.client) {
+    // Use the same approach as theme.client.ts
+    if (isDark.value) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
-  });
+
+    // Also update cookie for SSR consistency
+    const themeCookie = useCookie('theme');
+    themeCookie.value = isDark.value ? 'dark' : 'light';
+  }
 };
 
 let mql;
@@ -136,14 +162,11 @@ const initializeSidebar = () => {
 };
 
 onMounted(async () => {
-  const themeCookie = useCookie('theme', { default: () => 'dark' });
-  isDark.value = themeCookie.value === 'dark';
-
-  useHead({
-    htmlAttrs: {
-      class: isDark.value ? 'dark' : ''
-    }
-  });
+  // Don't override theme - let theme.client.ts handle it
+  // Just sync the local state with the actual DOM state
+  if (import.meta.client) {
+    isDark.value = document.documentElement.classList.contains('dark');
+  }
 
   if (import.meta.client) {
     initializeSidebar();
@@ -159,7 +182,7 @@ onMounted(async () => {
   }
 
   if (isLoggedIn.value) {
-    await initializeBranchContext();
+    await fetchBranchesForUser();
   }
 });
 

@@ -30,6 +30,12 @@ const SubjectTeacher = sequelize.define(
       allowNull: true,
       references: { model: 'sections', key: 'id' }
     },
+    stream_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'streams', key: 'id' },
+      comment: 'Optional stream for subject teacher assignment'
+    },
     is_primary: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -70,12 +76,20 @@ const SubjectTeacher = sequelize.define(
       { fields: ['teacher_id'] },
       { fields: ['class_id'] },
       { fields: ['section_id'] },
+      { fields: ['stream_id'] },
       { fields: ['academic_year'] },
       { fields: ['school_id'] },
       { fields: ['branch_id'] },
       { fields: ['is_primary'] },
       {
-        fields: ['subject_id', 'teacher_id', 'class_id', 'section_id', 'academic_year'],
+        fields: [
+          'subject_id',
+          'teacher_id',
+          'class_id',
+          'section_id',
+          'stream_id',
+          'academic_year'
+        ],
         unique: true,
         name: 'unique_subject_teacher_assignment'
       }
@@ -95,6 +109,7 @@ SubjectTeacher.associate = models => {
   SubjectTeacher.belongsTo(models.User, { foreignKey: 'teacher_id', as: 'teacher' });
   SubjectTeacher.belongsTo(models.Class, { foreignKey: 'class_id', as: 'class' });
   SubjectTeacher.belongsTo(models.Section, { foreignKey: 'section_id', as: 'section' });
+  SubjectTeacher.belongsTo(models.Stream, { foreignKey: 'stream_id', as: 'stream' });
   SubjectTeacher.belongsTo(models.School, { foreignKey: 'school_id', as: 'school' });
   SubjectTeacher.belongsTo(models.Branch, { foreignKey: 'branch_id', as: 'branch' });
   SubjectTeacher.belongsTo(models.User, { foreignKey: 'created_by', as: 'createdBy' });

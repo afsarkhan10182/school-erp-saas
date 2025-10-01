@@ -4,7 +4,7 @@
     <div class="flex justify-between items-center">
       <div>
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-          Class-Subject Assignment
+          Class Subject Assignment
         </h2>
         <p class="text-sm text-gray-600 dark:text-gray-400">
           Assign subjects to classes for the academic year
@@ -251,9 +251,18 @@ const toggleAssignment = async (classId, subjectId) => {
   try {
     if (isCurrentlyAssigned) {
       // Find and remove the mapping
-      const mapping = props.mappings.find(
-        m => m.class_id === classId && m.subjects?.some(s => s.id === subjectId)
-      );
+      const mapping = props.mappings.find(m => {
+        // Handle different API response structures
+        if (m.subjects && Array.isArray(m.subjects)) {
+          return m.class_id === classId && m.subjects.some(s => s.id === subjectId);
+        } else if (m.subject) {
+          return m.class_id === classId && m.subject.id === subjectId;
+        } else if (m.subject_id) {
+          return m.class_id === classId && m.subject_id === subjectId;
+        }
+        return false;
+      });
+
       if (mapping) {
         emit('unassign', mapping.id);
       }
@@ -318,10 +327,27 @@ const loadMappings = () => {
 // Initialize assignments from mappings
 const initializeAssignments = () => {
   assignments.value.clear();
-  props.mappings.forEach(assignment => {
+
+  // Create a Set to track unique class-subject combinations
+  const uniqueAssignments = new Set();
+
+  props.mappings.forEach((assignment, index) => {
+    let subjectId;
+    // Handle different API response structures
     if (assignment.subject) {
-      const key = `${assignment.class_id}-${assignment.subject.id}`;
-      assignments.value.set(key, true);
+      subjectId = assignment.subject.id;
+    } else if (assignment.subject_id) {
+      subjectId = assignment.subject_id;
+    }
+
+    if (subjectId) {
+      const key = `${assignment.class_id}-${subjectId}`;
+
+      // Only add if we haven't seen this combination before
+      if (!uniqueAssignments.has(key)) {
+        assignments.value.set(key, true);
+        uniqueAssignments.add(key);
+      }
     }
   });
 };

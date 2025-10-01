@@ -6,7 +6,13 @@ const {
   bulkCreateAssignments,
   deleteAssignment
 } = require('~/controllers/academic/subjects/class-subject-assignment.controller');
-const { verifyToken, authorize } = require('~/middleware/core/auth');
+const {
+  verifyToken,
+  authorize,
+  setSchoolContext,
+  setBranchContext
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
 const { validate } = require('~/middleware/shared/validate');
 const {
   createAssignmentValidator,
@@ -15,8 +21,13 @@ const {
 
 const router = express.Router();
 
-// Apply authentication to all routes
-router.use(verifyToken);
+// Apply authentication, school/branch context, and academic_management module access to all routes
+router.use(
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireModuleAccess('academic_management')
+);
 
 /**
  * @route   GET /api/class-subject-assignments

@@ -8,7 +8,13 @@ const {
   getSubjectsForDropdown,
   getSubjectStats
 } = require('~/controllers/academic/subjects/subject.controller');
-const { verifyToken, authorize } = require('~/middleware/core/auth');
+const {
+  verifyToken,
+  authorize,
+  setSchoolContext,
+  setBranchContext
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
 const { validate } = require('~/middleware/shared/validate');
 const {
   createSubjectValidator,
@@ -17,8 +23,13 @@ const {
 
 const router = express.Router();
 
-// Middleware to ensure authentication
-router.use(verifyToken);
+// Middleware to ensure authentication, school/branch context, and academic_management module access
+router.use(
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireModuleAccess('academic_management')
+);
 
 // GET /api/subjects - Get all subjects with role-based access control
 router.get(
