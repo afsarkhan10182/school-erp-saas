@@ -318,7 +318,6 @@ const removeAssignment = async assignment => {
     emit('remove', assignment.id);
   } catch (error) {
     showToast('Failed to remove assignment', 'error');
-    console.error('Error removing assignment:', error);
   }
 };
 
@@ -332,7 +331,6 @@ const handleSubmit = async assignmentData => {
     closeModal();
   } catch (error) {
     showToast('Failed to save assignment', 'error');
-    console.error('Error saving assignment:', error);
   }
 };
 

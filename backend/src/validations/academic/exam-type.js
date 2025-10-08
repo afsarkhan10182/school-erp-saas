@@ -23,6 +23,11 @@ const createExamTypeValidator = [
     .isLength({ max: 500 })
     .withMessage('Description must not exceed 500 characters'),
 
+  body('weightage')
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage('Weightage must be between 0 and 100'),
+
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean value'),
 
   body('school_id').optional().isUUID().withMessage('Invalid school ID format'),
@@ -56,6 +61,11 @@ const updateExamTypeValidator = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description must not exceed 500 characters'),
+
+  body('weightage')
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage('Weightage must be between 0 and 100'),
 
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean value'),
 

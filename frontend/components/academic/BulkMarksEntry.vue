@@ -447,7 +447,6 @@ const processFile = async () => {
     showToast('File processed successfully', 'success');
   } catch (error) {
     showToast('Failed to process file', 'error');
-    console.error('Error processing file:', error);
   } finally {
     processing.value = false;
   }
@@ -470,7 +469,6 @@ const downloadTemplate = async () => {
     showToast('Template downloaded successfully', 'success');
   } catch (error) {
     showToast('Failed to download template', 'error');
-    console.error('Error downloading template:', error);
   }
 };
 

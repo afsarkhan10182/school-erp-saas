@@ -75,61 +75,39 @@
       </div>
 
       <!-- Tabs -->
-      <div class="bg-white dark:bg-gray-800 shadow rounded-md">
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300',
-                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center'
-              ]"
-            >
-              <component :is="tab.icon" class="h-5 w-5 mr-2" />
-              {{ tab.name }}
-            </button>
-          </nav>
+      <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event">
+        <!-- Subjects Tab -->
+        <div v-if="activeTab === 'subjects'" class="p-6">
+          <SubjectsTab
+            :subjects="subjects"
+            :loading="subjectsLoading"
+            :academic-years="academicYears"
+            :school-id="selectedSchoolId"
+            :branch-id="selectedBranchId"
+            @create="handleSubjectCreate"
+            @update="handleSubjectUpdate"
+            @delete="handleSubjectDelete"
+          />
         </div>
 
-        <!-- Tab Content -->
-        <div>
-          <!-- Subjects Tab -->
-          <div v-if="activeTab === 'subjects'" class="p-6">
-            <SubjectsTab
-              :subjects="subjects"
-              :loading="subjectsLoading"
-              :academic-years="academicYears"
-              :school-id="selectedSchoolId"
-              :branch-id="selectedBranchId"
-              @create="handleSubjectCreate"
-              @update="handleSubjectUpdate"
-              @delete="handleSubjectDelete"
-            />
-          </div>
-
-          <!-- Teacher Assignment Tab -->
-          <div v-else-if="activeTab === 'teacher-assignment'" class="p-6">
-            <TeacherAssignmentTab
-              :assignments="teacherAssignments"
-              :classes="classes"
-              :subjects="subjects"
-              :teachers="teacherOptions"
-              :loading="assignmentsLoading"
-              :academic-years="academicYears"
-              :school-id="selectedSchoolId"
-              :branch-id="selectedBranchId"
-              @refresh="loadTeacherAssignments"
-              @assign="handleTeacherAssign"
-              @update="handleTeacherUpdate"
-              @remove="handleTeacherRemove"
-            />
-          </div>
+        <!-- Teacher Assignment Tab -->
+        <div v-else-if="activeTab === 'teacher-assignment'" class="p-6">
+          <TeacherAssignmentTab
+            :assignments="teacherAssignments"
+            :classes="classes"
+            :subjects="subjects"
+            :teachers="teacherOptions"
+            :loading="assignmentsLoading"
+            :academic-years="academicYears"
+            :school-id="selectedSchoolId"
+            :branch-id="selectedBranchId"
+            @refresh="loadTeacherAssignments"
+            @assign="handleTeacherAssign"
+            @update="handleTeacherUpdate"
+            @remove="handleTeacherRemove"
+          />
         </div>
-      </div>
+      </ScrollableTabs>
     </div>
   </div>
 </template>
@@ -140,6 +118,7 @@ import { useSubjects } from '~/composables/useSubjects';
 import { useAuth } from '~/composables/useAuth';
 import { BookOpen, UserCheck, Building2 } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 
 // Import tab components
 import SubjectsTab from '~/components/academic/SubjectsTab.vue';

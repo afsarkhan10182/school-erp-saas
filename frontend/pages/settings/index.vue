@@ -35,40 +35,12 @@
       </div>
 
       <!-- Clean Tab Navigation -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      <ScrollableTabs
+        :tabs="settingsTabs"
+        :active-tab="activeTab"
+        :loading-states="loadingStates"
+        @tab-change="handleTabChange"
       >
-        <!-- Tab Header -->
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav
-            class="flex space-x-1 sm:space-x-4 px-2 sm:px-6 overflow-x-auto scrollbar-hide"
-            aria-label="Settings tabs"
-          >
-            <button
-              v-for="tab in settingsTabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :disabled="loadingStates[tab.id]"
-              :class="[
-                'inline-flex items-center py-3 px-4 border-b-2 font-medium text-sm whitespace-nowrap',
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-blue-500 hover:text-blue-600',
-                loadingStates[tab.id] ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-              ]"
-            >
-              <component :is="tab.icon" class="mr-2 h-4 w-4" />
-              <span class="hidden sm:inline">{{ tab.name }}</span>
-
-              <!-- Loading indicator -->
-              <span
-                v-if="loadingStates[tab.id]"
-                class="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600"
-              ></span>
-            </button>
-          </nav>
-        </div>
-
         <!-- Tab Content -->
         <div class="p-4 sm:p-6">
           <!-- Settings Content -->
@@ -138,7 +110,7 @@
             />
           </div>
         </div>
-      </div>
+      </ScrollableTabs>
     </div>
   </div>
 </template>
@@ -160,6 +132,7 @@ import {
 } from 'lucide-vue-next';
 
 // Import settings components
+import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import SchoolSettings from '~/components/settings/SchoolSettings.vue';
 import AcademicSettings from '~/components/settings/AcademicSettings.vue';
 import FeeSettings from '~/components/settings/FeeSettings.vue';
@@ -172,6 +145,11 @@ import BackupSettings from '~/components/settings/BackupSettings.vue';
 
 // Composables
 const { showToast } = useToast();
+
+// Methods
+const handleTabChange = tabId => {
+  activeTab.value = tabId;
+};
 
 // Reactive data
 const activeTab = ref('school');

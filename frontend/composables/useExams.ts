@@ -67,12 +67,12 @@ export const useExams = () => {
       });
 
       if (response.success) {
-        state.exams = response.data.items || [];
+        state.exams = response.data.exams || [];
         state.pagination = {
-          page: response.data.page,
-          limit: response.data.limit,
-          total: response.data.total,
-          totalPages: response.data.totalPages
+          page: response.data.pagination.page,
+          limit: response.data.pagination.limit,
+          total: response.data.pagination.total,
+          totalPages: response.data.pagination.totalPages
         };
       }
     } catch (error: any) {

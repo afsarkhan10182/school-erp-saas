@@ -1,226 +1,230 @@
 <template>
-  <div class="container mx-auto py-8 max-w-2xl">
-    <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Add New Staff Member</h1>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Add New Staff Member</h1>
 
-    <form
-      @submit.prevent="handleSubmit"
-      class="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow"
-    >
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            First Name <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="formData.first_name"
-            type="text"
-            required
-            :class="[
-              'input-field',
-              errors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            placeholder="John"
-            @blur="validateField('first_name')"
-            @input="clearError('first_name')"
-          />
-          <div v-if="errors.first_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.first_name }}
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            Last Name <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="formData.last_name"
-            type="text"
-            required
-            :class="[
-              'input-field',
-              errors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            placeholder="Doe"
-            @blur="validateField('last_name')"
-            @input="clearError('last_name')"
-          />
-          <div v-if="errors.last_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.last_name }}
-          </div>
-        </div>
-
-        <!-- Login Details (Email and Password in one line) -->
-        <div class="col-span-2">
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            Login Details <span class="text-red-500">*</span>
-          </label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <input
-                v-model="formData.email"
-                type="email"
-                required
-                :class="[
-                  'input-field',
-                  errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-                ]"
-                placeholder="Email address"
-                @blur="validateField('email')"
-                @input="clearError('email')"
-              />
-              <div v-if="errors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
-                {{ errors.email }}
-              </div>
-            </div>
-            <div>
-              <PasswordInput
-                v-model="formData.password"
-                :error="!!errors.password"
-                placeholder="Password"
-                @blur="validateField('password')"
-                @input="clearError('password')"
-              />
-              <div v-if="errors.password" class="mt-1 text-sm text-red-600 dark:text-red-400">
-                {{ errors.password }}
-              </div>
-              <div v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Leave blank to auto-generate a secure password
-              </div>
+      <form
+        @submit.prevent="handleSubmit"
+        class="space-y-6 bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              First Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="formData.first_name"
+              type="text"
+              required
+              :class="[
+                'input-field',
+                errors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              placeholder="John"
+              @blur="validateField('first_name')"
+              @input="clearError('first_name')"
+            />
+            <div v-if="errors.first_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.first_name }}
             </div>
           </div>
-        </div>
 
-        <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
-          <input
-            v-model="formData.phone"
-            type="tel"
-            :class="[
-              'input-field',
-              errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            placeholder="9898989898"
-            @input="handlePhoneInput"
-            @blur="validateField('phone')"
-          />
-          <div v-if="errors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.phone }}
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Last Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="formData.last_name"
+              type="text"
+              required
+              :class="[
+                'input-field',
+                errors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              placeholder="Doe"
+              @blur="validateField('last_name')"
+              @input="clearError('last_name')"
+            />
+            <div v-if="errors.last_name" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.last_name }}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            Role <span class="text-red-500">*</span>
-          </label>
-          <select
-            v-model="formData.role"
-            required
-            :class="[
-              'input-field',
-              errors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            @change="onRoleChange"
-          >
-            <option value="">Select Role</option>
-            <option v-for="role in availableRoles" :key="role.value" :value="role.value">
-              {{ role.label }}
-            </option>
-          </select>
-          <div v-if="errors.role" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.role }}
+          <!-- Login Details (Email and Password in one line) -->
+          <div class="lg:col-span-2">
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Login Details <span class="text-red-500">*</span>
+            </label>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <input
+                  v-model="formData.email"
+                  type="email"
+                  required
+                  :class="[
+                    'input-field',
+                    errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                  ]"
+                  placeholder="Email address"
+                  @blur="validateField('email')"
+                  @input="clearError('email')"
+                />
+                <div v-if="errors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {{ errors.email }}
+                </div>
+              </div>
+              <div>
+                <PasswordInput
+                  v-model="formData.password"
+                  :error="!!errors.password"
+                  placeholder="Password"
+                  @blur="validateField('password')"
+                  @input="clearError('password')"
+                />
+                <div v-if="errors.password" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {{ errors.password }}
+                </div>
+                <div v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Leave blank to auto-generate a secure password
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- School Selection (Super Admin only) -->
-        <div v-if="isSuperAdmin">
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            School <span class="text-red-500">*</span>
-          </label>
-          <select
-            v-model="formData.school_id"
-            required
-            :class="[
-              'input-field',
-              errors.school_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            @change="onSchoolChange"
-            :disabled="isLoadingSchools"
-          >
-            <option value="">
-              {{ isLoadingSchools ? 'Loading schools...' : 'Select School' }}
-            </option>
-            <option v-for="school in schools" :key="school.id" :value="school.id">
-              {{ school.name }}
-            </option>
-          </select>
-          <div v-if="errors.school_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.school_id }}
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Phone</label>
+            <input
+              v-model="formData.phone"
+              type="tel"
+              :class="[
+                'input-field',
+                errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              placeholder="9898989898"
+              @input="handlePhoneInput"
+              @blur="validateField('phone')"
+            />
+            <div v-if="errors.phone" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.phone }}
+            </div>
           </div>
-        </div>
 
-        <!-- Branch Selection (Super Admin & School Admin) -->
-        <div v-if="(isSuperAdmin && formData.school_id) || isSchoolAdmin">
-          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
-            Branch <span class="text-red-500">*</span>
-          </label>
-          <select
-            v-model="formData.branch_id"
-            required
-            :class="[
-              'input-field',
-              errors.branch_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
-            ]"
-            @change="onBranchChange"
-            :disabled="isLoadingBranches"
-          >
-            <option value="">
-              {{ isLoadingBranches ? 'Loading branches...' : 'Select Branch' }}
-            </option>
-            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
-          <div v-if="errors.branch_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ errors.branch_id }}
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-3">
-        <NuxtLink to="/users" class="btn-secondary">Cancel</NuxtLink>
-        <button
-          type="submit"
-          :disabled="isSubmitting || !isFormValid"
-          class="btn-primary"
-          :class="{ 'opacity-50 cursor-not-allowed': isSubmitting || !isFormValid }"
-        >
-          <span v-if="isSubmitting">
-            <svg
-              class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Role <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="formData.role"
+              required
+              :class="[
+                'input-field',
+                errors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              @change="onRoleChange"
             >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Creating Staff Member...
-          </span>
-          <span v-else>Save Staff Member</span>
-        </button>
-      </div>
-    </form>
+              <option value="">Select Role</option>
+              <option v-for="role in availableRoles" :key="role.value" :value="role.value">
+                {{ role.label }}
+              </option>
+            </select>
+            <div v-if="errors.role" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.role }}
+            </div>
+          </div>
+
+          <!-- School Selection (Super Admin only) -->
+          <div v-if="isSuperAdmin">
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              School <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="formData.school_id"
+              required
+              :class="[
+                'input-field',
+                errors.school_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              @change="onSchoolChange"
+              :disabled="isLoadingSchools"
+            >
+              <option value="">
+                {{ isLoadingSchools ? 'Loading schools...' : 'Select School' }}
+              </option>
+              <option v-for="school in schools" :key="school.id" :value="school.id">
+                {{ school.name }}
+              </option>
+            </select>
+            <div v-if="errors.school_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.school_id }}
+            </div>
+          </div>
+
+          <!-- Branch Selection (Super Admin & School Admin) -->
+          <div v-if="(isSuperAdmin && formData.school_id) || isSchoolAdmin">
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Branch <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="formData.branch_id"
+              required
+              :class="[
+                'input-field',
+                errors.branch_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+              ]"
+              @change="onBranchChange"
+              :disabled="isLoadingBranches"
+            >
+              <option value="">
+                {{ isLoadingBranches ? 'Loading branches...' : 'Select Branch' }}
+              </option>
+              <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                {{ branch.name }}
+              </option>
+            </select>
+            <div v-if="errors.branch_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
+              {{ errors.branch_id }}
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700"
+        >
+          <NuxtLink to="/users" class="btn-secondary w-full sm:w-auto text-center">Cancel</NuxtLink>
+          <button
+            type="submit"
+            :disabled="isSubmitting || !isFormValid"
+            class="btn-primary w-full sm:w-auto"
+            :class="{ 'opacity-50 cursor-not-allowed': isSubmitting || !isFormValid }"
+          >
+            <span v-if="isSubmitting">
+              <svg
+                class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Creating Staff Member...
+            </span>
+            <span v-else>Save Staff Member</span>
+          </button>
+        </div>
+      </form>
+    </div>
 
     <!-- Generated Password Modal -->
     <div
@@ -228,7 +232,7 @@
       class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+        class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-md mx-4 sm:mx-auto shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
         <div class="mt-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -247,15 +251,17 @@
               </p>
             </div>
             <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded border">
-              <div class="flex items-center justify-between">
+              <div
+                class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
+              >
                 <code
-                  class="text-sm font-mono text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-2 py-1 rounded border select-all"
+                  class="text-sm font-mono text-gray-900 dark:text-white bg-white dark:bg-gray-800 px-2 py-1 rounded border select-all break-all flex-1"
                 >
                   {{ generatedPassword }}
                 </code>
                 <button
                   @click="copyPassword"
-                  class="ml-2 p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+                  class="p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 flex-shrink-0"
                   title="Copy password"
                 >
                   <svg
@@ -279,7 +285,7 @@
           <div class="mt-6 flex justify-end">
             <button
               @click="closePasswordModal"
-              class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               OK
             </button>

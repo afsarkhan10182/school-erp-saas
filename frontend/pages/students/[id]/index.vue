@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
+      <div class="mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <nav class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
               <NuxtLink to="/students" class="hover:text-indigo-600 dark:hover:text-indigo-400"
@@ -12,15 +12,17 @@
               <span>/</span>
               <span class="text-gray-900 dark:text-white">Details</span>
             </nav>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Student Details</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Student Details
+            </h1>
             <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
               View and manage student information
             </p>
           </div>
-          <div class="flex space-x-3">
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               @click="editStudent"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
+              class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors duration-200"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -34,14 +36,14 @@
             </button>
             <NuxtLink
               :to="`/students/${student?.id}/fee-ledger`"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
+              class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
             >
               <CreditCard class="h-4 w-4 mr-2" />
               Fee Ledger
             </NuxtLink>
             <button
               @click="$router.back()"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+              class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -77,32 +79,36 @@
           class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
         >
           <div
-            class="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 px-6 py-4"
+            class="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-700 dark:to-indigo-800 px-4 sm:px-6 py-4"
           >
-            <div class="flex items-center space-x-6">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6"
+            >
               <!-- Profile Picture -->
-              <div class="relative">
+              <div class="relative flex-shrink-0 self-center sm:self-auto">
                 <UserAvatar
                   :image-url="student.photo"
                   :user="student"
                   size="xl"
                   :alt="getStudentFullName(student)"
                   container-class="relative"
-                  image-class="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
-                  fallback-class="w-24 h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
-                  initials-class="text-2xl font-bold text-indigo-600 dark:text-indigo-400"
+                  image-class="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
+                  fallback-class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg"
+                  initials-class="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400"
                 />
                 <div
-                  class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 border-2 border-white dark:border-gray-700 rounded-full"
+                  class="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-400 border-2 border-white dark:border-gray-700 rounded-full"
                 ></div>
               </div>
 
               <!-- Student Name and Basic Info -->
-              <div class="flex-1">
-                <h2 class="text-2xl font-bold text-white">
+              <div class="flex-1 text-center sm:text-left">
+                <h2 class="text-xl sm:text-2xl font-bold text-white">
                   {{ getStudentFullName(student) }}
                 </h2>
-                <div class="flex items-center space-x-4 mt-2 text-indigo-100">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-2 text-indigo-100"
+                >
                   <span class="flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -148,9 +154,9 @@
         </div>
 
         <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <!-- Left Column - Personal & Academic Info -->
-          <div class="lg:col-span-2 space-y-8">
+          <div class="lg:col-span-2 space-y-6 lg:space-y-8">
             <!-- Personal Information -->
             <div
               class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
@@ -175,8 +181,8 @@
                   Personal Information
                 </h3>
               </div>
-              <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="p-4 sm:p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div class="space-y-4">
                     <div>
                       <label class="text-sm font-medium text-gray-500 dark:text-gray-400"
@@ -321,8 +327,8 @@
                   Contact Information
                 </h3>
               </div>
-              <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="p-4 sm:p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div class="space-y-4">
                     <div>
                       <label class="text-sm font-medium text-gray-500 dark:text-gray-400"
@@ -411,19 +417,21 @@
                   Parents & Guardians
                 </h3>
               </div>
-              <div class="p-6">
+              <div class="p-4 sm:p-6">
                 <div v-if="student.parents && student.parents.length > 0" class="space-y-6">
                   <div
                     v-for="parent in student.parents"
                     :key="parent.id"
                     class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
                   >
-                    <div class="flex items-center justify-between mb-3">
+                    <div
+                      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3"
+                    >
                       <h4 class="font-medium text-gray-900 dark:text-white">
                         {{ parent.father_name || parent.mother_name || parent.guardian_name }}
                       </h4>
                       <span
-                        class="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full capitalize"
+                        class="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full capitalize self-start sm:self-auto"
                       >
                         {{ parent.relationship || 'Guardian' }}
                       </span>
@@ -510,7 +518,7 @@
           </div>
 
           <!-- Right Column - Additional Info -->
-          <div class="space-y-8">
+          <div class="space-y-6 lg:space-y-8">
             <!-- Quick Stats -->
             <div
               class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
@@ -535,7 +543,7 @@
                   Quick Stats
                 </h3>
               </div>
-              <div class="p-6">
+              <div class="p-4 sm:p-6">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Age</span>
@@ -586,7 +594,7 @@
                   Additional Information
                 </h3>
               </div>
-              <div class="p-6">
+              <div class="p-4 sm:p-6">
                 <div v-if="student.notes" class="mb-4">
                   <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Notes</label>
                   <p class="text-sm text-gray-900 dark:text-white mt-1">{{ student.notes }}</p>
@@ -629,7 +637,7 @@
                   Documents
                 </h3>
               </div>
-              <div class="p-6">
+              <div class="p-4 sm:p-6">
                 <div class="space-y-2">
                   <div
                     v-for="(doc, key) in student.documents"

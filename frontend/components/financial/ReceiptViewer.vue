@@ -553,36 +553,180 @@ const getReceiptTitle = () => {
 const printReceipt = () => {
   isPrinting.value = true;
 
-  // Wait for DOM update
+  // Create a new window for printing
+  const printContent = receiptContainer.value.innerHTML;
+  const printWindow = window.open('', '_blank');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Receipt Print</title>
+      <style>
+        @page {
+          margin: 0.3in;
+          size: A4;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          font-size: 12px;
+          line-height: 1.2;
+        }
+        .receipt {
+          width: 100%;
+          max-width: 400px;
+          margin: 0 auto;
+          background: white;
+          border: 1px solid #ddd;
+          padding: 15px;
+          box-sizing: border-box;
+        }
+        .header {
+          padding: 15px;
+          border-bottom: 2px solid #333;
+          background: #f8f9fa;
+          display: flex;
+          align-items: flex-start;
+          gap: 15px;
+        }
+        .receipt-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          border: 2px solid #333;
+          object-fit: contain;
+          background: white;
+          flex-shrink: 0;
+        }
+        .header-content {
+          flex: 1;
+          text-align: center;
+        }
+        .trust-name {
+          font-size: 10px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+        }
+        .school-name {
+          font-size: 14px;
+          font-weight: bold;
+          color: #000;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+        }
+        .school-address {
+          font-size: 10px;
+          color: #666;
+        }
+        .receipt-title {
+          text-align: center;
+          font-size: 16px;
+          font-weight: bold;
+          color: #000;
+          margin: 15px 0;
+          text-transform: uppercase;
+        }
+        .receipt-info {
+          padding: 10px;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 6px;
+          font-size: 11px;
+        }
+        .info-label {
+          font-weight: bold;
+          color: #333;
+        }
+        .info-value {
+          color: #000;
+          font-weight: 500;
+        }
+        .fee-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 10px 0;
+          border: 1px solid #ddd;
+        }
+        .fee-table th {
+          background-color: #f8f9fa;
+          font-weight: bold;
+          text-align: center;
+          border: 1px solid #ddd;
+          padding: 6px;
+          font-size: 10px;
+        }
+        .fee-table td {
+          text-align: left;
+          border: 1px solid #ddd;
+          padding: 6px;
+          font-size: 10px;
+        }
+        .fee-table td:last-child {
+          text-align: right;
+        }
+        .summary-section {
+          margin: 10px 0;
+          padding: 8px;
+          background-color: #f8f9fa;
+          border: 1px solid #ddd;
+        }
+        .remaining-info {
+          background-color: #fff3cd;
+          border: 1px solid #ffeaa7;
+          padding: 8px;
+          margin: 10px 0;
+          border-radius: 3px;
+        }
+        .remaining-title {
+          font-weight: bold;
+          color: #856404;
+          margin-bottom: 3px;
+          font-size: 10px;
+        }
+        .signature-section {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 15px;
+          padding-top: 10px;
+          border-top: 1px solid #ddd;
+        }
+        .signature {
+          text-align: center;
+          font-size: 10px;
+          color: #333;
+          font-weight: 500;
+        }
+        .signature-line {
+          width: 80px;
+          border-top: 1px solid #000;
+          margin: 3px auto;
+        }
+      </style>
+    </head>
+    <body>
+      ${printContent}
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+
+  // Wait for content to load, then print
   setTimeout(() => {
-    window.print();
+    printWindow.print();
+    printWindow.close();
     isPrinting.value = false;
-  }, 100);
+  }, 500);
 };
 
 onMounted(() => {
-  // Add print styles
-  const style = document.createElement('style');
-  style.textContent = `
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      .receipt-container, .receipt-container * {
-        visibility: visible;
-      }
-      .receipt-container {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-      }
-      .receipt-actions {
-        display: none !important;
-      }
-    }
-  `;
-  document.head.appendChild(style);
+  // Component mounted - no additional setup needed
 });
 </script>
 
@@ -590,10 +734,18 @@ onMounted(() => {
 .receipt-viewer {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   background: #f5f5f5;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+  .receipt-viewer {
+    padding: 5px;
+    margin: 0;
+    max-width: 100%;
+  }
 }
 
 .modal-header {
@@ -621,7 +773,7 @@ onMounted(() => {
 .receipt-container {
   display: flex;
   justify-content: center;
-  padding: 20px;
+  padding: 10px;
   background: white;
   border-radius: 0 0 8px 8px;
 }
@@ -633,6 +785,18 @@ onMounted(() => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   font-family: Arial, sans-serif;
   color: #000;
+}
+
+@media (max-width: 640px) {
+  .receipt-container {
+    padding: 5px;
+  }
+
+  .receipt {
+    width: 100%;
+    max-width: 350px;
+    font-size: 12px;
+  }
 }
 
 .receipt-print {
@@ -891,21 +1055,67 @@ onMounted(() => {
 @media (max-width: 640px) {
   .receipt {
     width: 100%;
-    max-width: 400px;
+    max-width: 350px;
+    font-size: 11px;
   }
 
   .modal-header {
-    padding: 12px 16px;
+    padding: 8px 12px;
   }
 
   .modal-title {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .action-button {
-    width: 32px;
-    height: 32px;
-    padding: 6px;
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+  }
+
+  .header {
+    padding: 10px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .receipt-logo {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 10px;
+  }
+
+  .school-name {
+    font-size: 12px;
+  }
+
+  .receipt-title {
+    font-size: 14px;
+    margin: 10px 0;
+  }
+
+  .info-row {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+
+  .fee-table th,
+  .fee-table td {
+    padding: 4px;
+    font-size: 9px;
+  }
+
+  .signature-section {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .signature {
+    font-size: 9px;
+  }
+
+  .signature-line {
+    width: 60px;
   }
 }
 </style>

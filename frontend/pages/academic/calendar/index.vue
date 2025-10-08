@@ -9,18 +9,7 @@
             Manage academic year events, holidays, terms, and important dates
           </p>
         </div>
-        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
-          <button
-            @click="activeTab = 'terms'"
-            :class="[
-              'inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md',
-              activeTab === 'terms'
-                ? 'border-indigo-500 text-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 dark:text-indigo-300'
-                : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
-            ]"
-          >
-            Manage Terms
-          </button>
+        <div class="mt-4 sm:mt-0">
           <button
             @click="showCreateModal = true"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -31,35 +20,12 @@
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="mb-8">
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="-mb-px flex space-x-8">
-            <button
-              @click="activeTab = 'calendar'"
-              :class="[
-                'py-2 px-1 border-b-2 font-medium text-sm',
-                activeTab === 'calendar'
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              ]"
-            >
-              Calendar Events
-            </button>
-            <button
-              @click="activeTab = 'terms'"
-              :class="[
-                'py-2 px-1 border-b-2 font-medium text-sm',
-                activeTab === 'terms'
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              ]"
-            >
-              Terms & Semesters
-            </button>
-          </nav>
-        </div>
-      </div>
+      <!-- Tab Navigation -->
+      <ScrollableTabs
+        :tabs="calendarTabs"
+        :active-tab="activeTab"
+        @tab-change="activeTab = $event"
+      />
 
       <!-- Filters -->
       <div
@@ -572,7 +538,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { Calendar, Clock } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
+import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import { useAcademics } from '~/composables/useAcademics';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '~/utils/formatters';
 import { AcademicCalendar } from '~/api';
@@ -580,7 +548,7 @@ import { termApi } from '~/api/academic/terms';
 import Modal from '~/components/ui/Modal.vue';
 import CalendarEventForm from '~/components/forms/CalendarEventForm.vue';
 import TermForm from '~/components/forms/TermForm.vue';
-import { Plus, Calendar, Edit, Trash2 } from 'lucide-vue-next';
+import { Plus, Edit, Trash2 } from 'lucide-vue-next';
 
 // Composables
 const { showToast } = useToast();
@@ -598,6 +566,12 @@ const isEditingTerm = ref(false);
 const editingEvent = ref(null);
 const editingTerm = ref(null);
 const activeTab = ref('calendar');
+
+// Tab configuration
+const calendarTabs = [
+  { id: 'calendar', name: 'Calendar Events', icon: Calendar },
+  { id: 'terms', name: 'Terms & Semesters', icon: Clock }
+];
 
 // Filters
 const filters = ref({

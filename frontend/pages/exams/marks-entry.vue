@@ -14,9 +14,23 @@
     <div
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Exam</h3>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Exam Schedule</h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Branch Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >Branch</label
+          >
+          <EnhancedDropdown
+            v-model="selectedBranch"
+            :options="branchDropdownOptions"
+            placeholder="Select Branch"
+            :loading="branchesLoading"
+            @update:model-value="onBranchChange"
+          />
+        </div>
+
         <!-- Exam Type -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -26,7 +40,7 @@
             v-model="selectedExamType"
             :options="examTypeDropdownOptions"
             placeholder="All Exam Types"
-            @update:model-value="loadExams"
+            @update:model-value="loadExamSchedules"
           />
         </div>
 
@@ -39,7 +53,7 @@
             v-model="selectedClass"
             :options="classDropdownOptions"
             placeholder="All Classes"
-            @update:model-value="loadExams"
+            @update:model-value="loadExamSchedules"
           />
         </div>
 
@@ -52,36 +66,49 @@
             v-model="selectedAcademicYear"
             :options="academicYearDropdownOptions"
             placeholder="All Years"
-            @update:model-value="loadExams"
+            @update:model-value="loadExamSchedules"
           />
         </div>
       </div>
 
-      <!-- Exam List -->
-      <div v-if="exams.length > 0" class="mt-6">
-        <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">Available Exams</h4>
+      <!-- Exam Schedules List -->
+      <div v-if="examSchedules.length > 0" class="mt-6">
+        <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">
+          Available Exam Schedules
+        </h4>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
-            v-for="exam in exams"
-            :key="exam.id"
-            @click="selectExam(exam)"
+            v-for="schedule in examSchedules"
+            :key="schedule.id"
+            @click="selectExamSchedule(schedule)"
             class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             :class="{
-              'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20': selectedExam?.id === exam.id
+              'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20':
+                selectedExamSchedule?.id === schedule.id
             }"
           >
             <div class="flex items-center justify-between mb-2">
-              <h5 class="font-medium text-gray-900 dark:text-white">{{ exam.name }}</h5>
-              <span class="text-xs px-2 py-1 rounded-full" :class="getStatusClass(exam.status)">
-                {{ exam.status }}
+              <h5 class="font-medium text-gray-900 dark:text-white">{{ schedule.exam?.name }}</h5>
+              <span
+                class="text-xs px-2 py-1 rounded-full"
+                :class="getStatusClass(schedule.status?.name)"
+              >
+                {{ schedule.status?.name || 'Scheduled' }}
               </span>
             </div>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              {{ exam.class?.name }} - {{ exam.subject?.name || 'All Subjects' }}
+              {{ schedule.exam?.class?.name }} -
+              {{ schedule.exam?.subject?.name || 'All Subjects' }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              Date: {{ formatDate(exam.exam_date) }}
-            </p>
+            <div class="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+              <p>Date: {{ formatDate(schedule.exam_date) }}</p>
+              <p v-if="schedule.start_time && schedule.end_time">
+                Time: {{ schedule.start_time }} - {{ schedule.end_time }}
+              </p>
+              <p v-if="schedule.examHall">
+                Hall: {{ schedule.examHall.name }} ({{ schedule.examHall.code }})
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -122,19 +149,19 @@
 
     <!-- Bulk Marks Entry Section -->
     <div
-      v-if="selectedExam"
+      v-if="selectedExamSchedule"
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
       <BulkMarksEntry
-        :exam="selectedExam"
+        :exam="selectedExamSchedule.exam"
         :students="students"
-        @marks-updated="loadStudentsForExam(selectedExam)"
+        @marks-updated="loadStudentsForExamSchedule(selectedExamSchedule)"
       />
     </div>
 
     <!-- Optimized Results Management Section -->
     <div
-      v-if="selectedExam && showResultsManagement"
+      v-if="selectedExamSchedule && showResultsManagement"
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
       <div class="flex items-center justify-between mb-6">
@@ -154,12 +181,12 @@
         </button>
       </div>
 
-      <ExamResults :exam="selectedExam" @close="showResultsManagement = false" />
+      <ExamResults :exam="selectedExamSchedule.exam" @close="showResultsManagement = false" />
     </div>
 
     <!-- Show Results Management Button -->
     <div
-      v-if="selectedExam && !showResultsManagement"
+      v-if="selectedExamSchedule && !showResultsManagement"
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
       <div class="text-center">
@@ -180,18 +207,26 @@
 
     <!-- Marks Entry Section -->
     <div
-      v-if="selectedExam && students.length > 0"
+      v-if="selectedExamSchedule && students.length > 0"
       class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
     >
       <div class="flex items-center justify-between mb-6">
         <div>
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">Enter Marks</h3>
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {{ selectedExam.name }} - {{ selectedExam.class?.name }}
-            {{ selectedExam.section?.name ? `(${selectedExam.section.name})` : '' }}
+            {{ selectedExamSchedule.exam.name }} - {{ selectedExamSchedule.exam.class?.name }}
+            {{
+              selectedExamSchedule.exam.section?.name
+                ? `(${selectedExamSchedule.exam.section.name})`
+                : ''
+            }}
           </p>
           <p class="text-xs text-gray-500 dark:text-gray-400">
-            Max Marks: {{ selectedExam.max_marks }} | Date: {{ formatDate(selectedExam.exam_date) }}
+            Max Marks: {{ selectedExamSchedule.exam.max_marks }} | Date:
+            {{ formatDate(selectedExamSchedule.exam_date) }}
+            <span v-if="selectedExamSchedule.start_time && selectedExamSchedule.end_time">
+              | Time: {{ selectedExamSchedule.start_time }} - {{ selectedExamSchedule.end_time }}
+            </span>
           </p>
         </div>
 
@@ -340,7 +375,7 @@
                 <input
                   v-model="studentMarks[student.id].marks_obtained"
                   type="number"
-                  :max="selectedExam.max_marks"
+                  :max="selectedExamSchedule?.exam?.max_marks"
                   min="0"
                   step="0.01"
                   class="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
@@ -441,6 +476,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useExamOptions } from '~/composables/useExamOptions';
 import { useAcademics } from '~/composables/useAcademics';
+import { useBranches } from '~/composables/useBranches';
+import { useExamSchedules } from '~/composables/useExamSchedules';
 import { Exams } from '~/api';
 import { Students } from '~/api';
 import BulkMarksEntry from '~/components/academic/BulkMarksEntry.vue';
@@ -451,22 +488,33 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 const { showToast } = useToast();
 const { examTypeOptions, loadAllExamOptions } = useExamOptions();
 const { classOptions, academicYears, fetchClasses, fetchAcademicYears } = useAcademics();
+const { branches, loading: branchesLoading, fetchBranches } = useBranches();
+const { loadSchedules: loadExamSchedulesApi } = useExamSchedules();
 
 // Reactive data
 const loading = ref(false);
 const saving = ref(false);
-const exams = ref([]);
+const examSchedules = ref([]);
 const students = ref([]);
-const selectedExam = ref(null);
+const selectedExamSchedule = ref(null);
 const studentMarks = ref({});
 
 // Filters
+const selectedBranch = ref('');
 const selectedExamType = ref('');
 const selectedClass = ref('');
 const selectedAcademicYear = ref('');
 const showResultsManagement = ref(false);
 
 // Dropdown options
+const branchDropdownOptions = computed(() => [
+  { value: '', label: 'Select Branch' },
+  ...branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+]);
+
 const examTypeDropdownOptions = computed(() => [
   { value: '', label: 'Select Exam Type' },
   ...examTypeOptions.value
@@ -507,7 +555,7 @@ const averagePercentage = computed(() => {
 });
 
 const isValidToSave = computed(() => {
-  if (!selectedExam.value || students.value.length === 0) return false;
+  if (!selectedExamSchedule.value || students.value.length === 0) return false;
 
   // Check if at least one student has marks entered
   const hasMarks = students.value.some(student => {
@@ -521,38 +569,47 @@ const isValidToSave = computed(() => {
 const validationErrors = ref([]);
 
 // Methods
-const loadExams = async () => {
+const onBranchChange = async () => {
+  if (selectedBranch.value) {
+    await fetchClasses({ branchId: selectedBranch.value });
+    await loadExamSchedules();
+  } else {
+    examSchedules.value = [];
+  }
+};
+
+const loadExamSchedules = async () => {
   try {
     loading.value = true;
 
     const filters = {};
+    if (selectedBranch.value) filters.branch_id = selectedBranch.value;
     if (selectedExamType.value) filters.exam_type = selectedExamType.value;
     if (selectedClass.value) filters.class_id = selectedClass.value;
     if (selectedAcademicYear.value) filters.academic_year = selectedAcademicYear.value;
 
-    const response = await Exams.getAll(filters);
-    exams.value = response.data.exams || response.data.rows || [];
+    const schedules = await loadExamSchedulesApi(filters);
+    examSchedules.value = schedules || [];
   } catch (error) {
-    console.error('Error loading exams:', error);
-    showToast('Failed to load exams', 'error');
+    showToast('Failed to load exam schedules', 'error');
   } finally {
     loading.value = false;
   }
 };
 
-const selectExam = async exam => {
-  selectedExam.value = exam;
-  await loadStudentsForExam(exam);
+const selectExamSchedule = async schedule => {
+  selectedExamSchedule.value = schedule;
+  await loadStudentsForExamSchedule(schedule);
 };
 
-const loadStudentsForExam = async exam => {
+const loadStudentsForExamSchedule = async schedule => {
   try {
     loading.value = true;
 
     // Load students for the exam's class and section
     const params = {
-      class_id: exam.class_id,
-      section_id: exam.section_id || undefined,
+      class_id: schedule.exam.class_id,
+      section_id: schedule.exam.section_id || undefined,
       is_active: true
     };
 
@@ -570,7 +627,6 @@ const loadStudentsForExam = async exam => {
       };
     });
   } catch (error) {
-    console.error('Error loading students:', error);
     showToast('Failed to load students', 'error');
   } finally {
     loading.value = false;
@@ -579,15 +635,14 @@ const loadStudentsForExam = async exam => {
 
 const calculateStudentResult = async studentId => {
   const marks = studentMarks.value[studentId];
-  if (marks.marks_obtained && selectedExam.value.max_marks > 0) {
-    marks.percentage = (marks.marks_obtained / selectedExam.value.max_marks) * 100;
+  if (marks.marks_obtained && selectedExamSchedule.value?.exam?.max_marks > 0) {
+    marks.percentage = (marks.marks_obtained / selectedExamSchedule.value.exam.max_marks) * 100;
 
     // Calculate grade using backend service
     try {
       const gradeResponse = await Exams.calculateGrade(marks.percentage);
       marks.grade = gradeResponse.data.grade;
     } catch (error) {
-      console.warn('Failed to calculate grade:', error);
       // Fallback to basic grade calculation
       marks.grade = calculateBasicGrade(marks.percentage);
     }
@@ -647,9 +702,9 @@ const validateMarks = () => {
 
       if (isNaN(marksObtained) || marksObtained < 0) {
         errors.push(`${student.first_name} ${student.last_name}: Invalid marks entered`);
-      } else if (marksObtained > selectedExam.value.max_marks) {
+      } else if (marksObtained > selectedExamSchedule.value?.exam?.max_marks) {
         errors.push(
-          `${student.first_name} ${student.last_name}: Marks exceed maximum (${selectedExam.value.max_marks})`
+          `${student.first_name} ${student.last_name}: Marks exceed maximum (${selectedExamSchedule.value.exam.max_marks})`
         );
       }
     }
@@ -686,13 +741,12 @@ const saveMarks = async () => {
       };
     });
 
-    await Exams.bulkCreateResults(selectedExam.value.id, results);
+    await Exams.bulkCreateResults(selectedExamSchedule.value.exam.id, results);
     showToast('Marks saved successfully', 'success');
 
     // Clear validation errors after successful save
     validationErrors.value = [];
   } catch (error) {
-    console.error('Error saving marks:', error);
     showToast('Failed to save marks', 'error');
   } finally {
     saving.value = false;
@@ -730,6 +784,6 @@ const formatDate = date => {
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([loadAllExamOptions(), loadClasses(), fetchAcademicYears()]);
+  await Promise.all([loadAllExamOptions(), fetchBranches(), fetchAcademicYears()]);
 });
 </script>

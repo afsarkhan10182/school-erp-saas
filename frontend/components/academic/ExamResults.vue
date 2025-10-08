@@ -341,8 +341,7 @@ const loadResults = async () => {
     results.value = response.data.results;
     summary.value = response.data.summary;
   } catch (error) {
-    showToast('error', 'Failed to load exam results');
-    console.error('Error loading results:', error);
+    showToast('Failed to load exam results', 'error');
   } finally {
     loading.value = false;
   }
@@ -359,7 +358,7 @@ const loadStudents = async () => {
     });
     students.value = response.data.students;
   } catch (error) {
-    console.error('Error loading students:', error);
+    showToast('Failed to load students', 'error');
   }
 };
 
@@ -370,8 +369,7 @@ const handleBulkSubmit = async resultsData => {
     showBulkEntry.value = false;
     await loadResults();
   } catch (error) {
-    showToast('error', 'Failed to save results');
-    console.error('Error saving results:', error);
+    showToast('Failed to save results', 'error');
   }
 };
 
@@ -387,8 +385,7 @@ const handleResultSubmit = async resultData => {
     showEditModal.value = false;
     await loadResults();
   } catch (error) {
-    showToast('error', 'Failed to update result');
-    console.error('Error updating result:', error);
+    showToast('Failed to update result', 'error');
   }
 };
 
@@ -404,8 +401,7 @@ const exportResults = async () => {
     link.remove();
     window.URL.revokeObjectURL(url);
   } catch (error) {
-    showToast('error', 'Failed to export results');
-    console.error('Error exporting results:', error);
+    showToast('Failed to export results', 'error');
   }
 };
 
