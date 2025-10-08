@@ -52,58 +52,21 @@
         </FormField>
       </div>
 
-      <!-- Sort Order -->
-      <div>
-        <FormField id="sort-order" label="Sort Order" :errorMessage="errors.sort_order">
-          <input
-            v-model.number="form.sort_order"
-            type="number"
-            placeholder="1"
-            class="input-field"
-            min="0"
-            @blur="validateField('sort_order')"
-            @input="clearError('sort_order')"
-          />
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Order in which exam types appear in dropdowns
-          </p>
-        </FormField>
-      </div>
-
-      <!-- Status -->
-      <div>
-        <FormField id="status" label="Status" :errorMessage="errors.is_active">
-          <select
-            v-model="form.is_active"
-            class="input-field"
-            @blur="validateField('is_active')"
-            @change="clearError('is_active')"
-          >
-            <option :value="true">Active</option>
-            <option :value="false">Inactive</option>
-          </select>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Inactive exam types won't appear in exam creation
-          </p>
-        </FormField>
-      </div>
-    </div>
-
-    <!-- Description -->
-    <div>
-      <FormField id="description" label="Description" :errorMessage="errors.description">
-        <textarea
-          v-model="form.description"
-          placeholder="Describe this exam type and when it's typically used..."
-          class="input-field"
-          rows="3"
-          @blur="validateField('description')"
-          @input="clearError('description')"
-        ></textarea>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Optional description to help teachers understand when to use this exam type
+      <!-- Active Status -->
+      <div class="flex items-center">
+        <input
+          v-model="form.is_active"
+          type="checkbox"
+          id="is-active"
+          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label for="is-active" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+          Active
+        </label>
+        <p class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+          Inactive exam types won't appear in exam creation
         </p>
-      </FormField>
+      </div>
     </div>
 
     <!-- Submit Button -->
@@ -175,9 +138,7 @@ const errors = ref({});
 const form = ref({
   name: '',
   code: '',
-  description: '',
   weightage: 25,
-  sort_order: 0,
   is_active: true
 });
 
@@ -250,20 +211,6 @@ const validateField = field => {
       } else {
         delete errors.value.weightage;
       }
-    },
-    sort_order: () => {
-      if (form.value.sort_order < 0) {
-        errors.value.sort_order = 'Sort order cannot be negative';
-      } else {
-        delete errors.value.sort_order;
-      }
-    },
-    description: () => {
-      if (form.value.description && form.value.description.length > 500) {
-        errors.value.description = 'Description cannot exceed 500 characters';
-      } else {
-        delete errors.value.description;
-      }
     }
   };
 
@@ -293,7 +240,6 @@ const handleSubmit = async () => {
 
     emit('submit', submitData);
   } catch (error) {
-    console.error('Error in handleSubmit:', error);
     showToast('Failed to save exam type', 'error');
   } finally {
     loading.value = false;
@@ -306,18 +252,14 @@ const initializeForm = () => {
     form.value = {
       name: props.examType.name,
       code: props.examType.code,
-      description: props.examType.description || '',
       weightage: props.examType.weightage,
-      sort_order: props.examType.sort_order || 0,
       is_active: props.examType.is_active !== false
     };
   } else {
     form.value = {
       name: '',
       code: '',
-      description: '',
       weightage: 25,
-      sort_order: 0,
       is_active: true
     };
   }

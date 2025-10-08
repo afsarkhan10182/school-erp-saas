@@ -181,7 +181,6 @@ const deleteSubject = async subject => {
     emit('delete', subject.id);
   } catch (error) {
     showToast('Failed to delete subject', 'error');
-    console.error('Error deleting subject:', error);
   }
 };
 
@@ -195,7 +194,6 @@ const handleSubmit = async subjectData => {
     closeModal();
   } catch (error) {
     showToast('Failed to save subject', 'error');
-    console.error('Error saving subject:', error);
   }
 };
 

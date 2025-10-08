@@ -676,24 +676,10 @@ const menuGroups = computed(() => {
               requiredModule: 'exams'
             },
             {
-              id: 'exam-types',
-              title: 'Exam Types',
-              path: '/exams/types',
-              icon: Tag,
-              requiredModule: 'exams'
-            },
-            {
               id: 'marks-entry',
               title: 'Marks Entry',
               path: '/exams/marks-entry',
               icon: Edit,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'exam-results',
-              title: 'Exam Results',
-              path: '/exams/results',
-              icon: BarChart3,
               requiredModule: 'exams'
             },
             {

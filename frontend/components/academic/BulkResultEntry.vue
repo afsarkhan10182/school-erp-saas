@@ -238,8 +238,7 @@ const handleSubmit = async () => {
 
     emit('submit', submitData);
   } catch (error) {
-    showToast('error', 'Failed to save results');
-    console.error('Error saving results:', error);
+    showToast('Failed to save results', 'error');
   } finally {
     loading.value = false;
   }

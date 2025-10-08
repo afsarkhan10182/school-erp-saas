@@ -295,8 +295,7 @@ const loadStudents = async () => {
     });
     students.value = response.data.students;
   } catch (error) {
-    showToast('error', 'Failed to load students');
-    console.error('Error loading students:', error);
+    showToast('Failed to load students', 'error');
   } finally {
     loading.value = false;
   }
@@ -313,10 +312,9 @@ const generateReportCards = async () => {
       await generateIndividualReportCard(student, false);
     }
 
-    showToast('success', 'Report cards generated successfully');
+    showToast('Report cards generated successfully', 'success');
   } catch (error) {
-    showToast('error', 'Failed to generate report cards');
-    console.error('Error generating report cards:', error);
+    showToast('Failed to generate report cards', 'error');
   } finally {
     loading.value = false;
   }
@@ -338,10 +336,9 @@ const previewReportCard = async student => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     showToast(
-      'error',
-      `Failed to preview report card for ${student.first_name} ${student.last_name}`
+      `Failed to preview report card for ${student.first_name} ${student.last_name}`,
+      'error'
     );
-    console.error('Error previewing report card:', error);
   }
 };
 
@@ -369,14 +366,13 @@ const generateIndividualReportCard = async (student, showSuccess = true) => {
     window.URL.revokeObjectURL(url);
 
     if (showSuccess) {
-      showToast('success', 'Report card generated successfully');
+      showToast('Report card generated successfully', 'success');
     }
   } catch (error) {
     showToast(
-      'error',
-      `Failed to generate report card for ${student.first_name} ${student.last_name}`
+      `Failed to generate report card for ${student.first_name} ${student.last_name}`,
+      'error'
     );
-    console.error('Error generating report card:', error);
   }
 };
 
@@ -392,6 +388,6 @@ const getSectionName = sectionId => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadAllDropdowns();
+  await Promise.all([fetchClasses(), fetchSections()]);
 });
 </script>

@@ -38,12 +38,12 @@ class ExamTypeService extends BaseService {
    */
   static async getAllExamTypes(params, user) {
     return this.executeWithErrorHandling(async () => {
-      const { page = 1, limit = 10, search, is_active, branch_id } = params;
+      const { page = 1, limit = 10, search, is_active, school_id } = params;
       const offset = (page - 1) * limit;
 
+      // Exam types are school-wide entities - use school_id from params or user
       const whereClause = {
-        school_id: user.school_id,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: school_id || user.school_id
       };
 
       // Add filters
@@ -55,8 +55,7 @@ class ExamTypeService extends BaseService {
         ];
       }
 
-      if (is_active !== '') whereClause.is_active = is_active === 'true';
-      if (branch_id) whereClause.branch_id = branch_id;
+      if (is_active !== undefined && is_active !== '') whereClause.is_active = is_active === 'true';
 
       const { count, rows } = await ExamType.findAndCountAll({
         where: whereClause,
@@ -67,7 +66,10 @@ class ExamTypeService extends BaseService {
             attributes: ['id', 'name', 'code']
           }
         ],
-        order: [['name', 'ASC']],
+        order: [
+          ['sort_order', 'ASC'],
+          ['name', 'ASC']
+        ],
         limit: parseInt(limit),
         offset: offset
       });
@@ -89,13 +91,12 @@ class ExamTypeService extends BaseService {
   /**
    * Get exam type by ID
    */
-  static async getExamTypeById(id, user) {
+  static async getExamTypeById(id, user, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const examType = await ExamType.findOne({
         where: {
           id,
-          school_id: user.school_id,
-          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+          school_id: schoolId || user.school_id
         },
         include: [
           {
@@ -117,13 +118,12 @@ class ExamTypeService extends BaseService {
   /**
    * Update exam type
    */
-  static async updateExamType(id, updateData, user) {
+  static async updateExamType(id, updateData, user, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const examType = await ExamType.findOne({
         where: {
           id,
-          school_id: user.school_id,
-          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+          school_id: schoolId || user.school_id
         }
       });
 
@@ -135,7 +135,7 @@ class ExamTypeService extends BaseService {
       if (updateData.code && updateData.code !== examType.code) {
         const existingExamType = await ExamType.findOne({
           where: {
-            school_id: user.school_id,
+            school_id: schoolId || user.school_id,
             code: updateData.code,
             id: { [Op.ne]: id },
             is_active: true
@@ -159,13 +159,12 @@ class ExamTypeService extends BaseService {
   /**
    * Delete exam type
    */
-  static async deleteExamType(id, user) {
+  static async deleteExamType(id, user, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const examType = await ExamType.findOne({
         where: {
           id,
-          school_id: user.school_id,
-          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+          school_id: schoolId || user.school_id
         }
       });
 
@@ -191,12 +190,11 @@ class ExamTypeService extends BaseService {
   /**
    * Get exam types for dropdown (active exam types only)
    */
-  static async getExamTypesForDropdown(user, filters = {}) {
+  static async getExamTypesForDropdown(user, filters = {}, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
-        school_id: user.school_id,
-        is_active: true,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: schoolId || user.school_id,
+        is_active: true
       };
 
       // Apply additional filters
@@ -215,18 +213,20 @@ class ExamTypeService extends BaseService {
   /**
    * Get active exam types
    */
-  static async getActiveExamTypes(user) {
+  static async getActiveExamTypes(user, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
-        school_id: user.school_id,
-        is_active: true,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: schoolId || user.school_id,
+        is_active: true
       };
 
       const examTypes = await ExamType.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'code', 'description'],
-        order: [['name', 'ASC']]
+        attributes: ['id', 'name', 'code', 'description', 'weightage', 'is_active', 'sort_order'],
+        order: [
+          ['sort_order', 'ASC'],
+          ['name', 'ASC']
+        ]
       });
 
       return examTypes;
@@ -236,11 +236,10 @@ class ExamTypeService extends BaseService {
   /**
    * Get exam type statistics
    */
-  static async getExamTypeStats(user) {
+  static async getExamTypeStats(user, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
-        school_id: user.school_id,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: schoolId || user.school_id
       };
 
       const [totalExamTypes, activeExamTypes, examTypesByCategory] = await Promise.all([
@@ -292,12 +291,11 @@ class ExamTypeService extends BaseService {
   /**
    * Search exam types
    */
-  static async searchExamTypes(searchTerm, user, limit = 10) {
+  static async searchExamTypes(searchTerm, user, limit = 10, schoolId) {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
-        school_id: user.school_id,
+        school_id: schoolId || user.school_id,
         is_active: true,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id }),
         [Op.or]: [
           { name: { [Op.iLike]: `%${searchTerm}%` } },
           { code: { [Op.iLike]: `%${searchTerm}%` } },
@@ -307,8 +305,11 @@ class ExamTypeService extends BaseService {
 
       const examTypes = await ExamType.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'code', 'description'],
-        order: [['name', 'ASC']],
+        attributes: ['id', 'name', 'code', 'description', 'weightage', 'is_active', 'sort_order'],
+        order: [
+          ['sort_order', 'ASC'],
+          ['name', 'ASC']
+        ],
         limit: parseInt(limit)
       });
 

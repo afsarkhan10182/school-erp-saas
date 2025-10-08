@@ -73,28 +73,7 @@
       </div>
 
       <!-- Tab Navigation -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
-      >
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors',
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              ]"
-            >
-              <component :is="tab.icon" class="w-5 h-5 inline-block mr-2" />
-              {{ tab.name }}
-            </button>
-          </nav>
-        </div>
-      </div>
+      <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event" />
 
       <!-- Tab Content -->
       <div
@@ -187,6 +166,7 @@ import { Building2, Users as UsersIcon, UserCheck } from 'lucide-vue-next';
 import ClassAssignmentTab from '~/components/academic/ClassAssignmentTab.vue';
 import ClassTeacherTab from '~/components/academic/ClassTeacherTab.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables

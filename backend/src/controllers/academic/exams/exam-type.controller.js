@@ -29,7 +29,7 @@ class ExamTypeController {
       limit: parseInt(req.query.limit) || 10,
       search: req.query.search,
       is_active: req.query.is_active,
-      school_id: req.query.school_id
+      school_id: req.schoolId
     };
 
     const result = await ExamTypeService.getAllExamTypes(params, req.user);
@@ -42,7 +42,7 @@ class ExamTypeController {
    */
   static getExamTypeById = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const examType = await ExamTypeService.getExamTypeById(id, req.user);
+    const examType = await ExamTypeService.getExamTypeById(id, req.user, req.schoolId);
 
     success(res, { examType }, 'Exam type retrieved successfully');
   });
@@ -54,7 +54,7 @@ class ExamTypeController {
     const { id } = req.params;
     const updateData = req.body;
 
-    const examType = await ExamTypeService.updateExamType(id, updateData, req.user);
+    const examType = await ExamTypeService.updateExamType(id, updateData, req.user, req.schoolId);
 
     success(res, { examType }, 'Exam type updated successfully');
   });
@@ -64,7 +64,7 @@ class ExamTypeController {
    */
   static deleteExamType = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const result = await ExamTypeService.deleteExamType(id, req.user);
+    const result = await ExamTypeService.deleteExamType(id, req.user, req.schoolId);
 
     success(res, result, 'Exam type deleted successfully');
   });
@@ -73,7 +73,7 @@ class ExamTypeController {
    * Get active exam types for dropdown
    */
   static getActiveExamTypes = asyncHandler(async (req, res) => {
-    const examTypes = await ExamTypeService.getActiveExamTypes(req.user);
+    const examTypes = await ExamTypeService.getActiveExamTypes(req.user, req.schoolId);
 
     success(res, { examTypes }, 'Active exam types retrieved successfully');
   });

@@ -34,7 +34,14 @@ const AttendanceSession = require('./academic/attendance/attendance-session.mode
 const AttendanceRecord = require('./academic/attendance/attendance-record.model');
 const Timetable = require('./academic/timetable/timetable.model');
 const TimetableSlot = require('./academic/timetable/timetable-slot.model');
-const { Exam, ExamResult, ExamType, ExamStatus } = require('./academic/exams');
+const {
+  Exam,
+  ExamResult,
+  ExamType,
+  ExamStatus,
+  ExamSchedule,
+  ExamHall
+} = require('./academic/exams');
 
 // Initialize associations
 const models = {
@@ -74,7 +81,9 @@ const models = {
   Exam,
   ExamResult,
   ExamType,
-  ExamStatus
+  ExamStatus,
+  ExamSchedule,
+  ExamHall
 };
 
 // Call associate function for each model if it exists

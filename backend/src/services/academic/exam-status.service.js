@@ -11,8 +11,7 @@ class ExamStatusService extends BaseService {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
         school_id: user.school_id,
-        is_active: true,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        is_active: true
       };
 
       const examStatuses = await ExamStatus.findAll({
@@ -35,8 +34,7 @@ class ExamStatusService extends BaseService {
     return this.executeWithErrorHandling(async () => {
       const whereClause = {
         school_id: user.school_id,
-        is_active: true,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        is_active: true
       };
 
       const examStatuses = await ExamStatus.findAll({
@@ -61,8 +59,7 @@ class ExamStatusService extends BaseService {
       const offset = (page - 1) * limit;
 
       const whereClause = {
-        school_id: user.school_id,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: user.school_id
       };
 
       if (search) {
@@ -109,8 +106,7 @@ class ExamStatusService extends BaseService {
       const examStatus = await ExamStatus.findOne({
         where: {
           id,
-          school_id: user.school_id,
-          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+          school_id: user.school_id
         }
       });
 
@@ -209,8 +205,7 @@ class ExamStatusService extends BaseService {
       const examStatus = await ExamStatus.findOne({
         where: {
           id,
-          school_id: user.school_id,
-          ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+          school_id: user.school_id
         }
       });
 

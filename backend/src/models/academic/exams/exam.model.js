@@ -39,31 +39,9 @@ const Exam = sequelize.define(
         min: { args: [1], msg: 'Maximum marks must be at least 1' }
       }
     },
-    exam_date: {
-      type: DataTypes.DATEONLY,
-      allowNull: false
-    },
-    start_time: {
-      type: DataTypes.TIME,
-      allowNull: true
-    },
-    end_time: {
-      type: DataTypes.TIME,
-      allowNull: true
-    },
-    duration_minutes: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      comment: 'Duration in minutes if not using start/end time'
-    },
     academic_year: {
       type: DataTypes.STRING(10),
       allowNull: false
-    },
-    status_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'exam_statuses', key: 'id' }
     },
     is_active: {
       type: DataTypes.BOOLEAN,
@@ -133,20 +111,12 @@ const Exam = sequelize.define(
         fields: ['exam_type_id']
       },
       {
-        name: 'idx_exams_status_id',
-        fields: ['status_id']
-      },
-      {
         name: 'idx_exams_is_active',
         fields: ['is_active']
       },
       {
         name: 'idx_exams_academic_year',
         fields: ['academic_year']
-      },
-      {
-        name: 'idx_exams_exam_date',
-        fields: ['exam_date']
       }
     ]
   }
@@ -157,11 +127,6 @@ Exam.associate = models => {
   Exam.belongsTo(models.ExamType, {
     foreignKey: 'exam_type_id',
     as: 'examType'
-  });
-
-  Exam.belongsTo(models.ExamStatus, {
-    foreignKey: 'status_id',
-    as: 'examStatus'
   });
 
   Exam.belongsTo(models.Class, {
@@ -202,6 +167,11 @@ Exam.associate = models => {
   Exam.hasMany(models.ExamResult, {
     foreignKey: 'exam_id',
     as: 'results'
+  });
+
+  Exam.hasMany(models.ExamSchedule, {
+    foreignKey: 'exam_id',
+    as: 'schedules'
   });
 };
 

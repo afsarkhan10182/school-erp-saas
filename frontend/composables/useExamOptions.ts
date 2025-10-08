@@ -17,6 +17,7 @@ export const useExamOptions = () => {
 
   // Reactive state
   const examTypeOptions = ref<DropdownOption[]>([]);
+  const examTypes = ref<any[]>([]); // Raw exam types for display
   const examStatusOptions = ref<DropdownOption[]>([]);
   const durationTypeOptions = ref<DropdownOption[]>([
     { value: 'time_range', label: 'Start & End Time' },
@@ -26,22 +27,25 @@ export const useExamOptions = () => {
   const error = ref<string | null>(null);
 
   /**
-   * Load all active exam types
+   * Load all exam types (active and inactive)
    */
   const loadExamTypes = async () => {
     try {
       loading.value = true;
       error.value = null;
 
-      const response = await examTypeApi.getActive();
-      const examTypes = response.data || [];
+      const response = await examTypeApi.getAll({ limit: 100 }); // Get all without pagination
+      const rawExamTypes = response.data?.exam_types || [];
 
-      examTypeOptions.value = examTypes
+      // Store raw exam types for display (all types, both active and inactive)
+      examTypes.value = rawExamTypes;
+
+      // Format for dropdown options (only active types for dropdowns)
+      examTypeOptions.value = examTypes.value
         .filter((type: any) => type.is_active)
-        .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((type: any) => ({
           label: type.name,
-          value: type.code,
+          value: type.id, // Use ID for database relationships
           description: type.description,
           weightage: type.weightage,
           sort_order: type.sort_order,
@@ -101,6 +105,7 @@ export const useExamOptions = () => {
   return {
     // State
     examTypeOptions: readonly(examTypeOptions),
+    examTypes: readonly(examTypes), // Raw exam types for display
     examStatusOptions: readonly(examStatusOptions),
     durationTypeOptions: readonly(durationTypeOptions),
     loading: readonly(loading),

@@ -173,7 +173,6 @@ const totalAssignments = computed(() => {
 });
 
 const formattedClasses = computed(() => {
-  console.log('formattedClasses: props.classes:', props.classes);
   const result = [];
 
   props.classes.forEach(cls => {
@@ -187,7 +186,6 @@ const formattedClasses = computed(() => {
     });
   });
 
-  console.log('formattedClasses: Final result:', result);
   return result;
 });
 
@@ -281,7 +279,6 @@ const toggleAssignment = async (classId, subjectId) => {
     assignments.value.set(key, !isCurrentlyAssigned);
   } catch (error) {
     showToast('Failed to update assignment', 'error');
-    console.error('Error toggling assignment:', error);
   }
 };
 
@@ -291,13 +288,10 @@ const handleBulkAssign = async bulkData => {
     closeBulkModal();
   } catch (error) {
     showToast('Failed to bulk assign subjects', 'error');
-    console.error('Error in bulk assign:', error);
   }
 };
 
 const handleBulkAssignClick = () => {
-  console.log('Bulk assign clicked. Academic years:', props.academicYears);
-
   // Check if academic years are loaded
   if (!props.academicYears || props.academicYears.length === 0) {
     showToast('Academic years not loaded yet. Please wait...', 'error');
@@ -305,14 +299,12 @@ const handleBulkAssignClick = () => {
   }
 
   const currentYear = props.academicYears.find(year => year.is_current);
-  console.log('Current year found:', currentYear);
 
   if (!currentYear) {
     showToast('No current academic year is set. Please contact administrator.', 'error');
     return;
   }
 
-  console.log('Opening bulk assign modal for academic year:', currentYear.label);
   showBulkAssignModal.value = true;
 };
 

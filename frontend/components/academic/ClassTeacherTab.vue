@@ -217,8 +217,6 @@ const handleSubmit = async data => {
     }
     closeModal();
   } catch (error) {
-    console.error('Error in handleSubmit:', error);
-
     // Handle backend validation errors
     if (error.response?.data?.errors && classTeacherForm.value) {
       classTeacherForm.value.setBackendErrors(error.response.data.errors);

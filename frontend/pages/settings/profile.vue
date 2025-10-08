@@ -10,29 +10,11 @@
       </div>
 
       <!-- Tab Navigation -->
-      <div class="mb-6">
-        <nav class="flex space-x-8 border-b border-gray-200 dark:border-gray-700">
-          <button @click="activeTab = 'profile'" :class="tabButtonClasses(activeTab === 'profile')">
-            <User class="inline-block w-4 h-4 mr-2" />
-            Profile
-          </button>
-          <button
-            v-if="canViewSubscription"
-            @click="activeTab = 'subscription'"
-            :class="tabButtonClasses(activeTab === 'subscription')"
-          >
-            <CreditCard class="inline-block w-4 h-4 mr-2" />
-            Subscription
-          </button>
-          <button
-            @click="activeTab = 'password'"
-            :class="tabButtonClasses(activeTab === 'password')"
-          >
-            <Lock class="inline-block w-4 h-4 mr-2" />
-            Change Password
-          </button>
-        </nav>
-      </div>
+      <ScrollableTabs
+        :tabs="profileTabs"
+        :active-tab="activeTab"
+        @tab-change="activeTab = $event"
+      />
 
       <!-- Tab Content -->
       <div v-if="activeTab === 'profile'" class="bg-white dark:bg-gray-800 shadow rounded-lg">
@@ -265,6 +247,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { User, Upload, Loader2, CreditCard, Lock } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
+import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import { useToast } from '~/composables/useToast';
 import SubscriptionDetails from '~/components/shared/SubscriptionDetails.vue';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
@@ -284,6 +267,19 @@ const apiBase = config.public?.apiBase;
 // Tab management
 const route = useRoute();
 const activeTab = ref(route.query.tab === 'subscription' ? 'subscription' : 'profile');
+
+// Tab configuration
+const profileTabs = computed(() => {
+  const tabs = [{ id: 'profile', name: 'Profile', icon: User }];
+
+  if (canViewSubscription.value) {
+    tabs.push({ id: 'subscription', name: 'Subscription', icon: CreditCard });
+  }
+
+  tabs.push({ id: 'password', name: 'Change Password', icon: Lock });
+
+  return tabs;
+});
 
 // Form data
 const form = ref({
@@ -321,13 +317,6 @@ const readonlyInputClasses = computed(
   () =>
     'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
 );
-
-const tabButtonClasses = computed(() => isActive => [
-  'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-  isActive
-    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-]);
 
 const submitButtonClasses = computed(
   () =>

@@ -55,7 +55,11 @@ class ExamStatusController {
    */
   static async createExamStatus(req, res, next) {
     try {
-      const result = await ExamStatusService.createExamStatus(req.body, req.user.id);
+      const examStatusData = {
+        ...req.body,
+        school_id: req.schoolId
+      };
+      const result = await ExamStatusService.createExamStatus(examStatusData, req.user.id);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -67,7 +71,15 @@ class ExamStatusController {
    */
   static async updateExamStatus(req, res, next) {
     try {
-      const result = await ExamStatusService.updateExamStatus(req.params.id, req.body, req.user.id);
+      const examStatusData = {
+        ...req.body,
+        school_id: req.schoolId
+      };
+      const result = await ExamStatusService.updateExamStatus(
+        req.params.id,
+        examStatusData,
+        req.user.id
+      );
       res.json(result);
     } catch (error) {
       next(error);
