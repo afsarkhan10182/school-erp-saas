@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 
@@ -56,16 +57,9 @@ export function useCommon() {
     return Math.random().toString(36).substr(2, 9);
   };
 
-  const debounce = (func: Function, wait: number) => {
-    let timeout: NodeJS.Timeout;
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
+  // VueUse debounce function - more efficient and Vue-optimized
+  const createDebouncedFn = <T extends (...args: any[]) => any>(func: T, wait: number) => {
+    return useDebounceFn(func, wait);
   };
 
   const validateEmail = (email: string) => {
@@ -121,7 +115,7 @@ export function useCommon() {
     formatDateTime,
     formatCurrency,
     generateId,
-    debounce,
+    createDebouncedFn,
     validateEmail,
     validatePhone,
     copyToClipboard,

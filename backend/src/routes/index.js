@@ -35,6 +35,9 @@ const examTypeRoutes = require('./academic/exams/exam-type.routes');
 const examStatusRoutes = require('./academic/exams/exam-status.routes');
 const examScheduleRoutes = require('./academic/exams/exam-schedule.routes');
 const examHallRoutes = require('./academic/exams/exam-hall.routes');
+const examPositionRoutes = require('./academic/exams/exam-position.routes');
+const examResultRoutes = require('./academic/exams/exam-result.routes');
+const examReportRoutes = require('./academic/exams/exam-report.routes');
 const gradingSystemRoutes = require('./academic/grading-system.routes');
 
 // Academic timetable routes
@@ -89,6 +92,9 @@ router.use('/exam-types', examTypeRoutes);
 router.use('/exam-statuses', examStatusRoutes);
 router.use('/exam-schedules', examScheduleRoutes);
 router.use('/exam-halls', examHallRoutes);
+router.use('/exam-positions', examPositionRoutes);
+router.use('/exam-results', examResultRoutes);
+router.use('/exam-reports', examReportRoutes);
 router.use('/grading-systems', gradingSystemRoutes);
 
 // Academic timetable routes

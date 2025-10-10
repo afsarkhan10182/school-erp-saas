@@ -12,7 +12,8 @@ const {
   exportReport,
   exportPDFReport,
   exportExcelReport,
-  getSummary
+  getSummary,
+  debugAttendanceData
 } = require('~/controllers/academic/attendance/attendance.controller');
 
 // Import enhanced analytics controller
@@ -51,5 +52,8 @@ router.get(
   '/student/:studentId/history',
   AttendanceAnalyticsController.getStudentAttendanceHistory
 );
+
+// Debug route to check attendance data
+router.get('/debug', debugAttendanceData);
 
 module.exports = router;

@@ -1,5 +1,12 @@
 const express = require('express');
-const router = express.Router();
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
+const { validate } = require('~/middleware/shared/validate');
 const ExamScheduleController = require('~/controllers/academic/exams/exam-schedule.controller');
 const {
   createExamScheduleValidation,
@@ -8,11 +15,11 @@ const {
   deleteExamScheduleValidation,
   getAllExamSchedulesValidation
 } = require('~/validations/academic/exam-schedule');
-const { validate } = require('~/middleware/shared/validate');
-const { verifyToken: authenticate, authorize } = require('~/middleware/core/auth');
 
-// All routes require authentication
-router.use(authenticate);
+const router = express.Router();
+
+// All exam schedule routes require auth, school/branch context, and exam module access
+router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess('exams'));
 
 /**
  * @route   GET /api/exam-schedules
@@ -21,9 +28,7 @@ router.use(authenticate);
  */
 router.get(
   '/',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  getAllExamSchedulesValidation,
-  validate,
+  validate(getAllExamSchedulesValidation),
   ExamScheduleController.getAllExamSchedules
 );
 
@@ -32,24 +37,14 @@ router.get(
  * @desc    Get exam schedule by ID
  * @access  Private (Admin, Branch Admin, Teacher)
  */
-router.get(
-  '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  getExamScheduleValidation,
-  validate,
-  ExamScheduleController.getExamScheduleById
-);
+router.get('/:id', validate(getExamScheduleValidation), ExamScheduleController.getExamScheduleById);
 
 /**
  * @route   GET /api/exam-schedules/exam/:examId
  * @desc    Get all schedules for a specific exam
  * @access  Private (Admin, Branch Admin, Teacher)
  */
-router.get(
-  '/exam/:examId',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  ExamScheduleController.getSchedulesForExam
-);
+router.get('/exam/:examId', ExamScheduleController.getSchedulesForExam);
 
 /**
  * @route   POST /api/exam-schedules
@@ -58,9 +53,8 @@ router.get(
  */
 router.post(
   '/',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  createExamScheduleValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
+  validate(createExamScheduleValidation),
   ExamScheduleController.createExamSchedule
 );
 
@@ -71,9 +65,8 @@ router.post(
  */
 router.put(
   '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  updateExamScheduleValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
+  validate(updateExamScheduleValidation),
   ExamScheduleController.updateExamSchedule
 );
 
@@ -84,9 +77,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  deleteExamScheduleValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
   ExamScheduleController.deleteExamSchedule
 );
 

@@ -1,5 +1,13 @@
 const express = require('express');
-const router = express.Router();
+const {
+  verifyToken,
+  setSchoolContext,
+  setBranchContext,
+  requireRole,
+  authorize
+} = require('~/middleware/core/auth');
+const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
+const { validate } = require('~/middleware/shared/validate');
 const ExamHallController = require('~/controllers/academic/exams/exam-hall.controller');
 const {
   createExamHallValidation,
@@ -9,35 +17,25 @@ const {
   getAllExamHallsValidation,
   checkHallAvailabilityValidation
 } = require('~/validations/academic/exam-hall');
-const { validate } = require('~/middleware/shared/validate');
-const { verifyToken: authenticate, authorize } = require('~/middleware/core/auth');
 
-// All routes require authentication
-router.use(authenticate);
+const router = express.Router();
+
+// All exam hall routes require auth, school context, and exam module access
+router.use(verifyToken, setSchoolContext, requireModuleAccess('exams'));
 
 /**
  * @route   GET /api/exam-halls
  * @desc    Get all exam halls
  * @access  Private (Admin, Branch Admin, Teacher)
  */
-router.get(
-  '/',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  getAllExamHallsValidation,
-  validate,
-  ExamHallController.getAllExamHalls
-);
+router.get('/', ExamHallController.getAllExamHalls);
 
 /**
  * @route   GET /api/exam-halls/dropdown
  * @desc    Get exam halls for dropdown
  * @access  Private (Admin, Branch Admin, Teacher)
  */
-router.get(
-  '/dropdown',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  ExamHallController.getExamHallsForDropdown
-);
+router.get('/dropdown', ExamHallController.getExamHallsForDropdown);
 
 /**
  * @route   GET /api/exam-halls/availability
@@ -46,9 +44,7 @@ router.get(
  */
 router.get(
   '/availability',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  checkHallAvailabilityValidation,
-  validate,
+  validate(checkHallAvailabilityValidation),
   ExamHallController.checkHallAvailability
 );
 
@@ -57,13 +53,7 @@ router.get(
  * @desc    Get exam hall by ID
  * @access  Private (Admin, Branch Admin, Teacher)
  */
-router.get(
-  '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']),
-  getExamHallValidation,
-  validate,
-  ExamHallController.getExamHallById
-);
+router.get('/:id', ExamHallController.getExamHallById);
 
 /**
  * @route   POST /api/exam-halls
@@ -72,9 +62,8 @@ router.get(
  */
 router.post(
   '/',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  createExamHallValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
+  validate(createExamHallValidation),
   ExamHallController.createExamHall
 );
 
@@ -85,9 +74,8 @@ router.post(
  */
 router.put(
   '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  updateExamHallValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
+  validate(updateExamHallValidation),
   ExamHallController.updateExamHall
 );
 
@@ -98,9 +86,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
-  deleteExamHallValidation,
-  validate,
+  requireRole('school_admin', 'super_admin'),
   ExamHallController.deleteExamHall
 );
 

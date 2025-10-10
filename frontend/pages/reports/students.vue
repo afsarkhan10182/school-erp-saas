@@ -262,8 +262,9 @@
         class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8 p-6"
       >
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-            Student Distribution Analysis
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+            <BarChart3 class="w-5 h-5 mr-2 text-indigo-600" />
+            Student Analytics & Insights
           </h3>
           <div class="text-sm text-gray-500 dark:text-gray-400">
             {{ pagination.total_records }} students analyzed
@@ -534,522 +535,148 @@
         </div>
       </div>
 
-      <!-- Actionable Insights Section -->
-      <div
-        class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6"
-      >
-        <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-          <Lightbulb class="w-5 h-5 mr-2 text-yellow-500" />
-          Key Insights & Recommendations
-        </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <!-- Largest Group Insight -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Largest Group</span
-              >
-              <span
-                class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full"
-                >Insight</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ getLargestClassInfo().name }}
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getLargestClassInfo().count }} students ({{ getLargestClassInfo().percentage }}% of
-              total)
-            </div>
-          </div>
-
-          <!-- Gender Balance Insight -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Gender Balance</span
-              >
-              <span
-                class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full"
-                >Balanced</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ getGenderBalanceInfo().ratio }}
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getGenderBalanceInfo().description }}
-            </div>
-          </div>
-
-          <!-- Smallest Class Insight -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Smallest Class</span
-              >
-              <span
-                class="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full"
-                >Action</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ getSmallestClassInfo().name }}
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getSmallestClassInfo().count }} students - consider merging
-            </div>
-          </div>
-
-          <!-- Status Overview -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Student Status</span
-              >
-              <span
-                class="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full"
-                >Healthy</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ getStatusOverview().active }}% Active
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getStatusOverview().inactive }}% inactive students
-            </div>
-          </div>
-
-          <!-- Class Size Distribution -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Class Sizes</span>
-              <span
-                class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full"
-                >Analysis</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ getClassSizeInfo().average }} avg/class
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              Range: {{ getClassSizeInfo().min }}-{{ getClassSizeInfo().max }} students
-            </div>
-          </div>
-
-          <!-- Growth Trend -->
-          <div
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Growth Trend</span>
-              <span
-                class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full"
-                >Trend</span
-              >
-            </div>
-            <div class="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-              <TrendingUp v-if="studentTrend > 0" class="w-4 h-4 mr-1 text-green-500" />
-              <TrendingDown v-else-if="studentTrend < 0" class="w-4 h-4 mr-1 text-red-500" />
-              <Minus v-else class="w-4 h-4 mr-1 text-gray-500" />
-              {{ studentTrend > 0 ? '+' : '' }}{{ studentTrend }}
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-              {{ getTimeContextText() }}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Filters -->
-
-      <!-- Filters -->
-      <div
-        class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 mb-8"
-      >
-        <div class="px-6 py-6">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Report Filters</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Configure filters to generate your student report
-              </p>
-            </div>
-            <div class="flex items-center space-x-3">
-              <div
-                v-if="pagination.total_records > 0"
-                class="text-sm text-gray-500 dark:text-gray-400"
-              >
-                <span class="font-medium text-indigo-600 dark:text-indigo-400">{{
-                  pagination.total_records
-                }}</span>
-                students found
-                <span v-if="paginatedStudents.length > 0" class="ml-2 text-gray-400"
-                  >({{ paginatedStudents.length }} on this page)</span
-                >
-              </div>
-              <button
-                @click="resetFilters"
-                :disabled="isLoading"
-                class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50 transition-colors duration-200"
-              >
-                Reset All
-              </button>
-            </div>
+      <FilterCard>
+        <template #header>
+          <div class="ml-auto">
+            <button
+              @click="resetFilters"
+              :disabled="isLoading"
+              class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50"
+            >
+              Reset Filters
+            </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Date Range</label
-              >
-              <div class="relative group">
-                <EnhancedDropdown
-                  v-model="filters.dateRange"
-                  :options="dateRangeOptions"
-                  placeholder="All Time"
-                  :disabled="isLoading"
-                  @update:model-value="handleDateRangeChange"
-                />
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div v-if="filters.dateRange === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >From Date</label
-              >
-              <input
-                v-model="filters.fromDate"
-                type="date"
-                :disabled="isLoading"
-                class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-            <div v-if="filters.dateRange === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >To Date</label
-              >
-              <input
-                v-model="filters.toDate"
-                type="date"
-                :disabled="isLoading"
-                class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-            <!-- School dropdown for super admin -->
-            <div v-if="isSuperAdmin">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >School</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.school_id"
-                  @change="onSchoolChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Schools</option>
-                  <option v-for="school in schools" :key="school.id" :value="school.id">
-                    {{ school.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Branch</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.branch_id"
-                  @change="onBranchChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Branches</option>
-                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-                <div
-                  v-if="isLoading"
-                  class="absolute inset-y-0 right-8 flex items-center pointer-events-none"
-                >
-                  <div
-                    class="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Class</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.class_id"
-                  @change="onClassChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Classes</option>
-                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-                    {{ classItem.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div v-if="showSectionDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Section</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.section_id"
-                  :disabled="isLoading || !filters.class_id"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Sections</option>
-                  <option v-for="section in sections" :key="section.id" :value="section.id">
-                    {{ section.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div v-if="showStreamDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Stream</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.stream_id"
-                  @change="onStreamChange"
-                  :disabled="isLoading || !filters.class_id"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Streams</option>
-                  <option v-for="stream in streams" :key="stream.id" :value="stream.id">
-                    {{ stream.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Student Status</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.status"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="transferred">Transferred</option>
-                  <option value="graduated">Graduated</option>
-                  <option value="dropped">Dropped</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Search Students</label
-              >
-              <div class="relative group">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                  />
-                </div>
-                <input
-                  v-model="filters.student_search"
-                  type="text"
-                  placeholder="Name, admission no, email..."
-                  :disabled="isLoading"
-                  class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500 placeholder-gray-500 dark:placeholder-gray-400"
-                  @keyup.enter="loadData"
-                />
-              </div>
-            </div>
+        </template>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Date Range</label
+            >
+            <EnhancedDropdown
+              v-model="filters.dateRange"
+              :options="dateRangeOptions"
+              :disabled="isLoading"
+              @update:model-value="handleDateRangeChange"
+            />
+          </div>
+          <div v-if="filters.dateRange === 'custom'">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >From Date</label
+            >
+            <input
+              v-model="filters.fromDate"
+              type="date"
+              :disabled="isLoading"
+              class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div v-if="filters.dateRange === 'custom'">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >To Date</label
+            >
+            <input
+              v-model="filters.toDate"
+              type="date"
+              :disabled="isLoading"
+              class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+          <!-- School (Super Admin Only) -->
+          <div v-if="isSuperAdmin">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >School</label
+            >
+            <EnhancedDropdown
+              :options="schoolOptions"
+              v-model="filters.school_id"
+              placeholder="All Schools"
+              @update:modelValue="onSchoolChange"
+              :disabled="isLoading"
+            />
+          </div>
+          <!-- Branch (Super Admin and School Admin) -->
+          <div v-if="isSuperAdmin || isSchoolAdmin">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Branch</label
+            >
+            <EnhancedDropdown
+              :options="branchOptions"
+              v-model="filters.branch_id"
+              placeholder="All Branches"
+              @update:modelValue="onBranchChange"
+              :disabled="isLoading"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Class</label
+            >
+            <EnhancedDropdown
+              :options="classOptions"
+              v-model="filters.class_id"
+              placeholder="All Classes"
+              @update:modelValue="onClassChange"
+              :disabled="isLoading"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Section</label
+            >
+            <EnhancedDropdown
+              :options="sectionOptions"
+              v-model="filters.section_id"
+              placeholder="All Sections"
+              :disabled="isLoading || !filters.class_id"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Stream</label
+            >
+            <EnhancedDropdown
+              :options="streamOptions"
+              v-model="filters.stream_id"
+              placeholder="All Streams"
+              @update:modelValue="onStreamChange"
+              :disabled="isLoading || !filters.class_id"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Student Status</label
+            >
+            <EnhancedDropdown
+              :options="statusOptions"
+              v-model="filters.status"
+              placeholder="All Status"
+              :disabled="isLoading"
+            />
           </div>
 
           <!-- Apply Filters Button -->
-          <div class="mt-6 flex justify-between items-center">
-            <div class="text-sm text-gray-500 dark:text-gray-400">
-              <span v-if="pagination.total_records > 0">
-                {{ pagination.total_records }} students found with current filters
-              </span>
-              <span v-else-if="!isLoading"> No students found with current filters </span>
-            </div>
-            <div class="flex space-x-3">
-              <button
-                @click="resetFilters"
-                :disabled="isLoading"
-                class="inline-flex items-center px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-              >
-                Reset
-              </button>
-              <button
-                @click="loadData"
-                :disabled="isLoading"
-                class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-              >
-                <Search v-if="!isLoading" class="-ml-1 mr-2 h-4 w-4" />
-                <div
-                  v-else
-                  class="-ml-1 mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-                ></div>
-                {{ isLoading ? 'Loading...' : 'Apply Filters' }}
-              </button>
-            </div>
+          <div class="flex items-end">
+            <button
+              @click="loadData"
+              :disabled="isLoading"
+              class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+              {{ isLoading ? 'Loading...' : 'Apply Filters' }}
+            </button>
           </div>
         </div>
-      </div>
+      </FilterCard>
 
       <!-- Detailed Report Table -->
       <div
@@ -1089,7 +716,7 @@
         >
           <div class="text-center">
             <div class="text-gray-400 dark:text-gray-500 mb-4">
-              <Search class="h-12 w-12 mx-auto" />
+              <Users class="h-12 w-12 mx-auto" />
             </div>
             <p class="text-gray-600 dark:text-gray-300">
               No students found for the selected filters
@@ -1228,7 +855,6 @@ import {
   Users,
   UserPlus,
   UserMinus,
-  Search,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -1245,6 +871,7 @@ import Pagination from '~/components/ui/Pagination.vue';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import FilterCard from '~/components/ui/FilterCard.vue';
 
 // Get auth composable and toast
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
@@ -1293,18 +920,13 @@ const pagination = ref({
 const dateRangeOptions = [
   { value: 'all_time', label: 'All Time' },
   { value: 'today', label: 'Today' },
-  { value: 'yesterday', label: 'Yesterday' },
   { value: 'week', label: 'This Week' },
-  { value: 'last_week', label: 'Last Week' },
   { value: 'month', label: 'This Month' },
-  { value: 'last_month', label: 'Last Month' },
-  { value: 'quarter', label: 'This Quarter' },
   { value: 'year', label: 'This Year' },
   { value: 'custom', label: 'Custom Range' }
 ];
 
 const schoolOptions = computed(() => [
-  { value: '', label: 'All Schools' },
   ...schools.value.map(school => ({
     value: school.id,
     label: school.name
@@ -1312,7 +934,6 @@ const schoolOptions = computed(() => [
 ]);
 
 const branchOptions = computed(() => [
-  { value: '', label: 'All Branches' },
   ...branches.value.map(branch => ({
     value: branch.id,
     label: branch.name
@@ -1320,7 +941,6 @@ const branchOptions = computed(() => [
 ]);
 
 const classOptions = computed(() => [
-  { value: '', label: 'All Classes' },
   ...classes.value.map(cls => ({
     value: cls.id,
     label: cls.name
@@ -1328,7 +948,6 @@ const classOptions = computed(() => [
 ]);
 
 const sectionOptions = computed(() => [
-  { value: '', label: 'All Sections' },
   ...sections.value.map(section => ({
     value: section.id,
     label: section.name
@@ -1336,7 +955,6 @@ const sectionOptions = computed(() => [
 ]);
 
 const streamOptions = computed(() => [
-  { value: '', label: 'All Streams' },
   ...streams.value.map(stream => ({
     value: stream.id,
     label: stream.name
@@ -1344,7 +962,6 @@ const streamOptions = computed(() => [
 ]);
 
 const statusOptions = [
-  { value: '', label: 'All Status' },
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
   { value: 'graduated', label: 'Graduated' },
@@ -1382,8 +999,7 @@ const filters = reactive({
   class_id: '',
   stream_id: '',
   section_id: '',
-  status: '',
-  student_search: ''
+  status: ''
 });
 
 // Initialize filters based on user role
@@ -1393,11 +1009,11 @@ const initializeFilters = () => {
     filters.school_id = '';
   } else if (isSchoolAdmin.value) {
     // School admin is restricted to their school
-    filters.school_id = user.value?.school_id || '';
+    filters.school_id = user.value?.school_id;
   } else if (isBranchAdmin.value) {
     // Branch admin is restricted to their school and branch
-    filters.school_id = user.value?.school_id || '';
-    filters.branch_id = user.value?.branch_id || '';
+    filters.school_id = user.value?.school_id;
+    filters.branch_id = user.value?.branch_id;
   }
 };
 
@@ -1411,11 +1027,8 @@ const loadData = async () => {
 
   isLoading.value = true;
   try {
-    console.log('🔄 Loading student report data...');
     await Promise.all([loadReport(), loadStats()]);
-    console.log('✅ Student report data loaded successfully');
   } catch (error) {
-    console.error('❌ Error loading student report data:', error);
     showToast('Error loading data', 'error');
   } finally {
     isLoading.value = false;
@@ -1428,10 +1041,9 @@ const loadReport = async () => {
     const params = {
       page: pagination.value.current_page,
       limit: pagination.value.per_page,
-      search: filters.student_search || undefined,
-      status: filters.status || undefined,
-      school_id: filters.school_id || undefined,
-      branch_id: filters.branch_id || undefined
+      status: filters.status,
+      school_id: filters.school_id,
+      branch_id: filters.branch_id
     };
 
     // Map date parameters - backend expects from_date and to_date
@@ -1464,18 +1076,11 @@ const loadReport = async () => {
       }
     });
 
-    console.log('📊 Student report API params:', params);
     const response = await Students.getReport(params);
-
-    console.log('📊 API response:', {
-      success: response.success,
-      dataLength: response.data?.length || 0,
-      pagination: response.pagination
-    });
 
     if (response.success) {
       // Store paginated data
-      completeStudentsData.value = response.data || [];
+      completeStudentsData.value = response.data;
 
       // Update pagination info if provided by backend
       if (response.pagination) {
@@ -1499,10 +1104,10 @@ const loadReport = async () => {
           pagination.value = {
             page: paginationData.page || 1,
             current_page: paginationData.page || 1,
-            total: paginationData.total || 0,
-            total_records: paginationData.total || 0,
-            total_pages: paginationData.totalPages || 1,
-            per_page: paginationData.limit || 10,
+            total: paginationData.total,
+            total_records: paginationData.total,
+            total_pages: paginationData.totalPages,
+            per_page: paginationData.limit,
             limit: paginationData.limit || 10
           };
         }
@@ -1530,17 +1135,7 @@ const loadReport = async () => {
         limit: 10
       };
     }
-
-    console.log('📊 Data loaded:', {
-      totalStudents: pagination.value.total_records,
-      currentPage: pagination.value.current_page,
-      pageSize: pagination.value.per_page,
-      totalPages: pagination.value.total_pages,
-      studentsData: completeStudentsData.value.length,
-      rawResponse: response
-    });
   } catch (error) {
-    console.error('Error loading student report:', error);
     showToast('Error loading student report', 'error');
     completeStudentsData.value = [];
   }
@@ -1550,10 +1145,10 @@ const loadStats = async () => {
   try {
     // Map filters to stats API parameters
     const params = {
-      school_id: filters.school_id || undefined,
-      branch_id: filters.branch_id || undefined,
-      class_id: filters.class_id || undefined,
-      section_id: filters.section_id || undefined
+      school_id: filters.school_id,
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      section_id: filters.section_id
     };
 
     // Remove undefined values
@@ -1568,10 +1163,10 @@ const loadStats = async () => {
       stats.value = response.data;
       // Update summary data
       summaryData.value = {
-        totalStudents: response.data?.total || 0,
-        activeStudents: response.data?.active || 0,
-        inactiveStudents: response.data?.inactive || 0,
-        newThisMonth: response.data?.newThisMonth || 0
+        totalStudents: response.data?.total,
+        activeStudents: response.data?.active,
+        inactiveStudents: response.data?.inactive,
+        newThisMonth: response.data?.newThisMonth
       };
     } else {
       stats.value = {};
@@ -1583,7 +1178,6 @@ const loadStats = async () => {
       };
     }
   } catch (error) {
-    console.error('Error loading student stats:', error);
     showToast('Error loading student stats', 'error');
     stats.value = {};
     summaryData.value = {
@@ -1600,19 +1194,96 @@ const loadAcademicYears = async () => {
 };
 
 const loadClasses = async () => {
-  await fetchClasses();
+  try {
+    const options = {};
+
+    // Filter by branch if selected
+    if (filters.branch_id) {
+      options.branchId = filters.branch_id;
+    }
+
+    // Filter by school if selected (for super admin)
+    if (filters.school_id) {
+      options.schoolId = filters.school_id;
+    }
+
+    console.log('Loading classes with options:', options);
+    await fetchClasses(options);
+    console.log('Classes loaded:', classes.value.length);
+  } catch (error) {
+    console.error('Error loading classes:', error);
+  }
 };
 
 const loadSections = async () => {
-  await fetchSections();
+  try {
+    const options = {};
+
+    // Filter by class if selected
+    if (filters.class_id) {
+      options.classId = filters.class_id;
+    }
+
+    // Filter by branch if selected
+    if (filters.branch_id) {
+      options.branchId = filters.branch_id;
+    }
+
+    // Filter by school if selected (for super admin)
+    if (filters.school_id) {
+      options.schoolId = filters.school_id;
+    }
+
+    console.log('Loading sections with options:', options);
+    await fetchSections(options);
+    console.log('Sections loaded:', sections.value.length);
+  } catch (error) {
+    console.error('Error loading sections:', error);
+  }
 };
 
 const loadStreams = async () => {
-  await fetchStreams();
+  try {
+    const options = {};
+
+    // Filter by class if selected
+    if (filters.class_id) {
+      options.classId = filters.class_id;
+    }
+
+    // Filter by branch if selected
+    if (filters.branch_id) {
+      options.branchId = filters.branch_id;
+    }
+
+    // Filter by school if selected (for super admin)
+    if (filters.school_id) {
+      options.schoolId = filters.school_id;
+    }
+
+    console.log('Loading streams with options:', options);
+    await fetchStreams(options);
+    console.log('Streams loaded:', streams.value.length);
+  } catch (error) {
+    console.error('Error loading streams:', error);
+  }
 };
 
 const loadBranches = async () => {
-  await fetchBranches();
+  try {
+    const options = {};
+
+    // Filter by school if selected (for super admin)
+    if (filters.school_id) {
+      options.schoolId = filters.school_id;
+    }
+
+    console.log('Loading branches with options:', options);
+    await fetchBranches(options);
+    console.log('Branches loaded:', branches.value.length);
+  } catch (error) {
+    console.error('Error loading branches:', error);
+  }
 };
 
 const loadSchools = async () => {
@@ -1658,7 +1329,6 @@ const formatDate = date => {
       day: '2-digit'
     });
   } catch (error) {
-    console.warn('Date formatting error:', error, 'for date:', date);
     return 'N/A';
   }
 };
@@ -1758,10 +1428,10 @@ const classDistribution = computed(() => {
 const statusDistribution = computed(() => {
   // Create status distribution from stats
   return {
-    active: stats.value.active || 0,
-    inactive: stats.value.inactive || 0,
-    graduated: stats.value.graduated || 0,
-    dropped: stats.value.dropped || 0
+    active: stats.value.active,
+    inactive: stats.value.inactive,
+    graduated: stats.value.graduated,
+    dropped: stats.value.dropped
   };
 });
 
@@ -1769,8 +1439,8 @@ const genderDistribution = computed(() => {
   // For now, use placeholder data since backend doesn't provide gender stats
   // This would need to be added to the backend stats endpoint
   return {
-    Male: Math.floor((stats.value.total || 0) * 0.52),
-    Female: Math.floor((stats.value.total || 0) * 0.48)
+    Male: Math.floor(stats.value.total * 0.52),
+    Female: Math.floor(stats.value.total * 0.48)
   };
 });
 
@@ -1840,15 +1510,11 @@ const getGenderBalanceInfo = () => {
 const getStatusOverview = () => {
   const distribution = statusDistribution.value;
   const total = summaryData.value.totalStudents;
-  const active = total > 0 ? Math.round(((distribution.active || 0) / total) * 100) : 0;
+  const active = total > 0 ? Math.round((distribution.active / total) * 100) : 0;
   const inactive =
     total > 0
       ? Math.round(
-          (((distribution.inactive || 0) +
-            (distribution.graduated || 0) +
-            (distribution.dropped || 0)) /
-            total) *
-            100
+          ((distribution.inactive + distribution.graduated + distribution.dropped) / total) * 100
         )
       : 0;
 
@@ -1919,14 +1585,14 @@ const sortClassBy = ref('count');
 
 // Add missing filterByClass function
 const filterByClass = className => {
-  filters.class_id = classes.value.find(c => c.name === className)?.id || '';
+  filters.class_id = classes.value.find(c => c.name === className)?.id;
   loadData();
 };
 
 // Add missing filterByGender function
 const filterByGender = gender => {
-  // For now, we'll implement this as a search filter since gender isn't a direct filter
-  filters.student_search = gender;
+  // For now, we'll implement this as a status filter since gender isn't a direct filter
+  filters.status = gender;
   loadData();
 };
 
@@ -1988,37 +1654,48 @@ const handleDateRangeChange = () => {
   loadData();
 };
 
-// Add missing onSchoolChange function
-const onSchoolChange = () => {
+// Hierarchical dropdown change handlers
+const onSchoolChange = async () => {
   // Reset branch and class filters when school changes
   filters.branch_id = '';
   filters.class_id = '';
   filters.section_id = '';
-  loadBranches();
-  loadData();
+  filters.stream_id = '';
+
+  await loadBranches(); // Reload branches for selected school
+  await loadClasses(); // Reload classes for selected school
+  sections.value = []; // Clear sections
+  streams.value = []; // Clear streams
+  // Don't call loadData() - only update dropdown options
 };
 
-// Add missing onBranchChange function
-const onBranchChange = () => {
+const onBranchChange = async () => {
   // Reset class and section filters when branch changes
   filters.class_id = '';
   filters.section_id = '';
-  loadData();
+  filters.stream_id = '';
+
+  console.log('Branch changed, loading classes for branch:', filters.branch_id);
+  await loadClasses(); // Reload classes for selected branch
+  sections.value = []; // Clear sections
+  streams.value = []; // Clear streams
+  console.log('Classes after branch change:', classes.value.length);
+  // Don't call loadData() - only update dropdown options
 };
 
-// Add missing onClassChange function
-const onClassChange = () => {
-  // Reset section filter when class changes
+const onClassChange = async () => {
+  // Reset section and stream filters when class changes
   filters.section_id = '';
-  loadData();
+  filters.stream_id = '';
+
+  await loadSections(); // Reload sections for selected class
+  await loadStreams(); // Reload streams for selected class
+  // Don't call loadData() - only update dropdown options
 };
 
-// Add missing onStreamChange function
 const onStreamChange = () => {
-  // Reset class and section filters when stream changes
-  filters.class_id = '';
-  filters.section_id = '';
-  loadData();
+  // Stream change doesn't affect other dropdowns
+  // Don't call loadData() - only update dropdown options
 };
 
 // Add missing toggleDownloadDropdown function
@@ -2100,12 +1777,11 @@ const downloadReport = async format => {
       dateRange: filters.dateRange,
       fromDate: filters.dateRange === 'custom' ? filters.fromDate : '',
       toDate: filters.dateRange === 'custom' ? filters.toDate : '',
-      school_id: filters.school_id || '',
-      branch_id: filters.branch_id || '',
-      class_id: filters.class_id || '',
-      section_id: filters.section_id || '',
-      status: filters.status || '',
-      student_search: filters.student_search || ''
+      school_id: filters.school_id,
+      branch_id: filters.branch_id,
+      class_id: filters.class_id,
+      section_id: filters.section_id,
+      status: filters.status
     };
 
     const selectedColumns = displayedColumns.value.map(col => ({
@@ -2153,10 +1829,10 @@ const printStudentsReport = async () => {
     }
 
     const formattedData = completeStudentsData.value.map(student => ({
-      admission_number: student.admission_number || 'N/A',
-      student_name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'N/A',
-      email: student.email || 'N/A',
-      phone: student.phone || 'N/A',
+      admission_number: student.admission_number,
+      student_name: `${student.first_name} ${student.last_name}`.trim(),
+      email: student.email,
+      phone: student.phone,
       class: student.class?.name || student.class_name || 'N/A',
       section: student.section?.name || student.section_name || 'N/A',
       admission_date: formatDate(student.admission_date),
@@ -2184,8 +1860,7 @@ const printStudentsReport = async () => {
         Section: filters.section_id
           ? sections.value.find(s => s.id === filters.section_id)?.name
           : 'All Sections',
-        Status: filters.status || 'All Status',
-        Search: filters.student_search || 'None'
+        Status: filters.status || 'All Status'
       },
       totalRecords: pagination.value.total_records,
       reportType: 'students'
@@ -2238,21 +1913,10 @@ const resetFilters = () => {
 
 onMounted(async () => {
   try {
-    console.log('🚀 Initializing student report page...');
-
     // Wait for auth store to initialize
     // Auth composable handles initialization automatically
 
-    await Promise.all([
-      loadAcademicYears(),
-      loadClasses(),
-      loadSections(),
-      loadStreams(),
-      loadBranches(),
-      loadSchools()
-    ]);
-
-    console.log('✅ Student report page initialized successfully');
+    await Promise.all([loadAcademicYears(), loadSchools(), loadBranches(), loadClasses()]);
 
     // Initialize filters based on user role
     initializeFilters();
@@ -2263,7 +1927,6 @@ onMounted(async () => {
     // Add click outside listener for dropdown
     document.addEventListener('click', handleClickOutside);
   } catch (error) {
-    console.error('❌ Error initializing student report page:', error);
     showToast('Error initializing page', 'error');
   } finally {
     isInitializing.value = false;

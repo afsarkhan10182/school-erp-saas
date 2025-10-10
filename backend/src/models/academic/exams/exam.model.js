@@ -48,24 +48,14 @@ const Exam = sequelize.define(
       allowNull: false,
       defaultValue: true
     },
+    exam_status_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'exam_statuses', key: 'id' }
+    },
     instructions: {
       type: DataTypes.TEXT,
       allowNull: true
-    },
-    class_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'classes', key: 'id' }
-    },
-    section_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'sections', key: 'id' }
-    },
-    subject_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'subjects', key: 'id' }
     },
     school_id: {
       type: DataTypes.UUID,
@@ -102,10 +92,11 @@ const Exam = sequelize.define(
         name: 'idx_exams_branch_id',
         fields: ['branch_id']
       },
-      {
-        name: 'idx_exams_class_id',
-        fields: ['class_id']
-      },
+      // class_id index removed - field no longer exists
+      // {
+      //   name: 'idx_exams_class_id',
+      //   fields: ['class_id']
+      // },
       {
         name: 'idx_exams_exam_type_id',
         fields: ['exam_type_id']
@@ -129,19 +120,9 @@ Exam.associate = models => {
     as: 'examType'
   });
 
-  Exam.belongsTo(models.Class, {
-    foreignKey: 'class_id',
-    as: 'class'
-  });
-
-  Exam.belongsTo(models.Section, {
-    foreignKey: 'section_id',
-    as: 'section'
-  });
-
-  Exam.belongsTo(models.Subject, {
-    foreignKey: 'subject_id',
-    as: 'subject'
+  Exam.belongsTo(models.ExamStatus, {
+    foreignKey: 'exam_status_id',
+    as: 'examStatus'
   });
 
   Exam.belongsTo(models.School, {

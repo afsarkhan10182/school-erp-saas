@@ -20,8 +20,8 @@ const router = express.Router();
  * @access Private (authenticated users with exam module access)
  */
 
-// All exam routes require auth, school/branch context, and exam module access
-router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess('exams'));
+// All exam routes require auth, school context, and exam module access
+router.use(verifyToken, setSchoolContext, requireModuleAccess('exams'));
 
 // ===== EXAM MANAGEMENT ROUTES =====
 
@@ -29,7 +29,7 @@ router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess(
  * @route POST /api/exams
  * @desc Create a new exam
  * @access Private (EXAM_ROLES)
- * @body {string} name, {string} exam_type_id, {string} class_id, {string} section_id, {date} exam_date, {string} academic_year
+ * @body {string} name, {string} exam_type_id, {date} exam_date, {string} academic_year
  */
 router.post(
   '/',
@@ -42,7 +42,7 @@ router.post(
  * @route GET /api/exams
  * @desc Get all exams with pagination and filtering
  * @access Private (EXAM_ROLES)
- * @query {number} page, {number} limit, {string} search, {string} exam_type, {string} status, {string} class_id
+ * @query {number} page, {number} limit, {string} search, {string} exam_type, {string} status
  */
 router.get('/', ExamController.getAllExams);
 
@@ -75,7 +75,7 @@ router.get('/:id', ExamController.getExamById);
  * @desc Update exam
  * @access Private (EXAM_ROLES)
  * @param {string} id - Exam ID
- * @body {string} name, {string} exam_type_id, {string} class_id, {string} section_id, {date} exam_date, {string} academic_year
+ * @body {string} name, {string} exam_type_id, {date} exam_date, {string} academic_year
  */
 router.put(
   '/:id',

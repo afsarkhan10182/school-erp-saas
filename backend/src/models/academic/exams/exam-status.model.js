@@ -93,7 +93,7 @@ ExamStatus.associate = models => {
   ExamStatus.belongsTo(models.School, { foreignKey: 'school_id', as: 'school' });
   ExamStatus.belongsTo(models.User, { foreignKey: 'created_by', as: 'createdBy' });
   ExamStatus.belongsTo(models.User, { foreignKey: 'updated_by', as: 'updatedBy' });
-  ExamStatus.hasMany(models.Exam, { foreignKey: 'status_id', as: 'exams' });
+  ExamStatus.hasMany(models.Exam, { foreignKey: 'exam_status_id', as: 'exams' });
 };
 
 module.exports = ExamStatus;

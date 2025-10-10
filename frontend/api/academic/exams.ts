@@ -3,28 +3,18 @@ import { createApiInstance, apiCall } from '~/utils/api';
 export interface Exam {
   id: string;
   name: string;
-  exam_type: 'unit_test' | 'mid_term' | 'final' | 'semester' | 'annual' | 'mock_test';
-  weightage: number;
-  max_marks: number;
-  exam_date: string;
-  start_time?: string;
-  end_time?: string;
-  duration_minutes?: number;
-  academic_year: string;
-  status: 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  instructions?: string;
-  class_id: string;
-  section_id?: string;
-  subject_id?: string;
+  exam_type_id: string;
+  description?: string;
+  academic_year?: string;
+  is_active: boolean;
+  status?: 'draft' | 'scheduled' | 'marks_entered' | 'grades_calculated' | 'completed';
   school_id: string;
   branch_id: string;
   created_by?: string;
   updated_by?: string;
   created_at?: string;
   updated_at?: string;
-  class?: { id: string; name: string; code: string };
-  section?: { id: string; name: string };
-  subject?: { id: string; name: string; code: string };
+  examType?: { id: string; name: string; code: string };
 }
 
 export interface ExamResult {
@@ -84,7 +74,6 @@ export const examApi = {
     try {
       return await apiCall('post', '/exams', data);
     } catch (error) {
-      console.error('Exam API create error:', error);
       throw error;
     }
   },

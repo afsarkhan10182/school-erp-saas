@@ -19,13 +19,46 @@ const ReportCardService = require('~/services/academic/report-card.service');
 
 class ExamController {
   /**
+   * Test method
+   */
+  static test = (req, res) => {
+    console.log('DEBUG: Test method called');
+    res.json({ success: true, message: 'Test method reached' });
+  };
+
+  /**
+   * Test async method
+   */
+  static testAsync = asyncHandler(async (req, res) => {
+    console.log('DEBUG: Test async method called');
+    res.json({ success: true, message: 'Test async method reached' });
+  });
+
+  /**
    * Create a new exam
    */
   static createExam = asyncHandler(async (req, res) => {
+    // Use req.schoolId if available, otherwise fall back to user's school_id
+    const schoolId = req.schoolId || req.user.school_id;
+
+    if (!schoolId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'School context is required'
+      });
+    }
+
+    if (!req.user.branch_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Branch context is required'
+      });
+    }
+
     const examData = {
       ...req.body,
-      school_id: req.schoolId,
-      branch_id: req.branchId || req.user.branch_id
+      school_id: schoolId,
+      branch_id: req.user.branch_id
     };
 
     const exam = await ExamService.createExam(examData, req.user.id);
@@ -43,12 +76,10 @@ class ExamController {
       search: req.query.search,
       exam_type: req.query.exam_type,
       status: req.query.status,
-      class_id: req.query.class_id,
-      section_id: req.query.section_id,
       date_from: req.query.date_from,
       date_to: req.query.date_to,
       academic_year: req.query.academic_year,
-      branch_id: req.query.branch_id
+      branch_id: req.branchId || req.query.branch_id
     };
 
     const result = await ExamService.getAllExams(params, req.user);

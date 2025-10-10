@@ -114,76 +114,170 @@
       </p>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="exam in exams"
-        :key="exam.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-shadow"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <h4
-              class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-            >
-              {{ exam.name }}
-            </h4>
-            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-              <span class="flex items-center">
-                <BookOpen class="w-4 h-4 mr-1" />
-                {{ exam.class?.name }}
-              </span>
-              <span v-if="exam.subject?.name" class="flex items-center">
-                <Tag class="w-4 h-4 mr-1" />
-                {{ exam.subject.name }}
-              </span>
-              <span class="flex items-center">
-                <Calendar class="w-4 h-4 mr-1" />
-                {{ exam.schedules?.length || 0 }} schedule(s)
-              </span>
-            </div>
-            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-              <span class="flex items-center">
-                <TrendingUp class="w-4 h-4 mr-1" />
-                {{ exam.max_marks }} marks
-              </span>
-              <span class="flex items-center">
-                <Users class="w-4 h-4 mr-1" />
-                {{ exam.students_count || 0 }} students
-              </span>
-            </div>
-            <div
-              v-if="exam.instructions"
-              class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
-            >
-              {{ exam.instructions }}
-            </div>
-            <div class="mt-3 flex items-center justify-between">
-              <button
-                @click="scheduleExam(exam)"
-                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    <div v-else>
+      <!-- Search and Filter Bar -->
+      <div class="mb-6 flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search exams..."
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+        <div class="flex gap-2">
+          <select
+            v-model="statusFilter"
+            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Status</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select
+            v-model="classFilter"
+            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          >
+            <option value="">All Classes</option>
+            <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
+              {{ classItem.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-for="exam in filteredExams"
+          :key="exam.id"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-2">
+                <h4
+                  class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                >
+                  {{ exam.name }}
+                </h4>
+                <span
+                  :class="[
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    getStatusColor(exam.status)
+                  ]"
+                >
+                  {{ getStatusText(exam.status) }}
+                </span>
+              </div>
+              <div
+                class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
               >
-                <Calendar class="w-3 h-3 mr-1" />
-                Schedule
-              </button>
-              <div class="flex items-center space-x-2">
-                <button
-                  @click="editExam(exam)"
-                  class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                  <Edit class="w-4 h-4" />
-                </button>
-                <button
-                  @click="viewExam(exam)"
-                  class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  <Eye class="w-4 h-4" />
-                </button>
-                <button
-                  @click="deleteExam(exam.id)"
-                  class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  <Trash2 class="w-4 h-4" />
-                </button>
+                <span class="flex items-center">
+                  <BookOpen class="w-4 h-4 mr-1" />
+                  {{ exam.class?.name }}
+                </span>
+                <span v-if="exam.subject?.name" class="flex items-center">
+                  <Tag class="w-4 h-4 mr-1" />
+                  {{ exam.subject.name }}
+                </span>
+                <span class="flex items-center">
+                  <Calendar class="w-4 h-4 mr-1" />
+                  {{ exam.schedules?.length || 0 }} schedule(s)
+                </span>
+              </div>
+              <div
+                class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
+              >
+                <span class="flex items-center">
+                  <TrendingUp class="w-4 h-4 mr-1" />
+                  {{ exam.max_marks }} marks
+                </span>
+                <span class="flex items-center">
+                  <Users class="w-4 h-4 mr-1" />
+                  {{ exam.students_count || 0 }} students
+                </span>
+              </div>
+              <div
+                v-if="exam.instructions"
+                class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
+              >
+                {{ exam.instructions }}
+              </div>
+              <!-- Action Buttons Based on Status -->
+              <div class="mt-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <!-- Status-based action buttons -->
+                  <button
+                    v-if="exam.status === 'draft'"
+                    @click="scheduleExam(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Calendar class="w-3 h-3 mr-1" />
+                    Schedule
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'scheduled'"
+                    @click="enterMarks(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <Users class="w-3 h-3 mr-1" />
+                    Enter Marks
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'marks_entered'"
+                    @click="calculateGrades(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    <Award class="w-3 h-3 mr-1" />
+                    Calculate Grades
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'grades_calculated'"
+                    @click="generateReports(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  >
+                    <FileText class="w-3 h-3 mr-1" />
+                    Generate Reports
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'completed'"
+                    @click="viewAll(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    <Eye class="w-3 h-3 mr-1" />
+                    View All
+                  </button>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <button
+                    @click="editExam(exam)"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    title="Edit Exam"
+                  >
+                    <Edit class="w-4 h-4" />
+                  </button>
+                  <button
+                    @click="viewExam(exam)"
+                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="View Details"
+                  >
+                    <Eye class="w-4 h-4" />
+                  </button>
+                  <button
+                    @click="deleteExam(exam.id)"
+                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                    title="Delete Exam"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -229,98 +323,47 @@
               />
             </div>
 
-            <!-- Class -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Class <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="form.class_id"
-                :options="classOptions"
-                placeholder="Select class"
-                :loading="loading"
-                @update:model-value="loadSections"
-              />
-            </div>
-
-            <!-- Section (show if class has sections) -->
-            <div v-if="showSectionField">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Section
-              </label>
-              <EnhancedDropdown
-                v-model="form.section_id"
-                :options="sectionOptions"
-                placeholder="All sections"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Stream (show if class has streams) -->
-            <div v-if="showStreamField">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Stream
-              </label>
-              <EnhancedDropdown
-                v-model="form.stream_id"
-                :options="streamOptions"
-                placeholder="All streams"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Subject -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Subject
-              </label>
-              <EnhancedDropdown
-                v-model="form.subject_id"
-                :options="subjectOptions"
-                placeholder="All subjects"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Max Marks -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Max Marks <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model.number="form.max_marks"
-                type="number"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="100"
-              />
-            </div>
-
-            <!-- Weightage -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Weightage (%)
-              </label>
-              <input
-                v-model.number="form.weightage"
-                type="number"
-                step="0.1"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="20.0"
-              />
-            </div>
-
-            <!-- Instructions -->
+            <!-- Description -->
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Instructions
+                Description
               </label>
               <textarea
-                v-model="form.instructions"
+                v-model="form.description"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter exam instructions..."
+                placeholder="Enter exam description..."
               ></textarea>
+            </div>
+
+            <!-- Academic Year -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Academic Year
+              </label>
+              <input
+                v-model="form.academic_year"
+                type="text"
+                placeholder="2024-2025"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <!-- Publish Status -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Publish Exam
+              </label>
+              <div class="flex items-center">
+                <input
+                  v-model="form.is_active"
+                  type="checkbox"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Make this exam available for scheduling
+                </label>
+              </div>
             </div>
           </div>
         </form>
@@ -373,6 +416,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { navigateTo } from '#app';
 import {
   Plus,
   BookOpen,
@@ -383,7 +427,9 @@ import {
   Edit,
   Eye,
   Trash2,
-  Users
+  Users,
+  Award,
+  FileText
 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
@@ -444,11 +490,42 @@ const isValidUUID = uuid => {
 // Reactive data
 const showModal = ref(false);
 const showExamResults = ref(false);
+const searchQuery = ref('');
+const statusFilter = ref('');
+const classFilter = ref('');
 const showScheduleModal = ref(false);
 const saving = ref(false);
 const editingExam = ref(null);
 const selectedExam = ref(null);
 const selectedExamForSchedule = ref(null);
+
+// Computed properties
+const filteredExams = computed(() => {
+  let filtered = props.exams;
+
+  // Search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(
+      exam =>
+        exam.name.toLowerCase().includes(query) ||
+        exam.subject?.name?.toLowerCase().includes(query) ||
+        exam.class?.name?.toLowerCase().includes(query)
+    );
+  }
+
+  // Status filter
+  if (statusFilter.value) {
+    filtered = filtered.filter(exam => exam.status === statusFilter.value);
+  }
+
+  // Class filter
+  if (classFilter.value) {
+    filtered = filtered.filter(exam => exam.class_id === classFilter.value);
+  }
+
+  return filtered;
+});
 
 // Computed properties for dynamic form fields
 const selectedClass = computed(() => {
@@ -466,13 +543,9 @@ const showSectionField = computed(() => {
 const form = reactive({
   name: '',
   exam_type_id: '',
-  class_id: '',
-  section_id: '',
-  stream_id: '',
-  subject_id: '',
-  max_marks: 100,
-  weightage: 20.0,
-  instructions: ''
+  academic_year: '',
+  description: '',
+  is_active: true
 });
 
 // Methods
@@ -502,13 +575,9 @@ const editExam = exam => {
   editingExam.value = exam;
   form.name = exam.name;
   form.exam_type_id = exam.exam_type_id;
-  form.class_id = exam.class_id;
-  form.section_id = exam.section_id;
-  form.stream_id = exam.stream_id || '';
-  form.subject_id = exam.subject_id;
-  form.max_marks = exam.max_marks;
-  form.weightage = exam.weightage;
-  form.instructions = exam.instructions;
+  form.academic_year = exam.academic_year || '';
+  form.description = exam.description || '';
+  form.is_active = exam.is_active !== false;
   showModal.value = true;
 };
 
@@ -518,8 +587,7 @@ const viewExam = exam => {
 };
 
 const scheduleExam = exam => {
-  selectedExamForSchedule.value = exam;
-  showScheduleModal.value = true;
+  navigateTo(`/exams/${exam.id}/schedule`);
 };
 
 const closeModal = () => {
@@ -551,13 +619,9 @@ const handleScheduleSuccess = () => {
 const resetForm = () => {
   form.name = '';
   form.exam_type_id = '';
-  form.class_id = '';
-  form.section_id = '';
-  form.stream_id = '';
-  form.subject_id = '';
-  form.max_marks = 100;
-  form.weightage = 20.0;
-  form.instructions = '';
+  form.academic_year = '';
+  form.description = '';
+  form.is_active = true;
 };
 
 const saveExam = async () => {
@@ -573,33 +637,10 @@ const saveExam = async () => {
       showToast('Exam type is required', 'error');
       return;
     }
-    if (!form.class_id) {
-      showToast('Class is required', 'error');
-      return;
-    }
 
-    // Clean form data - only include valid UUIDs and remove empty strings
+    // Clean form data - simple exam creation
     const cleanForm = {
-      ...form,
-      // Map max_marks to total_marks for backend compatibility
-      total_marks: form.max_marks,
-      // Remove max_marks as it's not expected by backend
-      max_marks: undefined,
-      // Only include subject_id if it's a valid UUID and not empty
-      subject_id:
-        form.subject_id && form.subject_id.trim() && isValidUUID(form.subject_id)
-          ? form.subject_id
-          : undefined,
-      // Only include section_id if it's a valid UUID and not empty
-      section_id:
-        form.section_id && form.section_id.trim() && isValidUUID(form.section_id)
-          ? form.section_id
-          : undefined,
-      // Only include stream_id if it's a valid UUID and not empty
-      stream_id:
-        form.stream_id && form.stream_id.trim() && isValidUUID(form.stream_id)
-          ? form.stream_id
-          : undefined
+      ...form
     };
 
     // Remove undefined values to avoid sending them to the backend
@@ -622,6 +663,27 @@ const saveExam = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+// Helper functions for status display
+const getStatusColor = status => {
+  const colors = {
+    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    ongoing: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+};
+
+const getStatusText = status => {
+  const texts = {
+    scheduled: 'Scheduled',
+    ongoing: 'Ongoing',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  };
+  return texts[status] || 'Unknown';
 };
 
 const deleteExam = async examId => {
@@ -672,6 +734,23 @@ const getStatusClass = status => {
     cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
   };
   return classes[status] || classes.draft;
+};
+
+// New action methods for exam workflow
+const enterMarks = exam => {
+  navigateTo(`/exams/${exam.id}/marks`);
+};
+
+const calculateGrades = exam => {
+  navigateTo(`/exams/${exam.id}/results`);
+};
+
+const generateReports = exam => {
+  navigateTo(`/exams/${exam.id}/reports`);
+};
+
+const viewAll = exam => {
+  navigateTo(`/exams/${exam.id}/results`);
 };
 
 // Expose methods to parent component

@@ -323,6 +323,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
@@ -354,15 +355,11 @@ const filters = ref({
 
 const pagination = ref(null);
 
-// Debounced search
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    filters.value.page = 1;
-    fetchSchools();
-  }, 300);
-};
+// VueUse debounced search
+const debouncedSearch = useDebounceFn(() => {
+  filters.value.page = 1;
+  fetchSchools();
+}, 300);
 
 // Fetch schools with current filters
 const fetchSchools = async () => {

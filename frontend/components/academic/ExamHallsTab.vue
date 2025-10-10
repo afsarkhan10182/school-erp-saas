@@ -132,7 +132,7 @@ const emit = defineEmits<{
 
 // Composables
 const { showToast } = useToast();
-const { halls, loading, loadHalls, deleteHall } = useExamHalls();
+const { halls, loading, loadExamHalls, deleteHall } = useExamHalls();
 
 // State
 const showModal = ref(false);
@@ -152,7 +152,8 @@ const editHall = (hall: ExamHall) => {
 const deleteHallConfirm = async (hall: ExamHall) => {
   if (confirm(`Are you sure you want to delete "${hall.name}"? This action cannot be undone.`)) {
     await deleteHall(hall.id);
-    await loadHalls();
+    // Reload halls after deletion
+    await loadExamHalls();
     emit('success');
   }
 };
@@ -164,12 +165,13 @@ const closeModal = () => {
 
 const handleSuccess = async () => {
   closeModal();
-  await loadHalls();
+  // Reload halls after create/update
+  await loadExamHalls();
   emit('success');
 };
 
 // Lifecycle
 onMounted(() => {
-  loadHalls();
+  loadExamHalls();
 });
 </script>

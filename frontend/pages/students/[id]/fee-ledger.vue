@@ -251,7 +251,7 @@
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr
-                v-for="invoice in ledgerData?.invoices || []"
+                v-for="invoice in ledgerData?.invoices"
                 :key="invoice.id"
                 class="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -299,7 +299,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   <span
                     class="cursor-help"
-                    :title="`Total Amount: ₹${formatCurrency(invoice.total_amount)}\nBase Amount: ₹${formatCurrency(invoice.base_amount || invoice.total_amount)}\nDiscount: ₹${formatCurrency(invoice.discount_amount || 0)}\nTax: ₹${formatCurrency(invoice.tax_amount || 0)}`"
+                    :title="`Total Amount: ₹${formatCurrency(invoice.total_amount)}\nBase Amount: ₹${formatCurrency(invoice.base_amount)}\nDiscount: ₹${formatCurrency(invoice.discount_amount)}\nTax: ₹${formatCurrency(invoice.tax_amount)}`"
                   >
                     ₹{{ formatCurrency(invoice.total_amount) }}
                   </span>
@@ -331,21 +331,21 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
-                    v-if="(invoice.balance_amount || 0) > 0"
+                    v-if="invoice.balance_amount > 0"
                     @click="recordPayment(invoice)"
                     class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
                   >
                     Pay
                   </button>
                   <button
-                    v-if="(invoice.paid_amount || 0) > 0 && invoice.is_grouped"
+                    v-if="invoice.paid_amount > 0 && invoice.is_grouped"
                     @click="viewCombinedReceipt(invoice)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
                     View Combined Receipt
                   </button>
                   <button
-                    v-else-if="(invoice.paid_amount || 0) > 0"
+                    v-else-if="invoice.paid_amount > 0"
                     @click="showPaymentHistory(invoice)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
@@ -922,21 +922,19 @@ const fetchStudent = async () => {
           // Combine school info with settings for receipt display
           schoolData.value = {
             ...schoolResponse.data.schoolInfo,
-            address: schoolResponse.data.contactInfo?.address || '', // Include address from contact info
-            trust_name: schoolResponse.data.schoolInfo?.trustName || '', // Set trust_name in main object
-            receiptSchoolName: schoolResponse.data.schoolInfo?.receiptSchoolName || '', // Include receipt school name
+            address: schoolResponse.data.contactInfo?.address, // Include address from contact info
+            trust_name: schoolResponse.data.schoolInfo?.trustName, // Set trust_name in main object
+            receiptSchoolName: schoolResponse.data.schoolInfo?.receiptSchoolName, // Include receipt school name
             settings: {
-              trust_name: schoolResponse.data.schoolInfo?.trustName || ''
+              trust_name: schoolResponse.data.schoolInfo?.trustName
             }
           };
         }
       } catch (schoolError) {
-        console.error('Error fetching school data:', schoolError);
         // Don't show error for school data, just use defaults
       }
     }
   } catch (error) {
-    console.error('Error fetching student:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -948,7 +946,6 @@ const fetchStudent = async () => {
 // Fetch ledger data
 const fetchLedger = async () => {
   if (!studentId) {
-    console.error('Student ID is undefined');
     return;
   }
 
@@ -963,7 +960,6 @@ const fetchLedger = async () => {
     });
     ledgerData.value = response.data;
   } catch (error) {
-    console.error('Error fetching ledger:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -989,16 +985,9 @@ const submitPayment = async () => {
     await fetchLedger();
     showSuccess('Payment recorded successfully!');
   } catch (error) {
-    console.error('Error recording payment:', error);
-    console.log('Error response:', error.response);
-    console.log('Error response data:', error.response?.data);
-    console.log('Error message:', error.response?.data?.message);
-
     if (error.response && error.response.data && error.response.data.message) {
-      console.log('Showing error toast with message:', error.response.data.message);
       showError(error.response.data.message);
     } else {
-      console.log('Showing generic error toast');
       showError('Error recording payment. Please try again.');
     }
   } finally {
@@ -1022,7 +1011,6 @@ const submitAdjustment = async () => {
     await fetchLedger();
     showSuccess('Invoice adjusted successfully!');
   } catch (error) {
-    console.error('Error adjusting invoice:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -1042,7 +1030,6 @@ const showPaymentHistory = invoice => {
       paymentHistory.value = response.data;
     })
     .catch(error => {
-      console.error('Error fetching payment history:', error);
       if (error.response && error.response.data && error.response.data.message) {
         showError(error.response.data.message);
       } else {
@@ -1057,8 +1044,6 @@ const showPaymentHistory = invoice => {
 
 // View receipt
 const viewReceipt = async payment => {
-  console.log('Viewing receipt for payment:', payment);
-  console.log('Payment ID:', payment.id);
   isLoadingReceiptContent.value = true;
 
   try {
@@ -1073,7 +1058,6 @@ const viewReceipt = async payment => {
           // Then add any additional payment data that might be needed
           ...payment
         };
-        console.log('Receipt loaded, showing modal. selectedReceipt:', selectedReceipt.value);
         showReceiptModal.value = true;
       } else {
         showError('No receipt found for this grouped payment');
@@ -1099,7 +1083,6 @@ const viewReceipt = async payment => {
             return;
           }
         } catch (receiptError) {
-          console.error('Error generating receipt for payment:', receiptError);
           showError('Error generating receipt for this payment');
           return;
         }
@@ -1108,8 +1091,6 @@ const viewReceipt = async payment => {
         // Generate receipt for this specific payment
         try {
           const response = await FeeInvoices.generateReceipt(payment.id);
-          console.log('API Response:', response);
-          console.log('Response data:', response.data);
           if (response.data) {
             // Merge the data properly, prioritizing the API response data
             selectedReceipt.value = {
@@ -1118,25 +1099,18 @@ const viewReceipt = async payment => {
               // Then add any additional payment data that might be needed
               ...payment
             };
-            console.log('Final selectedReceipt:', selectedReceipt.value);
-            console.log('Receipt data keys:', Object.keys(selectedReceipt.value));
-            console.log('Student name:', selectedReceipt.value.student_name);
-            console.log('Payment amount:', selectedReceipt.value.payment_amount);
-            console.log('Receipt number:', selectedReceipt.value.receipt_number);
             showReceiptModal.value = true;
           } else {
             showError('No receipt found for this payment');
             return;
           }
         } catch (receiptError) {
-          console.error('Error generating receipt for payment:', receiptError);
           showError('Error generating receipt for this payment');
           return;
         }
       }
     }
   } catch (error) {
-    console.error('Error viewing receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -1153,7 +1127,6 @@ const viewReceipt = async payment => {
 
 // Select receipt from list (for tab-like functionality)
 const selectReceiptFromList = async receipt => {
-  console.log('Selecting receipt from list:', receipt);
   selectedReceiptFromList.value = receipt;
   isLoadingReceiptContent.value = true;
 
@@ -1196,7 +1169,6 @@ const selectReceiptFromList = async receipt => {
       }
     }
   } catch (error) {
-    console.error('Error loading receipt from list:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -1254,7 +1226,6 @@ const viewReceiptFromList = async receipt => {
       }
     }
   } catch (error) {
-    console.error('Error viewing receipt from list:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -1272,7 +1243,6 @@ const viewCombinedReceipt = async invoice => {
   try {
     // First check if we have combined_receipt data (from smart payments)
     if (invoice.combined_receipt) {
-      console.log('🔍 Using cached combined_receipt data:', invoice.combined_receipt);
       selectedReceipt.value = invoice.combined_receipt;
       showReceiptModal.value = true;
       return;
@@ -1280,7 +1250,6 @@ const viewCombinedReceipt = async invoice => {
 
     // Check for receipt_group_id (for grouped receipts)
     if (invoice.receipt_group_id) {
-      console.log('🔍 Fetching receipt for group ID:', invoice.receipt_group_id);
       const response = await FeeInvoices.getCombinedReceipt(invoice.receipt_group_id);
 
       if (response.data) {
@@ -1294,7 +1263,6 @@ const viewCombinedReceipt = async invoice => {
 
     // Check for receipt_number (for individual receipts)
     if (invoice.receipt_number) {
-      console.log('🔍 Fetching receipt for receipt number:', invoice.receipt_number);
       const response = await FeeInvoices.getReceiptByNumber(invoice.receipt_number);
 
       if (response.success && response.data) {
@@ -1309,7 +1277,6 @@ const viewCombinedReceipt = async invoice => {
     // If none of the above, show error
     showError('No receipt group ID or receipt number found for this payment');
   } catch (error) {
-    console.error('Error generating combined receipt:', error);
     if (error.response && error.response.data && error.response.data.message) {
       showError(error.response.data.message);
     } else {
@@ -1328,7 +1295,7 @@ const fetchAllReceipts = async () => {
     // Fetch student ledger which includes both individual and grouped receipts
     const ledgerResponse = await FeeInvoices.getStudentLedger({
       student_id: studentId,
-      academic_year: filters.value.academic_year || ''
+      academic_year: filters.value.academic_year
     });
 
     const allReceiptsData = [];
@@ -1347,10 +1314,10 @@ const fetchAllReceipts = async () => {
                   id: `${invoice.id}-payment-${payment.id}`, // Unique ID for each payment
                   invoice_id: invoice.id,
                   payment_id: payment.id,
-                  receipt_number: payment.receipt_number || `RCP-${payment.id}`,
-                  payment_amount: parseFloat(payment.payment_amount || 0),
-                  payment_method: payment.payment_method || 'Cash',
-                  payment_date: payment.payment_date || payment.created_at,
+                  receipt_number: payment.receipt_number,
+                  payment_amount: parseFloat(payment.payment_amount),
+                  payment_method: payment.payment_method,
+                  payment_date: payment.payment_date,
 
                   is_grouped: false,
                   receipt_type: 'individual',
@@ -1361,16 +1328,15 @@ const fetchAllReceipts = async () => {
                   month_range: invoice.month_range,
                   month: invoice.month,
                   year: invoice.year,
-                  payment_model:
-                    invoice.payment_model || invoice.feeStructure?.payment_model || 'installment',
-                  total_amount: parseFloat(invoice.total_amount || 0),
-                  paid_amount: parseFloat(invoice.paid_amount || 0),
-                  balance_amount: parseFloat(invoice.balance_amount || 0),
+                  payment_model: invoice.payment_model,
+                  total_amount: parseFloat(invoice.total_amount),
+                  paid_amount: parseFloat(invoice.paid_amount),
+                  balance_amount: parseFloat(invoice.balance_amount),
                   status: invoice.status,
                   academic_year: invoice.academic_year,
                   due_date: invoice.due_date,
                   invoice_date: invoice.invoice_date,
-                  fee_type: invoice.fee_type || invoice.feeStructure?.feeType?.name,
+                  fee_type: invoice.fee_type,
                   class_name: invoice.class_name,
                   section: invoice.section,
                   payments: [payment], // Single payment
@@ -1397,7 +1363,7 @@ const fetchAllReceipts = async () => {
                     ? invoice.payments[0].payment_date
                     : invoice.due_date,
 
-                is_grouped: invoice.is_grouped || false,
+                is_grouped: invoice.is_grouped,
                 receipt_type: invoice.is_grouped ? 'grouped' : 'individual',
                 receipt_group_id: invoice.receipt_group_id,
 
@@ -1418,7 +1384,7 @@ const fetchAllReceipts = async () => {
                 fee_type: invoice.fee_type || invoice.feeStructure?.feeType?.name,
                 class_name: invoice.class_name,
                 section: invoice.section,
-                payments: invoice.payments || [],
+                payments: invoice.payments,
                 feeStructure: invoice.feeStructure,
                 student: invoice.student,
                 branch: invoice.branch
@@ -1479,7 +1445,7 @@ watch(
 
 // Utility functions
 const formatCurrency = amount => {
-  return parseFloat(amount || 0).toLocaleString('en-IN');
+  return parseFloat(amount).toLocaleString('en-IN');
 };
 
 const formatDate = date => {
@@ -1590,8 +1556,8 @@ const onPageSizeChange = newPageSize => {
 
 // Helper function to get student full name
 const getStudentFullName = student => {
-  const firstName = student.first_name || '';
-  const lastName = student.last_name || '';
+  const firstName = student.first_name;
+  const lastName = student.last_name;
 
   if (firstName && lastName) {
     return `${firstName} ${lastName}`;
@@ -1612,7 +1578,7 @@ const getInvoiceNumber = invoice => {
     return invoice.receipt_group_id; // Show RCP-GROUP-C5-26 for grouped payments
   }
   // Otherwise use invoice_number or fallback
-  return invoice.invoice_number || 'UNKNOWN';
+  return invoice.invoice_number;
 };
 
 onMounted(() => {

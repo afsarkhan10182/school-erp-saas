@@ -359,6 +359,7 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { X, Search, CreditCard, FileText } from 'lucide-vue-next';
 import { Students, FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
@@ -394,16 +395,10 @@ const paymentForm = ref({
   notes: ''
 });
 
-// Debounced search
-let searchTimeout = null;
-const debouncedSearch = () => {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-  searchTimeout = setTimeout(() => {
-    searchStudents();
-  }, 300);
-};
+// VueUse debounced search
+const debouncedSearch = useDebounceFn(() => {
+  searchStudents();
+}, 300);
 
 // Search students with debouncing
 const searchStudents = async () => {

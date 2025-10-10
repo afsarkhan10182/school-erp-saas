@@ -44,7 +44,6 @@ export default defineNuxtRouteMiddleware(async to => {
     try {
       await loadUserModules();
     } catch (error) {
-      console.warn('Failed to load modules in middleware:', error);
       // If module loading fails, allow access to prevent blocking
       // This ensures users aren't locked out due to API issues
       return;
@@ -53,7 +52,6 @@ export default defineNuxtRouteMiddleware(async to => {
 
   // If modules still aren't loaded after attempt, allow access to prevent blocking
   if (!areModulesLoaded() && !cached) {
-    console.warn('Modules not loaded, allowing access to prevent blocking');
     return;
   }
 
@@ -69,8 +67,6 @@ export default defineNuxtRouteMiddleware(async to => {
 
   if (shouldCheckTimestamp) {
     try {
-      console.log('🔍 Checking modules_updated_at timestamp for route:', routePath);
-
       // First, check if modules have been updated (lightweight timestamp call)
       const schoolId = user.value?.school_id;
       if (schoolId) {
@@ -83,15 +79,13 @@ export default defineNuxtRouteMiddleware(async to => {
 
             // Only reload if timestamp actually changed
             if (serverTimestamp !== lastModulesUpdatedAt) {
-              console.log('🔄 Timestamp changed, reloading modules...');
               await loadUserModules(true);
               lastModulesUpdatedAt = serverTimestamp;
             } else {
-              console.log('✅ Modules unchanged, using cache');
+              // Modules unchanged, using cache
             }
           }
         } catch (error) {
-          console.warn('Failed to check modules timestamp, falling back to full reload:', error);
           await loadUserModules(true);
         }
       }
@@ -104,18 +98,15 @@ export default defineNuxtRouteMiddleware(async to => {
         localStorage.removeItem('modules-refresh');
       }
     } catch (error) {
-      console.warn('Failed to check modules timestamp:', error);
       // Fallback: reload modules if timestamp check fails
       await loadUserModules(true);
     }
   } else {
-    console.log('⏰ Using cached modules (10s cache)');
+    // Using cached modules (10s cache)
   }
 
   // Check if user can access the route
   if (!canAccessRoute(routePath)) {
-    console.log('🚫 Access denied for route:', routePath);
-
     // Redirect to dashboard with error message
     return navigateTo({
       path: '/dashboard',

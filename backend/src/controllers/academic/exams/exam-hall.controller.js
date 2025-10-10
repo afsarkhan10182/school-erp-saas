@@ -7,9 +7,20 @@ class ExamHallController {
    * Create exam hall
    */
   static createExamHall = asyncHandler(async (req, res) => {
+    // Use req.schoolId if available, otherwise fall back to user's school_id
+    const schoolId = req.schoolId || req.user.school_id;
+
+    if (!schoolId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'School context is required'
+      });
+    }
+
     const hallData = {
       ...req.body,
-      school_id: req.schoolId
+      school_id: schoolId,
+      branch_id: req.user.branch_id
     };
 
     const hall = await ExamHallService.createExamHall(hallData, req.user.id);
@@ -21,6 +32,14 @@ class ExamHallController {
    * Get all exam halls
    */
   static getAllExamHalls = asyncHandler(async (req, res) => {
+    // Ensure user has school_id
+    if (!req.user.school_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User must be associated with a school'
+      });
+    }
+
     const params = {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 10,
@@ -37,6 +56,14 @@ class ExamHallController {
    * Get exam hall by ID
    */
   static getExamHallById = asyncHandler(async (req, res) => {
+    // Ensure user has school_id
+    if (!req.user.school_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User must be associated with a school'
+      });
+    }
+
     const { id } = req.params;
     const hall = await ExamHallService.getExamHallById(id, req.user);
 
@@ -47,6 +74,14 @@ class ExamHallController {
    * Update exam hall
    */
   static updateExamHall = asyncHandler(async (req, res) => {
+    // Ensure user has school_id
+    if (!req.user.school_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User must be associated with a school'
+      });
+    }
+
     const { id } = req.params;
     const hall = await ExamHallService.updateExamHall(id, req.body, req.user);
 
@@ -57,6 +92,14 @@ class ExamHallController {
    * Delete exam hall
    */
   static deleteExamHall = asyncHandler(async (req, res) => {
+    // Ensure user has school_id
+    if (!req.user.school_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User must be associated with a school'
+      });
+    }
+
     const { id } = req.params;
     const result = await ExamHallService.deleteExamHall(id, req.user);
 
@@ -67,6 +110,14 @@ class ExamHallController {
    * Get exam halls for dropdown
    */
   static getExamHallsForDropdown = asyncHandler(async (req, res) => {
+    // Ensure user has school_id
+    if (!req.user.school_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User must be associated with a school'
+      });
+    }
+
     const halls = await ExamHallService.getExamHallsForDropdown(req.user);
 
     success(res, { halls }, 'Exam halls retrieved successfully');

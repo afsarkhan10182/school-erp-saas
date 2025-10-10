@@ -4,9 +4,6 @@ const {
   ExamResult,
   ExamType,
   ExamStatus,
-  Subject,
-  Class,
-  Section,
   Student,
   School,
   User,
@@ -19,37 +16,28 @@ const { logger } = require('~/utils/shared/logger');
 
 class ExamService extends BaseService {
   /**
+   * Test method
+   */
+  static async test() {
+    console.log('DEBUG: ExamService.test called');
+    return { success: true, message: 'ExamService test method reached' };
+  }
+
+  /**
    * Create a new exam
    */
   static async createExam(examData, userId) {
     return this.executeWithErrorHandling(async () => {
-      // Validate required entities
-      await this.validateEntityExists(Subject, examData.subject_id, 'Subject');
-      await this.validateEntityExists(Class, examData.class_id, 'Class');
-      if (examData.section_id) {
-        await this.validateEntityExists(Section, examData.section_id, 'Section');
-      }
-      if (examData.exam_type_id) {
-        await this.validateEntityExists(ExamType, examData.exam_type_id, 'Exam Type');
-      }
-
-      // Check for duplicate exam name in same class/section
-      const existingExam = await Exam.findOne({
+      // Check for duplicate name in same school
+      const existing = await Exam.findOne({
         where: {
-          school_id: examData.school_id,
-          class_id: examData.class_id,
-          section_id: examData.section_id || null,
-          subject_id: examData.subject_id,
           name: examData.name,
-          academic_year: examData.academic_year
+          school_id: examData.school_id
         }
       });
 
-      if (existingExam) {
-        throw new ApiError(
-          400,
-          'An exam with this name already exists for this class/section/subject'
-        );
+      if (existing) {
+        throw new ApiError(400, 'Exam with this name already exists in this school');
       }
 
       const exam = await Exam.create({
@@ -71,9 +59,6 @@ class ExamService extends BaseService {
         page = 1,
         limit = 10,
         search,
-        class_id,
-        section_id,
-        subject_id,
         exam_type_id,
         academic_year,
         is_active,
@@ -94,33 +79,15 @@ class ExamService extends BaseService {
         ];
       }
 
-      if (class_id) whereClause.class_id = class_id;
-      if (section_id) whereClause.section_id = section_id;
-      if (subject_id) whereClause.subject_id = subject_id;
       if (exam_type_id) whereClause.exam_type_id = exam_type_id;
       if (academic_year) whereClause.academic_year = academic_year;
       if (is_active !== '') whereClause.is_active = is_active === 'true';
       if (branch_id) whereClause.branch_id = branch_id;
-      if (params.status_id) whereClause.status_id = params.status_id;
+      if (params.status_id) whereClause.exam_status_id = params.status_id;
 
       const { count, rows } = await Exam.findAndCountAll({
         where: whereClause,
         include: [
-          {
-            model: Subject,
-            as: 'subject',
-            attributes: ['id', 'name', 'code']
-          },
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code']
-          },
-          {
-            model: Section,
-            as: 'section',
-            attributes: ['id', 'name']
-          },
           {
             model: ExamType,
             as: 'examType',
@@ -162,21 +129,6 @@ class ExamService extends BaseService {
   static async getExamById(id, user, includeResults = false) {
     return this.executeWithErrorHandling(async () => {
       const includeOptions = [
-        {
-          model: Subject,
-          as: 'subject',
-          attributes: ['id', 'name', 'code']
-        },
-        {
-          model: Class,
-          as: 'class',
-          attributes: ['id', 'name', 'code']
-        },
-        {
-          model: Section,
-          as: 'section',
-          attributes: ['id', 'name']
-        },
         {
           model: ExamType,
           as: 'examType',
@@ -242,7 +194,7 @@ class ExamService extends BaseService {
       const hasResults = await ExamResult.count({ where: { exam_id: id } });
       if (hasResults > 0) {
         // Prevent updating critical fields if results exist
-        const restrictedFields = ['subject_id', 'class_id', 'section_id', 'max_marks'];
+        const restrictedFields = ['max_marks'];
         const restrictedUpdates = restrictedFields.filter(field => updateData[field] !== undefined);
 
         if (restrictedUpdates.length > 0) {
@@ -309,18 +261,16 @@ class ExamService extends BaseService {
         throw new ApiError(404, 'Exam not found');
       }
 
-      // Validate student exists and belongs to the exam's class/section
+      // Validate student exists
       const student = await Student.findOne({
         where: {
           id: resultData.student_id,
-          class_id: exam.class_id,
-          section_id: exam.section_id || null,
           school_id: user.school_id
         }
       });
 
       if (!student) {
-        throw new ApiError(400, 'Student not found or not enrolled in this class/section');
+        throw new ApiError(400, 'Student not found');
       }
 
       // Check if result already exists
@@ -587,8 +537,6 @@ class ExamService extends BaseService {
 
       // Apply filters
       if (filters.academic_year) whereClause.academic_year = filters.academic_year;
-      if (filters.class_id) whereClause.class_id = filters.class_id;
-      if (filters.subject_id) whereClause.subject_id = filters.subject_id;
 
       const [totalExams, activeExams, totalResults, averagePercentage] = await Promise.all([
         Exam.count({ where: whereClause }),
@@ -607,7 +555,7 @@ class ExamService extends BaseService {
           where: {
             exam_id: {
               [Op.in]: Sequelize.literal(
-                `(SELECT id FROM exams WHERE school_id = '${user.school_id}'${user.role === 'branch_admin' ? ` AND branch_id = '${user.branch_id}'` : ''}${filters.academic_year ? ` AND academic_year = '${filters.academic_year}'` : ''}${filters.class_id ? ` AND class_id = '${filters.class_id}'` : ''}${filters.subject_id ? ` AND subject_id = '${filters.subject_id}'` : ''})`
+                `(SELECT id FROM exams WHERE school_id = '${user.school_id}'${user.role === 'branch_admin' ? ` AND branch_id = '${user.branch_id}'` : ''}${filters.academic_year ? ` AND academic_year = '${filters.academic_year}'` : ''})`
               )
             }
           },
@@ -636,25 +584,12 @@ class ExamService extends BaseService {
       };
 
       // Apply filters
-      if (filters.class_id) whereClause.class_id = filters.class_id;
-      if (filters.subject_id) whereClause.subject_id = filters.subject_id;
       if (filters.academic_year) whereClause.academic_year = filters.academic_year;
 
       const exams = await Exam.findAll({
         where: whereClause,
         attributes: ['id', 'name', 'exam_date', 'max_marks'],
-        include: [
-          {
-            model: Subject,
-            as: 'subject',
-            attributes: ['id', 'name', 'code']
-          },
-          {
-            model: Class,
-            as: 'class',
-            attributes: ['id', 'name', 'code']
-          }
-        ],
+        include: [],
         order: [['exam_date', 'DESC']]
       });
 
@@ -690,8 +625,6 @@ class ExamService extends BaseService {
       // Get students for this exam
       const students = await Student.findAll({
         where: {
-          class_id: exam.class_id,
-          section_id: exam.section_id || null,
           school_id: user.school_id,
           status: 'active'
         },
@@ -750,8 +683,6 @@ class ExamService extends BaseService {
       // Get students for this exam
       const students = await Student.findAll({
         where: {
-          class_id: exam.class_id,
-          section_id: exam.section_id || null,
           school_id: user.school_id,
           status: 'active'
         },

@@ -81,7 +81,7 @@
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               ]"
             >
-              {{ role.label }} ({{ roleCounts[role.key] || 0 }})
+              {{ role.label }} ({{ roleCounts[role.key] }})
             </button>
           </div>
         </div>
@@ -373,6 +373,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
 import { Users, Branches } from '~/api';
@@ -495,10 +496,10 @@ const fetchBranches = async () => {
   try {
     if (user.value?.school_id) {
       const response = await Branches.getForDropdown({ school_id: user.value.school_id });
-      branches.value = response.data || [];
+      branches.value = response.data;
     }
   } catch (error) {
-    console.error('Error fetching branches:', error);
+    // Error handled silently
   }
 };
 
@@ -514,13 +515,13 @@ const fetchUsers = async (showLoading = true) => {
       response = await Users.getAll({
         schoolId: user.value.school_id,
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
-        search: searchQuery.value || undefined
+        search: searchQuery.value
       });
     } else {
       // Super admin can see all users
       response = await Users.getAll({
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
-        search: searchQuery.value || undefined
+        search: searchQuery.value
       });
     }
 
@@ -538,7 +539,6 @@ const fetchUsers = async (showLoading = true) => {
       useToast().success('Users list updated');
     }
   } catch (error) {
-    console.error('Error fetching users:', error);
     useToast().error(error.response?.data?.message || 'Failed to fetch users. Please try again.');
   } finally {
     isLoading.value = false;
@@ -567,13 +567,12 @@ watch(
 );
 
 // Watch for search and role filter changes
-watch(
-  [searchQuery, selectedRole],
-  () => {
-    fetchUsers(false); // Don't show loading indicator for filter changes
-  },
-  { debounce: 300 }
-);
+// VueUse debounced search
+const debouncedFetchUsers = useDebounceFn(() => {
+  fetchUsers(false); // Don't show loading indicator for filter changes
+}, 300);
+
+watch([searchQuery, selectedRole], debouncedFetchUsers);
 
 const confirmDelete = user => {
   userToDelete.value = user;
@@ -592,7 +591,6 @@ async function deleteUser() {
     users.value = users.value.filter(user => user.id !== userIdToDelete);
     updateRoleCounts();
   } catch (error) {
-    console.error('Error deleting user:', error);
     useToast().error(error.response?.data?.message || 'Failed to delete user');
   }
 }

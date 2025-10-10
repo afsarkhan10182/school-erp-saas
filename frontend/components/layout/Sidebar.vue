@@ -347,7 +347,11 @@ import {
   ChevronDown,
   FileText,
   Clock,
-  Edit
+  Edit,
+  CheckCircle,
+  Building,
+  Award,
+  FileBarChart
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -401,12 +405,6 @@ const schoolLogo = computed(() => {
     const apiBase = config.public?.apiBase;
 
     const logoUrl = getLogoUrl(school.logo, schoolCode, apiBase);
-    console.log('🖼️ Generated logo URL:', {
-      filename: school.logo,
-      schoolCode: schoolCode,
-      apiBase: apiBase,
-      logoUrl: logoUrl
-    });
     return logoUrl;
   }
   return null;
@@ -415,15 +413,11 @@ const schoolLogo = computed(() => {
 const schoolName = computed(() => {
   // Use currentSchool from auth store (updated when settings change)
   // Fallback to user.school.name for backward compatibility
-  return currentSchool.value?.name || user.value?.school?.name || '';
+  return currentSchool.value?.name || user.value?.school?.name;
 });
 
 // Handle logo error fallback
 const handleLogoError = event => {
-  console.error('🚫 School logo failed to load:', {
-    src: event.target?.src,
-    school: user.value?.school
-  });
   logoError.value = true;
 };
 
@@ -663,33 +657,11 @@ const menuGroups = computed(() => {
       title: 'Exam Management',
       items: [
         {
-          id: 'exam-management',
-          title: 'Exam',
+          id: 'exams',
+          title: 'Exams',
+          path: '/exams',
           icon: FileText,
-          requiredModule: 'exams',
-          children: [
-            {
-              id: 'exams',
-              title: 'Exams',
-              path: '/exams',
-              icon: FileText,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'marks-entry',
-              title: 'Marks Entry',
-              path: '/exams/marks-entry',
-              icon: Edit,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'report-cards',
-              title: 'Report Cards',
-              path: '/exams/report-cards',
-              icon: FileText,
-              requiredModule: 'exams'
-            }
-          ]
+          requiredModule: 'exams'
         }
       ]
     });
@@ -767,36 +739,29 @@ const menuGroups = computed(() => {
                   requiredModule: 'fees'
                 }
               ]
+            },
+            {
+              id: 'student',
+              title: 'Student',
+              icon: Users,
+              requiredModule: 'students',
+              children: [
+                {
+                  id: 'student-reports',
+                  title: 'Student Reports',
+                  path: '/reports/students',
+                  icon: BarChart3,
+                  requiredModule: 'students'
+                },
+                {
+                  id: 'attendance-reports',
+                  title: 'Attendance Reports',
+                  path: '/reports/attendance',
+                  icon: UserCheck,
+                  requiredModule: 'attendance'
+                }
+              ]
             }
-            // {
-            //   id: 'student',
-            //   title: 'Student',
-            //   icon: Users,
-            //   requiredModule: 'students',
-            //   children: [
-            //     {
-            //       id: 'student-reports',
-            //       title: 'Student Reports',
-            //       path: '/reports/students',
-            //       icon: BarChart3,
-            //       requiredModule: 'students'
-            //     },
-            //     {
-            //       id: 'attendance-reports',
-            //       title: 'Attendance Reports',
-            //       path: '/reports/attendance',
-            //       icon: BarChart3,
-            //       requiredModule: 'attendance'
-            //     },
-            //     {
-            //       id: 'exam-reports',
-            //       title: 'Exam Reports',
-            //       path: '/exams/report-cards',
-            //       icon: FileText,
-            //       requiredModule: 'exams'
-            //     }
-            //   ]
-            // }
           ]
         }
       ]
@@ -917,16 +882,13 @@ const menuGroups = computed(() => {
 
 // Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
-  console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
-
   // Super admin: show all menu groups
   if (isSuperAdmin.value) {
     return menuGroups.value;
   }
 
   // For non-super admins, filter based on modules
-  if (!userModules.value || userModules.value.length === 0) {
-    console.log('🔄 No user modules available, showing basic menu');
+  if (!userModules.value?.length) {
     // Return basic menu items that don't require modules
     return menuGroups.value.filter(group => group.id === 'profile' || group.id === 'settings');
   }
@@ -942,7 +904,6 @@ const visibleMenuGroups = computed(() => {
     })
     .filter(group => group.items.length > 0); // remove empty groups
 
-  console.log('🔄 Filtered menu groups:', filtered);
   return filtered;
 });
 
@@ -1025,7 +986,7 @@ onMounted(async () => {
 watch(
   userModules,
   newModules => {
-    console.log('🔄 Sidebar modules updated:', newModules);
+    // Modules updated
   },
   { deep: true }
 );
@@ -1035,7 +996,6 @@ onMounted(() => {
   if (import.meta.client) {
     const handleStorageChange = e => {
       if (e.key === 'modules-refresh') {
-        console.log('🔄 Module refresh detected, reloading...');
         loadUserModules(true);
       }
     };
@@ -1048,7 +1008,7 @@ onMounted(() => {
           const { checkModulesUpdated } = useModuleAccess();
           await checkModulesUpdated();
         } catch (error) {
-          console.warn('Background module check failed:', error);
+          // Background module check failed
         }
       },
       15 * 60 * 1000

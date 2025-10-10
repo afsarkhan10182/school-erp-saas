@@ -84,52 +84,7 @@
           </p>
         </div>
 
-        <!-- Exam Types Tab (School-wide, no branch selection needed) -->
-        <div v-else-if="activeTab === 'exam-types'" class="p-6">
-          <ExamTypesTab
-            ref="examTypesTabRef"
-            :exam-types="examTypes"
-            :loading="examTypesLoading"
-            :branch-id="null"
-            @refresh="loadExamTypes"
-            @create="handleExamTypeCreate"
-            @update="handleExamTypeUpdate"
-            @delete="handleExamTypeDelete"
-          />
-        </div>
-
-        <!-- Exam Statuses Tab (School-wide, no branch selection needed) -->
-        <div v-else-if="activeTab === 'exam-statuses'" class="p-6">
-          <ExamStatusesTab
-            ref="examStatusesTabRef"
-            :exam-statuses="examStatuses"
-            :loading="examStatusesLoading"
-            @refresh="loadExamStatuses"
-            @create="handleExamStatusCreate"
-            @update="handleExamStatusUpdate"
-            @delete="handleExamStatusDelete"
-          />
-        </div>
-
-        <!-- Grading Systems Tab (School-wide, no branch selection needed) -->
-        <div v-else-if="activeTab === 'grading-systems'" class="p-6">
-          <GradingSystemsTab
-            ref="gradingSystemsTabRef"
-            :grading-systems="gradingSystems"
-            :loading="gradingSystemsLoading"
-            @refresh="loadGradingSystems"
-            @create="handleGradingSystemCreate"
-            @update="handleGradingSystemUpdate"
-            @delete="handleGradingSystemDelete"
-          />
-        </div>
-
-        <!-- Exam Halls Tab (School-wide, no branch selection needed) -->
-        <div v-else-if="activeTab === 'exam-halls'" class="p-6">
-          <ExamHallsTab ref="examHallsTabRef" @refresh="loadExamHalls" @success="loadExamHalls" />
-        </div>
-
-        <!-- Exams Tab (Branch-specific, requires branch selection) -->
+        <!-- Exams Tab (Main) -->
         <div
           v-else-if="activeTab === 'exams' && (selectedBranchId || !shouldShowBranchFilter)"
           class="p-6"
@@ -147,6 +102,49 @@
             @delete="handleExamDelete"
           />
         </div>
+
+        <!-- Exam Types Tab -->
+        <div v-else-if="activeTab === 'exam-types'" class="p-6">
+          <ExamTypesTab ref="examTypesTabRef" @refresh="handleRefresh" />
+        </div>
+
+        <!-- Exam Statuses Tab -->
+        <div v-else-if="activeTab === 'exam-statuses'" class="p-6">
+          <ExamStatusesTab ref="examStatusesTabRef" @refresh="handleRefresh" />
+        </div>
+
+        <!-- Exam Halls Tab -->
+        <div v-else-if="activeTab === 'exam-halls'" class="p-6">
+          <ExamHallsTab ref="examHallsTabRef" @refresh="loadExamHalls" />
+        </div>
+
+        <!-- Grading Systems Tab -->
+        <div v-else-if="activeTab === 'grading-systems'" class="p-6">
+          <GradingSystemsTab ref="gradingSystemsTabRef" @refresh="handleRefresh" />
+        </div>
+
+        <!-- Exam Schedules Tab -->
+        <div v-else-if="activeTab === 'exam-schedules'" class="p-6">
+          <ExamSchedulesTab ref="examSchedulesTabRef" @refresh="handleRefresh" />
+        </div>
+
+        <!-- Exam Results Tab -->
+        <div v-else-if="activeTab === 'exam-results'" class="p-6">
+          <ExamResultsTab
+            ref="examResultsTabRef"
+            :exam-id="selectedExamId"
+            @refresh="handleRefresh"
+          />
+        </div>
+
+        <!-- Exam Reports Tab -->
+        <div v-else-if="activeTab === 'exam-reports'" class="p-6">
+          <ExamReportsTab
+            ref="examReportsTabRef"
+            :exam-id="selectedExamId"
+            @refresh="handleRefresh"
+          />
+        </div>
       </ScrollableTabs>
     </div>
   </div>
@@ -154,14 +152,29 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { Building2, Tag, BookOpen, Settings, BarChart3, Building } from 'lucide-vue-next';
+import {
+  Building2,
+  Tag,
+  BookOpen,
+  Settings,
+  BarChart3,
+  Building,
+  Calendar,
+  Award,
+  Users,
+  CheckCircle,
+  FileBarChart
+} from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
-import ExamTypesTab from '~/components/academic/ExamTypesTab.vue';
 import ExamsTab from '~/components/academic/ExamsTab.vue';
+import ExamTypesTab from '~/components/academic/ExamTypesTab.vue';
 import ExamStatusesTab from '~/components/academic/ExamStatusesTab.vue';
-import GradingSystemsTab from '~/components/academic/GradingSystemsTab.vue';
 import ExamHallsTab from '~/components/academic/ExamHallsTab.vue';
+import GradingSystemsTab from '~/components/academic/GradingSystemsTab.vue';
+import ExamSchedulesTab from '~/components/academic/ExamSchedulesTab.vue';
+import ExamResultsTab from '~/components/academic/ExamResultsTab.vue';
+import ExamReportsTab from '~/components/academic/ExamReportsTab.vue';
 import { useBranches } from '~/composables/useBranches';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
@@ -175,35 +188,39 @@ import { useExamHalls } from '~/composables/useExamHalls';
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
 const { showToast } = useToast();
-const { examTypes, examTypeOptions, loading: examTypesLoading, loadExamTypes } = useExamOptions();
 const { exams, stats, loading: examsLoading, loadExams } = useExams();
-const { examStatuses, loading: examStatusesLoading, loadExamStatuses } = useExamStatuses();
-const { gradingSystems, loading: gradingSystemsLoading, loadGradingSystems } = useGradingSystems();
-const { loadHalls: loadExamHalls } = useExamHalls();
+const { loadExamHalls } = useExamHalls();
 
 // School-related composables (for Super Admin)
 const { schools, loading: schoolsLoading, fetchSchools } = useBranches();
 
 // Tab configuration
 const tabs = [
+  { id: 'exams', name: 'Exams', icon: BookOpen },
   { id: 'exam-types', name: 'Exam Types', icon: Tag },
-  { id: 'exam-statuses', name: 'Exam Statuses', icon: Settings },
-  { id: 'grading-systems', name: 'Grading Systems', icon: BarChart3 },
+  { id: 'exam-statuses', name: 'Exam Statuses', icon: CheckCircle },
   { id: 'exam-halls', name: 'Exam Halls', icon: Building },
-  { id: 'exams', name: 'Exams', icon: BookOpen }
+  { id: 'grading-systems', name: 'Grading Systems', icon: Award },
+  { id: 'exam-schedules', name: 'Exam Schedules', icon: Calendar },
+  { id: 'exam-results', name: 'Exam Results', icon: BarChart3 },
+  { id: 'exam-reports', name: 'Exam Reports', icon: FileBarChart }
 ];
 
 // Reactive data
-const activeTab = ref('exam-types');
+const activeTab = ref('exams');
 const selectedBranchId = ref('');
 const selectedSchoolId = ref('');
+const selectedExamId = ref('');
 
 // Refs
 const examsTabRef = ref(null);
 const examTypesTabRef = ref(null);
 const examStatusesTabRef = ref(null);
-const gradingSystemsTabRef = ref(null);
 const examHallsTabRef = ref(null);
+const gradingSystemsTabRef = ref(null);
+const examSchedulesTabRef = ref(null);
+const examResultsTabRef = ref(null);
+const examReportsTabRef = ref(null);
 
 // Computed properties for branch logic
 const shouldShowBranchFilter = computed(() => {
@@ -229,7 +246,7 @@ const onBranchChange = async () => {
   if (selectedBranchId.value) {
     // Reload branch-specific data
     if (activeTab.value === 'exams') {
-      await loadExams();
+      await loadExams({ branch_id: selectedBranchId.value });
     } else if (activeTab.value === 'exam-halls') {
       await loadExamHalls();
     }
@@ -243,60 +260,14 @@ const onSchoolChange = async () => {
   }
 };
 
-const handleExamTypeCreate = async examTypeData => {
-  try {
-    const { examTypeApi } = await import('~/api/academic/exam-types');
-    const response = await examTypeApi.create(examTypeData);
-    if (response.success) {
-      showToast('Exam type created successfully', 'success');
-      await loadExamTypes();
-      // Close modal on success
-      if (examTypesTabRef.value) {
-        examTypesTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to create exam type', 'error');
-  }
-};
-
-const handleExamTypeUpdate = async examTypeData => {
-  try {
-    const { examTypeApi } = await import('~/api/academic/exam-types');
-    const response = await examTypeApi.update(examTypeData.id, examTypeData);
-    if (response.success) {
-      showToast('Exam type updated successfully', 'success');
-      await loadExamTypes();
-      // Close modal on success
-      if (examTypesTabRef.value) {
-        examTypesTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to update exam type', 'error');
-  }
-};
-
-const handleExamTypeDelete = async examTypeId => {
-  try {
-    const { examTypeApi } = await import('~/api/academic/exam-types');
-    const response = await examTypeApi.delete(examTypeId);
-    if (response.success) {
-      showToast('Exam type deleted successfully', 'success');
-      await loadExamTypes();
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to delete exam type', 'error');
-  }
-};
-
 const handleExamCreate = async examData => {
   try {
     const { examApi } = await import('~/api/academic/exams');
     const response = await examApi.create(examData);
     if (response.success) {
       showToast('Exam created successfully', 'success');
-      await loadExams();
+      // Add new exam to local state instead of reloading
+      exams.value.push(response.data);
       // Close modal on success
       if (examsTabRef.value) {
         examsTabRef.value.closeModalOnSuccess();
@@ -313,7 +284,11 @@ const handleExamUpdate = async examData => {
     const response = await examApi.update(examData.id, examData);
     if (response.success) {
       showToast('Exam updated successfully', 'success');
-      await loadExams();
+      // Update exam in local state instead of reloading
+      const index = exams.value.findIndex(exam => exam.id === examData.id);
+      if (index !== -1) {
+        exams.value[index] = response.data;
+      }
       // Close modal on success
       if (examsTabRef.value) {
         examsTabRef.value.closeModalOnSuccess();
@@ -330,104 +305,36 @@ const handleExamDelete = async examId => {
     const response = await examApi.delete(examId);
     if (response.success) {
       showToast('Exam deleted successfully', 'success');
-      await loadExams();
+      // Remove exam from local state instead of reloading
+      exams.value = exams.value.filter(exam => exam.id !== examId);
     }
   } catch (error) {
     showToast(error.message || 'Failed to delete exam', 'error');
   }
 };
 
-const handleExamStatusCreate = async statusData => {
-  try {
-    const { examStatusApi } = await import('~/api/academic/exam-statuses');
-    const response = await examStatusApi.create(statusData);
-    if (response.success) {
-      showToast('Exam status created successfully', 'success');
-      await loadExamStatuses();
-      // Close modal on success
-      if (examStatusesTabRef.value) {
-        examStatusesTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to create exam status', 'error');
+const handleRefresh = () => {
+  // Generic refresh method for all tabs
+  if (examsTabRef.value && examsTabRef.value.refreshData) {
+    examsTabRef.value.refreshData();
   }
-};
-
-const handleExamStatusUpdate = async statusData => {
-  try {
-    const { examStatusApi } = await import('~/api/academic/exam-statuses');
-    const response = await examStatusApi.update(statusData.id, statusData);
-    if (response.success) {
-      showToast('Exam status updated successfully', 'success');
-      await loadExamStatuses();
-      // Close modal on success
-      if (examStatusesTabRef.value) {
-        examStatusesTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to update exam status', 'error');
+  if (examTypesTabRef.value && examTypesTabRef.value.refreshData) {
+    examTypesTabRef.value.refreshData();
   }
-};
-
-const handleExamStatusDelete = async statusId => {
-  try {
-    const { examStatusApi } = await import('~/api/academic/exam-statuses');
-    const response = await examStatusApi.delete(statusId);
-    if (response.success) {
-      showToast('Exam status deleted successfully', 'success');
-      await loadExamStatuses();
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to delete exam status', 'error');
+  if (examStatusesTabRef.value && examStatusesTabRef.value.refreshData) {
+    examStatusesTabRef.value.refreshData();
   }
-};
-
-const handleGradingSystemCreate = async systemData => {
-  try {
-    const { gradingSystemApi } = await import('~/api/academic/grading-systems');
-    const response = await gradingSystemApi.create(systemData);
-    if (response.success) {
-      showToast('Grading system created successfully', 'success');
-      await loadGradingSystems();
-      // Close modal on success
-      if (gradingSystemsTabRef.value) {
-        gradingSystemsTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to create grading system', 'error');
+  if (gradingSystemsTabRef.value && gradingSystemsTabRef.value.refreshData) {
+    gradingSystemsTabRef.value.refreshData();
   }
-};
-
-const handleGradingSystemUpdate = async systemData => {
-  try {
-    const { gradingSystemApi } = await import('~/api/academic/grading-systems');
-    const response = await gradingSystemApi.update(systemData.id, systemData);
-    if (response.success) {
-      showToast('Grading system updated successfully', 'success');
-      await loadGradingSystems();
-      // Close modal on success
-      if (gradingSystemsTabRef.value) {
-        gradingSystemsTabRef.value.closeModalOnSuccess();
-      }
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to update grading system', 'error');
+  if (examSchedulesTabRef.value && examSchedulesTabRef.value.refreshData) {
+    examSchedulesTabRef.value.refreshData();
   }
-};
-
-const handleGradingSystemDelete = async systemId => {
-  try {
-    const { gradingSystemApi } = await import('~/api/academic/grading-systems');
-    const response = await gradingSystemApi.delete(systemId);
-    if (response.success) {
-      showToast('Grading system deleted successfully', 'success');
-      await loadGradingSystems();
-    }
-  } catch (error) {
-    showToast(error.message || 'Failed to delete grading system', 'error');
+  if (examResultsTabRef.value && examResultsTabRef.value.refreshData) {
+    examResultsTabRef.value.refreshData();
+  }
+  if (examReportsTabRef.value && examReportsTabRef.value.refreshData) {
+    examReportsTabRef.value.refreshData();
   }
 };
 
@@ -437,29 +344,13 @@ const handleTabChange = async tabId => {
 
   // Load data only when tab is accessed
   switch (tabId) {
-    case 'exam-types':
-      if (examTypes.value.length === 0) {
-        await loadExamTypes();
-      }
-      break;
-    case 'exam-statuses':
-      if (examStatuses.value.length === 0) {
-        await loadExamStatuses();
-      }
-      break;
-    case 'grading-systems':
-      if (gradingSystems.value.length === 0) {
-        await loadGradingSystems();
-      }
-      break;
     case 'exam-halls':
-      // Load exam halls when tab is accessed
-      await loadExamHalls();
+      // Exam halls are loaded by the component itself in onMounted
       break;
     case 'exams':
       if (selectedBranchId.value || !shouldShowBranchFilter.value) {
         if (exams.value.length === 0) {
-          await loadExams();
+          await loadExams({ branch_id: selectedBranchId.value });
         }
       }
       break;
@@ -486,7 +377,9 @@ onMounted(async () => {
     selectedBranchId.value = branches.value[0].id;
   }
 
-  // Load only the default tab data (exam-types)
-  await loadExamTypes();
+  // Load default tab data (exams)
+  if (selectedBranchId.value || !shouldShowBranchFilter.value) {
+    await loadExams({ branch_id: selectedBranchId.value });
+  }
 });
 </script>

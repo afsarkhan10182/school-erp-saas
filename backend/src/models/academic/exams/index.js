@@ -2,6 +2,9 @@ const Exam = require('./exam.model');
 const ExamType = require('./exam-type.model');
 const ExamStatus = require('./exam-status.model');
 const ExamResult = require('./exam-result.model');
+const ExamPosition = require('./exam-position.model');
+const ExamReport = require('./exam-report.model');
+const ReportTemplate = require('./report-template.model');
 const GradingSystem = require('./grading-system.model');
 const GradeScale = require('./grade-scale.model');
 const ExamSchedule = require('./exam-schedule.model');
@@ -12,6 +15,9 @@ module.exports = {
   ExamType,
   ExamStatus,
   ExamResult,
+  ExamPosition,
+  ExamReport,
+  ReportTemplate,
   GradingSystem,
   GradeScale,
   ExamSchedule,

@@ -13,7 +13,7 @@ export const useExamHalls = () => {
   /**
    * Load all exam halls
    */
-  const loadHalls = async (filters: any = {}) => {
+  const loadExamHalls = async (filters: any = {}) => {
     try {
       loading.value = true;
       error.value = null;
@@ -121,7 +121,7 @@ export const useExamHalls = () => {
     error: readonly(error),
 
     // Methods
-    loadHalls,
+    loadExamHalls,
     createHall,
     updateHall,
     deleteHall,

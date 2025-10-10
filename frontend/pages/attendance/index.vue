@@ -577,6 +577,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, onUnmounted } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
@@ -1125,22 +1126,12 @@ const createAttendanceSession = async () => {
   }
 };
 
-// Watch for date changes with debounce
-let dateChangeTimeout: any = null;
-watch(
-  () => form.date,
-  () => {
-    // Clear previous timeout
-    if (dateChangeTimeout) {
-      clearTimeout(dateChangeTimeout);
-    }
+// VueUse debounced date change handler
+const debouncedCheckWorkingDay = useDebounceFn(() => {
+  checkWorkingDay();
+}, 300);
 
-    // Set new timeout to debounce the API call
-    dateChangeTimeout = setTimeout(() => {
-      checkWorkingDay();
-    }, 300); // 300ms delay
-  }
-);
+watch(() => form.date, debouncedCheckWorkingDay);
 
 // Note: Search and filter changes don't reset pagination with server-side pagination
 // The server handles filtering and pagination
@@ -1179,17 +1170,11 @@ onMounted(async () => {
     // Check working day after settings are loaded
     await checkWorkingDay();
   } catch (error) {
-    console.error('Error initializing attendance page:', error);
     showToast('Error initializing attendance page', 'error');
   }
 });
 
-// Cleanup timeout on unmount
-onUnmounted(() => {
-  if (dateChangeTimeout) {
-    clearTimeout(dateChangeTimeout);
-  }
-});
+// VueUse handles cleanup automatically
 </script>
 
 <style scoped></style>

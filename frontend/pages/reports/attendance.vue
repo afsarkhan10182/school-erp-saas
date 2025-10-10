@@ -1,337 +1,642 @@
 <template>
-  <div class="p-4 space-y-4">
-    <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold">Attendance Reports</h2>
-      <div class="flex gap-2">
-        <button
-          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          @click="exportPDF"
-          :disabled="!records.length || loading"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            ></path>
-          </svg>
-          Export PDF
-        </button>
-        <button
-          class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          @click="exportExcel"
-          :disabled="!records.length || loading"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            ></path>
-          </svg>
-          Export Excel
-        </button>
-        <button
-          class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-          @click="showNotificationModal = true"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 17h5l-5 5v-5zM4 19h6v-6H4v6zM4 5h6V4a1 1 0 00-1-1H5a1 1 0 00-1 1v1zM20 5V4a1 1 0 00-1-1h-1a1 1 0 00-1 1v1h3z"
-            ></path>
-          </svg>
-          Notifications
-        </button>
-      </div>
-    </div>
-    <!-- Filters -->
-    <FilterCard>
-      <template #header>
-        <div class="ml-auto">
+  <div
+    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="sm:flex sm:items-center sm:justify-between mb-8">
+        <div class="mb-4 sm:mb-0">
+          <h1
+            class="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent"
+          >
+            Attendance Reports
+          </h1>
+          <p class="mt-2 text-lg text-gray-600 dark:text-gray-300">
+            Student attendance tracking and analytics
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <!-- Column Selector -->
+          <div class="relative column-selector-dropdown">
+            <button
+              @click="toggleColumnSelector"
+              class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all duration-200 shadow-sm cursor-pointer"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                />
+              </svg>
+              Columns
+              <svg
+                class="ml-1 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showColumnSelector }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            <!-- Column Selector Dropdown -->
+            <div
+              v-show="showColumnSelector"
+              class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
+              style="transform-origin: top right"
+            >
+              <div class="p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-sm font-medium text-gray-900 dark:text-white">Select Columns</h3>
+                  <div class="flex gap-2">
+                    <button
+                      @click="selectAllColumns"
+                      class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      @click="deselectAllColumns"
+                      class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                  <label
+                    v-for="column in availableColumns"
+                    :key="column.key"
+                    class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded"
+                  >
+                    <input
+                      v-model="column.visible"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ column.label }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button
-            @click="resetFilters"
-            :disabled="loading"
-            class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50"
+            @click="printAttendanceReport"
+            :disabled="loading || records.length === 0"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Reset Filters
-          </button>
-        </div>
-      </template>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >From Date</label
-          >
-          <input
-            v-model="filters.date_from"
-            type="date"
-            :disabled="loading"
-            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >To Date</label
-          >
-          <input
-            v-model="filters.date_to"
-            type="date"
-            :disabled="loading"
-            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </div>
-
-        <!-- School (Super Admin Only) -->
-        <div v-if="isSuperAdmin">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >School</label
-          >
-          <EnhancedDropdown
-            :options="schoolOptions"
-            v-model="filters.school_id"
-            placeholder="All Schools"
-            @update:modelValue="onSchoolChange"
-            :disabled="loading"
-          />
-        </div>
-
-        <!-- Branch (Super Admin and School Admin) -->
-        <div v-if="isSuperAdmin || isSchoolAdmin">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Branch</label
-          >
-          <EnhancedDropdown
-            :options="branchOptions"
-            v-model="filters.branch_id"
-            placeholder="All Branches"
-            @update:modelValue="onBranchChange"
-            :disabled="loading"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Class</label
-          >
-          <EnhancedDropdown
-            :options="classOptions"
-            v-model="filters.class_id"
-            placeholder="All Classes"
-            @update:modelValue="onClassChange"
-            :disabled="loading"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Section</label
-          >
-          <EnhancedDropdown
-            :options="sectionOptions"
-            v-model="filters.section_id"
-            placeholder="All Sections"
-            :disabled="loading || !filters.class_id"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Academic Year</label
-          >
-          <input
-            v-model="filters.academic_year"
-            type="text"
-            :disabled="loading"
-            class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            placeholder="2024-25"
-          />
-        </div>
-
-        <!-- Apply Filters Button -->
-        <div class="flex items-end">
-          <button
-            @click="load"
-            :disabled="loading"
-            class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-          >
-            <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+              />
+            </svg>
+            Print Report
+          </button>
+
+          <!-- Download Dropdown -->
+          <div class="relative download-dropdown">
+            <button
+              @click="toggleDownloadDropdown"
+              :disabled="loading || records.length === 0"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Download
+              <svg
+                class="ml-2 h-4 w-4 transition-transform duration-200"
+                :class="{ 'rotate-180': showDownloadDropdown }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div
+              v-show="showDownloadDropdown"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 transition-all duration-200 ease-in-out"
+              style="transform-origin: top right"
+            >
+              <div class="py-1">
+                <button
+                  @click="downloadPDFReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  PDF
+                </button>
+                <button
+                  @click="downloadExcelReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Excel
+                </button>
+                <button
+                  @click="downloadCSVReport"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center"
+                >
+                  <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            @click="showNotificationModal = true"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 17h5l-5 5v-5zM4 19h6v-6H4v6zM4 5h6V4a1 1 0 00-1-1H5a1 1 0 00-1 1v1zM20 5V4a1 1 0 00-1-1h-1a1 1 0 00-1 1v1h3z"
               ></path>
             </svg>
-            {{ loading ? 'Loading...' : 'Apply Filters' }}
+            Notifications
           </button>
         </div>
       </div>
-    </FilterCard>
-
-    <div
-      v-if="summary"
-      class="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700"
-    >
-      <div class="font-medium mb-2 text-gray-900 dark:text-white">Summary</div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-gray-700 dark:text-gray-300">
-        <div>Total: {{ summary.total }}</div>
-        <div>Present: {{ summary.present }}</div>
-        <div>Absent: {{ summary.absent }}</div>
-        <div>Late: {{ summary.late }}</div>
-        <div>Excused: {{ summary.excused }}</div>
-      </div>
-    </div>
-
-    <div
-      v-if="!loading && (!records || records.length === 0)"
-      class="border border-gray-200 dark:border-gray-700 rounded p-6 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-    >
-      <div class="font-medium mb-2 text-gray-900 dark:text-white">No attendance records</div>
-      <p>Adjust the report filters and try again.</p>
-    </div>
-
-    <DataTable v-else :items="records" :columns="columns" :loading="loading" />
-
-    <!-- Notification Modal -->
-    <Modal :show="showNotificationModal" @close="showNotificationModal = false">
-      <template #header>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          Send Attendance Notifications
-        </h3>
-      </template>
-
-      <template #body>
-        <form @submit.prevent="sendNotifications" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Notification Type</label
+      <!-- Filters -->
+      <FilterCard>
+        <template #header>
+          <div class="ml-auto">
+            <button
+              @click="resetFilters"
+              :disabled="loading"
+              class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium disabled:opacity-50"
             >
-            <select
-              v-model="notificationForm.type"
-              required
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select notification type</option>
-              <option value="absence">Send Absence Notifications</option>
-              <option value="late">Send Late Arrival Notifications</option>
-              <option value="summary">Send Daily Summary</option>
-            </select>
+              Reset Filters
+            </button>
           </div>
+        </template>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Select Date</label
+              >From Date</label
             >
             <input
-              v-model="notificationForm.date"
+              v-model="filters.date_from"
               type="date"
-              required
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              :max="new Date().toISOString().split('T')[0]"
+              :disabled="loading"
+              class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Select Class</label
+              >To Date</label
             >
-            <select
-              v-model="notificationForm.class_id"
-              required
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              @change="loadNotificationSections"
-            >
-              <option value="">Choose a class</option>
-              <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-                {{ cls.label }}
-              </option>
-            </select>
+            <input
+              v-model="filters.date_to"
+              type="date"
+              :disabled="loading"
+              class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
           </div>
 
-          <div v-if="notificationSectionOptions.length > 0">
+          <!-- School (Super Admin Only) -->
+          <div v-if="isSuperAdmin">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Select Section (Optional)</label
+              >School</label
             >
-            <select
-              v-model="notificationForm.section_id"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All sections</option>
-              <option
-                v-for="section in notificationSectionOptions"
-                :key="section.value"
-                :value="section.value"
-              >
-                {{ section.label }}
-              </option>
-            </select>
+            <EnhancedDropdown
+              :options="schoolOptions"
+              v-model="filters.school_id"
+              placeholder="All Schools"
+              @update:modelValue="onSchoolChange"
+              :disabled="loading"
+            />
           </div>
 
-          <div
-            class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
-          >
-            <div class="flex">
-              <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <!-- Branch (Super Admin and School Admin) -->
+          <div v-if="isSuperAdmin || isSchoolAdmin">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Branch</label
+            >
+            <EnhancedDropdown
+              :options="branchOptions"
+              v-model="filters.branch_id"
+              placeholder="All Branches"
+              @update:modelValue="onBranchChange"
+              :disabled="loading"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Class</label
+            >
+            <EnhancedDropdown
+              :options="classOptions"
+              v-model="filters.class_id"
+              placeholder="All Classes"
+              @update:modelValue="onClassChange"
+              :disabled="loading"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Section</label
+            >
+            <EnhancedDropdown
+              :options="sectionOptions"
+              v-model="filters.section_id"
+              placeholder="All Sections"
+              :disabled="loading || !filters.class_id"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Academic Year</label
+            >
+            <input
+              v-model="filters.academic_year"
+              type="text"
+              :disabled="loading"
+              class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder="2024-25"
+            />
+          </div>
+
+          <!-- Apply Filters Button -->
+          <div class="flex items-end">
+            <button
+              @click="() => load(1)"
+              :disabled="loading"
+              class="w-full inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
-                  fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clip-rule="evenodd"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 ></path>
               </svg>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">How it works</h3>
-                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                  <p>{{ getNotificationDescription() }}</p>
+              {{ loading ? 'Loading...' : 'Apply Filters' }}
+            </button>
+          </div>
+        </div>
+      </FilterCard>
+
+      <!-- Summary Cards -->
+      <div v-if="summary" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Total</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.total }}</div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div class="text-sm font-medium text-green-600 dark:text-green-400">Present</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.present }}</div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div class="text-sm font-medium text-red-600 dark:text-red-400">Absent</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.absent }}</div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Late</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.late }}</div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Excused</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.excused }}</div>
+        </div>
+      </div>
+
+      <div
+        v-if="!loading && (!records || records.length === 0)"
+        class="border border-gray-200 dark:border-gray-700 rounded p-6 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+      >
+        <div class="font-medium mb-2 text-gray-900 dark:text-white">No attendance records</div>
+        <p>Adjust the report filters and try again.</p>
+      </div>
+
+      <!-- Fallback Table if DataTable doesn't work -->
+      <div
+        v-if="records.length > 0"
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+      >
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Date
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Admission No.
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Student Name
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Class
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Section
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Remarks
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr
+                v-for="(record, index) in records"
+                :key="index"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.date }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.admission_number }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.student_name }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.class }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.section }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300':
+                        record.status === 'present',
+                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300':
+                        record.status === 'absent',
+                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
+                        record.status === 'late',
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+                        record.status === 'excused'
+                    }"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+                  >
+                    {{ record.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {{ record.remarks || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <Pagination
+        v-if="pagination.total_records > 0"
+        :pagination="pagination"
+        item-label="attendance records"
+        @page-changed="changePage"
+        @page-size-changed="handlePageSizeChange"
+        class="mt-4"
+      />
+
+      <!-- Original DataTable (commented out for now) -->
+      <!-- <DataTable v-else :items="records" :columns="columns" :loading="loading">
+        <template #status="{ item }">
+          <span
+            :class="{
+              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300':
+                item.status === 'present',
+              'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': item.status === 'absent',
+              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
+                item.status === 'late',
+              'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+                item.status === 'excused'
+            }"
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
+          >
+            {{ item.status }}
+          </span>
+        </template>
+      </DataTable> -->
+
+      <!-- Notification Modal -->
+      <Modal :show="showNotificationModal" @close="showNotificationModal = false">
+        <template #header>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+            Send Attendance Notifications
+          </h3>
+        </template>
+
+        <template #body>
+          <form @submit.prevent="sendNotifications" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Notification Type</label
+              >
+              <select
+                v-model="notificationForm.type"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select notification type</option>
+                <option value="absence">Send Absence Notifications</option>
+                <option value="late">Send Late Arrival Notifications</option>
+                <option value="summary">Send Daily Summary</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Select Date</label
+              >
+              <input
+                v-model="notificationForm.date"
+                type="date"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                :max="new Date().toISOString().split('T')[0]"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Select Class</label
+              >
+              <select
+                v-model="notificationForm.class_id"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                @change="loadNotificationSections"
+              >
+                <option value="">Choose a class</option>
+                <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
+                  {{ cls.label }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="notificationSectionOptions.length > 0">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >Select Section (Optional)</label
+              >
+              <select
+                v-model="notificationForm.section_id"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All sections</option>
+                <option
+                  v-for="section in notificationSectionOptions"
+                  :key="section.value"
+                  :value="section.value"
+                >
+                  {{ section.label }}
+                </option>
+              </select>
+            </div>
+
+            <div
+              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
+            >
+              <div class="flex">
+                <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">How it works</h3>
+                  <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <p>{{ getNotificationDescription() }}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </form>
-      </template>
+          </form>
+        </template>
 
-      <template #footer>
-        <button
-          type="button"
-          @click="showNotificationModal = false"
-          class="px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          @click="sendNotifications"
-          :disabled="
-            isNotificationLoading ||
-            !notificationForm.type ||
-            !notificationForm.date ||
-            !notificationForm.class_id
-          "
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ isNotificationLoading ? 'Sending...' : 'Send Notifications' }}
-        </button>
-      </template>
-    </Modal>
+        <template #footer>
+          <button
+            type="button"
+            @click="showNotificationModal = false"
+            class="px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            @click="sendNotifications"
+            :disabled="
+              isNotificationLoading ||
+              !notificationForm.type ||
+              !notificationForm.date ||
+              !notificationForm.class_id
+            "
+            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ isNotificationLoading ? 'Sending...' : 'Send Notifications' }}
+          </button>
+        </template>
+      </Modal>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
-import { Schools, Branches, Classes, Sections, Attendance, AttendanceNotifications } from '~/api';
+import { useSchools } from '~/composables/useSchools';
+import { useBranches } from '~/composables/useBranches';
+import { useExportService } from '~/composables/useExportService';
+import { usePrintReport } from '~/composables/usePrintReport';
+import { Attendance, AttendanceNotifications, Sections } from '~/api';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import FilterCard from '~/components/ui/FilterCard.vue';
+import DataTable from '~/components/ui/DataTable.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Removed reportTypeOptions as we now use date range filters
 
@@ -347,26 +652,54 @@ const filters = ref<any>({
 const loading = ref(false);
 const records = ref<any[]>([]);
 const summary = ref<any>(null);
-const classOptions = ref<any[]>([]);
-const sectionOptions = ref<any[]>([]);
+
+// Pagination state
+const pagination = ref({
+  page: 1,
+  current_page: 1,
+  total_pages: 1,
+  total: 0,
+  total_records: 0,
+  per_page: 10,
+  limit: 10
+});
 
 // Auth composables
 const { isSuperAdmin, isSchoolAdmin } = useAuth();
 const authStore = useAuthStore();
 
-// School and branch data
-const schools = ref<any[]>([]);
-const branches = ref<any[]>([]);
+// Export and print services
+const { generateReport, isGenerating } = useExportService();
+const { printReport: printReportCommon } = usePrintReport();
+
+// Academic composables
+const { classes, sections, fetchClasses, fetchSections } = useAcademics();
+const { schools, fetchSchools } = useSchools();
+const { branches, fetchBranches } = useBranches();
+
+// Computed options
 const schoolOptions = computed(() =>
-  schools.value.map(school => ({
+  schools.value.map((school: any) => ({
     value: school.id,
     label: school.name
   }))
 );
 const branchOptions = computed(() =>
-  branches.value.map(branch => ({
+  branches.value.map((branch: any) => ({
     value: branch.id,
     label: branch.name
+  }))
+);
+const classOptions = computed(() =>
+  classes.value.map((cls: any) => ({
+    value: cls.id,
+    label: cls.name
+  }))
+);
+const sectionOptions = computed(() =>
+  sections.value.map((section: any) => ({
+    value: section.id,
+    label: section.name
   }))
 );
 
@@ -381,70 +714,93 @@ const notificationForm = ref({
   section_id: ''
 });
 
+// Dropdown states
+const showDownloadDropdown = ref(false);
+const showColumnSelector = ref(false);
+
+// Available columns for reports
+const availableColumns = ref([
+  { key: 'date', label: 'Date', visible: true },
+  { key: 'admission_number', label: 'Admission No.', visible: true },
+  { key: 'student_name', label: 'Student Name', visible: true },
+  { key: 'class', label: 'Class', visible: true },
+  { key: 'section', label: 'Section', visible: true },
+  { key: 'status', label: 'Status', visible: true },
+  { key: 'remarks', label: 'Remarks', visible: true }
+]);
+
+// Table columns for DataTable component
 const columns = [
   { key: 'date', label: 'Date' },
-  { key: 'student.admission_number', label: 'Admission' },
-  { key: 'student.first_name', label: 'First Name' },
-  { key: 'student.last_name', label: 'Last Name' },
+  { key: 'admission_number', label: 'Admission No.' },
+  { key: 'student_name', label: 'Student Name' },
+  { key: 'class', label: 'Class' },
+  { key: 'section', label: 'Section' },
   { key: 'status', label: 'Status' },
   { key: 'remarks', label: 'Remarks' }
 ];
 
-const loadSchools = async () => {
-  if (!isSuperAdmin.value) return;
+// Computed property to filter visible columns
+const displayedColumns = computed(() => {
+  return availableColumns.value.filter(column => column.visible);
+});
 
-  try {
-    const response = await Schools.getAll();
-    if (response.success) {
-      schools.value = response.data?.items || [];
-    }
-  } catch (error) {
-    console.error('Error loading schools:', error);
+const loadSchools = async () => {
+  if (isSuperAdmin.value) {
+    await fetchSchools();
   }
 };
 
 const loadBranches = async () => {
-  if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
-
-  try {
-    const response = await Branches.getAll();
-    let allBranches = [];
-
-    if (response.success) {
-      allBranches = response.data?.branches || response.data?.items || response.data || [];
-
-      // Filter branches based on user role and selected school
-      if (isSuperAdmin.value) {
-        if (filters.value.school_id) {
-          branches.value = allBranches.filter(
-            branch => branch.school_id === filters.value.school_id
-          );
-        } else {
-          branches.value = allBranches;
-        }
-      } else if (isSchoolAdmin.value) {
-        // School admin sees branches from their school
-        branches.value = allBranches.filter(
-          branch => branch.school_id === authStore.user?.school_id
-        );
-      }
+  if (isSuperAdmin.value || isSchoolAdmin.value) {
+    const options: any = {};
+    if (filters.value.school_id) {
+      options.schoolId = filters.value.school_id;
     }
-  } catch (error) {
-    console.error('Error loading branches:', error);
+    await fetchBranches(options);
   }
 };
 
+const loadClasses = async () => {
+  const options: any = {};
+
+  // Filter by branch if selected
+  if (filters.value.branch_id) {
+    options.branchId = filters.value.branch_id;
+  }
+
+  // Filter by school if selected (for super admin)
+  if (filters.value.school_id) {
+    options.schoolId = filters.value.school_id;
+  }
+
+  await fetchClasses(options);
+};
+
+const loadSections = async () => {
+  const options: any = {};
+
+  // Filter by class if selected
+  if (filters.value.class_id) {
+    options.classId = filters.value.class_id;
+  }
+
+  // Filter by branch if selected
+  if (filters.value.branch_id) {
+    options.branchId = filters.value.branch_id;
+  }
+
+  // Filter by school if selected (for super admin)
+  if (filters.value.school_id) {
+    options.schoolId = filters.value.school_id;
+  }
+
+  await fetchSections(options);
+};
+
 const loadDropdowns = async () => {
-  const classes = await Classes.getAll({ page: 1, limit: 100, is_active: 'true' });
-  classOptions.value = (classes.data?.rows || classes.data || []).map((c: any) => ({
-    label: c.name,
-    value: c.id
-  }));
-  const sections = await Sections.getAll({ page: 1, limit: 100, is_active: 'true' });
-  sectionOptions.value = (sections.data?.rows || sections.data || []).map((s: any) => ({
-    label: s.name,
-    value: s.id
-  }));
+  await loadClasses();
+  await loadSections();
 };
 
 const onSchoolChange = async () => {
@@ -453,19 +809,21 @@ const onSchoolChange = async () => {
   filters.value.section_id = ''; // Reset section when school changes
 
   await loadBranches(); // Reload branches for selected school
-  await loadDropdowns(); // Reload classes
+  await loadClasses(); // Reload classes for selected school
+  sections.value = []; // Clear sections
 };
 
 const onBranchChange = async () => {
   filters.value.class_id = ''; // Reset class when branch changes
   filters.value.section_id = ''; // Reset section when branch changes
 
-  await loadDropdowns(); // Reload classes for selected branch
+  await loadClasses(); // Reload classes for selected branch
+  sections.value = []; // Clear sections
 };
 
 const onClassChange = async () => {
   filters.value.section_id = ''; // Reset section when class changes
-  await loadDropdowns(); // Reload sections for selected class
+  await loadSections(); // Reload sections for selected class
 };
 
 const resetFilters = async () => {
@@ -484,10 +842,11 @@ const resetFilters = async () => {
   summary.value = null;
 
   // Reset dropdowns
-  sectionOptions.value = [];
+  classes.value = [];
+  sections.value = [];
 
   // Reload initial data
-  await loadDropdowns();
+  await loadClasses();
   if (isSuperAdmin.value) {
     await loadSchools();
   }
@@ -500,13 +859,18 @@ const resetFilters = async () => {
 
 const { showToast } = useToast();
 
-const load = async () => {
-  loading.value = true;
+const load = async (page = 1, exportAll = false) => {
+  if (!exportAll) {
+    loading.value = true;
+  }
+
   try {
     // Validate date_from is provided
     if (!filters.value.date_from) {
       showToast('From Date is required to load data', 'error');
-      loading.value = false;
+      if (!exportAll) {
+        loading.value = false;
+      }
       return;
     }
 
@@ -515,6 +879,13 @@ const load = async () => {
       date_from: filters.value.date_from,
       date_to: filters.value.date_to || filters.value.date_from // Use date_from if date_to is not provided
     };
+
+    if (exportAll) {
+      params.export_all = true;
+    } else {
+      params.page = page;
+      params.limit = pagination.value.per_page;
+    }
 
     if (filters.value.school_id) params.school_id = filters.value.school_id;
     if (filters.value.branch_id) params.branch_id = filters.value.branch_id;
@@ -525,115 +896,241 @@ const load = async () => {
     const res = await Attendance.getReport(params);
     const data = (res as any).data || res;
 
-    records.value = data.records || [];
-    summary.value = data.summary || null;
+    // Transform the records to match our column structure
+    const transformedRecords = data.records.map((record: any) => {
+      // Handle the actual API response structure
+      const transformed = {
+        date: record.date,
+        admission_number: record.student?.admission_number,
+        student_name: record.student
+          ? `${record.student.first_name || ''} ${record.student.last_name || ''}`.trim()
+          : '',
+        class: record.class?.name,
+        section: record.section?.name,
+        status: record.status,
+        remarks: record.remarks,
+        // Keep original data for reference
+        original: record
+      };
+
+      return transformed;
+    });
+
+    if (exportAll) {
+      // For export/print, return the data directly
+      return transformedRecords;
+    } else {
+      // For normal page display, update the reactive data
+      records.value = transformedRecords;
+      summary.value = data.summary;
+
+      // Update pagination data
+      const paginationData = data.pagination;
+      pagination.value = {
+        page: paginationData.current_page,
+        current_page: paginationData.current_page,
+        total: paginationData.total_records,
+        total_records: paginationData.total_records,
+        total_pages: paginationData.total_pages,
+        per_page: paginationData.per_page,
+        limit: paginationData.per_page || 10
+      };
+    }
 
     // Don't show toast for empty results - the UI already shows "No attendance records" message
   } catch (err: any) {
-    console.error('Report load error:', err);
     const msg = err?.response?.data?.message || err?.message || 'Failed to load attendance report';
-    showToast(msg, 'error');
+    if (exportAll) {
+      return [];
+    } else {
+      showToast(msg, 'error');
+    }
   } finally {
-    loading.value = false;
+    if (!exportAll) {
+      loading.value = false;
+    }
   }
 };
 
-const exportPDF = async () => {
+// Pagination handlers
+const changePage = (page: number) => {
+  if (page >= 1 && page <= pagination.value.total_pages) {
+    pagination.value.current_page = page;
+    pagination.value.page = page;
+    load(page);
+  }
+};
+
+const handlePageSizeChange = (newPageSize: number) => {
+  pagination.value.per_page = newPageSize;
+  pagination.value.limit = newPageSize;
+  load(1);
+};
+
+// Common download function following DRY principle
+const downloadReport = async (format: string) => {
   try {
-    loading.value = true;
-    // Remove generating toast - user can see loading state
+    closeDownloadDropdown();
 
-    const config = useRuntimeConfig();
-    const queryParams = new URLSearchParams();
-
-    // Validate date_from is provided
-    if (!filters.value.date_from) {
-      showToast('From Date is required for PDF export', 'error');
+    if (!validateColumnVisibility('export') || !validateDataAvailability('export')) {
       return;
     }
 
-    queryParams.append('date_from', filters.value.date_from);
+    if (!filters.value.date_from) {
+      showToast('From Date is required for export', 'error');
+      return;
+    }
 
-    // If no date_to provided, use date_from (single day report)
-    const dateTo = filters.value.date_to || filters.value.date_from;
-    queryParams.append('date_to', dateTo);
+    const exportFilters: any = {
+      date_from: filters.value.date_from,
+      date_to: filters.value.date_to || filters.value.date_from,
+      school_id: filters.value.school_id,
+      branch_id: filters.value.branch_id,
+      class_id: filters.value.class_id,
+      section_id: filters.value.section_id,
+      academic_year: filters.value.academic_year,
+      export_all: true
+    };
 
-    if (filters.value.school_id) queryParams.append('school_id', filters.value.school_id);
-    if (filters.value.branch_id) queryParams.append('branch_id', filters.value.branch_id);
-    if (filters.value.class_id) queryParams.append('class_id', filters.value.class_id);
-    if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
-    if (filters.value.academic_year)
-      queryParams.append('academic_year', filters.value.academic_year);
+    // Remove undefined values
+    Object.keys(exportFilters).forEach(key => {
+      if (exportFilters[key] === undefined || exportFilters[key] === '') {
+        delete exportFilters[key];
+      }
+    });
 
-    const response = await Attendance.exportPdfReport(queryParams.toString());
+    const selectedColumns = displayedColumns.value.map(col => ({
+      key: col.key,
+      header: col.label
+    }));
 
-    const blob = response;
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `attendance-report-${new Date().toISOString().slice(0, 10)}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-    showToast('PDF report downloaded successfully!', 'success');
+    await generateReport({
+      report_type: 'attendance',
+      format,
+      filters: exportFilters,
+      columns: selectedColumns
+    });
   } catch (error: any) {
-    console.error('PDF export error:', error);
-    showToast('Failed to export PDF report', 'error');
-  } finally {
-    loading.value = false;
+    showToast(`Failed to export ${format.toUpperCase()} report`, 'error');
   }
 };
 
-const exportExcel = async () => {
-  try {
-    loading.value = true;
-    // Remove generating toast - user can see loading state
+const downloadPDFReport = () => downloadReport('pdf');
+const downloadExcelReport = () => downloadReport('excel');
+const downloadCSVReport = () => downloadReport('csv');
 
-    const config = useRuntimeConfig();
-    const queryParams = new URLSearchParams();
+// Validation functions
+const validateColumnVisibility = (action = 'export') => {
+  if (displayedColumns.value.length === 0) {
+    showToast(`No columns selected. Please select at least one column to ${action}.`, 'warning');
+    return false;
+  }
+  return true;
+};
 
-    // Validate date_from is provided
-    if (!filters.value.date_from) {
-      showToast('From Date is required for Excel export', 'error');
-      return;
-    }
-
-    queryParams.append('date_from', filters.value.date_from);
-
-    // If no date_to provided, use date_from (single day report)
-    const dateTo = filters.value.date_to || filters.value.date_from;
-    queryParams.append('date_to', dateTo);
-
-    if (filters.value.school_id) queryParams.append('school_id', filters.value.school_id);
-    if (filters.value.branch_id) queryParams.append('branch_id', filters.value.branch_id);
-    if (filters.value.class_id) queryParams.append('class_id', filters.value.class_id);
-    if (filters.value.section_id) queryParams.append('section_id', filters.value.section_id);
-    if (filters.value.academic_year)
-      queryParams.append('academic_year', filters.value.academic_year);
-
-    const response = await Attendance.exportExcelReport(queryParams.toString());
-
-    const blob = response;
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute(
-      'download',
-      `attendance-report-${new Date().toISOString().slice(0, 10)}.xlsx`
+const validateDataAvailability = (action = 'export') => {
+  if (records.value.length === 0) {
+    showToast(
+      `No data available to ${action}. Please load some attendance records first.`,
+      'warning'
     );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    return false;
+  }
+  return true;
+};
 
-    showToast('Excel report downloaded successfully!', 'success');
-  } catch (error: any) {
-    console.error('Excel export error:', error);
-    showToast('Failed to export Excel report', 'error');
-  } finally {
-    loading.value = false;
+// Print functionality
+const printAttendanceReport = async () => {
+  try {
+    if (!validateColumnVisibility('print')) {
+      return;
+    }
+
+    // Get all data for printing (not just current page)
+    const allRecords = await load(1, true);
+
+    if (!allRecords || allRecords.length === 0) {
+      showToast('No data to print. Please load some attendance records first.', 'warning');
+      return;
+    }
+
+    const formattedData = allRecords.map((record: any) => ({
+      date: record.date,
+      admission_number: record.admission_number,
+      student_name: record.student_name,
+      class: record.class,
+      section: record.section,
+      status: record.status,
+      remarks: record.remarks
+    }));
+
+    const reportData = {
+      title: 'Attendance Report',
+      data: formattedData,
+      columns: displayedColumns.value.map(col => ({
+        key: col.key,
+        header: col.label
+      })),
+      filters: {
+        'From Date': filters.value.date_from,
+        'To Date': filters.value.date_to || filters.value.date_from,
+        Branch: filters.value.branch_id
+          ? branches.value.find(b => b.id === filters.value.branch_id)?.name || 'All Branches'
+          : 'All Branches',
+        Class: filters.value.class_id
+          ? classOptions.value.find(c => c.value === filters.value.class_id)?.label || 'All Classes'
+          : 'All Classes',
+        Section: filters.value.section_id
+          ? sectionOptions.value.find(s => s.value === filters.value.section_id)?.label ||
+            'All Sections'
+          : 'All Sections',
+        'Academic Year': filters.value.academic_year || 'All Years'
+      },
+      totalRecords: allRecords.length,
+      reportType: 'attendance'
+    };
+
+    await printReportCommon(reportData, {
+      showHeader: true,
+      showSummary: true,
+      showFilters: true,
+      showFooter: true,
+      autoPrint: true
+    });
+  } catch (error) {
+    showToast('Error printing report', 'error');
+  }
+};
+
+// Dropdown control methods
+const toggleDownloadDropdown = () => {
+  showDownloadDropdown.value = !showDownloadDropdown.value;
+};
+
+const closeDownloadDropdown = () => {
+  showDownloadDropdown.value = false;
+};
+
+const toggleColumnSelector = () => {
+  showColumnSelector.value = !showColumnSelector.value;
+};
+
+const selectAllColumns = () => {
+  availableColumns.value.forEach(col => (col.visible = true));
+};
+
+const deselectAllColumns = () => {
+  availableColumns.value.forEach(col => (col.visible = false));
+};
+
+// Click outside handler for dropdowns
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.download-dropdown')) {
+    showDownloadDropdown.value = false;
+  }
+  if (!target.closest('.column-selector-dropdown')) {
+    showColumnSelector.value = false;
   }
 };
 
@@ -651,11 +1148,12 @@ const loadNotificationSections = async () => {
       is_active: 'true',
       class_id: notificationForm.value.class_id
     });
-    notificationSectionOptions.value = (sections.data?.rows || sections.data || []).map(
-      (s: any) => ({ label: s.name, value: s.id })
-    );
+    notificationSectionOptions.value = (sections.data?.rows || sections.data).map((s: any) => ({
+      label: s.name,
+      value: s.id
+    }));
   } catch (error) {
-    console.error('Error loading sections for notifications:', error);
+    // Error handled silently
   }
 };
 
@@ -687,7 +1185,7 @@ const sendNotifications = async () => {
       status: 'published'
     });
 
-    const sessions = sessionsResponse.data || [];
+    const sessions = sessionsResponse.data;
     if (sessions.length === 0) {
       showToast('No published attendance sessions found for the selected date and class', 'error');
       return;
@@ -698,7 +1196,7 @@ const sendNotifications = async () => {
 
     // Get session details to find absent/late students
     const sessionDetails = await Attendance.getSession(session.id);
-    const attendanceRecords = sessionDetails.data.records || [];
+    const attendanceRecords = sessionDetails.data.records;
 
     let response;
     if (notificationForm.value.type === 'absence') {
@@ -774,7 +1272,7 @@ const sendNotifications = async () => {
     }
 
     showToast(
-      `Notifications sent successfully! ${response.data.emailsSent || 0} emails sent.`,
+      `Notifications sent successfully! ${response.data.emailsSent} emails sent.`,
       'success'
     );
     showNotificationModal.value = false;
@@ -785,8 +1283,6 @@ const sendNotifications = async () => {
       section_id: ''
     };
   } catch (error: any) {
-    console.error('Error sending notifications:', error);
-
     // Parse error and show user-friendly message
     let userMessage = 'Unable to send notifications. Please try again.';
 
@@ -795,7 +1291,7 @@ const sendNotifications = async () => {
       userMessage =
         'No attendance records found for the selected date and class. Please ensure attendance is marked and published first.';
     } else if (error.response?.status === 400) {
-      const errorMsg = error.response?.data?.message || '';
+      const errorMsg = error.response?.data?.message;
       if (
         errorMsg.includes('students data is required') ||
         errorMsg.includes('No absent students')
@@ -831,10 +1327,24 @@ const sendNotifications = async () => {
   }
 };
 
-await loadSchools(); // Load schools first (for super admin)
-await loadBranches(); // Load branches
-await loadDropdowns(); // Load classes and sections
-await load(); // Load initial data
+// Lifecycle hooks
+onMounted(async () => {
+  try {
+    await loadSchools(); // Load schools first (for super admin)
+    await loadBranches(); // Load branches
+    await loadClasses(); // Load classes
+    await load(); // Load initial data
+
+    // Add click outside listener for dropdowns
+    document.addEventListener('click', handleClickOutside);
+  } catch (error) {
+    // Error handled silently
+  }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped></style>
