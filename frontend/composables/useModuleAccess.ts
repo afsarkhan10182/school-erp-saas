@@ -206,6 +206,7 @@ export function useModuleAccess() {
       '/fees/collections': 'fees',
       '/reports/fees': 'fees',
       '/reports/receipts': 'fees',
+      '/fee-ledger': 'fees',
 
       '/students': 'students',
       '/students/create': 'students',
@@ -244,6 +245,11 @@ export function useModuleAccess() {
 
     // Check for exact match first
     let requiredModule = routeModuleMap[normalizedPath];
+
+    // Special case for fee-ledger route (dynamic student ID)
+    if (!requiredModule && normalizedPath.includes('/fee-ledger')) {
+      requiredModule = 'fees';
+    }
 
     // If no exact match, check for prefix matches (for nested routes)
     if (!requiredModule) {
