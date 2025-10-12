@@ -37,7 +37,7 @@ export function useModuleAccess() {
   const isLoading = ref(false);
 
   // Check if a module is enabled for the current user's school
-  const isModuleEnabled = (moduleCode: string): boolean => {
+  const isModuleEnabled = (moduleCode: string) => {
     // Super admin has access to all modules
     if (isSuperAdmin.value) {
       return true;

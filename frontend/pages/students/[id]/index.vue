@@ -704,7 +704,7 @@ const route = useRoute();
 const studentId = route.params.id;
 
 // Module access
-const { isModuleEnabled } = useModuleAccess();
+const { isModuleEnabled, loadUserModules } = useModuleAccess();
 
 const student = ref(null);
 const isLoading = ref(false);
@@ -810,7 +810,9 @@ const getStudentFullName = student => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Load modules first to ensure isModuleEnabled works correctly
+  await loadUserModules();
   fetchStudent();
 });
 </script>

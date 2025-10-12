@@ -47,78 +47,73 @@
       <!-- Dashboard Content -->
       <div v-else class="space-y-8">
         <!-- Row 1: Quick Stats + Branch Filter -->
-        <div
-          :class="[
-            'grid gap-6',
-            branches.length > 1
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-6'
-              : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-          ]"
-        >
+        <div :class="['grid gap-4', gridLayout]">
           <!-- Total Students -->
           <div class="stat-card bg-blue-500 text-white">
-            <Users class="w-6 h-6" />
+            <Users class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">Total Students</p>
-            <p class="text-2xl font-bold">{{ stats.totalStudents || 0 }}</p>
+            <p class="text-xl font-bold">{{ stats.totalStudents || 0 }}</p>
           </div>
 
           <!-- New Students -->
           <div class="stat-card bg-green-500 text-white">
-            <UserPlus class="w-6 h-6" />
+            <UserPlus class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">
               New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
             </p>
-            <p class="text-2xl font-bold">{{ stats.newStudents || 0 }}</p>
+            <p class="text-xl font-bold">{{ stats.newStudents || 0 }}</p>
           </div>
 
           <!-- This Month Collection -->
-          <div class="stat-card bg-purple-500 text-white">
-            <DollarSign class="w-6 h-6" />
+          <div v-if="isModuleEnabled('fees')" class="stat-card bg-purple-500 text-white">
+            <DollarSign class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">This Month Collection</p>
-            <p class="text-2xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
+            <p class="text-xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
           </div>
 
           <!-- Pending Fees -->
-          <div class="stat-card bg-red-500 text-white">
-            <AlertTriangle class="w-6 h-6" />
+          <div v-if="isModuleEnabled('fees')" class="stat-card bg-red-500 text-white">
+            <AlertTriangle class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">Pending Fees</p>
-            <p class="text-2xl font-bold">
+            <p class="text-xl font-bold">
               {{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}
             </p>
           </div>
 
           <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
-          <div v-if="shouldShowBranchFilter" class="md:col-span-2 lg:col-span-2">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
-                <select
-                  v-model="selectedBranch"
-                  @change="onBranchChange"
-                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  :disabled="loadingBranches"
-                >
-                  <option value="">All Branches</option>
-                  <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-                  <option v-else-if="branches.length === 0" value="" disabled>
-                    No branches available
-                  </option>
-                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-              </div>
-              <p class="text-xs text-gray-600 dark:text-gray-400">
-                Filter dashboard data by branch
-              </p>
+          <div
+            v-if="shouldShowBranchFilter"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
+              <select
+                v-model="selectedBranch"
+                @change="onBranchChange"
+                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                :disabled="loadingBranches"
+              >
+                <option value="">All Branches</option>
+                <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
+                <option v-else-if="branches.length === 0" value="" disabled>
+                  No branches available
+                </option>
+                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                  {{ branch.name }}
+                </option>
+              </select>
             </div>
+            <p class="text-xs text-gray-600 dark:text-gray-400">Filter dashboard data by branch</p>
           </div>
         </div>
 
         <!-- Row 2: Core Insights -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div :class="['grid gap-8', row2GridLayout]">
           <!-- Fee Collection Summary + Pie Chart -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <div
+            v-if="isModuleEnabled('fees')"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+          >
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
                 Fee Collection Summary
@@ -252,9 +247,12 @@
         </div>
 
         <!-- Row 3: Extra Insights -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div :class="['grid gap-8', row2GridLayout]">
           <!-- Fee Collection Trend (6 months) -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <div
+            v-if="isModuleEnabled('fees')"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+          >
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
               Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)
             </h2>
@@ -340,6 +338,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from
 import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Dashboard } from '~/api';
 import { useToast } from '~/composables/useToast';
 import Chart from 'chart.js/auto';
@@ -361,6 +360,9 @@ import {
 // Auth store
 const authStore = useAuthStore();
 
+// Module access
+const { isModuleEnabled, loadUserModules } = useModuleAccess();
+
 // Toast
 const { showError } = useToast();
 
@@ -376,6 +378,45 @@ const { academicYears, currentAcademicYear, fetchAcademicYears } = useAcademics(
 
 // Branch data
 const { branches, loading: loadingBranches, fetchBranches } = useBranches();
+
+// Computed property for grid layout - dynamic based on available modules and branches
+const gridLayout = computed(() => {
+  const hasFeesModule = isModuleEnabled('fees');
+  const hasMultipleBranches = branches.value.length > 1;
+
+  // Calculate total number of items
+  let totalItems = 2; // Total Students + New Students (always present)
+
+  if (hasFeesModule) {
+    totalItems += 2; // Collection + Pending Fees
+  }
+
+  if (hasMultipleBranches) {
+    totalItems += 1; // Branch Filter
+  }
+
+  // Return responsive grid based on total items
+  if (totalItems <= 2) {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2';
+  } else if (totalItems <= 3) {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3';
+  } else if (totalItems <= 4) {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4';
+  } else {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5';
+  }
+});
+
+// Computed property for Row 2 grid layout
+const row2GridLayout = computed(() => {
+  const hasFeesModule = isModuleEnabled('fees');
+
+  if (hasFeesModule) {
+    return 'grid-cols-1 lg:grid-cols-2';
+  } else {
+    return 'grid-cols-1';
+  }
+});
 
 // Reactive data
 const loading = ref(true);
@@ -1057,6 +1098,9 @@ onUnmounted(() => {
 });
 
 onMounted(async () => {
+  // Load modules first to ensure isModuleEnabled works correctly
+  await loadUserModules();
+
   await fetchDashboardData();
   await initializeAcademicYear();
   await initializeBranches();
@@ -1070,7 +1114,7 @@ onMounted(async () => {
 
 <style scoped>
 .stat-card {
-  @apply rounded-lg p-4 shadow-md transform hover:-translate-y-1 transition-all duration-300;
+  @apply rounded-lg p-3 shadow-md transform hover:-translate-y-1 transition-all duration-300 min-h-[100px] flex flex-col justify-center;
 }
 
 .card {
