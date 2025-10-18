@@ -36,30 +36,30 @@ router.post(
 
 router.get(
   '/',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   BranchController.getAllBranches
 );
 
 // GET /api/branches/dropdown - Get branches for dropdown/select
 router.get(
   '/dropdown',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   BranchController.getBranchesForDropdown
 );
 
 // Branch Admin routes (can view their own branch) - Must come before /:id
 router.get('/my-branch', authorize(['branch_admin']), BranchController.getMyBranch);
 
-// School Admin routes (can manage branches in their school) - Must come before /:id
+// Admin routes (can manage branches in their school) - Must come before /:id
 router.get(
   '/school/:schoolId',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   BranchController.getBranchesBySchool
 );
 
 router.get(
   '/:id',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   BranchController.getBranchById
 );
 

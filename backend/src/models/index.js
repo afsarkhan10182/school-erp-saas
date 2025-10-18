@@ -42,6 +42,7 @@ const {
   ExamSchedule,
   ExamHall
 } = require('./academic/exams');
+const MarkDistribution = require('./academic/mark-distribution.model');
 
 // Initialize associations
 const models = {
@@ -83,7 +84,8 @@ const models = {
   ExamType,
   ExamStatus,
   ExamSchedule,
-  ExamHall
+  ExamHall,
+  MarkDistribution
 };
 
 // Call associate function for each model if it exists

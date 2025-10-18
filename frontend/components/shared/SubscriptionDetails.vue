@@ -263,7 +263,7 @@
 
         <!-- Module Upgrade Suggestions -->
         <div
-          v-if="user?.role === 'school_admin' && availablePlans.length > 1"
+          v-if="user?.role === 'admin' && availablePlans.length > 1"
           class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
         >
           <h3 class="text-md font-medium text-gray-900 dark:text-white mb-3">Available Plans</h3>

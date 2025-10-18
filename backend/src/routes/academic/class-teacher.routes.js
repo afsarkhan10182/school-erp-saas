@@ -20,18 +20,18 @@ router.use(verifyToken);
 /**
  * @route   GET /api/class-teachers
  * @desc    Get all class teachers
- * @access  Private (school_admin, branch_admin, teacher)
+ * @access  Private (admin, branch_admin, teacher)
  */
-router.get('/', authorize(['school_admin', 'branch_admin', 'teacher']), getAllClassTeachers);
+router.get('/', authorize(['admin', 'branch_admin', 'teacher']), getAllClassTeachers);
 
 /**
  * @route   POST /api/class-teachers
  * @desc    Create class teacher assignment
- * @access  Private (school_admin, branch_admin)
+ * @access  Private (admin, branch_admin)
  */
 router.post(
   '/',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   validate(createClassTeacherValidator),
   createClassTeacher
 );
@@ -39,11 +39,11 @@ router.post(
 /**
  * @route   PUT /api/class-teachers/:id
  * @desc    Update class teacher assignment
- * @access  Private (school_admin, branch_admin)
+ * @access  Private (admin, branch_admin)
  */
 router.put(
   '/:id',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   validate(updateClassTeacherValidator),
   updateClassTeacher
 );
@@ -51,8 +51,8 @@ router.put(
 /**
  * @route   DELETE /api/class-teachers/:id
  * @desc    Delete class teacher assignment
- * @access  Private (school_admin, branch_admin)
+ * @access  Private (admin, branch_admin)
  */
-router.delete('/:id', authorize(['school_admin', 'branch_admin']), deleteClassTeacher);
+router.delete('/:id', authorize(['admin', 'branch_admin']), deleteClassTeacher);
 
 module.exports = router;

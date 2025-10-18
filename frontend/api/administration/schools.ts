@@ -50,7 +50,7 @@ export const Schools = {
     return apiCall('delete', `/schools/${id}`);
   },
 
-  // Module management (Super Admin controls, School Admin view-only)
+  // Module management (Super Admin controls, Admin view-only)
   getModulesTimestamp: async (id: string) => {
     return apiCall('get', `/schools/${id}/modules/timestamp`);
   },

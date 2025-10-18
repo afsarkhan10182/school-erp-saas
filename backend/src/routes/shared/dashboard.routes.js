@@ -48,7 +48,7 @@ router.get('/overview-report', authorize(['super_admin']), DashboardController.g
  * /dashboard/school-report:
  *   get:
  *     summary: Get school report
- *     description: Get school-specific report (School Admin only)
+ *     description: Get school-specific report (Admin only)
  *     tags: [Dashboard]
  *     security:
  *       - bearerAuth: []
@@ -58,9 +58,9 @@ router.get('/overview-report', authorize(['super_admin']), DashboardController.g
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden - School Admin access required
+ *         description: Forbidden - Admin access required
  */
-router.get('/school-report', authorize(['school_admin']), DashboardController.getSchoolReport);
+router.get('/school-report', authorize(['admin']), DashboardController.getSchoolReport);
 
 /**
  * @swagger

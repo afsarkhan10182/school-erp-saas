@@ -281,7 +281,7 @@ class BaseService {
   static buildSchoolBranchWhereClause(user, additionalFilters = {}) {
     const whereClause = { ...additionalFilters };
 
-    if (user.role === 'school_admin') {
+    if (user.role === 'admin') {
       whereClause.school_id = user.school_id;
     } else if (user.role === 'branch_admin') {
       whereClause.school_id = user.school_id;
@@ -429,7 +429,7 @@ class BaseService {
       case 'super_admin':
         // Super admin can see all data
         break;
-      case 'school_admin':
+      case 'admin':
         whereClause.school_id = user.school_id;
         break;
       case 'branch_admin':

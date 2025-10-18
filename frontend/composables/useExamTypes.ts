@@ -13,7 +13,7 @@ export const useExamTypes = () => {
       error.value = null;
       const response = await examTypeApi.getAll(params);
       if (response.success) {
-        examTypes.value = response.data.examTypes || response.data;
+        examTypes.value = response.data.exam_types || response.data.examTypes || response.data;
       }
       return response;
     } catch (err: unknown) {
@@ -87,7 +87,7 @@ export const useExamTypes = () => {
     try {
       const response = await examTypeApi.getActive();
       if (response.success) {
-        return response.data.examTypes || response.data;
+        return response.data.exam_types || response.data.examTypes || response.data;
       }
       return [];
     } catch (err: unknown) {

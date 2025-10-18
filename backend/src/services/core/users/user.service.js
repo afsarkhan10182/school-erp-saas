@@ -91,9 +91,9 @@ class UserService {
         if (role) {
           where.role = role;
         } else if (school_id) {
-          // If filtering by school (School Admin view), exclude super_admin and school_admin users
+          // If filtering by school (Admin view), exclude super_admin and admin users
           // But include branch_admin users
-          where.role = { [Op.notIn]: ['super_admin', 'school_admin'] };
+          where.role = { [Op.notIn]: ['super_admin', 'admin'] };
         }
 
         // Apply status filter

@@ -250,7 +250,7 @@
 
           <!-- Branch dropdown for super admin (when school selected) and school admin -->
           <div
-            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'school_admin'"
+            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'admin'"
             class="flex-1 min-w-[150px]"
           >
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -678,7 +678,7 @@ definePageMeta({
 
 // Composables
 const { showToast } = useToast();
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { generateReport, isGenerating, generationProgress } = useExportService();
 const { printReport: printReportCommon } = usePrintReport();
 

@@ -304,7 +304,7 @@ const passwordForm = ref({
 
 // Check if user can view subscription
 const canViewSubscription = computed(() => {
-  return ['school_admin', 'branch_admin'].includes(user.value?.role);
+  return ['admin', 'branch_admin'].includes(user.value?.role);
 });
 
 // Common CSS classes
@@ -420,7 +420,7 @@ const updateProfile = async () => {
 const formatRole = role => {
   const roleMap = {
     super_admin: 'Super Admin',
-    school_admin: 'School Admin',
+    admin: 'Admin',
     branch_admin: 'Branch Admin',
     teacher: 'Teacher',
     accountant: 'Accountant',

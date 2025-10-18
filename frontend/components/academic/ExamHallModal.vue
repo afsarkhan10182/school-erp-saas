@@ -39,25 +39,39 @@
 
           <!-- Body -->
           <div class="bg-white dark:bg-gray-800 px-4 pb-4 sm:p-6">
+            <!-- CodeIgniter Style - Only 3 fields -->
             <div class="space-y-4">
-              <!-- Name -->
+              <!-- Branch (CodeIgniter Style) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Hall Name <span class="text-red-500">*</span>
+                  Branch <span class="text-red-500">*</span>
+                </label>
+                <EnhancedDropdown
+                  v-model="form.branch_id"
+                  :options="branchOptions"
+                  placeholder="Select branch"
+                  :loading="branchesLoading"
+                />
+              </div>
+
+              <!-- Hall No (CodeIgniter Style) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Hall No <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.name"
                   type="text"
                   required
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., Hall A, Science Lab, Computer Room"
+                  placeholder="e.g., Hall A, Hall B, Lab 1"
                 />
               </div>
 
-              <!-- Capacity -->
+              <!-- No of Seats (CodeIgniter Style) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Capacity <span class="text-red-500">*</span>
+                  No of Seats <span class="text-red-500">*</span>
                 </label>
                 <input
                   v-model="form.capacity"
@@ -67,20 +81,17 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="30"
                 />
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Maximum number of students that can sit in this hall
-                </p>
               </div>
+            </div>
 
-              <!-- Active Status -->
-              <div class="flex items-center">
-                <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300"> Active </label>
-              </div>
+            <!-- Hidden fields (keep in data but don't show in UI) -->
+            <div style="display: none">
+              <input v-model="form.code" type="text" />
+              <input v-model="form.location" type="text" />
+              <input v-model="form.description" type="text" />
+              <input v-model="form.is_active" type="checkbox" />
+              <input v-model="form.created_by" type="text" />
+              <input v-model="form.updated_by" type="text" />
             </div>
           </div>
 
@@ -111,7 +122,9 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { X } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
+import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
 
 // Props
@@ -129,6 +142,7 @@ const emit = defineEmits<{
 // Composables
 const { showToast } = useToast();
 const { createHall, updateHall } = useExamHalls();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 
 // State
 const saving = ref(false);
@@ -136,13 +150,27 @@ const loading = ref(false);
 
 // Form
 const form = ref({
+  branch_id: '',
   name: '',
   capacity: 30,
-  is_active: true
+  // Hidden fields with defaults (CodeIgniter style)
+  code: '',
+  location: '',
+  description: '',
+  is_active: true,
+  created_by: '',
+  updated_by: ''
 });
 
 // Computed
 const isEditing = computed(() => !!props.hall);
+
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+);
 
 // Methods
 const closeModal = () => {
@@ -152,35 +180,64 @@ const closeModal = () => {
 
 const resetForm = () => {
   form.value = {
+    branch_id: '',
     name: '',
     capacity: 30,
-    is_active: true
+    code: '',
+    location: '',
+    description: '',
+    is_active: true,
+    created_by: '',
+    updated_by: ''
   };
 };
 
 const loadFormData = () => {
   if (props.hall) {
     form.value = {
+      branch_id: props.hall.branch_id || '',
       name: props.hall.name,
       capacity: props.hall.capacity,
-      is_active: props.hall.is_active
+      code: props.hall.code || '',
+      location: props.hall.location || '',
+      description: props.hall.description || '',
+      is_active: props.hall.is_active,
+      created_by: props.hall.created_by || '',
+      updated_by: props.hall.updated_by || ''
     };
   }
 };
 
 const saveHall = async () => {
+  // CodeIgniter Style - Only validate essential fields
+  if (!form.value.branch_id) {
+    showToast('Branch is required', 'error');
+    return;
+  }
   if (!form.value.name.trim()) {
-    showToast('Please fill in all required fields', 'error');
+    showToast('Hall No is required', 'error');
+    return;
+  }
+  if (!form.value.capacity || form.value.capacity < 1) {
+    showToast('No of Seats is required', 'error');
     return;
   }
 
   try {
     saving.value = true;
 
+    // Set default values for hidden fields (CodeIgniter style)
     const hallData = {
+      branch_id: form.value.branch_id,
       name: form.value.name.trim(),
       capacity: form.value.capacity,
-      is_active: form.value.is_active
+      // Set defaults for hidden fields
+      code: form.value.code || `H${Date.now()}`, // Auto-generate if empty
+      location: form.value.location || '',
+      description: form.value.description || '',
+      is_active: form.value.is_active !== false,
+      created_by: form.value.created_by || '',
+      updated_by: form.value.updated_by || ''
     };
 
     if (isEditing.value && props.hall) {
@@ -201,16 +258,18 @@ const saveHall = async () => {
 // Watchers
 watch(
   () => props.show,
-  show => {
+  async show => {
     if (show) {
+      await fetchBranches();
       loadFormData();
     }
   }
 );
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   if (props.show) {
+    await fetchBranches();
     loadFormData();
   }
 });

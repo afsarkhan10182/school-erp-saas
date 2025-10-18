@@ -35,7 +35,7 @@
           </div>
         </div>
 
-        <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
+        <!-- Branch Filter - Only show for Super Admin or Admin with multiple branches -->
         <div v-if="shouldShowBranchFilter">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Branch</label
@@ -371,7 +371,7 @@ const props = defineProps({
 const emit = defineEmits(['filter-change', 'clear-filters', 'branch-change', 'class-change']);
 
 // Auth composable
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+const { isSuperAdmin, isAdmin, isBranchAdmin, user } = useAuth();
 
 // Computed properties for role-based logic
 const shouldShowBranchFilter = computed(() => {
@@ -381,7 +381,7 @@ const shouldShowBranchFilter = computed(() => {
   }
 
   // School admin can see branch filter only if they have multiple branches
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     return props.branches.length > 1;
   }
 
@@ -401,7 +401,7 @@ const availableBranches = computed(() => {
   }
 
   // School admin sees only their school's branches
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     return props.branches.filter(branch => branch.school_id === user.value?.school_id);
   }
 

@@ -62,7 +62,7 @@ router.get('/:id', ExamHallController.getExamHallById);
  */
 router.post(
   '/',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(createExamHallValidation),
   ExamHallController.createExamHall
 );
@@ -74,7 +74,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(updateExamHallValidation),
   ExamHallController.updateExamHall
 );
@@ -86,7 +86,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   ExamHallController.deleteExamHall
 );
 

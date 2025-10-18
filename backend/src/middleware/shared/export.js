@@ -66,10 +66,10 @@ const checkExportPermissions = (req, res, next) => {
 
     // Define permissions for each report type
     const permissions = {
-      receipts: ['super_admin', 'school_admin', 'branch_admin', 'accountant'],
-      fees: ['super_admin', 'school_admin', 'branch_admin', 'accountant'],
-      students: ['super_admin', 'school_admin', 'branch_admin', 'teacher'],
-      attendance: ['super_admin', 'school_admin', 'branch_admin', 'teacher']
+      receipts: ['super_admin', 'admin', 'branch_admin', 'accountant'],
+      fees: ['super_admin', 'admin', 'branch_admin', 'accountant'],
+      students: ['super_admin', 'admin', 'branch_admin', 'teacher'],
+      attendance: ['super_admin', 'admin', 'branch_admin', 'teacher']
     };
 
     const allowedRoles = permissions[report_type] || [];

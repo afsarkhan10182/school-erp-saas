@@ -54,6 +54,7 @@ export interface ExamFilters {
   date_from?: string;
   date_to?: string;
   academic_year?: string;
+  school_id?: string;
   branch_id?: string;
 }
 

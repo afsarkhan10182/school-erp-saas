@@ -23,7 +23,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 // GET /api/academic-years - Get all academic years (super admin and school admin can view)
-router.get('/', authorize(['super_admin', 'school_admin']), getAllAcademicYears);
+router.get('/', authorize(['super_admin', 'admin']), getAllAcademicYears);
 
 // GET /api/academic-years/dropdown - Get all academic years for dropdown (all authenticated users)
 router.get('/dropdown', getAcademicYearsForDropdown);
@@ -32,7 +32,7 @@ router.get('/dropdown', getAcademicYearsForDropdown);
 router.get('/current', getCurrentAcademicYear);
 
 // GET /api/academic-years/:id - Get academic year by ID (super admin and school admin can view)
-router.get('/:id', authorize(['super_admin', 'school_admin']), getAcademicYearById);
+router.get('/:id', authorize(['super_admin', 'admin']), getAcademicYearById);
 
 // POST /api/academic-years/ - Create new academic year (super admin only)
 router.post(

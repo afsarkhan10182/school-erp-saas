@@ -13,9 +13,7 @@ const createExamTypeValidator = [
     .notEmpty()
     .withMessage('Exam type code is required')
     .isLength({ min: 2, max: 20 })
-    .withMessage('Exam type code must be between 2 and 20 characters')
-    .matches(/^[A-Za-z0-9_-]+$/)
-    .withMessage('Exam type code can only contain letters, numbers, hyphens, and underscores'),
+    .withMessage('Exam type code must be between 2 and 20 characters'),
 
   body('description')
     .optional()
@@ -52,9 +50,7 @@ const updateExamTypeValidator = [
     .notEmpty()
     .withMessage('Exam type code cannot be empty')
     .isLength({ min: 2, max: 20 })
-    .withMessage('Exam type code must be between 2 and 20 characters')
-    .matches(/^[A-Za-z0-9_-]+$/)
-    .withMessage('Exam type code can only contain letters, numbers, hyphens, and underscores'),
+    .withMessage('Exam type code must be between 2 and 20 characters'),
 
   body('description')
     .optional()

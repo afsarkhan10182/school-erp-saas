@@ -2,15 +2,15 @@ const BranchService = require('~/services/administration/schools/branch.service'
 const { logger } = require('~/utils/shared/logger');
 
 class BranchController {
-  // Create a new branch (Super Admin or School Admin)
+  // Create a new branch (Super Admin or Admin)
   static async createBranch(req, res, next) {
     try {
       const branchData = {
         ...req.body,
         ...req.files, // Include uploaded files
         created_by: req.user.id,
-        // If School Admin, use their school_id
-        school_id: req.user.role === 'school_admin' ? req.user.school_id : req.body.school_id
+        // If Admin, use their school_id
+        school_id: req.user.role === 'admin' ? req.user.school_id : req.body.school_id
       };
 
       const branch = await BranchService.createBranch(branchData);
@@ -65,7 +65,7 @@ class BranchController {
     }
   }
 
-  // Update branch (Super Admin or School Admin)
+  // Update branch (Super Admin or Admin)
   static async updateBranch(req, res, next) {
     try {
       const { id } = req.params;
@@ -104,14 +104,14 @@ class BranchController {
     }
   }
 
-  // Get branches by school (Super Admin or School Admin)
+  // Get branches by school (Super Admin or Admin)
   static async getBranchesBySchool(req, res, next) {
     try {
       const { schoolId } = req.params;
       const { page = 1, limit = 10, search, status } = req.query;
 
-      // Verify School Admin and Branch Admin can only access their own school
-      if (req.user.role === 'school_admin' || req.user.role === 'branch_admin') {
+      // Verify Admin and Branch Admin can only access their own school
+      if (req.user.role === 'admin' || req.user.role === 'branch_admin') {
         const userSchoolId = String(req.user.school_id || '').trim();
         const requestedSchoolId = String(schoolId || '').trim();
 
@@ -167,7 +167,7 @@ class BranchController {
         if (school_id) {
           whereClause.school_id = school_id;
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         // School admin can only see branches in their school
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {

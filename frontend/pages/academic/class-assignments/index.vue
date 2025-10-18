@@ -192,7 +192,7 @@ const {
 } = useAcademics();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchBranches } = useBranches();
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+const { isSuperAdmin, isAdmin, isBranchAdmin, user } = useAuth();
 
 // Tab configuration
 const tabs = [
@@ -227,9 +227,9 @@ const selectedBranchId = ref('');
 const selectedBranch = ref(null);
 
 const shouldShowBranchFilter = computed(() => {
-  // Only show branch selection for Super Admin and School Admin
+  // Only show branch selection for Super Admin and Admin
   // Branch Admin should only see their own branch (no selection needed)
-  return isSuperAdmin.value || isSchoolAdmin.value;
+  return isSuperAdmin.value || isAdmin.value;
 });
 
 const academicYearOptions = computed(() => {
@@ -349,7 +349,7 @@ const loadSchools = async () => {
 const loadBranches = async () => {
   if (isSuperAdmin.value && selectedSchoolId.value) {
     await fetchBranches(selectedSchoolId.value);
-  } else if (isSchoolAdmin.value) {
+  } else if (isAdmin.value) {
     await fetchBranches(user.value.school_id);
   } else if (isBranchAdmin.value) {
     await fetchBranches(user.value.school_id);
@@ -524,7 +524,7 @@ onMounted(async () => {
   await fetchAcademicYears();
 
   if (shouldShowBranchFilter.value) {
-    // Super Admin and School Admin - show branch selection
+    // Super Admin and Admin - show branch selection
     await loadSchools();
     await loadBranches();
   } else if (isBranchAdmin.value) {

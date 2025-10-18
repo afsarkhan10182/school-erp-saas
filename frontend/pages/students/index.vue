@@ -786,7 +786,7 @@ const totalItems = ref(0);
 
 // Role-based state
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
-const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+const isAdmin = computed(() => authStore.currentUser?.role === 'admin');
 const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
 
 // Selection state
@@ -800,8 +800,8 @@ const canApplyFilters = computed(() => {
   if (isSuperAdmin.value) {
     // Super Admin needs school and branch selection
     return selectedSchool.value && selectedBranch.value;
-  } else if (isSchoolAdmin.value) {
-    // School Admin needs branch selection
+  } else if (isAdmin.value) {
+    // Admin needs branch selection
     return selectedBranch.value;
   } else if (isBranchAdmin.value) {
     // Branch Admin can apply filters immediately (branch is auto-selected)
@@ -1133,7 +1133,7 @@ onMounted(async () => {
     await fetchSchools();
   }
 
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     await fetchBranches(authStore.currentUser?.school_id);
   }
 
@@ -1153,7 +1153,7 @@ onMounted(async () => {
 
   if (isBranchAdmin.value) {
     await fetchStudents(1);
-  } else if (isSchoolAdmin.value) {
+  } else if (isAdmin.value) {
     await fetchStudents(1);
   } else if (isSuperAdmin.value) {
     await fetchStudents(1);

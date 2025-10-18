@@ -19,10 +19,42 @@ const GradingSystem = sequelize.define(
     },
     code: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      unique: true,
+      allowNull: true,
+      unique: false,
       validate: {
         notEmpty: { msg: 'Grading system code is required' }
+      }
+    },
+    branch_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'branches', key: 'id' }
+    },
+    grade_point: {
+      type: DataTypes.DECIMAL(3, 2),
+      allowNull: true,
+      defaultValue: 4.0,
+      validate: {
+        min: { args: [0], msg: 'Grade point must be at least 0' },
+        max: { args: [10], msg: 'Grade point cannot exceed 10' }
+      }
+    },
+    min_percentage: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+      validate: {
+        min: { args: [0], msg: 'Min percentage must be at least 0' },
+        max: { args: [100], msg: 'Min percentage cannot exceed 100' }
+      }
+    },
+    max_percentage: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      defaultValue: 100.0,
+      validate: {
+        min: { args: [0], msg: 'Max percentage must be at least 0' },
+        max: { args: [100], msg: 'Max percentage cannot exceed 100' }
       }
     },
     description: {
@@ -31,13 +63,13 @@ const GradingSystem = sequelize.define(
     },
     grade_type: {
       type: DataTypes.ENUM('letter', 'number', 'percentage', 'custom'),
-      allowNull: false,
-      defaultValue: 'letter'
+      allowNull: true,
+      defaultValue: null
     },
     passing_percentage: {
       type: DataTypes.DECIMAL(5, 2),
-      allowNull: false,
-      defaultValue: 35.0,
+      allowNull: true,
+      defaultValue: null,
       validate: {
         min: { args: [0], msg: 'Passing percentage must be at least 0' },
         max: { args: [100], msg: 'Passing percentage cannot exceed 100' }
@@ -46,7 +78,7 @@ const GradingSystem = sequelize.define(
     max_grade_points: {
       type: DataTypes.DECIMAL(3, 2),
       allowNull: true,
-      defaultValue: 4.0,
+      defaultValue: null,
       validate: {
         min: { args: [0], msg: 'Max grade points must be at least 0' },
         max: { args: [10], msg: 'Max grade points cannot exceed 10' }

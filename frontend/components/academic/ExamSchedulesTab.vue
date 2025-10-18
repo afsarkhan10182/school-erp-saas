@@ -6,13 +6,29 @@
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Exam Schedules</h2>
         <p class="text-gray-600 dark:text-gray-400">Manage exam schedules and timetables</p>
       </div>
-      <button
-        @click="openCreateModal"
-        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        <Plus class="h-4 w-4 mr-2" />
-        Add Schedule
-      </button>
+      <div class="flex space-x-3">
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus class="h-4 w-4 mr-2" />
+          Add Schedule
+        </button>
+        <button
+          @click="openBulkCreateModal"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Calendar class="h-4 w-4 mr-2" />
+          Bulk Create
+        </button>
+        <button
+          @click="openTemplateModal"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Calendar class="h-4 w-4 mr-2" />
+          Template
+        </button>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -103,12 +119,22 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
+                Class & Subject
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
                 Date & Time
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Duration
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Hall
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -124,7 +150,7 @@
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-if="schedules.length === 0">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+              <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                 No schedules found
               </td>
             </tr>
@@ -142,35 +168,55 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ schedule.class?.name || 'N/A' }} - {{ schedule.section?.name || 'N/A' }}
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ schedule.subject?.name || 'All Subjects' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900 dark:text-white">
-                  {{ formatDate(schedule.schedule_date) }}
+                  {{ formatDate(schedule.exam_date || schedule.schedule_date) }}
                 </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">
                   {{ formatTime(schedule.start_time) }} - {{ formatTime(schedule.end_time) }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{ schedule.duration }} minutes
+                {{ schedule.duration_minutes || schedule.duration }} min
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ schedule.exam_hall?.name || schedule.hall?.name || 'N/A' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   :class="getStatusBadgeClass(schedule.status)"
                   class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
                 >
-                  {{ schedule.status }}
+                  {{ getStatusText(schedule.status) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <button
+                    @click="viewSchedule(schedule)"
+                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="View Details"
+                  >
+                    <Eye class="h-4 w-4" />
+                  </button>
+                  <button
                     @click="editSchedule(schedule)"
                     class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    title="Edit Schedule"
                   >
                     <Edit class="h-4 w-4" />
                   </button>
                   <button
                     @click="deleteSchedule(schedule)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                    title="Delete Schedule"
                   >
                     <Trash2 class="h-4 w-4" />
                   </button>
@@ -233,17 +279,60 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Schedule Modal -->
+    <ExamScheduleCreationModal
+      :show="showCreateModal"
+      :school-id="schoolId"
+      @close="closeCreateModal"
+      @success="handleCreateSuccess"
+    />
+
+    <!-- Bulk Create Schedule Modal -->
+    <ExamScheduleCreationModal
+      :show="showBulkCreateModal"
+      :school-id="schoolId"
+      @close="closeBulkCreateModal"
+      @success="handleBulkCreateSuccess"
+    />
+
+    <!-- Template Schedule Modal -->
+    <ExamScheduleTemplateModal
+      :show="showTemplateModal"
+      :school-id="schoolId"
+      @close="closeTemplateModal"
+      @success="handleTemplateSuccess"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { Plus, Edit, Trash2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Eye
+} from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ExamScheduleCreationModal from './ExamScheduleCreationModal.vue';
+import ExamScheduleTemplateModal from './ExamScheduleTemplateModal.vue';
 import { useExamSchedules } from '~/composables/useExamSchedules';
 import { useExams } from '~/composables/useExams';
 import { useToast } from '~/composables/useToast';
 import { useDebounceFn } from '@vueuse/core';
+
+// Props
+const props = defineProps({
+  schoolId: {
+    type: String,
+    default: ''
+  }
+});
 
 // Composables
 const {
@@ -266,6 +355,11 @@ const filters = ref({
   status: ''
 });
 
+// Modal states
+const showCreateModal = ref(false);
+const showBulkCreateModal = ref(false);
+const showTemplateModal = ref(false);
+
 // Computed properties
 const examOptions = computed(() =>
   exams.value.map(exam => ({
@@ -283,8 +377,47 @@ const statusOptions = computed(() => [
 
 // Methods
 const openCreateModal = () => {
-  // TODO: Implement create modal
-  showToast('Create schedule modal will be implemented', 'info');
+  showCreateModal.value = true;
+};
+
+const openBulkCreateModal = () => {
+  showBulkCreateModal.value = true;
+};
+
+const openTemplateModal = () => {
+  showTemplateModal.value = true;
+};
+
+const closeCreateModal = () => {
+  showCreateModal.value = false;
+};
+
+const closeBulkCreateModal = () => {
+  showBulkCreateModal.value = false;
+};
+
+const closeTemplateModal = () => {
+  showTemplateModal.value = false;
+};
+
+const handleCreateSuccess = () => {
+  fetchSchedules();
+  closeCreateModal();
+};
+
+const handleBulkCreateSuccess = () => {
+  fetchSchedules();
+  closeBulkCreateModal();
+};
+
+const handleTemplateSuccess = () => {
+  fetchSchedules();
+  closeTemplateModal();
+};
+
+const viewSchedule = schedule => {
+  // TODO: Implement view modal or navigate to details page
+  showToast('View schedule functionality will be implemented', 'info');
 };
 
 const editSchedule = schedule => {
@@ -362,6 +495,16 @@ const getStatusBadgeClass = status => {
     cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
   };
   return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+};
+
+const getStatusText = status => {
+  const texts = {
+    scheduled: 'Scheduled',
+    ongoing: 'Ongoing',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  };
+  return texts[status] || 'Unknown';
 };
 
 // Expose methods for parent component

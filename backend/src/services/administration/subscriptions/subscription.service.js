@@ -129,7 +129,7 @@ class SubscriptionService {
     let adminUser = await User.findOne({
       where: {
         school_id: schoolId,
-        role: 'school_admin'
+        role: 'admin'
       }
     });
 
@@ -169,7 +169,7 @@ class SubscriptionService {
           email: subscriptionData.admin_email,
           phone: subscriptionData.admin_phone,
           password: adminPassword,
-          role: 'school_admin',
+          role: 'admin',
           school_id: schoolId,
           branch_id: null, // Will be assigned to first branch if exists
           status: 'active',
@@ -505,7 +505,7 @@ class SubscriptionService {
         {
           model: User,
           as: 'users',
-          where: { role: 'school_admin' },
+          where: { role: 'admin' },
           attributes: ['id', 'first_name', 'last_name', 'email', 'phone'],
           required: false
         }
@@ -580,7 +580,7 @@ class SubscriptionService {
         {
           model: User,
           as: 'users',
-          where: { role: 'school_admin' },
+          where: { role: 'admin' },
           attributes: ['id', 'first_name', 'last_name', 'email', 'phone', 'role'],
           required: false
         }
@@ -1677,7 +1677,7 @@ class SubscriptionService {
         where: {
           school_id: schoolId,
           status: 'active',
-          role: { [Op.notIn]: ['super_admin', 'school_admin'] }
+          role: { [Op.notIn]: ['super_admin', 'admin'] }
         }
       });
 

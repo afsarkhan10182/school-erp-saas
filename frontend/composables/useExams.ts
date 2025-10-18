@@ -59,14 +59,23 @@ export const useExams = () => {
   const loadExams = async (filters: ExamFilters = {}) => {
     state.loading = true;
 
+    console.log('loadExams called with filters:', filters);
+
     try {
-      const response = await examApi.getAll({
+      const apiParams = {
         page: state.pagination.page,
         limit: state.pagination.limit,
         ...filters
-      });
+      };
+
+      console.log('API params:', apiParams);
+
+      const response = await examApi.getAll(apiParams);
+
+      console.log('API response:', response);
 
       if (response.success) {
+        console.log('Exams loaded:', response.data.exams);
         state.exams = response.data.exams || [];
         state.pagination = {
           page: response.data.pagination.page,

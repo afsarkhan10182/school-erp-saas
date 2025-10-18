@@ -225,7 +225,7 @@
               </select>
             </div>
 
-            <!-- Branch Selection (Super Admin & School Admin) - Create Mode Only -->
+            <!-- Branch Selection (Super Admin & Admin) - Create Mode Only -->
             <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >Branch *</label
@@ -431,7 +431,7 @@ const canSubmit = computed(() => {
 
   if (userRole.value === 'super_admin') {
     if (!form.school_id || !form.branch_id) return false;
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     if (!form.branch_id) return false;
   }
 
@@ -442,7 +442,7 @@ const canSubmit = computed(() => {
 const availableBranches = computed(() => {
   if (userRole.value === 'super_admin') {
     return branches.value.filter(branch => !form.school_id || branch.school_id === form.school_id);
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     return branches.value.filter(branch => branch.school_id === user.value?.school_id);
   } else {
     return branches.value.filter(branch => branch.id === user.value?.branch_id);
@@ -479,7 +479,7 @@ const loadStreams = async () => {
     }
 
     // Check if user has required role
-    const allowedRoles = ['super_admin', 'school_admin', 'branch_admin'];
+    const allowedRoles = ['super_admin', 'admin', 'branch_admin'];
     if (!allowedRoles.includes(user.value.role)) {
       console.error('User role not allowed:', user.value.role);
       showToast('You do not have permission to access streams', 'error');
@@ -567,7 +567,7 @@ const resetForm = () => {
   if (userRole.value === 'super_admin') {
     form.school_id = '';
     form.branch_id = '';
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     form.branch_id = '';
   }
 };
@@ -778,7 +778,7 @@ onMounted(async () => {
     if (userRole.value === 'super_admin') {
       // For super admin, we'll load classes when they select a school/branch
       classesResult = { status: 'fulfilled', value: [] };
-    } else if (userRole.value === 'school_admin') {
+    } else if (userRole.value === 'admin') {
       // For school admin, load classes for their school
       classesResult = await Promise.allSettled([fetchClasses({ schoolId: user.value?.school_id })]).then(
         results => results[0]

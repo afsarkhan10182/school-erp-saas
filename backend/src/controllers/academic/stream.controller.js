@@ -26,7 +26,7 @@ class StreamController {
       if (req.user.role === 'super_admin') {
         // Super admin can see all streams
         logger.debug('getAllStreams: Super admin - no additional constraints');
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         logger.debug('getAllStreams: School admin - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
@@ -144,7 +144,7 @@ class StreamController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can access any stream
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -251,7 +251,7 @@ class StreamController {
         }
         school_id = req.body.school_id;
         branch_id = req.body.branch_id;
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         school_id = req.user.school_id;
         branch_id = req.body.branch_id || req.user.branch_id;
       } else if (req.user.role === 'branch_admin') {
@@ -385,7 +385,7 @@ class StreamController {
 
       if (req.user.role === 'super_admin') {
         // Super admin can update any stream
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -488,7 +488,7 @@ class StreamController {
 
       if (req.user.role === 'super_admin') {
         // Super admin can delete any stream
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -545,7 +545,7 @@ class StreamController {
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;

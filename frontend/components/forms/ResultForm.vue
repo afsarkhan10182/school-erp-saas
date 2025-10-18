@@ -53,6 +53,19 @@
       />
     </div>
 
+    <!-- Hidden fields (keep in data but don't show in UI) -->
+    <div style="display: none">
+      <input v-model="form.theory_marks_obtained" type="number" />
+      <input v-model="form.practical_marks_obtained" type="number" />
+      <input v-model="form.viva_marks_obtained" type="number" />
+      <input v-model="form.assignment_marks_obtained" type="number" />
+      <input v-model="form.grade" type="text" />
+      <input v-model="form.percentage" type="number" />
+      <input v-model="form.position" type="number" />
+      <input v-model="form.created_by" type="text" />
+      <input v-model="form.updated_by" type="text" />
+    </div>
+
     <!-- Form Actions -->
     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
       <button
@@ -127,7 +140,17 @@ const errors = ref({});
 const form = ref({
   marks_obtained: 0,
   is_absent: false,
-  remarks: ''
+  remarks: '',
+  // Hidden fields with defaults (CodeIgniter style)
+  theory_marks_obtained: 0,
+  practical_marks_obtained: 0,
+  viva_marks_obtained: 0,
+  assignment_marks_obtained: 0,
+  grade: '',
+  percentage: 0,
+  position: 0,
+  created_by: '',
+  updated_by: ''
 });
 
 // Methods

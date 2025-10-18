@@ -571,7 +571,7 @@ const notifyAbsentees = async (req, res, next) => {
           await sendEmail({
             to: email,
             subject: 'Absence Notification',
-            text: `Dear Parent/Guardian,\n\nThis is to inform you that ${student.first_name} ${student.last_name || ''} was marked absent on ${rec.date}.\n\nRegards,\nSchool Admin`
+            text: `Dear Parent/Guardian,\n\nThis is to inform you that ${student.first_name} ${student.last_name || ''} was marked absent on ${rec.date}.\n\nRegards,\nAdmin`
           });
           notified += 1;
         }

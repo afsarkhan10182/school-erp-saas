@@ -22,7 +22,7 @@ router.use(verifyToken, setSchoolContext, requireModuleAccess('exams'));
 // Exam type management routes (school admin and above)
 router.post(
   '/',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(createExamTypeValidator),
   ExamTypeController.createExamType
 );
@@ -33,13 +33,13 @@ router.get('/active', ExamTypeController.getActiveExamTypes);
 router.get('/:id', ExamTypeController.getExamTypeById);
 router.put(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(updateExamTypeValidator),
   ExamTypeController.updateExamType
 );
 router.delete(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   ExamTypeController.deleteExamType
 );
 

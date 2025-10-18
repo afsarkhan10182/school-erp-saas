@@ -36,6 +36,21 @@ class ExamScheduleService extends BaseService {
         await this.validateEntityExists(User, scheduleData.invigilator_id, 'Invigilator');
       }
 
+      // Validate class if provided
+      if (scheduleData.class_id) {
+        await this.validateEntityExists(Class, scheduleData.class_id, 'Class');
+      }
+
+      // Validate section if provided
+      if (scheduleData.section_id) {
+        await this.validateEntityExists(Section, scheduleData.section_id, 'Section');
+      }
+
+      // Validate subject if provided
+      if (scheduleData.subject_id) {
+        await this.validateEntityExists(Subject, scheduleData.subject_id, 'Subject');
+      }
+
       // Validate status
       await this.validateEntityExists(ExamStatus, scheduleData.status_id, 'Exam Status');
 
@@ -133,7 +148,7 @@ class ExamScheduleService extends BaseService {
       if (search) {
         whereClause[Op.or] = [
           { '$exam.name$': { [Op.iLike]: `%${search}%` } },
-          { '$exam.class.name$': { [Op.iLike]: `%${search}%` } }
+          { '$class.name$': { [Op.iLike]: `%${search}%` } }
         ];
       }
 
@@ -143,28 +158,22 @@ class ExamScheduleService extends BaseService {
           {
             model: Exam,
             as: 'exam',
-            include: [
-              {
-                model: Class,
-                as: 'class',
-                attributes: ['id', 'name', 'code']
-              },
-              {
-                model: Section,
-                as: 'section',
-                attributes: ['id', 'name']
-              },
-              {
-                model: Subject,
-                as: 'subject',
-                attributes: ['id', 'name', 'code']
-              },
-              {
-                model: ExamType,
-                as: 'examType',
-                attributes: ['id', 'name', 'code']
-              }
-            ]
+            attributes: ['id', 'name', 'description', 'academic_year']
+          },
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name', 'code']
+          },
+          {
+            model: Section,
+            as: 'section',
+            attributes: ['id', 'name']
+          },
+          {
+            model: Subject,
+            as: 'subject',
+            attributes: ['id', 'name', 'code']
           },
           {
             model: ExamHall,
@@ -258,6 +267,21 @@ class ExamScheduleService extends BaseService {
           {
             model: ExamStatus,
             as: 'status'
+          },
+          {
+            model: Class,
+            as: 'class',
+            attributes: ['id', 'name', 'code']
+          },
+          {
+            model: Section,
+            as: 'section',
+            attributes: ['id', 'name']
+          },
+          {
+            model: Subject,
+            as: 'subject',
+            attributes: ['id', 'name', 'code']
           }
         ]
       });
@@ -418,4 +442,3 @@ class ExamScheduleService extends BaseService {
 }
 
 module.exports = ExamScheduleService;
-

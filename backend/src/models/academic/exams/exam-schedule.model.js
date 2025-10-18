@@ -15,6 +15,27 @@ const ExamSchedule = sequelize.define(
       allowNull: false,
       references: { model: 'exams', key: 'id' }
     },
+    class_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'classes', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    section_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'sections', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
+    subject_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'subjects', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
     exam_date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
@@ -88,6 +109,53 @@ const ExamSchedule = sequelize.define(
       allowNull: false,
       defaultValue: true
     },
+    // Mark Distribution Fields
+    theory_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      validate: {
+        min: { args: [0], msg: 'Theory marks must be at least 0' }
+      }
+    },
+    practical_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      validate: {
+        min: { args: [0], msg: 'Practical marks must be at least 0' }
+      }
+    },
+    viva_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      validate: {
+        min: { args: [0], msg: 'Viva marks must be at least 0' }
+      }
+    },
+    assignment_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      validate: {
+        min: { args: [0], msg: 'Assignment marks must be at least 0' }
+      }
+    },
+    total_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: { args: [1], msg: 'Total marks must be at least 1' }
+      }
+    },
+    pass_marks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: { args: [0], msg: 'Pass marks must be at least 0' }
+      }
+    },
     branch_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -147,6 +215,18 @@ const ExamSchedule = sequelize.define(
         fields: ['is_active']
       },
       {
+        name: 'idx_exam_schedules_class_id',
+        fields: ['class_id']
+      },
+      {
+        name: 'idx_exam_schedules_section_id',
+        fields: ['section_id']
+      },
+      {
+        name: 'idx_exam_schedules_subject_id',
+        fields: ['subject_id']
+      },
+      {
         name: 'idx_exam_schedules_unique_schedule',
         fields: ['exam_id', 'branch_id', 'exam_date'],
         unique: true
@@ -196,7 +276,21 @@ ExamSchedule.associate = models => {
     foreignKey: 'updated_by',
     as: 'updater'
   });
+
+  ExamSchedule.belongsTo(models.Class, {
+    foreignKey: 'class_id',
+    as: 'class'
+  });
+
+  ExamSchedule.belongsTo(models.Section, {
+    foreignKey: 'section_id',
+    as: 'section'
+  });
+
+  ExamSchedule.belongsTo(models.Subject, {
+    foreignKey: 'subject_id',
+    as: 'subject'
+  });
 };
 
 module.exports = ExamSchedule;
-

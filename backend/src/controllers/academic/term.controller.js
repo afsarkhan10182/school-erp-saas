@@ -102,7 +102,7 @@ class TermController {
       let whereClause = { id };
 
       // Add role-based access control
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -175,7 +175,7 @@ class TermController {
 
       // Check if academic year exists and user has access
       let academicYearWhereClause = { id: academic_year_id };
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         academicYearWhereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         academicYearWhereClause.school_id = req.user.school_id;
@@ -268,7 +268,7 @@ class TermController {
       let whereClause = { id };
 
       // Add role-based access control
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -355,7 +355,7 @@ class TermController {
       let whereClause = { id };
 
       // Add role-based access control
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -403,7 +403,7 @@ class TermController {
       let whereClause = { academic_year_id };
 
       // Add role-based access control
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -444,7 +444,7 @@ class TermController {
       let whereClause = { status: 'active' };
 
       // Add role-based access control
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;

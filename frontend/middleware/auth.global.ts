@@ -56,7 +56,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // CASE 3: User not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute && !hasTokenCookie) {
-    // No token cookie and not authenticated - redirect to login immediately
-    return navigateTo('/auth/login');
+    // No token cookie and not authenticated - redirect to login with intended destination
+    return navigateTo(`/auth/login?redirect=${encodeURIComponent(to.fullPath)}`);
   }
 });

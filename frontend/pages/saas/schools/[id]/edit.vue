@@ -427,9 +427,9 @@
         </div>
       </div>
 
-      <!-- School Admin User -->
+      <!-- Admin User -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mt-8">
-        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">School Admin User</h2>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Admin User</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
@@ -509,7 +509,7 @@
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
             <select v-model="form.subscriptionData.admin_role" class="input-field">
-              <option value="school_admin">School Admin</option>
+              <option value="admin">Admin</option>
               <option value="accountant">Accountant</option>
               <option value="admission_clerk">Admission Clerk</option>
               <option value="custom">Custom Role</option>
@@ -723,7 +723,7 @@ const form = ref({
     admin_email: '',
     admin_phone: '',
     admin_password: '',
-    admin_role: 'school_admin',
+    admin_role: 'admin',
     send_email: false,
     payment_amount: '',
     payment_currency: 'INR',
@@ -921,7 +921,7 @@ const loadSchool = async () => {
       admin_email: school.admin_user?.email || '',
       admin_phone: school.admin_user?.phone || '',
       admin_password: '',
-      admin_role: school.admin_user?.role || 'school_admin',
+      admin_role: school.admin_user?.role || 'admin',
       send_email: false,
       payment_amount: '',
       payment_currency: 'INR',

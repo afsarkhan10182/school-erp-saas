@@ -259,8 +259,8 @@
             />
           </div>
 
-          <!-- Branch (Super Admin and School Admin) -->
-          <div v-if="isSuperAdmin || isSchoolAdmin">
+          <!-- Branch (Super Admin and Admin) -->
+          <div v-if="isSuperAdmin || isAdmin">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Branch</label
             >
@@ -665,7 +665,7 @@ const pagination = ref({
 });
 
 // Auth composables
-const { isSuperAdmin, isSchoolAdmin } = useAuth();
+const { isSuperAdmin, isAdmin } = useAuth();
 const authStore = useAuthStore();
 
 // Export and print services
@@ -752,7 +752,7 @@ const loadSchools = async () => {
 };
 
 const loadBranches = async () => {
-  if (isSuperAdmin.value || isSchoolAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value) {
     const options: any = {};
     if (filters.value.school_id) {
       options.schoolId = filters.value.school_id;
@@ -850,7 +850,7 @@ const resetFilters = async () => {
   if (isSuperAdmin.value) {
     await loadSchools();
   }
-  if (isSuperAdmin.value || isSchoolAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value) {
     await loadBranches();
   }
 

@@ -1,33 +1,70 @@
-import { apiCall } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
-export const examReportApi = {
-  // Get generated reports by exam ID
-  getByExamId: async (examId: string) => {
-    return apiCall('get', `/exams/${examId}/reports`);
+export interface ReportCardTemplate {
+  id: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  school_id: string;
+  branch_id?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StudentForReportCard {
+  id: string;
+  name: string;
+  roll_number: string;
+  class?: { name: string };
+  section?: { name: string };
+  total_marks?: number;
+  grade?: string;
+  is_absent?: boolean;
+}
+
+export interface ReportCardFilters {
+  exam_id: string;
+  class_id: string;
+  section_id?: string;
+  school_id?: string;
+  branch_id?: string;
+}
+
+export interface GenerateReportCardData {
+  exam_id: string;
+  student_ids: string[];
+  template_id: string;
+  output_format: 'pdf' | 'print';
+  email_options: {
+    to_parents: boolean;
+    to_students: boolean;
+  };
+}
+
+export const examReportsApi = {
+  // Get students for report cards
+  getStudents: async (filters: ReportCardFilters) => {
+    return apiCall('get', '/exam-reports/students', { params: filters });
   },
 
-  // Preview report
-  preview: async (examId: string, config: any) => {
-    return apiCall('post', `/exams/${examId}/reports/preview`, config);
+  // Get report card templates
+  getTemplates: async (params?: { school_id?: string; branch_id?: string }) => {
+    return apiCall('get', '/exam-reports/templates', { params });
   },
 
-  // Generate report
-  generate: async (examId: string, config: any) => {
-    return apiCall('post', `/exams/${examId}/reports/generate`, config);
+  // Generate report cards
+  generate: async (data: GenerateReportCardData) => {
+    return apiCall('post', '/exam-reports/generate', data);
   },
 
-  // Download report
+  // Download generated report card
   download: async (reportId: string) => {
-    return apiCall('get', `/exam-reports/${reportId}/download`);
+    return apiCall('get', `/exam-reports/download/${reportId}`);
   },
 
-  // Delete report
-  delete: async (reportId: string) => {
-    return apiCall('delete', `/exam-reports/${reportId}`);
-  },
-
-  // Get single report
-  getById: async (reportId: string) => {
-    return apiCall('get', `/exam-reports/${reportId}`);
+  // Get report generation status
+  getStatus: async (reportId: string) => {
+    return apiCall('get', `/exam-reports/status/${reportId}`);
   }
 };

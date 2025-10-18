@@ -161,7 +161,7 @@ class SchoolService {
             {
               model: User,
               as: 'users',
-              where: { role: 'school_admin' },
+              where: { role: 'admin' },
               required: false,
               attributes: { exclude: ['password'] }
             },

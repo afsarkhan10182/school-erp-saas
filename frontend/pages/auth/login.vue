@@ -268,7 +268,14 @@ const forgotPasswordLoading = ref(false);
 const forgotPasswordMessage = ref(null);
 
 const router = useRouter();
+const route = useRoute();
 const { login } = useAuth();
+
+// Get redirect parameter from URL
+const redirectTo = computed(() => {
+  const redirect = route.query.redirect;
+  return redirect && typeof redirect === 'string' ? decodeURIComponent(redirect) : null;
+});
 
 const isDark = ref(false);
 
@@ -377,9 +384,10 @@ const checkExistingAuth = async () => {
   try {
     await waitForAuthInit();
 
-    // If user is already logged in, redirect immediately
+    // If user is already logged in, redirect to intended destination or dashboard
     if (authStore.isLoggedIn && authStore.currentUser) {
-      await navigateTo('/dashboard', { replace: true });
+      const destination = redirectTo.value || '/dashboard';
+      await navigateTo(destination, { replace: true });
       return;
     }
 
@@ -388,7 +396,8 @@ const checkExistingAuth = async () => {
       try {
         const isValid = await authStore.checkAuth();
         if (isValid) {
-          await navigateTo('/dashboard', { replace: true });
+          const destination = redirectTo.value || '/dashboard';
+          await navigateTo(destination, { replace: true });
           return;
         }
       } catch (error) {
@@ -418,11 +427,14 @@ const handleLogin = async () => {
   loading.value = true;
 
   try {
-    const result = await login({
-      email: form.email,
-      password: form.password,
-      rememberMe: form.rememberMe
-    });
+    const result = await login(
+      {
+        email: form.email,
+        password: form.password,
+        rememberMe: form.rememberMe
+      },
+      redirectTo.value || undefined
+    );
     if (result.success) {
       // Login successful - let the useAuth composable handle navigation
       // No need to navigate here as useAuth will do it

@@ -200,8 +200,8 @@
           />
         </div>
 
-        <!-- Branch Selector (Super Admin and School Admin) -->
-        <div v-if="isSuperAdmin || isSchoolAdmin">
+        <!-- Branch Selector (Super Admin and Admin) -->
+        <div v-if="isSuperAdmin || isAdmin">
           <label
             class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
           >
@@ -591,7 +591,7 @@ import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables - Following common reusable patterns
 const { showToast } = useToast();
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
@@ -867,8 +867,8 @@ const onSchoolChange = async (schoolId: string) => {
 };
 
 const onBranchChange = async (branchId: string) => {
-  // Only Super Admins and School Admins can change branch
-  if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
+  // Only Super Admins and Admins can change branch
+  if (!isSuperAdmin.value && !isAdmin.value) return;
 
   form.branch_id = branchId;
   form.class_id = '';
@@ -924,7 +924,7 @@ const loadStudentsForAttendance = async () => {
   if (isSuperAdmin.value && (!form.school_id || !form.branch_id)) {
     showToast('Please select school and branch first', 'error');
     return;
-  } else if (isSchoolAdmin.value && !form.branch_id) {
+  } else if (isAdmin.value && !form.branch_id) {
     showToast('Please select branch first', 'error');
     return;
   }
@@ -1156,8 +1156,8 @@ onMounted(async () => {
     if (isSuperAdmin.value) {
       // Super Admin: Load schools, then branches will be loaded when school is selected
       await fetchSchools();
-    } else if (isSchoolAdmin.value) {
-      // School Admin: Load branches for their school directly
+    } else if (isAdmin.value) {
+      // Admin: Load branches for their school directly
       form.school_id = user.value?.school_id || '';
       await fetchAllBranches({ school_id: form.school_id });
     } else if (isBranchAdmin.value) {

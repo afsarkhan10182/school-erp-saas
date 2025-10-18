@@ -144,7 +144,7 @@ const createStudent = async (req, res, next) => {
       if (!school_id || !branch_id) {
         throw new ApiError(400, 'School ID and Branch ID are required for super admin');
       }
-    } else if (req.user.role === 'school_admin') {
+    } else if (req.user.role === 'admin') {
       school_id = req.user.school_id;
       branch_id = studentData.branch_id || req.user.branch_id;
     } else {
@@ -479,7 +479,7 @@ const getStudents = async (req, res, next) => {
         whereClause.school_id = school_id;
       }
       // If no school_id provided, show all students (no whereClause.school_id restriction)
-    } else if (req.user.role === 'school_admin') {
+    } else if (req.user.role === 'admin') {
       // School admin is restricted to their school
       whereClause.school_id = req.schoolId;
     } else if (req.user.role === 'branch_admin') {
@@ -1144,7 +1144,7 @@ const getStudentStats = async (req, res, next) => {
           }
         });
       }
-    } else if (req.user.role === 'school_admin') {
+    } else if (req.user.role === 'admin') {
       // School admin is restricted to their school
       whereClause.school_id = req.schoolId;
     } else if (req.user.role === 'branch_admin') {

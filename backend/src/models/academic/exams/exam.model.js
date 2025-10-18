@@ -43,10 +43,27 @@ const Exam = sequelize.define(
       type: DataTypes.STRING(10),
       allowNull: false
     },
+    term_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'terms', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
+    },
+    publish_status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    result_status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     },
     exam_status_id: {
       type: DataTypes.UUID,
@@ -108,6 +125,10 @@ const Exam = sequelize.define(
       {
         name: 'idx_exams_academic_year',
         fields: ['academic_year']
+      },
+      {
+        name: 'idx_exams_term_id',
+        fields: ['term_id']
       }
     ]
   }
@@ -133,6 +154,11 @@ Exam.associate = models => {
   Exam.belongsTo(models.Branch, {
     foreignKey: 'branch_id',
     as: 'branch'
+  });
+
+  Exam.belongsTo(models.Term, {
+    foreignKey: 'term_id',
+    as: 'term'
   });
 
   Exam.belongsTo(models.User, {

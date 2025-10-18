@@ -24,7 +24,7 @@ router.use(verifyToken);
 router.use(setSchoolContext);
 
 // Middleware to ensure user has appropriate role
-router.use(authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher']));
+router.use(authorize(['super_admin', 'admin', 'branch_admin', 'teacher']));
 
 // Middleware to check subscription status
 router.use(checkSubscriptionStatus);
@@ -35,28 +35,28 @@ router.use(validateModuleAccess('attendance'));
 /**
  * @route POST /api/attendance-notifications/absence
  * @desc Send absence notifications to parents
- * @access Private (super_admin, school_admin, branch_admin, teacher)
+ * @access Private (super_admin, admin, branch_admin, teacher)
  */
 router.post('/absence', sendAbsenceNotifications);
 
 /**
  * @route POST /api/attendance-notifications/late-arrival
  * @desc Send late arrival notifications to parents
- * @access Private (super_admin, school_admin, branch_admin, teacher)
+ * @access Private (super_admin, admin, branch_admin, teacher)
  */
 router.post('/late-arrival', sendLateArrivalNotifications);
 
 /**
  * @route POST /api/attendance-notifications/summary
  * @desc Send attendance summary notifications
- * @access Private (super_admin, school_admin, branch_admin, teacher)
+ * @access Private (super_admin, admin, branch_admin, teacher)
  */
 router.post('/summary', sendAttendanceSummary);
 
 /**
  * @route GET /api/attendance-notifications/settings
  * @desc Get notification settings and statistics
- * @access Private (super_admin, school_admin, branch_admin, teacher)
+ * @access Private (super_admin, admin, branch_admin, teacher)
  */
 router.get('/settings', getNotificationSettings);
 

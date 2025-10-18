@@ -49,6 +49,35 @@ const ExamResult = sequelize.define(
       allowNull: false,
       defaultValue: false
     },
+    // Component Marks Fields
+    theory_marks_obtained: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      validate: {
+        min: { args: [0], msg: 'Theory marks cannot be negative' }
+      }
+    },
+    practical_marks_obtained: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      validate: {
+        min: { args: [0], msg: 'Practical marks cannot be negative' }
+      }
+    },
+    viva_marks_obtained: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      validate: {
+        min: { args: [0], msg: 'Viva marks cannot be negative' }
+      }
+    },
+    assignment_marks_obtained: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      validate: {
+        min: { args: [0], msg: 'Assignment marks cannot be negative' }
+      }
+    },
     exam_id: {
       type: DataTypes.UUID,
       allowNull: false,

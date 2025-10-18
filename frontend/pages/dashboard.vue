@@ -80,7 +80,7 @@
             </p>
           </div>
 
-          <!-- Branch Filter - Only show for Super Admin or School Admin with multiple branches -->
+          <!-- Branch Filter - Only show for Super Admin or Admin with multiple branches -->
           <div
             v-if="shouldShowBranchFilter"
             class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
@@ -1005,7 +1005,7 @@ const shouldShowBranchFilter = computed(() => {
   }
 
   // School admin can see branch filter only if they have multiple branches
-  if (authStore.isSchoolAdmin) {
+  if (authStore.isAdmin) {
     return branches.value.length > 1;
   }
 
@@ -1026,7 +1026,7 @@ const availableBranches = computed(() => {
   }
 
   // School admin sees only their school's branches
-  if (authStore.isSchoolAdmin) {
+  if (authStore.isAdmin) {
     return branches.value.filter(branch => branch.school_id === authStore.currentUser?.school_id);
   }
 

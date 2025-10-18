@@ -112,7 +112,7 @@ class SchoolController {
     // Access control - only super admin or school admin of this school can access
     if (user.role === 'super_admin') {
       // Allow super admin to access any school
-    } else if (user.role === 'school_admin' && user.school_id !== schoolId) {
+    } else if (user.role === 'admin' && user.school_id !== schoolId) {
       throw new ApiError(403, 'Access denied');
     }
 
@@ -326,13 +326,13 @@ class SchoolController {
     });
   });
 
-  // Get school module settings (read-only for School Admin and Branch Admin)
+  // Get school module settings (read-only for Admin and Branch Admin)
   static getSchoolModulesTimestamp = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // School admin and branch admin can only view their own school's modules
     if (
-      (req.user.role === 'school_admin' || req.user.role === 'branch_admin') &&
+      (req.user.role === 'admin' || req.user.role === 'branch_admin') &&
       req.user.school_id !== id
     ) {
       throw new ApiError(403, 'You can only view your own school modules');
@@ -360,7 +360,7 @@ class SchoolController {
 
     // School admin and branch admin can only view their own school's modules
     if (
-      (req.user.role === 'school_admin' || req.user.role === 'branch_admin') &&
+      (req.user.role === 'admin' || req.user.role === 'branch_admin') &&
       req.user.school_id !== id
     ) {
       throw new ApiError(403, 'You can only view your own school modules');
@@ -470,7 +470,7 @@ class SchoolController {
         modules: modulesForDisplay,
         subscription_plan: school.subscription_plan,
         plan_comparison: plansWithCurrentFlag,
-        can_upgrade: req.user.role === 'school_admin',
+        can_upgrade: req.user.role === 'admin',
         modules_updated_at: school.modules_updated_at
       }
     });
@@ -505,14 +505,14 @@ class SchoolController {
     });
   });
 
-  // Request subscription upgrade (School Admin only)
+  // Request subscription upgrade (Admin only)
   static requestUpgrade = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { requested_plan, reason } = req.body;
 
     // Only school admin can request upgrades
-    if (req.user.role !== 'school_admin') {
-      throw new ApiError(403, 'Only School Admin can request upgrades');
+    if (req.user.role !== 'admin') {
+      throw new ApiError(403, 'Only Admin can request upgrades');
     }
 
     // School admin can only request for their own school

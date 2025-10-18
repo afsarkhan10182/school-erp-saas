@@ -48,7 +48,10 @@ class ExamController {
       });
     }
 
-    if (!req.user.branch_id) {
+    // Use branch_id from request body if provided, otherwise use user's branch_id
+    const branchId = req.body.branch_id || req.user.branch_id;
+
+    if (!branchId) {
       return res.status(400).json({
         status: 'error',
         message: 'Branch context is required'
@@ -58,8 +61,10 @@ class ExamController {
     const examData = {
       ...req.body,
       school_id: schoolId,
-      branch_id: req.user.branch_id
+      branch_id: branchId
     };
+
+    console.log('Creating exam with data:', examData);
 
     const exam = await ExamService.createExam(examData, req.user.id);
 
@@ -79,6 +84,7 @@ class ExamController {
       date_from: req.query.date_from,
       date_to: req.query.date_to,
       academic_year: req.query.academic_year,
+      school_id: req.schoolId || req.query.school_id,
       branch_id: req.branchId || req.query.branch_id
     };
 

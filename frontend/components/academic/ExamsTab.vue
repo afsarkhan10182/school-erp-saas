@@ -1,102 +1,31 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Exams</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage exams and examination activities
-        </p>
-      </div>
-      <button
-        @click="openCreateModal"
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <Plus class="w-4 h-4 mr-2" />
-        New Exam
-      </button>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <BookOpen class="h-6 w-6 text-blue-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Total Exams
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.total_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
+    <!-- Simple Header with Stats and Actions -->
+    <div
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2">
+            <BookOpen class="h-5 w-5 text-blue-600" />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >{{ exams.length }} Exams</span
+            >
+          </div>
+          <div class="flex items-center space-x-2">
+            <CheckCircle class="h-5 w-5 text-green-600" />
+            <span class="text-sm text-gray-600 dark:text-gray-400"
+              >{{ exams.filter(e => e.is_active).length }} Active</span
+            >
           </div>
         </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <CheckCircle class="h-6 w-6 text-green-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Completed
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.completed_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <Calendar class="h-6 w-6 text-yellow-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Scheduled
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.scheduled_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <TrendingUp class="h-6 w-6 text-purple-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Avg Score
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.avg_score || 0 }}%
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus class="h-4 w-4 mr-2" />
+          New Exam
+        </button>
       </div>
     </div>
 
@@ -115,37 +44,14 @@
     </div>
 
     <div v-else>
-      <!-- Search and Filter Bar -->
-      <div class="mb-6 flex flex-col sm:flex-row gap-4">
-        <div class="flex-1">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search exams..."
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div class="flex gap-2">
-          <select
-            v-model="statusFilter"
-            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">All Status</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="ongoing">Ongoing</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <select
-            v-model="classFilter"
-            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">All Classes</option>
-            <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-              {{ classItem.name }}
-            </option>
-          </select>
-        </div>
+      <!-- Simple Search Bar -->
+      <div class="mb-6">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search exams by name..."
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+        />
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -295,22 +201,49 @@
 
       <template #body>
         <form @submit.prevent="saveExam" class="space-y-6">
+          <!-- CodeIgniter Style - Only 6 fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Exam Name -->
+            <!-- Branch (CodeIgniter Style) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Exam Name <span class="text-red-500">*</span>
+                Branch <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="form.branch_id"
+                :options="branchOptions"
+                placeholder="Select branch"
+                :loading="branchesLoading"
+              />
+            </div>
+
+            <!-- Name (CodeIgniter Style) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Name <span class="text-red-500">*</span>
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter exam name"
+                placeholder="e.g., Mid Term Exam"
               />
             </div>
 
-            <!-- Exam Type -->
+            <!-- Term (CodeIgniter Style) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Term <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="form.term_id"
+                :options="termOptions"
+                placeholder="Select term"
+                :loading="termsLoading"
+              />
+            </div>
+
+            <!-- Exam Type (CodeIgniter Style) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Exam Type <span class="text-red-500">*</span>
@@ -323,48 +256,41 @@
               />
             </div>
 
-            <!-- Description -->
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Description
-              </label>
-              <textarea
-                v-model="form.description"
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter exam description..."
-              ></textarea>
-            </div>
-
-            <!-- Academic Year -->
+            <!-- Mark Distribution (CodeIgniter Style) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Academic Year
+                Mark Distribution <span class="text-red-500">*</span>
               </label>
-              <input
-                v-model="form.academic_year"
-                type="text"
-                placeholder="2024-2025"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              <EnhancedDropdown
+                v-model="form.mark_distribution_id"
+                :options="markDistributionOptions"
+                placeholder="Select mark distribution"
+                :loading="markDistributionsLoading"
               />
             </div>
 
-            <!-- Publish Status -->
+            <!-- Remarks (CodeIgniter Style) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Publish Exam
+                Remarks
               </label>
-              <div class="flex items-center">
-                <input
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                  Make this exam available for scheduling
-                </label>
-              </div>
+              <textarea
+                v-model="form.remarks"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Enter any remarks..."
+              ></textarea>
             </div>
+          </div>
+
+          <!-- Hidden fields (keep in data but don't show in UI) -->
+          <div style="display: none">
+            <input v-model="form.description" type="text" />
+            <input v-model="form.publish_status" type="checkbox" />
+            <input v-model="form.result_status" type="checkbox" />
+            <input v-model="form.is_active" type="checkbox" />
+            <input v-model="form.created_by" type="text" />
+            <input v-model="form.updated_by" type="text" />
           </div>
         </form>
       </template>
@@ -389,19 +315,6 @@
       </template>
     </Modal>
 
-    <!-- Exam Results Modal -->
-    <Modal :show="showExamResults" @close="closeExamResults" size="xl">
-      <template #header>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          Exam Results - {{ selectedExam?.name }}
-        </h3>
-      </template>
-
-      <template #body>
-        <ExamResults v-if="selectedExam" :exam="selectedExam" @close="closeExamResults" />
-      </template>
-    </Modal>
-
     <!-- Exam Schedule Modal -->
     <ExamScheduleModal
       :show="showScheduleModal"
@@ -415,7 +328,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { navigateTo } from '#app';
 import {
   Plus,
@@ -429,14 +342,18 @@ import {
   Trash2,
   Users,
   Award,
-  FileText
+  FileText,
+  Building2
 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import ExamResults from '~/components/academic/ExamResults.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExamOptions } from '~/composables/useExamOptions';
+import { useBranches } from '~/composables/useBranches';
+import { useMarkDistributions } from '~/composables/useMarkDistributions';
+import { useAuth } from '~/composables/useAuth';
+import { termApi } from '~/api/academic/terms';
 import ExamScheduleModal from './ExamScheduleModal.vue';
 
 // Props
@@ -474,12 +391,48 @@ const {
   sectionOptions,
   subjectOptions,
   streamOptions,
+  currentAcademicYear,
+  fetchAcademicYears,
   fetchClasses,
   fetchSections,
   fetchSubjects,
   fetchStreams
 } = useAcademics();
 const { examTypeOptions, loading: examTypesLoading, loadExamTypes } = useExamOptions();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const {
+  markDistributions,
+  fetchMarkDistributions,
+  loading: markDistributionsLoading
+} = useMarkDistributions();
+const { user } = useAuth();
+
+// Terms data
+const terms = ref([]);
+const termsLoading = ref(false);
+const termOptions = computed(() =>
+  terms.value.map(term => ({
+    value: term.id,
+    label: `${term.name} (${term.code})`,
+    description: term.description
+  }))
+);
+
+// Branch options
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+);
+
+// Mark distribution options
+const markDistributionOptions = computed(() =>
+  markDistributions.value.map(distribution => ({
+    value: distribution.id,
+    label: distribution.name
+  }))
+);
 
 // Helper function to validate UUID
 const isValidUUID = uuid => {
@@ -489,15 +442,18 @@ const isValidUUID = uuid => {
 
 // Reactive data
 const showModal = ref(false);
-const showExamResults = ref(false);
 const searchQuery = ref('');
 const statusFilter = ref('');
 const classFilter = ref('');
 const showScheduleModal = ref(false);
 const saving = ref(false);
 const editingExam = ref(null);
-const selectedExam = ref(null);
 const selectedExamForSchedule = ref(null);
+
+// Use the branch context from props
+const currentBranchId = computed(() => {
+  return props.branchId || user.value?.branch_id;
+});
 
 // Computed properties
 const filteredExams = computed(() => {
@@ -541,49 +497,82 @@ const showSectionField = computed(() => {
 });
 
 const form = reactive({
+  branch_id: '',
   name: '',
+  term_id: '',
   exam_type_id: '',
-  academic_year: '',
+  mark_distribution_id: '',
+  remarks: '',
+  // Hidden fields with defaults (CodeIgniter style)
   description: '',
-  is_active: true
+  is_active: true,
+  publish_status: false,
+  result_status: false,
+  created_by: '',
+  updated_by: ''
 });
 
 // Methods
-const openCreateModal = async () => {
-  editingExam.value = null;
-  resetForm();
-  showModal.value = true;
-
-  // Load all required data when modal opens
+const loadTerms = async () => {
   try {
-    await Promise.all([
-      loadExamTypes(),
-      fetchClasses({ branchId: props.branchId }),
-      fetchSubjects({ branchId: props.branchId })
-    ]);
-
-    // Debug: Check if subjects were loaded
-    if (subjectOptions.value.length === 0) {
-      showToast('No subjects found for this branch', 'warning');
-    }
+    termsLoading.value = true;
+    const response = await termApi.getAll({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      academic_year: currentAcademicYear.value?.name,
+      is_active: true
+    });
+    terms.value = response.data || [];
   } catch (error) {
-    showToast('Failed to load form data', 'error');
+    console.error('Error loading terms:', error);
+    showToast('Failed to load terms', 'error');
+  } finally {
+    termsLoading.value = false;
   }
 };
 
-const editExam = exam => {
+const openCreateModal = async () => {
+  editingExam.value = null;
+  resetForm();
+
+  // Load all required data when modal opens (CodeIgniter style)
+  try {
+    await Promise.all([loadTerms(), loadExamTypes(), fetchBranches(), fetchMarkDistributions()]);
+  } catch (error) {
+    showToast('Failed to load form data', 'error');
+  }
+
+  showModal.value = true;
+};
+
+const editExam = async exam => {
+  // Reset form first to ensure clean state
+  resetForm();
+
   editingExam.value = exam;
-  form.name = exam.name;
-  form.exam_type_id = exam.exam_type_id;
-  form.academic_year = exam.academic_year || '';
+  form.branch_id = exam.branch_id || '';
+  form.name = exam.name || '';
+  form.term_id = exam.term_id || '';
+  form.exam_type_id = exam.exam_type_id || '';
+  form.mark_distribution_id = exam.mark_distribution_id || '';
+  form.remarks = exam.remarks || '';
+  // Hidden fields
   form.description = exam.description || '';
   form.is_active = exam.is_active !== false;
+  form.publish_status = exam.publish_status || false;
+  form.result_status = exam.result_status || false;
+  form.created_by = exam.created_by || '';
+  form.updated_by = exam.updated_by || '';
+
+  // Load all required data
+  await Promise.all([loadTerms(), loadExamTypes(), fetchBranches(), fetchMarkDistributions()]);
+
   showModal.value = true;
 };
 
 const viewExam = exam => {
-  selectedExam.value = exam;
-  showExamResults.value = true;
+  // Navigate to exam details page instead of showing results
+  navigateTo(`/exams/${exam.id}`);
 };
 
 const scheduleExam = exam => {
@@ -601,11 +590,6 @@ const closeModalOnSuccess = () => {
   emit('success');
 };
 
-const closeExamResults = () => {
-  showExamResults.value = false;
-  selectedExam.value = null;
-};
-
 const closeScheduleModal = () => {
   showScheduleModal.value = false;
   selectedExamForSchedule.value = null;
@@ -617,30 +601,63 @@ const handleScheduleSuccess = () => {
 };
 
 const resetForm = () => {
+  form.branch_id = '';
   form.name = '';
+  form.term_id = '';
   form.exam_type_id = '';
-  form.academic_year = '';
+  form.mark_distribution_id = '';
+  form.remarks = '';
+  // Hidden fields with defaults
   form.description = '';
   form.is_active = true;
+  form.publish_status = false;
+  form.result_status = false;
+  form.created_by = '';
+  form.updated_by = '';
 };
 
 const saveExam = async () => {
   try {
     saving.value = true;
 
-    // Validate required fields
+    // CodeIgniter Style - Only validate essential fields
+    if (!form.branch_id) {
+      showToast('Branch is required', 'error');
+      return;
+    }
     if (!form.name.trim()) {
-      showToast('Exam name is required', 'error');
+      showToast('Name is required', 'error');
+      return;
+    }
+    if (!form.term_id) {
+      showToast('Term is required', 'error');
       return;
     }
     if (!form.exam_type_id) {
       showToast('Exam type is required', 'error');
       return;
     }
+    if (!form.mark_distribution_id) {
+      showToast('Mark distribution is required', 'error');
+      return;
+    }
 
-    // Clean form data - simple exam creation
+    // Set default values for hidden fields (CodeIgniter style)
     const cleanForm = {
-      ...form
+      branch_id: form.branch_id,
+      name: form.name.trim(),
+      term_id: form.term_id,
+      exam_type_id: form.exam_type_id,
+      mark_distribution_id: form.mark_distribution_id,
+      remarks: form.remarks || '',
+      // Set defaults for hidden fields
+      description: form.description || '',
+      is_active: form.is_active !== false,
+      publish_status: form.publish_status || false,
+      result_status: form.result_status || false,
+      created_by: form.created_by || '',
+      updated_by: form.updated_by || '',
+      school_id: props.schoolId
     };
 
     // Remove undefined values to avoid sending them to the backend
@@ -752,6 +769,21 @@ const generateReports = exam => {
 const viewAll = exam => {
   navigateTo(`/exams/${exam.id}/results`);
 };
+
+const clearFilters = () => {
+  searchQuery.value = '';
+  statusFilter.value = '';
+  classFilter.value = '';
+};
+
+// Load academic years on mount to get current academic year
+onMounted(async () => {
+  try {
+    await fetchAcademicYears();
+  } catch (error) {
+    // Silent fail
+  }
+});
 
 // Expose methods to parent component
 defineExpose({

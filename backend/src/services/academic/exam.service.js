@@ -40,6 +40,19 @@ class ExamService extends BaseService {
         throw new ApiError(400, 'Exam with this name already exists in this school');
       }
 
+      // Auto-set academic year if not provided
+      if (!examData.academic_year) {
+        const { getCurrentAcademicYearForSchool } = require('~/utils/academic/academicYearUtils');
+        try {
+          const currentYear = await getCurrentAcademicYearForSchool();
+          examData.academic_year = currentYear.name;
+          console.log('Auto-set academic year to:', currentYear.name);
+        } catch (error) {
+          console.log('Could not auto-set academic year:', error.message);
+          // Continue without academic year - let frontend handle it
+        }
+      }
+
       const exam = await Exam.create({
         ...examData,
         created_by: userId,
@@ -62,14 +75,36 @@ class ExamService extends BaseService {
         exam_type_id,
         academic_year,
         is_active,
+        school_id,
         branch_id
       } = params;
       const offset = (page - 1) * limit;
 
+      console.log('Backend getAllExams called with params:', params);
+      console.log('User context:', { school_id: user.school_id, branch_id: user.branch_id });
+
       const whereClause = {
-        school_id: user.school_id,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: school_id || user.school_id
       };
+
+      // Add branch filter if provided
+      if (branch_id) {
+        whereClause.branch_id = branch_id;
+        console.log('Added branch filter:', branch_id);
+      }
+
+      console.log('Final whereClause:', whereClause);
+
+      // Debug: Check all exams for this school to see their branch_ids
+      const allExamsForSchool = await Exam.findAll({
+        where: { school_id: school_id || user.school_id },
+        attributes: ['id', 'name', 'branch_id'],
+        limit: 10
+      });
+      console.log(
+        'All exams for school:',
+        allExamsForSchool.map(exam => ({ id: exam.id, name: exam.name, branch_id: exam.branch_id }))
+      );
 
       // Add filters
       if (search) {
@@ -81,8 +116,7 @@ class ExamService extends BaseService {
 
       if (exam_type_id) whereClause.exam_type_id = exam_type_id;
       if (academic_year) whereClause.academic_year = academic_year;
-      if (is_active !== '') whereClause.is_active = is_active === 'true';
-      if (branch_id) whereClause.branch_id = branch_id;
+      if (is_active !== undefined && is_active !== '') whereClause.is_active = is_active === 'true';
       if (params.status_id) whereClause.exam_status_id = params.status_id;
 
       const { count, rows } = await Exam.findAndCountAll({
@@ -104,10 +138,16 @@ class ExamService extends BaseService {
             attributes: ['id', 'name', 'code']
           }
         ],
-        order: [['exam_date', 'DESC']],
+        order: [['created_at', 'DESC']],
         limit: parseInt(limit),
         offset: offset
       });
+
+      console.log('Database query result:', { count, examsFound: rows.length });
+      console.log(
+        'Exams found:',
+        rows.map(exam => ({ id: exam.id, name: exam.name, branch_id: exam.branch_id }))
+      );
 
       const totalPages = Math.ceil(count / parseInt(limit));
 
@@ -588,9 +628,9 @@ class ExamService extends BaseService {
 
       const exams = await Exam.findAll({
         where: whereClause,
-        attributes: ['id', 'name', 'exam_date', 'max_marks'],
+        attributes: ['id', 'name', 'max_marks'],
         include: [],
-        order: [['exam_date', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
 
       return exams;

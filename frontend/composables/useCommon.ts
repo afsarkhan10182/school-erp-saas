@@ -8,7 +8,7 @@ import { useToast } from '~/composables/useToast';
  * Provides utility functions and common state management
  */
 export function useCommon() {
-  const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+  const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
   const { showToast, showSuccess, showError, showWarning } = useToast();
 
   // Common loading states
@@ -18,9 +18,9 @@ export function useCommon() {
 
   // Common computed properties
   const canManageAllSchools = computed(() => isSuperAdmin.value);
-  const canManageSchool = computed(() => isSuperAdmin.value || isSchoolAdmin.value);
+  const canManageSchool = computed(() => isSuperAdmin.value || isAdmin.value);
   const canManageBranch = computed(
-    () => isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value
+    () => isSuperAdmin.value || isAdmin.value || isBranchAdmin.value
   );
 
   // Common utility functions

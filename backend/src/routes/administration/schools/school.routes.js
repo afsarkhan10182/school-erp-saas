@@ -27,13 +27,13 @@ router.post(
   SchoolController.createSchool
 );
 
-router.get('/', authorize(['super_admin', 'school_admin']), SchoolController.getAllSchools);
+router.get('/', authorize(['super_admin', 'admin']), SchoolController.getAllSchools);
 
-router.get('/my-school', authorize(['school_admin', 'branch_admin']), SchoolController.getMySchool);
+router.get('/my-school', authorize(['admin', 'branch_admin']), SchoolController.getMySchool);
 
 router.put(
   '/my-school',
-  authorize(['school_admin']),
+  authorize(['admin']),
   uploadFields([
     { name: 'logo', maxCount: 1 },
     { name: 'system_logo', maxCount: 1 },
@@ -48,11 +48,11 @@ router.put(
 // School staff management
 router.get(
   '/:id/staff',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   SchoolController.getSchoolStaff
 );
 
-router.get('/:id', authorize(['super_admin', 'school_admin']), SchoolController.getSchoolById);
+router.get('/:id', authorize(['super_admin', 'admin']), SchoolController.getSchoolById);
 
 router.put(
   '/:id',
@@ -76,16 +76,16 @@ router.patch('/:id/reactivate', authorize(['super_admin']), SchoolController.rea
 
 router.post('/:id/reactivate', authorize(['super_admin']), SchoolController.reactivateSchool);
 
-// Module management routes (Super Admin controls, School Admin and Branch Admin view-only)
+// Module management routes (Super Admin controls, Admin and Branch Admin view-only)
 router.get(
   '/:id/modules/timestamp',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   SchoolController.getSchoolModulesTimestamp
 );
 
 router.get(
   '/:id/modules',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   SchoolController.getSchoolModules
 );
 
@@ -98,13 +98,13 @@ router.put(
 // Subscription plan routes
 router.get(
   '/subscription-plans',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   SchoolController.getSubscriptionPlans
 );
 
 router.post(
   '/:id/request-upgrade',
-  authorize(['school_admin']), // Only School Admin can request upgrades
+  authorize(['admin']), // Only Admin can request upgrades
   SchoolController.requestUpgrade
 );
 

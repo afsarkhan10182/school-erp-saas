@@ -193,7 +193,7 @@ const validateUserLimit = async (schoolId, plan) => {
     where: {
       school_id: schoolId,
       status: 'active',
-      role: { [require('sequelize').Op.notIn]: ['super_admin', 'school_admin'] }
+      role: { [require('sequelize').Op.notIn]: ['super_admin', 'admin'] }
     }
   });
 

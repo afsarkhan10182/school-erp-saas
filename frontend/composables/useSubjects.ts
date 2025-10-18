@@ -18,7 +18,7 @@ export function useSubjects() {
   } = useAcademics();
   const { schools, fetchSchools } = useSchools();
   const { branches, fetchBranches } = useBranches();
-  const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+  const { isSuperAdmin, isAdmin, isBranchAdmin, user } = useAuth();
 
   // Reactive data
   const subjects = ref([]);
@@ -33,7 +33,7 @@ export function useSubjects() {
 
   // Computed properties
   const shouldShowBranchFilter = computed(() => {
-    const shouldShow = isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value;
+    const shouldShow = isSuperAdmin.value || isAdmin.value || isBranchAdmin.value;
     return shouldShow;
   });
 
@@ -274,7 +274,7 @@ export function useSubjects() {
       // Set up based on user role
       if (isSuperAdmin.value) {
         await loadSchoolsData();
-      } else if (isSchoolAdmin.value) {
+      } else if (isAdmin.value) {
         // Auto-select user's school and load branches
         selectedSchoolId.value = user.value?.school_id || '';
         if (selectedSchoolId.value) {

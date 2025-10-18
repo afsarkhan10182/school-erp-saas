@@ -597,8 +597,8 @@
               :disabled="isLoading"
             />
           </div>
-          <!-- Branch (Super Admin and School Admin) -->
-          <div v-if="isSuperAdmin || isSchoolAdmin">
+          <!-- Branch (Super Admin and Admin) -->
+          <div v-if="isSuperAdmin || isAdmin">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Branch</label
             >
@@ -874,7 +874,7 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import FilterCard from '~/components/ui/FilterCard.vue';
 
 // Get auth composable and toast
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { showToast } = useToast();
 
 // Academic composables
@@ -1007,7 +1007,7 @@ const initializeFilters = () => {
   if (isSuperAdmin.value) {
     // Super admin can select any school
     filters.school_id = '';
-  } else if (isSchoolAdmin.value) {
+  } else if (isAdmin.value) {
     // School admin is restricted to their school
     filters.school_id = user.value?.school_id;
   } else if (isBranchAdmin.value) {

@@ -29,7 +29,7 @@ const createUserValidator = [
   body('role')
     .isIn([
       'super_admin',
-      'school_admin',
+      'admin',
       'branch_admin',
       'teacher',
       'student',
@@ -100,7 +100,7 @@ const updateUserValidator = [
     .optional()
     .isIn([
       'super_admin',
-      'school_admin',
+      'admin',
       'branch_admin',
       'teacher',
       'student',

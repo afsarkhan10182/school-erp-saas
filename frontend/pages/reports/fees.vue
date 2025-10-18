@@ -2185,7 +2185,7 @@ const fetchBranches = async () => {
           console.log('🏫 No school selected, showing all branches');
           branches.value = allBranches;
         }
-      } else if (currentUser.role === 'school_admin') {
+      } else if (currentUser.role === 'admin') {
         // School admin can see all branches in their school
         branches.value = allBranches.filter(branch => branch.school_id === currentUser.school_id);
       } else if (currentUser.role === 'branch_admin') {

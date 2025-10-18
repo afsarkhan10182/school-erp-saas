@@ -47,92 +47,105 @@
       </div>
     </div>
 
-    <!-- Grading Systems Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="system in gradingSystems"
-        :key="system.id"
-        class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-2 mb-2">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ system.name }}
-              </h3>
-              <span
-                v-if="system.is_default"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+    <!-- Grading Systems Table -->
+    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                Default
-              </span>
-            </div>
-            <p v-if="system.description" class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {{ system.description }}
-            </p>
-            <div class="flex items-center space-x-4">
-              <span
-                :class="[
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                  system.is_active
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                ]"
+                #
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                {{ system.is_active ? 'Active' : 'Inactive' }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Grade Scales Preview -->
-        <div v-if="system.gradeScales && system.gradeScales.length > 0" class="mt-4">
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Grade Scales</h4>
-          <div class="space-y-1">
-            <div
-              v-for="scale in system.gradeScales.slice(0, 3)"
-              :key="scale.id"
-              class="flex items-center justify-between text-xs"
+                Branch Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                System Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Grade Point
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Date Updated
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="(system, index) in gradingSystems"
+              :key="system.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              <span class="text-gray-600 dark:text-gray-400">{{ scale.grade }}</span>
-              <span class="text-gray-500 dark:text-gray-400">
-                {{ scale.min_percentage }}% - {{ scale.max_percentage }}%
-              </span>
-            </div>
-            <div
-              v-if="system.gradeScales.length > 3"
-              class="text-xs text-gray-500 dark:text-gray-400"
-            >
-              +{{ system.gradeScales.length - 3 }} more
-            </div>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="mt-4 flex items-center justify-between">
-          <div class="text-xs text-gray-500 dark:text-gray-400">
-            {{ system.gradeScales?.length || 0 }} grades
-          </div>
-          <div class="flex items-center space-x-2">
-            <button
-              @click="editSystem(system)"
-              class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
-            >
-              Edit
-            </button>
-            <button
-              @click="deleteSystem(system.id)"
-              class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ index + 1 }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ system.branch?.name || 'N/A' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ system.name }}
+                  </div>
+                  <span
+                    v-if="system.is_default"
+                    class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                  >
+                    Default
+                  </span>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                  {{ system.grade_point || 'N/A' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  {{ formatDate(system.updated_at) }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="flex justify-end space-x-2">
+                  <button
+                    @click="editSystem(system)"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    <Edit class="h-4 w-4" />
+                  </button>
+                  <button
+                    @click="deleteSystem(system.id)"
+                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- Create/Edit Modal -->
-    <GradingSystemForm
+    <SimpleGradingSystemForm
       v-if="showModal"
       :system="editingSystem"
       :loading="saving"
@@ -144,9 +157,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { Plus, BarChart3 } from 'lucide-vue-next';
+import { Plus, BarChart3, Edit, Trash2 } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
-import GradingSystemForm from '~/components/forms/GradingSystemForm.vue';
+import SimpleGradingSystemForm from '~/components/forms/SimpleGradingSystemForm.vue';
 
 // Props
 const props = defineProps({
@@ -215,6 +228,19 @@ const deleteSystem = async systemId => {
   if (confirm('Are you sure you want to delete this grading system?')) {
     emit('delete', systemId);
   }
+};
+
+// Format date for display
+const formatDate = dateString => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // Expose methods to parent component

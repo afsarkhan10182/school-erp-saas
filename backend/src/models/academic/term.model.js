@@ -19,10 +19,8 @@ const Term = sequelize.define(
     },
     code: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      validate: {
-        notEmpty: { msg: 'Term code is required' }
-      }
+      allowNull: true,
+      defaultValue: null
     },
     description: {
       type: DataTypes.TEXT,
@@ -30,15 +28,18 @@ const Term = sequelize.define(
     },
     start_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true,
+      defaultValue: null
     },
     end_date: {
       type: DataTypes.DATEONLY,
-      allowNull: false
+      allowNull: true,
+      defaultValue: null
     },
     academic_year: {
       type: DataTypes.STRING(10),
-      allowNull: false
+      allowNull: true,
+      defaultValue: null
     },
     is_active: {
       type: DataTypes.BOOLEAN,

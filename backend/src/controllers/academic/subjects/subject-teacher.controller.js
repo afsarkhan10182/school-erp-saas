@@ -42,7 +42,7 @@ class SubjectTeacherController {
         whereClause.teacher_id = req.user.id;
       }
 
-      // Add query filters (these can override role-based restrictions for super_admin and school_admin)
+      // Add query filters (these can override role-based restrictions for super_admin and admin)
       if (subject_id) whereClause.subject_id = subject_id;
       if (teacher_id) whereClause.teacher_id = teacher_id;
       if (class_id) whereClause.class_id = class_id;

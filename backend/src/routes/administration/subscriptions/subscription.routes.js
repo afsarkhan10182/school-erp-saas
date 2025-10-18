@@ -13,7 +13,7 @@ router.use(verifyToken);
 router.get('/plans', authorize(['super_admin']), SubscriptionController.getAllPlans);
 router.get(
   '/plans/active',
-  authorize(['school_admin', 'branch_admin', 'super_admin']),
+  authorize(['admin', 'branch_admin', 'super_admin']),
   SubscriptionController.getActivePlansForSchools
 );
 router.get('/plans/:id', authorize(['super_admin']), SubscriptionController.getPlanById);
@@ -24,7 +24,7 @@ router.delete('/plans/:id', authorize(['super_admin']), SubscriptionController.d
 // Available modules (for plan creation and management)
 router.get(
   '/available-modules',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   SubscriptionController.getAvailableModules
 );
 
@@ -75,14 +75,14 @@ router.post(
 );
 router.get(
   '/schools/:schoolId/available-modules',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   SubscriptionController.getAvailableModulesForSchool
 );
 
 // School Transactions Routes (Super Admin Only)
 router.get(
   '/schools/:schoolId/transactions',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   SubscriptionController.getSchoolTransactions
 );
 router.post(
@@ -91,10 +91,10 @@ router.post(
   SubscriptionController.createManualTransaction
 );
 
-// My School Transactions (School Admin Only - convenience endpoint)
+// My School Transactions (Admin Only - convenience endpoint)
 router.get(
   '/my-transactions',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   SubscriptionController.getMySchoolTransactions
 );
 
@@ -105,22 +105,22 @@ router.get(
   SubscriptionController.checkSubscriptionStatus
 );
 
-// Check School Usage (Super Admin and School Admin)
+// Check School Usage (Super Admin and Admin)
 router.get(
   '/schools/:schoolId/usage',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   SubscriptionController.checkSchoolUsage
 );
 router.get(
   '/usage',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   SubscriptionController.checkSchoolUsage
 );
 
 // Renewal Requests Routes
 router.post(
   '/renewal-requests',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   validate(renewalRequestValidation.createRenewalRequest),
   SubscriptionController.createRenewalRequest
 );
@@ -134,7 +134,7 @@ router.get(
 
 router.get(
   '/school/renewal-requests',
-  authorize(['school_admin', 'branch_admin']),
+  authorize(['admin', 'branch_admin']),
   validate(renewalRequestValidation.getRenewalRequests),
   SubscriptionController.getSchoolRenewalRequests
 );

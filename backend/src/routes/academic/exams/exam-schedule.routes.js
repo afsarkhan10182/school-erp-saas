@@ -53,7 +53,7 @@ router.get('/exam/:examId', ExamScheduleController.getSchedulesForExam);
  */
 router.post(
   '/',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(createExamScheduleValidation),
   ExamScheduleController.createExamSchedule
 );
@@ -65,7 +65,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(updateExamScheduleValidation),
   ExamScheduleController.updateExamSchedule
 );
@@ -77,7 +77,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   ExamScheduleController.deleteExamSchedule
 );
 

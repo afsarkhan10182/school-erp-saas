@@ -28,7 +28,7 @@ router.get('/:id', ExamStatusController.getExamStatusById);
 // Create new exam status
 router.post(
   '/',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(createExamStatusValidator),
   ExamStatusController.createExamStatus
 );
@@ -36,7 +36,7 @@ router.post(
 // Update exam status
 router.put(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   validate(updateExamStatusValidator),
   ExamStatusController.updateExamStatus
 );
@@ -44,7 +44,7 @@ router.put(
 // Delete exam status
 router.delete(
   '/:id',
-  requireRole('school_admin', 'super_admin'),
+  requireRole('admin', 'super_admin'),
   ExamStatusController.deleteExamStatus
 );
 

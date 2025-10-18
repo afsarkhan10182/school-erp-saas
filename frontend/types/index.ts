@@ -19,7 +19,7 @@ export interface User {
 
 export type UserRole =
   | 'super_admin'
-  | 'school_admin'
+  | 'admin'
   | 'branch_admin'
   | 'teacher'
   | 'student'
