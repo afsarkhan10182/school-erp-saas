@@ -25,7 +25,7 @@ class SubjectService extends BaseService {
       });
 
       if (existingSubject) {
-        throw new ApiError(400, 'Subject with this code already exists');
+        throw new ApiError(409, 'Subject with this code already exists');
       }
 
       const subject = await Subject.create({
@@ -191,7 +191,7 @@ class SubjectService extends BaseService {
         });
 
         if (existingSubject) {
-          throw new ApiError(400, 'Subject with this code already exists');
+          throw new ApiError(409, 'Subject with this code already exists');
         }
       }
 

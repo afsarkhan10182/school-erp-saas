@@ -141,15 +141,15 @@ const getTermById = async (req, res) => {
 };
 
 /**
- * Create a new term - CodeIgniter Style
+ * Create a new term -
  */
 const createTerm = async (req, res) => {
   try {
-    // CodeIgniter Style - Only 2 essential fields, set defaults for others
+    //  - Only 2 essential fields, set defaults for others
     const termData = {
       branch_id: req.body.branch_id,
       name: req.body.name,
-      // Set defaults for hidden fields (CodeIgniter style)
+      // Set defaults for hidden fields ()
       code: req.body.code || `T${Date.now()}`,
       description: req.body.description || '',
       start_date: req.body.start_date || new Date().toISOString().split('T')[0],
@@ -196,7 +196,7 @@ const createTerm = async (req, res) => {
 };
 
 /**
- * Update a term - CodeIgniter Style
+ * Update a term -
  */
 const updateTerm = async (req, res) => {
   try {
@@ -215,7 +215,7 @@ const updateTerm = async (req, res) => {
       });
     }
 
-    // CodeIgniter Style - Only update essential fields, keep others as defaults
+    //  - Only update essential fields, keep others as defaults
     const updateData = {
       branch_id: req.body.branch_id,
       name: req.body.name,

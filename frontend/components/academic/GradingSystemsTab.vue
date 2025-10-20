@@ -76,10 +76,20 @@
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                Date Updated
+                Min %
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Max %
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Description
+              </th>
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Actions
               </th>
@@ -118,8 +128,21 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  {{ formatDate(system.updated_at) }}
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ system.min_percentage || 'N/A' }}%
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ system.max_percentage || 'N/A' }}%
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div
+                  class="text-sm text-gray-900 dark:text-white max-w-xs truncate"
+                  :title="system.description"
+                >
+                  {{ system.description || 'No description' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -144,8 +167,17 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <Pagination
+      v-if="hasData"
+      :pagination="pagination"
+      item-label="grading systems"
+      @page-changed="goToPage"
+      @page-size-changed="changePageSize"
+    />
+
     <!-- Create/Edit Modal -->
-    <SimpleGradingSystemForm
+    <GradingSystemForm
       v-if="showModal"
       :system="editingSystem"
       :loading="saving"
@@ -159,25 +191,31 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Plus, BarChart3, Edit, Trash2 } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
-import SimpleGradingSystemForm from '~/components/forms/SimpleGradingSystemForm.vue';
+import { useGradingSystems } from '~/composables/useGradingSystems';
+import GradingSystemForm from '~/components/forms/GradingSystemForm.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 
 // Props
-const props = defineProps({
-  gradingSystems: {
-    type: Array,
-    default: () => []
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
-});
+const props = defineProps({});
 
 // Emits
 const emit = defineEmits(['refresh', 'create', 'update', 'delete', 'success']);
 
 // Composables
 const { showToast } = useToast();
+const {
+  gradingSystems,
+  loading,
+  pagination,
+  hasData,
+  isEmpty,
+  loadGradingSystems,
+  createGradingSystem,
+  updateGradingSystem,
+  deleteGradingSystem,
+  goToPage,
+  changePageSize
+} = useGradingSystems();
 
 // Reactive data
 const showModal = ref(false);
@@ -210,15 +248,17 @@ const handleSubmit = async systemData => {
     saving.value = true;
 
     if (editingSystem.value) {
+      await updateGradingSystem(editingSystem.value.id, systemData);
       emit('update', { ...systemData, id: editingSystem.value.id });
     } else {
+      await createGradingSystem(systemData);
       emit('create', systemData);
     }
 
-    // Don't close modal here - let the parent component handle success/error
-    // closeModal() will be called from the parent when the operation succeeds
+    closeModal();
+    emit('success');
   } catch (error) {
-    showToast('Failed to save grading system', 'error');
+    // Error handling is done in the composable
   } finally {
     saving.value = false;
   }
@@ -226,25 +266,28 @@ const handleSubmit = async systemData => {
 
 const deleteSystem = async systemId => {
   if (confirm('Are you sure you want to delete this grading system?')) {
-    emit('delete', systemId);
+    try {
+      await deleteGradingSystem(systemId);
+      emit('delete', systemId);
+      emit('success');
+    } catch (error) {
+      // Error handling is done in the composable
+    }
   }
 };
 
-// Format date for display
-const formatDate = dateString => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+// Expose methods to parent component
+const loadData = async () => {
+  await loadGradingSystems();
 };
 
-// Expose methods to parent component
 defineExpose({
+  loadData,
   closeModalOnSuccess
+});
+
+// Load data on mount
+onMounted(async () => {
+  await loadData();
 });
 </script>

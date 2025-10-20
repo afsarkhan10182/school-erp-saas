@@ -17,10 +17,15 @@ const Exam = sequelize.define(
         notEmpty: { msg: 'Exam name is required' }
       }
     },
-    exam_type_id: {
-      type: DataTypes.UUID,
+    type_id: {
+      type: DataTypes.SMALLINT,
       allowNull: false,
-      references: { model: 'exam_types', key: 'id' }
+      validate: {
+        isIn: {
+          args: [[1, 2, 3]],
+          msg: 'Exam type must be 1 (marks), 2 (grade), or 3 (both)'
+        }
+      }
     },
     weightage: {
       type: DataTypes.DECIMAL(5, 2),
@@ -64,11 +69,6 @@ const Exam = sequelize.define(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
-    },
-    exam_status_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'exam_statuses', key: 'id' }
     },
     instructions: {
       type: DataTypes.TEXT,
@@ -115,8 +115,8 @@ const Exam = sequelize.define(
       //   fields: ['class_id']
       // },
       {
-        name: 'idx_exams_exam_type_id',
-        fields: ['exam_type_id']
+        name: 'idx_exams_type_id',
+        fields: ['type_id']
       },
       {
         name: 'idx_exams_is_active',
@@ -136,15 +136,7 @@ const Exam = sequelize.define(
 
 // Associations
 Exam.associate = models => {
-  Exam.belongsTo(models.ExamType, {
-    foreignKey: 'exam_type_id',
-    as: 'examType'
-  });
-
-  Exam.belongsTo(models.ExamStatus, {
-    foreignKey: 'exam_status_id',
-    as: 'examStatus'
-  });
+  // Note: Exam type is now hardcoded (1, 2, 3) - no foreign key relationship
 
   Exam.belongsTo(models.School, {
     foreignKey: 'school_id',

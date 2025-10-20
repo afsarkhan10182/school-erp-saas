@@ -17,7 +17,7 @@
       </button>
     </div>
 
-    <!-- CodeIgniter Style - No filters, simple approach -->
+    <!-- No filters, simple approach -->
 
     <!-- Terms Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -26,11 +26,11 @@
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading terms...</p>
       </div>
 
-      <div v-else-if="terms.length === 0" class="p-8 text-center">
+      <div v-else-if="isEmpty" class="p-8 text-center">
         <Calendar class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No terms found</h3>
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No exam terms found</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Get started by creating a new term
+          Get started by creating a new exam term
         </p>
       </div>
 
@@ -54,12 +54,7 @@
                 Term Name
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Date Updated
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Actions
               </th>
@@ -76,17 +71,12 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ term.branch?.name || 'N/A' }}
+                  {{ term.branch?.name || term.branch_name || 'N/A' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ term.name }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  {{ formatDate(term.updated_at) }}
+                  {{ term.name || term.term_name || 'N/A' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -109,6 +99,15 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination -->
+      <Pagination
+        v-if="hasData"
+        :pagination="pagination"
+        item-label="exam terms"
+        @page-changed="goToPage"
+        @page-size-changed="changePageSize"
+      />
     </div>
 
     <!-- Create/Edit Modal -->
@@ -121,9 +120,9 @@
 
       <template #body>
         <form @submit.prevent="saveTerm" class="space-y-6">
-          <!-- CodeIgniter Style - Only 2 fields -->
+          <!-- Only 2 fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch (CodeIgniter Style) -->
+            <!-- Branch -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Branch <span class="text-red-500">*</span>
@@ -136,7 +135,7 @@
               />
             </div>
 
-            <!-- Name (CodeIgniter Style) -->
+            <!-- Name -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name <span class="text-red-500">*</span>
@@ -149,17 +148,6 @@
                 placeholder="e.g., First Term, Second Term, Final"
               />
             </div>
-          </div>
-
-          <!-- Hidden fields (keep in data but don't show in UI) -->
-          <div style="display: none">
-            <input v-model="form.code" type="text" />
-            <input v-model="form.description" type="text" />
-            <input v-model="form.start_date" type="date" />
-            <input v-model="form.end_date" type="date" />
-            <input v-model="form.academic_year" type="text" />
-            <input v-model="form.is_active" type="checkbox" />
-            <input v-model="form.sort_order" type="number" />
           </div>
 
           <!-- Form Actions -->
@@ -188,25 +176,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useBranches } from '~/composables/useBranches';
-import { termApi } from '~/api/academic/terms';
+import { useExamTerms } from '~/composables/useExamTerms';
+import Pagination from '~/components/ui/Pagination.vue';
 
-// Props
-const props = defineProps({
-  terms: {
-    type: Array,
-    default: () => []
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
-});
+// Props - No longer needed since we manage our own data
+const props = defineProps({});
 
 // Emits
 const emit = defineEmits(['refresh', 'create', 'update', 'delete', 'success']);
@@ -214,13 +194,26 @@ const emit = defineEmits(['refresh', 'create', 'update', 'delete', 'success']);
 // Composables
 const { showToast } = useToast();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const {
+  examTerms: terms,
+  loading,
+  pagination,
+  hasData,
+  isEmpty,
+  fetchExamTerms,
+  createExamTerm,
+  updateExamTerm,
+  deleteExamTerm,
+  goToPage,
+  changePageSize
+} = useExamTerms();
 
 // Reactive data
 const showModal = ref(false);
 const saving = ref(false);
 const editingTerm = ref(null);
 
-// Form data - CodeIgniter Style: Only 2 essential fields
+// Form data: Only 2 essential fields
 const form = reactive({
   branch_id: '',
   name: ''
@@ -235,6 +228,10 @@ const branchOptions = computed(() =>
 );
 
 // Methods
+const loadData = async () => {
+  await fetchExamTerms();
+};
+
 const openCreateModal = async () => {
   editingTerm.value = null;
   resetForm();
@@ -260,11 +257,10 @@ const deleteTerm = async term => {
   }
 
   try {
-    await termApi.delete(term.id);
-    showToast('Term deleted successfully', 'success');
+    await deleteExamTerm(term.id);
     emit('delete', term);
   } catch (error) {
-    showToast('Failed to delete term', 'error');
+    // Error handling is done in the composable
   }
 };
 
@@ -272,7 +268,7 @@ const saveTerm = async () => {
   try {
     saving.value = true;
 
-    // CodeIgniter Style - Only validate essential fields
+    // Only validate essential fields
     if (!form.branch_id) {
       showToast('Branch is required', 'error');
       return;
@@ -282,33 +278,28 @@ const saveTerm = async () => {
       return;
     }
 
-    // CodeIgniter Style - Only send essential fields
+    // Only send essential fields
     const termData = {
       branch_id: form.branch_id,
       name: form.name.trim()
     };
 
     if (editingTerm.value) {
-      console.log('Updating term with ID:', editingTerm.value.id);
-      console.log('Update data:', termData);
-      console.log('ID type:', typeof editingTerm.value.id);
-      console.log('ID stringified:', String(editingTerm.value.id));
-
-      // Ensure ID is a string
       const termId = String(editingTerm.value.id);
-      await termApi.update(termId, termData);
-      showToast('Term updated successfully', 'success');
+      await updateExamTerm(termId, termData);
       emit('update', { ...termData, id: termId });
+      closeModal();
+      emit('success');
     } else {
-      await termApi.create(termData);
-      showToast('Term created successfully', 'success');
+      await createExamTerm(termData);
       emit('create', termData);
+      closeModal();
+      emit('success');
     }
-
-    closeModal();
-    emit('success');
   } catch (error) {
-    showToast(`Failed to ${editingTerm.value ? 'update' : 'create'} term`, 'error');
+    // Don't show a generic error message here - let the composable handle it
+    console.error('Error in saveTerm:', error);
+    // The composable will show the proper error message
   } finally {
     saving.value = false;
   }
@@ -325,18 +316,15 @@ const resetForm = () => {
   form.name = '';
 };
 
-// Format date for display
-const formatDate = dateString => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+// Expose methods to parent component
+defineExpose({
+  loadData
+});
 
-// CodeIgniter Style - Simple and clean
+// Load data on mount
+onMounted(async () => {
+  await loadData();
+});
+
+// Simple and clean
 </script>

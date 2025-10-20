@@ -59,7 +59,20 @@ class MarkDistributionController {
 
     const totalPages = Math.ceil(count / limit);
 
-    success(res, rows, 'Mark distributions retrieved successfully');
+    // Format response to match other APIs
+    return res.status(200).json({
+      success: true,
+      message: 'Mark distributions retrieved successfully',
+      data: {
+        distributions: rows,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: totalPages
+        }
+      }
+    });
   });
 
   /**
@@ -96,16 +109,53 @@ class MarkDistributionController {
    * Create new mark distribution
    */
   static createMarkDistribution = asyncHandler(async (req, res) => {
+    // Check for duplicate name in same school and branch
+    const existing = await MarkDistribution.findOne({
+      where: {
+        name: req.body.name,
+        school_id: req.schoolId,
+        branch_id: req.body.branch_id
+      }
+    });
+
+    if (existing) {
+      throw new ApiError(
+        409,
+        'Mark distribution with this name already exists in the selected branch'
+      );
+    }
+
+    // Only accept essential fields and set sensible defaults
     const distributionData = {
-      ...req.body,
+      name: req.body.name,
+      branch_id: req.body.branch_id,
       school_id: req.schoolId,
-      branch_id: req.branchId || req.user.branch_id,
-      created_by: req.user.id
+      created_by: req.user.id,
+      // Set sensible defaults for other fields
+      type: 'theory_practical',
+      description: '',
+      theory_marks: 0,
+      practical_marks: 0,
+      viva_marks: 0,
+      assignment_marks: 0,
+      total_marks: 100,
+      pass_marks: 35,
+      is_active: true
     };
 
     const distribution = await MarkDistribution.create(distributionData);
 
-    success(res, distribution, 'Mark distribution created successfully', httpStatus.CREATED);
+    // Fetch the created distribution with associations
+    const createdDistribution = await MarkDistribution.findByPk(distribution.id, {
+      include: [
+        {
+          association: 'branch',
+          attributes: ['id', 'name', 'code']
+        }
+      ]
+    });
+
+    success(res, createdDistribution, 'Mark distribution created successfully', httpStatus.CREATED);
   });
 
   /**
@@ -113,8 +163,10 @@ class MarkDistributionController {
    */
   static updateMarkDistribution = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    // Only accept essential fields for update
     const updateData = {
-      ...req.body,
+      name: req.body.name,
+      branch_id: req.body.branch_id,
       updated_by: req.user.id
     };
 
@@ -124,9 +176,41 @@ class MarkDistributionController {
       throw new ApiError(httpStatus.NOT_FOUND, 'Mark distribution not found');
     }
 
+    // Check for duplicate name if name or branch is being updated
+    if (
+      (req.body.name && req.body.name !== distribution.name) ||
+      (req.body.branch_id && req.body.branch_id !== distribution.branch_id)
+    ) {
+      const existing = await MarkDistribution.findOne({
+        where: {
+          name: req.body.name,
+          school_id: distribution.school_id,
+          branch_id: req.body.branch_id,
+          id: { [Op.ne]: id } // Exclude current distribution
+        }
+      });
+
+      if (existing) {
+        throw new ApiError(
+          409,
+          'Mark distribution with this name already exists in the selected branch'
+        );
+      }
+    }
+
     await distribution.update(updateData);
 
-    success(res, distribution, 'Mark distribution updated successfully');
+    // Fetch the updated distribution with associations
+    const updatedDistribution = await MarkDistribution.findByPk(id, {
+      include: [
+        {
+          association: 'branch',
+          attributes: ['id', 'name', 'code']
+        }
+      ]
+    });
+
+    success(res, updatedDistribution, 'Mark distribution updated successfully');
   });
 
   /**

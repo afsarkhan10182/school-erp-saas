@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const createTermValidator = [
-  // CodeIgniter Style - Only validate essential fields
+  //  - Only validate essential fields
   body('branch_id')
     .notEmpty()
     .withMessage('Branch is required')
@@ -14,7 +14,7 @@ const createTermValidator = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
 
-  // Optional fields for CodeIgniter approach
+  // Optional fields for
   body('code')
     .optional()
     .isLength({ min: 2, max: 20 })
@@ -41,7 +41,7 @@ const createTermValidator = [
 ];
 
 const updateTermValidator = [
-  // CodeIgniter Style - Only validate essential fields
+  //  - Only validate essential fields
   body('branch_id').optional().isUUID().withMessage('Branch ID must be a valid UUID'),
 
   body('name')
@@ -49,7 +49,7 @@ const updateTermValidator = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
 
-  // Optional fields for CodeIgniter approach
+  // Optional fields for
   body('code')
     .optional()
     .isLength({ min: 2, max: 20 })

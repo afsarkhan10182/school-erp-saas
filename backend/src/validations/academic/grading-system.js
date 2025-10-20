@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const createGradingSystemValidator = [
-  // CodeIgniter Style - Only 5 essential fields
+  //  - Only 5 essential fields
   body('branch_id')
     .notEmpty()
     .withMessage('Branch is required')
@@ -50,7 +50,7 @@ const createGradingSystemValidator = [
 ];
 
 const updateGradingSystemValidator = [
-  // CodeIgniter Style - Only 5 essential fields (all optional for updates)
+  //  - Only 5 essential fields (all optional for updates)
   body('branch_id').optional().isUUID().withMessage('Branch ID must be a valid UUID'),
 
   body('name')

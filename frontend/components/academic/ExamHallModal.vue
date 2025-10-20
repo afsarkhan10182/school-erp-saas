@@ -39,9 +39,9 @@
 
           <!-- Body -->
           <div class="bg-white dark:bg-gray-800 px-4 pb-4 sm:p-6">
-            <!-- CodeIgniter Style - Only 3 fields -->
+            <!--  - Only 3 fields -->
             <div class="space-y-4">
-              <!-- Branch (CodeIgniter Style) -->
+              <!-- Branch () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Branch <span class="text-red-500">*</span>
@@ -54,7 +54,7 @@
                 />
               </div>
 
-              <!-- Hall No (CodeIgniter Style) -->
+              <!-- Hall No () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Hall No <span class="text-red-500">*</span>
@@ -68,7 +68,7 @@
                 />
               </div>
 
-              <!-- No of Seats (CodeIgniter Style) -->
+              <!-- No of Seats () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   No of Seats <span class="text-red-500">*</span>
@@ -82,16 +82,6 @@
                   placeholder="30"
                 />
               </div>
-            </div>
-
-            <!-- Hidden fields (keep in data but don't show in UI) -->
-            <div style="display: none">
-              <input v-model="form.code" type="text" />
-              <input v-model="form.location" type="text" />
-              <input v-model="form.description" type="text" />
-              <input v-model="form.is_active" type="checkbox" />
-              <input v-model="form.created_by" type="text" />
-              <input v-model="form.updated_by" type="text" />
             </div>
           </div>
 
@@ -148,18 +138,11 @@ const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const saving = ref(false);
 const loading = ref(false);
 
-// Form
+// Form - Only essential fields
 const form = ref({
   branch_id: '',
   name: '',
-  capacity: 30,
-  // Hidden fields with defaults (CodeIgniter style)
-  code: '',
-  location: '',
-  description: '',
-  is_active: true,
-  created_by: '',
-  updated_by: ''
+  capacity: 30
 });
 
 // Computed
@@ -182,13 +165,7 @@ const resetForm = () => {
   form.value = {
     branch_id: '',
     name: '',
-    capacity: 30,
-    code: '',
-    location: '',
-    description: '',
-    is_active: true,
-    created_by: '',
-    updated_by: ''
+    capacity: 30
   };
 };
 
@@ -197,19 +174,13 @@ const loadFormData = () => {
     form.value = {
       branch_id: props.hall.branch_id || '',
       name: props.hall.name,
-      capacity: props.hall.capacity,
-      code: props.hall.code || '',
-      location: props.hall.location || '',
-      description: props.hall.description || '',
-      is_active: props.hall.is_active,
-      created_by: props.hall.created_by || '',
-      updated_by: props.hall.updated_by || ''
+      capacity: props.hall.capacity
     };
   }
 };
 
 const saveHall = async () => {
-  // CodeIgniter Style - Only validate essential fields
+  //  - Only validate essential fields
   if (!form.value.branch_id) {
     showToast('Branch is required', 'error');
     return;
@@ -226,12 +197,12 @@ const saveHall = async () => {
   try {
     saving.value = true;
 
-    // Set default values for hidden fields (CodeIgniter style)
+    // Prepare form data for backend
     const hallData = {
       branch_id: form.value.branch_id,
       name: form.value.name.trim(),
       capacity: form.value.capacity,
-      // Set defaults for hidden fields
+      // Default values for backend
       code: form.value.code || `H${Date.now()}`, // Auto-generate if empty
       location: form.value.location || '',
       description: form.value.description || '',

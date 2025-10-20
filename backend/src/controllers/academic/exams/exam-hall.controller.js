@@ -17,10 +17,12 @@ class ExamHallController {
       });
     }
 
+    // Only accept essential fields
     const hallData = {
-      ...req.body,
-      school_id: schoolId,
-      branch_id: req.user.branch_id
+      name: req.body.name,
+      capacity: req.body.capacity,
+      branch_id: req.body.branch_id,
+      school_id: schoolId
     };
 
     const hall = await ExamHallService.createExamHall(hallData, req.user.id);
@@ -83,7 +85,15 @@ class ExamHallController {
     }
 
     const { id } = req.params;
-    const hall = await ExamHallService.updateExamHall(id, req.body, req.user);
+
+    // Only accept essential fields for update
+    const updateData = {
+      name: req.body.name,
+      capacity: req.body.capacity,
+      branch_id: req.body.branch_id
+    };
+
+    const hall = await ExamHallService.updateExamHall(id, updateData, req.user);
 
     success(res, { hall }, 'Exam hall updated successfully');
   });

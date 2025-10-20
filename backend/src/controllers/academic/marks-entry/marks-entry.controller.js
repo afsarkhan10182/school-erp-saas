@@ -54,27 +54,6 @@ const getStudentsForMarksEntry = async (req, res) => {
     if (!relevantSchedule) {
       // Create a default schedule for this exam and class
       const { ExamSchedule } = require('~/models');
-      const { ExamStatus } = require('~/models');
-
-      // Get or create a default exam status
-      let examStatus = await ExamStatus.findOne({
-        where: {
-          school_id: school_id || req.user.school_id,
-          is_active: true
-        }
-      });
-
-      if (!examStatus) {
-        examStatus = await ExamStatus.create({
-          name: 'Scheduled',
-          code: 'SCHEDULED',
-          description: 'Exam is scheduled',
-          is_active: true,
-          school_id: school_id || req.user.school_id,
-          branch_id: branch_id || req.user.branch_id,
-          created_by: req.user.id
-        });
-      }
 
       relevantSchedule = await ExamSchedule.create({
         exam_id: exam_id,
@@ -90,7 +69,7 @@ const getStudentsForMarksEntry = async (req, res) => {
         assignment_marks: 0,
         total_marks: 100,
         pass_marks: 35,
-        status_id: examStatus.id,
+        status: 'scheduled',
         school_id: school_id || req.user.school_id,
         branch_id: branch_id || req.user.branch_id,
         created_by: req.user.id

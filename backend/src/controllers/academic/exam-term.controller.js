@@ -4,14 +4,14 @@
  */
 
 const { Op } = require('sequelize');
-const { Term, AcademicYear, School, Branch } = require('~/models');
+const { Term, School, Branch } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const ApiError = require('~/utils/shared/ApiError');
 const { apiResponse } = require('~/utils/shared/apiResponse');
 const CommonService = require('~/services/shared/common.service');
 const QueryService = require('~/services/shared/query.service');
 
-class TermController {
+class ExamTermController {
   /**
    * Get all terms with filtering and pagination
    */
@@ -47,12 +47,6 @@ class TermController {
         where: whereClause,
         include: [
           {
-            model: AcademicYear,
-            as: 'academicYear',
-            attributes: ['id', 'name', 'start_date', 'end_date'],
-            required: true
-          },
-          {
             model: School,
             as: 'school',
             attributes: ['id', 'name', 'code'],
@@ -65,7 +59,7 @@ class TermController {
             required: false
           }
         ],
-        order: [['start_date', 'ASC']],
+        order: [['created_at', 'DESC']],
         limit: actualLimit,
         offset: offset,
         distinct: true
@@ -113,12 +107,6 @@ class TermController {
         where: whereClause,
         include: [
           {
-            model: AcademicYear,
-            as: 'academicYear',
-            attributes: ['id', 'name', 'start_date', 'end_date'],
-            required: true
-          },
-          {
             model: School,
             as: 'school',
             attributes: ['id', 'name', 'code'],
@@ -153,104 +141,52 @@ class TermController {
    */
   static async createTerm(req, res, next) {
     try {
-      const {
-        name,
-        description,
-        start_date,
-        end_date,
-        academic_year_id,
-        status = 'upcoming'
-      } = req.body;
+      // Handle simplified payload
+      const termData = {
+        ...req.body,
+        school_id: req.user.school_id,
+        created_by: req.user.id,
+        updated_by: req.user.id
+      };
 
-      // Validate required fields
-      if (!name || !start_date || !end_date || !academic_year_id) {
-        throw new ApiError(400, 'Name, start_date, end_date, and academic_year_id are required');
-      }
-
-      // Validate date range
-      const dateValidation = CommonService.validateDateRange(start_date, end_date);
-      if (!dateValidation.isValid) {
-        throw new ApiError(400, dateValidation.errors.join(', '));
-      }
-
-      // Check if academic year exists and user has access
-      let academicYearWhereClause = { id: academic_year_id };
-      if (req.user.role === 'admin') {
-        academicYearWhereClause.school_id = req.user.school_id;
-      } else if (req.user.role === 'branch_admin') {
-        academicYearWhereClause.school_id = req.user.school_id;
-        academicYearWhereClause.branch_id = req.user.branch_id;
-      }
-
-      const academicYear = await AcademicYear.findOne({ where: academicYearWhereClause });
-      if (!academicYear) {
-        throw new ApiError(404, 'Academic year not found or access denied');
-      }
-
-      // Check if term dates are within academic year
-      const termStartDate = new Date(start_date);
-      const termEndDate = new Date(end_date);
-      const academicStartDate = new Date(academicYear.start_date);
-      const academicEndDate = new Date(academicYear.end_date);
-
-      if (termStartDate < academicStartDate || termEndDate > academicEndDate) {
-        throw new ApiError(400, 'Term dates must be within the academic year period');
-      }
-
-      // Check for overlapping terms
-      const overlappingTerm = await Term.findOne({
+      // Check for duplicate term name within the same branch
+      const existingTerm = await Term.findOne({
         where: {
-          academic_year_id,
-          school_id: req.user.school_id,
-          branch_id: req.user.branch_id || null,
-          [Op.or]: [
-            {
-              start_date: { [Op.between]: [start_date, end_date] }
-            },
-            {
-              end_date: { [Op.between]: [start_date, end_date] }
-            },
-            {
-              [Op.and]: [
-                { start_date: { [Op.lte]: start_date } },
-                { end_date: { [Op.gte]: end_date } }
-              ]
-            }
-          ]
+          name: termData.name,
+          branch_id: termData.branch_id,
+          school_id: req.user.school_id
         }
       });
 
-      if (overlappingTerm) {
-        throw new ApiError(400, 'Term dates overlap with existing term');
+      if (existingTerm) {
+        throw new ApiError(409, 'A term with this name already exists in the selected branch');
       }
 
-      // Create the term
-      const term = await Term.create({
-        name,
-        description,
-        start_date,
-        end_date,
-        academic_year_id,
-        status,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id,
-        created_by: req.user.id,
-        updated_by: req.user.id
-      });
+      // Set defaults for optional fields if not provided
+      if (!termData.code) {
+        termData.code = null;
+      }
+      if (!termData.description) {
+        termData.description = '';
+      }
+      if (!termData.start_date) {
+        termData.start_date = null;
+      }
+      if (!termData.end_date) {
+        termData.end_date = null;
+      }
+      if (!termData.academic_year) {
+        termData.academic_year = null;
+      }
+      if (!termData.is_active) {
+        termData.is_active = true;
+      }
 
-      // Log the operation
-      CommonService.logOperation('create', 'term', term.id, req.user, {
-        name,
-        start_date,
-        end_date,
-        academic_year_id
-      });
+      const term = await Term.create(termData);
 
-      return res.status(201).json(
-        CommonService.formatSuccessResponse('Term created successfully', {
-          term
-        })
-      );
+      return res
+        .status(201)
+        .json(CommonService.formatSuccessResponse('Exam term created successfully', { term }));
     } catch (error) {
       logger.error('Error in createTerm:', error);
       return next(error);
@@ -313,6 +249,22 @@ class TermController {
 
         if (overlappingTerm) {
           throw new ApiError(400, 'Term dates overlap with existing term');
+        }
+      }
+
+      // Check for duplicate term name if name is being updated
+      if (name && name !== term.name) {
+        const existingTerm = await Term.findOne({
+          where: {
+            name: name,
+            branch_id: term.branch_id,
+            school_id: req.user.school_id,
+            id: { [Op.ne]: id } // Exclude current term
+          }
+        });
+
+        if (existingTerm) {
+          throw new ApiError(409, 'A term with this name already exists in the selected branch');
         }
       }
 
@@ -400,7 +352,7 @@ class TermController {
         throw new ApiError(400, 'Academic year ID is required');
       }
 
-      let whereClause = { academic_year_id };
+      let whereClause = { academic_year: academic_year_id };
 
       // Add role-based access control
       if (req.user.role === 'admin') {
@@ -414,13 +366,19 @@ class TermController {
         where: whereClause,
         include: [
           {
-            model: AcademicYear,
-            as: 'academicYear',
-            attributes: ['id', 'name', 'start_date', 'end_date'],
-            required: true
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+            required: false
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code'],
+            required: false
           }
         ],
-        order: [['start_date', 'ASC']]
+        order: [['created_at', 'DESC']]
       });
 
       return res.status(200).json(
@@ -441,7 +399,7 @@ class TermController {
     try {
       const { academic_year_id } = req.query;
 
-      let whereClause = { status: 'active' };
+      let whereClause = { is_active: true };
 
       // Add role-based access control
       if (req.user.role === 'admin') {
@@ -452,20 +410,26 @@ class TermController {
       }
 
       if (academic_year_id) {
-        whereClause.academic_year_id = academic_year_id;
+        whereClause.academic_year = academic_year_id;
       }
 
       const term = await Term.findOne({
         where: whereClause,
         include: [
           {
-            model: AcademicYear,
-            as: 'academicYear',
-            attributes: ['id', 'name', 'start_date', 'end_date'],
-            required: true
+            model: School,
+            as: 'school',
+            attributes: ['id', 'name', 'code'],
+            required: false
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code'],
+            required: false
           }
         ],
-        order: [['start_date', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
 
       return res.status(200).json(
@@ -480,4 +444,4 @@ class TermController {
   }
 }
 
-module.exports = TermController;
+module.exports = ExamTermController;

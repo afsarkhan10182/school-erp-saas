@@ -13,7 +13,8 @@ const {
   updateExamScheduleValidation,
   getExamScheduleValidation,
   deleteExamScheduleValidation,
-  getAllExamSchedulesValidation
+  getAllExamSchedulesValidation,
+  createQuickScheduleValidation
 } = require('~/validations/academic/exam-schedule');
 
 const router = express.Router();
@@ -56,6 +57,18 @@ router.post(
   requireRole('admin', 'super_admin'),
   validate(createExamScheduleValidation),
   ExamScheduleController.createExamSchedule
+);
+
+/**
+ * @route   POST /api/exam-schedules/quick
+ * @desc    Create quick exam schedule ()
+ * @access  Private (Admin, Branch Admin)
+ */
+router.post(
+  '/quick',
+  requireRole('admin', 'super_admin'),
+  validate(createQuickScheduleValidation),
+  ExamScheduleController.createQuickSchedule
 );
 
 /**

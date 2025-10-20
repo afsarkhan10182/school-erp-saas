@@ -1,15 +1,5 @@
 const { Op, Sequelize } = require('sequelize');
-const {
-  Exam,
-  ExamResult,
-  ExamType,
-  ExamStatus,
-  Student,
-  School,
-  User,
-  GradingSystem,
-  GradeScale
-} = require('~/models');
+const { Exam, ExamResult, Student, School, User, GradingSystem, GradeScale } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
@@ -37,7 +27,7 @@ class ExamService extends BaseService {
       });
 
       if (existing) {
-        throw new ApiError(400, 'Exam with this name already exists in this school');
+        throw new ApiError(409, 'Exam with this name already exists in this school');
       }
 
       // Auto-set academic year if not provided
@@ -72,7 +62,7 @@ class ExamService extends BaseService {
         page = 1,
         limit = 10,
         search,
-        exam_type_id,
+        type_id,
         academic_year,
         is_active,
         school_id,
@@ -114,7 +104,7 @@ class ExamService extends BaseService {
         ];
       }
 
-      if (exam_type_id) whereClause.exam_type_id = exam_type_id;
+      if (type_id) whereClause.type_id = type_id;
       if (academic_year) whereClause.academic_year = academic_year;
       if (is_active !== undefined && is_active !== '') whereClause.is_active = is_active === 'true';
       if (params.status_id) whereClause.exam_status_id = params.status_id;
@@ -122,16 +112,6 @@ class ExamService extends BaseService {
       const { count, rows } = await Exam.findAndCountAll({
         where: whereClause,
         include: [
-          {
-            model: ExamType,
-            as: 'examType',
-            attributes: ['id', 'name', 'code']
-          },
-          {
-            model: ExamStatus,
-            as: 'examStatus',
-            attributes: ['id', 'name', 'code']
-          },
           {
             model: School,
             as: 'school',
@@ -169,11 +149,6 @@ class ExamService extends BaseService {
   static async getExamById(id, user, includeResults = false) {
     return this.executeWithErrorHandling(async () => {
       const includeOptions = [
-        {
-          model: ExamType,
-          as: 'examType',
-          attributes: ['id', 'name', 'code']
-        },
         {
           model: School,
           as: 'school',
@@ -322,7 +297,7 @@ class ExamService extends BaseService {
       });
 
       if (existingResult) {
-        throw new ApiError(400, 'Result already exists for this student');
+        throw new ApiError(409, 'Result already exists for this student');
       }
 
       // Calculate percentage and grade

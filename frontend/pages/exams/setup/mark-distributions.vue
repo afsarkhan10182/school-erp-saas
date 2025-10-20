@@ -54,12 +54,7 @@
                 Distribution Name
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Date Updated
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Actions
               </th>
@@ -84,11 +79,6 @@
                   {{ distribution.name }}
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  {{ formatDate(distribution.updated_at) }}
-                </div>
-              </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-2">
                   <button
@@ -98,7 +88,7 @@
                     <Edit class="h-4 w-4" />
                   </button>
                   <button
-                    @click="deleteDistribution(distribution)"
+                    @click="handleDeleteDistribution(distribution)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                   >
                     <Trash2 class="h-4 w-4" />
@@ -111,6 +101,15 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <Pagination
+      v-if="hasData"
+      :pagination="pagination"
+      item-label="mark distributions"
+      @page-changed="goToPage"
+      @page-size-changed="changePageSize"
+    />
+
     <!-- Create/Edit Modal -->
     <Modal :show="showModal" @close="closeModal" size="lg">
       <template #header>
@@ -121,9 +120,9 @@
 
       <template #body>
         <form @submit.prevent="saveDistribution" class="space-y-6">
-          <!-- CodeIgniter Style - Only 2 fields -->
+          <!--  - Only 2 fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch (CodeIgniter Style) -->
+            <!-- Branch () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Branch <span class="text-red-500">*</span>
@@ -136,7 +135,7 @@
               />
             </div>
 
-            <!-- Name (CodeIgniter Style) -->
+            <!-- Name () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name <span class="text-red-500">*</span>
@@ -149,21 +148,6 @@
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
-          </div>
-
-          <!-- Hidden fields (keep in data but don't show in UI) -->
-          <div style="display: none">
-            <input v-model="form.type" type="text" />
-            <input v-model="form.description" type="text" />
-            <input v-model="form.theory_marks" type="number" />
-            <input v-model="form.practical_marks" type="number" />
-            <input v-model="form.viva_marks" type="number" />
-            <input v-model="form.assignment_marks" type="number" />
-            <input v-model="form.total_marks" type="number" />
-            <input v-model="form.pass_marks" type="number" />
-            <input v-model="form.is_active" type="checkbox" />
-            <input v-model="form.created_by" type="text" />
-            <input v-model="form.updated_by" type="text" />
           </div>
 
           <!-- Form Actions -->
@@ -201,40 +185,40 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { Plus, Calculator, Edit, Trash2 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
-import { markDistributionApi } from '~/api/academic/mark-distributions';
+import { useMarkDistributions } from '~/composables/useMarkDistributions';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const {
+  distributions,
+  loading,
+  pagination,
+  hasData,
+  isEmpty,
+  loadMarkDistributions,
+  createDistribution,
+  updateDistribution,
+  deleteDistribution,
+  goToPage,
+  changePageSize
+} = useMarkDistributions();
 
 // Reactive data
-const loading = ref(false);
-const distributions = ref([]);
 const showModal = ref(false);
 const saving = ref(false);
 const editingDistribution = ref(null);
 
-// Form data
+// Form data - Only essential fields
 const form = reactive({
   branch_id: '',
-  name: '',
-  // Hidden fields with defaults (CodeIgniter style)
-  type: '',
-  description: '',
-  theory_marks: 0,
-  practical_marks: 0,
-  viva_marks: 0,
-  assignment_marks: 0,
-  total_marks: 100,
-  pass_marks: 35,
-  is_active: true,
-  created_by: '',
-  updated_by: ''
+  name: ''
 });
 
 // Computed properties
@@ -248,18 +232,10 @@ const branchOptions = computed(() =>
 
 // Methods
 const loadDistributions = async () => {
-  try {
-    loading.value = true;
-    const response = await markDistributionApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id
-    });
-    distributions.value = response.data || [];
-  } catch (error) {
-    showToast('Failed to load distributions', 'error');
-  } finally {
-    loading.value = false;
-  }
+  await loadMarkDistributions({
+    school_id: user.value.school_id
+    // Remove branch_id filter to show all distributions for the school
+  });
 };
 
 const openCreateModal = async () => {
@@ -273,37 +249,24 @@ const editDistribution = async distribution => {
   editingDistribution.value = distribution;
   form.branch_id = distribution.branch_id || '';
   form.name = distribution.name || '';
-  form.type = distribution.type || '';
-  form.description = distribution.description || '';
-  form.theory_marks = distribution.theory_marks || 0;
-  form.practical_marks = distribution.practical_marks || 0;
-  form.viva_marks = distribution.viva_marks || 0;
-  form.assignment_marks = distribution.assignment_marks || 0;
-  form.total_marks = distribution.total_marks || 100;
-  form.pass_marks = distribution.pass_marks || 35;
-  form.is_active = distribution.is_active !== false;
-  form.created_by = distribution.created_by || '';
-  form.updated_by = distribution.updated_by || '';
   await fetchBranches();
   showModal.value = true;
 };
 
-const deleteDistribution = async distribution => {
+const handleDeleteDistribution = async distribution => {
   if (!confirm(`Are you sure you want to delete "${distribution.name}"?`)) {
     return;
   }
 
   try {
-    await markDistributionApi.delete(distribution.id);
-    showToast('Distribution deleted successfully', 'success');
-    await loadDistributions();
+    await deleteDistribution(distribution.id);
   } catch (error) {
-    showToast('Failed to delete distribution', 'error');
+    // Error handling is done in the composable
   }
 };
 
 const saveDistribution = async () => {
-  // CodeIgniter Style - Only validate essential fields
+  //  - Only validate essential fields
   if (!form.branch_id) {
     showToast('Branch is required', 'error');
     return;
@@ -316,35 +279,19 @@ const saveDistribution = async () => {
   try {
     saving.value = true;
 
-    // Set default values for hidden fields (CodeIgniter style)
+    // Only send essential fields
     const distributionData = {
       branch_id: form.branch_id,
-      name: form.name.trim(),
-      school_id: user.value.school_id,
-      // Set defaults for hidden fields
-      type: form.type || 'theory_only', // Default to theory only
-      description: form.description || '',
-      theory_marks: form.theory_marks || 0,
-      practical_marks: form.practical_marks || 0,
-      viva_marks: form.viva_marks || 0,
-      assignment_marks: form.assignment_marks || 0,
-      total_marks: form.total_marks || 100,
-      pass_marks: form.pass_marks || 35,
-      is_active: form.is_active !== false,
-      created_by: form.created_by || user.value.id,
-      updated_by: form.updated_by || user.value.id
+      name: form.name.trim()
     };
 
     if (editingDistribution.value) {
-      await markDistributionApi.update(editingDistribution.value.id, distributionData);
-      showToast('Distribution updated successfully', 'success');
+      await updateDistribution({ id: editingDistribution.value.id, ...distributionData });
     } else {
-      await markDistributionApi.create(distributionData);
-      showToast('Distribution created successfully', 'success');
+      await createDistribution(distributionData);
     }
 
     closeModal();
-    await loadDistributions();
   } catch (error) {
     showToast(`Failed to ${editingDistribution.value ? 'update' : 'create'} distribution`, 'error');
   } finally {
@@ -361,17 +308,6 @@ const closeModal = () => {
 const resetForm = () => {
   form.branch_id = '';
   form.name = '';
-  form.type = '';
-  form.description = '';
-  form.theory_marks = 0;
-  form.practical_marks = 0;
-  form.viva_marks = 0;
-  form.assignment_marks = 0;
-  form.total_marks = 100;
-  form.pass_marks = 35;
-  form.is_active = true;
-  form.created_by = '';
-  form.updated_by = '';
 };
 
 // Helper functions
@@ -395,21 +331,17 @@ const getTypeLabel = type => {
   return labels[type] || 'Unknown';
 };
 
-// Format date for display
-const formatDate = dateString => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+// Expose methods to parent component
+const loadData = async () => {
+  await loadDistributions();
 };
 
+defineExpose({
+  loadData
+});
+
 // Load initial data
-onMounted(() => {
-  loadDistributions();
+onMounted(async () => {
+  await loadData();
 });
 </script>

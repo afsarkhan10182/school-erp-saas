@@ -1,17 +1,7 @@
 const httpStatus = require('http-status');
 const ApiError = require('~/utils/shared/ApiError');
 const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
-const {
-  Exam,
-  ExamType,
-  ExamStatus,
-  ExamResult,
-  Subject,
-  Class,
-  Section,
-  School,
-  Branch
-} = require('~/models');
+const { Exam, ExamResult, Subject, Class, Section, School, Branch } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
 const ExamService = require('~/services/academic/exam.service');

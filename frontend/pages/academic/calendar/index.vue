@@ -544,7 +544,7 @@ import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import { useAcademics } from '~/composables/useAcademics';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '~/utils/formatters';
 import { AcademicCalendar } from '~/api';
-import { termApi } from '~/api/academic/terms';
+import { examTermApi } from '~/api/academic/exam-terms';
 import Modal from '~/components/ui/Modal.vue';
 import CalendarEventForm from '~/components/forms/CalendarEventForm.vue';
 import TermForm from '~/components/forms/TermForm.vue';
@@ -659,7 +659,7 @@ const closeTermModal = () => {
 const loadTerms = async () => {
   try {
     loading.value = true;
-    const response = await termApi.getAll(termFilters.value);
+    const response = await examTermApi.getAll(termFilters.value);
     terms.value = response.data.terms || [];
   } catch (error) {
     showToast('Failed to load terms', 'error');
@@ -681,7 +681,7 @@ const deleteTerm = async term => {
   }
 
   try {
-    await termApi.delete(term.id);
+    await examTermApi.delete(term.id);
     showToast('Term deleted successfully', 'success');
     loadTerms();
   } catch (error) {
@@ -693,10 +693,10 @@ const deleteTerm = async term => {
 const handleTermSubmit = async formData => {
   try {
     if (isEditingTerm.value) {
-      await termApi.update(editingTerm.value.id, formData);
+      await examTermApi.update(editingTerm.value.id, formData);
       showToast('Term updated successfully', 'success');
     } else {
-      await termApi.create(formData);
+      await examTermApi.create(formData);
       showToast('Term created successfully', 'success');
     }
 

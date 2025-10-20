@@ -162,6 +162,7 @@ const GradingSystem = sequelize.define(
 
 GradingSystem.associate = models => {
   GradingSystem.belongsTo(models.School, { foreignKey: 'school_id', as: 'school' });
+  GradingSystem.belongsTo(models.Branch, { foreignKey: 'branch_id', as: 'branch' });
   GradingSystem.belongsTo(models.User, { foreignKey: 'created_by', as: 'createdBy' });
   GradingSystem.belongsTo(models.User, { foreignKey: 'updated_by', as: 'updatedBy' });
   GradingSystem.hasMany(models.GradeScale, { foreignKey: 'grading_system_id', as: 'gradeScales' });

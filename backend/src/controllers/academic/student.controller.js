@@ -161,7 +161,7 @@ const createStudent = async (req, res, next) => {
     });
 
     if (existingStudent) {
-      throw new ApiError(400, 'Student with this admission number already exists.', {
+      throw new ApiError(409, 'Student with this admission number already exists.', {
         errors: {
           admission_number: 'Student with this admission number already exists.'
         }
@@ -308,7 +308,7 @@ const createStudent = async (req, res, next) => {
 
       if (existingStudentInTx) {
         await transaction.rollback();
-        throw new ApiError(400, 'Student with this admission number already exists.', {
+        throw new ApiError(409, 'Student with this admission number already exists.', {
           errors: {
             admission_number: 'Student with this admission number already exists.'
           }

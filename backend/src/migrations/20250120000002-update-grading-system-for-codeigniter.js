@@ -5,9 +5,9 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
-      console.log('📝 Updating grading_systems table for CodeIgniter specification...');
+      console.log('📝 Updating grading_systems table for  specification...');
 
-      // Add new fields for CodeIgniter specification
+      // Add new fields for  specification
       await queryInterface.addColumn(
         'grading_systems',
         'branch_id',
@@ -104,9 +104,7 @@ module.exports = {
       });
 
       await transaction.commit();
-      console.log(
-        '✅ Migration completed: Updated grading_systems table for CodeIgniter specification'
-      );
+      console.log('✅ Migration completed: Updated grading_systems table for  specification');
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Migration failed:', error);

@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Update terms table to make fields optional for CodeIgniter approach
+    // Update terms table to make fields optional for
     await queryInterface.changeColumn('terms', 'code', {
       type: Sequelize.STRING(20),
       allowNull: true,

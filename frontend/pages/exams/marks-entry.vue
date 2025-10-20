@@ -26,12 +26,12 @@
       </div>
     </div>
 
-    <!-- Selection Fields (CodeIgniter Style - 4 fields) -->
+    <!-- Selection Fields ( - 4 fields) -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Selection Fields</h3>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Branch (CodeIgniter Style) -->
+          <!-- Branch () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Branch
@@ -45,7 +45,7 @@
             />
           </div>
 
-          <!-- Class (CodeIgniter Style) -->
+          <!-- Class () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Class
@@ -59,7 +59,7 @@
             />
           </div>
 
-          <!-- Section (CodeIgniter Style) -->
+          <!-- Section () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Section
@@ -73,7 +73,7 @@
             />
           </div>
 
-          <!-- Exam (CodeIgniter Style) -->
+          <!-- Exam () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Exam

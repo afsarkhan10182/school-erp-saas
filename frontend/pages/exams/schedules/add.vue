@@ -6,7 +6,7 @@
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Add Exam Schedule</h1>
           <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Create exam schedules following CodeIgniter standards
+            Create exam schedules following standards
           </p>
         </div>
         <div class="mt-4 sm:mt-0">
@@ -72,9 +72,9 @@
       <div v-if="scheduleType === 'quick'" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-6">Quick Schedule</h3>
         <form @submit.prevent="saveQuickSchedule" class="space-y-6">
-          <!-- CodeIgniter Style - Exactly 4 fields as per specification -->
+          <!--  - Exactly 4 fields as per specification -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Starting Date (CodeIgniter Style) -->
+            <!-- Starting Date () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Starting Date <span class="text-red-500">*</span>
@@ -87,7 +87,7 @@
               />
             </div>
 
-            <!-- Starting Time (CodeIgniter Style) -->
+            <!-- Starting Time () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Starting Time <span class="text-red-500">*</span>
@@ -100,7 +100,7 @@
               />
             </div>
 
-            <!-- Duration (CodeIgniter Style) -->
+            <!-- Duration () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Duration (minutes) <span class="text-red-500">*</span>
@@ -115,7 +115,7 @@
               />
             </div>
 
-            <!-- Hall Room (CodeIgniter Style) -->
+            <!-- Hall Room () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Hall Room <span class="text-red-500">*</span>
@@ -179,9 +179,9 @@
               </button>
             </div>
 
-            <!-- CodeIgniter Style - 6+ fields per subject as per specification -->
+            <!--  - 6+ fields per subject as per specification -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <!-- Subject (CodeIgniter Style) -->
+              <!-- Subject () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Subject <span class="text-red-500">*</span>
@@ -195,7 +195,7 @@
                 />
               </div>
 
-              <!-- Date (CodeIgniter Style) -->
+              <!-- Date () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Date <span class="text-red-500">*</span>
@@ -208,7 +208,7 @@
                 />
               </div>
 
-              <!-- Starting Time (CodeIgniter Style) -->
+              <!-- Starting Time () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Starting Time <span class="text-red-500">*</span>
@@ -221,7 +221,7 @@
                 />
               </div>
 
-              <!-- Ending Time (CodeIgniter Style) -->
+              <!-- Ending Time () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Ending Time <span class="text-red-500">*</span>
@@ -234,7 +234,7 @@
                 />
               </div>
 
-              <!-- Hall Room (CodeIgniter Style) -->
+              <!-- Hall Room () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Hall Room <span class="text-red-500">*</span>
@@ -247,7 +247,7 @@
                 />
               </div>
 
-              <!-- Mark Distribution (CodeIgniter Style) -->
+              <!-- Mark Distribution () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Mark Distribution <span class="text-red-500">*</span>

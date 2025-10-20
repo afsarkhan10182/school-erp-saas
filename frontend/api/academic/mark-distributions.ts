@@ -1,5 +1,11 @@
 import { createApiInstance, apiCall } from '~/utils/api';
 
+export interface Branch {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 export interface MarkDistribution {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ export interface MarkDistribution {
   is_active: boolean;
   school_id: string;
   branch_id: string;
+  branch?: Branch; // Include branch data from API
   created_by?: string;
   updated_by?: string;
   created_at: string;
@@ -49,9 +56,7 @@ export interface UpdateMarkDistributionData extends Partial<CreateMarkDistributi
 
 export const markDistributionApi = {
   // Get all mark distributions with optional filters
-  async getAll(
-    filters: MarkDistributionFilters = {}
-  ): Promise<{ data: MarkDistribution[]; total: number; page: number; limit: number }> {
+  async getAll(filters: MarkDistributionFilters = {}): Promise<any> {
     // Build query string from filters
     const queryParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -73,15 +78,15 @@ export const markDistributionApi = {
   },
 
   // Create a new mark distribution
-  async create(data: CreateMarkDistributionData): Promise<MarkDistribution> {
+  async create(data: any): Promise<any> {
     const response = await apiCall('post', '/mark-distributions', data);
-    return response.data;
+    return response;
   },
 
   // Update an existing mark distribution
-  async update(id: string, data: Partial<CreateMarkDistributionData>): Promise<MarkDistribution> {
+  async update(id: string, data: any): Promise<any> {
     const response = await apiCall('put', `/mark-distributions/${id}`, data);
-    return response.data;
+    return response;
   },
 
   // Delete a mark distribution

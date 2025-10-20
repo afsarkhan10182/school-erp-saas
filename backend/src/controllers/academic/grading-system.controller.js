@@ -1,7 +1,8 @@
 const httpStatus = require('http-status');
+const { Op } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
 const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
-const { GradingSystem, GradeScale } = require('~/models');
+const { GradingSystem, GradeScale, Branch } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const GradingService = require('~/services/academic/grading.service');
 
@@ -28,13 +29,24 @@ class GradingSystemController {
       whereClause.is_active = is_active === 'true';
     }
 
-    const { count, rows } = await GradingSystem.findAndCountAll({
+    // Get total count separately to avoid issues with includes
+    const count = await GradingSystem.count({
+      where: whereClause
+    });
+
+    // Get the actual records with includes
+    const rows = await GradingSystem.findAll({
       where: whereClause,
       include: [
         {
           model: GradeScale,
           as: 'gradeScales',
           order: [['sort_order', 'ASC']]
+        },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
         }
       ],
       order: [['created_at', 'DESC']],
@@ -90,47 +102,76 @@ class GradingSystemController {
    * Create a new grading system
    */
   static createGradingSystem = asyncHandler(async (req, res) => {
-    // CodeIgniter Style - Handle simplified payload
+    // Check for duplicate name in same school and branch
+    const existing = await GradingSystem.findOne({
+      where: {
+        name: req.body.name,
+        school_id: req.schoolId,
+        branch_id: req.body.branch_id
+      }
+    });
+
+    if (existing) {
+      throw new ApiError(
+        409,
+        'Grading system with this name already exists in the selected branch'
+      );
+    }
+
+    // Only accept essential fields and set sensible defaults
     const gradingSystemData = {
-      ...req.body,
+      name: req.body.name,
+      branch_id: req.body.branch_id,
+      grade_point: req.body.grade_point,
+      min_percentage: req.body.min_percentage,
+      max_percentage: req.body.max_percentage,
+      description: req.body.description || '',
       school_id: req.schoolId,
       created_by: req.user.id,
-      updated_by: req.user.id
+      updated_by: req.user.id,
+      // Set sensible defaults for other fields
+      code: `GS${Date.now()}`, // Auto-generate code
+      grade_type: 'letter',
+      passing_percentage: 35.0,
+      max_grade_points: 4.0,
+      is_active: true,
+      is_default: false
     };
-
-    // Set defaults for optional fields if not provided
-    if (!gradingSystemData.description) {
-      gradingSystemData.description = '';
-    }
-    if (!gradingSystemData.grade_type) {
-      gradingSystemData.grade_type = 'letter';
-    }
-    if (!gradingSystemData.passing_percentage) {
-      gradingSystemData.passing_percentage = 35.0;
-    }
-    if (!gradingSystemData.max_grade_points) {
-      gradingSystemData.max_grade_points = 4.0;
-    }
-    if (!gradingSystemData.is_active) {
-      gradingSystemData.is_active = true;
-    }
-    if (!gradingSystemData.is_default) {
-      gradingSystemData.is_default = false;
-    }
 
     const gradingSystem = await GradingSystem.create(gradingSystemData);
 
-    success(res, { gradingSystem }, 'Grading system created successfully', httpStatus.CREATED);
+    // Fetch the created grading system with branch association
+    const gradingSystemWithBranch = await GradingSystem.findByPk(gradingSystem.id, {
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
+        }
+      ]
+    });
+
+    success(
+      res,
+      { gradingSystem: gradingSystemWithBranch },
+      'Grading system created successfully',
+      httpStatus.CREATED
+    );
   });
 
   /**
    * Update grading system
    */
   static updateGradingSystem = asyncHandler(async (req, res) => {
-    // CodeIgniter Style - Handle simplified payload
     const { id } = req.params;
+    // Only accept essential fields for update
     const updateData = {
-      ...req.body,
+      name: req.body.name,
+      branch_id: req.body.branch_id,
+      grade_point: req.body.grade_point,
+      min_percentage: req.body.min_percentage,
+      max_percentage: req.body.max_percentage,
+      description: req.body.description,
       updated_by: req.user.id
     };
 
@@ -145,9 +186,42 @@ class GradingSystemController {
       throw new ApiError(404, 'Grading system not found');
     }
 
+    // Check for duplicate name if name or branch is being updated
+    if (
+      (req.body.name && req.body.name !== gradingSystem.name) ||
+      (req.body.branch_id && req.body.branch_id !== gradingSystem.branch_id)
+    ) {
+      const existing = await GradingSystem.findOne({
+        where: {
+          name: req.body.name,
+          school_id: gradingSystem.school_id,
+          branch_id: req.body.branch_id,
+          id: { [Op.ne]: id } // Exclude current grading system
+        }
+      });
+
+      if (existing) {
+        throw new ApiError(
+          409,
+          'Grading system with this name already exists in the selected branch'
+        );
+      }
+    }
+
     await gradingSystem.update(updateData);
 
-    success(res, { gradingSystem }, 'Grading system updated successfully');
+    // Fetch the updated grading system with branch association
+    const updatedGradingSystem = await GradingSystem.findByPk(id, {
+      include: [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
+        }
+      ]
+    });
+
+    success(res, { gradingSystem: updatedGradingSystem }, 'Grading system updated successfully');
   });
 
   /**
@@ -167,15 +241,8 @@ class GradingSystemController {
       throw new ApiError(404, 'Grading system not found');
     }
 
-    // Check if it's the default grading system
-    if (gradingSystem.is_default) {
-      throw new ApiError(400, 'Cannot delete the default grading system');
-    }
-
-    // Check if it's being used by any exams
-    // This would require checking exam results or other references
-    // For now, we'll allow deletion
-
+    // Allow deletion of any grading system, including default ones
+    // Users can delete any grading system they want
     await gradingSystem.destroy();
 
     success(

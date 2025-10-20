@@ -11,14 +11,18 @@ const createExamHallValidation = [
     .withMessage('Capacity is required')
     .isInt({ min: 1 })
     .withMessage('Capacity must be at least 1'),
-  body('is_active').optional().isBoolean().withMessage('is_active must be a boolean')
+  body('branch_id')
+    .notEmpty()
+    .withMessage('Branch is required')
+    .isUUID()
+    .withMessage('Invalid branch ID')
 ];
 
 const updateExamHallValidation = [
   param('id').isUUID().withMessage('Invalid exam hall ID'),
   body('name').optional().isLength({ max: 100 }).withMessage('Name must not exceed 100 characters'),
   body('capacity').optional().isInt({ min: 1 }).withMessage('Capacity must be at least 1'),
-  body('is_active').optional().isBoolean().withMessage('is_active must be a boolean')
+  body('branch_id').optional().isUUID().withMessage('Invalid branch ID')
 ];
 
 const getExamHallValidation = [param('id').isUUID().withMessage('Invalid exam hall ID')];

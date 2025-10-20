@@ -11,35 +11,27 @@
         </div>
       </div>
 
-      <!-- Tab Navigation (CodeIgniter Standard - 4 tabs only) -->
+      <!-- Tab Navigation ( Standard - 4 tabs only) -->
       <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="handleTabChange">
-        <!-- Exam Terms Tab (CodeIgniter Standard) -->
+        <!-- Exam Terms Tab ( Standard) -->
         <div v-if="activeTab === 'exam-terms'" class="p-6">
-          <ExamTermsTab
-            ref="examTermsTabRef"
-            :terms="terms"
-            :loading="termsLoading"
-            @create="handleTermCreate"
-            @update="handleTermUpdate"
-            @delete="handleTermDelete"
-            @success="handleTermSuccess"
-          />
+          <ExamTermsTab ref="examTermsTabRef" @refresh="loadTerms" @success="handleTermSuccess" />
         </div>
 
         <!-- Exam Halls Tab -->
         <div v-else-if="activeTab === 'exam-halls'" class="p-6">
-          <ExamHallsTab />
+          <ExamHallsTab
+            ref="examHallsTabRef"
+            @refresh="loadExamHalls"
+            @success="handleExamHallSuccess"
+          />
         </div>
 
-        <!-- Mark Distribution Tab (CodeIgniter Standard) -->
+        <!-- Mark Distribution Tab ( Standard) -->
         <div v-else-if="activeTab === 'mark-distributions'" class="p-6">
           <MarkDistributionsTab
             ref="markDistributionsTabRef"
-            :distributions="distributions"
-            :loading="distributionsLoading"
-            @create="handleDistributionCreate"
-            @update="handleDistributionUpdate"
-            @delete="handleDistributionDelete"
+            @refresh="loadMarkDistributions"
             @success="handleDistributionSuccess"
           />
         </div>
@@ -48,9 +40,6 @@
         <div v-else-if="activeTab === 'grading-systems'" class="p-6">
           <GradingSystemsTab
             ref="gradingSystemsTabRef"
-            :grading-systems="gradingSystems"
-            :loading="gradingSystemsLoading"
-            :branch-id="user?.branch_id || ''"
             @create="handleGradingSystemCreate"
             @update="handleGradingSystemUpdate"
             @delete="handleGradingSystemDelete"
@@ -70,13 +59,12 @@ import ExamHallsTab from '~/components/academic/ExamHallsTab.vue';
 import ExamTermsTab from '~/components/academic/ExamTermsTab.vue';
 import MarkDistributionsTab from '~/pages/exams/setup/mark-distributions.vue';
 import GradingSystemsTab from '~/components/academic/GradingSystemsTab.vue';
-import { useGradingSystems } from '~/composables/useGradingSystems';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
-import { termApi } from '~/api/academic/terms';
+import { examTermApi } from '~/api/academic/exam-terms';
 import { markDistributionApi } from '~/api/academic/mark-distributions';
 
-// Tab configuration (CodeIgniter Standard - 4 tabs only)
+// Tab configuration ( Standard - 4 tabs only)
 const tabs = [
   { id: 'exam-terms', name: 'Exam Terms', icon: Calendar },
   { id: 'exam-halls', name: 'Exam Halls', icon: Building },
@@ -89,166 +77,81 @@ const activeTab = ref('exam-terms');
 
 // Template refs
 const examTermsTabRef = ref(null);
+const examHallsTabRef = ref(null);
 const markDistributionsTabRef = ref(null);
 const gradingSystemsTabRef = ref(null);
 
 // Composables
 const { user } = useAuth();
 const { showToast } = useToast();
-const {
-  gradingSystems,
-  gradingSystemsLoading,
-  loadGradingSystems,
-  createGradingSystem,
-  updateGradingSystem,
-  deleteGradingSystem
-} = useGradingSystems();
-
-// Data
-const terms = ref([]);
-const termsLoading = ref(false);
-const distributions = ref([]);
-const distributionsLoading = ref(false);
 
 // Methods
-const handleTabChange = tabId => {
+const handleTabChange = async tabId => {
   activeTab.value = tabId;
-};
 
-// Terms methods
-const loadTerms = async () => {
-  try {
-    termsLoading.value = true;
-    const response = await termApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id
-    });
-    terms.value = response.data || [];
-  } catch (error) {
-    showToast('Failed to load terms', 'error');
-  } finally {
-    termsLoading.value = false;
+  // Load data for the specific tab when it becomes active
+  switch (tabId) {
+    case 'exam-terms':
+      if (examTermsTabRef.value) {
+        await examTermsTabRef.value.loadData();
+      }
+      break;
+    case 'exam-halls':
+      if (examHallsTabRef.value) {
+        await examHallsTabRef.value.loadData();
+      }
+      break;
+    case 'mark-distributions':
+      if (markDistributionsTabRef.value) {
+        await markDistributionsTabRef.value.loadData();
+      }
+      break;
+    case 'grading-systems':
+      if (gradingSystemsTabRef.value) {
+        await gradingSystemsTabRef.value.loadData();
+      }
+      break;
   }
 };
 
-const handleTermCreate = async termData => {
-  try {
-    await termApi.create(termData);
-    showToast('Term created successfully', 'success');
-    await loadTerms();
-  } catch (error) {
-    showToast('Failed to create term', 'error');
-  }
-};
-
-const handleTermUpdate = async (id, termData) => {
-  try {
-    await termApi.update(id, termData);
-    showToast('Term updated successfully', 'success');
-    await loadTerms();
-  } catch (error) {
-    showToast('Failed to update term', 'error');
-  }
-};
-
-const handleTermDelete = async id => {
-  try {
-    await termApi.delete(id);
-    showToast('Term deleted successfully', 'success');
-    await loadTerms();
-  } catch (error) {
-    showToast('Failed to delete term', 'error');
-  }
-};
-
+// Success handlers for each tab
 const handleTermSuccess = () => {
-  loadTerms();
-};
-
-// Mark Distribution methods
-const loadDistributions = async () => {
-  try {
-    distributionsLoading.value = true;
-    const response = await markDistributionApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id
-    });
-    distributions.value = response.data || [];
-  } catch (error) {
-    showToast('Failed to load distributions', 'error');
-  } finally {
-    distributionsLoading.value = false;
+  if (examTermsTabRef.value) {
+    examTermsTabRef.value.loadData();
   }
 };
 
-const handleDistributionCreate = async distributionData => {
-  try {
-    await markDistributionApi.create(distributionData);
-    showToast('Distribution created successfully', 'success');
-    await loadDistributions();
-  } catch (error) {
-    showToast('Failed to create distribution', 'error');
-  }
-};
-
-const handleDistributionUpdate = async (id, distributionData) => {
-  try {
-    await markDistributionApi.update(id, distributionData);
-    showToast('Distribution updated successfully', 'success');
-    await loadDistributions();
-  } catch (error) {
-    showToast('Failed to update distribution', 'error');
-  }
-};
-
-const handleDistributionDelete = async id => {
-  try {
-    await markDistributionApi.delete(id);
-    showToast('Distribution deleted successfully', 'success');
-    await loadDistributions();
-  } catch (error) {
-    showToast('Failed to delete distribution', 'error');
+const handleExamHallSuccess = () => {
+  if (examHallsTabRef.value) {
+    examHallsTabRef.value.loadData();
   }
 };
 
 const handleDistributionSuccess = () => {
-  loadDistributions();
-};
-
-// Grading Systems methods
-const handleGradingSystemCreate = async gradingSystemData => {
-  try {
-    await createGradingSystem(gradingSystemData);
-    showToast('Grading system created successfully', 'success');
-  } catch (error) {
-    showToast('Failed to create grading system', 'error');
+  if (markDistributionsTabRef.value) {
+    markDistributionsTabRef.value.loadData();
   }
 };
 
-const handleGradingSystemUpdate = async (id, gradingSystemData) => {
-  try {
-    await updateGradingSystem(id, gradingSystemData);
-    showToast('Grading system updated successfully', 'success');
-  } catch (error) {
-    showToast('Failed to update grading system', 'error');
-  }
+// Grading system event handlers (now handled by the component itself)
+const handleGradingSystemCreate = async systemData => {
+  // Component handles this internally
 };
 
-const handleGradingSystemDelete = async id => {
-  try {
-    await deleteGradingSystem(id);
-    showToast('Grading system deleted successfully', 'success');
-  } catch (error) {
-    showToast('Failed to delete grading system', 'error');
-  }
+const handleGradingSystemUpdate = async systemData => {
+  // Component handles this internally
+};
+
+const handleGradingSystemDelete = async systemId => {
+  // Component handles this internally
 };
 
 const handleGradingSystemSuccess = () => {
-  loadGradingSystems();
+  // Component handles this internally
 };
 
-// Load initial data
-onMounted(async () => {
-  await Promise.all([loadTerms(), loadDistributions(), loadGradingSystems()]);
+// Lifecycle - Each tab will load its own data on mount
+onMounted(() => {
+  // No need to load initial data - each tab handles its own loading
 });
 </script>

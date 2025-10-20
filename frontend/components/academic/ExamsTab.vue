@@ -201,9 +201,9 @@
 
       <template #body>
         <form @submit.prevent="saveExam" class="space-y-6">
-          <!-- CodeIgniter Style - Only 6 fields -->
+          <!--  - Only 6 fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch (CodeIgniter Style) -->
+            <!-- Branch () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Branch <span class="text-red-500">*</span>
@@ -216,7 +216,7 @@
               />
             </div>
 
-            <!-- Name (CodeIgniter Style) -->
+            <!-- Name () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name <span class="text-red-500">*</span>
@@ -230,7 +230,7 @@
               />
             </div>
 
-            <!-- Term (CodeIgniter Style) -->
+            <!-- Term () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Term <span class="text-red-500">*</span>
@@ -243,20 +243,19 @@
               />
             </div>
 
-            <!-- Exam Type (CodeIgniter Style) -->
+            <!-- Exam Type (Hardcoded) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Exam Type <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
-                v-model="form.exam_type_id"
+                v-model="form.type_id"
                 :options="examTypeOptions"
                 placeholder="Select exam type"
-                :loading="examTypesLoading"
               />
             </div>
 
-            <!-- Mark Distribution (CodeIgniter Style) -->
+            <!-- Mark Distribution () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Mark Distribution <span class="text-red-500">*</span>
@@ -269,7 +268,7 @@
               />
             </div>
 
-            <!-- Remarks (CodeIgniter Style) -->
+            <!-- Remarks () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Remarks
@@ -281,16 +280,6 @@
                 placeholder="Enter any remarks..."
               ></textarea>
             </div>
-          </div>
-
-          <!-- Hidden fields (keep in data but don't show in UI) -->
-          <div style="display: none">
-            <input v-model="form.description" type="text" />
-            <input v-model="form.publish_status" type="checkbox" />
-            <input v-model="form.result_status" type="checkbox" />
-            <input v-model="form.is_active" type="checkbox" />
-            <input v-model="form.created_by" type="text" />
-            <input v-model="form.updated_by" type="text" />
           </div>
         </form>
       </template>
@@ -353,7 +342,7 @@ import { useExamOptions } from '~/composables/useExamOptions';
 import { useBranches } from '~/composables/useBranches';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 import { useAuth } from '~/composables/useAuth';
-import { termApi } from '~/api/academic/terms';
+import { examTermApi } from '~/api/academic/exam-terms';
 import ExamScheduleModal from './ExamScheduleModal.vue';
 
 // Props
@@ -398,7 +387,10 @@ const {
   fetchSubjects,
   fetchStreams
 } = useAcademics();
-const { examTypeOptions, loading: examTypesLoading, loadExamTypes } = useExamOptions();
+// Hardcoded exam types - no need for API calls
+import { getExamTypeOptions, getExamTypeLabel } from '~/utils/exam-types';
+
+const examTypeOptions = getExamTypeOptions();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   markDistributions,
@@ -500,23 +492,16 @@ const form = reactive({
   branch_id: '',
   name: '',
   term_id: '',
-  exam_type_id: '',
+  type_id: '',
   mark_distribution_id: '',
-  remarks: '',
-  // Hidden fields with defaults (CodeIgniter style)
-  description: '',
-  is_active: true,
-  publish_status: false,
-  result_status: false,
-  created_by: '',
-  updated_by: ''
+  remarks: ''
 });
 
 // Methods
 const loadTerms = async () => {
   try {
     termsLoading.value = true;
-    const response = await termApi.getAll({
+    const response = await examTermApi.getAll({
       school_id: props.schoolId,
       branch_id: props.branchId,
       academic_year: currentAcademicYear.value?.name,
@@ -535,9 +520,9 @@ const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
 
-  // Load all required data when modal opens (CodeIgniter style)
+  // Load all required data when modal opens ()
   try {
-    await Promise.all([loadTerms(), loadExamTypes(), fetchBranches(), fetchMarkDistributions()]);
+    await Promise.all([loadTerms(), fetchBranches(), fetchMarkDistributions()]);
   } catch (error) {
     showToast('Failed to load form data', 'error');
   }
@@ -553,16 +538,9 @@ const editExam = async exam => {
   form.branch_id = exam.branch_id || '';
   form.name = exam.name || '';
   form.term_id = exam.term_id || '';
-  form.exam_type_id = exam.exam_type_id || '';
+  form.type_id = exam.type_id || '';
   form.mark_distribution_id = exam.mark_distribution_id || '';
   form.remarks = exam.remarks || '';
-  // Hidden fields
-  form.description = exam.description || '';
-  form.is_active = exam.is_active !== false;
-  form.publish_status = exam.publish_status || false;
-  form.result_status = exam.result_status || false;
-  form.created_by = exam.created_by || '';
-  form.updated_by = exam.updated_by || '';
 
   // Load all required data
   await Promise.all([loadTerms(), loadExamTypes(), fetchBranches(), fetchMarkDistributions()]);
@@ -604,23 +582,16 @@ const resetForm = () => {
   form.branch_id = '';
   form.name = '';
   form.term_id = '';
-  form.exam_type_id = '';
+  form.type_id = '';
   form.mark_distribution_id = '';
   form.remarks = '';
-  // Hidden fields with defaults
-  form.description = '';
-  form.is_active = true;
-  form.publish_status = false;
-  form.result_status = false;
-  form.created_by = '';
-  form.updated_by = '';
 };
 
 const saveExam = async () => {
   try {
     saving.value = true;
 
-    // CodeIgniter Style - Only validate essential fields
+    //  - Only validate essential fields
     if (!form.branch_id) {
       showToast('Branch is required', 'error');
       return;
@@ -633,7 +604,7 @@ const saveExam = async () => {
       showToast('Term is required', 'error');
       return;
     }
-    if (!form.exam_type_id) {
+    if (!form.type_id) {
       showToast('Exam type is required', 'error');
       return;
     }
@@ -642,21 +613,14 @@ const saveExam = async () => {
       return;
     }
 
-    // Set default values for hidden fields (CodeIgniter style)
+    // Prepare form data for backend
     const cleanForm = {
       branch_id: form.branch_id,
       name: form.name.trim(),
       term_id: form.term_id,
-      exam_type_id: form.exam_type_id,
+      type_id: form.type_id,
       mark_distribution_id: form.mark_distribution_id,
       remarks: form.remarks || '',
-      // Set defaults for hidden fields
-      description: form.description || '',
-      is_active: form.is_active !== false,
-      publish_status: form.publish_status || false,
-      result_status: form.result_status || false,
-      created_by: form.created_by || '',
-      updated_by: form.updated_by || '',
       school_id: props.schoolId
     };
 

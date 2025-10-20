@@ -4,8 +4,9 @@ const {
   getTermById,
   createTerm,
   updateTerm,
-  deleteTerm
-} = require('~/controllers/academic/terms/term.controller');
+  deleteTerm,
+  getCurrentTerm
+} = require('~/controllers/academic/exam-term.controller');
 const { verifyToken, authorize } = require('~/middleware/core/auth');
 const { validate } = require('~/middleware/shared/validate');
 const { createTermValidator, updateTermValidator } = require('~/validations/academic/term');
@@ -21,6 +22,13 @@ router.use(verifyToken);
  * @access  Private (admin, branch_admin, teacher)
  */
 router.get('/', authorize(['admin', 'branch_admin', 'teacher']), getAllTerms);
+
+/**
+ * @route   GET /api/terms/current
+ * @desc    Get current active term
+ * @access  Private (admin, branch_admin, teacher)
+ */
+router.get('/current', authorize(['admin', 'branch_admin', 'teacher']), getCurrentTerm);
 
 /**
  * @route   GET /api/terms/:id

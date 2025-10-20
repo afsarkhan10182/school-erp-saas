@@ -75,10 +75,10 @@ const ExamSchedule = sequelize.define(
       allowNull: true,
       comment: 'Array of additional invigilator user IDs for large exams'
     },
-    status_id: {
-      type: DataTypes.UUID,
+    status: {
+      type: DataTypes.ENUM('scheduled', 'ongoing', 'completed', 'cancelled', 'rescheduled'),
       allowNull: false,
-      references: { model: 'exam_statuses', key: 'id' }
+      defaultValue: 'scheduled'
     },
     seating_arrangement: {
       type: DataTypes.JSON,
@@ -199,8 +199,8 @@ const ExamSchedule = sequelize.define(
         fields: ['exam_date']
       },
       {
-        name: 'idx_exam_schedules_status_id',
-        fields: ['status_id']
+        name: 'idx_exam_schedules_status',
+        fields: ['status']
       },
       {
         name: 'idx_exam_schedules_exam_hall_id',
@@ -252,10 +252,11 @@ ExamSchedule.associate = models => {
     as: 'invigilator'
   });
 
-  ExamSchedule.belongsTo(models.ExamStatus, {
-    foreignKey: 'status_id',
-    as: 'status'
-  });
+  // ExamStatus model has been removed - using string status instead
+  // ExamSchedule.belongsTo(models.ExamStatus, {
+  //   foreignKey: 'status_id',
+  //   as: 'status'
+  // });
 
   ExamSchedule.belongsTo(models.Branch, {
     foreignKey: 'branch_id',

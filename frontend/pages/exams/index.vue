@@ -128,7 +128,6 @@
               v-model="selectedExamTypeId"
               :options="examTypeOptions"
               placeholder="All types"
-              :loading="examTypesLoading"
               @change="onExamTypeChange"
             />
           </div>
@@ -247,7 +246,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 dark:text-white">
-                    {{ exam.examType?.name || 'No type' }}
+                    {{ getExamTypeLabel(exam.type_id) }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -304,10 +303,10 @@
 
         <template #body>
           <form @submit.prevent="saveExam" class="space-y-6">
-            <!-- CodeIgniter Style - Exactly 6 fields as per specification -->
+            <!--  - Exactly 6 fields as per specification -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Branch (CodeIgniter Style) -->
-              <div>
+              <!-- Branch (conditional) -->
+              <div v-if="showBranchDropdown">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Branch <span class="text-red-500">*</span>
                 </label>
@@ -316,10 +315,23 @@
                   :options="branchOptions"
                   placeholder="Select branch"
                   :loading="branchesLoading"
+                  @change="onBranchChange"
                 />
               </div>
 
-              <!-- Name (CodeIgniter Style) -->
+              <!-- Auto-selected branch info (when single branch) -->
+              <div v-else-if="selectedBranch">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Branch
+                </label>
+                <div
+                  class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-sm text-gray-900 dark:text-white"
+                >
+                  {{ selectedBranch.name }}
+                </div>
+              </div>
+
+              <!-- Name () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Name <span class="text-red-500">*</span>
@@ -333,7 +345,7 @@
                 />
               </div>
 
-              <!-- Term (CodeIgniter Style) -->
+              <!-- Term () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Term <span class="text-red-500">*</span>
@@ -346,56 +358,42 @@
                 />
               </div>
 
-              <!-- Exam Type (CodeIgniter Style) -->
+              <!-- Exam Type (Hardcoded) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Exam Type <span class="text-red-500">*</span>
                 </label>
                 <EnhancedDropdown
-                  v-model="form.exam_type_id"
+                  v-model="form.type_id"
                   :options="examTypeOptions"
                   placeholder="Select exam type"
-                  :loading="examTypesLoading"
                 />
               </div>
 
-              <!-- Mark Distribution (CodeIgniter Style - Multi-select) -->
+              <!-- Mark Distribution (Multi-select) -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mark Distribution <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.mark_distribution_id"
+                <EnhancedMultiSelect
+                  v-model="form.mark_distribution_ids"
                   :options="markDistributionOptions"
-                  placeholder="Select mark distribution(s)"
+                  placeholder="Select"
                   :loading="markDistributionsLoading"
-                  multiple
+                  label="Mark Distribution"
+                  required
                 />
               </div>
 
-              <!-- Remarks (CodeIgniter Style) -->
+              <!-- Remarks () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Remarks
                 </label>
-                <textarea
+                <input
                   v-model="form.remarks"
-                  rows="3"
+                  type="text"
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter exam remarks..."
-                ></textarea>
+                />
               </div>
-            </div>
-
-            <!-- Hidden fields (keep in data but don't show in UI) -->
-            <div style="display: none">
-              <input v-model="form.academic_year" type="text" />
-              <input v-model="form.description" type="text" />
-              <input v-model="form.publish_status" type="checkbox" />
-              <input v-model="form.result_status" type="checkbox" />
-              <input v-model="form.is_active" type="checkbox" />
-              <input v-model="form.created_by" type="text" />
-              <input v-model="form.updated_by" type="text" />
             </div>
 
             <!-- Form Actions -->
@@ -429,12 +427,12 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { Plus, BookOpen, CheckCircle, Globe, BarChart3, Edit, Eye, Trash2 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import EnhancedMultiSelect from '~/components/ui/EnhancedMultiSelect.vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useExams } from '~/composables/useExams';
-import { useExamTypes } from '~/composables/useExamTypes';
-import { termApi } from '~/api/academic/terms';
+import { examTermApi } from '~/api/academic/exam-terms';
 import { markDistributionApi } from '~/api/academic/mark-distributions';
 
 // Composables
@@ -450,7 +448,10 @@ const {
   updateExam,
   deleteExam: deleteExamApi
 } = useExams();
-const { examTypes, examTypeOptions, loading: examTypesLoading, fetchExamTypes } = useExamTypes();
+// Hardcoded exam types - no need for API calls
+import { EXAM_TYPES, getExamTypeOptions, getExamTypeLabel } from '~/utils/exam-types';
+
+const examTypeOptions = getExamTypeOptions();
 
 // Reactive data
 const loading = ref(false);
@@ -467,22 +468,10 @@ const statusFilter = ref('');
 // Terms data
 const terms = ref([]);
 const termsLoading = ref(false);
-const termOptions = computed(() =>
-  terms.value.map(term => ({
-    value: term.id,
-    label: term.name
-  }))
-);
 
 // Mark Distributions data
 const markDistributions = ref([]);
 const markDistributionsLoading = ref(false);
-const markDistributionOptions = computed(() =>
-  markDistributions.value.map(distribution => ({
-    value: distribution.id,
-    label: distribution.name
-  }))
-);
 
 // Branch options
 const branchOptions = computed(() =>
@@ -492,22 +481,55 @@ const branchOptions = computed(() =>
   }))
 );
 
+// Branch logic for conditional display
+const showBranchDropdown = computed(() => {
+  return branches.value.length > 1;
+});
+
+const selectedBranch = computed(() => {
+  if (branches.value.length === 1) {
+    return branches.value[0];
+  }
+  if (form.branch_id && branches.value.length > 1) {
+    return branches.value.find(branch => branch.id === form.branch_id);
+  }
+  return null;
+});
+
+// Filtered terms and mark distributions based on selected branch
+const filteredTerms = computed(() => {
+  if (!form.branch_id) return terms.value;
+  return terms.value.filter(term => term.branch_id === form.branch_id);
+});
+
+const filteredMarkDistributions = computed(() => {
+  if (!form.branch_id) return markDistributions.value;
+  return markDistributions.value.filter(dist => dist.branch_id === form.branch_id);
+});
+
+// Update term and mark distribution options based on filtered data
+const termOptions = computed(() =>
+  filteredTerms.value.map(term => ({
+    value: term.id,
+    label: term.name
+  }))
+);
+
+const markDistributionOptions = computed(() => {
+  return filteredMarkDistributions.value.map(distribution => ({
+    value: distribution.id,
+    label: distribution.name
+  }));
+});
+
 // Form data
 const form = reactive({
   branch_id: '',
   name: '',
   term_id: '',
-  exam_type_id: '',
-  mark_distribution_id: '',
-  remarks: '',
-  // Hidden fields with defaults (CodeIgniter style)
-  academic_year: '',
-  description: '',
-  is_active: true,
-  publish_status: false,
-  result_status: false,
-  created_by: '',
-  updated_by: ''
+  type_id: '',
+  mark_distribution_ids: [],
+  remarks: ''
 });
 
 // Computed properties
@@ -523,7 +545,7 @@ const filteredExams = computed(() => {
   }
 
   if (selectedExamTypeId.value) {
-    filtered = filtered.filter(exam => exam.exam_type_id === selectedExamTypeId.value);
+    filtered = filtered.filter(exam => exam.type_id === selectedExamTypeId.value);
   }
 
   if (selectedTermId.value) {
@@ -554,12 +576,10 @@ const filteredExams = computed(() => {
 const loadTerms = async () => {
   try {
     termsLoading.value = true;
-    const response = await termApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id,
+    const response = await examTermApi.getAll({
       is_active: true
     });
-    terms.value = response.data || [];
+    terms.value = response.data?.terms || [];
   } catch (error) {
     showToast('Failed to load terms', 'error');
   } finally {
@@ -570,13 +590,15 @@ const loadTerms = async () => {
 const loadMarkDistributions = async () => {
   try {
     markDistributionsLoading.value = true;
+    console.log('Loading mark distributions...');
     const response = await markDistributionApi.getAll({
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id,
       is_active: true
     });
-    markDistributions.value = response.data || [];
+    console.log('Mark distributions response:', response);
+    markDistributions.value = response.data?.distributions || [];
+    console.log('Mark distributions loaded:', markDistributions.value);
   } catch (error) {
+    console.error('Error loading mark distributions:', error);
     showToast('Failed to load mark distributions', 'error');
   } finally {
     markDistributionsLoading.value = false;
@@ -586,8 +608,50 @@ const loadMarkDistributions = async () => {
 const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
-  await Promise.all([fetchBranches(), fetchExamTypes(), loadTerms(), loadMarkDistributions()]);
+  await Promise.all([fetchBranches(), loadTerms(), loadMarkDistributions()]);
+
+  // Auto-select branch if user has only one branch
+  if (branches.value.length === 1) {
+    form.branch_id = branches.value[0].id;
+    // Load filtered data for the single branch
+    await loadFilteredData();
+  }
+
   showModal.value = true;
+};
+
+// Handle branch change and filter data accordingly
+const onBranchChange = async branchId => {
+  form.branch_id = branchId;
+  // Clear dependent fields when branch changes
+  form.term_id = '';
+  form.mark_distribution_ids = [];
+  // Load filtered data for the selected branch
+  await loadFilteredData();
+};
+
+// Load filtered terms and mark distributions based on selected branch
+const loadFilteredData = async () => {
+  if (!form.branch_id) return;
+
+  try {
+    // Load terms for the selected branch
+    const termsResponse = await examTermApi.getAll({
+      is_active: true,
+      branch_id: form.branch_id
+    });
+    terms.value = termsResponse.data?.terms || [];
+
+    // Load mark distributions for the selected branch
+    const distributionsResponse = await markDistributionApi.getAll({
+      is_active: true,
+      branch_id: form.branch_id
+    });
+    markDistributions.value = distributionsResponse.data?.distributions || [];
+  } catch (error) {
+    console.error('Error loading filtered data:', error);
+    showToast('Failed to load data for selected branch', 'error');
+  }
 };
 
 const editExam = async exam => {
@@ -595,18 +659,17 @@ const editExam = async exam => {
   form.branch_id = exam.branch_id || '';
   form.name = exam.name || '';
   form.term_id = exam.term_id || '';
-  form.exam_type_id = exam.exam_type_id || '';
-  form.mark_distribution_id = exam.mark_distribution_id || '';
+  form.type_id = exam.type_id || '';
+  form.mark_distribution_ids = exam.mark_distribution_ids || [];
   form.remarks = exam.remarks || '';
-  form.academic_year = exam.academic_year || '';
-  form.description = exam.description || '';
-  form.is_active = exam.is_active !== false;
-  form.publish_status = exam.publish_status || false;
-  form.result_status = exam.result_status || false;
-  form.created_by = exam.created_by || '';
-  form.updated_by = exam.updated_by || '';
 
-  await Promise.all([fetchBranches(), fetchExamTypes(), loadTerms(), loadMarkDistributions()]);
+  await Promise.all([fetchBranches(), loadTerms(), loadMarkDistributions()]);
+
+  // Load filtered data for the exam's branch
+  if (form.branch_id) {
+    await loadFilteredData();
+  }
+
   showModal.value = true;
 };
 
@@ -630,7 +693,7 @@ const deleteExam = async exam => {
 };
 
 const saveExam = async () => {
-  // CodeIgniter Style - Only validate essential fields
+  //  - Only validate essential fields
   if (!form.branch_id) {
     showToast('Branch is required', 'error');
     return;
@@ -639,8 +702,8 @@ const saveExam = async () => {
     showToast('Name is required', 'error');
     return;
   }
-  if (!form.exam_type_id) {
-    showToast('Type is required', 'error');
+  if (!form.type_id) {
+    showToast('Exam type is required', 'error');
     return;
   }
   if (!form.term_id) {
@@ -655,23 +718,15 @@ const saveExam = async () => {
   try {
     saving.value = true;
 
-    // Set default values for hidden fields (CodeIgniter style)
+    // Prepare form data for backend
     const examData = {
       branch_id: form.branch_id,
       name: form.name.trim(),
       term_id: form.term_id,
-      exam_type_id: form.exam_type_id,
-      mark_distribution_id: form.mark_distribution_id,
+      type_id: form.type_id,
+      mark_distribution_ids: form.mark_distribution_ids,
       remarks: form.remarks || '',
-      academic_year: form.academic_year.trim(),
-      description: form.description || '',
-      school_id: user.value.school_id,
-      // Set defaults for hidden fields
-      is_active: form.is_active !== false,
-      publish_status: form.publish_status || false,
-      result_status: form.result_status || false,
-      created_by: form.created_by || user.value.id,
-      updated_by: form.updated_by || user.value.id
+      school_id: user.value.school_id
     };
 
     if (editingExam.value) {
@@ -701,16 +756,9 @@ const resetForm = () => {
   form.branch_id = '';
   form.name = '';
   form.term_id = '';
-  form.exam_type_id = '';
-  form.mark_distribution_id = '';
+  form.type_id = '';
+  form.mark_distribution_ids = [];
   form.remarks = '';
-  form.academic_year = user.value?.academic_year || '';
-  form.description = '';
-  form.is_active = true;
-  form.publish_status = false;
-  form.result_status = false;
-  form.created_by = '';
-  form.updated_by = '';
 };
 
 const clearFilters = () => {
@@ -749,6 +797,6 @@ const getStatusBadgeClass = (type, value) => {
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([loadExams(), fetchExamTypes(), loadTerms()]);
+  await Promise.all([loadExams(), loadTerms()]);
 });
 </script>

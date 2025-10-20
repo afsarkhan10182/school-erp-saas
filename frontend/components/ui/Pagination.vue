@@ -187,7 +187,7 @@ watch(
 );
 
 const totalPages = computed(() => {
-  return Math.ceil(props.pagination.total / localPageSize.value);
+  return props.pagination.totalPages || Math.ceil(props.pagination.total / props.pagination.limit);
 });
 
 const visiblePages = computed(() => {
@@ -215,11 +215,11 @@ const visiblePages = computed(() => {
 });
 
 const startItem = computed(() => {
-  return (props.pagination.page - 1) * localPageSize.value + 1;
+  return (props.pagination.page - 1) * props.pagination.limit + 1;
 });
 
 const endItem = computed(() => {
-  return Math.min(props.pagination.page * localPageSize.value, props.pagination.total);
+  return Math.min(props.pagination.page * props.pagination.limit, props.pagination.total);
 });
 
 const previousPage = () => {

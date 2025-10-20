@@ -113,18 +113,12 @@ class CommonService {
    */
   static calculatePaginationMeta(total, page, limit) {
     const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
 
     return {
       total,
       page,
       limit,
-      totalPages,
-      hasNextPage,
-      hasPrevPage,
-      startIndex: (page - 1) * limit + 1,
-      endIndex: Math.min(page * limit, total)
+      totalPages
     };
   }
 

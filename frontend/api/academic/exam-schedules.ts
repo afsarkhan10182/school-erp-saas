@@ -80,6 +80,33 @@ export interface CreateExamScheduleData {
   branch_id: string;
 }
 
+export interface QuickScheduleData {
+  exam_id: string;
+  class_ids: string[];
+  section_ids?: string[];
+  starting_date: string;
+  starting_time: string;
+  duration_minutes: number;
+  exam_hall_id?: string;
+  mark_distribution?: {
+    theory_marks: number;
+    practical_marks: number;
+    viva_marks: number;
+    assignment_marks: number;
+  };
+  total_marks?: number;
+  pass_marks?: number;
+  school_id: string;
+  branch_id: string;
+}
+
+export interface QuickScheduleResult {
+  created_schedules: ExamSchedule[];
+  errors: string[];
+  success_count: number;
+  error_count: number;
+}
+
 export interface UpdateExamScheduleData extends Partial<CreateExamScheduleData> {
   id: string;
 }
@@ -197,6 +224,12 @@ export const examScheduleApi = {
   // Update schedule status
   async updateStatus(id: string, status: string): Promise<ExamSchedule> {
     const response = await apiCall('patch', `/exam-schedules/${id}/status`, { status });
+    return response.data;
+  },
+
+  // Quick schedule creation ()
+  async createQuickSchedule(data: QuickScheduleData): Promise<QuickScheduleResult> {
+    const response = await apiCall('post', '/exam-schedules/quick', data);
     return response.data;
   }
 };

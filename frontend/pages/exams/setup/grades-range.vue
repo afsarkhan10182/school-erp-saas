@@ -6,7 +6,7 @@
         <div>
           <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Grades Range</h1>
           <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage grade ranges and grade points following CodeIgniter standards
+            Manage grade ranges and grade points following standards
           </p>
         </div>
         <div class="mt-4 sm:mt-0">
@@ -148,9 +148,9 @@
 
         <template #body>
           <form @submit.prevent="saveGrade" class="space-y-6">
-            <!-- CodeIgniter Style - Exactly 5 fields as per specification -->
+            <!--  - Exactly 5 fields as per specification -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Branch (CodeIgniter Style) -->
+              <!-- Branch () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Branch <span class="text-red-500">*</span>
@@ -163,7 +163,7 @@
                 />
               </div>
 
-              <!-- Name (CodeIgniter Style) -->
+              <!-- Name () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Name <span class="text-red-500">*</span>
@@ -177,7 +177,7 @@
                 />
               </div>
 
-              <!-- Grade Point (CodeIgniter Style) -->
+              <!-- Grade Point () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Grade Point <span class="text-red-500">*</span>
@@ -194,7 +194,7 @@
                 />
               </div>
 
-              <!-- Min Percentage (CodeIgniter Style) -->
+              <!-- Min Percentage () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Min Percentage <span class="text-red-500">*</span>
@@ -210,7 +210,7 @@
                 />
               </div>
 
-              <!-- Max Percentage (CodeIgniter Style) -->
+              <!-- Max Percentage () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Max Percentage <span class="text-red-500">*</span>
@@ -225,14 +225,6 @@
                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
-            </div>
-
-            <!-- Hidden fields (keep in data but don't show in UI) -->
-            <div style="display: none">
-              <input v-model="form.description" type="text" />
-              <input v-model="form.is_active" type="checkbox" />
-              <input v-model="form.created_by" type="text" />
-              <input v-model="form.updated_by" type="text" />
             </div>
 
             <!-- Form Actions -->
@@ -290,12 +282,7 @@ const form = reactive({
   name: '',
   grade_point: '',
   min_percentage: '',
-  max_percentage: '',
-  // Hidden fields with defaults (CodeIgniter style)
-  description: '',
-  is_active: true,
-  created_by: '',
-  updated_by: ''
+  max_percentage: ''
 });
 
 // Computed properties
@@ -357,10 +344,6 @@ const editGrade = async grade => {
   form.grade_point = grade.grade_point || '';
   form.min_percentage = grade.min_percentage || '';
   form.max_percentage = grade.max_percentage || '';
-  form.description = grade.description || '';
-  form.is_active = grade.is_active !== false;
-  form.created_by = grade.created_by || '';
-  form.updated_by = grade.updated_by || '';
 
   await fetchBranches();
   showModal.value = true;
@@ -381,7 +364,7 @@ const saveGrade = async () => {
   try {
     saving.value = true;
 
-    // Set default values for hidden fields (CodeIgniter style)
+    // Prepare form data for backend
     const gradeData = {
       branch_id: form.branch_id,
       name: form.name.trim(),
@@ -390,7 +373,7 @@ const saveGrade = async () => {
       max_percentage: parseInt(form.max_percentage),
       description: form.description || '',
       school_id: user.value.school_id,
-      // Set defaults for hidden fields
+      // Default values for backend
       is_active: form.is_active !== false,
       created_by: form.created_by || user.value.id,
       updated_by: form.updated_by || user.value.id

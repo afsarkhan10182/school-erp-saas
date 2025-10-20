@@ -11,6 +11,12 @@ export interface GradeScale {
   sort_order?: number;
 }
 
+export interface Branch {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 export interface GradingSystem {
   id: string;
   name: string;
@@ -22,6 +28,8 @@ export interface GradingSystem {
   is_active: boolean;
   is_default: boolean;
   school_id: string;
+  branch_id?: string;
+  branch?: Branch;
   created_by?: string;
   updated_by?: string;
   created_at?: string;

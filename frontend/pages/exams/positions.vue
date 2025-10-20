@@ -38,7 +38,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Branch Selection (CodeIgniter Style) -->
+          <!-- Branch Selection () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Branch

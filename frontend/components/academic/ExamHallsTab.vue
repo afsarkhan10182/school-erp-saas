@@ -74,12 +74,7 @@
                 Capacity
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Date Updated
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
                 Actions
               </th>
@@ -109,11 +104,6 @@
                   {{ hall.capacity }} seats
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                  {{ formatDate(hall.updated_at) }}
-                </div>
-              </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-2">
                   <button
@@ -136,6 +126,15 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <Pagination
+      v-if="hasData"
+      :pagination="pagination"
+      item-label="exam halls"
+      @page-changed="goToPage"
+      @page-size-changed="changePageSize"
+    />
+
     <!-- Create/Edit Modal -->
     <ExamHallModal
       :show="showModal"
@@ -152,6 +151,7 @@ import { Plus, Building, Edit, Trash2 } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useToast } from '~/composables/useToast';
 import ExamHallModal from './ExamHallModal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
 
 // Props - No longer needed since exam halls are school-wide
@@ -165,7 +165,17 @@ const emit = defineEmits<{
 
 // Composables
 const { showToast } = useToast();
-const { halls, loading, loadExamHalls, deleteHall } = useExamHalls();
+const {
+  halls,
+  loading,
+  pagination,
+  hasData,
+  isEmpty,
+  loadExamHalls,
+  deleteHall,
+  goToPage,
+  changePageSize
+} = useExamHalls();
 
 // State
 const showModal = ref(false);
@@ -203,21 +213,17 @@ const handleSuccess = async () => {
   emit('success');
 };
 
-// Format date for display
-const formatDate = dateString => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+// Expose methods to parent component
+const loadData = async () => {
+  await loadExamHalls();
 };
 
+defineExpose({
+  loadData
+});
+
 // Lifecycle
-onMounted(() => {
-  loadExamHalls();
+onMounted(async () => {
+  await loadData();
 });
 </script>
