@@ -49,6 +49,12 @@ const exportRoutes = require('./shared/export.routes');
 // Settings routes
 const settingsRoutes = require('./administration/settings/system-setting.routes');
 
+// Certificate template routes
+const certificateTemplateRoutes = require('./administration/certificate-template.routes');
+
+// Certificate generation routes
+const certificateGenerationRoutes = require('./administration/certificate-generation.routes');
+
 // Upload routes
 const uploadRoutes = require('./shared/uploads.routes');
 
@@ -114,6 +120,12 @@ router.use('/attendance-notifications', attendanceNotificationRoutes);
 router.use('/export', exportRoutes);
 // Settings routes - consolidated namespace
 router.use('/settings', settingsRoutes);
+
+// Certificate template routes
+router.use('/certificate-templates', certificateTemplateRoutes);
+
+// Certificate generation routes
+router.use('/certificates', certificateGenerationRoutes);
 
 // Upload routes
 router.use('/uploads', uploadRoutes);

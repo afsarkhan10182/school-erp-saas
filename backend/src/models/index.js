@@ -37,6 +37,9 @@ const TimetableSlot = require('./academic/timetable/timetable-slot.model');
 const { Exam, ExamResult, ExamSchedule, ExamHall } = require('./academic/exams');
 const MarkDistribution = require('./academic/mark-distribution.model');
 
+// Administration models
+const CertificateTemplate = require('./administration/certificate-template.model');
+
 // Initialize associations
 const models = {
   User,
@@ -76,7 +79,8 @@ const models = {
   ExamResult,
   ExamSchedule,
   ExamHall,
-  MarkDistribution
+  MarkDistribution,
+  CertificateTemplate
 };
 
 // Call associate function for each model if it exists

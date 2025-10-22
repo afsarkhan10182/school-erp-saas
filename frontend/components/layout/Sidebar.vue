@@ -653,6 +653,45 @@ const menuGroups = computed(() => {
     });
   }
 
+  // Certificates Module
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'certificates',
+      title: 'Certificate Management',
+      items: [
+        {
+          id: 'certificate-management',
+          title: 'Certificates',
+          icon: Award,
+          requiredModule: 'certificates',
+          children: [
+            {
+              id: 'certificate-templates',
+              title: 'Templates',
+              path: '/certificates',
+              icon: FileText,
+              requiredModule: 'certificates'
+            },
+            {
+              id: 'generate-student-certificates',
+              title: 'Generate Student',
+              path: '/certificates?tab=generate-student',
+              icon: GraduationCap,
+              requiredModule: 'certificates'
+            },
+            {
+              id: 'generate-employee-certificates',
+              title: 'Generate Employee',
+              path: '/certificates?tab=generate-employee',
+              icon: Users,
+              requiredModule: 'certificates'
+            }
+          ]
+        }
+      ]
+    });
+  }
+
   // Exams Module
   if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
     groups.push({

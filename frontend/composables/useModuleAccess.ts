@@ -238,7 +238,10 @@ export function useModuleAccess() {
       '/reports/transport': 'transport',
 
       '/reports': 'reports',
-      '/reports/advanced': 'reports'
+      '/reports/advanced': 'reports',
+
+      // Certificate Management Module
+      '/certificates': 'certificates'
 
       // Module settings page removed - now handled through subscription plans
     };
