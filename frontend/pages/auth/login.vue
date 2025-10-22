@@ -154,6 +154,17 @@
                   Signing in....
                 </span>
               </button>
+
+              <!-- Demo Quick Access -->
+              <div class="mt-4">
+                <button
+                  type="button"
+                  @click="fillDemoCredentials"
+                  class="w-full py-2 px-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white/80 font-medium rounded-xl hover:bg-white/20 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                >
+                  Quick Demo Login
+                </button>
+              </div>
             </form>
 
             <!-- Copyright -->
@@ -435,6 +446,14 @@ const handleLogin = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// Fill demo credentials for quick access
+const fillDemoCredentials = () => {
+  form.email = 'demo@gmail.com';
+  form.password = 'demo@123';
+  form.rememberMe = false;
+  error.value = ''; // Clear any existing errors
 };
 </script>
 
