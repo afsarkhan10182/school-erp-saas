@@ -22,7 +22,9 @@
       >
         <form @submit.prevent="handleSubmit">
           <!-- Modal header -->
-          <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+          <div
+            class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4"
+          >
             <div class="flex items-center justify-between">
               <h3 class="text-lg leading-6 font-semibold text-gray-900 dark:text-white">
                 {{ isEdit ? 'Edit Certificate Template' : 'Create Certificate Template' }}
@@ -167,7 +169,10 @@
               <!-- Photo Settings -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label for="photoStyle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label
+                    for="photoStyle"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
                     User Photo Style *
                   </label>
                   <select
@@ -182,7 +187,10 @@
                 </div>
 
                 <div>
-                  <label for="photoSize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label
+                    for="photoSize"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
                     Photo Size (px) *
                   </label>
                   <input
@@ -205,7 +213,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <!-- Logo Image -->
                   <div>
-                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2">Logo Image</label>
+                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
+                      >Logo Image</label
+                    >
                     <input
                       ref="logoInput"
                       type="file"
@@ -214,7 +224,11 @@
                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
                     />
                     <div v-if="logoPreview" class="mt-2 relative inline-block">
-                      <img :src="logoPreview" alt="Logo" class="h-20 w-20 object-cover rounded border border-gray-300" />
+                      <img
+                        :src="logoPreview"
+                        alt="Logo"
+                        class="h-20 w-20 object-cover rounded border border-gray-300"
+                      />
                       <button
                         type="button"
                         @click="clearImage('logo_image')"
@@ -227,7 +241,9 @@
 
                   <!-- Background Image -->
                   <div>
-                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2">Background Image</label>
+                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
+                      >Background Image</label
+                    >
                     <input
                       ref="bgInput"
                       type="file"
@@ -236,7 +252,11 @@
                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
                     />
                     <div v-if="backgroundPreview" class="mt-2 relative inline-block">
-                      <img :src="backgroundPreview" alt="Background" class="h-20 w-32 object-cover rounded border border-gray-300" />
+                      <img
+                        :src="backgroundPreview"
+                        alt="Background"
+                        class="h-20 w-32 object-cover rounded border border-gray-300"
+                      />
                       <button
                         type="button"
                         @click="clearImage('background_image')"
@@ -263,10 +283,15 @@
                     {{ showTemplates ? 'Hide' : 'Show' }} Templates
                   </button>
                 </div>
-                
+
                 <!-- Template Samples -->
-                <div v-if="showTemplates" class="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Click a template to load it:</p>
+                <div
+                  v-if="showTemplates"
+                  class="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600"
+                >
+                  <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    Click a template to load it:
+                  </p>
                   <div class="flex flex-wrap gap-2">
                     <button
                       v-for="template in sampleTemplates"
@@ -285,7 +310,6 @@
                   :available-tags="availableTags"
                   placeholder="Enter certificate content here. Use the toolbar to format text and insert dynamic tags..."
                 />
-
               </div>
 
               <!-- Content Preview -->
@@ -293,7 +317,9 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Preview
                 </label>
-                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 max-h-48 overflow-y-auto">
+                <div
+                  class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 max-h-48 overflow-y-auto"
+                >
                   <div
                     class="prose prose-sm max-w-none"
                     :class="[
@@ -308,7 +334,9 @@
           </div>
 
           <!-- Modal footer -->
-          <div class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 px-6 py-4 flex justify-end gap-3">
+          <div
+            class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 px-6 py-4 flex justify-end gap-3"
+          >
             <button
               type="button"
               @click="close"
@@ -551,10 +579,10 @@ const handleFileUpload = (event, field) => {
     }
 
     form[field] = file;
-    
+
     // Create preview
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       if (field === 'logo_image') {
         logoPreview.value = e.target.result;
       } else if (field === 'background_image') {
@@ -562,12 +590,12 @@ const handleFileUpload = (event, field) => {
       }
     };
     reader.readAsDataURL(file);
-    
+
     showToast(`${field.replace('_', ' ')} uploaded successfully`, 'success');
   }
 };
 
-const clearImage = (field) => {
+const clearImage = field => {
   form[field] = null;
   if (field === 'logo_image') {
     logoPreview.value = null;
@@ -576,7 +604,7 @@ const clearImage = (field) => {
   }
 };
 
-const loadSampleTemplate = (content) => {
+const loadSampleTemplate = content => {
   form.content = content;
   showToast('Template loaded successfully', 'success');
 };
@@ -645,7 +673,7 @@ const handleSubmit = async () => {
     Object.keys(form).forEach(key => {
       // Skip preview properties
       if (key.endsWith('_preview')) return;
-      
+
       // Handle file uploads
       if (key.endsWith('_image')) {
         if (form[key] && form[key] instanceof File) {
@@ -689,7 +717,6 @@ const handleSubmit = async () => {
     close();
   } catch (error) {
     showToast('Failed to save template', 'error');
-    console.error('Error saving template:', error);
   } finally {
     loading.value = false;
   }
@@ -698,21 +725,16 @@ const handleSubmit = async () => {
 // Load branches on mount
 onMounted(async () => {
   try {
-    console.log('Loading branches...');
     await fetchBranchesForUser();
-    console.log('Available branches:', availableBranches.value);
 
     // Set default branch if only one branch exists
     if (availableBranches.value.length === 1) {
       form.branch_id = availableBranches.value[0].id;
-      console.log('Auto-selected branch:', form.branch_id);
     } else if (availableBranches.value.length === 0 && currentBranch.value) {
       // Fallback: use current branch if no branches are loaded
       form.branch_id = currentBranch.value.id;
-      console.log('Using current branch as fallback:', form.branch_id);
     }
   } catch (error) {
-    console.error('Error loading branches:', error);
     showToast('Failed to load branches. Please refresh the page.', 'error');
   }
 });
@@ -746,7 +768,6 @@ watch(
   newBranches => {
     if (newBranches.length === 1 && !form.branch_id) {
       form.branch_id = newBranches[0].id;
-      console.log('Auto-selected branch from watcher:', form.branch_id);
     }
   },
   { immediate: true }

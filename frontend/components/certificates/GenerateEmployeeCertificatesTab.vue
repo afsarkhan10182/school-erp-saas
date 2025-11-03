@@ -38,7 +38,11 @@
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
           >
             <option value="">Select Role</option>
-            <option v-for="roleOption in EMPLOYEE_ROLES" :key="roleOption.value" :value="roleOption.value">
+            <option
+              v-for="roleOption in EMPLOYEE_ROLES"
+              :key="roleOption.value"
+              :value="roleOption.value"
+            >
               {{ roleOption.label }}
             </option>
           </select>
@@ -59,17 +63,33 @@
             :disabled="!filters.branch_id || employeeTemplates.length === 0"
           >
             <option value="">
-              {{ employeeTemplates.length === 0 && filters.branch_id ? `No ${user_type.value} templates found for this branch` : 'Select Template' }}
+              {{
+                employeeTemplates.length === 0 && filters.branch_id
+                  ? `No ${user_type.value} templates found for this branch`
+                  : 'Select Template'
+              }}
             </option>
             <option v-for="template in employeeTemplates" :key="template.id" :value="template.id">
               {{ template.name }}
             </option>
           </select>
-          <p v-if="filters.branch_id && employeeTemplates.length === 0 && templates.value.length === 0" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            No templates found for this branch. Please create {{ user_type.value }} certificate templates first.
+          <p
+            v-if="
+              filters.branch_id && employeeTemplates.length === 0 && templates.value.length === 0
+            "
+            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+          >
+            No templates found for this branch. Please create {{ user_type.value }} certificate
+            templates first.
           </p>
-          <p v-else-if="filters.branch_id && employeeTemplates.length === 0 && templates.value.length > 0" class="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-            Found {{ templates.value.length }} template(s) but none are for {{ user_type.value }}s. Please create {{ user_type.value }} certificate templates.
+          <p
+            v-else-if="
+              filters.branch_id && employeeTemplates.length === 0 && templates.value.length > 0
+            "
+            class="mt-1 text-xs text-yellow-600 dark:text-yellow-400"
+          >
+            Found {{ templates.value.length }} template(s) but none are for {{ user_type.value }}s.
+            Please create {{ user_type.value }} certificate templates.
           </p>
         </div>
       </div>
@@ -118,10 +138,12 @@
           <Search class="h-4 w-4 mr-2" />
           Load Employees
         </button>
-        
+
         <button
           @click="generateCertificates"
-          :disabled="selectedEmployees.length === 0 || !filters.template_id || employees.length === 0"
+          :disabled="
+            selectedEmployees.length === 0 || !filters.template_id || employees.length === 0
+          "
           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FileText class="h-4 w-4 mr-2" />
@@ -268,7 +290,7 @@ const user_type = computed(() => {
   if (props.userType) {
     return props.userType;
   }
-  
+
   // Determine from route path
   const path = route.path || '';
   if (path.includes('generate-employees') || path.includes('employee')) {
@@ -277,7 +299,7 @@ const user_type = computed(() => {
   if (path.includes('generate-students') || path.includes('student')) {
     return 'student';
   }
-  
+
   // Default fallback
   return 'employee';
 });
@@ -327,13 +349,13 @@ const allSelected = computed(() => {
 });
 
 // Format role label for display
-const formatRoleLabel = (role) => {
+const formatRoleLabel = role => {
   const roleObj = EMPLOYEE_ROLES.find(r => r.value === role);
   return roleObj ? roleObj.label : role.charAt(0).toUpperCase() + role.slice(1);
 };
 
 // Map User model to employee display format
-const mapUserToEmployee = (userData) => {
+const mapUserToEmployee = userData => {
   return {
     id: userData.id,
     name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
@@ -360,22 +382,19 @@ const loadTemplatesForBranch = async () => {
     templates.value = [];
     return;
   }
-  
+
   try {
     // Clear previous templates before loading new ones to prevent showing wrong templates
     templates.value = [];
-    
+
     const currentUserType = user_type.value;
-    console.log('Loading templates for branch:', filters.branch_id, 'user_type:', currentUserType);
     // Filter by user_type on backend to get only templates for the current user type
     // Backend will filter by both branch_id and user_type
-    await loadTemplates({ 
+    await loadTemplates({
       branch_id: filters.branch_id,
       user_type: currentUserType
     });
-    console.log('Templates loaded:', templates.value.length, 'templates for branch', filters.branch_id, 'user_type', currentUserType);
   } catch (error) {
-    console.error('Error loading templates:', error);
     showToast('Failed to load certificate templates', 'error');
     templates.value = [];
   }
@@ -389,7 +408,7 @@ const loadEmployees = async () => {
 
   try {
     loading.value = true;
-    
+
     // Build query params for Users API
     const params = {
       branch_id: filters.branch_id,
@@ -397,20 +416,20 @@ const loadEmployees = async () => {
       limit: 1000, // Load many employees at once
       status: 'active'
     };
-    
+
     // Add role filter if selected
     if (filters.role) {
       params.role = filters.role;
     }
-    
+
     // Add search filter if provided
     if (filters.search && filters.search.trim()) {
       params.search = filters.search.trim();
     }
-    
+
     // Fetch users from API
     const response = await UsersApi.getAll(params);
-    
+
     // Handle response structure
     let usersList = [];
     if (response.data && response.data.users && Array.isArray(response.data.users)) {
@@ -418,14 +437,14 @@ const loadEmployees = async () => {
     } else if (response.data && Array.isArray(response.data)) {
       usersList = response.data;
     }
-    
+
     // Filter out student and parent roles (only show employees)
     const employeeRoles = EMPLOYEE_ROLES.map(r => r.value);
     usersList = usersList.filter(user => employeeRoles.includes(user.role));
-    
+
     // Map users to employee format
     employees.value = usersList.map(mapUserToEmployee);
-    
+
     if (employees.value.length === 0) {
       showToast('No employees found for the selected filters', 'info');
     } else {
@@ -508,7 +527,8 @@ const generateCertificates = async () => {
       showToast(result.message || 'Failed to generate certificates', 'error');
     }
   } catch (error) {
-    const errorMsg = error?.response?.data?.message || error?.message || 'Failed to generate certificates';
+    const errorMsg =
+      error?.response?.data?.message || error?.message || 'Failed to generate certificates';
     showToast(errorMsg, 'error');
   } finally {
     loading.value = false;
@@ -518,7 +538,9 @@ const generateCertificates = async () => {
 const printCertificates = async (employeeIds, certificateData) => {
   try {
     // Get selected employees data
-    const selectedEmployeesData = employees.value.filter(employee => employeeIds.includes(employee.id));
+    const selectedEmployeesData = employees.value.filter(employee =>
+      employeeIds.includes(employee.id)
+    );
 
     if (selectedEmployeesData.length === 0) {
       showToast('No employee data found for printing', 'error');
@@ -549,7 +571,6 @@ const printCertificates = async (employeeIds, certificateData) => {
     // Open print preview with the certificate HTML
     await openCertificatePrintPreview(combinedHTML, selectedTemplate.name);
   } catch (error) {
-    console.error('Error printing certificates:', error);
     showToast('Error opening print preview', 'error');
   }
 };
@@ -558,7 +579,6 @@ const printCertificates = async (employeeIds, certificateData) => {
 const generateCertificateHTML = (employee, template) => {
   // Check if template has content
   if (!template.content) {
-    console.error('Template has no content:', template);
     return '<div style="padding: 20px; text-align: center; color: red;">Template content not found</div>';
   }
 
@@ -720,7 +740,6 @@ const openCertificatePrintPreview = async (htmlContent, title) => {
     previewWindow.document.close();
     previewWindow.focus();
   } catch (error) {
-    console.error('Error opening certificate print preview:', error);
     throw error;
   }
 };
@@ -739,7 +758,7 @@ watch(
       employees.value = [];
       selectedEmployees.value = [];
     }
-    
+
     // Load templates for the selected branch
     await loadTemplatesForBranch();
   }
@@ -759,16 +778,15 @@ onMounted(async () => {
     // Initialize: don't load employees automatically
     employees.value = [];
     selectedEmployees.value = [];
-    
+
     await fetchBranchesForUser();
-    
+
     // Auto-select branch if only one branch available
     if (availableBranches.value.length === 1) {
       filters.branch_id = availableBranches.value[0].id;
       // Templates will load automatically via watcher
     }
   } catch (error) {
-    console.error('Error initializing component:', error);
     showToast('Failed to initialize', 'error');
   }
 });
