@@ -159,8 +159,8 @@
             </div>
           </div>
 
-          <!-- Branch Selection (Super Admin & School Admin) -->
-          <div v-if="(isSuperAdmin && formData.school_id) || isSchoolAdmin">
+          <!-- Branch Selection (Super Admin & Admin) -->
+          <div v-if="(isSuperAdmin && formData.school_id) || isAdmin">
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
               Branch <span class="text-red-500">*</span>
             </label>
@@ -305,12 +305,12 @@ import { Users, Schools, Branches } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
-const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
+const { isSuperAdmin, isAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
 
-// Access control - only Super Admin and School Admin can access user management
-if (!isSuperAdmin.value && !isSchoolAdmin.value) {
-  showError('Access denied. Only Super Admin and School Admin can manage users.');
+// Access control - only Super Admin and Admin can access user management
+if (!isSuperAdmin.value && !isAdmin.value) {
+  showError('Access denied. Only Super Admin and Admin can manage users.');
   await navigateTo('/dashboard');
 }
 
@@ -336,13 +336,13 @@ const availableRoles = computed(() => {
 
   if (currentUserRole === 'super_admin') {
     return [
-      { value: 'school_admin', label: 'School Admin' },
+      { value: 'admin', label: 'Admin' },
       { value: 'teacher', label: 'Teacher' },
       { value: 'accountant', label: 'Accountant' },
       { value: 'librarian', label: 'Librarian' },
       { value: 'receptionist', label: 'Receptionist' }
     ];
-  } else if (currentUserRole === 'school_admin') {
+  } else if (currentUserRole === 'admin') {
     return [
       { value: 'branch_admin', label: 'Branch Admin' },
       { value: 'teacher', label: 'Teacher' },
@@ -438,7 +438,7 @@ const validationRules = {
     return null;
   },
   branch_id: value => {
-    if ((isSuperAdmin.value && formData.value.school_id) || isSchoolAdmin.value) {
+    if ((isSuperAdmin.value && formData.value.school_id) || isAdmin.value) {
       if (!value) return 'Branch selection is required';
     }
     return null;
@@ -462,7 +462,7 @@ const isFormValid = computed(() => {
     }
   }
 
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     requiredFields.push('branch_id');
   }
 
@@ -542,7 +542,7 @@ const handleSubmit = async () => {
     }
 
     // Auto-set school_id and branch_id based on user role
-    if (isSchoolAdmin.value) {
+    if (isAdmin.value) {
       payload.school_id = user.value.school_id;
     }
 
@@ -739,7 +739,7 @@ onMounted(async () => {
   }
 
   // Fetch branches for school admin
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     await fetchBranches();
   }
 

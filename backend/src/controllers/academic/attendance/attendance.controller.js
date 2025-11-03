@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Op } = require('sequelize');
+const { Op, sequelize } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
 const {
@@ -276,11 +276,25 @@ const getReport = async (req, res, next) => {
       student_id,
       date_from,
       date_to,
-      academic_year
+      academic_year,
+      branch_id,
+      page = 1,
+      limit = 10,
+      export_all = false
     } = req.query;
+
     const whereRec = { school_id: req.schoolId };
-    if (req.user.role === 'branch_admin') whereRec.branch_id = req.user.branch_id;
-    else if (req.branchId) whereRec.branch_id = req.branchId;
+
+    // Handle branch filtering
+    if (req.user.role === 'branch_admin') {
+      whereRec.branch_id = req.user.branch_id;
+    } else if (req.branchId) {
+      whereRec.branch_id = req.branchId;
+    } else if (branch_id) {
+      whereRec.branch_id = branch_id;
+    }
+
+    // Add other filters
     if (class_id) whereRec.class_id = class_id;
     if (section_id) whereRec.section_id = section_id;
     if (student_id) whereRec.student_id = student_id;
@@ -291,7 +305,7 @@ const getReport = async (req, res, next) => {
       // Date range filtering
       whereRec.date = { [Op.between]: [date_from, date_to] };
     } else if (date_from) {
-      // From date only
+      // From date only - if no date_to, look for records from date_from onwards
       whereRec.date = { [Op.gte]: date_from };
     } else if (report_type === 'daily' && date) {
       // Single date
@@ -301,23 +315,96 @@ const getReport = async (req, res, next) => {
       const start = `${year}-${String(month).padStart(2, '0')}-01`;
       const end = `${year}-${String(month).padStart(2, '0')}-31`;
       whereRec.date = { [Op.between]: [start, end] };
+    } else {
+      // If no date filters provided, get recent records (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      whereRec.date = { [Op.gte]: thirtyDaysAgo.toISOString().split('T')[0] };
     }
 
-    const records = await AttendanceRecord.findAll({
-      where: whereRec,
-      include: [{ model: Student, as: 'student' }]
+    // Get total count for pagination
+    const totalRecords = await AttendanceRecord.count({
+      where: whereRec
     });
 
-    // Basic aggregation
+    // Calculate pagination
+    const currentPage = parseInt(page);
+    const pageSize = parseInt(limit);
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const offset = (currentPage - 1) * pageSize;
+
+    // Build query options
+    const queryOptions = {
+      where: whereRec,
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'email', 'phone']
+        },
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['id', 'name', 'code']
+        },
+        {
+          model: Section,
+          as: 'section',
+          attributes: ['id', 'name']
+        }
+      ],
+      order: [
+        ['date', 'DESC'],
+        ['created_at', 'DESC']
+      ]
+    };
+
+    // Add pagination if not exporting all
+    if (!export_all) {
+      queryOptions.limit = pageSize;
+      queryOptions.offset = offset;
+    }
+
+    // Get records with proper includes
+    const records = await AttendanceRecord.findAll(queryOptions);
+
+    // Basic aggregation - use totalRecords for total count
     const summary = {
-      total: records.length,
+      total: totalRecords,
       present: records.filter(r => r.status === 'present').length,
       absent: records.filter(r => r.status === 'absent').length,
       late: records.filter(r => r.status === 'late').length,
       excused: records.filter(r => r.status === 'excused').length
     };
 
-    return res.status(httpStatus.default.OK).json({ success: true, data: { records, summary } });
+    // Prepare response data
+    const paginationData = {
+      current_page: currentPage,
+      total_pages: totalPages,
+      total_records: totalRecords,
+      per_page: pageSize,
+      has_next_page: currentPage < totalPages,
+      has_prev_page: currentPage > 1
+    };
+
+    const responseData = {
+      records,
+      summary,
+      pagination: paginationData
+    };
+
+    return res.status(httpStatus.default.OK).json({
+      success: true,
+      data: responseData,
+      filters: {
+        date_from,
+        date_to,
+        branch_id: whereRec.branch_id,
+        class_id,
+        section_id,
+        academic_year
+      }
+    });
   } catch (error) {
     logger.error('Error generating attendance report:', error);
     return next(error);
@@ -484,7 +571,7 @@ const notifyAbsentees = async (req, res, next) => {
           await sendEmail({
             to: email,
             subject: 'Absence Notification',
-            text: `Dear Parent/Guardian,\n\nThis is to inform you that ${student.first_name} ${student.last_name || ''} was marked absent on ${rec.date}.\n\nRegards,\nSchool Admin`
+            text: `Dear Parent/Guardian,\n\nThis is to inform you that ${student.first_name} ${student.last_name || ''} was marked absent on ${rec.date}.\n\nRegards,\nAdmin`
           });
           notified += 1;
         }
@@ -764,6 +851,72 @@ const getSummary = async (req, res, next) => {
   }
 };
 
+// Debug endpoint to check attendance data
+const debugAttendanceData = async (req, res, next) => {
+  try {
+    const { branch_id } = req.query;
+
+    // Get basic counts
+    const totalRecords = await AttendanceRecord.count({
+      where: { school_id: req.schoolId }
+    });
+
+    const branchRecords = await AttendanceRecord.count({
+      where: {
+        school_id: req.schoolId,
+        branch_id: branch_id || req.branchId
+      }
+    });
+
+    // Get recent records
+    const recentRecords = await AttendanceRecord.findAll({
+      where: {
+        school_id: req.schoolId,
+        branch_id: branch_id || req.branchId
+      },
+      include: [
+        { model: Student, as: 'student', attributes: ['first_name', 'last_name'] },
+        { model: Class, as: 'class', attributes: ['name'] }
+      ],
+      order: [['date', 'DESC']],
+      limit: 5
+    });
+
+    // Get date range of existing data
+    const dateRange = await AttendanceRecord.findAll({
+      where: {
+        school_id: req.schoolId,
+        branch_id: branch_id || req.branchId
+      },
+      attributes: [
+        [sequelize.fn('MIN', sequelize.col('date')), 'earliest_date'],
+        [sequelize.fn('MAX', sequelize.col('date')), 'latest_date']
+      ],
+      raw: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      debug: {
+        totalRecordsInSchool: totalRecords,
+        totalRecordsInBranch: branchRecords,
+        recentRecords: recentRecords.map(r => ({
+          id: r.id,
+          date: r.date,
+          status: r.status,
+          student: r.student ? `${r.student.first_name} ${r.student.last_name}` : 'N/A',
+          class: r.class?.name || 'N/A'
+        })),
+        dateRange: dateRange[0] || { earliest_date: null, latest_date: null },
+        queryParams: req.query
+      }
+    });
+  } catch (error) {
+    logger.error('Error in debug endpoint:', error);
+    return next(error);
+  }
+};
+
 module.exports = {
   upsertSession,
   saveRecords,
@@ -774,5 +927,6 @@ module.exports = {
   exportReport,
   exportPDFReport,
   exportExcelReport,
-  getSummary
+  getSummary,
+  debugAttendanceData
 };

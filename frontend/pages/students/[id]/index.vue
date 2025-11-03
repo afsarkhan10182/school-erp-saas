@@ -35,6 +35,7 @@
               Edit Student
             </button>
             <NuxtLink
+              v-if="isModuleEnabled('fees')"
               :to="`/students/${student?.id}/fee-ledger`"
               class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
             >
@@ -696,10 +697,14 @@ import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
+import { useModuleAccess } from '~/composables/useModuleAccess';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
 
 const route = useRoute();
 const studentId = route.params.id;
+
+// Module access
+const { isModuleEnabled, loadUserModules } = useModuleAccess();
 
 const student = ref(null);
 const isLoading = ref(false);
@@ -805,7 +810,9 @@ const getStudentFullName = student => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Load modules first to ensure isModuleEnabled works correctly
+  await loadUserModules();
   fetchStudent();
 });
 </script>

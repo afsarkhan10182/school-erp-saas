@@ -1,7 +1,8 @@
 const httpStatus = require('http-status');
+const { Op } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
 const { success, error, asyncHandler } = require('~/utils/shared/apiResponse');
-const { GradingSystem, GradeScale } = require('~/models');
+const { GradingSystem, GradeScale, Branch } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const GradingService = require('~/services/academic/grading.service');
 
@@ -28,13 +29,24 @@ class GradingSystemController {
       whereClause.is_active = is_active === 'true';
     }
 
-    const { count, rows } = await GradingSystem.findAndCountAll({
+    // Get total count separately to avoid issues with includes
+    const count = await GradingSystem.count({
+      where: whereClause
+    });
+
+    // Get the actual records with includes
+    const rows = await GradingSystem.findAll({
       where: whereClause,
       include: [
         {
           model: GradeScale,
           as: 'gradeScales',
           order: [['sort_order', 'ASC']]
+        },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
         }
       ],
       order: [['created_at', 'DESC']],
@@ -90,62 +102,58 @@ class GradingSystemController {
    * Create a new grading system
    */
   static createGradingSystem = asyncHandler(async (req, res) => {
-    const gradingSystemData = {
-      ...req.body,
-      school_id: req.schoolId,
-      created_by: req.user.id,
-      updated_by: req.user.id
-    };
-
-    // Validate grade scales if provided
-    if (gradingSystemData.gradeScales && gradingSystemData.gradeScales.length > 0) {
-      // Validate grade scale ranges don't overlap
-      const scales = gradingSystemData.gradeScales.sort(
-        (a, b) => a.min_percentage - b.min_percentage
-      );
-      for (let i = 0; i < scales.length - 1; i++) {
-        if (scales[i].max_percentage >= scales[i + 1].min_percentage) {
-          throw new ApiError(400, 'Grade scale ranges cannot overlap');
-        }
+    // Check for duplicate name in same school and branch
+    const existing = await GradingSystem.findOne({
+      where: {
+        name: req.body.name,
+        school_id: req.schoolId,
+        branch_id: req.body.branch_id
       }
-    }
-
-    const gradingSystem = await GradingSystem.create(gradingSystemData, {
-      include: [
-        {
-          model: GradeScale,
-          as: 'gradeScales'
-        }
-      ]
     });
 
-    // If grade scales are provided, create them
-    if (gradingSystemData.gradeScales && gradingSystemData.gradeScales.length > 0) {
-      const gradeScalesData = gradingSystemData.gradeScales.map((scale, index) => ({
-        ...scale,
-        grading_system_id: gradingSystem.id,
-        sort_order: index + 1,
-        created_by: req.user.id,
-        updated_by: req.user.id
-      }));
-
-      await GradeScale.bulkCreate(gradeScalesData);
+    if (existing) {
+      throw new ApiError(
+        409,
+        'Grading system with this name already exists in the selected branch'
+      );
     }
 
-    // Reload with grade scales
-    const createdGradingSystem = await GradingSystem.findByPk(gradingSystem.id, {
+    // Only accept essential fields and set sensible defaults
+    const gradingSystemData = {
+      name: req.body.name,
+      branch_id: req.body.branch_id,
+      grade_point: req.body.grade_point,
+      min_percentage: req.body.min_percentage,
+      max_percentage: req.body.max_percentage,
+      description: req.body.description || '',
+      school_id: req.schoolId,
+      created_by: req.user.id,
+      updated_by: req.user.id,
+      // Set sensible defaults for other fields
+      code: `GS${Date.now()}`, // Auto-generate code
+      grade_type: 'letter',
+      passing_percentage: 35.0,
+      max_grade_points: 4.0,
+      is_active: true,
+      is_default: false
+    };
+
+    const gradingSystem = await GradingSystem.create(gradingSystemData);
+
+    // Fetch the created grading system with branch association
+    const gradingSystemWithBranch = await GradingSystem.findByPk(gradingSystem.id, {
       include: [
         {
-          model: GradeScale,
-          as: 'gradeScales',
-          order: [['sort_order', 'ASC']]
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
         }
       ]
     });
 
     success(
       res,
-      { gradingSystem: createdGradingSystem },
+      { gradingSystem: gradingSystemWithBranch },
       'Grading system created successfully',
       httpStatus.CREATED
     );
@@ -156,8 +164,14 @@ class GradingSystemController {
    */
   static updateGradingSystem = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    // Only accept essential fields for update
     const updateData = {
-      ...req.body,
+      name: req.body.name,
+      branch_id: req.body.branch_id,
+      grade_point: req.body.grade_point,
+      min_percentage: req.body.min_percentage,
+      max_percentage: req.body.max_percentage,
+      description: req.body.description,
       updated_by: req.user.id
     };
 
@@ -172,44 +186,37 @@ class GradingSystemController {
       throw new ApiError(404, 'Grading system not found');
     }
 
-    // If grade scales are being updated, validate them
-    if (updateData.gradeScales && updateData.gradeScales.length > 0) {
-      const scales = updateData.gradeScales.sort((a, b) => a.min_percentage - b.min_percentage);
-      for (let i = 0; i < scales.length - 1; i++) {
-        if (scales[i].max_percentage >= scales[i + 1].min_percentage) {
-          throw new ApiError(400, 'Grade scale ranges cannot overlap');
+    // Check for duplicate name if name or branch is being updated
+    if (
+      (req.body.name && req.body.name !== gradingSystem.name) ||
+      (req.body.branch_id && req.body.branch_id !== gradingSystem.branch_id)
+    ) {
+      const existing = await GradingSystem.findOne({
+        where: {
+          name: req.body.name,
+          school_id: gradingSystem.school_id,
+          branch_id: req.body.branch_id,
+          id: { [Op.ne]: id } // Exclude current grading system
         }
+      });
+
+      if (existing) {
+        throw new ApiError(
+          409,
+          'Grading system with this name already exists in the selected branch'
+        );
       }
     }
 
     await gradingSystem.update(updateData);
 
-    // Update grade scales if provided
-    if (updateData.gradeScales) {
-      // Delete existing grade scales
-      await GradeScale.destroy({
-        where: { grading_system_id: id }
-      });
-
-      // Create new grade scales
-      const gradeScalesData = updateData.gradeScales.map((scale, index) => ({
-        ...scale,
-        grading_system_id: id,
-        sort_order: index + 1,
-        created_by: req.user.id,
-        updated_by: req.user.id
-      }));
-
-      await GradeScale.bulkCreate(gradeScalesData);
-    }
-
-    // Reload with grade scales
+    // Fetch the updated grading system with branch association
     const updatedGradingSystem = await GradingSystem.findByPk(id, {
       include: [
         {
-          model: GradeScale,
-          as: 'gradeScales',
-          order: [['sort_order', 'ASC']]
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code']
         }
       ]
     });
@@ -234,15 +241,8 @@ class GradingSystemController {
       throw new ApiError(404, 'Grading system not found');
     }
 
-    // Check if it's the default grading system
-    if (gradingSystem.is_default) {
-      throw new ApiError(400, 'Cannot delete the default grading system');
-    }
-
-    // Check if it's being used by any exams
-    // This would require checking exam results or other references
-    // For now, we'll allow deletion
-
+    // Allow deletion of any grading system, including default ones
+    // Users can delete any grading system they want
     await gradingSystem.destroy();
 
     success(

@@ -20,21 +20,15 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     return; // No settings check required for this route
   }
 
-  console.log(`🔍 Settings middleware checking: ${settingsCheck.setting} for route:`, to.path);
-
   try {
     const { isFeatureEnabled } = useSettingsChecker();
 
     // Check the specific setting using the generic checker
     const isEnabled = await isFeatureEnabled(settingsCheck.setting);
 
-    console.log(`🔍 ${settingsCheck.setting} enabled result:`, isEnabled);
+    // Check if setting is enabled
 
     if (!isEnabled) {
-      console.log(
-        `🚫 ${settingsCheck.setting} is disabled, redirecting to ${settingsCheck.redirectPath}`
-      );
-
       return navigateTo({
         path: settingsCheck.redirectPath,
         query: {
@@ -44,9 +38,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       });
     }
 
-    console.log(`✅ ${settingsCheck.setting} is enabled, allowing access`);
+    // Setting is enabled, allowing access
   } catch (error) {
-    console.error(`❌ Error checking ${settingsCheck.setting} setting:`, error);
+    // Error checking setting
 
     return navigateTo({
       path: settingsCheck.redirectPath,

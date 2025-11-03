@@ -154,7 +154,7 @@ class ClassSubjectAssignmentController {
       const { id } = req.params;
 
       let whereClause = { id };
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -214,7 +214,7 @@ class ClassSubjectAssignmentController {
 
       // Check if class exists and user has access
       let classWhereClause = { id: class_id };
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         classWhereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         classWhereClause.school_id = req.user.school_id;
@@ -429,7 +429,7 @@ class ClassSubjectAssignmentController {
       const { id } = req.params;
 
       let whereClause = { id };
-      if (req.user.role === 'school_admin') {
+      if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;

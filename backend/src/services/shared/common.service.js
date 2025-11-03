@@ -39,7 +39,7 @@ class CommonService {
       case 'super_admin':
         // Super admin can see all data
         break;
-      case 'school_admin':
+      case 'admin':
         whereClause.school_id = user.school_id;
         break;
       case 'branch_admin':
@@ -113,18 +113,12 @@ class CommonService {
    */
   static calculatePaginationMeta(total, page, limit) {
     const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
 
     return {
       total,
       page,
       limit,
-      totalPages,
-      hasNextPage,
-      hasPrevPage,
-      startIndex: (page - 1) * limit + 1,
-      endIndex: Math.min(page * limit, total)
+      totalPages
     };
   }
 
@@ -219,7 +213,7 @@ class CommonService {
   static hasPermission(user, action, resource) {
     const permissions = {
       super_admin: ['*'], // All permissions
-      school_admin: ['read', 'create', 'update', 'delete'],
+      admin: ['read', 'create', 'update', 'delete'],
       branch_admin: ['read', 'create', 'update'],
       teacher: ['read'],
       student: ['read'],

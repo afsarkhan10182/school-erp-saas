@@ -423,7 +423,7 @@ definePageMeta({
   title: 'Multiple Import'
 });
 
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
 const {
@@ -627,7 +627,7 @@ const loadStreamsForClass = async classId => {
     if (isSuperAdmin.value) {
       if (form.school_id) params.school_id = form.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
-    } else if (isSchoolAdmin.value) {
+    } else if (isAdmin.value) {
       params.school_id = user.value?.school_id;
       if (form.branch_id) params.branch_id = form.branch_id;
     } else if (isBranchAdmin.value) {

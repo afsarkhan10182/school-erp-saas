@@ -36,8 +36,8 @@ export const useModulesStore = defineStore('modules', {
     modules: [],
     roles: [
       {
-        id: 'school_admin',
-        name: 'School Admin',
+        id: 'admin',
+        name: 'Admin',
         permissions: [
           { id: 'manage_fees', name: 'Manage Fees', enabled: true },
           { id: 'manage_students', name: 'Manage Students', enabled: true },

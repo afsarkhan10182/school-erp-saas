@@ -227,7 +227,7 @@ const validateUserAccess = (req, res, next) => {
     // For other users, we need to check school/branch access
     // This would require fetching the target user's school_id and branch_id
     // For now, we'll use a simplified check
-    if (!RoleManager.hasRoleOrHigher(req.user.role, 'school_admin')) {
+    if (!RoleManager.hasRoleOrHigher(req.user.role, 'admin')) {
       logger.warn(
         `User access validation failed: User ${req.user.id} (${req.user.role}) cannot access user ${targetUserId}`
       );

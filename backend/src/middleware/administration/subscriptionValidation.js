@@ -8,6 +8,11 @@ const SchoolService = require('~/services/administration/schools/school.service'
  */
 const validateSubscriptionLimits = async (req, res, next) => {
   try {
+    // Ensure user is authenticated
+    if (!req.user) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
     // Skip validation for super admin
     if (req.user.role === 'super_admin') {
       return next();
@@ -71,6 +76,11 @@ const validateSubscriptionLimits = async (req, res, next) => {
 const validateModuleAccess = requiredModule => {
   return async (req, res, next) => {
     try {
+      // Ensure user is authenticated
+      if (!req.user) {
+        throw new ApiError(401, 'Authentication required');
+      }
+
       // Skip validation for super admin
       if (req.user.role === 'super_admin') {
         return next();
@@ -107,6 +117,11 @@ const validateModuleAccess = requiredModule => {
  */
 const checkSubscriptionStatus = async (req, res, next) => {
   try {
+    // Ensure user is authenticated
+    if (!req.user) {
+      throw new ApiError(401, 'Authentication required');
+    }
+
     // Skip validation for super admin
     if (req.user.role === 'super_admin') {
       return next();
@@ -193,7 +208,7 @@ const validateUserLimit = async (schoolId, plan) => {
     where: {
       school_id: schoolId,
       status: 'active',
-      role: { [require('sequelize').Op.notIn]: ['super_admin', 'school_admin'] }
+      role: { [require('sequelize').Op.notIn]: ['super_admin', 'admin'] }
     }
   });
 

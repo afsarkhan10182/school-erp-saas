@@ -466,7 +466,15 @@ export const usePrintReport = () => {
                 <div class="summary-label">COLLECTION RATE</div>
               </div>
               `
-                    : `
+                    : reportType === 'certificates'
+                      ? `
+              <!-- Certificates: Simple record count -->
+              <div class="summary-card">
+                <div class="summary-value">${data.length}</div>
+                <div class="summary-label">TOTAL CERTIFICATES</div>
+              </div>
+              `
+                      : `
               <!-- Default: Simple record count -->
               <div class="summary-card">
                 <div class="summary-value">${data.length}</div>

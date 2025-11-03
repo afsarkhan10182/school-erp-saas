@@ -42,7 +42,7 @@ class ClassController {
       if (req.user.role === 'super_admin') {
         logger.debug('getAllClasses: Super admin - no additional constraints');
         // No additional constraints
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         logger.debug('getAllClasses: School admin - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
@@ -266,7 +266,7 @@ class ClassController {
             message: 'Branch ID is required for super admin'
           });
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         school_id = req.user.school_id;
         final_branch_id = branch_id;
 
@@ -609,7 +609,7 @@ class ClassController {
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;
@@ -654,7 +654,7 @@ class ClassController {
         if (req.query.school_id) {
           whereClause.school_id = req.query.school_id;
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;

@@ -18,55 +18,55 @@ router.use(verifyToken);
 // User profile management (specific routes first)
 router.get(
   '/profile/me',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']),
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'student', 'parent']),
   UserController.getMyProfile
 );
 
 router.put(
   '/profile/me',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']),
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'student', 'parent']),
   uploadSingle('profile_image'),
   UserController.updateMyProfile
 );
 
 router.post(
   '/change-password',
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent']),
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'student', 'parent']),
   UserController.changePassword
 );
 
 // School-specific routes
 router.get(
   '/school/:schoolId',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   UserController.getUsersBySchool
 );
 
 router.get(
   '/branch/:branchId',
-  authorize(['super_admin', 'school_admin', 'branch_admin']),
+  authorize(['super_admin', 'admin', 'branch_admin']),
   UserController.getUsersByBranch
 );
 
-// Get all users (Super Admin can see all, School Admin can see users in their school)
-router.get('/', authorize(['super_admin', 'school_admin']), UserController.getAllUsers);
+// Get all users (Super Admin can see all, Admin can see users in their school)
+router.get('/', authorize(['super_admin', 'admin']), UserController.getAllUsers);
 
-router.get('/:id', authorize(['super_admin', 'school_admin']), UserController.getUserById);
+router.get('/:id', authorize(['super_admin', 'admin']), UserController.getUserById);
 
 router.put(
   '/:id',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   validate(updateUserValidator),
   validateRoleAssignment,
   UserController.updateUser
 );
 
-router.delete('/:id', authorize(['super_admin', 'school_admin']), UserController.deleteUser);
+router.delete('/:id', authorize(['super_admin', 'admin']), UserController.deleteUser);
 
-// School Admin routes (can manage users in their school)
+// Admin routes (can manage users in their school)
 router.post(
   '/',
-  authorize(['super_admin', 'school_admin']),
+  authorize(['super_admin', 'admin']),
   checkSubscriptionStatus,
   validateModuleAccess('settings'),
   validateSubscriptionLimits,

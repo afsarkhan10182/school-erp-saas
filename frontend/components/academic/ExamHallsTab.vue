@@ -47,61 +47,93 @@
       </button>
     </div>
 
-    <div v-else class="grid gap-4">
-      <div
-        v-for="hall in halls"
-        :key="hall.id"
-        class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <div class="flex items-center space-x-3 mb-2">
-              <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ hall.name }}
-              </h4>
-              <span
-                :class="[
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                  hall.is_active
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                ]"
+    <!-- Halls Table -->
+    <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                {{ hall.is_active ? 'Active' : 'Inactive' }}
-              </span>
-            </div>
-
-            <div class="flex items-center space-x-6">
-              <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Capacity:</span>
-                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                #
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Branch Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Hall Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Capacity
+              </th>
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="(hall, index) in halls"
+              :key="hall.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ index + 1 }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ hall.branch?.name || 'N/A' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ hall.name }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {{ hall.capacity }} seats
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center space-x-2 ml-4">
-            <button
-              @click="editHall(hall)"
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors"
-              title="Edit exam hall"
-            >
-              <Edit class="w-4 h-4 mr-1" />
-              Edit
-            </button>
-            <button
-              @click="deleteHallConfirm(hall)"
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 rounded-md transition-colors"
-              title="Delete exam hall"
-            >
-              <Trash2 class="w-4 h-4 mr-1" />
-              Delete
-            </button>
-          </div>
-        </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="flex justify-end space-x-2">
+                  <button
+                    @click="editHall(hall)"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    <Edit class="h-4 w-4" />
+                  </button>
+                  <button
+                    @click="deleteHallConfirm(hall)"
+                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <!-- Pagination -->
+    <Pagination
+      v-if="hasData"
+      :pagination="pagination"
+      item-label="exam halls"
+      @page-changed="goToPage"
+      @page-size-changed="changePageSize"
+    />
 
     <!-- Create/Edit Modal -->
     <ExamHallModal
@@ -119,6 +151,7 @@ import { Plus, Building, Edit, Trash2 } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useToast } from '~/composables/useToast';
 import ExamHallModal from './ExamHallModal.vue';
+import Pagination from '~/components/ui/Pagination.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
 
 // Props - No longer needed since exam halls are school-wide
@@ -132,7 +165,17 @@ const emit = defineEmits<{
 
 // Composables
 const { showToast } = useToast();
-const { halls, loading, loadHalls, deleteHall } = useExamHalls();
+const {
+  halls,
+  loading,
+  pagination,
+  hasData,
+  isEmpty,
+  loadExamHalls,
+  deleteHall,
+  goToPage,
+  changePageSize
+} = useExamHalls();
 
 // State
 const showModal = ref(false);
@@ -152,7 +195,8 @@ const editHall = (hall: ExamHall) => {
 const deleteHallConfirm = async (hall: ExamHall) => {
   if (confirm(`Are you sure you want to delete "${hall.name}"? This action cannot be undone.`)) {
     await deleteHall(hall.id);
-    await loadHalls();
+    // Reload halls after deletion
+    await loadExamHalls();
     emit('success');
   }
 };
@@ -164,12 +208,22 @@ const closeModal = () => {
 
 const handleSuccess = async () => {
   closeModal();
-  await loadHalls();
+  // Reload halls after create/update
+  await loadExamHalls();
   emit('success');
 };
 
+// Expose methods to parent component
+const loadData = async () => {
+  await loadExamHalls();
+};
+
+defineExpose({
+  loadData
+});
+
 // Lifecycle
-onMounted(() => {
-  loadHalls();
+onMounted(async () => {
+  await loadData();
 });
 </script>

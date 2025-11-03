@@ -63,6 +63,9 @@ export const calculateReportSummary = (data: any[], reportType: string) => {
       }, 0);
       summaryLabel = 'TOTAL COLLECTIONS';
       amountLabel = 'TOTAL COLLECTED';
+    } else if (reportType === 'certificates') {
+      summaryLabel = 'TOTAL CERTIFICATES';
+      amountLabel = 'TOTAL CERTIFICATES';
     }
   }
 

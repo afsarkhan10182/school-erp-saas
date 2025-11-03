@@ -36,7 +36,7 @@ class DashboardController {
           totalUsers: userCount,
           totalRevenue: totalRevenue || 0
         };
-      } else if (user.role === 'school_admin') {
+      } else if (user.role === 'admin') {
         // School stats
         if (!user.school_id) throw new ApiError(400, 'No school assigned');
 
@@ -294,7 +294,7 @@ class DashboardController {
 
   static async getSchoolReport(req, res, next) {
     try {
-      if (req.user.role !== 'school_admin') {
+      if (req.user.role !== 'admin') {
         return res
           .status(403)
           .json({ success: false, message: 'Only school admins can access this report.' });
@@ -318,7 +318,7 @@ class DashboardController {
                 'librarian',
                 'transport_manager',
                 'branch_admin',
-                'school_admin'
+                'admin'
               ]
             }
           }),
@@ -414,7 +414,7 @@ class DashboardController {
             created_at: activity.created_at ? new Date(activity.created_at).toISOString() : null
           });
         });
-      } else if (user.role === 'school_admin') {
+      } else if (user.role === 'admin') {
         // Optimized: Single query using UNION for school activities
         const schoolFilter = branch_id ? `AND branch_id = '${branch_id}'` : '';
         const recentActivities = await sequelize.query(
@@ -527,7 +527,7 @@ class DashboardController {
       const { branch_id } = req.query;
       let where = {};
 
-      if (user.role === 'school_admin') {
+      if (user.role === 'admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
         if (branch_id) {
@@ -571,7 +571,7 @@ class DashboardController {
       const { branch_id } = req.query;
       let where = {};
 
-      if (user.role === 'school_admin') {
+      if (user.role === 'admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
         if (branch_id) {
@@ -632,7 +632,7 @@ class DashboardController {
       const { branch_id } = req.query;
       let where = {};
 
-      if (user.role === 'school_admin') {
+      if (user.role === 'admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
         if (branch_id) {
@@ -672,7 +672,7 @@ class DashboardController {
       const { months = 6, branch_id } = req.query;
       let where = {};
 
-      if (user.role === 'school_admin') {
+      if (user.role === 'admin') {
         where.school_id = user.school_id;
         // Add branch filter if provided
         if (branch_id) {
@@ -825,7 +825,7 @@ class DashboardController {
       if (user.role === 'super_admin') {
         // Super admin can see all schools
         // No additional filters needed
-      } else if (user.role === 'school_admin') {
+      } else if (user.role === 'admin') {
         where.school_id = user.school_id;
         branchWhere.school_id = user.school_id;
 
@@ -911,7 +911,7 @@ class DashboardController {
 
       // Get branch-wise breakdown for school admin and super admin
       let branchBreakdown = [];
-      if (user.role === 'school_admin' || user.role === 'super_admin') {
+      if (user.role === 'admin' || user.role === 'super_admin') {
         const branches = await Branch.findAll({
           where: branchWhere,
           attributes: ['id', 'name']

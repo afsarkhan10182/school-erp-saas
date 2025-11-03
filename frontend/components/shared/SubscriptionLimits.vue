@@ -437,7 +437,7 @@ const requestUpgrade = async planKey => {
   try {
     let requestedPlanCode = String(planKey);
 
-    // Super Admin can validate against active DB plans; School Admin cannot access this endpoint
+    // Super Admin can validate against active DB plans; Admin cannot access this endpoint
     if (authStore.isSuperAdmin) {
       const plansResp = await Saas.getPlans({ is_active: true });
       const activePlans = plansResp?.data?.plans || [];
@@ -484,7 +484,7 @@ const requestRenewal = async () => {
 
     let requestedPlanCode = String(currentPlanCode);
 
-    // Super Admin can validate; School Admin cannot access plans endpoint
+    // Super Admin can validate; Admin cannot access plans endpoint
     if (authStore.isSuperAdmin) {
       const plansResp = await Saas.getPlans({ is_active: true });
       const activePlans = plansResp?.data?.plans || [];

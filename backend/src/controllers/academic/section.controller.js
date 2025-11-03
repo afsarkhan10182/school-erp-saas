@@ -43,7 +43,7 @@ class SectionController {
       if (req.user.role === 'super_admin') {
         logger.debug('getAllSections: Super admin - no additional constraints');
         // No additional constraints
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         logger.debug('getAllSections: School admin - filtering by school_id:', req.user.school_id);
       } else if (req.user.role === 'branch_admin') {
@@ -269,7 +269,7 @@ class SectionController {
             message: 'Class ID is required for super admin'
           });
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         school_id = req.user.school_id;
         // School admin must provide class_id, and we'll get branch_id from the class
         if (!class_id) {
@@ -326,7 +326,7 @@ class SectionController {
       }
 
       // Validate permissions
-      if (req.user.role === 'school_admin' && classItem.school_id !== req.user.school_id) {
+      if (req.user.role === 'admin' && classItem.school_id !== req.user.school_id) {
         return res.status(403).json({
           success: false,
           message: 'Access denied: Class does not belong to your school'
@@ -675,7 +675,7 @@ class SectionController {
         if (req.query.class_id) {
           whereClause.class_id = req.query.class_id;
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
         if (req.query.branch_id) {
           whereClause.branch_id = req.query.branch_id;

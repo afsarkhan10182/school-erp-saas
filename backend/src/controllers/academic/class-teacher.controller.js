@@ -81,7 +81,7 @@ class ClassTeacherController {
             message: 'Branch ID is required for super admin'
           });
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         school_id = req.user.school_id;
         final_branch_id = branch_id;
 

@@ -101,7 +101,7 @@ class SubjectController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can access any subject
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -185,7 +185,7 @@ class SubjectController {
             message: 'school_id is required for super admin'
           });
         }
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         // School admin can only create subjects for their school
         req.body.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
@@ -276,7 +276,7 @@ class SubjectController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can update any subject
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -365,7 +365,7 @@ class SubjectController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can delete any subject
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -422,7 +422,7 @@ class SubjectController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can see all subjects
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;
@@ -470,7 +470,7 @@ class SubjectController {
       // Role-based access control
       if (req.user.role === 'super_admin') {
         // Super admin can see all subjects
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         whereClause.school_id = req.user.school_id;
       } else if (req.user.role === 'branch_admin') {
         whereClause.school_id = req.user.school_id;

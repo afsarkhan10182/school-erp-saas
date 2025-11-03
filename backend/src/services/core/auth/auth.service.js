@@ -53,7 +53,7 @@ class AuthService {
       // Create user
       const user = await User.create({
         ...schoolAdminData,
-        role: 'school_admin',
+        role: 'admin',
         status: 'active'
       });
 

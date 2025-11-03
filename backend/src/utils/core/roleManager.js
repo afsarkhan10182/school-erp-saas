@@ -3,7 +3,7 @@ const { logger } = require('../shared/logger');
 // Define only the roles that are actually implemented and used
 const ROLES = {
   SUPER_ADMIN: 'super_admin',
-  SCHOOL_ADMIN: 'school_admin',
+  ADMIN: 'admin',
   BRANCH_ADMIN: 'branch_admin',
   ACCOUNTANT: 'accountant', // Same as branch_admin for fee management
   TEACHER: 'teacher',
@@ -14,7 +14,7 @@ const ROLES = {
 // Role hierarchy - higher roles can access lower role resources
 const ROLE_HIERARCHY = {
   [ROLES.SUPER_ADMIN]: 10,
-  [ROLES.SCHOOL_ADMIN]: 9,
+  [ROLES.ADMIN]: 9,
   [ROLES.BRANCH_ADMIN]: 8,
   [ROLES.ACCOUNTANT]: 8, // Same level as branch_admin
   [ROLES.TEACHER]: 7,
@@ -40,7 +40,7 @@ const ROLE_PERMISSIONS = {
     'export_data',
     'manage_modules' // Can enable/disable modules
   ],
-  [ROLES.SCHOOL_ADMIN]: [
+  [ROLES.ADMIN]: [
     'manage_school',
     'manage_branches',
     'manage_users',
@@ -103,7 +103,7 @@ const ROLE_SCOPES = {
     user_access: 'all',
     data_access: 'all'
   },
-  [ROLES.SCHOOL_ADMIN]: {
+  [ROLES.ADMIN]: {
     school_access: 'own',
     branch_access: 'own_school',
     user_access: 'own_school',

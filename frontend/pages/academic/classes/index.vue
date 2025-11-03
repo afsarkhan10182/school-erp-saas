@@ -20,9 +20,9 @@
         </div>
       </div>
 
-      <!-- Branch Filter for School Admin -->
+      <!-- Branch Filter for Admin -->
       <div
-        v-if="isSchoolAdmin && branches.length > 1"
+        v-if="isAdmin && branches.length > 1"
         class="bg-white dark:bg-gray-800 shadow rounded-md mb-6"
       >
         <div class="px-4 py-5 sm:px-6">
@@ -239,8 +239,8 @@
                 </div>
               </div>
 
-              <!-- Branch Selector for School Admin -->
-              <div v-if="isSchoolAdmin && !isEditing && branches.length > 1" class="mb-4">
+              <!-- Branch Selector for Admin -->
+              <div v-if="isAdmin && !isEditing && branches.length > 1" class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Branch *</label
                 >
@@ -252,9 +252,9 @@
                 />
               </div>
 
-              <!-- Branch Information Display for School Admin with Single Branch -->
+              <!-- Branch Information Display for Admin with Single Branch -->
               <div
-                v-if="isSchoolAdmin && !isEditing && branches.length === 1"
+                v-if="isAdmin && !isEditing && branches.length === 1"
                 class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
               >
                 <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
@@ -415,7 +415,7 @@ const pagination = reactive({
   total: 0
 });
 
-const { user, isSuperAdmin, isSchoolAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin } = useAuth();
 
 // Dropdown options
 const schoolOptions = computed(() => [
@@ -519,8 +519,8 @@ const loadBranchesForCurrentSchool = async () => {
 
     await fetchBranches(schoolId);
 
-    // Auto-select the only branch for School Admin if there's only one
-    if (isSchoolAdmin.value && branches.value.length === 1) {
+    // Auto-select the only branch for Admin if there's only one
+    if (isAdmin.value && branches.value.length === 1) {
       selectedBranchId.value = branches.value[0].id;
     }
   } catch (error) {
@@ -651,7 +651,7 @@ const saveClass = async () => {
     }
 
     // Add branch_id for school admin when creating a new class
-    if (!isEditing.value && isSchoolAdmin.value) {
+    if (!isEditing.value && isAdmin.value) {
       if (branches.value.length > 1 && !selectedBranchId.value) {
         showWarning('Please select a branch first to create the class');
         return;

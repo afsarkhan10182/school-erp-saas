@@ -69,8 +69,8 @@ class UserController {
       const userData = {
         ...cleanData,
         created_by: req.user.id,
-        // If School Admin, use their school_id
-        school_id: role === 'school_admin' ? req.user.school_id : cleanData.school_id,
+        // If Admin, use their school_id
+        school_id: role === 'admin' ? req.user.school_id : cleanData.school_id,
         // Set default status to active if not provided
         status: cleanData.status || 'active'
       };
@@ -115,7 +115,7 @@ class UserController {
       const { user } = req;
 
       // If school admin, only show users from their school
-      const school_id = user.role === 'school_admin' ? user.school_id : req.query.school_id;
+      const school_id = user.role === 'admin' ? user.school_id : req.query.school_id;
 
       const users = await UserService.getAllUsers({
         page: parseInt(page),

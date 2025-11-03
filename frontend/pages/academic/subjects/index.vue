@@ -179,7 +179,7 @@ const branchOptions = computed(() => [
   }))
 ]);
 
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 
 // Tab configuration
 const tabs = [

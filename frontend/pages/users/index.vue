@@ -10,7 +10,7 @@
           >
           <span>/</span>
           <span class="text-gray-900 dark:text-white font-medium">{{
-            isSchoolAdmin ? 'School Staff' : 'User Management'
+            isAdmin ? 'School Staff' : 'User Management'
           }}</span>
         </nav>
 
@@ -34,7 +34,7 @@
                   d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                 />
               </svg>
-              {{ isSchoolAdmin ? 'School Staff' : 'User Management' }}
+              {{ isAdmin ? 'School Staff' : 'User Management' }}
             </h1>
             <p class="mt-1 sm:mt-2 text-sm text-gray-700 dark:text-gray-300">
               Manage staff members and user accounts
@@ -81,7 +81,7 @@
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               ]"
             >
-              {{ role.label }} ({{ roleCounts[role.key] || 0 }})
+              {{ role.label }} ({{ roleCounts[role.key] }})
             </button>
           </div>
         </div>
@@ -286,10 +286,7 @@
                         </svg>
                       </NuxtLink>
                       <button
-                        v-if="
-                          !isSchoolAdmin ||
-                          (user.role !== 'school_admin' && user.id !== user.value?.id)
-                        "
+                        v-if="!isAdmin || (user.role !== 'admin' && user.id !== user.value?.id)"
                         @click="confirmDelete(user)"
                         class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
                         title="Delete"
@@ -373,17 +370,18 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
 import { Users, Branches } from '~/api';
 import { useToast } from 'vue-toastification';
 
-const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
+const { isSuperAdmin, isAdmin, user } = useAuth();
 
-// Access control - only Super Admin and School Admin can access user management
-if (!isSuperAdmin.value && !isSchoolAdmin.value) {
+// Access control - only Super Admin and Admin can access user management
+if (!isSuperAdmin.value && !isAdmin.value) {
   // Show error toast
-  useToast().error('Access denied. Only Super Admin and School Admin can manage users.');
+  useToast().error('Access denied. Only Super Admin and Admin can manage users.');
   await navigateTo('/dashboard');
 }
 const users = ref([]);
@@ -410,7 +408,7 @@ const newStaff = ref({
 const formatRole = role => {
   const roleMap = {
     super_admin: 'Super Admin',
-    school_admin: 'School Admin',
+    admin: 'Admin',
     teacher: 'Teacher',
     accountant: 'Accountant',
     librarian: 'Librarian',
@@ -426,14 +424,14 @@ const roleTabs = ref([
   { key: 'librarian', label: 'Librarians', count: 0 },
   { key: 'receptionist', label: 'Receptionists', count: 0 },
   { key: 'branch_admin', label: 'Branch Admins', count: 0 },
-  { key: 'school_admin', label: 'School Admins', count: 0 },
+  { key: 'admin', label: 'Admins', count: 0 },
   { key: 'super_admin', label: 'Super Admins', count: 0 }
 ]);
 
 const roleCounts = ref({});
 
 const filteredRoleTabs = computed(() => {
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     return roleTabs.value.filter(tab =>
       ['all', 'teacher', 'accountant', 'librarian', 'receptionist', 'branch_admin'].includes(
         tab.key
@@ -446,9 +444,9 @@ const filteredRoleTabs = computed(() => {
 const filteredUsers = computed(() => {
   let result = [...users.value];
 
-  // If current user is School Admin, exclude other School Admin users
-  if (isSchoolAdmin.value) {
-    result = result.filter(user => user.role !== 'school_admin');
+  // If current user is Admin, exclude other Admin users
+  if (isAdmin.value) {
+    result = result.filter(user => user.role !== 'admin');
   }
 
   // Filter by search query
@@ -475,9 +473,9 @@ const updateRoleCounts = () => {
   // Filter users based on current user's role
   let filteredUsers = [...users.value];
 
-  // If current user is School Admin, exclude other School Admin users from counts
-  if (isSchoolAdmin.value) {
-    filteredUsers = filteredUsers.filter(user => user.role !== 'school_admin');
+  // If current user is Admin, exclude other Admin users from counts
+  if (isAdmin.value) {
+    filteredUsers = filteredUsers.filter(user => user.role !== 'admin');
   }
 
   const counts = { all: filteredUsers.length };
@@ -495,10 +493,10 @@ const fetchBranches = async () => {
   try {
     if (user.value?.school_id) {
       const response = await Branches.getForDropdown({ school_id: user.value.school_id });
-      branches.value = response.data || [];
+      branches.value = response.data;
     }
   } catch (error) {
-    console.error('Error fetching branches:', error);
+    // Error handled silently
   }
 };
 
@@ -509,18 +507,18 @@ const fetchUsers = async (showLoading = true) => {
     }
 
     let response;
-    if (isSchoolAdmin.value) {
+    if (isAdmin.value) {
       // Use the users endpoint with school_id filter for school admins
       response = await Users.getAll({
         schoolId: user.value.school_id,
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
-        search: searchQuery.value || undefined
+        search: searchQuery.value
       });
     } else {
       // Super admin can see all users
       response = await Users.getAll({
         role: selectedRole.value === 'all' ? undefined : selectedRole.value,
-        search: searchQuery.value || undefined
+        search: searchQuery.value
       });
     }
 
@@ -538,7 +536,6 @@ const fetchUsers = async (showLoading = true) => {
       useToast().success('Users list updated');
     }
   } catch (error) {
-    console.error('Error fetching users:', error);
     useToast().error(error.response?.data?.message || 'Failed to fetch users. Please try again.');
   } finally {
     isLoading.value = false;
@@ -567,13 +564,12 @@ watch(
 );
 
 // Watch for search and role filter changes
-watch(
-  [searchQuery, selectedRole],
-  () => {
-    fetchUsers(false); // Don't show loading indicator for filter changes
-  },
-  { debounce: 300 }
-);
+// VueUse debounced search
+const debouncedFetchUsers = useDebounceFn(() => {
+  fetchUsers(false); // Don't show loading indicator for filter changes
+}, 300);
+
+watch([searchQuery, selectedRole], debouncedFetchUsers);
 
 const confirmDelete = user => {
   userToDelete.value = user;
@@ -592,7 +588,6 @@ async function deleteUser() {
     users.value = users.value.filter(user => user.id !== userIdToDelete);
     updateRoleCounts();
   } catch (error) {
-    console.error('Error deleting user:', error);
     useToast().error(error.response?.data?.message || 'Failed to delete user');
   }
 }

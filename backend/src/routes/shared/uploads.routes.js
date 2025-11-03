@@ -42,7 +42,7 @@ router.get('/schools/:schoolCode/:type/:year/:filename', verifyToken, async (req
     }
 
     // Validate upload type
-    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards'];
+    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards', 'certificates'];
     if (!allowedTypes.includes(type)) {
       return next(new ApiError(httpStatus.BAD_REQUEST, 'Invalid upload type'));
     }
@@ -122,7 +122,7 @@ router.get('/schools/:schoolCode/:type/:filename', verifyToken, async (req, res,
     }
 
     // Validate upload type
-    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards'];
+    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards', 'certificates'];
     if (!allowedTypes.includes(type)) {
       return next(new ApiError(httpStatus.BAD_REQUEST, 'Invalid upload type'));
     }
@@ -186,7 +186,7 @@ router.get('/:type/:filename', verifyToken, async (req, res, next) => {
     const userSchoolId = req.user?.school_id;
 
     // Validate upload type
-    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards'];
+    const allowedTypes = ['documents', 'logos', 'profile-images', 'id-cards', 'certificates'];
     if (!allowedTypes.includes(type)) {
       return next(new ApiError(httpStatus.BAD_REQUEST, 'Invalid upload type'));
     }

@@ -44,8 +44,8 @@
           />
         </div>
 
-        <!-- Branch (for Super Admin and School Admin) -->
-        <div v-if="isSuperAdmin || isSchoolAdmin">
+        <!-- Branch (for Super Admin and Admin) -->
+        <div v-if="isSuperAdmin || isAdmin">
           <EnhancedDropdown
             v-model="filters.branch_id"
             :options="branchOptions"
@@ -597,7 +597,7 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const {
@@ -740,8 +740,8 @@ onMounted(async () => {
     if (isSuperAdmin.value) {
       // Super Admin: Load schools, then branches will be loaded when school is selected
       await fetchSchools();
-    } else if (isSchoolAdmin.value) {
-      // School Admin: Load branches for their school directly
+    } else if (isAdmin.value) {
+      // Admin: Load branches for their school directly
       filters.value.school_id = user.value?.school_id || '';
       await fetchAllBranches({ school_id: filters.value.school_id });
     } else if (isBranchAdmin.value) {

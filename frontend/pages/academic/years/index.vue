@@ -379,7 +379,7 @@ definePageMeta({
 });
 
 const { showToast } = useToast();
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const {
   academicYears: academicYearsFromComposable,
   fetchAcademicYears: fetchAcademicYearsFromComposable

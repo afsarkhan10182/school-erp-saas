@@ -288,9 +288,9 @@
               </div>
             </div>
 
-            <!-- Branch Selector for School Admin -->
+            <!-- Branch Selector for Admin -->
             <div
-              v-if="user?.role === 'school_admin'"
+              v-if="user?.role === 'admin'"
               class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
             >
               <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
@@ -782,7 +782,7 @@
                   (user?.role === 'super_admin' &&
                     !isEditing &&
                     (!selectedSchoolId || !selectedBranchId)) ||
-                  (user?.role === 'school_admin' && !isEditing && !selectedBranchId) ||
+                  (user?.role === 'admin' && !isEditing && !selectedBranchId) ||
                   !form.payment_model
                 "
                 class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
@@ -1300,7 +1300,7 @@ const onBranchChange = async () => {
 
 // Fetch branches for school admin
 const fetchBranchesForSchoolAdmin = async () => {
-  if (user.value?.role !== 'school_admin' || !user.value?.school_id) return;
+  if (user.value?.role !== 'admin' || !user.value?.school_id) return;
 
   try {
     const branches = await fetchBranches(user.value.school_id);
@@ -1393,7 +1393,7 @@ watch(
   user,
   async newUser => {
     if (
-      newUser?.role === 'school_admin' &&
+      newUser?.role === 'admin' &&
       newUser?.school_id &&
       availableBranches.value.length === 0
     ) {
@@ -1414,7 +1414,7 @@ const openCreateModal = async () => {
   }
 
   // Load branches for school admin (always load to ensure fresh data)
-  if (user.value?.role === 'school_admin' && user.value?.school_id) {
+  if (user.value?.role === 'admin' && user.value?.school_id) {
     await fetchBranchesForSchoolAdmin();
   }
 
@@ -1810,7 +1810,7 @@ onMounted(async () => {
     }
 
     // Load branches for school admin on component mount
-    if (user.value?.role === 'school_admin') {
+    if (user.value?.role === 'admin') {
       await fetchBranchesForSchoolAdmin();
     }
 

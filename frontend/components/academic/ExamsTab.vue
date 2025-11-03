@@ -1,102 +1,31 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Exams</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage exams and examination activities
-        </p>
-      </div>
-      <button
-        @click="openCreateModal"
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <Plus class="w-4 h-4 mr-2" />
-        New Exam
-      </button>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <BookOpen class="h-6 w-6 text-blue-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Total Exams
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.total_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
+    <!-- Simple Header with Stats and Actions -->
+    <div
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2">
+            <BookOpen class="h-5 w-5 text-blue-600" />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >{{ exams.length }} Exams</span
+            >
+          </div>
+          <div class="flex items-center space-x-2">
+            <CheckCircle class="h-5 w-5 text-green-600" />
+            <span class="text-sm text-gray-600 dark:text-gray-400"
+              >{{ exams.filter(e => e.is_active).length }} Active</span
+            >
           </div>
         </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <CheckCircle class="h-6 w-6 text-green-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Completed
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.completed_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <Calendar class="h-6 w-6 text-yellow-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Scheduled
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.scheduled_exams || 0 }}
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <TrendingUp class="h-6 w-6 text-purple-600" />
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  Avg Score
-                </dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  {{ stats?.avg_score || 0 }}%
-                </dd>
-              </dl>
-            </div>
-          </div>
-        </div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus class="h-4 w-4 mr-2" />
+          New Exam
+        </button>
       </div>
     </div>
 
@@ -114,76 +43,174 @@
       </p>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="exam in exams"
-        :key="exam.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-shadow"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <h4
-              class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-            >
-              {{ exam.name }}
-            </h4>
-            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-              <span class="flex items-center">
-                <BookOpen class="w-4 h-4 mr-1" />
-                {{ exam.class?.name }}
-              </span>
-              <span v-if="exam.subject?.name" class="flex items-center">
-                <Tag class="w-4 h-4 mr-1" />
-                {{ exam.subject.name }}
-              </span>
-              <span class="flex items-center">
-                <Calendar class="w-4 h-4 mr-1" />
-                {{ exam.schedules?.length || 0 }} schedule(s)
-              </span>
-            </div>
-            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-              <span class="flex items-center">
-                <TrendingUp class="w-4 h-4 mr-1" />
-                {{ exam.max_marks }} marks
-              </span>
-              <span class="flex items-center">
-                <Users class="w-4 h-4 mr-1" />
-                {{ exam.students_count || 0 }} students
-              </span>
-            </div>
-            <div
-              v-if="exam.instructions"
-              class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
-            >
-              {{ exam.instructions }}
-            </div>
-            <div class="mt-3 flex items-center justify-between">
-              <button
-                @click="scheduleExam(exam)"
-                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    <div v-else>
+      <!-- Simple Search Bar -->
+      <div class="mb-6">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search exams by name..."
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-for="exam in filteredExams"
+          :key="exam.id"
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-200 hover:scale-105"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-2">
+                <h4
+                  class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                >
+                  {{ exam.name }}
+                </h4>
+                <div class="flex flex-col space-y-1">
+                  <span :class="getStatusBadgeClass('active', exam.is_active)">
+                    {{ exam.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                  <span :class="getStatusBadgeClass('published', exam.publish_status)">
+                    {{ exam.publish_status ? 'Published' : 'Draft' }}
+                  </span>
+                  <span :class="getStatusBadgeClass('results', exam.result_status)">
+                    {{ exam.result_status ? 'Results Published' : 'Results Hidden' }}
+                  </span>
+                </div>
+              </div>
+              <div
+                class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
               >
-                <Calendar class="w-3 h-3 mr-1" />
-                Schedule
-              </button>
-              <div class="flex items-center space-x-2">
-                <button
-                  @click="editExam(exam)"
-                  class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                  <Edit class="w-4 h-4" />
-                </button>
-                <button
-                  @click="viewExam(exam)"
-                  class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  <Eye class="w-4 h-4" />
-                </button>
-                <button
-                  @click="deleteExam(exam.id)"
-                  class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  <Trash2 class="w-4 h-4" />
-                </button>
+                <span class="flex items-center">
+                  <BookOpen class="w-4 h-4 mr-1" />
+                  {{ exam.class?.name }}
+                </span>
+                <span v-if="exam.subject?.name" class="flex items-center">
+                  <Tag class="w-4 h-4 mr-1" />
+                  {{ exam.subject.name }}
+                </span>
+                <span class="flex items-center">
+                  <Calendar class="w-4 h-4 mr-1" />
+                  {{ exam.schedules?.length || 0 }} schedule(s)
+                </span>
+              </div>
+
+              <!-- Mark Distribution and Remarks -->
+              <div
+                v-if="exam.mark_distribution_ids?.length > 0 || exam.instructions"
+                class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600"
+              >
+                <div v-if="exam.mark_distribution_ids?.length > 0" class="mb-2">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400"
+                    >Mark Distribution:</span
+                  >
+                  <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                    {{ getMarkDistributionNames(exam.mark_distribution_ids) }}
+                  </span>
+                </div>
+                <div v-if="exam.instructions" class="mb-1">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Remarks:</span>
+                  <span
+                    class="text-xs text-gray-500 dark:text-gray-400 ml-1 truncate block"
+                    :title="exam.instructions"
+                  >
+                    {{ exam.instructions }}
+                  </span>
+                </div>
+              </div>
+              <div
+                class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
+              >
+                <span class="flex items-center">
+                  <TrendingUp class="w-4 h-4 mr-1" />
+                  {{ exam.max_marks }} marks
+                </span>
+                <span class="flex items-center">
+                  <Users class="w-4 h-4 mr-1" />
+                  {{ exam.students_count || 0 }} students
+                </span>
+              </div>
+              <div
+                v-if="exam.instructions"
+                class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
+              >
+                {{ exam.instructions }}
+              </div>
+              <!-- Action Buttons Based on Status -->
+              <div class="mt-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <!-- Status-based action buttons -->
+                  <button
+                    v-if="exam.status === 'draft'"
+                    @click="scheduleExam(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <Calendar class="w-3 h-3 mr-1" />
+                    Schedule
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'scheduled'"
+                    @click="enterMarks(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <Users class="w-3 h-3 mr-1" />
+                    Enter Marks
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'marks_entered'"
+                    @click="calculateGrades(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    <Award class="w-3 h-3 mr-1" />
+                    Calculate Grades
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'grades_calculated'"
+                    @click="generateReports(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  >
+                    <FileText class="w-3 h-3 mr-1" />
+                    Generate Reports
+                  </button>
+
+                  <button
+                    v-if="exam.status === 'completed'"
+                    @click="viewAll(exam)"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    <Eye class="w-3 h-3 mr-1" />
+                    View All
+                  </button>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <button
+                    @click="editExam(exam)"
+                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    title="Edit Exam"
+                  >
+                    <Edit class="w-4 h-4" />
+                  </button>
+                  <button
+                    @click="viewExam(exam)"
+                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                    title="View Details"
+                  >
+                    <Eye class="w-4 h-4" />
+                  </button>
+                  <button
+                    @click="deleteExam(exam.id)"
+                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                    title="Delete Exam"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -201,125 +228,83 @@
 
       <template #body>
         <form @submit.prevent="saveExam" class="space-y-6">
+          <!--  - Only 6 fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Exam Name -->
+            <!-- Branch () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Exam Name <span class="text-red-500">*</span>
+                Branch <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="form.branch_id"
+                :options="branchOptions"
+                placeholder="Select branch"
+                :loading="branchesLoading"
+              />
+            </div>
+
+            <!-- Name () -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Name <span class="text-red-500">*</span>
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 required
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter exam name"
+                placeholder="e.g., Mid Term Exam"
               />
             </div>
 
-            <!-- Exam Type -->
+            <!-- Term () -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Term <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="form.term_id"
+                :options="termOptions"
+                placeholder="Select term"
+                :loading="termsLoading"
+              />
+            </div>
+
+            <!-- Exam Type (Hardcoded) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Exam Type <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
-                v-model="form.exam_type_id"
+                v-model="form.type_id"
                 :options="examTypeOptions"
                 placeholder="Select exam type"
-                :loading="examTypesLoading"
               />
             </div>
 
-            <!-- Class -->
+            <!-- Mark Distribution () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Class <span class="text-red-500">*</span>
+                Mark Distribution <span class="text-red-500">*</span>
               </label>
               <EnhancedDropdown
-                v-model="form.class_id"
-                :options="classOptions"
-                placeholder="Select class"
-                :loading="loading"
-                @update:model-value="loadSections"
+                v-model="form.mark_distribution_id"
+                :options="markDistributionOptions"
+                placeholder="Select mark distribution"
+                :loading="markDistributionsLoading"
               />
             </div>
 
-            <!-- Section (show if class has sections) -->
-            <div v-if="showSectionField">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Section
-              </label>
-              <EnhancedDropdown
-                v-model="form.section_id"
-                :options="sectionOptions"
-                placeholder="All sections"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Stream (show if class has streams) -->
-            <div v-if="showStreamField">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Stream
-              </label>
-              <EnhancedDropdown
-                v-model="form.stream_id"
-                :options="streamOptions"
-                placeholder="All streams"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Subject -->
+            <!-- Remarks () -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Subject
-              </label>
-              <EnhancedDropdown
-                v-model="form.subject_id"
-                :options="subjectOptions"
-                placeholder="All subjects"
-                :loading="loading"
-              />
-            </div>
-
-            <!-- Max Marks -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Max Marks <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model.number="form.max_marks"
-                type="number"
-                required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="100"
-              />
-            </div>
-
-            <!-- Weightage -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Weightage (%)
-              </label>
-              <input
-                v-model.number="form.weightage"
-                type="number"
-                step="0.1"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="20.0"
-              />
-            </div>
-
-            <!-- Instructions -->
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Instructions
+                Remarks
               </label>
               <textarea
-                v-model="form.instructions"
+                v-model="form.remarks"
                 rows="3"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Enter exam instructions..."
+                placeholder="Enter any remarks..."
               ></textarea>
             </div>
           </div>
@@ -345,34 +330,12 @@
         </div>
       </template>
     </Modal>
-
-    <!-- Exam Results Modal -->
-    <Modal :show="showExamResults" @close="closeExamResults" size="xl">
-      <template #header>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          Exam Results - {{ selectedExam?.name }}
-        </h3>
-      </template>
-
-      <template #body>
-        <ExamResults v-if="selectedExam" :exam="selectedExam" @close="closeExamResults" />
-      </template>
-    </Modal>
-
-    <!-- Exam Schedule Modal -->
-    <ExamScheduleModal
-      :show="showScheduleModal"
-      :exam="selectedExamForSchedule"
-      :branch-id="branchId"
-      :school-id="schoolId"
-      @close="closeScheduleModal"
-      @success="handleScheduleSuccess"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { navigateTo } from '#app';
 import {
   Plus,
   BookOpen,
@@ -383,15 +346,20 @@ import {
   Edit,
   Eye,
   Trash2,
-  Users
+  Users,
+  Award,
+  FileText,
+  Building2
 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import ExamResults from '~/components/academic/ExamResults.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExamOptions } from '~/composables/useExamOptions';
-import ExamScheduleModal from './ExamScheduleModal.vue';
+import { useBranches } from '~/composables/useBranches';
+import { useMarkDistributions } from '~/composables/useMarkDistributions';
+import { useAuth } from '~/composables/useAuth';
+import { examTermApi } from '~/api/academic/exam-terms';
 
 // Props
 const props = defineProps({
@@ -428,12 +396,51 @@ const {
   sectionOptions,
   subjectOptions,
   streamOptions,
+  currentAcademicYear,
+  fetchAcademicYears,
   fetchClasses,
   fetchSections,
   fetchSubjects,
   fetchStreams
 } = useAcademics();
-const { examTypeOptions, loading: examTypesLoading, loadExamTypes } = useExamOptions();
+// Hardcoded exam types - no need for API calls
+import { getExamTypeOptions, getExamTypeLabel } from '~/utils/exam-types';
+
+const examTypeOptions = getExamTypeOptions();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const {
+  markDistributions,
+  fetchMarkDistributions,
+  loading: markDistributionsLoading
+} = useMarkDistributions();
+const { user } = useAuth();
+
+// Terms data
+const terms = ref([]);
+const termsLoading = ref(false);
+const termOptions = computed(() =>
+  terms.value.map(term => ({
+    value: term.id,
+    label: `${term.name} (${term.code})`,
+    description: term.description
+  }))
+);
+
+// Branch options
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+);
+
+// Mark distribution options
+const markDistributionOptions = computed(() =>
+  markDistributions.value.map(distribution => ({
+    value: distribution.id,
+    label: distribution.name
+  }))
+);
 
 // Helper function to validate UUID
 const isValidUUID = uuid => {
@@ -443,12 +450,44 @@ const isValidUUID = uuid => {
 
 // Reactive data
 const showModal = ref(false);
-const showExamResults = ref(false);
-const showScheduleModal = ref(false);
+const searchQuery = ref('');
+const statusFilter = ref('');
+const classFilter = ref('');
 const saving = ref(false);
 const editingExam = ref(null);
-const selectedExam = ref(null);
-const selectedExamForSchedule = ref(null);
+
+// Use the branch context from props
+const currentBranchId = computed(() => {
+  return props.branchId || user.value?.branch_id;
+});
+
+// Computed properties
+const filteredExams = computed(() => {
+  let filtered = props.exams;
+
+  // Search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(
+      exam =>
+        exam.name.toLowerCase().includes(query) ||
+        exam.subject?.name?.toLowerCase().includes(query) ||
+        exam.class?.name?.toLowerCase().includes(query)
+    );
+  }
+
+  // Status filter
+  if (statusFilter.value) {
+    filtered = filtered.filter(exam => exam.status === statusFilter.value);
+  }
+
+  // Class filter
+  if (classFilter.value) {
+    filtered = filtered.filter(exam => exam.class_id === classFilter.value);
+  }
+
+  return filtered;
+});
 
 // Computed properties for dynamic form fields
 const selectedClass = computed(() => {
@@ -464,62 +503,110 @@ const showSectionField = computed(() => {
 });
 
 const form = reactive({
+  branch_id: '',
   name: '',
-  exam_type_id: '',
-  class_id: '',
-  section_id: '',
-  stream_id: '',
-  subject_id: '',
-  max_marks: 100,
-  weightage: 20.0,
-  instructions: ''
+  term_id: '',
+  type_id: '',
+  mark_distribution_id: '',
+  remarks: ''
 });
 
 // Methods
-const openCreateModal = async () => {
-  editingExam.value = null;
-  resetForm();
-  showModal.value = true;
-
-  // Load all required data when modal opens
+const loadTerms = async () => {
   try {
-    await Promise.all([
-      loadExamTypes(),
-      fetchClasses({ branchId: props.branchId }),
-      fetchSubjects({ branchId: props.branchId })
-    ]);
-
-    // Debug: Check if subjects were loaded
-    if (subjectOptions.value.length === 0) {
-      showToast('No subjects found for this branch', 'warning');
-    }
+    termsLoading.value = true;
+    const response = await examTermApi.getAll({
+      school_id: props.schoolId,
+      branch_id: props.branchId,
+      academic_year: currentAcademicYear.value?.name,
+      is_active: true
+    });
+    terms.value = response.data || [];
   } catch (error) {
-    showToast('Failed to load form data', 'error');
+    console.error('Error loading terms:', error);
+    showToast('Failed to load terms', 'error');
+  } finally {
+    termsLoading.value = false;
   }
 };
 
-const editExam = exam => {
+const openCreateModal = async () => {
+  editingExam.value = null;
+  resetForm();
+
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(fetchMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    try {
+      await Promise.all(loadPromises);
+    } catch (error) {
+      showToast('Failed to load form data', 'error');
+    }
+  }
+
+  showModal.value = true;
+};
+
+const editExam = async exam => {
+  // Reset form first to ensure clean state
+  resetForm();
+
   editingExam.value = exam;
-  form.name = exam.name;
-  form.exam_type_id = exam.exam_type_id;
-  form.class_id = exam.class_id;
-  form.section_id = exam.section_id;
-  form.stream_id = exam.stream_id || '';
-  form.subject_id = exam.subject_id;
-  form.max_marks = exam.max_marks;
-  form.weightage = exam.weightage;
-  form.instructions = exam.instructions;
+
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(fetchMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    await Promise.all(loadPromises);
+  }
+
+  // Then populate form fields
+  form.branch_id = exam.branch_id || '';
+  form.name = exam.name || '';
+  form.term_id = exam.term_id || '';
+  // Fix: Use exam_type_id from API response, fallback to type_id for backward compatibility
+  form.type_id = exam.exam_type_id || exam.type_id || '';
+  // Handle mark distribution field - convert array to single ID if needed
+  if (
+    exam.mark_distribution_ids &&
+    Array.isArray(exam.mark_distribution_ids) &&
+    exam.mark_distribution_ids.length > 0
+  ) {
+    form.mark_distribution_id = exam.mark_distribution_ids[0];
+  } else {
+    form.mark_distribution_id = exam.mark_distribution_id || '';
+  }
+  form.remarks = exam.instructions || exam.remarks || exam.description || '';
+
   showModal.value = true;
 };
 
 const viewExam = exam => {
-  selectedExam.value = exam;
-  showExamResults.value = true;
+  // Navigate to exam details page instead of showing results
+  navigateTo(`/exams/${exam.id}`);
 };
 
 const scheduleExam = exam => {
-  selectedExamForSchedule.value = exam;
-  showScheduleModal.value = true;
+  navigateTo('/exams/schedules/create');
 };
 
 const closeModal = () => {
@@ -533,73 +620,50 @@ const closeModalOnSuccess = () => {
   emit('success');
 };
 
-const closeExamResults = () => {
-  showExamResults.value = false;
-  selectedExam.value = null;
-};
-
-const closeScheduleModal = () => {
-  showScheduleModal.value = false;
-  selectedExamForSchedule.value = null;
-};
-
-const handleScheduleSuccess = () => {
-  emit('refresh');
-  closeScheduleModal();
-};
-
 const resetForm = () => {
+  form.branch_id = '';
   form.name = '';
-  form.exam_type_id = '';
-  form.class_id = '';
-  form.section_id = '';
-  form.stream_id = '';
-  form.subject_id = '';
-  form.max_marks = 100;
-  form.weightage = 20.0;
-  form.instructions = '';
+  form.term_id = '';
+  form.type_id = '';
+  form.mark_distribution_id = '';
+  form.remarks = '';
 };
 
 const saveExam = async () => {
   try {
     saving.value = true;
 
-    // Validate required fields
-    if (!form.name.trim()) {
-      showToast('Exam name is required', 'error');
+    //  - Only validate essential fields
+    if (!form.branch_id) {
+      showToast('Branch is required', 'error');
       return;
     }
-    if (!form.exam_type_id) {
+    if (!form.name || !form.name.trim()) {
+      showToast('Name is required', 'error');
+      return;
+    }
+    if (!form.term_id) {
+      showToast('Term is required', 'error');
+      return;
+    }
+    if (!form.type_id) {
       showToast('Exam type is required', 'error');
       return;
     }
-    if (!form.class_id) {
-      showToast('Class is required', 'error');
+    if (!form.mark_distribution_id) {
+      showToast('Mark distribution is required', 'error');
       return;
     }
 
-    // Clean form data - only include valid UUIDs and remove empty strings
+    // Prepare form data for backend
     const cleanForm = {
-      ...form,
-      // Map max_marks to total_marks for backend compatibility
-      total_marks: form.max_marks,
-      // Remove max_marks as it's not expected by backend
-      max_marks: undefined,
-      // Only include subject_id if it's a valid UUID and not empty
-      subject_id:
-        form.subject_id && form.subject_id.trim() && isValidUUID(form.subject_id)
-          ? form.subject_id
-          : undefined,
-      // Only include section_id if it's a valid UUID and not empty
-      section_id:
-        form.section_id && form.section_id.trim() && isValidUUID(form.section_id)
-          ? form.section_id
-          : undefined,
-      // Only include stream_id if it's a valid UUID and not empty
-      stream_id:
-        form.stream_id && form.stream_id.trim() && isValidUUID(form.stream_id)
-          ? form.stream_id
-          : undefined
+      branch_id: form.branch_id,
+      name: form.name?.trim() || '',
+      exam_type_id: form.type_id, // Fixed: backend expects exam_type_id
+      term_id: form.term_id, // Added: missing term_id
+      mark_distribution_id: form.mark_distribution_id, // Added: missing mark_distribution_id
+      description: form.remarks || '',
+      school_id: props.schoolId
     };
 
     // Remove undefined values to avoid sending them to the backend
@@ -622,6 +686,61 @@ const saveExam = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+// Helper functions for status display
+const getStatusBadgeClass = (type, value) => {
+  const classes = {
+    active: {
+      true: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    },
+    published: {
+      true: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    },
+    results: {
+      true: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    }
+  };
+  return `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${classes[type][value] || classes[type].false}`;
+};
+
+const getMarkDistributionNames = markDistributionIds => {
+  console.log('ExamsTab getMarkDistributionNames called with:', markDistributionIds);
+  console.log('ExamsTab Available mark distributions:', markDistributions.value);
+  console.log('ExamsTab Mark distributions count:', markDistributions.value.length);
+
+  if (
+    !markDistributionIds ||
+    !Array.isArray(markDistributionIds) ||
+    markDistributionIds.length === 0
+  ) {
+    console.log('ExamsTab No mark distribution IDs provided');
+    return 'No distribution';
+  }
+
+  // Find matching mark distributions
+  const matchingDistributions = markDistributions.value.filter(dist =>
+    markDistributionIds.includes(dist.id)
+  );
+
+  console.log('ExamsTab Matching distributions:', matchingDistributions);
+  console.log('ExamsTab Mark distribution IDs to match:', markDistributionIds);
+  console.log(
+    'ExamsTab Available distribution IDs:',
+    markDistributions.value.map(d => d.id)
+  );
+
+  if (matchingDistributions.length === 0) {
+    console.log('ExamsTab No matching distributions found');
+    return 'Unknown distribution';
+  }
+
+  const result = matchingDistributions.map(dist => dist.name).join(', ');
+  console.log('ExamsTab Final result:', result);
+  return result;
 };
 
 const deleteExam = async examId => {
@@ -673,6 +792,38 @@ const getStatusClass = status => {
   };
   return classes[status] || classes.draft;
 };
+
+// New action methods for exam workflow
+const enterMarks = exam => {
+  navigateTo(`/exams/${exam.id}/marks`);
+};
+
+const calculateGrades = exam => {
+  navigateTo(`/exams/${exam.id}/results`);
+};
+
+const generateReports = exam => {
+  navigateTo(`/exams/${exam.id}/reports`);
+};
+
+const viewAll = exam => {
+  navigateTo(`/exams/${exam.id}/results`);
+};
+
+const clearFilters = () => {
+  searchQuery.value = '';
+  statusFilter.value = '';
+  classFilter.value = '';
+};
+
+// Load academic years on mount to get current academic year
+onMounted(async () => {
+  try {
+    await fetchAcademicYears();
+  } catch (error) {
+    // Silent fail
+  }
+});
 
 // Expose methods to parent component
 defineExpose({

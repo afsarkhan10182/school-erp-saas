@@ -71,7 +71,7 @@ router.use(setSchoolContext);
 
 // Middleware to ensure user has appropriate role
 router.use(
-  authorize(['super_admin', 'school_admin', 'branch_admin', 'teacher', 'student', 'parent'])
+  authorize(['super_admin', 'admin', 'branch_admin', 'teacher', 'student', 'parent'])
 );
 
 // Middleware to check subscription status

@@ -211,16 +211,27 @@ const setSchoolContext = (req, res, next) => {
 // Branch context middleware
 const setBranchContext = (req, res, next) => {
   try {
+    // Check if user is authenticated
+    if (!req.user) {
+      logger.warn('setBranchContext: No user found in request');
+      return next(new ApiError(401, 'Authentication required'));
+    }
+
     // Super admin and school admin can access any branch in their school
-    if (['super_admin', 'school_admin'].includes(req.user.role)) {
+    if (['super_admin', 'admin'].includes(req.user.role)) {
       // If branch_id is provided in query/params, use it
       req.branchId = req.query?.branch_id || req.params?.branch_id || req.body?.branch_id;
+      logger.debug('setBranchContext: Super/School admin - branchId set to:', req.branchId);
       return next();
     }
 
     // For other roles, they can only access their own branch
     if (req.user.branch_id) {
       req.branchId = req.user.branch_id;
+      logger.debug(
+        'setBranchContext: User role (' + req.user.role + ') - branchId set to:',
+        req.branchId
+      );
       return next();
     }
 
@@ -241,7 +252,7 @@ const tenantIsolation = model => {
       }
 
       // For school admin, filter by school_id
-      if (req.user.role === 'school_admin' && req.schoolId) {
+      if (req.user.role === 'admin' && req.schoolId) {
         req.where = { ...req.where, school_id: req.schoolId };
         return next();
       }

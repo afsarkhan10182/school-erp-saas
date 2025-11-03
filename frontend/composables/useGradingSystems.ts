@@ -1,25 +1,44 @@
-import { ref, readonly } from 'vue';
-import { gradingSystemApi } from '~/api/academic/grading-systems';
+import { ref, readonly, computed } from 'vue';
+import { gradingSystemApi, type GradingSystem } from '~/api/academic/grading-systems';
 import { useToast } from '~/composables/useToast';
 
 export const useGradingSystems = () => {
   const { showToast } = useToast();
 
   // State
-  const gradingSystems = ref([]);
+  const gradingSystems = ref<GradingSystem[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const pagination = ref({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  });
 
   /**
-   * Load all grading systems
+   * Load all grading systems with pagination
    */
-  const loadGradingSystems = async () => {
+  const loadGradingSystems = async (filters: any = {}) => {
     try {
       loading.value = true;
       error.value = null;
 
-      const response = await gradingSystemApi.getAll({ limit: 100 });
-      gradingSystems.value = response.data?.gradingSystems || [];
+      const queryParams = {
+        page: pagination.value.page,
+        limit: pagination.value.limit,
+        ...filters
+      };
+
+      const response = await gradingSystemApi.getAll(queryParams);
+
+      if (response.data && response.data.gradingSystems && response.data.pagination) {
+        gradingSystems.value = response.data.gradingSystems;
+        pagination.value = {
+          ...pagination.value,
+          ...response.data.pagination
+        };
+      }
     } catch (err: any) {
       error.value = 'Failed to load grading systems';
       showToast('Failed to load grading systems', 'error');
@@ -39,7 +58,11 @@ export const useGradingSystems = () => {
       const response = await gradingSystemApi.create(systemData);
       if (response.success) {
         showToast('Grading system created successfully', 'success');
-        await loadGradingSystems();
+        // Add to local list and update pagination
+        if (response.data && response.data.gradingSystem) {
+          gradingSystems.value.unshift(response.data.gradingSystem);
+          pagination.value.total += 1;
+        }
         return response.data;
       }
     } catch (err: any) {
@@ -62,7 +85,13 @@ export const useGradingSystems = () => {
       const response = await gradingSystemApi.update(id, systemData);
       if (response.success) {
         showToast('Grading system updated successfully', 'success');
-        await loadGradingSystems();
+        // Update local list
+        if (response.data && response.data.gradingSystem) {
+          const index = gradingSystems.value.findIndex(system => system.id === id);
+          if (index !== -1) {
+            gradingSystems.value[index] = response.data.gradingSystem;
+          }
+        }
         return response.data;
       }
     } catch (err: any) {
@@ -85,7 +114,9 @@ export const useGradingSystems = () => {
       const response = await gradingSystemApi.delete(id);
       if (response.success) {
         showToast('Grading system deleted successfully', 'success');
-        await loadGradingSystems();
+        // Remove from local list and update pagination
+        gradingSystems.value = gradingSystems.value.filter(system => system.id !== id);
+        pagination.value.total -= 1;
         return response.data;
       }
     } catch (err: any) {
@@ -97,16 +128,39 @@ export const useGradingSystems = () => {
     }
   };
 
+  // Pagination methods
+  const goToPage = async (page: number) => {
+    pagination.value.page = page;
+    await loadGradingSystems();
+  };
+
+  const changePageSize = async (limit: number) => {
+    pagination.value.limit = limit;
+    pagination.value.page = 1; // Reset to first page
+    await loadGradingSystems();
+  };
+
+  // Computed properties
+  const hasData = computed(() => gradingSystems.value.length > 0);
+  const isEmpty = computed(() => !loading.value && gradingSystems.value.length === 0);
+
   return {
     // State
     gradingSystems: readonly(gradingSystems),
     loading: readonly(loading),
     error: readonly(error),
+    pagination: readonly(pagination),
+
+    // Computed
+    hasData,
+    isEmpty,
 
     // Methods
     loadGradingSystems,
     createGradingSystem,
     updateGradingSystem,
-    deleteGradingSystem
+    deleteGradingSystem,
+    goToPage,
+    changePageSize
   };
 };

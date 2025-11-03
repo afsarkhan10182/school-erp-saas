@@ -5,8 +5,15 @@
       <div>
         <h3 class="text-lg font-medium text-gray-900 dark:text-white">Exam Types</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage exam types and their configurations
+          Manage assessment categories within exam terms (e.g., Monthly Test, Quarterly Exam, Final
+          Exam)
         </p>
+        <div class="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+          <p class="text-xs text-green-700 dark:text-green-300">
+            <strong>Note:</strong> These are assessment types, not exam terms. Exam terms are
+            managed in the "Exam Terms" tab.
+          </p>
+        </div>
       </div>
       <button
         @click="openCreateModal"

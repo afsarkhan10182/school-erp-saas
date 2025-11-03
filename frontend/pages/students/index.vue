@@ -742,6 +742,7 @@
 
 <script setup>
 import { ref, onMounted, reactive, computed, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 import { useBranches } from '~/composables/useBranches';
@@ -785,7 +786,7 @@ const totalItems = ref(0);
 
 // Role-based state
 const isSuperAdmin = computed(() => authStore.currentUser?.role === 'super_admin');
-const isSchoolAdmin = computed(() => authStore.currentUser?.role === 'school_admin');
+const isAdmin = computed(() => authStore.currentUser?.role === 'admin');
 const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_admin');
 
 // Selection state
@@ -799,8 +800,8 @@ const canApplyFilters = computed(() => {
   if (isSuperAdmin.value) {
     // Super Admin needs school and branch selection
     return selectedSchool.value && selectedBranch.value;
-  } else if (isSchoolAdmin.value) {
-    // School Admin needs branch selection
+  } else if (isAdmin.value) {
+    // Admin needs branch selection
     return selectedBranch.value;
   } else if (isBranchAdmin.value) {
     // Branch Admin can apply filters immediately (branch is auto-selected)
@@ -1132,7 +1133,7 @@ onMounted(async () => {
     await fetchSchools();
   }
 
-  if (isSchoolAdmin.value) {
+  if (isAdmin.value) {
     await fetchBranches(authStore.currentUser?.school_id);
   }
 
@@ -1152,7 +1153,7 @@ onMounted(async () => {
 
   if (isBranchAdmin.value) {
     await fetchStudents(1);
-  } else if (isSchoolAdmin.value) {
+  } else if (isAdmin.value) {
     await fetchStudents(1);
   } else if (isSuperAdmin.value) {
     await fetchStudents(1);
@@ -1167,17 +1168,13 @@ watch(selectedBranch, (newBranch, oldBranch) => {
 });
 
 // Watch search query for auto-refresh only when filters are applied
-watch(searchQuery, () => {
+// VueUse debounced search function
+const debouncedSearch = useDebounceFn(() => {
   if (hasAppliedFilters.value) {
-    // Reset to first page when searching
     currentPage.value = 1;
-    // Debounced search when filters are already applied
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      fetchStudents(1);
-    }, 300);
+    fetchStudents(1);
   }
-});
+}, 300);
 
-let debounceTimer;
+watch(searchQuery, debouncedSearch);
 </script>

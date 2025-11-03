@@ -1,5 +1,11 @@
 import { apiCall } from '~/utils/api';
 
+export interface Branch {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 export interface ExamHall {
   id: string;
   name: string;
@@ -7,10 +13,11 @@ export interface ExamHall {
   is_active: boolean;
   school_id: string;
   branch_id?: string; // Optional now
+  branch?: Branch; // Include branch data from API
   created_by?: string;
   updated_by?: string;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ExamHallFilters {

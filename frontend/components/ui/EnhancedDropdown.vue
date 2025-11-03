@@ -59,7 +59,7 @@
       <!-- Custom dropdown arrow -->
       <div v-else class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
         <svg
-          class="h-4 w-4 text-gray-500 dark:text-gray-400 transition-all duration-200 hover:text-indigo-400 dark:hover:text-indigo-300 focus-within:text-indigo-500 dark:focus-within:text-indigo-400"
+          class="h-4 w-4 text-gray-500 dark:text-gray-400 transition-all duration-200 group-hover:text-indigo-400 dark:group-hover:text-indigo-300 focus-within:text-indigo-500 dark:focus-within:text-indigo-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

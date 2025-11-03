@@ -530,7 +530,7 @@ import { useSchools } from '~/composables/useSchools';
 const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
 
 // Auth composable
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 
 // State
 const invoices = ref([]);
@@ -1714,7 +1714,7 @@ const fetchBranches = async () => {
       // Super admin can see all branches
       response = await Branches.getForDropdown();
       branches.value = response.data || [];
-    } else if (isSchoolAdmin.value) {
+    } else if (isAdmin.value) {
       // School admin sees only their school's branches
       response = await Branches.getForDropdown({ school_id: user.value?.school_id });
       branches.value = response.data || [];

@@ -1,789 +1,629 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Header -->
-    <div class="flex justify-between items-start">
-      <div class="space-y-2">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Marks Entry</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          Enter and manage exam marks for students
-        </p>
+    <div class="bg-white dark:bg-gray-800 shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="py-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Marks Entry</h1>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Enter marks for students in bulk
+              </p>
+            </div>
+            <div class="flex space-x-3">
+              <button
+                @click="saveMarks"
+                :disabled="saving || !hasChanges"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save class="h-4 w-4 mr-2" />
+                {{ saving ? 'Saving...' : 'Save Marks' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Exam Selection -->
-    <div
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-    >
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Exam Schedule</h3>
+    <!-- Selection Fields ( - 4 fields) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Selection Fields</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Branch () -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Branch
+            </label>
+            <EnhancedDropdown
+              v-model="selectedBranchId"
+              :options="branchOptions"
+              placeholder="Select branch"
+              :loading="branchesLoading"
+              @change="onBranchChange"
+            />
+          </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Branch Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Branch</label
-          >
-          <EnhancedDropdown
-            v-model="selectedBranch"
-            :options="branchDropdownOptions"
-            placeholder="Select Branch"
-            :loading="branchesLoading"
-            @update:model-value="onBranchChange"
-          />
+          <!-- Class () -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Class
+            </label>
+            <EnhancedDropdown
+              v-model="selectedClassId"
+              :options="classOptions"
+              placeholder="Select class"
+              :loading="classesLoading"
+              @change="onClassChange"
+            />
+          </div>
+
+          <!-- Section () -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Section
+            </label>
+            <EnhancedDropdown
+              v-model="selectedSectionId"
+              :options="sectionOptions"
+              placeholder="Select section"
+              :loading="sectionsLoading"
+              @change="onSectionChange"
+            />
+          </div>
+
+          <!-- Exam () -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Exam
+            </label>
+            <EnhancedDropdown
+              v-model="selectedExamId"
+              :options="examOptions"
+              placeholder="Select exam"
+              :loading="examsLoading"
+              @change="onExamChange"
+            />
+          </div>
         </div>
 
-        <!-- Exam Type -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Exam Type</label
+        <!-- Load Students Button -->
+        <div class="flex justify-end mt-4">
+          <button
+            @click="loadStudents"
+            :disabled="!selectedExamId || !selectedClassId || loadingStudents"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-          <EnhancedDropdown
-            v-model="selectedExamType"
-            :options="examTypeDropdownOptions"
-            placeholder="All Exam Types"
-            @update:model-value="loadExamSchedules"
-          />
-        </div>
-
-        <!-- Class -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Class</label
-          >
-          <EnhancedDropdown
-            v-model="selectedClass"
-            :options="classDropdownOptions"
-            placeholder="All Classes"
-            @update:model-value="loadExamSchedules"
-          />
-        </div>
-
-        <!-- Academic Year -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Academic Year</label
-          >
-          <EnhancedDropdown
-            v-model="selectedAcademicYear"
-            :options="academicYearDropdownOptions"
-            placeholder="All Years"
-            @update:model-value="loadExamSchedules"
-          />
+            <Users class="h-4 w-4 mr-2" />
+            {{ loadingStudents ? 'Loading...' : 'Load Students' }}
+          </button>
         </div>
       </div>
+    </div>
 
-      <!-- Exam Schedules List -->
-      <div v-if="examSchedules.length > 0" class="mt-6">
-        <h4 class="text-md font-medium text-gray-900 dark:text-white mb-3">
-          Available Exam Schedules
-        </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
-            v-for="schedule in examSchedules"
-            :key="schedule.id"
-            @click="selectExamSchedule(schedule)"
-            class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            :class="{
-              'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20':
-                selectedExamSchedule?.id === schedule.id
-            }"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <h5 class="font-medium text-gray-900 dark:text-white">{{ schedule.exam?.name }}</h5>
-              <span
-                class="text-xs px-2 py-1 rounded-full"
-                :class="getStatusClass(schedule.status?.name)"
-              >
-                {{ schedule.status?.name || 'Scheduled' }}
-              </span>
+    <!-- Summary Cards -->
+    <div v-if="summary" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <Users class="h-8 w-8 text-blue-600" />
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              {{ schedule.exam?.class?.name }} -
-              {{ schedule.exam?.subject?.name || 'All Subjects' }}
-            </p>
-            <div class="text-xs text-gray-500 dark:text-gray-500 space-y-1">
-              <p>Date: {{ formatDate(schedule.exam_date) }}</p>
-              <p v-if="schedule.start_time && schedule.end_time">
-                Time: {{ schedule.start_time }} - {{ schedule.end_time }}
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Students</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {{ summary.total_students }}
               </p>
-              <p v-if="schedule.examHall">
-                Hall: {{ schedule.examHall.name }} ({{ schedule.examHall.code }})
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <CheckCircle class="h-8 w-8 text-green-600" />
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Marks Entered</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {{ summary.marks_entered }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <XCircle class="h-8 w-8 text-red-600" />
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Absent</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {{ summary.absent_students }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <Clock class="h-8 w-8 text-yellow-600" />
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</p>
+              <p class="text-2xl font-semibold text-gray-900 dark:text-white">
+                {{ summary.pending }}
               </p>
             </div>
           </div>
         </div>
       </div>
-
-      <div v-else-if="!loading" class="mt-6 text-center text-gray-500 dark:text-gray-400">
-        No exams found for the selected criteria
-      </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="text-center py-8">
-      <div
-        class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-blue-500"
-      >
-        <svg
-          class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-        Loading exams...
-      </div>
-    </div>
-
-    <!-- Bulk Marks Entry Section -->
-    <div
-      v-if="selectedExamSchedule"
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-    >
-      <BulkMarksEntry
-        :exam="selectedExamSchedule.exam"
-        :students="students"
-        @marks-updated="loadStudentsForExamSchedule(selectedExamSchedule)"
-      />
-    </div>
-
-    <!-- Optimized Results Management Section -->
-    <div
-      v-if="selectedExamSchedule && showResultsManagement"
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-    >
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Results Management</h3>
-        <button
-          @click="showResultsManagement = false"
-          class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <ExamResults :exam="selectedExamSchedule.exam" @close="showResultsManagement = false" />
-    </div>
-
-    <!-- Show Results Management Button -->
-    <div
-      v-if="selectedExamSchedule && !showResultsManagement"
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-    >
-      <div class="text-center">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          View Results Management
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-4">
-          Access optimized results processing, analytics, and management tools
-        </p>
-        <button
-          @click="showResultsManagement = true"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Open Results Management
-        </button>
-      </div>
-    </div>
-
-    <!-- Marks Entry Section -->
-    <div
-      v-if="selectedExamSchedule && students.length > 0"
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6"
-    >
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Enter Marks</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {{ selectedExamSchedule.exam.name }} - {{ selectedExamSchedule.exam.class?.name }}
-            {{
-              selectedExamSchedule.exam.section?.name
-                ? `(${selectedExamSchedule.exam.section.name})`
-                : ''
-            }}
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            Max Marks: {{ selectedExamSchedule.exam.max_marks }} | Date:
-            {{ formatDate(selectedExamSchedule.exam_date) }}
-            <span v-if="selectedExamSchedule.start_time && selectedExamSchedule.end_time">
-              | Time: {{ selectedExamSchedule.start_time }} - {{ selectedExamSchedule.end_time }}
-            </span>
-          </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button
-            @click="markAllAbsent"
-            class="bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 transition-colors text-sm flex items-center gap-1"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-            Mark All Absent
-          </button>
-          <button
-            @click="markAllPresent"
-            class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center gap-1"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
-            Mark All Present
-          </button>
-          <button
-            @click="validateMarks"
-            class="bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 transition-colors text-sm flex items-center gap-1"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            Validate
-          </button>
-          <button
-            @click="saveMarks"
-            :disabled="saving || !isValidToSave"
-            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
-          >
-            <svg
-              v-if="saving"
-              class="animate-spin w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5 13l4 4L19 7"
-              ></path>
-            </svg>
-            {{ saving ? 'Saving...' : 'Save Marks' }}
-          </button>
+    <!-- Mark Distribution Info -->
+    <div v-if="markDistribution" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Mark Distribution</h3>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Theory</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.theory_marks }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Practical</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.practical_marks }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Viva</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.viva_marks }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Assignment</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.assignment_marks }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.total_marks }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Pass</p>
+            <p class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ markDistribution.pass_marks }}
+            </p>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Students Marks Table -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Student
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Roll No
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Marks
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Percentage
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Grade
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Remarks
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <tr
-              v-for="student in students"
-              :key="student.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ student.first_name }} {{ student.last_name }}
-                </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ student.admission_number }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{ student.roll_number }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  v-model="studentMarks[student.id].marks_obtained"
-                  type="number"
-                  :max="selectedExamSchedule?.exam?.max_marks"
-                  min="0"
-                  step="0.01"
-                  class="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                  :disabled="studentMarks[student.id].is_absent"
-                  @input="calculateStudentResult(student.id)"
-                />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{
-                  studentMarks[student.id].percentage
-                    ? `${studentMarks[student.id].percentage.toFixed(2)}%`
-                    : '-'
-                }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  v-if="studentMarks[student.id].grade"
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  :class="getGradeClass(studentMarks[student.id].grade)"
+    <!-- Students Grid -->
+    <div v-if="students.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Students Marks Entry</h3>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
-                  {{ studentMarks[student.id].grade }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <label class="flex items-center">
+                  Student
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Theory
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Practical
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Viva
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Assignment
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Total
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Absent
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr
+                v-for="student in students"
+                :key="student.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ student.name }}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                      Roll: {{ student.roll_number }}
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Theory Marks -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input
+                    v-model.number="studentMarks[student.id].theory_marks_obtained"
+                    type="number"
+                    min="0"
+                    :max="markDistribution?.theory_marks || 0"
+                    class="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    :disabled="studentMarks[student.id]?.is_absent"
+                  />
+                </td>
+
+                <!-- Practical Marks -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input
+                    v-model.number="studentMarks[student.id].practical_marks_obtained"
+                    type="number"
+                    min="0"
+                    :max="markDistribution?.practical_marks || 0"
+                    class="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    :disabled="studentMarks[student.id]?.is_absent"
+                  />
+                </td>
+
+                <!-- Viva Marks -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input
+                    v-model.number="studentMarks[student.id].viva_marks_obtained"
+                    type="number"
+                    min="0"
+                    :max="markDistribution?.viva_marks || 0"
+                    class="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    :disabled="studentMarks[student.id]?.is_absent"
+                  />
+                </td>
+
+                <!-- Assignment Marks -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input
+                    v-model.number="studentMarks[student.id].assignment_marks_obtained"
+                    type="number"
+                    min="0"
+                    :max="markDistribution?.assignment_marks || 0"
+                    class="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    :disabled="studentMarks[student.id]?.is_absent"
+                  />
+                </td>
+
+                <!-- Total Marks (Auto-calculated) -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ calculateTotalMarks(student.id) }}
+                  </span>
+                </td>
+
+                <!-- Absent Checkbox -->
+                <td class="px-6 py-4 whitespace-nowrap">
                   <input
                     v-model="studentMarks[student.id].is_absent"
                     type="checkbox"
-                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    @change="handleAbsentChange(student.id)"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    @change="onAbsentChange(student.id)"
                   />
-                  <span class="ml-2 text-sm text-gray-900 dark:text-white">Absent</span>
-                </label>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <input
-                  v-model="studentMarks[student.id].remarks"
-                  type="text"
-                  placeholder="Optional remarks..."
-                  class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Validation Errors -->
-      <div
-        v-if="validationErrors.length > 0"
-        class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
-      >
-        <h4 class="text-sm font-medium text-red-800 dark:text-red-200 mb-2">Validation Errors</h4>
-        <ul class="text-sm text-red-700 dark:text-red-300 space-y-1">
-          <li v-for="error in validationErrors" :key="error" class="flex items-center">
-            <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd"
-              ></path>
-            </svg>
-            {{ error }}
-          </li>
-        </ul>
-      </div>
-
-      <!-- Summary -->
-      <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Summary</h4>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span class="text-gray-600 dark:text-gray-400">Total Students:</span>
-            <span class="ml-2 font-medium text-gray-900 dark:text-white">{{
-              students.length
-            }}</span>
-          </div>
-          <div>
-            <span class="text-gray-600 dark:text-gray-400">Present:</span>
-            <span class="ml-2 font-medium text-green-600">{{ presentCount }}</span>
-          </div>
-          <div>
-            <span class="text-gray-600 dark:text-gray-400">Absent:</span>
-            <span class="ml-2 font-medium text-red-600">{{ absentCount }}</span>
-          </div>
-          <div>
-            <span class="text-gray-600 dark:text-gray-400">Average:</span>
-            <span class="ml-2 font-medium text-blue-600">{{ averagePercentage.toFixed(2) }}%</span>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
+
+    <!-- No Students Message -->
+    <div
+      v-else-if="!loadingStudents && students.length === 0"
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+        <Users class="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No students found</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Please select an exam and class to load students.
+        </p>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useToast } from '~/composables/useToast';
-import { useExamOptions } from '~/composables/useExamOptions';
-import { useAcademics } from '~/composables/useAcademics';
-import { useBranches } from '~/composables/useBranches';
-import { useExamSchedules } from '~/composables/useExamSchedules';
-import { Exams } from '~/api';
-import { Students } from '~/api';
-import BulkMarksEntry from '~/components/academic/BulkMarksEntry.vue';
-import ExamResults from '~/components/academic/ExamResults.vue';
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue';
+import { Save, Users, CheckCircle, XCircle, Clock } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { useToast } from '~/composables/useToast';
+import { useAcademics } from '~/composables/useAcademics';
+import { useExams } from '~/composables/useExams';
+import { useMarksEntry } from '~/composables/useMarksEntry';
+import { useAuth } from '~/composables/useAuth';
+import { useBranches } from '~/composables/useBranches';
 
 // Composables
 const { showToast } = useToast();
-const { examTypeOptions, loadAllExamOptions } = useExamOptions();
-const { classOptions, academicYears, fetchClasses, fetchAcademicYears } = useAcademics();
-const { branches, loading: branchesLoading, fetchBranches } = useBranches();
-const { loadSchedules: loadExamSchedulesApi } = useExamSchedules();
+const { user } = useAuth();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const {
+  classes,
+  sections,
+  classOptions,
+  sectionOptions,
+  fetchClasses,
+  fetchSections,
+  loading: classesLoading,
+  sectionsLoading
+} = useAcademics();
+const { exams, loadExams, loading: examsLoading } = useExams();
+const { getStudentsForMarksEntry, saveMarks: saveMarksAPI, getMarksEntrySummary } = useMarksEntry();
+
+// Types
+interface Student {
+  id: string;
+  name: string;
+  roll_number: string;
+  class?: { name: string };
+  section?: { name: string };
+  existing_marks?: {
+    theory_marks_obtained?: number;
+    practical_marks_obtained?: number;
+    viva_marks_obtained?: number;
+    assignment_marks_obtained?: number;
+    marks_obtained?: number;
+    is_absent?: boolean;
+  };
+}
+
+interface StudentMarks {
+  theory_marks_obtained: number;
+  practical_marks_obtained: number;
+  viva_marks_obtained: number;
+  assignment_marks_obtained: number;
+  is_absent: boolean;
+}
+
+interface Summary {
+  total_students: number;
+  marks_entered: number;
+  absent_students: number;
+  pending: number;
+}
+
+interface MarkDistribution {
+  theory_marks: number;
+  practical_marks: number;
+  viva_marks: number;
+  assignment_marks: number;
+  total_marks: number;
+  pass_marks: number;
+}
 
 // Reactive data
-const loading = ref(false);
+const selectedBranchId = ref('');
+const selectedExamId = ref('');
+const selectedClassId = ref('');
+const selectedSectionId = ref('');
+const students = ref<Student[]>([]);
+const studentMarks = reactive<Record<string, StudentMarks>>({});
+const summary = ref<Summary | null>(null);
+const markDistribution = ref<MarkDistribution | null>(null);
+const loadingStudents = ref(false);
 const saving = ref(false);
-const examSchedules = ref([]);
-const students = ref([]);
-const selectedExamSchedule = ref(null);
-const studentMarks = ref({});
 
-// Filters
-const selectedBranch = ref('');
-const selectedExamType = ref('');
-const selectedClass = ref('');
-const selectedAcademicYear = ref('');
-const showResultsManagement = ref(false);
-
-// Dropdown options
-const branchDropdownOptions = computed(() => [
-  { value: '', label: 'Select Branch' },
-  ...branches.value.map(branch => ({
+// Computed properties
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
     value: branch.id,
     label: branch.name
   }))
-]);
+);
 
-const examTypeDropdownOptions = computed(() => [
-  { value: '', label: 'Select Exam Type' },
-  ...examTypeOptions.value
-]);
-
-const classDropdownOptions = computed(() => [
-  { value: '', label: 'Select Class' },
-  ...classOptions.value
-]);
-
-const academicYearDropdownOptions = computed(() => [
-  { value: '', label: 'Select Academic Year' },
-  ...academicYears.value.map(year => ({
-    value: year.name,
-    label: year.name + (year.is_current ? ' (Current)' : '')
+const examOptions = computed(() =>
+  exams.value.map(exam => ({
+    value: exam.id,
+    label: exam.name,
+    description: exam.examType?.name
   }))
-]);
-
-const presentCount = computed(
-  () => students.value.filter(student => !studentMarks.value[student.id]?.is_absent).length
 );
 
-const absentCount = computed(
-  () => students.value.filter(student => studentMarks.value[student.id]?.is_absent).length
-);
-
-const averagePercentage = computed(() => {
-  const presentStudents = students.value.filter(
-    student => !studentMarks.value[student.id]?.is_absent
-  );
-  if (presentStudents.length === 0) return 0;
-
-  const totalPercentage = presentStudents.reduce((sum, student) => {
-    return sum + (studentMarks.value[student.id]?.percentage || 0);
-  }, 0);
-
-  return totalPercentage / presentStudents.length;
+const showSectionField = computed(() => {
+  const selectedClass = classes.value.find(c => c.id === selectedClassId.value);
+  return selectedClass?.has_sections || false;
 });
 
-const isValidToSave = computed(() => {
-  if (!selectedExamSchedule.value || students.value.length === 0) return false;
-
-  // Check if at least one student has marks entered
-  const hasMarks = students.value.some(student => {
-    const marks = studentMarks.value[student.id];
-    return marks && (marks.marks_obtained > 0 || marks.is_absent);
-  });
-
-  return hasMarks;
+const hasChanges = computed(() => {
+  return Object.keys(studentMarks).length > 0;
 });
-
-const validationErrors = ref([]);
 
 // Methods
-const onBranchChange = async () => {
-  if (selectedBranch.value) {
-    await fetchClasses({ branchId: selectedBranch.value });
-    await loadExamSchedules();
-  } else {
-    examSchedules.value = [];
-  }
+const onBranchChange = () => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
+  summary.value = null;
+  markDistribution.value = null;
 };
 
-const loadExamSchedules = async () => {
+const onExamChange = () => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
+  summary.value = null;
+  markDistribution.value = null;
+};
+
+const onClassChange = () => {
+  selectedSectionId.value = '';
+  students.value = [];
+  Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
+  summary.value = null;
+  markDistribution.value = null;
+};
+
+const onSectionChange = () => {
+  students.value = [];
+  Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
+  summary.value = null;
+  markDistribution.value = null;
+};
+
+const loadStudents = async () => {
   try {
-    loading.value = true;
+    loadingStudents.value = true;
 
-    const filters = {};
-    if (selectedBranch.value) filters.branch_id = selectedBranch.value;
-    if (selectedExamType.value) filters.exam_type = selectedExamType.value;
-    if (selectedClass.value) filters.class_id = selectedClass.value;
-    if (selectedAcademicYear.value) filters.academic_year = selectedAcademicYear.value;
-
-    const schedules = await loadExamSchedulesApi(filters);
-    examSchedules.value = schedules || [];
-  } catch (error) {
-    showToast('Failed to load exam schedules', 'error');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const selectExamSchedule = async schedule => {
-  selectedExamSchedule.value = schedule;
-  await loadStudentsForExamSchedule(schedule);
-};
-
-const loadStudentsForExamSchedule = async schedule => {
-  try {
-    loading.value = true;
-
-    // Load students for the exam's class and section
-    const params = {
-      class_id: schedule.exam.class_id,
-      section_id: schedule.exam.section_id || undefined,
-      is_active: true
+    const params: any = {
+      exam_id: selectedExamId.value,
+      class_id: selectedClassId.value,
+      school_id: user.value?.school_id,
+      branch_id: selectedBranchId.value || user.value?.branch_id
     };
 
-    const response = await Students.getAll(params);
-    students.value = response.data.students || response.data.rows || [];
+    if (selectedSectionId.value) {
+      params.section_id = selectedSectionId.value;
+    }
 
-    // Initialize student marks
-    students.value.forEach(student => {
-      studentMarks.value[student.id] = {
-        marks_obtained: 0,
-        percentage: 0,
-        grade: '',
-        is_absent: false,
-        remarks: ''
-      };
-    });
+    const response = (await getStudentsForMarksEntry(params)) as any;
+
+    if (response.success) {
+      students.value = response.data.students;
+      markDistribution.value = response.data.mark_distribution;
+
+      // Initialize student marks
+      students.value.forEach((student: Student) => {
+        if (student.existing_marks) {
+          studentMarks[student.id] = { ...student.existing_marks };
+        } else {
+          studentMarks[student.id] = {
+            theory_marks_obtained: 0,
+            practical_marks_obtained: 0,
+            viva_marks_obtained: 0,
+            assignment_marks_obtained: 0,
+            is_absent: false
+          };
+        }
+      });
+
+      // Load summary
+      await loadSummary();
+
+      showToast('Students loaded successfully', 'success');
+    }
   } catch (error) {
+    console.error('Error loading students:', error);
     showToast('Failed to load students', 'error');
   } finally {
-    loading.value = false;
+    loadingStudents.value = false;
   }
 };
 
-const calculateStudentResult = async studentId => {
-  const marks = studentMarks.value[studentId];
-  if (marks.marks_obtained && selectedExamSchedule.value?.exam?.max_marks > 0) {
-    marks.percentage = (marks.marks_obtained / selectedExamSchedule.value.exam.max_marks) * 100;
+const loadSummary = async () => {
+  try {
+    const params: any = {
+      exam_id: selectedExamId.value,
+      class_id: selectedClassId.value,
+      school_id: user.value?.school_id,
+      branch_id: user.value?.branch_id
+    };
 
-    // Calculate grade using backend service
-    try {
-      const gradeResponse = await Exams.calculateGrade(marks.percentage);
-      marks.grade = gradeResponse.data.grade;
-    } catch (error) {
-      // Fallback to basic grade calculation
-      marks.grade = calculateBasicGrade(marks.percentage);
+    if (selectedSectionId.value) {
+      params.section_id = selectedSectionId.value;
     }
-  } else {
-    marks.percentage = 0;
-    marks.grade = '';
+
+    const response = (await getMarksEntrySummary(params)) as any;
+
+    if (response.success) {
+      summary.value = response.data;
+    }
+  } catch (error) {
+    console.error('Error loading summary:', error);
   }
 };
 
-const calculateBasicGrade = percentage => {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C+';
-  if (percentage >= 40) return 'C';
-  if (percentage >= 35) return 'D';
-  return 'F';
+const calculateTotalMarks = (studentId: string) => {
+  const marks = studentMarks[studentId];
+  if (!marks || marks.is_absent) return 0;
+
+  return (
+    (marks.theory_marks_obtained || 0) +
+    (marks.practical_marks_obtained || 0) +
+    (marks.viva_marks_obtained || 0) +
+    (marks.assignment_marks_obtained || 0)
+  );
 };
 
-const handleAbsentChange = studentId => {
-  const marks = studentMarks.value[studentId];
+const onAbsentChange = (studentId: string) => {
+  const marks = studentMarks[studentId];
   if (marks.is_absent) {
-    marks.marks_obtained = 0;
-    marks.percentage = 0;
-    marks.grade = '';
+    // Clear all marks when marked absent
+    marks.theory_marks_obtained = 0;
+    marks.practical_marks_obtained = 0;
+    marks.viva_marks_obtained = 0;
+    marks.assignment_marks_obtained = 0;
   }
-};
-
-const markAllAbsent = () => {
-  students.value.forEach(student => {
-    studentMarks.value[student.id].is_absent = true;
-    studentMarks.value[student.id].marks_obtained = 0;
-    studentMarks.value[student.id].percentage = 0;
-    studentMarks.value[student.id].grade = '';
-  });
-  showToast('All students marked as absent', 'info');
-};
-
-const markAllPresent = () => {
-  students.value.forEach(student => {
-    studentMarks.value[student.id].is_absent = false;
-    if (!studentMarks.value[student.id].marks_obtained) {
-      studentMarks.value[student.id].marks_obtained = 0;
-    }
-  });
-  showToast('All students marked as present', 'info');
-};
-
-const validateMarks = () => {
-  const errors = [];
-
-  students.value.forEach(student => {
-    const marks = studentMarks.value[student.id];
-    if (!marks.is_absent) {
-      const marksObtained = parseFloat(marks.marks_obtained);
-
-      if (isNaN(marksObtained) || marksObtained < 0) {
-        errors.push(`${student.first_name} ${student.last_name}: Invalid marks entered`);
-      } else if (marksObtained > selectedExamSchedule.value?.exam?.max_marks) {
-        errors.push(
-          `${student.first_name} ${student.last_name}: Marks exceed maximum (${selectedExamSchedule.value.exam.max_marks})`
-        );
-      }
-    }
-  });
-
-  validationErrors.value = errors;
-
-  if (errors.length === 0) {
-    showToast('All marks are valid', 'success');
-  } else {
-    showToast(`Found ${errors.length} validation errors`, 'error');
-  }
-
-  return errors.length === 0;
 };
 
 const saveMarks = async () => {
   try {
     saving.value = true;
 
-    // Validate marks before saving
-    if (!validateMarks()) {
-      showToast('Please fix validation errors before saving', 'error');
-      return;
+    const marksData = Object.keys(studentMarks).map(studentId => ({
+      student_id: studentId,
+      ...studentMarks[studentId]
+    }));
+
+    const response = (await saveMarksAPI({
+      exam_id: selectedExamId.value,
+      marks_data: marksData
+    })) as any;
+
+    if (response.success) {
+      showToast(`Marks saved for ${response.data.successful.length} students`, 'success');
+      await loadSummary(); // Refresh summary
     }
-
-    const results = students.value.map(student => {
-      const marks = studentMarks.value[student.id];
-      return {
-        student_id: student.id,
-        marks_obtained: marks.is_absent ? 0 : parseFloat(marks.marks_obtained) || 0,
-        is_absent: marks.is_absent,
-        remarks: marks.remarks || ''
-      };
-    });
-
-    await Exams.bulkCreateResults(selectedExamSchedule.value.exam.id, results);
-    showToast('Marks saved successfully', 'success');
-
-    // Clear validation errors after successful save
-    validationErrors.value = [];
   } catch (error) {
+    console.error('Error saving marks:', error);
     showToast('Failed to save marks', 'error');
   } finally {
     saving.value = false;
   }
 };
 
-const getGradeClass = grade => {
-  const gradeClasses = {
-    'A+': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    A: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    'B+': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    B: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    'C+': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    C: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    D: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    F: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-  };
-  return gradeClasses[grade] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-};
-
-const getStatusClass = status => {
-  const classes = {
-    draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    in_progress: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-  };
-  return classes[status] || classes.draft;
-};
-
-const formatDate = date => {
-  return new Date(date).toLocaleDateString();
-};
-
-// Lifecycle
+// Load initial data
 onMounted(async () => {
-  await Promise.all([loadAllExamOptions(), fetchBranches(), fetchAcademicYears()]);
+  await Promise.all([fetchBranches(), loadExams(), fetchClasses()]);
 });
 </script>

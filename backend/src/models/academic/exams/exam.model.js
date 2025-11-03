@@ -17,10 +17,15 @@ const Exam = sequelize.define(
         notEmpty: { msg: 'Exam name is required' }
       }
     },
-    exam_type_id: {
-      type: DataTypes.UUID,
+    type_id: {
+      type: DataTypes.SMALLINT,
       allowNull: false,
-      references: { model: 'exam_types', key: 'id' }
+      validate: {
+        isIn: {
+          args: [[1, 2, 3]],
+          msg: 'Exam type must be 1 (marks), 2 (grade), or 3 (both)'
+        }
+      }
     },
     weightage: {
       type: DataTypes.DECIMAL(5, 2),
@@ -43,29 +48,37 @@ const Exam = sequelize.define(
       type: DataTypes.STRING(10),
       allowNull: false
     },
+    term_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'terms', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
     },
+    publish_status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    result_status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     instructions: {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    class_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: { model: 'classes', key: 'id' }
-    },
-    section_id: {
-      type: DataTypes.UUID,
+    mark_distribution_ids: {
+      type: DataTypes.JSONB,
       allowNull: true,
-      references: { model: 'sections', key: 'id' }
-    },
-    subject_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: 'subjects', key: 'id' }
+      defaultValue: [],
+      comment: 'Array of mark distribution IDs associated with this exam'
     },
     school_id: {
       type: DataTypes.UUID,
@@ -102,13 +115,14 @@ const Exam = sequelize.define(
         name: 'idx_exams_branch_id',
         fields: ['branch_id']
       },
+      // class_id index removed - field no longer exists
+      // {
+      //   name: 'idx_exams_class_id',
+      //   fields: ['class_id']
+      // },
       {
-        name: 'idx_exams_class_id',
-        fields: ['class_id']
-      },
-      {
-        name: 'idx_exams_exam_type_id',
-        fields: ['exam_type_id']
+        name: 'idx_exams_type_id',
+        fields: ['type_id']
       },
       {
         name: 'idx_exams_is_active',
@@ -117,6 +131,10 @@ const Exam = sequelize.define(
       {
         name: 'idx_exams_academic_year',
         fields: ['academic_year']
+      },
+      {
+        name: 'idx_exams_term_id',
+        fields: ['term_id']
       }
     ]
   }
@@ -124,25 +142,7 @@ const Exam = sequelize.define(
 
 // Associations
 Exam.associate = models => {
-  Exam.belongsTo(models.ExamType, {
-    foreignKey: 'exam_type_id',
-    as: 'examType'
-  });
-
-  Exam.belongsTo(models.Class, {
-    foreignKey: 'class_id',
-    as: 'class'
-  });
-
-  Exam.belongsTo(models.Section, {
-    foreignKey: 'section_id',
-    as: 'section'
-  });
-
-  Exam.belongsTo(models.Subject, {
-    foreignKey: 'subject_id',
-    as: 'subject'
-  });
+  // Note: Exam type is now hardcoded (1, 2, 3) - no foreign key relationship
 
   Exam.belongsTo(models.School, {
     foreignKey: 'school_id',
@@ -152,6 +152,11 @@ Exam.associate = models => {
   Exam.belongsTo(models.Branch, {
     foreignKey: 'branch_id',
     as: 'branch'
+  });
+
+  Exam.belongsTo(models.Term, {
+    foreignKey: 'term_id',
+    as: 'term'
   });
 
   Exam.belongsTo(models.User, {

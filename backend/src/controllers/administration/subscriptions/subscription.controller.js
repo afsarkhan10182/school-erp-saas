@@ -21,7 +21,7 @@ class SubscriptionController {
   // Get active plans for school/branch admins (limited fields)
   static async getActivePlansForSchools(req, res, next) {
     try {
-      if (!['school_admin', 'branch_admin', 'super_admin'].includes(req.user.role)) {
+      if (!['admin', 'branch_admin', 'super_admin'].includes(req.user.role)) {
         return res.status(403).json({ success: false, message: 'Not authorized' });
       }
 
@@ -318,7 +318,7 @@ class SubscriptionController {
           success: true,
           data: transactions
         });
-      } else if (req.user.role === 'school_admin') {
+      } else if (req.user.role === 'admin') {
         // School admin can only access their own school's transactions
         if (req.user.school_id !== schoolId) {
           return res.status(403).json({
@@ -348,7 +348,7 @@ class SubscriptionController {
   // Get my school transactions (for school admins - convenience endpoint)
   static async getMySchoolTransactions(req, res, next) {
     try {
-      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+      if (!['admin', 'branch_admin'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Only school admins can access their own transaction data'
@@ -438,7 +438,7 @@ class SubscriptionController {
   // Create subscription renewal request (for school admins)
   static async createRenewalRequest(req, res, next) {
     try {
-      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+      if (!['admin', 'branch_admin'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Only school admins can create renewal requests'
@@ -491,7 +491,7 @@ class SubscriptionController {
   // Get school renewal requests (for school admins)
   static async getSchoolRenewalRequests(req, res, next) {
     try {
-      if (!['school_admin', 'branch_admin'].includes(req.user.role)) {
+      if (!['admin', 'branch_admin'].includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Only school admins can access renewal requests'
@@ -613,7 +613,7 @@ class SubscriptionController {
       const { schoolId } = req.params;
 
       // Check permissions
-      if (req.user.role === 'school_admin' && req.user.school_id !== schoolId) {
+      if (req.user.role === 'admin' && req.user.school_id !== schoolId) {
         return res.status(403).json({
           success: false,
           message: "You can only access your own school's module data"
@@ -835,7 +835,7 @@ class SubscriptionController {
   // Get available modules (for plan creation and management)
   static async getAvailableModules(req, res, next) {
     try {
-      if (!['super_admin', 'school_admin', 'branch_admin'].includes(req.user.role)) {
+      if (!['super_admin', 'admin', 'branch_admin'].includes(req.user.role)) {
         return res
           .status(403)
           .json({ success: false, message: 'Not authorized to access module information' });

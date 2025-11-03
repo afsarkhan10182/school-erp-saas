@@ -19,11 +19,14 @@ class ExamHallService extends BaseService {
       });
 
       if (existing) {
-        throw new ApiError(400, 'Exam hall with this name already exists in this school');
+        throw new ApiError(409, 'Exam hall with this name already exists in this school');
       }
 
       const hall = await ExamHall.create({
-        ...hallData,
+        name: hallData.name,
+        capacity: hallData.capacity,
+        branch_id: hallData.branch_id,
+        school_id: hallData.school_id,
         created_by: userId,
         updated_by: userId
       });
@@ -134,12 +137,14 @@ class ExamHallService extends BaseService {
         });
 
         if (existing) {
-          throw new ApiError(400, 'Exam hall with this name already exists in this school');
+          throw new ApiError(409, 'Exam hall with this name already exists in this school');
         }
       }
 
       await hall.update({
-        ...updateData,
+        name: updateData.name,
+        capacity: updateData.capacity,
+        branch_id: updateData.branch_id,
         updated_by: user.id
       });
 

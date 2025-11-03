@@ -1,84 +1,110 @@
-import { apiCall } from '~/utils/api';
+import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface ExamSchedule {
   id: string;
   exam_id: string;
+  class_id: string;
+  section_id?: string;
+  hall_id: string;
   exam_date: string;
-  start_time?: string;
-  end_time?: string;
-  duration_minutes?: number;
-  exam_hall_id?: string;
-  invigilator_id?: string;
-  additional_invigilators?: string[];
-  status_id: string;
-  seating_arrangement?: any;
-  special_instructions?: string;
-  is_rescheduled: boolean;
-  rescheduled_reason?: string;
-  original_date?: string;
-  is_active: boolean;
-  branch_id: string;
+  start_time: string;
+  end_time: string;
+  duration: number;
+  theory_marks?: number;
+  practical_marks?: number;
+  viva_marks?: number;
+  assignment_marks?: number;
+  total_marks?: number;
+  pass_marks?: number;
+  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
   school_id: string;
+  branch_id: string;
   created_by?: string;
   updated_by?: string;
-  created_at?: string;
-  updated_at?: string;
-  // Relations
+  created_at: string;
+  updated_at: string;
   exam?: {
     id: string;
     name: string;
-    exam_type_id: string;
-    class_id: string;
-    subject_id?: string;
-    max_marks: number;
-    weightage: number;
+    examType?: {
+      id: string;
+      name: string;
+    };
   };
-  exam_hall?: {
+  class?: {
     id: string;
     name: string;
-    code: string;
+  };
+  section?: {
+    id: string;
+    name: string;
+  };
+  hall?: {
+    id: string;
+    name: string;
     capacity: number;
-  };
-  invigilator?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  status?: {
-    id: string;
-    name: string;
-    code: string;
-    color?: string;
   };
 }
 
 export interface ExamScheduleFilters {
+  school_id?: string;
+  branch_id?: string;
+  exam_id?: string;
+  class_id?: string;
+  section_id?: string;
+  hall_id?: string;
+  exam_date?: string;
+  from_date?: string;
+  to_date?: string;
+  status?: string;
   page?: number;
   limit?: number;
-  exam_id?: string;
-  branch_id?: string;
-  school_id?: string;
-  exam_date?: string;
-  status_id?: string;
-  exam_hall_id?: string;
-  invigilator_id?: string;
-  is_active?: boolean;
 }
 
 export interface CreateExamScheduleData {
   exam_id: string;
+  class_id: string;
+  section_id?: string;
+  hall_id: string;
   exam_date: string;
-  start_time?: string;
-  end_time?: string;
-  duration_minutes?: number;
-  exam_hall_id?: string;
-  invigilator_id?: string;
-  additional_invigilators?: string[];
-  status_id: string;
-  seating_arrangement?: any;
-  special_instructions?: string;
-  branch_id: string;
+  start_time: string;
+  end_time: string;
+  duration: number;
+  theory_marks?: number;
+  practical_marks?: number;
+  viva_marks?: number;
+  assignment_marks?: number;
+  total_marks?: number;
+  pass_marks?: number;
   school_id: string;
+  branch_id: string;
+}
+
+export interface QuickScheduleData {
+  exam_id: string;
+  class_ids: string[];
+  section_ids?: string[];
+  starting_date: string;
+  starting_time: string;
+  duration_minutes: number;
+  exam_hall_id?: string;
+  mark_distribution?: {
+    theory_marks: number;
+    practical_marks: number;
+    viva_marks: number;
+    assignment_marks: number;
+  };
+  total_marks?: number;
+  pass_marks?: number;
+  school_id: string;
+  branch_id: string;
+}
+
+export interface QuickScheduleResult {
+  created_schedules: ExamSchedule[];
+  errors: string[];
+  success_count: number;
+  error_count: number;
 }
 
 export interface UpdateExamScheduleData extends Partial<CreateExamScheduleData> {
@@ -86,29 +112,124 @@ export interface UpdateExamScheduleData extends Partial<CreateExamScheduleData> 
 }
 
 export const examScheduleApi = {
-  // Get all exam schedules
-  getAll: (filters?: ExamScheduleFilters) =>
-    apiCall<{ schedules: ExamSchedule[]; total: number; page: number; limit: number }>(
-      'GET',
-      '/exam-schedules',
-      { params: filters }
-    ),
+  // Get all exam schedules with optional filters
+  async getAll(
+    filters: ExamScheduleFilters = {}
+  ): Promise<{ data: ExamSchedule[]; total: number; page: number; limit: number }> {
+    // Build query string from filters
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value.toString());
+      }
+    });
 
-  // Get exam schedule by ID
-  getById: (id: string) => apiCall<{ schedule: ExamSchedule }>('GET', `/exam-schedules/${id}`),
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/exam-schedules?${queryString}` : '/exam-schedules';
 
-  // Get schedules for a specific exam
-  getByExam: (examId: string) =>
-    apiCall<{ schedules: ExamSchedule[] }>('GET', `/exam-schedules/exam/${examId}`),
+    return await apiCall('get', endpoint);
+  },
 
-  // Create new exam schedule
-  create: (data: CreateExamScheduleData) =>
-    apiCall<{ schedule: ExamSchedule }>('POST', '/exam-schedules', data),
+  // Get a single exam schedule by ID
+  async getById(id: string): Promise<ExamSchedule> {
+    const response = await apiCall('get', `/exam-schedules/${id}`);
+    return response.data;
+  },
 
-  // Update exam schedule
-  update: (data: UpdateExamScheduleData) =>
-    apiCall<{ schedule: ExamSchedule }>('PUT', `/exam-schedules/${data.id}`, data),
+  // Create a new exam schedule
+  async create(data: CreateExamScheduleData): Promise<ExamSchedule> {
+    const response = await apiCall('post', '/exam-schedules', data);
+    return response.data;
+  },
 
-  // Delete exam schedule
-  delete: (id: string) => apiCall<{ message: string }>('DELETE', `/exam-schedules/${id}`)
+  // Update an existing exam schedule
+  async update(id: string, data: Partial<CreateExamScheduleData>): Promise<ExamSchedule> {
+    const response = await apiCall('put', `/exam-schedules/${id}`, data);
+    return response.data;
+  },
+
+  // Delete an exam schedule
+  async delete(id: string): Promise<void> {
+    await apiCall('delete', `/exam-schedules/${id}`);
+  },
+
+  // Get schedules by exam
+  async getByExam(examId: string, schoolId: string, branchId?: string): Promise<ExamSchedule[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('exam_id', examId);
+    queryParams.append('school_id', schoolId);
+    if (branchId) {
+      queryParams.append('branch_id', branchId);
+    }
+
+    const endpoint = `/exam-schedules?${queryParams.toString()}`;
+    const response = await apiCall('get', endpoint);
+    return response.data;
+  },
+
+  // Get schedules by class
+  async getByClass(classId: string, schoolId: string, branchId?: string): Promise<ExamSchedule[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('class_id', classId);
+    queryParams.append('school_id', schoolId);
+    if (branchId) {
+      queryParams.append('branch_id', branchId);
+    }
+
+    const endpoint = `/exam-schedules?${queryParams.toString()}`;
+    const response = await apiCall('get', endpoint);
+    return response.data;
+  },
+
+  // Get schedules by date range
+  async getByDateRange(
+    fromDate: string,
+    toDate: string,
+    schoolId: string,
+    branchId?: string
+  ): Promise<ExamSchedule[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('from_date', fromDate);
+    queryParams.append('to_date', toDate);
+    queryParams.append('school_id', schoolId);
+    if (branchId) {
+      queryParams.append('branch_id', branchId);
+    }
+
+    const endpoint = `/exam-schedules?${queryParams.toString()}`;
+    const response = await apiCall('get', endpoint);
+    return response.data;
+  },
+
+  // Check for schedule conflicts
+  async checkConflicts(data: {
+    hall_id: string;
+    exam_date: string;
+    start_time: string;
+    end_time: string;
+    exclude_id?: string;
+  }): Promise<{ hasConflict: boolean; conflictingSchedules: ExamSchedule[] }> {
+    const response = await apiCall('post', '/exam-schedules/check-conflicts', data);
+    return response.data;
+  },
+
+  // Bulk create schedules
+  async bulkCreate(
+    schedules: CreateExamScheduleData[]
+  ): Promise<{ created: number; failed: number; errors: any[] }> {
+    const response = await apiCall('post', '/exam-schedules/bulk', { schedules });
+    return response.data;
+  },
+
+  // Update schedule status
+  async updateStatus(id: string, status: string): Promise<ExamSchedule> {
+    const response = await apiCall('patch', `/exam-schedules/${id}/status`, { status });
+    return response.data;
+  },
+
+  // Quick schedule creation ()
+  async createQuickSchedule(data: QuickScheduleData): Promise<QuickScheduleResult> {
+    const response = await apiCall('post', '/exam-schedules/quick', data);
+    return response.data;
+  }
 };

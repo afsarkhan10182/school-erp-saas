@@ -100,11 +100,11 @@
               'input-field',
               fieldErrors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
-            :disabled="isSchoolAdmin"
+            :disabled="isAdmin"
             @change="clearFieldError('role')"
           >
-            <option value="super_admin" v-if="!isSchoolAdmin">Super Admin</option>
-            <option value="school_admin" v-if="!isSchoolAdmin">School Admin</option>
+            <option value="super_admin" v-if="!isAdmin">Super Admin</option>
+            <option value="admin" v-if="!isAdmin">Admin</option>
             <option value="branch_admin">Branch Admin</option>
             <option value="teacher">Teacher</option>
             <option value="accountant">Accountant</option>
@@ -119,9 +119,7 @@
           <div v-if="fieldErrors.role" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ fieldErrors.role }}
           </div>
-          <p v-if="isSchoolAdmin" class="text-sm text-gray-500 mt-1">
-            Role cannot be changed by School Admin
-          </p>
+          <p v-if="isAdmin" class="text-sm text-gray-500 mt-1">Role cannot be changed by Admin</p>
         </div>
       </div>
       <div class="flex justify-end gap-3">
@@ -173,12 +171,12 @@ import { useToast } from '~/composables/useToast';
 import { Users } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 
-const { isSuperAdmin, isSchoolAdmin, user } = useAuth();
+const { isSuperAdmin, isAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
 
-// Access control - only Super Admin and School Admin can access user management
-if (!isSuperAdmin.value && !isSchoolAdmin.value) {
-  showError('Access denied. Only Super Admin and School Admin can manage users.');
+// Access control - only Super Admin and Admin can access user management
+if (!isSuperAdmin.value && !isAdmin.value) {
+  showError('Access denied. Only Super Admin and Admin can manage users.');
   await navigateTo('/dashboard');
 }
 
@@ -200,7 +198,7 @@ const form = ref({
   password: ''
 });
 
-// isSchoolAdmin is already available from useAuth composable
+// isAdmin is already available from useAuth composable
 
 const fetchUser = async () => {
   loading.value = true;
@@ -281,8 +279,8 @@ const handleSubmit = async () => {
       phone: form.value.phone
     };
 
-    // Only include role if user is not School Admin
-    if (!isSchoolAdmin.value) {
+    // Only include role if user is not Admin
+    if (!isAdmin.value) {
       updateData.role = form.value.role;
     }
 

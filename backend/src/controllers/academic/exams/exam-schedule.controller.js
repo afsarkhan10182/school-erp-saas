@@ -29,7 +29,7 @@ class ExamScheduleController {
       exam_id: req.query.exam_id,
       branch_id: req.query.branch_id,
       exam_hall_id: req.query.exam_hall_id,
-      status_id: req.query.status_id,
+      status: req.query.status,
       date_from: req.query.date_from,
       date_to: req.query.date_to,
       invigilator_id: req.query.invigilator_id
@@ -79,7 +79,23 @@ class ExamScheduleController {
 
     success(res, { schedules }, 'Exam schedules retrieved successfully');
   });
+
+  /**
+   * Create quick exam schedule ()
+   */
+  static createQuickSchedule = asyncHandler(async (req, res) => {
+    const quickScheduleData = {
+      ...req.body,
+      school_id: req.schoolId,
+      branch_id: req.branchId || req.user.branch_id
+    };
+
+    const result = await ExamScheduleService.createQuickSchedule(quickScheduleData, req.user.id);
+
+    const message = `Quick schedule creation completed. ${result.success_count} schedules created, ${result.error_count} errors.`;
+
+    success(res, result, message, httpStatus.CREATED);
+  });
 }
 
 module.exports = ExamScheduleController;
-

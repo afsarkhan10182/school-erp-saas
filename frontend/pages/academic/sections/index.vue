@@ -201,7 +201,7 @@
                 </select>
               </div>
 
-              <!-- Branch Selection (Super Admin & School Admin) - Create Mode Only -->
+              <!-- Branch Selection (Super Admin & Admin) - Create Mode Only -->
               <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Branch *</label
@@ -398,7 +398,7 @@ const isSubmitting = ref(false);
 const editingId = ref(null);
 
 // Auth and user context
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const userRole = computed(() => user.value?.role);
 
 // Academic settings
@@ -433,7 +433,7 @@ const canSubmit = computed(() => {
 
   if (userRole.value === 'super_admin') {
     if (!selectedSchoolId.value || !selectedBranchId.value) return false;
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     if (!selectedBranchId.value) return false;
   }
 
@@ -503,7 +503,7 @@ const resetForm = () => {
   if (userRole.value === 'super_admin') {
     selectedSchoolId.value = '';
     selectedBranchId.value = '';
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     selectedBranchId.value = '';
   }
 };
@@ -517,7 +517,7 @@ const onSchoolChange = async () => {
   }
 };
 
-// Branch change handler (Super Admin & School Admin)
+// Branch change handler (Super Admin & Admin)
 const onBranchChange = async () => {
   selectedClassId.value = '';
   if (selectedBranchId.value) {
@@ -546,7 +546,7 @@ const loadStreamsForClass = async classId => {
     if (userRole.value === 'super_admin') {
       if (selectedSchoolId.value) params.school_id = selectedSchoolId.value;
       if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
-    } else if (userRole.value === 'school_admin') {
+    } else if (userRole.value === 'admin') {
       params.school_id = user.value?.school_id;
       if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
     } else if (userRole.value === 'branch_admin') {
@@ -598,7 +598,7 @@ const fetchSections = async () => {
     // Add role-based filters
     if (userRole.value === 'super_admin') {
       // Super admin can see all sections
-    } else if (userRole.value === 'school_admin') {
+    } else if (userRole.value === 'admin') {
       // School admin sees only their school's sections
       params.school_id = user.value?.school_id;
     } else if (userRole.value === 'branch_admin') {
@@ -624,7 +624,7 @@ const openCreateModal = async () => {
   if (userRole.value === 'super_admin') {
     // Load schools for super admin
     await fetchSchools();
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     // Set school and load branches for school admin
     selectedSchoolId.value = user.value?.school_id;
     await fetchBranches(user.value?.school_id);
@@ -650,7 +650,7 @@ const editSection = async section => {
     selectedSchoolId.value = section.branch?.school_id;
     await fetchBranches(section.branch?.school_id);
     selectedBranchId.value = section.branch_id;
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     selectedSchoolId.value = user.value?.school_id;
     await fetchBranches(user.value?.school_id);
     selectedBranchId.value = section.branch_id;

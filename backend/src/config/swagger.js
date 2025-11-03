@@ -142,7 +142,7 @@ const options = {
               type: 'string',
               enum: [
                 'super_admin',
-                'school_admin',
+                'admin',
                 'branch_admin',
                 'teacher',
                 'student',
@@ -154,7 +154,7 @@ const options = {
                 'hr',
                 'alumni'
               ],
-              example: 'school_admin'
+              example: 'admin'
             },
             status: {
               type: 'string',

@@ -17,13 +17,13 @@ router.use((req, res, next) => {
   });
   console.log('🔍 Streams route middleware - Allowed roles:', [
     'super_admin',
-    'school_admin',
+    'admin',
     'branch_admin'
   ]);
   next();
 });
 
-router.use(authorize(['super_admin', 'school_admin', 'branch_admin']));
+router.use(authorize(['super_admin', 'admin', 'branch_admin']));
 
 // GET /api/streams - Get all streams with pagination and filters
 router.get('/', StreamController.getAllStreams);

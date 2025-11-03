@@ -22,26 +22,13 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   // Check if user is authenticated from store state
   const isAuthenticated = isLoggedIn.value && user.value;
 
-  // Debug logging for new tab scenarios
-  if (import.meta.client) {
-    console.log('🔒 Auth Middleware:', {
-      path: to.path,
-      hasTokenCookie,
-      isAuthenticated,
-      isInitializing: false, // Auth composable handles initialization
-      isPublicRoute
-    });
-  }
-
   // CASE 1: User is authenticated (via store or cookie) and trying to access login page
   if (to.path === '/auth/login' && (isAuthenticated || hasTokenCookie)) {
-    console.log('🔒 Redirecting authenticated user from login to dashboard');
     return navigateTo('/dashboard');
   }
 
   // CASE 2: User has token cookie but store isn't initialized yet (new tab scenario)
   if (hasTokenCookie && !isAuthenticated) {
-    console.log('🔒 New tab detected - allowing navigation with background auth check');
     // Allow navigation immediately and verify auth in background
     nextTick(async () => {
       try {
@@ -50,14 +37,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
         if (!isValid) {
           // Only redirect if we're not on a public route
           if (!isPublicRoute) {
-            console.log('🔒 Background auth check failed - redirecting to login');
             await navigateTo('/auth/login');
           }
         } else {
-          console.log('🔒 Background auth check successful');
+          // Background auth check successful
         }
       } catch (error) {
-        console.error('🔒 Background auth verification failed:', error);
         // Only redirect if we're not on a public route
         if (!isPublicRoute) {
           await navigateTo('/auth/login');
@@ -71,8 +56,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // CASE 3: User not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute && !hasTokenCookie) {
-    console.log('🔒 No auth - redirecting to login');
-    // No token cookie and not authenticated - redirect to login immediately
-    return navigateTo('/auth/login');
+    // No token cookie and not authenticated - redirect to login with intended destination
+    return navigateTo(`/auth/login?redirect=${encodeURIComponent(to.fullPath)}`);
   }
 });

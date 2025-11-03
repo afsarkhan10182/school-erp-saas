@@ -14,7 +14,7 @@ export function useBranches() {
   const currentSchool = computed(() => authStore.currentSchool);
   const canSwitchBranches = computed(() => {
     const role = authStore.userRole;
-    return role === 'super_admin' || role === 'school_admin';
+    return role === 'super_admin' || role === 'admin';
   });
 
   // Fetch branches for the current user (context-aware)
@@ -32,7 +32,7 @@ export function useBranches() {
       if (authStore.isSuperAdmin) {
         // Super admin can see all branches
         response = await Branches.getForDropdown();
-      } else if (authStore.isSchoolAdmin && authStore.currentSchool) {
+      } else if (authStore.isAdmin && authStore.currentSchool) {
         // School admin can see branches of their school
         response = await Branches.getForDropdown({
           school_id: authStore.currentSchool.id

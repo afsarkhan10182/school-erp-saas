@@ -28,9 +28,9 @@ export const useAuthStore = defineStore('auth', () => {
   // Computed
   const isLoggedIn = computed(() => !!user.value);
   const isAuthenticated = computed(() => isLoggedIn.value);
-  const userRole = computed(() => user.value?.role || null);
+  const userRole = computed(() => user.value?.role);
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
-  const isSchoolAdmin = computed(() => user.value?.role === 'school_admin');
+  const isAdmin = computed(() => user.value?.role === 'admin');
   const isBranchAdmin = computed(() => user.value?.role === 'branch_admin');
   const currentUser = computed(() => user.value);
 
@@ -140,7 +140,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (error) {
-      console.error('❌ Error during auth initialization:', error);
       user.value = null;
       currentBranch.value = null;
       currentSchool.value = null;
@@ -169,9 +168,9 @@ export const useAuthStore = defineStore('auth', () => {
         if (userData.school_id) {
           currentSchool.value = {
             id: userData.school_id,
-            name: userData.school?.name || userData.school_name,
-            code: userData.school?.code || userData.school_code,
-            logo: userData.school?.logo || ''
+            name: userData.school?.name,
+            code: userData.school?.code,
+            logo: userData.school?.logo
           };
         }
 
@@ -216,7 +215,7 @@ export const useAuthStore = defineStore('auth', () => {
           setTimeout(() => {
             const { loadUserModules } = useModuleAccess();
             loadUserModules(true).catch(error => {
-              console.warn('Failed to load modules after login:', error);
+              // Failed to load modules after login
             });
           }, 500); // Small delay to ensure auth state is ready
         }
@@ -229,8 +228,6 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, error: response.message };
       }
     } catch (error: any) {
-      console.error('🔐 Login error:', error);
-
       // Handle specific error cases
       if (error.response?.status === 401) {
         return {
@@ -377,7 +374,6 @@ export const useAuthStore = defineStore('auth', () => {
         return false;
       }
     } catch (error) {
-      console.error('❌ Auth check error:', error);
       return false;
     }
   };
@@ -524,7 +520,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userRole,
     isSuperAdmin,
-    isSchoolAdmin,
+    isAdmin,
     isBranchAdmin,
     currentUser,
 

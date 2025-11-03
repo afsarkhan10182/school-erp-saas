@@ -21,7 +21,7 @@ export function useTimetables() {
   } = useAcademics();
   const { schools, fetchSchools } = useSchools();
   const { branches, fetchBranches } = useBranches();
-  const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user } = useAuth();
+  const { isSuperAdmin, isAdmin, isBranchAdmin, user } = useAuth();
 
   // Reactive data
   const timetables = ref([]);
@@ -55,7 +55,7 @@ export function useTimetables() {
 
   // Computed properties
   const shouldShowBranchFilter = computed(() => {
-    return isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value;
+    return isSuperAdmin.value || isAdmin.value || isBranchAdmin.value;
   });
 
   const schoolOptions = computed(() =>

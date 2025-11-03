@@ -6,7 +6,6 @@ export { subjectApi as Subjects } from './subjects';
 export { AcademicYears } from './academic-years';
 export { AcademicCalendar } from './academic-calendar';
 export { Academic } from './academic';
-export { examTypeApi as ExamTypes } from './exam-types';
 export { examApi as Exams } from './exams';
 export { subjectTeacherApi as SubjectTeachers } from './subject-teachers';
 
@@ -23,5 +22,4 @@ export type {
   UpdateCalendarEventData
 } from './academic-calendar';
 export type { AcademicParams } from './academic';
-export type { ExamType, ExamTypeFilters } from './exam-types';
 export type { Exam, ExamResult, ExamFilters, ExamResultData } from './exams';

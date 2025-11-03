@@ -152,7 +152,7 @@ const userRole = computed(() => {
 
   const roleMap = {
     super_admin: 'Super Admin',
-    school_admin: 'School Admin',
+    admin: 'Admin',
     branch_admin: 'Branch Admin',
     teacher: 'Teacher',
     librarian: 'Librarian',
@@ -187,7 +187,7 @@ const getUserIcon = () => {
   switch (props.user.role) {
     case 'super_admin':
       return Crown;
-    case 'school_admin':
+    case 'admin':
       return Building2;
     case 'branch_admin':
       return Shield;

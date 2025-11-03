@@ -447,7 +447,7 @@ const canSelectBranch = computed(() => {
 const canSelectClass = computed(() => {
   if (userRole.value === 'super_admin') {
     return !!(form.school_id && form.branch_id);
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     return !!form.branch_id;
   }
   return true; // Branch admin can always select class
@@ -744,7 +744,7 @@ const getBranchPlaceholder = () => {
 const getClassPlaceholder = () => {
   if (userRole.value === 'super_admin') {
     return form.branch_id ? 'Select Class' : 'Select Branch First';
-  } else if (userRole.value === 'school_admin') {
+  } else if (userRole.value === 'admin') {
     return form.branch_id ? 'Select Class' : 'Select Branch First';
   }
   return 'Select Class';
@@ -856,7 +856,7 @@ const initializeComponent = async () => {
   form.student_selection = 'all';
   form.selected_student_ids = [];
 
-  if (userRole.value === 'school_admin') {
+  if (userRole.value === 'admin') {
     // Set school for school admin
     form.school_id = authStore.currentUser?.school_id;
   } else if (userRole.value === 'branch_admin') {

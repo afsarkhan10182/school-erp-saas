@@ -34,7 +34,7 @@
           {{
             userRole === 'super_admin'
               ? 'Select School & Branch'
-              : userRole === 'school_admin'
+              : userRole === 'admin'
                 ? 'Select Branch'
                 : 'Academic Details'
           }}
@@ -83,7 +83,7 @@
             </p>
           </div>
 
-          <!-- Branch Dropdown (Super Admin & School Admin) -->
+          <!-- Branch Dropdown (Super Admin & Admin) -->
           <div v-if="userRole !== 'branch_admin'">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Branch <span class="text-red-500">*</span>
@@ -2985,7 +2985,7 @@ onMounted(async () => {
 
     if (userRole.value === 'super_admin') {
       await loadSchools();
-    } else if (userRole.value === 'school_admin') {
+    } else if (userRole.value === 'admin') {
       if (user.value?.school_id) {
         form.school_id = user.value.school_id;
         loadingBranches.value = true;

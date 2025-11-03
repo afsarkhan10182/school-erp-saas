@@ -4,29 +4,29 @@
  */
 
 // Academic module roles
-const ACADEMIC_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
-const ACADEMIC_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
-const ACADEMIC_SUPER_ADMIN_ROLES = ['school_admin', 'super_admin'];
+const ACADEMIC_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
+const ACADEMIC_ADMIN_ROLES = ['branch_admin', 'admin', 'super_admin'];
+const ACADEMIC_SUPER_ADMIN_ROLES = ['admin', 'super_admin'];
 
 // Subject management roles
-const SUBJECT_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
-const SUBJECT_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
-const SUBJECT_READ_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
+const SUBJECT_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
+const SUBJECT_ADMIN_ROLES = ['branch_admin', 'admin', 'super_admin'];
+const SUBJECT_READ_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
 
 // Exam management roles
-const EXAM_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
-const EXAM_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
+const EXAM_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
+const EXAM_ADMIN_ROLES = ['branch_admin', 'admin', 'super_admin'];
 
 // Timetable management roles
-const TIMETABLE_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
-const TIMETABLE_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
+const TIMETABLE_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
+const TIMETABLE_ADMIN_ROLES = ['branch_admin', 'admin', 'super_admin'];
 
 // Attendance management roles
-const ATTENDANCE_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
-const ATTENDANCE_ADMIN_ROLES = ['branch_admin', 'school_admin', 'super_admin'];
+const ATTENDANCE_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
+const ATTENDANCE_ADMIN_ROLES = ['branch_admin', 'admin', 'super_admin'];
 
 // Report card roles
-const REPORT_CARD_ROLES = ['teacher', 'branch_admin', 'school_admin', 'super_admin'];
+const REPORT_CARD_ROLES = ['teacher', 'branch_admin', 'admin', 'super_admin'];
 
 // Teacher-specific roles (for teacher-only endpoints)
 const TEACHER_ROLES = ['teacher'];

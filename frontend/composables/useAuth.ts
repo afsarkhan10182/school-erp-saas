@@ -3,7 +3,10 @@ import { useAuthStore } from '~/stores/auth';
 export const useAuth = () => {
   const authStore = useAuthStore();
 
-  const login = async (credentials: { email: string; password: string; rememberMe?: boolean }) => {
+  const login = async (
+    credentials: { email: string; password: string; rememberMe?: boolean },
+    redirectTo?: string
+  ) => {
     try {
       const result = await authStore.login(credentials);
 
@@ -11,8 +14,9 @@ export const useAuth = () => {
         // Wait a moment for auth state to be fully set
         await nextTick();
 
-        // Force redirect to dashboard - use replace to prevent back navigation
-        await navigateTo('/dashboard', { replace: true });
+        // Redirect to intended destination or dashboard - use replace to prevent back navigation
+        const destination = redirectTo || '/dashboard';
+        await navigateTo(destination, { replace: true });
         return result;
       } else {
         return result;
@@ -71,7 +75,7 @@ export const useAuth = () => {
 
     // Role checks
     isSuperAdmin: computed(() => authStore.isSuperAdmin),
-    isSchoolAdmin: computed(() => authStore.isSchoolAdmin),
+    isAdmin: computed(() => authStore.isAdmin),
     isBranchAdmin: computed(() => authStore.isBranchAdmin),
 
     // Actions

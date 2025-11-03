@@ -620,7 +620,7 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const authStore = useAuthStore();
 const { printReport } = usePrintReport();
 const {
@@ -824,8 +824,8 @@ const canApplyFilters = computed(() => {
   if (isSuperAdmin.value) {
     // Super Admin needs school and branch selection
     return selectedSchoolId.value && selectedBranchId.value;
-  } else if (isSchoolAdmin.value) {
-    // School Admin needs branch selection
+  } else if (isAdmin.value) {
+    // Admin needs branch selection
     return selectedBranchId.value;
   } else if (isBranchAdmin.value) {
     // Branch Admin can apply filters immediately (branch is auto-selected)

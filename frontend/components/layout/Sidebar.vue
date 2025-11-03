@@ -347,7 +347,14 @@ import {
   ChevronDown,
   FileText,
   Clock,
-  Edit
+  Edit,
+  Edit3,
+  CheckCircle,
+  Building,
+  Award,
+  Trophy,
+  Globe,
+  FileBarChart
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -384,7 +391,7 @@ const saveSidebarState = isOpen => {
   }
 };
 
-const { isSuperAdmin, isSchoolAdmin, isBranchAdmin, user, currentSchool } = useAuth();
+const { isSuperAdmin, isAdmin, isBranchAdmin, user, currentSchool } = useAuth();
 const menuOpen = ref('');
 const subMenuOpen = ref('');
 const logoError = ref(false);
@@ -401,12 +408,6 @@ const schoolLogo = computed(() => {
     const apiBase = config.public?.apiBase;
 
     const logoUrl = getLogoUrl(school.logo, schoolCode, apiBase);
-    console.log('🖼️ Generated logo URL:', {
-      filename: school.logo,
-      schoolCode: schoolCode,
-      apiBase: apiBase,
-      logoUrl: logoUrl
-    });
     return logoUrl;
   }
   return null;
@@ -415,15 +416,11 @@ const schoolLogo = computed(() => {
 const schoolName = computed(() => {
   // Use currentSchool from auth store (updated when settings change)
   // Fallback to user.school.name for backward compatibility
-  return currentSchool.value?.name || user.value?.school?.name || '';
+  return currentSchool.value?.name || user.value?.school?.name;
 });
 
 // Handle logo error fallback
 const handleLogoError = event => {
-  console.error('🚫 School logo failed to load:', {
-    src: event.target?.src,
-    school: user.value?.school
-  });
   logoError.value = true;
 };
 
@@ -492,10 +489,10 @@ const menuGroups = computed(() => {
       ]
     });
 
-    // School Administration (Super Admin Only)
+    // Administration (Super Admin Only)
     groups.push({
       id: 'school-admin',
-      title: 'School Administration',
+      title: 'Administration',
       items: [
         {
           id: 'manage-branches',
@@ -514,7 +511,7 @@ const menuGroups = computed(() => {
   }
 
   // Student Management
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isReceptionist.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value || isReceptionist.value) {
     groups.push({
       id: 'students',
       title: 'Student Management',
@@ -553,7 +550,7 @@ const menuGroups = computed(() => {
   }
 
   // Academic Module
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'academic',
       title: 'Academic Management',
@@ -625,7 +622,7 @@ const menuGroups = computed(() => {
   }
 
   // Attendance Module
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'attendance',
       title: 'Attendance Management',
@@ -656,30 +653,90 @@ const menuGroups = computed(() => {
     });
   }
 
+  // Certificates Module
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
+    groups.push({
+      id: 'certificates',
+      title: 'Certificate Management',
+      items: [
+        {
+          id: 'certificate-management',
+          title: 'Certificates',
+          icon: Award,
+          requiredModule: 'certificates',
+          children: [
+            {
+              id: 'certificate-templates',
+              title: 'Templates',
+              path: '/certificates/templates',
+              icon: FileText,
+              requiredModule: 'certificates'
+            },
+            {
+                  id: 'generate-student',
+                  title: 'Generate for Students',
+                  path: '/certificates/generate-students',
+                  icon: GraduationCap,
+                  requiredModule: 'certificates'
+                },
+                {
+                  id: 'generate-employee',
+                  title: 'Generate for Employees',
+                  path: '/certificates/generate-employees',
+                  icon: Users,
+                  requiredModule: 'certificates'
+                }
+          ]
+        }
+      ]
+    });
+  }
+
   // Exams Module
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'exams',
       title: 'Exam Management',
       items: [
         {
           id: 'exam-management',
-          title: 'Exam',
+          title: 'Exams',
           icon: FileText,
           requiredModule: 'exams',
           children: [
             {
+              id: 'exam-setup',
+              title: 'Exam Setup',
+              path: '/exams/setup',
+              icon: Settings,
+              requiredModule: 'exams'
+            },
+            {
               id: 'exams',
               title: 'Exams',
               path: '/exams',
-              icon: FileText,
+              icon: BookOpen,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'exam-schedules',
+              title: 'Exam Schedules',
+              path: '/exams/schedules',
+              icon: Calendar,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'exam-results',
+              title: 'Exam Results',
+              path: '/exams/results',
+              icon: BarChart3,
               requiredModule: 'exams'
             },
             {
               id: 'marks-entry',
               title: 'Marks Entry',
               path: '/exams/marks-entry',
-              icon: Edit,
+              icon: Edit3,
               requiredModule: 'exams'
             },
             {
@@ -687,6 +744,20 @@ const menuGroups = computed(() => {
               title: 'Report Cards',
               path: '/exams/report-cards',
               icon: FileText,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'positions',
+              title: 'Position Management',
+              path: '/exams/positions',
+              icon: Trophy,
+              requiredModule: 'exams'
+            },
+            {
+              id: 'publication',
+              title: 'Result Publication',
+              path: '/exams/publication',
+              icon: Globe,
               requiredModule: 'exams'
             }
           ]
@@ -696,7 +767,7 @@ const menuGroups = computed(() => {
   }
 
   // Fee Management
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value || isAccountant.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value || isAccountant.value) {
     groups.push({
       id: 'fees',
       title: 'Fee Management',
@@ -735,7 +806,7 @@ const menuGroups = computed(() => {
   }
 
   // Reports & Analytics
-  if (isSuperAdmin.value || isSchoolAdmin.value || isBranchAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
     groups.push({
       id: 'reports',
       title: 'Reports & Analytics',
@@ -767,36 +838,44 @@ const menuGroups = computed(() => {
                   requiredModule: 'fees'
                 }
               ]
+            },
+            {
+              id: 'student',
+              title: 'Student',
+              icon: Users,
+              requiredModule: 'students',
+              children: [
+                {
+                  id: 'student-reports',
+                  title: 'Student Reports',
+                  path: '/reports/students',
+                  icon: BarChart3,
+                  requiredModule: 'students'
+                },
+                {
+                  id: 'attendance-reports',
+                  title: 'Attendance Reports',
+                  path: '/reports/attendance',
+                  icon: UserCheck,
+                  requiredModule: 'attendance'
+                }
+              ]
+            },
+            {
+              id: 'exams',
+              title: 'Exams',
+              icon: BookOpen,
+              requiredModule: 'exams',
+              children: [
+                {
+                  id: 'exam-reports',
+                  title: 'Exam Reports',
+                  path: '/reports/exams',
+                  icon: FileBarChart,
+                  requiredModule: 'exams'
+                }
+              ]
             }
-            // {
-            //   id: 'student',
-            //   title: 'Student',
-            //   icon: Users,
-            //   requiredModule: 'students',
-            //   children: [
-            //     {
-            //       id: 'student-reports',
-            //       title: 'Student Reports',
-            //       path: '/reports/students',
-            //       icon: BarChart3,
-            //       requiredModule: 'students'
-            //     },
-            //     {
-            //       id: 'attendance-reports',
-            //       title: 'Attendance Reports',
-            //       path: '/reports/attendance',
-            //       icon: BarChart3,
-            //       requiredModule: 'attendance'
-            //     },
-            //     {
-            //       id: 'exam-reports',
-            //       title: 'Exam Reports',
-            //       path: '/exams/report-cards',
-            //       icon: FileText,
-            //       requiredModule: 'exams'
-            //     }
-            //   ]
-            // }
           ]
         }
       ]
@@ -820,7 +899,6 @@ const menuGroups = computed(() => {
     });
   }
 
-  // Front Office (Receptionist)
   if (isReceptionist.value) {
     groups.push({
       id: 'front-office',
@@ -848,14 +926,40 @@ const menuGroups = computed(() => {
     });
   }
 
+  // User/Staff Management
+  if (isSuperAdmin.value || isAdmin.value) {
+    const userManagementItems = [];
+
+    if (isSuperAdmin.value) {
+      userManagementItems.push({
+        id: 'user-list',
+        title: 'User List',
+        path: '/users',
+        icon: Users
+      });
+    } else if (isAdmin.value) {
+      userManagementItems.push({
+        id: 'staff-list',
+        title: 'Staff List',
+        path: '/users',
+        icon: Users
+      });
+    }
+
+    groups.push({
+      id: 'user-management',
+      title: isSuperAdmin.value ? 'User Management' : 'Staff Management',
+      items: userManagementItems
+    });
+  }
+
   // Settings
-  if (isSuperAdmin.value || isSchoolAdmin.value) {
+  if (isSuperAdmin.value || isAdmin.value) {
     const settingsItems = [];
 
     // Super Admin gets full settings
     if (isSuperAdmin.value) {
       settingsItems.push(
-        { id: 'staff-list', title: 'User List', path: '/users', icon: Users },
         {
           id: 'settings-main',
           title: 'Settings',
@@ -870,10 +974,9 @@ const menuGroups = computed(() => {
         }
       );
     }
-    // School Admin gets simplified settings
-    else if (isSchoolAdmin.value) {
+    // Admin gets simplified settings
+    else if (isAdmin.value) {
       settingsItems.push(
-        { id: 'staff-list', title: 'Staff List', path: '/users', icon: Users },
         {
           id: 'settings-main',
           title: 'School Settings',
@@ -917,16 +1020,13 @@ const menuGroups = computed(() => {
 
 // Get visible menu groups based on user role and module access
 const visibleMenuGroups = computed(() => {
-  console.log('🔄 Computing visible menu groups, userModules:', userModules.value);
-
   // Super admin: show all menu groups
   if (isSuperAdmin.value) {
     return menuGroups.value;
   }
 
   // For non-super admins, filter based on modules
-  if (!userModules.value || userModules.value.length === 0) {
-    console.log('🔄 No user modules available, showing basic menu');
+  if (!userModules.value?.length) {
     // Return basic menu items that don't require modules
     return menuGroups.value.filter(group => group.id === 'profile' || group.id === 'settings');
   }
@@ -942,7 +1042,6 @@ const visibleMenuGroups = computed(() => {
     })
     .filter(group => group.items.length > 0); // remove empty groups
 
-  console.log('🔄 Filtered menu groups:', filtered);
   return filtered;
 });
 
@@ -1025,7 +1124,7 @@ onMounted(async () => {
 watch(
   userModules,
   newModules => {
-    console.log('🔄 Sidebar modules updated:', newModules);
+    // Modules updated
   },
   { deep: true }
 );
@@ -1035,7 +1134,6 @@ onMounted(() => {
   if (import.meta.client) {
     const handleStorageChange = e => {
       if (e.key === 'modules-refresh') {
-        console.log('🔄 Module refresh detected, reloading...');
         loadUserModules(true);
       }
     };
@@ -1048,7 +1146,7 @@ onMounted(() => {
           const { checkModulesUpdated } = useModuleAccess();
           await checkModulesUpdated();
         } catch (error) {
-          console.warn('Background module check failed:', error);
+          // Background module check failed
         }
       },
       15 * 60 * 1000

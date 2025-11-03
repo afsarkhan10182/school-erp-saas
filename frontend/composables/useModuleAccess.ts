@@ -37,7 +37,7 @@ export function useModuleAccess() {
   const isLoading = ref(false);
 
   // Check if a module is enabled for the current user's school
-  const isModuleEnabled = (moduleCode: string): boolean => {
+  const isModuleEnabled = (moduleCode: string) => {
     // Super admin has access to all modules
     if (isSuperAdmin.value) {
       return true;
@@ -206,6 +206,7 @@ export function useModuleAccess() {
       '/fees/collections': 'fees',
       '/reports/fees': 'fees',
       '/reports/receipts': 'fees',
+      '/fee-ledger': 'fees',
 
       '/students': 'students',
       '/students/create': 'students',
@@ -237,13 +238,21 @@ export function useModuleAccess() {
       '/reports/transport': 'transport',
 
       '/reports': 'reports',
-      '/reports/advanced': 'reports'
+      '/reports/advanced': 'reports',
+
+      // Certificate Management Module
+      '/certificates': 'certificates'
 
       // Module settings page removed - now handled through subscription plans
     };
 
     // Check for exact match first
     let requiredModule = routeModuleMap[normalizedPath];
+
+    // Special case for fee-ledger route (dynamic student ID)
+    if (!requiredModule && normalizedPath.includes('/fee-ledger')) {
+      requiredModule = 'fees';
+    }
 
     // If no exact match, check for prefix matches (for nested routes)
     if (!requiredModule) {

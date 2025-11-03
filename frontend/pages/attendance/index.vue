@@ -200,8 +200,8 @@
           />
         </div>
 
-        <!-- Branch Selector (Super Admin and School Admin) -->
-        <div v-if="isSuperAdmin || isSchoolAdmin">
+        <!-- Branch Selector (Super Admin and Admin) -->
+        <div v-if="isSuperAdmin || isAdmin">
           <label
             class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
           >
@@ -577,6 +577,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, onUnmounted } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
@@ -590,7 +591,7 @@ import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables - Following common reusable patterns
 const { showToast } = useToast();
-const { user, isSuperAdmin, isSchoolAdmin, isBranchAdmin } = useAuth();
+const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
@@ -866,8 +867,8 @@ const onSchoolChange = async (schoolId: string) => {
 };
 
 const onBranchChange = async (branchId: string) => {
-  // Only Super Admins and School Admins can change branch
-  if (!isSuperAdmin.value && !isSchoolAdmin.value) return;
+  // Only Super Admins and Admins can change branch
+  if (!isSuperAdmin.value && !isAdmin.value) return;
 
   form.branch_id = branchId;
   form.class_id = '';
@@ -923,7 +924,7 @@ const loadStudentsForAttendance = async () => {
   if (isSuperAdmin.value && (!form.school_id || !form.branch_id)) {
     showToast('Please select school and branch first', 'error');
     return;
-  } else if (isSchoolAdmin.value && !form.branch_id) {
+  } else if (isAdmin.value && !form.branch_id) {
     showToast('Please select branch first', 'error');
     return;
   }
@@ -1125,22 +1126,12 @@ const createAttendanceSession = async () => {
   }
 };
 
-// Watch for date changes with debounce
-let dateChangeTimeout: any = null;
-watch(
-  () => form.date,
-  () => {
-    // Clear previous timeout
-    if (dateChangeTimeout) {
-      clearTimeout(dateChangeTimeout);
-    }
+// VueUse debounced date change handler
+const debouncedCheckWorkingDay = useDebounceFn(() => {
+  checkWorkingDay();
+}, 300);
 
-    // Set new timeout to debounce the API call
-    dateChangeTimeout = setTimeout(() => {
-      checkWorkingDay();
-    }, 300); // 300ms delay
-  }
-);
+watch(() => form.date, debouncedCheckWorkingDay);
 
 // Note: Search and filter changes don't reset pagination with server-side pagination
 // The server handles filtering and pagination
@@ -1165,8 +1156,8 @@ onMounted(async () => {
     if (isSuperAdmin.value) {
       // Super Admin: Load schools, then branches will be loaded when school is selected
       await fetchSchools();
-    } else if (isSchoolAdmin.value) {
-      // School Admin: Load branches for their school directly
+    } else if (isAdmin.value) {
+      // Admin: Load branches for their school directly
       form.school_id = user.value?.school_id || '';
       await fetchAllBranches({ school_id: form.school_id });
     } else if (isBranchAdmin.value) {
@@ -1179,17 +1170,11 @@ onMounted(async () => {
     // Check working day after settings are loaded
     await checkWorkingDay();
   } catch (error) {
-    console.error('Error initializing attendance page:', error);
     showToast('Error initializing attendance page', 'error');
   }
 });
 
-// Cleanup timeout on unmount
-onUnmounted(() => {
-  if (dateChangeTimeout) {
-    clearTimeout(dateChangeTimeout);
-  }
-});
+// VueUse handles cleanup automatically
 </script>
 
 <style scoped></style>
