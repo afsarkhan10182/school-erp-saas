@@ -1,135 +1,142 @@
 <template>
   <div class="rich-text-editor">
     <!-- Toolbar -->
-    <div
-      class="toolbar border border-gray-300 dark:border-gray-600 rounded-t-md bg-gray-50 dark:bg-gray-700 p-2"
-    >
-      <div class="flex flex-wrap gap-1">
-        <!-- Bold -->
+    <div class="toolbar border border-gray-300 dark:border-gray-600 rounded-t-md bg-white dark:bg-gray-800 px-3 py-2 border-b">
+      <div class="flex items-center gap-1 flex-wrap">
+        <!-- Text Formatting -->
         <button
           type="button"
           @click="editor?.chain().focus().toggleBold().run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive('bold') ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive('bold') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Bold"
         >
           <Bold class="h-4 w-4" />
         </button>
 
-        <!-- Italic -->
         <button
           type="button"
           @click="editor?.chain().focus().toggleItalic().run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive('italic') ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive('italic') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Italic"
         >
           <Italic class="h-4 w-4" />
         </button>
 
-        <!-- Underline -->
         <button
           type="button"
           @click="editor?.chain().focus().toggleUnderline().run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive('underline') ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive('underline') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
           title="Underline"
         >
           <Underline class="h-4 w-4" />
         </button>
 
-        <!-- Divider -->
-        <div class="w-px h-8 bg-gray-300 dark:bg-gray-500 mx-1"></div>
+        <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-        <!-- Text Align Left -->
+        <!-- Alignment -->
         <button
           type="button"
           @click="editor?.chain().focus().setTextAlign('left').run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive({ textAlign: 'left' }) ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive({ textAlign: 'left' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
-          title="Align Left"
+          title="Left"
         >
           <AlignLeft class="h-4 w-4" />
         </button>
 
-        <!-- Text Align Center -->
         <button
           type="button"
           @click="editor?.chain().focus().setTextAlign('center').run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive({ textAlign: 'center' }) ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive({ textAlign: 'center' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
-          title="Align Center"
+          title="Center"
         >
           <AlignCenter class="h-4 w-4" />
         </button>
 
-        <!-- Text Align Right -->
         <button
           type="button"
           @click="editor?.chain().focus().setTextAlign('right').run()"
           :class="[
-            'p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors',
-            editor?.isActive({ textAlign: 'right' }) ? 'bg-gray-300 dark:bg-gray-500' : ''
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive({ textAlign: 'right' }) ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
           ]"
-          title="Align Right"
+          title="Right"
         >
           <AlignRight class="h-4 w-4" />
         </button>
 
-        <!-- Divider -->
-        <div class="w-px h-8 bg-gray-300 dark:bg-gray-500 mx-1"></div>
+        <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-        <!-- Color Picker -->
-        <input
-          type="color"
-          @change="setTextColor($event.target.value)"
-          class="w-8 h-8 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
-          title="Text Color"
-        />
-
-        <!-- Divider -->
-        <div class="w-px h-8 bg-gray-300 dark:bg-gray-500 mx-1"></div>
-
-        <!-- Insert Tag Button -->
+        <!-- Lists -->
         <button
           type="button"
-          @click="showTagMenu = !showTagMenu"
-          class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-          title="Insert Dynamic Tags"
+          @click="editor?.chain().focus().toggleBulletList().run()"
+          :class="[
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive('bulletList') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+          ]"
+          title="Bullet List"
         >
-          <Tag class="h-4 w-4" />
+          <List class="h-4 w-4" />
         </button>
+
+        <button
+          type="button"
+          @click="editor?.chain().focus().toggleOrderedList().run()"
+          :class="[
+            'p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+            editor?.isActive('orderedList') ? 'bg-gray-100 dark:bg-gray-700 text-indigo-600' : 'text-gray-600 dark:text-gray-400'
+          ]"
+          title="Numbered List"
+        >
+          <ListOrdered class="h-4 w-4" />
+        </button>
+
+        <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
+        <!-- Insert Tag Button -->
+        <div class="relative ml-auto">
+          <button
+            type="button"
+            @click="showTagMenu = !showTagMenu"
+            class="px-3 py-1.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-xs font-medium flex items-center gap-1.5"
+          >
+            <Tag class="h-3.5 w-3.5" />
+            <span>Insert Tag</span>
+          </button>
+        </div>
       </div>
 
       <!-- Tag Menu -->
       <div
         v-if="showTagMenu"
-        class="absolute z-10 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto"
-        style="width: 300px"
+        class="absolute right-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg w-64 max-h-60 overflow-y-auto"
       >
         <div class="p-2">
-          <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
-            Click to insert dynamic content:
-          </div>
-          <div class="flex flex-wrap gap-1">
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-2 px-2">Click to insert:</div>
+          <div class="space-y-0.5">
             <button
               type="button"
               v-for="tag in availableTags"
               :key="tag"
               @click="insertTag(tag)"
-              class="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+              class="w-full text-left px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
             >
-              {{ tag }}
+              {<span class="font-medium text-indigo-600 dark:text-indigo-400">{{ tag }}</span>}
             </button>
           </div>
         </div>
@@ -167,7 +174,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { TextAlign } from '@tiptap/extension-text-align';
-import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Tag } from 'lucide-vue-next';
+import { Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Tag } from 'lucide-vue-next';
 
 // Custom extension for dynamic tags
 const DynamicTag = {
@@ -263,6 +270,7 @@ const setTextColor = color => {
     editor.value.chain().focus().setColor(color).run();
   }
 };
+
 
 const insertTag = tag => {
   if (editor.value) {

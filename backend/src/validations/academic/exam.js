@@ -12,8 +12,8 @@ const createExamValidator = [
   body('exam_type_id')
     .notEmpty()
     .withMessage('Exam type is required')
-    .isUUID()
-    .withMessage('Invalid exam type ID format'),
+    .isInt({ min: 1, max: 3 })
+    .withMessage('Exam type must be 1 (marks), 2 (grade), or 3 (both)'),
 
   body('description')
     .optional()
@@ -41,7 +41,10 @@ const updateExamValidator = [
     .isLength({ min: 2, max: 200 })
     .withMessage('Exam name must be between 2 and 200 characters'),
 
-  body('exam_type_id').optional().isUUID().withMessage('Invalid exam type ID format'),
+  body('exam_type_id')
+    .optional()
+    .isInt({ min: 1, max: 3 })
+    .withMessage('Exam type must be 1 (marks), 2 (grade), or 3 (both)'),
 
   body('description')
     .optional()

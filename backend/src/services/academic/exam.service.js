@@ -1,5 +1,15 @@
 const { Op, Sequelize } = require('sequelize');
-const { Exam, ExamResult, Student, School, User, GradingSystem, GradeScale } = require('~/models');
+const {
+  Exam,
+  ExamResult,
+  Student,
+  School,
+  Branch,
+  User,
+  GradingSystem,
+  GradeScale,
+  Term
+} = require('~/models');
 const BaseService = require('~/services/shared/base.service');
 const ApiError = require('~/utils/shared/ApiError');
 const { logger } = require('~/utils/shared/logger');
@@ -111,11 +121,41 @@ class ExamService extends BaseService {
 
       const { count, rows } = await Exam.findAndCountAll({
         where: whereClause,
+        attributes: [
+          'id',
+          'name',
+          'type_id',
+          'weightage',
+          'max_marks',
+          'academic_year',
+          'term_id',
+          'is_active',
+          'publish_status',
+          'result_status',
+          'instructions',
+          'mark_distribution_ids',
+          'school_id',
+          'branch_id',
+          'created_by',
+          'updated_by',
+          'created_at',
+          'updated_at'
+        ],
         include: [
           {
             model: School,
             as: 'school',
             attributes: ['id', 'name', 'code']
+          },
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code']
+          },
+          {
+            model: Term,
+            as: 'term',
+            attributes: ['id', 'name', 'start_date', 'end_date']
           }
         ],
         order: [['created_at', 'DESC']],
@@ -153,6 +193,11 @@ class ExamService extends BaseService {
           model: School,
           as: 'school',
           attributes: ['id', 'name', 'code']
+        },
+        {
+          model: Term,
+          as: 'term',
+          attributes: ['id', 'name', 'start_date', 'end_date']
         }
       ];
 
@@ -177,6 +222,26 @@ class ExamService extends BaseService {
           school_id: user.school_id,
           ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
         },
+        attributes: [
+          'id',
+          'name',
+          'type_id',
+          'weightage',
+          'max_marks',
+          'academic_year',
+          'term_id',
+          'is_active',
+          'publish_status',
+          'result_status',
+          'instructions',
+          'mark_distribution_ids',
+          'school_id',
+          'branch_id',
+          'created_by',
+          'updated_by',
+          'created_at',
+          'updated_at'
+        ],
         include: includeOptions
       });
 

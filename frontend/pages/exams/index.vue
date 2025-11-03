@@ -20,157 +20,101 @@
         </div>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <BookOpen class="h-6 w-6 text-blue-600" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Total Exams
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ exams.length }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <CheckCircle class="h-6 w-6 text-green-600" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Active Exams
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ exams.filter(e => e.is_active).length }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <Globe class="h-6 w-6 text-purple-600" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Published
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ exams.filter(e => e.publish_status).length }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <BarChart3 class="h-6 w-6 text-orange-600" />
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                    Results Published
-                  </dt>
-                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                    {{ exams.filter(e => e.result_status).length }}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Search -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Search
-            </label>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search exams..."
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <!-- Exam Type Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Exam Type
-            </label>
-            <EnhancedDropdown
-              v-model="selectedExamTypeId"
-              :options="examTypeOptions"
-              placeholder="All types"
-              @change="onExamTypeChange"
-            />
-          </div>
-
-          <!-- Term Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Term
-            </label>
-            <EnhancedDropdown
-              v-model="selectedTermId"
-              :options="termOptions"
-              placeholder="All terms"
-              :loading="termsLoading"
-              @change="onTermChange"
-            />
-          </div>
-
-          <!-- Status Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Status
-            </label>
-            <select
-              v-model="statusFilter"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 mb-6"
+      >
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <Filter class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+            </div>
+            <button
+              @click="clearFilters"
+              class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="published">Published</option>
-              <option value="results_published">Results Published</option>
-            </select>
+              <X class="h-4 w-4 mr-1" />
+              Clear All
+            </button>
           </div>
-        </div>
 
-        <div class="flex justify-end mt-4">
-          <button
-            @click="clearFilters"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Clear Filters
-          </button>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Search -->
+            <div class="space-y-2">
+              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Search class="h-4 w-4 mr-2 text-gray-500" />
+                Search Exams
+              </label>
+              <div class="relative">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search by name, description..."
+                  class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
+                />
+                <Search
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                />
+              </div>
+            </div>
+
+            <!-- Exam Type Filter -->
+            <div class="space-y-2">
+              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <BookOpen class="h-4 w-4 mr-2 text-gray-500" />
+                Exam Type
+              </label>
+              <div class="relative">
+                <EnhancedDropdown
+                  v-model="selectedExamTypeId"
+                  :options="examTypeOptions"
+                  placeholder="All types"
+                  @change="onExamTypeChange"
+                />
+              </div>
+            </div>
+
+            <!-- Term Filter -->
+            <div class="space-y-2">
+              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Calendar class="h-4 w-4 mr-2 text-gray-500" />
+                Term
+              </label>
+              <div class="relative">
+                <EnhancedDropdown
+                  v-model="selectedTermId"
+                  :options="termOptions"
+                  placeholder="All terms"
+                  :loading="termsLoading"
+                  @change="onTermChange"
+                />
+              </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="space-y-2">
+              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Activity class="h-4 w-4 mr-2 text-gray-500" />
+                Status
+              </label>
+              <div class="relative">
+                <select
+                  v-model="statusFilter"
+                  class="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white appearance-none transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-500"
+                >
+                  <option value="">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="published">Published</option>
+                  <option value="results_published">Results Published</option>
+                </select>
+                <ChevronDown
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none transition-colors duration-200"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -206,12 +150,27 @@
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
+                  Branch
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
                   Term
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   Exam Type
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Mark Distribution
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Remarks
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -241,12 +200,30 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 dark:text-white">
+                    {{ exam.branch?.name || 'No branch' }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900 dark:text-white">
                     {{ exam.term?.name || 'No term' }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900 dark:text-white">
                     {{ getExamTypeLabel(exam.type_id) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900 dark:text-white">
+                    {{ getMarkDistributionNames(exam.mark_distribution_ids) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div
+                    class="text-sm text-gray-900 dark:text-white max-w-xs truncate"
+                    :title="exam.instructions"
+                  >
+                    {{ exam.instructions || 'No remarks' }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -424,7 +401,19 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Plus, BookOpen, CheckCircle, Globe, BarChart3, Edit, Eye, Trash2 } from 'lucide-vue-next';
+import {
+  Plus,
+  Edit,
+  Eye,
+  Trash2,
+  Filter,
+  X,
+  Search,
+  BookOpen,
+  Calendar,
+  Activity,
+  ChevronDown
+} from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import EnhancedMultiSelect from '~/components/ui/EnhancedMultiSelect.vue';
@@ -555,16 +544,16 @@ const filteredExams = computed(() => {
   if (statusFilter.value) {
     switch (statusFilter.value) {
       case 'active':
-        filtered = filtered.filter(exam => exam.is_active);
+        filtered = filtered.filter(exam => exam.is_active === true);
         break;
       case 'inactive':
-        filtered = filtered.filter(exam => !exam.is_active);
+        filtered = filtered.filter(exam => exam.is_active === false);
         break;
       case 'published':
-        filtered = filtered.filter(exam => exam.publish_status);
+        filtered = filtered.filter(exam => exam.publish_status === true);
         break;
       case 'results_published':
-        filtered = filtered.filter(exam => exam.result_status);
+        filtered = filtered.filter(exam => exam.result_status === true);
         break;
     }
   }
@@ -592,11 +581,20 @@ const loadMarkDistributions = async () => {
     markDistributionsLoading.value = true;
     console.log('Loading mark distributions...');
     const response = await markDistributionApi.getAll({
-      is_active: true
+      is_active: true,
+      school_id: user.value.school_id
+      // Don't filter by branch_id - load all distributions for the school
     });
     console.log('Mark distributions response:', response);
     markDistributions.value = response.data?.distributions || [];
     console.log('Mark distributions loaded:', markDistributions.value);
+    console.log(
+      'Mark distribution IDs in exams:',
+      exams.value.map(exam => ({
+        name: exam.name,
+        mark_distribution_ids: exam.mark_distribution_ids
+      }))
+    );
   } catch (error) {
     console.error('Error loading mark distributions:', error);
     showToast('Failed to load mark distributions', 'error');
@@ -608,7 +606,22 @@ const loadMarkDistributions = async () => {
 const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
-  await Promise.all([fetchBranches(), loadTerms(), loadMarkDistributions()]);
+
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(loadMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    await Promise.all(loadPromises);
+  }
 
   // Auto-select branch if user has only one branch
   if (branches.value.length === 1) {
@@ -655,20 +668,68 @@ const loadFilteredData = async () => {
 };
 
 const editExam = async exam => {
+  console.log('Edit exam data:', exam); // Debug: Log the exam object to see available fields
+
   editingExam.value = exam;
+
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(loadMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    await Promise.all(loadPromises);
+  }
+
+  // Then populate form fields
   form.branch_id = exam.branch_id || '';
   form.name = exam.name || '';
   form.term_id = exam.term_id || '';
-  form.type_id = exam.type_id || '';
-  form.mark_distribution_ids = exam.mark_distribution_ids || [];
-  form.remarks = exam.remarks || '';
+  // Fix: Use exam_type_id from API response, fallback to type_id for backward compatibility
+  form.type_id = exam.exam_type_id || exam.type_id || '';
 
-  await Promise.all([fetchBranches(), loadTerms(), loadMarkDistributions()]);
+  // Debug: Check what mark distribution fields are available
+  console.log('Mark distribution fields:', {
+    mark_distribution_ids: exam.mark_distribution_ids,
+    mark_distribution_id: exam.mark_distribution_id,
+    mark_distributions: exam.mark_distributions
+  });
 
-  // Load filtered data for the exam's branch
+  // Handle mark distribution field - convert single ID to array if needed
+  let markDistributionIds = [];
+  if (exam.mark_distribution_ids) {
+    markDistributionIds = Array.isArray(exam.mark_distribution_ids)
+      ? exam.mark_distribution_ids
+      : [exam.mark_distribution_ids];
+  } else if (exam.mark_distribution_id) {
+    markDistributionIds = [exam.mark_distribution_id];
+  } else if (exam.mark_distributions) {
+    markDistributionIds = Array.isArray(exam.mark_distributions)
+      ? exam.mark_distributions
+      : [exam.mark_distributions];
+  }
+
+  form.mark_distribution_ids = markDistributionIds;
+  form.remarks = exam.instructions || exam.remarks || exam.description || '';
+
+  // Load filtered data for the exam's branch AFTER form is populated
   if (form.branch_id) {
     await loadFilteredData();
   }
+
+  // Debug: Log the final form state
+  console.log('Final form state:', {
+    mark_distribution_ids: form.mark_distribution_ids,
+    remarks: form.remarks,
+    markDistributions: markDistributions.value.length
+  });
 
   showModal.value = true;
 };
@@ -698,7 +759,7 @@ const saveExam = async () => {
     showToast('Branch is required', 'error');
     return;
   }
-  if (!form.name.trim()) {
+  if (!form.name || !form.name.trim()) {
     showToast('Name is required', 'error');
     return;
   }
@@ -710,10 +771,6 @@ const saveExam = async () => {
     showToast('Term is required', 'error');
     return;
   }
-  if (!form.academic_year.trim()) {
-    showToast('Academic Year is required', 'error');
-    return;
-  }
 
   try {
     saving.value = true;
@@ -721,11 +778,11 @@ const saveExam = async () => {
     // Prepare form data for backend
     const examData = {
       branch_id: form.branch_id,
-      name: form.name.trim(),
-      term_id: form.term_id,
-      type_id: form.type_id,
-      mark_distribution_ids: form.mark_distribution_ids,
-      remarks: form.remarks || '',
+      name: form.name?.trim() || '',
+      exam_type_id: form.type_id, // Fixed: backend expects exam_type_id
+      term_id: form.term_id, // Added: missing term_id
+      mark_distribution_ids: form.mark_distribution_ids, // Added: missing mark_distribution_ids
+      description: form.remarks || '',
       school_id: user.value.school_id
     };
 
@@ -795,8 +852,52 @@ const getStatusBadgeClass = (type, value) => {
   return `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${classes[type][value] || classes[type].false}`;
 };
 
+const getMarkDistributionNames = markDistributionIds => {
+  console.log('getMarkDistributionNames called with:', markDistributionIds);
+  console.log('Available mark distributions:', markDistributions.value);
+  console.log('Mark distributions count:', markDistributions.value.length);
+
+  if (
+    !markDistributionIds ||
+    !Array.isArray(markDistributionIds) ||
+    markDistributionIds.length === 0
+  ) {
+    console.log('No mark distribution IDs provided');
+    return 'No distribution';
+  }
+
+  // Find matching mark distributions
+  const matchingDistributions = markDistributions.value.filter(dist =>
+    markDistributionIds.includes(dist.id)
+  );
+
+  console.log('Matching distributions:', matchingDistributions);
+  console.log('Mark distribution IDs to match:', markDistributionIds);
+  console.log(
+    'Available distribution IDs:',
+    markDistributions.value.map(d => d.id)
+  );
+
+  if (matchingDistributions.length === 0) {
+    console.log('No matching distributions found');
+    return 'Unknown distribution';
+  }
+
+  const result = matchingDistributions.map(dist => dist.name).join(', ');
+  console.log('Final result:', result);
+  return result;
+};
+
+const getBranchName = branchId => {
+  if (!branchId) return 'No branch';
+  const branch = branches.value.find(b => b.id === branchId);
+  return branch ? branch.name : 'Unknown branch';
+};
+
 // Load initial data
 onMounted(async () => {
+  // Load mark distributions first, then exams
+  await loadMarkDistributions();
   await Promise.all([loadExams(), loadTerms()]);
 });
 </script>

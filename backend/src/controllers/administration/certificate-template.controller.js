@@ -1,6 +1,7 @@
 const { CertificateTemplate, Branch } = require('~/models');
 const { logger } = require('~/utils/shared/logger');
 const { Op } = require('sequelize');
+const RoleManager = require('~/utils/core/roleManager').RoleManager;
 
 class CertificateTemplateController {
   /**
@@ -95,20 +96,77 @@ class CertificateTemplateController {
    */
   static async getTemplates(req, res) {
     try {
-      const { page = 1, limit = 10, user_type, is_active, search } = req.query;
+      const { page = 1, limit = 10, user_type, is_active, search, branch_id } = req.query;
+
+      // Debug logging
+      logger.info('CertificateTemplate.getTemplates - Query params received:', {
+        page,
+        limit,
+        user_type,
+        is_active,
+        search,
+        branch_id,
+        all_query_params: req.query
+      });
 
       const offset = (page - 1) * limit;
       const whereClause = {};
 
-      // Filter by branch (user can only see templates from their branch unless superadmin)
-      if (req.user.role !== 'superadmin') {
-        whereClause.branch_id = req.user.branch_id;
+      // Filter by branch_id if provided in query, otherwise use user's branch_id
+      // School context is already available from req.user.school_id (set by middleware)
+      if (branch_id) {
+        // Validate user has access to the requested branch
+        if (req.user.role === 'super_admin') {
+          // Super admin can access any branch
+          whereClause.branch_id = branch_id;
+        } else if (req.user.role === 'admin') {
+          // Admin can access any branch in their school - verify branch belongs to school
+          const branch = await Branch.findByPk(branch_id);
+          if (!branch) {
+            return res.status(404).json({
+              success: false,
+              message: 'Branch not found'
+            });
+          }
+          if (branch.school_id !== req.user.school_id) {
+            return res.status(403).json({
+              success: false,
+              message: 'Access denied to this branch'
+            });
+          }
+          whereClause.branch_id = branch_id;
+        } else if (req.user.branch_id === branch_id) {
+          // Branch admin and other roles can only access their own branch
+          whereClause.branch_id = branch_id;
+        } else {
+          // User trying to access a different branch - deny access
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied to this branch'
+          });
+        }
+      } else {
+        // If no branch_id provided, use user's branch_id (unless superadmin or admin)
+        if (req.user.role === 'super_admin') {
+          // Super admin without branch_id can see all templates
+        } else if (req.user.role === 'admin') {
+          // Admin without branch_id - will filter by school_id through Branch association
+          // (see all branches in school - handled in include conditions below)
+        } else {
+          // Other roles must use their own branch_id
+          whereClause.branch_id = req.user.branch_id;
+        }
       }
 
       // Apply filters
       if (user_type) {
         whereClause.user_type = user_type;
+        logger.info('CertificateTemplate.getTemplates - Applied user_type filter:', user_type);
+      } else {
+        logger.warn('CertificateTemplate.getTemplates - No user_type filter provided');
       }
+      
+      logger.info('CertificateTemplate.getTemplates - Final whereClause:', JSON.stringify(whereClause));
 
       if (is_active !== undefined) {
         whereClause.is_active = is_active === 'true';
@@ -117,6 +175,26 @@ class CertificateTemplateController {
       if (search) {
         whereClause.name = {
           [Op.iLike]: `%${search}%`
+        };
+      }
+
+      // Build include conditions
+      const includeConditions = [
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name', 'code'],
+          required: true
+        }
+      ];
+
+      // For admin role without branch_id, filter by school_id through Branch association
+      // This ensures admin can only see templates from branches in their school
+      // Note: When branch_id is provided, we already validated it above and set it in whereClause
+      if (req.user.role === 'admin' && !branch_id) {
+        // When no branch_id, show all branches in admin's school
+        includeConditions[0].where = {
+          school_id: req.user.school_id
         };
       }
 
@@ -145,13 +223,7 @@ class CertificateTemplateController {
           'created_at',
           'updated_at'
         ],
-        include: [
-          {
-            model: Branch,
-            as: 'branch',
-            attributes: ['id', 'name', 'code']
-          }
-        ],
+        include: includeConditions,
         order: [['created_at', 'DESC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
@@ -229,7 +301,19 @@ class CertificateTemplateController {
       }
 
       // Check access permissions
-      if (req.user.role !== 'superadmin' && template.branch_id !== req.user.branch_id) {
+      // Super admin can access any template
+      if (req.user.role === 'super_admin') {
+        // Allow access
+      } else if (req.user.role === 'admin') {
+        // Admin can access templates from branches in their school
+        if (template.branch && template.branch.school_id !== req.user.school_id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied to this template'
+          });
+        }
+      } else if (template.branch_id !== req.user.branch_id) {
+        // Other roles can only access templates from their own branch
         return res.status(403).json({
           success: false,
           message: 'Access denied to this template'
@@ -258,7 +342,16 @@ class CertificateTemplateController {
       const { id } = req.params;
       const updateData = req.body;
 
-      const template = await CertificateTemplate.findByPk(id);
+      const template = await CertificateTemplate.findByPk(id, {
+        include: [
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code', 'school_id']
+          }
+        ]
+      });
+
       if (!template) {
         return res.status(404).json({
           success: false,
@@ -267,7 +360,25 @@ class CertificateTemplateController {
       }
 
       // Check access permissions
-      if (req.user.role !== 'superadmin' && template.branch_id !== req.user.branch_id) {
+      // Super admin can access any template
+      if (req.user.role === 'super_admin') {
+        // Allow access
+      } else if (req.user.role === 'admin') {
+        // Admin can access templates from branches in their school
+        if (!template.branch) {
+          return res.status(404).json({
+            success: false,
+            message: 'Branch not found'
+          });
+        }
+        if (template.branch.school_id !== req.user.school_id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied to this template'
+          });
+        }
+      } else if (template.branch_id !== req.user.branch_id) {
+        // Other roles can only access templates from their own branch
         return res.status(403).json({
           success: false,
           message: 'Access denied to this template'
@@ -314,7 +425,16 @@ class CertificateTemplateController {
     try {
       const { id } = req.params;
 
-      const template = await CertificateTemplate.findByPk(id);
+      const template = await CertificateTemplate.findByPk(id, {
+        include: [
+          {
+            model: Branch,
+            as: 'branch',
+            attributes: ['id', 'name', 'code', 'school_id']
+          }
+        ]
+      });
+
       if (!template) {
         return res.status(404).json({
           success: false,
@@ -323,7 +443,25 @@ class CertificateTemplateController {
       }
 
       // Check access permissions
-      if (req.user.role !== 'superadmin' && template.branch_id !== req.user.branch_id) {
+      // Super admin can access any template
+      if (req.user.role === 'super_admin') {
+        // Allow access
+      } else if (req.user.role === 'admin') {
+        // Admin can access templates from branches in their school
+        if (!template.branch) {
+          return res.status(404).json({
+            success: false,
+            message: 'Branch not found'
+          });
+        }
+        if (template.branch.school_id !== req.user.school_id) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied to this template'
+          });
+        }
+      } else if (template.branch_id !== req.user.branch_id) {
+        // Other roles can only access templates from their own branch
         return res.status(403).json({
           success: false,
           message: 'Access denied to this template'

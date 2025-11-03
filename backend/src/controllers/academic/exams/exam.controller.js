@@ -48,8 +48,11 @@ class ExamController {
       });
     }
 
+    const { description, exam_type_id, ...otherFields } = req.body;
     const examData = {
-      ...req.body,
+      ...otherFields,
+      type_id: exam_type_id, // Map exam_type_id to type_id for database
+      instructions: description, // Map description to instructions for database
       school_id: schoolId,
       branch_id: branchId
     };
@@ -98,7 +101,12 @@ class ExamController {
    */
   static updateExam = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const updateData = req.body;
+    const { description, exam_type_id, ...otherFields } = req.body;
+    const updateData = {
+      ...otherFields,
+      type_id: exam_type_id, // Map exam_type_id to type_id for database
+      instructions: description // Map description to instructions for database
+    };
 
     const exam = await ExamService.updateExam(id, updateData, req.user);
 

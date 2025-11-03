@@ -74,6 +74,12 @@ const Exam = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true
     },
+    mark_distribution_ids: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: [],
+      comment: 'Array of mark distribution IDs associated with this exam'
+    },
     school_id: {
       type: DataTypes.UUID,
       allowNull: false,

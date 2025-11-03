@@ -668,24 +668,24 @@ const menuGroups = computed(() => {
             {
               id: 'certificate-templates',
               title: 'Templates',
-              path: '/certificates',
+              path: '/certificates/templates',
               icon: FileText,
               requiredModule: 'certificates'
             },
             {
-              id: 'generate-student-certificates',
-              title: 'Generate Student',
-              path: '/certificates?tab=generate-student',
-              icon: GraduationCap,
-              requiredModule: 'certificates'
-            },
-            {
-              id: 'generate-employee-certificates',
-              title: 'Generate Employee',
-              path: '/certificates?tab=generate-employee',
-              icon: Users,
-              requiredModule: 'certificates'
-            }
+                  id: 'generate-student',
+                  title: 'Generate for Students',
+                  path: '/certificates/generate-students',
+                  icon: GraduationCap,
+                  requiredModule: 'certificates'
+                },
+                {
+                  id: 'generate-employee',
+                  title: 'Generate for Employees',
+                  path: '/certificates/generate-employees',
+                  icon: Users,
+                  requiredModule: 'certificates'
+                }
           ]
         }
       ]

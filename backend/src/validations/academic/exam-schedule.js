@@ -25,11 +25,10 @@ const createExamScheduleValidation = [
     .withMessage('Duration must be at least 1 minute'),
   body('exam_hall_id').optional().isUUID().withMessage('Invalid exam hall ID'),
   body('invigilator_id').optional().isUUID().withMessage('Invalid invigilator ID'),
-  body('status_id')
-    .notEmpty()
-    .withMessage('Status is required')
-    .isUUID()
-    .withMessage('Invalid status ID'),
+  body('status')
+    .optional()
+    .isIn(['scheduled', 'ongoing', 'completed', 'cancelled', 'rescheduled'])
+    .withMessage('Invalid status value'),
   body('special_instructions')
     .optional()
     .isString()
@@ -57,7 +56,10 @@ const updateExamScheduleValidation = [
     .withMessage('Duration must be at least 1 minute'),
   body('exam_hall_id').optional().isUUID().withMessage('Invalid exam hall ID'),
   body('invigilator_id').optional().isUUID().withMessage('Invalid invigilator ID'),
-  body('status_id').optional().isUUID().withMessage('Invalid status ID')
+  body('status')
+    .optional()
+    .isIn(['scheduled', 'ongoing', 'completed', 'cancelled', 'rescheduled'])
+    .withMessage('Invalid status value')
 ];
 
 const getExamScheduleValidation = [param('id').isUUID().withMessage('Invalid schedule ID')];
@@ -73,7 +75,10 @@ const getAllExamSchedulesValidation = [
   query('exam_id').optional().isUUID().withMessage('Invalid exam ID'),
   query('branch_id').optional().isUUID().withMessage('Invalid branch ID'),
   query('exam_hall_id').optional().isUUID().withMessage('Invalid exam hall ID'),
-  query('status_id').optional().isUUID().withMessage('Invalid status ID'),
+  query('status')
+    .optional()
+    .isIn(['scheduled', 'ongoing', 'completed', 'cancelled', 'rescheduled'])
+    .withMessage('Invalid status value'),
   query('invigilator_id').optional().isUUID().withMessage('Invalid invigilator ID'),
   query('date_from').optional().isISO8601().withMessage('Invalid date format'),
   query('date_to').optional().isISO8601().withMessage('Invalid date format')

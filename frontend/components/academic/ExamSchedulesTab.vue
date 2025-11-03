@@ -8,25 +8,11 @@
       </div>
       <div class="flex space-x-3">
         <button
-          @click="openCreateModal"
+          @click="$router.push('/exams/schedules/create')"
           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <Plus class="h-4 w-4 mr-2" />
           Add Schedule
-        </button>
-        <button
-          @click="openBulkCreateModal"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Calendar class="h-4 w-4 mr-2" />
-          Bulk Create
-        </button>
-        <button
-          @click="openTemplateModal"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Calendar class="h-4 w-4 mr-2" />
-          Template
         </button>
       </div>
     </div>
@@ -281,28 +267,6 @@
     </div>
 
     <!-- Create Schedule Modal -->
-    <ExamScheduleCreationModal
-      :show="showCreateModal"
-      :school-id="schoolId"
-      @close="closeCreateModal"
-      @success="handleCreateSuccess"
-    />
-
-    <!-- Bulk Create Schedule Modal -->
-    <ExamScheduleCreationModal
-      :show="showBulkCreateModal"
-      :school-id="schoolId"
-      @close="closeBulkCreateModal"
-      @success="handleBulkCreateSuccess"
-    />
-
-    <!-- Template Schedule Modal -->
-    <ExamScheduleTemplateModal
-      :show="showTemplateModal"
-      :school-id="schoolId"
-      @close="closeTemplateModal"
-      @success="handleTemplateSuccess"
-    />
   </div>
 </template>
 
@@ -319,8 +283,6 @@ import {
   Eye
 } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import ExamScheduleCreationModal from './ExamScheduleCreationModal.vue';
-import ExamScheduleTemplateModal from './ExamScheduleTemplateModal.vue';
 import { useExamSchedules } from '~/composables/useExamSchedules';
 import { useExams } from '~/composables/useExams';
 import { useToast } from '~/composables/useToast';
@@ -356,9 +318,6 @@ const filters = ref({
 });
 
 // Modal states
-const showCreateModal = ref(false);
-const showBulkCreateModal = ref(false);
-const showTemplateModal = ref(false);
 
 // Computed properties
 const examOptions = computed(() =>
@@ -376,44 +335,6 @@ const statusOptions = computed(() => [
 ]);
 
 // Methods
-const openCreateModal = () => {
-  showCreateModal.value = true;
-};
-
-const openBulkCreateModal = () => {
-  showBulkCreateModal.value = true;
-};
-
-const openTemplateModal = () => {
-  showTemplateModal.value = true;
-};
-
-const closeCreateModal = () => {
-  showCreateModal.value = false;
-};
-
-const closeBulkCreateModal = () => {
-  showBulkCreateModal.value = false;
-};
-
-const closeTemplateModal = () => {
-  showTemplateModal.value = false;
-};
-
-const handleCreateSuccess = () => {
-  fetchSchedules();
-  closeCreateModal();
-};
-
-const handleBulkCreateSuccess = () => {
-  fetchSchedules();
-  closeBulkCreateModal();
-};
-
-const handleTemplateSuccess = () => {
-  fetchSchedules();
-  closeTemplateModal();
-};
 
 const viewSchedule = schedule => {
   // TODO: Implement view modal or navigate to details page
@@ -513,8 +434,7 @@ const refreshData = () => {
 };
 
 defineExpose({
-  refreshData,
-  openCreateModal
+  refreshData
 });
 
 // Lifecycle

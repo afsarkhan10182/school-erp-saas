@@ -1,19 +1,21 @@
 import { ref, computed } from 'vue';
-import { examReportApi } from '~/api/academic/exam-reports';
+import { examReportsApi } from '~/api/academic/exam-reports';
 
 export const useExamReports = () => {
   const examReports = ref([]);
+  const students = ref([]);
+  const templates = ref([]);
   const loading = ref(false);
   const error = ref(null);
 
-  // Fetch exam reports by exam ID
-  const fetchExamReports = async (examId, params = {}) => {
+  // Fetch students for report cards
+  const fetchStudents = async (filters) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examReportApi.getByExamId(examId, params);
+      const response = await examReportsApi.getStudents(filters);
       if (response.success) {
-        examReports.value = response.data.reports || response.data;
+        students.value = response.data.students || response.data || [];
       }
       return response;
     } catch (err) {
@@ -24,12 +26,15 @@ export const useExamReports = () => {
     }
   };
 
-  // Preview report
-  const previewReport = async (examId, reportData) => {
+  // Fetch report card templates
+  const fetchTemplates = async (params = {}) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examReportApi.preview(examId, reportData);
+      const response = await examReportsApi.getTemplates(params);
+      if (response.success) {
+        templates.value = response.data.templates || response.data || [];
+      }
       return response;
     } catch (err) {
       error.value = err.message;
@@ -39,15 +44,12 @@ export const useExamReports = () => {
     }
   };
 
-  // Generate report
-  const generateReport = async (examId, reportData) => {
+  // Generate report cards
+  const generateReport = async (reportData) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examReportApi.generate(examId, reportData);
-      if (response.success) {
-        await fetchExamReports(examId);
-      }
+      const response = await examReportsApi.generate(reportData);
       return response;
     } catch (err) {
       error.value = err.message;
@@ -58,9 +60,9 @@ export const useExamReports = () => {
   };
 
   // Download report
-  const downloadReport = async reportId => {
+  const downloadReport = async (reportId) => {
     try {
-      const response = await examReportApi.download(reportId);
+      const response = await examReportsApi.download(reportId);
       return response;
     } catch (err) {
       error.value = err.message;
@@ -68,15 +70,12 @@ export const useExamReports = () => {
     }
   };
 
-  // Delete exam report
-  const deleteExamReport = async reportId => {
+  // Get report generation status
+  const getReportStatus = async (reportId) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examReportApi.delete(reportId);
-      if (response.success) {
-        await fetchExamReports();
-      }
+      const response = await examReportsApi.getStatus(reportId);
       return response;
     } catch (err) {
       error.value = err.message;
@@ -87,35 +86,21 @@ export const useExamReports = () => {
   };
 
   // Computed properties
-  const completedReports = computed(() =>
-    examReports.value.filter(report => report.status === 'completed')
-  );
-
-  const pendingReports = computed(() =>
-    examReports.value.filter(
-      report => report.status === 'pending' || report.status === 'generating'
-    )
-  );
-
-  const reportTypes = computed(() => {
-    const types = [...new Set(examReports.value.map(report => report.report_type))];
-    return types.map(type => ({
-      value: type,
-      label: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-    }));
-  });
+  const availableStudents = computed(() => students.value.filter(s => !s.is_absent));
+  const absentStudents = computed(() => students.value.filter(s => s.is_absent));
 
   return {
     examReports,
+    students,
+    templates,
     loading,
     error,
-    completedReports,
-    pendingReports,
-    reportTypes,
-    fetchExamReports,
-    previewReport,
+    availableStudents,
+    absentStudents,
+    fetchStudents,
+    fetchTemplates,
     generateReport,
     downloadReport,
-    deleteExamReport
+    getReportStatus
   };
 };

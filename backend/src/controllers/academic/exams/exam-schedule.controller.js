@@ -29,7 +29,7 @@ class ExamScheduleController {
       exam_id: req.query.exam_id,
       branch_id: req.query.branch_id,
       exam_hall_id: req.query.exam_hall_id,
-      status_id: req.query.status_id,
+      status: req.query.status,
       date_from: req.query.date_from,
       date_to: req.query.date_to,
       invigilator_id: req.query.invigilator_id

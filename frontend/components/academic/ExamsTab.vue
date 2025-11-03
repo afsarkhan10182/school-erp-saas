@@ -68,14 +68,17 @@
                 >
                   {{ exam.name }}
                 </h4>
-                <span
-                  :class="[
-                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                    getStatusColor(exam.status)
-                  ]"
-                >
-                  {{ getStatusText(exam.status) }}
-                </span>
+                <div class="flex flex-col space-y-1">
+                  <span :class="getStatusBadgeClass('active', exam.is_active)">
+                    {{ exam.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                  <span :class="getStatusBadgeClass('published', exam.publish_status)">
+                    {{ exam.publish_status ? 'Published' : 'Draft' }}
+                  </span>
+                  <span :class="getStatusBadgeClass('results', exam.result_status)">
+                    {{ exam.result_status ? 'Results Published' : 'Results Hidden' }}
+                  </span>
+                </div>
               </div>
               <div
                 class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
@@ -92,6 +95,30 @@
                   <Calendar class="w-4 h-4 mr-1" />
                   {{ exam.schedules?.length || 0 }} schedule(s)
                 </span>
+              </div>
+
+              <!-- Mark Distribution and Remarks -->
+              <div
+                v-if="exam.mark_distribution_ids?.length > 0 || exam.instructions"
+                class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600"
+              >
+                <div v-if="exam.mark_distribution_ids?.length > 0" class="mb-2">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400"
+                    >Mark Distribution:</span
+                  >
+                  <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                    {{ getMarkDistributionNames(exam.mark_distribution_ids) }}
+                  </span>
+                </div>
+                <div v-if="exam.instructions" class="mb-1">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Remarks:</span>
+                  <span
+                    class="text-xs text-gray-500 dark:text-gray-400 ml-1 truncate block"
+                    :title="exam.instructions"
+                  >
+                    {{ exam.instructions }}
+                  </span>
+                </div>
               </div>
               <div
                 class="mt-2 flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
@@ -303,16 +330,6 @@
         </div>
       </template>
     </Modal>
-
-    <!-- Exam Schedule Modal -->
-    <ExamScheduleModal
-      :show="showScheduleModal"
-      :exam="selectedExamForSchedule"
-      :branch-id="branchId"
-      :school-id="schoolId"
-      @close="closeScheduleModal"
-      @success="handleScheduleSuccess"
-    />
   </div>
 </template>
 
@@ -343,7 +360,6 @@ import { useBranches } from '~/composables/useBranches';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 import { useAuth } from '~/composables/useAuth';
 import { examTermApi } from '~/api/academic/exam-terms';
-import ExamScheduleModal from './ExamScheduleModal.vue';
 
 // Props
 const props = defineProps({
@@ -437,10 +453,8 @@ const showModal = ref(false);
 const searchQuery = ref('');
 const statusFilter = ref('');
 const classFilter = ref('');
-const showScheduleModal = ref(false);
 const saving = ref(false);
 const editingExam = ref(null);
-const selectedExamForSchedule = ref(null);
 
 // Use the branch context from props
 const currentBranchId = computed(() => {
@@ -520,11 +534,24 @@ const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
 
-  // Load all required data when modal opens ()
-  try {
-    await Promise.all([loadTerms(), fetchBranches(), fetchMarkDistributions()]);
-  } catch (error) {
-    showToast('Failed to load form data', 'error');
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(fetchMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    try {
+      await Promise.all(loadPromises);
+    } catch (error) {
+      showToast('Failed to load form data', 'error');
+    }
   }
 
   showModal.value = true;
@@ -535,15 +562,40 @@ const editExam = async exam => {
   resetForm();
 
   editingExam.value = exam;
+
+  // Only load data if not already loaded
+  const loadPromises = [];
+  if (branches.value.length === 0) {
+    loadPromises.push(fetchBranches());
+  }
+  if (terms.value.length === 0) {
+    loadPromises.push(loadTerms());
+  }
+  if (markDistributions.value.length === 0) {
+    loadPromises.push(fetchMarkDistributions());
+  }
+
+  if (loadPromises.length > 0) {
+    await Promise.all(loadPromises);
+  }
+
+  // Then populate form fields
   form.branch_id = exam.branch_id || '';
   form.name = exam.name || '';
   form.term_id = exam.term_id || '';
-  form.type_id = exam.type_id || '';
-  form.mark_distribution_id = exam.mark_distribution_id || '';
-  form.remarks = exam.remarks || '';
-
-  // Load all required data
-  await Promise.all([loadTerms(), loadExamTypes(), fetchBranches(), fetchMarkDistributions()]);
+  // Fix: Use exam_type_id from API response, fallback to type_id for backward compatibility
+  form.type_id = exam.exam_type_id || exam.type_id || '';
+  // Handle mark distribution field - convert array to single ID if needed
+  if (
+    exam.mark_distribution_ids &&
+    Array.isArray(exam.mark_distribution_ids) &&
+    exam.mark_distribution_ids.length > 0
+  ) {
+    form.mark_distribution_id = exam.mark_distribution_ids[0];
+  } else {
+    form.mark_distribution_id = exam.mark_distribution_id || '';
+  }
+  form.remarks = exam.instructions || exam.remarks || exam.description || '';
 
   showModal.value = true;
 };
@@ -554,7 +606,7 @@ const viewExam = exam => {
 };
 
 const scheduleExam = exam => {
-  navigateTo(`/exams/${exam.id}/schedule`);
+  navigateTo('/exams/schedules/create');
 };
 
 const closeModal = () => {
@@ -566,16 +618,6 @@ const closeModal = () => {
 const closeModalOnSuccess = () => {
   closeModal();
   emit('success');
-};
-
-const closeScheduleModal = () => {
-  showScheduleModal.value = false;
-  selectedExamForSchedule.value = null;
-};
-
-const handleScheduleSuccess = () => {
-  emit('refresh');
-  closeScheduleModal();
 };
 
 const resetForm = () => {
@@ -596,7 +638,7 @@ const saveExam = async () => {
       showToast('Branch is required', 'error');
       return;
     }
-    if (!form.name.trim()) {
+    if (!form.name || !form.name.trim()) {
       showToast('Name is required', 'error');
       return;
     }
@@ -616,11 +658,11 @@ const saveExam = async () => {
     // Prepare form data for backend
     const cleanForm = {
       branch_id: form.branch_id,
-      name: form.name.trim(),
-      term_id: form.term_id,
-      type_id: form.type_id,
-      mark_distribution_id: form.mark_distribution_id,
-      remarks: form.remarks || '',
+      name: form.name?.trim() || '',
+      exam_type_id: form.type_id, // Fixed: backend expects exam_type_id
+      term_id: form.term_id, // Added: missing term_id
+      mark_distribution_id: form.mark_distribution_id, // Added: missing mark_distribution_id
+      description: form.remarks || '',
       school_id: props.schoolId
     };
 
@@ -647,24 +689,58 @@ const saveExam = async () => {
 };
 
 // Helper functions for status display
-const getStatusColor = status => {
-  const colors = {
-    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    ongoing: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+const getStatusBadgeClass = (type, value) => {
+  const classes = {
+    active: {
+      true: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    },
+    published: {
+      true: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    },
+    results: {
+      true: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      false: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+    }
   };
-  return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+  return `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${classes[type][value] || classes[type].false}`;
 };
 
-const getStatusText = status => {
-  const texts = {
-    scheduled: 'Scheduled',
-    ongoing: 'Ongoing',
-    completed: 'Completed',
-    cancelled: 'Cancelled'
-  };
-  return texts[status] || 'Unknown';
+const getMarkDistributionNames = markDistributionIds => {
+  console.log('ExamsTab getMarkDistributionNames called with:', markDistributionIds);
+  console.log('ExamsTab Available mark distributions:', markDistributions.value);
+  console.log('ExamsTab Mark distributions count:', markDistributions.value.length);
+
+  if (
+    !markDistributionIds ||
+    !Array.isArray(markDistributionIds) ||
+    markDistributionIds.length === 0
+  ) {
+    console.log('ExamsTab No mark distribution IDs provided');
+    return 'No distribution';
+  }
+
+  // Find matching mark distributions
+  const matchingDistributions = markDistributions.value.filter(dist =>
+    markDistributionIds.includes(dist.id)
+  );
+
+  console.log('ExamsTab Matching distributions:', matchingDistributions);
+  console.log('ExamsTab Mark distribution IDs to match:', markDistributionIds);
+  console.log(
+    'ExamsTab Available distribution IDs:',
+    markDistributions.value.map(d => d.id)
+  );
+
+  if (matchingDistributions.length === 0) {
+    console.log('ExamsTab No matching distributions found');
+    return 'Unknown distribution';
+  }
+
+  const result = matchingDistributions.map(dist => dist.name).join(', ');
+  console.log('ExamsTab Final result:', result);
+  return result;
 };
 
 const deleteExam = async examId => {

@@ -178,9 +178,9 @@ const uploadCSV = fieldName => (req, res, next) => {
 
 // Middleware for handling multiple file uploads
 const uploadMultiple =
-  (fieldName, maxCount = 5) =>
+  (fields, maxFiles = 10) =>
   (req, res, next) => {
-    upload.array(fieldName, maxCount)(req, res, err => {
+    upload.fields(fields)(req, res, err => {
       if (err) {
         if (err.code === 'LIMIT_FILE_SIZE') {
           return next(
@@ -192,7 +192,17 @@ const uploadMultiple =
         }
         if (err.code === 'LIMIT_UNEXPECTED_FILE') {
           return next(
-            new ApiError(httpStatus.BAD_REQUEST, `Maximum ${maxCount} files are allowed.`)
+            new ApiError(httpStatus.BAD_REQUEST, `Maximum ${maxFiles} files are allowed in total.`)
+          );
+        }
+        if (err.code === 'LIMIT_FIELD_COUNT') {
+          return next(
+            new ApiError(httpStatus.BAD_REQUEST, `Too many fields in the form.`)
+          );
+        }
+        if (err.code === 'LIMIT_PART_COUNT') {
+          return next(
+            new ApiError(httpStatus.BAD_REQUEST, `Too many parts in the form.`)
           );
         }
         return next(new ApiError(httpStatus.BAD_REQUEST, err.message));

@@ -510,9 +510,9 @@ const generateCertificates = async () => {
       student_ids: selectedStudents.value,
       template_id: filters.template_id,
       print_date: filters.print_date,
-      branch_id: filters.branch_id,
-      class_id: filters.class_id,
-      section_id: filters.section_id
+      branch_id: filters.branch_id || undefined,
+      class_id: filters.class_id || undefined,
+      section_id: filters.section_id && filters.section_id.trim() !== '' ? filters.section_id : undefined
     };
 
     console.log('Generating certificates with data:', generationData);

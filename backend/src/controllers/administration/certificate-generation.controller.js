@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const { Student } = require('~/models');
 
 class CertificateGenerationController {
   /**
@@ -23,12 +24,43 @@ class CertificateGenerationController {
         section_id
       });
 
+      // Fetch actual student data from database
+      const students = await Student.findAll({
+        where: {
+          id: {
+            [Op.in]: student_ids
+          }
+        },
+        attributes: [
+          'id',
+          'admission_number',
+          'roll_number',
+          'first_name',
+          'last_name',
+          'middle_name',
+          'date_of_birth',
+          'gender',
+          'class_id',
+          'section_id',
+          'branch_id',
+          'school_id'
+        ]
+      });
+
+      if (students.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No students found with the provided IDs'
+        });
+      }
+
       // Generate certificate data for print preview
       const generatedCertificates = [];
+      const studentData = [];
 
-      for (const studentId of student_ids) {
+      for (const student of students) {
         const certificateData = {
-          student_id: studentId,
+          student_id: student.id,
           template_id: template_id,
           print_date: print_date,
           generated_at: new Date(),
@@ -36,6 +68,23 @@ class CertificateGenerationController {
         };
 
         generatedCertificates.push(certificateData);
+
+        // Prepare student data for response
+        const fullName = [student.first_name, student.middle_name, student.last_name]
+          .filter(Boolean)
+          .join(' ');
+
+        studentData.push({
+          id: student.id,
+          name: fullName,
+          admission_number: student.admission_number,
+          roll_number: student.roll_number,
+          date_of_birth: student.date_of_birth,
+          gender: student.gender,
+          class_id: student.class_id,
+          section_id: student.section_id,
+          branch_id: student.branch_id
+        });
       }
 
       res.json({
@@ -47,11 +96,7 @@ class CertificateGenerationController {
             id: template_id,
             name: 'Certificate Template'
           },
-          students: student_ids.map(id => ({
-            id: id,
-            name: 'Student Name',
-            register_no: 'REG-001'
-          }))
+          students: studentData
         }
       });
     } catch (error) {

@@ -12,6 +12,15 @@ const {
   generateEmployeeCertificatesValidator
 } = require('~/validations/administration/certificate-generation');
 
+// All routes require authentication
+router.use(verifyToken);
+
+// All routes require school context
+router.use(setSchoolContext);
+
+// All routes require subscription validation
+router.use(checkSubscriptionStatus);
+
 // Test route to verify registration
 router.get('/test', (req, res) => {
   res.json({ message: 'Certificate generation routes are working!' });
@@ -22,8 +31,13 @@ router.post('/test-post', (req, res) => {
   res.json({ message: 'POST route is working!', body: req.body });
 });
 
-// Certificate generation routes (temporarily without middleware for testing)
-router.post('/students', CertificateGenerationController.generateStudentCertificates);
+// Certificate generation routes
+router.post(
+  '/students',
+  validateModuleAccess('certificates'),
+  validate(generateStudentCertificatesValidator),
+  CertificateGenerationController.generateStudentCertificates
+);
 
 router.post(
   '/employees',

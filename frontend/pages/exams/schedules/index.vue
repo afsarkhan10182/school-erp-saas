@@ -11,7 +11,7 @@
         </div>
         <div class="mt-4 sm:mt-0">
           <button
-            @click="openCreateModal"
+            @click="$router.push('/exams/schedules/create')"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <Plus class="h-4 w-4 mr-2" />
@@ -206,279 +206,26 @@
           </table>
         </div>
       </div>
-
-      <!-- Create/Edit Modal -->
-      <Modal :show="showModal" @close="closeModal" size="lg">
-        <template #header>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            {{ editingSchedule ? 'Edit Schedule' : 'Create New Schedule' }}
-          </h3>
-        </template>
-
-        <template #body>
-          <form @submit.prevent="saveSchedule" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Exam Selection -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Exam <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.exam_id"
-                  :options="examOptions"
-                  placeholder="Select exam"
-                  :loading="examsLoading"
-                />
-              </div>
-
-              <!-- Class Selection -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Class <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.class_id"
-                  :options="classOptions"
-                  placeholder="Select class"
-                  :loading="classesLoading"
-                  @change="onClassChange"
-                />
-              </div>
-
-              <!-- Section Selection -->
-              <div v-if="showSectionField">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Section
-                </label>
-                <EnhancedDropdown
-                  v-model="form.section_id"
-                  :options="sectionOptions"
-                  placeholder="Select section"
-                  :loading="sectionsLoading"
-                />
-              </div>
-
-              <!-- Subject Selection -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Subject
-                </label>
-                <EnhancedDropdown
-                  v-model="form.subject_id"
-                  :options="subjectOptions"
-                  placeholder="Select subject"
-                  :loading="subjectsLoading"
-                />
-              </div>
-
-              <!-- Hall Selection -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Exam Hall <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.hall_id"
-                  :options="hallOptions"
-                  placeholder="Select hall"
-                  :loading="hallsLoading"
-                  @change="onHallChange"
-                />
-                <div
-                  v-if="hallCapacityWarning"
-                  class="mt-1 text-sm text-amber-600 dark:text-amber-400"
-                >
-                  ⚠️ Hall capacity ({{ selectedHallCapacity }}) may be insufficient for class size
-                </div>
-              </div>
-
-              <!-- Exam Date -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Exam Date <span class="text-red-500">*</span>
-                </label>
-                <input
-                  v-model="form.exam_date"
-                  type="date"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <!-- Start Time -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Start Time <span class="text-red-500">*</span>
-                </label>
-                <input
-                  v-model="form.start_time"
-                  type="time"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <!-- End Time -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  End Time <span class="text-red-500">*</span>
-                </label>
-                <input
-                  v-model="form.end_time"
-                  type="time"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <!-- Duration -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Duration (minutes)
-                </label>
-                <input
-                  v-model="form.duration"
-                  type="number"
-                  min="1"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <!-- Distribution Type -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Distribution Type <span class="text-red-500">*</span>
-                </label>
-                <select
-                  v-model="form.distribution_type"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="theory_only">Theory Only</option>
-                  <option value="practical_only">Practical Only</option>
-                  <option value="combined">Combined (Theory + Practical)</option>
-                  <option value="viva_only">Viva Only</option>
-                  <option value="assignment_only">Assignment Only</option>
-                  <option value="all_components">All Components</option>
-                </select>
-              </div>
-
-              <!-- Mark Distribution -->
-              <div class="md:col-span-2">
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Mark Distribution
-                </h4>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Theory Marks</label
-                    >
-                    <input
-                      v-model="form.theory_marks"
-                      type="number"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Practical Marks</label
-                    >
-                    <input
-                      v-model="form.practical_marks"
-                      type="number"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Viva Marks</label
-                    >
-                    <input
-                      v-model="form.viva_marks"
-                      type="number"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Assignment Marks</label
-                    >
-                    <input
-                      v-model="form.assignment_marks"
-                      type="number"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Total Marks</label
-                    >
-                    <input
-                      v-model="form.total_marks"
-                      type="number"
-                      min="1"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1"
-                      >Pass Marks</label
-                    >
-                    <input
-                      v-model="form.pass_marks"
-                      type="number"
-                      min="0"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Form Actions -->
-            <div
-              class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700"
-            >
-              <button
-                type="button"
-                @click="closeModal"
-                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="saving"
-                class="px-4 py-2 border border-transparent text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ saving ? 'Saving...' : editingSchedule ? 'Update Schedule' : 'Create Schedule' }}
-              </button>
-            </div>
-          </form>
-        </template>
-      </Modal>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Plus, Calendar, Edit, Trash2 } from 'lucide-vue-next';
+import { Plus, Calendar, Edit, Trash2, X, Filter, Clock, RotateCcw } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
+import { useBranches } from '~/composables/useBranches';
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const { classes, classOptions, sectionOptions, sectionsLoading, fetchClasses, fetchSections } =
   useAcademics();
 const { exams, examOptions, examsLoading, loadExams } = useExams();
@@ -539,6 +286,13 @@ const hallOptions = computed(() =>
   halls.value.map(hall => ({
     value: hall.id,
     label: `${hall.name} (Capacity: ${hall.capacity})`
+  }))
+);
+
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
   }))
 );
 
@@ -616,10 +370,26 @@ const loadSubjects = async () => {
   }
 };
 
+const onBranchChange = async () => {
+  form.class_id = '';
+  form.section_id = '';
+  form.exam_id = '';
+
+  if (form.branch_id) {
+    await fetchClasses({ branchId: form.branch_id });
+    await loadExams({ branch_id: form.branch_id });
+  }
+};
+
+const onExamChange = () => {
+  // Handle exam change if needed
+};
+
 const openCreateModal = async () => {
   editingSchedule.value = null;
   resetForm();
   await Promise.all([
+    fetchBranches(),
     loadExams(),
     fetchClasses({ branchId: user.value.branch_id }),
     loadHalls(),
@@ -729,10 +499,6 @@ const clearFilters = () => {
   selectedClassId.value = '';
   fromDate.value = '';
   toDate.value = '';
-};
-
-const onExamChange = () => {
-  // Handle exam change if needed
 };
 
 const onClassChange = async () => {

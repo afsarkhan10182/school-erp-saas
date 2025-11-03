@@ -152,7 +152,7 @@ class ExamScheduleService extends BaseService {
         exam_id,
         branch_id,
         exam_hall_id,
-        status_id,
+        status,
         date_from,
         date_to,
         invigilator_id
@@ -168,7 +168,7 @@ class ExamScheduleService extends BaseService {
       if (exam_id) whereClause.exam_id = exam_id;
       if (branch_id) whereClause.branch_id = branch_id;
       if (exam_hall_id) whereClause.exam_hall_id = exam_hall_id;
-      if (status_id) whereClause.status_id = status_id;
+      if (status) whereClause.status = status;
       if (invigilator_id) whereClause.invigilator_id = invigilator_id;
 
       if (date_from && date_to) {
@@ -204,12 +204,14 @@ class ExamScheduleService extends BaseService {
           {
             model: Section,
             as: 'section',
-            attributes: ['id', 'name']
+            attributes: ['id', 'name'],
+            required: false
           },
           {
             model: Subject,
             as: 'subject',
-            attributes: ['id', 'name', 'code']
+            attributes: ['id', 'name', 'code'],
+            required: false
           },
           {
             model: ExamHall,
@@ -305,7 +307,8 @@ class ExamScheduleService extends BaseService {
           {
             model: Section,
             as: 'section',
-            attributes: ['id', 'name']
+            attributes: ['id', 'name'],
+            required: false
           },
           {
             model: Subject,

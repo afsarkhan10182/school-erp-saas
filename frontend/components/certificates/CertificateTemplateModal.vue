@@ -18,27 +18,27 @@
 
       <!-- Modal panel -->
       <div
-        class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
+        class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full"
       >
         <form @submit.prevent="handleSubmit">
           <!-- Modal header -->
-          <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
             <div class="flex items-center justify-between">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              <h3 class="text-lg leading-6 font-semibold text-gray-900 dark:text-white">
                 {{ isEdit ? 'Edit Certificate Template' : 'Create Certificate Template' }}
               </h3>
               <button
                 type="button"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 @click="close"
               >
-                <X class="h-6 w-6" />
+                <X class="h-5 w-5" />
               </button>
             </div>
           </div>
 
           <!-- Modal body -->
-          <div class="bg-white dark:bg-gray-800 px-4 pb-4 sm:p-6">
+          <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[65vh] overflow-y-auto">
             <div class="space-y-6">
               <!-- Basic Information -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,33 +164,25 @@
                 </div>
               </div>
 
-              <!-- Visual Settings -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- User Photo Style -->
+              <!-- Photo Settings -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label
-                    for="photoStyle"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
+                  <label for="photoStyle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     User Photo Style *
                   </label>
                   <select
                     id="photoStyle"
                     v-model="form.user_photo_style"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="square">Square</option>
                     <option value="round">Round</option>
                   </select>
                 </div>
 
-                <!-- Photo Size -->
                 <div>
-                  <label
-                    for="photoSize"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
+                  <label for="photoSize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Photo Size (px) *
                   </label>
                   <input
@@ -200,122 +192,136 @@
                     min="50"
                     max="300"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
               </div>
 
-              <!-- File Uploads -->
+              <!-- Images Upload -->
               <div>
-                <h4 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Images</h4>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Certificate Images
+                </label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <!-- Logo Image -->
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Logo Image
-                    </label>
+                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2">Logo Image</label>
                     <input
+                      ref="logoInput"
                       type="file"
                       accept="image/*"
                       @change="handleFileUpload($event, 'logo_image')"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
                     />
+                    <div v-if="logoPreview" class="mt-2 relative inline-block">
+                      <img :src="logoPreview" alt="Logo" class="h-20 w-20 object-cover rounded border border-gray-300" />
+                      <button
+                        type="button"
+                        @click="clearImage('logo_image')"
+                        class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        <X class="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Background Image -->
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Background Image
-                    </label>
+                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2">Background Image</label>
                     <input
+                      ref="bgInput"
                       type="file"
                       accept="image/*"
                       @change="handleFileUpload($event, 'background_image')"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                      class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
                     />
+                    <div v-if="backgroundPreview" class="mt-2 relative inline-block">
+                      <img :src="backgroundPreview" alt="Background" class="h-20 w-32 object-cover rounded border border-gray-300" />
+                      <button
+                        type="button"
+                        @click="clearImage('background_image')"
+                        class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        <X class="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Certificate Content -->
+              <!-- Certificate Content Editor -->
               <div>
-                <label
-                  for="content"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Certificate Content *
-                </label>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Certificate Content *
+                  </label>
+                  <button
+                    type="button"
+                    @click="showTemplates = !showTemplates"
+                    class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+                  >
+                    {{ showTemplates ? 'Hide' : 'Show' }} Templates
+                  </button>
+                </div>
+                
+                <!-- Template Samples -->
+                <div v-if="showTemplates" class="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Click a template to load it:</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="template in sampleTemplates"
+                      :key="template.id"
+                      type="button"
+                      @click="loadSampleTemplate(template.content)"
+                      class="px-3 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-500 transition-colors"
+                    >
+                      {{ template.name }}
+                    </button>
+                  </div>
+                </div>
 
-                <!-- Rich Text Editor -->
                 <RichTextEditor
                   v-model="form.content"
                   :available-tags="availableTags"
-                  placeholder="Enter certificate content here. Use the toolbar to format text and insert dynamic content tags like {name}, {institute_name}, etc."
+                  placeholder="Enter certificate content here. Use the toolbar to format text and insert dynamic tags..."
                 />
 
-                <!-- Preview Section -->
-                <div v-if="form.content" class="mt-4">
-                  <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Content Preview
-                    </label>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">
-                      This shows how your content will look with dynamic tags rendered
-                    </span>
-                  </div>
-                  <div
-                    class="border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
-                  >
-                    <!-- Preview Header -->
-                    <div
-                      class="bg-gray-50 dark:bg-gray-700 px-3 py-2 border-b border-gray-200 dark:border-gray-600"
-                    >
-                      <div class="flex items-center justify-between">
-                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400"
-                          >Certificate Preview</span
-                        >
-                        <div class="flex items-center space-x-2">
-                          <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
+              </div>
 
-                    <!-- Preview Content -->
-                    <div class="p-6 min-h-[200px] max-h-80 overflow-y-auto">
-                      <div
-                        class="certificate-preview prose prose-sm max-w-none"
-                        :class="[
-                          'text-gray-900 dark:text-white',
-                          'prose-headings:text-gray-900 dark:prose-headings:text-white',
-                          'prose-p:text-gray-700 dark:prose-p:text-gray-300',
-                          'prose-strong:text-gray-900 dark:prose-strong:text-white'
-                        ]"
-                        v-html="getPreviewContent()"
-                      ></div>
-                    </div>
-                  </div>
+              <!-- Content Preview -->
+              <div v-if="form.content" class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Preview
+                </label>
+                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 max-h-48 overflow-y-auto">
+                  <div
+                    class="prose prose-sm max-w-none"
+                    :class="[
+                      'text-gray-900 dark:text-white',
+                      'prose-p:text-gray-700 dark:prose-p:text-gray-300'
+                    ]"
+                    v-html="getPreviewContent()"
+                  ></div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Modal footer -->
-          <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <div class="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 px-6 py-4 flex justify-end gap-3">
+            <button
+              type="button"
+              @click="close"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               :disabled="loading"
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-indigo-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ loading ? 'Saving...' : isEdit ? 'Update Template' : 'Create Template' }}
-            </button>
-            <button
-              type="button"
-              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              @click="close"
-            >
-              Cancel
+              {{ loading ? 'Saving...' : isEdit ? 'Update' : 'Create' }}
             </button>
           </div>
         </form>
@@ -354,6 +360,10 @@ const { showToast } = useToast();
 
 // Reactive data
 const loading = ref(false);
+const logoPreview = ref(null);
+const backgroundPreview = ref(null);
+const showTemplates = ref(true);
+
 const form = reactive({
   name: '',
   user_type: '',
@@ -369,6 +379,95 @@ const form = reactive({
 
 // Computed
 const isEdit = computed(() => !!props.template);
+
+// Sample templates based on user type
+const sampleTemplates = computed(() => {
+  if (form.user_type === 'student') {
+    return [
+      {
+        id: 1,
+        name: 'Achievement Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #1e40af;">Certificate of Achievement</h1>
+<p style="font-size: 16px; margin: 20px 0;">This is to certify that</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #4f46e5;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Son/Daughter of <strong>{father_name}</strong> and <strong>{mother_name}</strong></p>
+<p style="font-size: 16px; margin: 20px 0;">Registration No: <strong>{register_no}</strong> | Class: <strong>{class}</strong> Section: <strong>{section}</strong></p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">Has successfully completed the academic year with outstanding performance and has been awarded this certificate in recognition of their dedication and hard work.</p>
+<p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
+</div>`
+      },
+      {
+        id: 2,
+        name: 'Participation Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #059669;">Certificate of Participation</h1>
+<p style="font-size: 16px; margin: 20px 0;">This certifies that</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #10b981;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Class: <strong>{class}</strong> | Section: <strong>{section}</strong></p>
+<p style="font-size: 16px; margin: 20px 0;">Roll No: <strong>{roll}</strong> | Registration No: <strong>{register_no}</strong></p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">Has actively participated in school activities and events during the academic year and demonstrated excellent team spirit and cooperation.</p>
+<p style="font-size: 14px; margin-top: 30px;">Issued on: {print_date}</p>
+</div>`
+      },
+      {
+        id: 3,
+        name: 'Character Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #7c3aed;">Character Certificate</h1>
+<p style="font-size: 16px; margin: 20px 0;">This is to certify that</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #8b5cf6;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Son/Daughter of <strong>{father_name}</strong></p>
+<p style="font-size: 16px; margin: 20px 0;">Registration No: <strong>{register_no}</strong> | Date of Birth: <strong>{birthday}</strong></p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">Was a student of this institution from <strong>{admission_date}</strong> studying in Class <strong>{class}</strong>. During their time here, they have shown good character, discipline, and have maintained excellent conduct throughout.</p>
+<p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
+</div>`
+      }
+    ];
+  } else if (form.user_type === 'employee') {
+    return [
+      {
+        id: 1,
+        name: 'Experience Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #1e40af;">Experience Certificate</h1>
+<p style="font-size: 16px; margin: 20px 0;">This is to certify that</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #4f46e5;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Staff ID: <strong>{staff_id}</strong></p>
+<p style="font-size: 16px; margin: 20px 0;">Worked with our institution as <strong>{designation}</strong> in the <strong>{department}</strong> department from <strong>{joining_date}</strong>.</p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">During their tenure, they have shown dedication, professionalism, and commitment to their responsibilities. Their work has been satisfactory and they have been a valuable member of our team.</p>
+<p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
+</div>`
+      },
+      {
+        id: 2,
+        name: 'Appreciation Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #059669;">Certificate of Appreciation</h1>
+<p style="font-size: 16px; margin: 20px 0;">This certificate is awarded to</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #10b981;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Designation: <strong>{designation}</strong> | Department: <strong>{department}</strong></p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">In recognition of their outstanding contribution, excellent performance, and dedication to the institution. Their hard work and commitment have been exemplary and serve as an inspiration to others.</p>
+<p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
+</div>`
+      },
+      {
+        id: 3,
+        name: 'Service Certificate',
+        content: `<div style="text-align: center;">
+<h1 style="font-size: 28px; margin-bottom: 20px; color: #7c3aed;">Service Certificate</h1>
+<p style="font-size: 16px; margin: 20px 0;">This is to certify that</p>
+<h2 style="font-size: 24px; margin: 15px 0; color: #8b5cf6;">{name}</h2>
+<p style="font-size: 16px; margin: 20px 0;">Staff ID: <strong>{staff_id}</strong> | Email: <strong>{email}</strong></p>
+<p style="font-size: 16px; margin: 20px 0;">Has been serving our institution as <strong>{designation}</strong> since <strong>{joining_date}</strong>.</p>
+<p style="font-size: 16px; margin: 20px 0; line-height: 1.8;">They have consistently demonstrated professionalism, reliability, and dedication in their role. This certificate is issued upon their request for official purposes.</p>
+<p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
+</div>`
+      }
+    ];
+  }
+  return [];
+});
 
 // Available tags based on user type
 const availableTags = computed(() => {
@@ -452,8 +551,34 @@ const handleFileUpload = (event, field) => {
     }
 
     form[field] = file;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (field === 'logo_image') {
+        logoPreview.value = e.target.result;
+      } else if (field === 'background_image') {
+        backgroundPreview.value = e.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+    
     showToast(`${field.replace('_', ' ')} uploaded successfully`, 'success');
   }
+};
+
+const clearImage = (field) => {
+  form[field] = null;
+  if (field === 'logo_image') {
+    logoPreview.value = null;
+  } else if (field === 'background_image') {
+    backgroundPreview.value = null;
+  }
+};
+
+const loadSampleTemplate = (content) => {
+  form.content = content;
+  showToast('Template loaded successfully', 'success');
 };
 
 const getPreviewContent = () => {
@@ -518,14 +643,35 @@ const handleSubmit = async () => {
 
     // Add all form fields to FormData
     Object.keys(form).forEach(key => {
-      if (form[key] !== null && form[key] !== '') {
-        if (key.includes('_image') && form[key] instanceof File) {
+      // Skip preview properties
+      if (key.endsWith('_preview')) return;
+      
+      // Handle file uploads
+      if (key.endsWith('_image')) {
+        if (form[key] && form[key] instanceof File) {
           formData.append(key, form[key]);
-        } else if (!key.includes('_image')) {
+        } else if (form[key] && typeof form[key] === 'string' && form[key].startsWith('data:')) {
+          // If it's a data URL, convert it to a blob
+          fetch(form[key])
+            .then(res => res.blob())
+            .then(blob => {
+              const file = new File([blob], 'background.jpg', { type: 'image/jpeg' });
+              formData.append(key, file);
+            });
+        } else if (form[key]) {
+          // If it's a string URL, just append it
           formData.append(key, form[key]);
         }
+      } else if (form[key] !== null && form[key] !== undefined) {
+        // Handle all other fields
+        formData.append(key, form[key]);
       }
     });
+
+    // Add _method for Laravel if it's an edit
+    if (isEdit.value) {
+      formData.append('_method', 'PUT');
+    }
 
     let result;
     if (isEdit.value) {

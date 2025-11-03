@@ -26,11 +26,11 @@ const generateStudentCertificatesValidator = [
     .isISO8601()
     .withMessage('Print date must be a valid date'),
 
-  body('branch_id').optional().isUUID().withMessage('Branch ID must be a valid UUID'),
+  body('branch_id').optional({ checkFalsy: true }).isUUID().withMessage('Branch ID must be a valid UUID'),
 
-  body('class_id').optional().isUUID().withMessage('Class ID must be a valid UUID'),
+  body('class_id').optional({ checkFalsy: true }).isUUID().withMessage('Class ID must be a valid UUID'),
 
-  body('section_id').optional().isUUID().withMessage('Section ID must be a valid UUID')
+  body('section_id').optional({ checkFalsy: true }).isUUID().withMessage('Section ID must be a valid UUID')
 ];
 
 /**

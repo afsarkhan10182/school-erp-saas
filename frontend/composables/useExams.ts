@@ -76,6 +76,20 @@ export const useExams = () => {
 
       if (response.success) {
         console.log('Exams loaded:', response.data.exams);
+        // Debug: Log the first exam to see what fields are available
+        if (response.data.exams && response.data.exams.length > 0) {
+          console.log('First exam fields:', {
+            id: response.data.exams[0].id,
+            name: response.data.exams[0].name,
+            instructions: response.data.exams[0].instructions,
+            description: response.data.exams[0].description,
+            remarks: response.data.exams[0].remarks,
+            mark_distribution_ids: response.data.exams[0].mark_distribution_ids,
+            term_id: response.data.exams[0].term_id,
+            term: response.data.exams[0].term,
+            allFields: Object.keys(response.data.exams[0])
+          });
+        }
         state.exams = response.data.exams || [];
         state.pagination = {
           page: response.data.pagination.page,

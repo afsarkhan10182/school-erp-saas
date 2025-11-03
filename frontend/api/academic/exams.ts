@@ -4,9 +4,15 @@ export interface Exam {
   id: string;
   name: string;
   exam_type_id: string;
+  type_id?: number;
   description?: string;
+  instructions?: string;
+  mark_distribution_ids?: string[];
+  term_id?: string;
   academic_year?: string;
   is_active: boolean;
+  publish_status?: boolean;
+  result_status?: boolean;
   status?: 'draft' | 'scheduled' | 'marks_entered' | 'grades_calculated' | 'completed';
   school_id: string;
   branch_id: string;
@@ -15,6 +21,7 @@ export interface Exam {
   created_at?: string;
   updated_at?: string;
   examType?: { id: string; name: string; code: string };
+  term?: { id: string; name: string };
 }
 
 export interface ExamResult {

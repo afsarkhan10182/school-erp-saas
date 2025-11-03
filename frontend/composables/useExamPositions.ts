@@ -1,19 +1,23 @@
 import { ref, computed } from 'vue';
-import { examPositionApi } from '~/api/academic/exam-positions';
+import { examPositionsApi } from '~/api/academic/exam-positions';
 
 export const useExamPositions = () => {
   const examPositions = ref([]);
   const loading = ref(false);
   const error = ref(null);
 
-  // Fetch exam positions by exam ID
-  const fetchExamPositions = async (examId, params = {}) => {
+  // Fetch exam positions by exam ID and class ID
+  const fetchExamPositions = async (examId, classId, params = {}) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examPositionApi.getByExamId(examId, params);
+      const response = await examPositionsApi.getStudents({
+        exam_id: examId,
+        class_id: classId,
+        ...params
+      });
       if (response.success) {
-        examPositions.value = response.data.positions || response.data;
+        examPositions.value = response.data.students || response.data || [];
       }
       return response;
     } catch (err) {
@@ -25,13 +29,17 @@ export const useExamPositions = () => {
   };
 
   // Calculate positions for an exam
-  const calculatePositions = async examId => {
+  const calculatePositions = async (examId, classId, calculationData) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examPositionApi.calculatePositions(examId);
-      if (response.success) {
-        await fetchExamPositions(examId);
+      const response = await examPositionsApi.calculate({
+        exam_id: examId,
+        class_id: classId,
+        ...calculationData
+      });
+      if (response.success && examId && classId) {
+        await fetchExamPositions(examId, classId);
       }
       return response;
     } catch (err) {
@@ -42,25 +50,18 @@ export const useExamPositions = () => {
     }
   };
 
-  // Export exam positions
-  const exportPositions = async (examId, format = 'csv') => {
-    try {
-      const response = await examPositionApi.export(examId, format);
-      return response;
-    } catch (err) {
-      error.value = err.message;
-      throw err;
-    }
-  };
-
-  // Update exam position
-  const updateExamPosition = async (id, positionData) => {
+  // Save positions
+  const savePositions = async (examId, classId, positions) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examPositionApi.update(id, positionData);
-      if (response.success) {
-        await fetchExamPositions(positionData.exam_id);
+      const response = await examPositionsApi.save({
+        exam_id: examId,
+        class_id: classId,
+        positions
+      });
+      if (response.success && examId && classId) {
+        await fetchExamPositions(examId, classId);
       }
       return response;
     } catch (err) {
@@ -71,15 +72,12 @@ export const useExamPositions = () => {
     }
   };
 
-  // Delete exam position
-  const deleteExamPosition = async id => {
+  // Get position statistics
+  const getPositionStats = async (examId, classId) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examPositionApi.delete(id);
-      if (response.success) {
-        await fetchExamPositions();
-      }
+      const response = await examPositionsApi.getStats(examId, classId);
       return response;
     } catch (err) {
       error.value = err.message;
@@ -113,8 +111,7 @@ export const useExamPositions = () => {
     positionStats,
     fetchExamPositions,
     calculatePositions,
-    exportPositions,
-    updateExamPosition,
-    deleteExamPosition
+    savePositions,
+    getPositionStats
   };
 };
