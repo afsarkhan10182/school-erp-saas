@@ -3,8 +3,9 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // First, add the new type_id column
+    // Using SMALLINT instead of TINYINT for PostgreSQL compatibility
     await queryInterface.addColumn('exams', 'type_id', {
-      type: Sequelize.TINYINT,
+      type: Sequelize.SMALLINT,
       allowNull: true, // Allow null initially for data migration
       comment: '1=marks,2=grade,3=both'
     });
@@ -19,7 +20,7 @@ module.exports = {
 
     // Make type_id NOT NULL after data migration
     await queryInterface.changeColumn('exams', 'type_id', {
-      type: Sequelize.TINYINT,
+      type: Sequelize.SMALLINT,
       allowNull: false,
       comment: '1=marks,2=grade,3=both'
     });
