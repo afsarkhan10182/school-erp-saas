@@ -460,8 +460,9 @@
       <!-- Save Button -->
       <div class="mt-8 flex justify-end">
         <button
+          type="button"
           @click="saveSchedules"
-          :disabled="saving"
+          :disabled="saving || generatedSchedules.length === 0"
           class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           <Plus class="h-5 w-5 mr-2" />
@@ -1130,6 +1131,34 @@ const saveSchedules = async () => {
     return;
   }
 
+  // Validate all schedules before saving
+  const validationErrors = [];
+  generatedSchedules.value.forEach((schedule, index) => {
+    const subjectName = schedule.subject_name || `Subject ${index + 1}`;
+    
+    if (!schedule.date || schedule.date.trim() === '') {
+      validationErrors.push(`${subjectName}: Date is required`);
+    }
+    
+    if (!schedule.starting_time || schedule.starting_time.trim() === '') {
+      validationErrors.push(`${subjectName}: Starting time is required`);
+    }
+    
+    if (!schedule.ending_time || schedule.ending_time.trim() === '') {
+      validationErrors.push(`${subjectName}: Ending time is required`);
+    }
+    
+    if (!schedule.hall_id || schedule.hall_id.trim() === '') {
+      validationErrors.push(`${subjectName}: Hall room is required`);
+    }
+  });
+
+  if (validationErrors.length > 0) {
+    showToast(validationErrors[0] + (validationErrors.length > 1 ? ` (and ${validationErrors.length - 1} more)` : ''), 'error');
+    console.error('Validation errors:', validationErrors);
+    return;
+  }
+
   saving.value = true;
   const errors = [];
 
@@ -1140,6 +1169,13 @@ const saveSchedules = async () => {
     // Create schedules for each row
     for (const schedule of generatedSchedules.value) {
       try {
+        // Validate this specific schedule
+        if (!schedule.date || !schedule.starting_time || !schedule.ending_time || !schedule.hall_id) {
+          const subjectName = schedule.subject_name || 'Unknown';
+          errors.push(`${subjectName}: Missing required fields (date, time, or hall)`);
+          continue;
+        }
+
         // Calculate total marks and pass marks from mark distribution fields
         let totalMarks = 0;
         let passMarks = 0;
@@ -1171,6 +1207,7 @@ const saveSchedules = async () => {
           exam_id: selectionForm.exam_id,
           class_id: selectionForm.class_id,
           section_id: selectionForm.section_id || undefined,
+          subject_id: schedule.subject_id || undefined,
           exam_hall_id: schedule.hall_id,
           exam_date: schedule.date,
           start_time: schedule.starting_time,
@@ -1183,6 +1220,7 @@ const saveSchedules = async () => {
           branch_id: branchId
         };
 
+        console.log('Saving schedule:', scheduleData);
         await examScheduleApi.create(scheduleData);
       } catch (error) {
         const subjectName = schedule.subject_name || 'Unknown';

@@ -39,7 +39,17 @@ export interface ExamSchedule {
     id: string;
     name: string;
   };
+  subject?: {
+    id: string;
+    name: string;
+    code?: string;
+  };
   hall?: {
+    id: string;
+    name: string;
+    capacity: number;
+  };
+  examHall?: {
     id: string;
     name: string;
     capacity: number;
@@ -115,7 +125,7 @@ export const examScheduleApi = {
   // Get all exam schedules with optional filters
   async getAll(
     filters: ExamScheduleFilters = {}
-  ): Promise<{ data: ExamSchedule[]; total: number; page: number; limit: number }> {
+  ): Promise<{ schedules?: ExamSchedule[]; data?: ExamSchedule[]; pagination?: { page: number; limit: number; total: number; totalPages: number } }> {
     // Build query string from filters
     const queryParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {

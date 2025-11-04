@@ -2,12 +2,9 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
+      <div class="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Exam Schedules</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage exam schedules, timetables, and hall assignments
-          </p>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Exam Schedule</h1>
         </div>
         <div class="mt-4 sm:mt-0">
           <button
@@ -20,86 +17,108 @@
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Exam Filter -->
-          <div>
+      <!-- Select Ground Section -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Ground</h2>
+        <div class="flex items-end gap-4">
+          <!-- Branch Selection -->
+          <div v-if="showBranchDropdown" class="flex-1">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Exam
+              Branch <span class="text-red-500">*</span>
             </label>
             <EnhancedDropdown
-              v-model="selectedExamId"
-              :options="examOptions"
-              placeholder="Select exam"
-              :loading="examsLoading"
-              @change="onExamChange"
+              v-model="selectedBranchId"
+              :options="branchOptions"
+              placeholder="Select branch"
+              :loading="branchesLoading"
+              @change="onBranchChange"
             />
           </div>
 
-          <!-- Class Filter -->
-          <div>
+          <!-- Class Selection -->
+          <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Class
+              Class <span class="text-red-500">*</span>
             </label>
             <EnhancedDropdown
               v-model="selectedClassId"
-              :options="classOptions"
+              :options="filteredClassOptions"
               placeholder="Select class"
               :loading="classesLoading"
+              :disabled="!selectedBranchId && showBranchDropdown"
               @change="onClassChange"
             />
           </div>
 
-          <!-- Date Range -->
-          <div>
+          <!-- Section Selection -->
+          <div v-if="showSectionField && sectionOptions.length > 0" class="flex-1">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              From Date
+              Section <span class="text-red-500">*</span>
             </label>
-            <input
-              v-model="fromDate"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            <EnhancedDropdown
+              v-model="selectedSectionId"
+              :options="sectionOptions"
+              placeholder="Select section"
+              :loading="sectionsLoading"
+              @change="onSectionChange"
             />
           </div>
 
+          <!-- Filter Button -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              To Date
-            </label>
-            <input
-              v-model="toDate"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            />
+            <button
+              @click="applyFilter"
+              :disabled="!canApplyFilter"
+              class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Filter class="h-5 w-5 mr-2" />
+              Filter
+            </button>
           </div>
-        </div>
-
-        <div class="flex justify-end mt-4">
-          <button
-            @click="clearFilters"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Clear Filters
-          </button>
         </div>
       </div>
 
-      <!-- Schedules Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <!-- Schedule List Section -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div
+          class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
+          <div class="flex items-center">
+            <Calendar class="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Schedule List</h3>
+          </div>
+          <div class="flex items-center gap-4">
+            <!-- Search -->
+            <div class="relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search..."
+                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white w-64"
+              />
+              <Search
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
         <div v-if="loading" class="p-8 text-center">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading schedules...</p>
         </div>
 
-        <div v-else-if="filteredSchedules.length === 0" class="p-8 text-center">
+        <!-- Empty State -->
+        <div v-else-if="groupedExams.length === 0" class="p-8 text-center">
           <Calendar class="mx-auto h-12 w-12 text-gray-400" />
           <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No schedules found</h3>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Get started by creating a new exam schedule
+            Select a class and section, then click Filter to view schedules
           </p>
         </div>
 
+        <!-- Schedules Table -->
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -107,49 +126,24 @@
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
-                  #
+                  Sl.
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
-                  Subject Name
+                  Exam Name
                 </th>
                 <th
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
-                  Date
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Starting Time
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Ending Time
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Hall Room
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Mark Distribution Details
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
+                  Action
                 </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr
-                v-for="(schedule, index) in filteredSchedules"
-                :key="schedule.id"
+                v-for="(examGroup, index) in filteredGroupedExams"
+                :key="examGroup.examId"
                 class="hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -157,45 +151,29 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ schedule.subject?.name || 'N/A' }}
+                    {{ examGroup.examName }}
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ formatDate(schedule.exam_date) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ formatTime(schedule.start_time) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ formatTime(schedule.end_time) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ schedule.hall?.name || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ schedule.markDistribution?.name || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex justify-end space-x-2">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex items-center space-x-3">
                     <button
-                      @click="editSchedule(schedule)"
-                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      @click="viewScheduleDetails(examGroup)"
+                      class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      title="View Details"
+                    >
+                      <Eye class="h-4 w-4" />
+                    </button>
+                    <button
+                      @click="editScheduleGroup(examGroup)"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                      title="Edit"
                     >
                       <Edit class="h-4 w-4" />
                     </button>
                     <button
-                      @click="deleteSchedule(schedule)"
-                      class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      @click="deleteScheduleGroup(examGroup)"
+                      class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                      title="Delete"
                     >
                       <Trash2 class="h-4 w-4" />
                     </button>
@@ -205,6 +183,184 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="groupedExams.length > 0"
+          class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
+          <div class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+            <span
+              >Showing 1 to {{ filteredGroupedExams.length }} of
+              {{ groupedExams.length }} entries</span
+            >
+            <select
+              v-model="rowsPerPage"
+              class="ml-4 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+            >
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+            <span class="ml-2">rows per page</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button
+              @click="currentPage = 1"
+              :disabled="currentPage === 1"
+              class="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft class="h-5 w-5" />
+            </button>
+            <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ currentPage }}</span>
+            <button
+              @click="currentPage++"
+              :disabled="currentPage >= totalPages"
+              class="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight class="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Details Modal -->
+    <div
+      v-if="showDetailsModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      @click="closeDetailsModal"
+    >
+      <div
+        class="relative top-20 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
+        @click.stop
+      >
+        <div class="mb-4">
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+              <Calendar class="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Schedule Details</h3>
+            </div>
+            <div class="flex items-center space-x-3">
+              <button
+                @click="printScheduleDetails"
+                class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                title="Print"
+              >
+                <Printer class="h-4 w-4 mr-2" />
+                Print
+              </button>
+              <button
+                @click="closeDetailsModal"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X class="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Exam Information -->
+          <div class="mb-6 space-y-2">
+            <div class="text-sm text-gray-700 dark:text-gray-300">
+              <span class="font-semibold">Exam :</span>
+              <span class="ml-2">{{ selectedScheduleGroup?.examName || 'N/A' }}</span>
+            </div>
+            <div class="text-sm text-gray-700 dark:text-gray-300">
+              <span class="font-semibold">Class :</span>
+              <span class="ml-2">
+                {{ selectedScheduleGroup?.className || 'N/A'
+                }}{{
+                  selectedScheduleGroup?.sectionName ? `(${selectedScheduleGroup.sectionName})` : ''
+                }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Schedule Table -->
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Subject
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Date
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Starting Time
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Ending Time
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Hall Room
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+              >
+                <tr
+                  v-for="schedule in selectedScheduleGroup?.schedules || []"
+                  :key="schedule.id"
+                  class="hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ schedule.subject?.name || 'N/A' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ formatDate(schedule.exam_date) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ formatTime(schedule.start_time) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ formatTime(schedule.end_time) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ schedule.examHall?.name || schedule.hall?.name || 'N/A' }}
+                  </td>
+                </tr>
+                <tr
+                  v-if="
+                    !selectedScheduleGroup?.schedules ||
+                    selectedScheduleGroup.schedules.length === 0
+                  "
+                >
+                  <td
+                    colspan="5"
+                    class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    No schedules found
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-6 flex justify-end">
+            <button
+              @click="closeDetailsModal"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -212,7 +368,22 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Plus, Calendar, Edit, Trash2, X, Filter, Clock, RotateCcw } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+import {
+  Plus,
+  Calendar,
+  Edit,
+  Trash2,
+  X,
+  Filter,
+  Clock,
+  RotateCcw,
+  Eye,
+  Printer,
+  Search,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
@@ -223,6 +394,7 @@ import { useBranches } from '~/composables/useBranches';
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 
 // Composables
+const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
@@ -233,331 +405,312 @@ const { exams, examOptions, examsLoading, loadExams } = useExams();
 // Reactive data
 const loading = ref(false);
 const schedules = ref([]);
-const showModal = ref(false);
-const saving = ref(false);
-const editingSchedule = ref(null);
+const showDetailsModal = ref(false);
+const selectedScheduleGroup = ref(null);
 
 // Filters
-const selectedExamId = ref('');
+const selectedBranchId = ref('');
 const selectedClassId = ref('');
-const fromDate = ref('');
-const toDate = ref('');
+const selectedSectionId = ref('');
+const filterApplied = ref(false);
+const searchQuery = ref('');
 
-// Form data
-const form = reactive({
-  exam_id: '',
-  class_id: '',
-  section_id: '',
-  subject_id: '',
-  hall_id: '',
-  exam_date: '',
-  start_time: '',
-  end_time: '',
-  duration: '',
-  distribution_type: 'combined',
-  theory_marks: 0,
-  practical_marks: 0,
-  viva_marks: 0,
-  assignment_marks: 0,
-  total_marks: 100,
-  pass_marks: 35
-});
-
-// Additional data
-const halls = ref([]);
-const hallsLoading = ref(false);
-const classesLoading = ref(false);
-const subjects = ref([]);
-const subjectsLoading = ref(false);
-
-// Hall capacity validation
-const selectedHallCapacity = ref(0);
-const classStudentCount = ref(0);
-const hallCapacityWarning = computed(() => {
-  return (
-    selectedHallCapacity.value > 0 &&
-    classStudentCount.value > 0 &&
-    classStudentCount.value > selectedHallCapacity.value
-  );
-});
+// Pagination
+const currentPage = ref(1);
+const rowsPerPage = ref(25);
 
 // Computed properties
-const hallOptions = computed(() =>
-  halls.value.map(hall => ({
-    value: hall.id,
-    label: `${hall.name} (Capacity: ${hall.capacity})`
-  }))
-);
-
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
-const subjectOptions = computed(() =>
-  subjects.value.map(subject => ({
-    value: subject.id,
-    label: subject.name
-  }))
-);
-
 const showSectionField = computed(() => {
-  const selectedClass = classes.value.find(cls => cls.id === form.class_id);
+  const selectedClass = classes.value.find(cls => cls.id === selectedClassId.value);
   return selectedClass?.has_sections || false;
 });
 
-const filteredSchedules = computed(() => {
-  let filtered = schedules.value;
+const classesLoading = computed(() => false);
 
-  if (selectedExamId.value) {
-    filtered = filtered.filter(schedule => schedule.exam_id === selectedExamId.value);
+// Check if branch dropdown should be shown
+const showBranchDropdown = computed(() => {
+  return branches.value.length > 1;
+});
+
+// Get resolved branch ID (selected or default)
+const resolvedBranchId = computed(() => {
+  if (showBranchDropdown.value) {
+    return selectedBranchId.value || '';
   }
+  return branches.value[0]?.id || user.value?.branch_id || '';
+});
 
-  if (selectedClassId.value) {
-    filtered = filtered.filter(schedule => schedule.class_id === selectedClassId.value);
+// Filter classes based on selected branch
+const filteredClassOptions = computed(() => {
+  if (!resolvedBranchId.value) {
+    return [];
   }
+  return classOptions.value.filter(
+    classOption => !classOption.branch_id || classOption.branch_id === resolvedBranchId.value
+  );
+});
 
-  if (fromDate.value) {
-    filtered = filtered.filter(schedule => schedule.exam_date >= fromDate.value);
+const canApplyFilter = computed(() => {
+  // If branch dropdown is shown, branch must be selected
+  if (showBranchDropdown.value && !selectedBranchId.value) {
+    return false;
   }
+  // Class is always required
+  if (!selectedClassId.value) return false;
+  // Section is required if class has sections and sections are available
+  if (showSectionField.value && sectionOptions.value.length > 0) {
+    return !!selectedSectionId.value;
+  }
+  return true;
+});
 
-  if (toDate.value) {
-    filtered = filtered.filter(schedule => schedule.exam_date <= toDate.value);
+// Branch options
+const branchOptions = computed(() => {
+  return branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }));
+});
+
+// Group schedules by exam, class, and section
+const groupedExams = computed(() => {
+  if (!filterApplied.value || schedules.value.length === 0) return [];
+
+  const grouped = {};
+  schedules.value.forEach(schedule => {
+    const key = `${schedule.exam_id}_${schedule.class_id}_${schedule.section_id || 'no_section'}`;
+    if (!grouped[key]) {
+      grouped[key] = {
+        examId: schedule.exam_id,
+        examName: schedule.exam?.name || 'Unknown Exam',
+        classId: schedule.class_id,
+        className: schedule.class?.name || 'Unknown Class',
+        sectionId: schedule.section_id,
+        sectionName: schedule.section?.name,
+        schedules: []
+      };
+    }
+    grouped[key].schedules.push(schedule);
+  });
+
+  return Object.values(grouped).sort((a, b) => a.examName.localeCompare(b.examName));
+});
+
+const filteredGroupedExams = computed(() => {
+  let filtered = groupedExams.value;
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(
+      group =>
+        group.examName.toLowerCase().includes(query) ||
+        group.className.toLowerCase().includes(query) ||
+        (group.sectionName && group.sectionName.toLowerCase().includes(query))
+    );
   }
 
   return filtered;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredGroupedExams.value.length / rowsPerPage.value);
 });
 
 // Methods
 const loadSchedules = async () => {
   try {
     loading.value = true;
+    const branchId = resolvedBranchId.value || user.value.branch_id;
     const response = await examScheduleApi.getAll({
       school_id: user.value.school_id,
-      branch_id: user.value.branch_id
+      branch_id: branchId,
+      class_id: selectedClassId.value || undefined,
+      section_id: selectedSectionId.value || undefined
     });
-    schedules.value = response.data || [];
+
+    let schedulesList = [];
+
+    if (response?.data?.schedules && Array.isArray(response.data.schedules)) {
+      schedulesList = response.data.schedules;
+    } else if (response?.schedules && Array.isArray(response.schedules)) {
+      schedulesList = response.schedules;
+    } else if (Array.isArray(response?.data)) {
+      schedulesList = response.data;
+    } else if (Array.isArray(response)) {
+      schedulesList = response;
+    }
+
+    schedules.value = schedulesList;
   } catch (error) {
-    showToast('Failed to load schedules', 'error');
+    console.error('Error loading schedules:', error);
+    showToast(error?.message || 'Failed to load schedules', 'error');
+    schedules.value = [];
   } finally {
     loading.value = false;
   }
 };
 
-const loadHalls = async () => {
-  try {
-    hallsLoading.value = true;
-    // TODO: Implement hall API
-    halls.value = [];
-  } catch (error) {
-    showToast('Failed to load halls', 'error');
-  } finally {
-    hallsLoading.value = false;
-  }
-};
-
-const loadSubjects = async () => {
-  try {
-    subjectsLoading.value = true;
-    // TODO: Implement subject API
-    subjects.value = [];
-  } catch (error) {
-    showToast('Failed to load subjects', 'error');
-  } finally {
-    subjectsLoading.value = false;
-  }
-};
-
 const onBranchChange = async () => {
-  form.class_id = '';
-  form.section_id = '';
-  form.exam_id = '';
+  // Reset class and section when branch changes
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  filterApplied.value = false;
+  schedules.value = [];
 
-  if (form.branch_id) {
-    await fetchClasses({ branchId: form.branch_id });
-    await loadExams({ branch_id: form.branch_id });
+  if (selectedBranchId.value) {
+    // Load classes for the selected branch
+    await fetchClasses({ branchId: selectedBranchId.value });
+    // Load exams for the selected branch
+    await loadExams({ branch_id: selectedBranchId.value });
   }
 };
 
-const onExamChange = () => {
-  // Handle exam change if needed
+const onClassChange = async () => {
+  selectedSectionId.value = '';
+  if (selectedClassId.value) {
+    const selectedClass = classes.value.find(cls => cls.id === selectedClassId.value);
+    if (selectedClass?.has_sections) {
+      await fetchSections({ classId: selectedClassId.value });
+    }
+  }
 };
 
-const openCreateModal = async () => {
-  editingSchedule.value = null;
-  resetForm();
-  await Promise.all([
-    fetchBranches(),
-    loadExams(),
-    fetchClasses({ branchId: user.value.branch_id }),
-    loadHalls(),
-    loadSubjects()
-  ]);
-  showModal.value = true;
+const onSectionChange = () => {
+  // Handle section change if needed
 };
 
-const editSchedule = async schedule => {
-  editingSchedule.value = schedule;
-  form.exam_id = schedule.exam_id || '';
-  form.class_id = schedule.class_id || '';
-  form.section_id = schedule.section_id || '';
-  form.subject_id = schedule.subject_id || '';
-  form.hall_id = schedule.hall_id || '';
-  form.exam_date = schedule.exam_date || '';
-  form.start_time = schedule.start_time || '';
-  form.end_time = schedule.end_time || '';
-  form.duration = schedule.duration || '';
-  form.distribution_type = schedule.distribution_type || 'combined';
-  form.theory_marks = schedule.theory_marks || 0;
-  form.practical_marks = schedule.practical_marks || 0;
-  form.viva_marks = schedule.viva_marks || 0;
-  form.assignment_marks = schedule.assignment_marks || 0;
-  form.total_marks = schedule.total_marks || 100;
-  form.pass_marks = schedule.pass_marks || 35;
+const applyFilter = async () => {
+  if (!canApplyFilter.value) {
+    showToast('Please select class' + (showSectionField.value ? ' and section' : ''), 'warning');
+    return;
+  }
 
-  await Promise.all([
-    loadExams(),
-    fetchClasses({ branchId: user.value.branch_id }),
-    loadHalls(),
-    loadSubjects()
-  ]);
-  showModal.value = true;
+  filterApplied.value = true;
+  await loadSchedules();
+  showToast('Schedules loaded successfully', 'success');
 };
 
-const deleteSchedule = async schedule => {
-  if (!confirm(`Are you sure you want to delete this schedule?`)) {
+const viewScheduleDetails = examGroup => {
+  selectedScheduleGroup.value = {
+    examName: examGroup.examName,
+    className: examGroup.className,
+    sectionName: examGroup.sectionName,
+    schedules: examGroup.schedules.sort((a, b) => {
+      if (a.exam_date !== b.exam_date) {
+        return new Date(a.exam_date) - new Date(b.exam_date);
+      }
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    })
+  };
+  showDetailsModal.value = true;
+};
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false;
+  selectedScheduleGroup.value = null;
+};
+
+const editScheduleGroup = examGroup => {
+  // Navigate to create page with pre-filled parameters for editing
+  const query = {
+    exam_id: examGroup.examId,
+    class_id: examGroup.classId,
+    edit_mode: 'true'
+  };
+
+  if (examGroup.sectionId) {
+    query.section_id = examGroup.sectionId;
+  }
+
+  if (resolvedBranchId.value) {
+    query.branch_id = resolvedBranchId.value;
+  }
+
+  // Navigate to create page with query params
+  router.push({
+    path: '/exams/schedules/create',
+    query: query
+  });
+};
+
+const deleteScheduleGroup = async examGroup => {
+  if (
+    !confirm(
+      `Are you sure you want to delete all schedules for "${examGroup.examName}"? This action cannot be undone.`
+    )
+  ) {
     return;
   }
 
   try {
-    await examScheduleApi.delete(schedule.id);
-    showToast('Schedule deleted successfully', 'success');
+    // Delete all schedules in this group
+    const deletePromises = examGroup.schedules.map(schedule => examScheduleApi.delete(schedule.id));
+    await Promise.all(deletePromises);
+
+    showToast('Schedules deleted successfully', 'success');
     await loadSchedules();
   } catch (error) {
-    showToast('Failed to delete schedule', 'error');
+    showToast('Failed to delete schedules', 'error');
+    console.error('Error deleting schedules:', error);
   }
 };
 
-const saveSchedule = async () => {
-  try {
-    saving.value = true;
-
-    const scheduleData = {
-      ...form,
-      school_id: user.value.school_id,
-      branch_id: user.value.branch_id
-    };
-
-    if (editingSchedule.value) {
-      await examScheduleApi.update(editingSchedule.value.id, scheduleData);
-      showToast('Schedule updated successfully', 'success');
-    } else {
-      await examScheduleApi.create(scheduleData);
-      showToast('Schedule created successfully', 'success');
-    }
-
-    closeModal();
-    await loadSchedules();
-  } catch (error) {
-    showToast(`Failed to ${editingSchedule.value ? 'update' : 'create'} schedule`, 'error');
-  } finally {
-    saving.value = false;
-  }
-};
-
-const closeModal = () => {
-  showModal.value = false;
-  editingSchedule.value = null;
-  resetForm();
-};
-
-const resetForm = () => {
-  form.exam_id = '';
-  form.class_id = '';
-  form.section_id = '';
-  form.subject_id = '';
-  form.hall_id = '';
-  form.exam_date = '';
-  form.start_time = '';
-  form.end_time = '';
-  form.duration = '';
-  form.distribution_type = 'combined';
-  form.theory_marks = 0;
-  form.practical_marks = 0;
-  form.viva_marks = 0;
-  form.assignment_marks = 0;
-  form.total_marks = 100;
-  form.pass_marks = 35;
-  selectedHallCapacity.value = 0;
-  classStudentCount.value = 0;
-};
-
-const clearFilters = () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  fromDate.value = '';
-  toDate.value = '';
-};
-
-const onClassChange = async () => {
-  if (form.class_id) {
-    await fetchSections({ classId: form.class_id });
-    // TODO: Get student count for capacity validation
-    classStudentCount.value = 0; // Placeholder
-  }
-};
-
-const onHallChange = () => {
-  if (form.hall_id) {
-    const selectedHall = halls.value.find(hall => hall.id === form.hall_id);
-    selectedHallCapacity.value = selectedHall?.capacity || 0;
-  } else {
-    selectedHallCapacity.value = 0;
-  }
+const printScheduleDetails = () => {
+  window.print();
 };
 
 // Helper functions
 const formatDate = date => {
   if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString();
+  try {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return date;
+  }
 };
 
 const formatTime = time => {
   if (!time) return 'N/A';
-  return new Date(`2000-01-01T${time}`).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const getStatusBadgeClass = status => {
-  const classes = {
-    scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    ongoing: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-  };
-  return `inline-flex px-2 py-1 text-xs font-semibold rounded-full ${classes[status] || classes.scheduled}`;
-};
-
-const getStatusLabel = status => {
-  const labels = {
-    scheduled: 'Scheduled',
-    ongoing: 'Ongoing',
-    completed: 'Completed',
-    cancelled: 'Cancelled'
-  };
-  return labels[status] || 'Unknown';
+  try {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  } catch {
+    return time;
+  }
 };
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([
-    loadSchedules(),
-    loadExams(),
-    fetchClasses({ branchId: user.value.branch_id })
-  ]);
+  if (!user.value?.school_id) {
+    showToast('School ID is required', 'error');
+    return;
+  }
+
+  // Load branches first
+  await fetchBranches();
+
+  // Auto-select branch if only one branch
+  if (branches.value.length === 1) {
+    selectedBranchId.value = branches.value[0].id;
+  } else if (user.value.branch_id) {
+    // Pre-select user's branch if multiple branches
+    selectedBranchId.value = user.value.branch_id;
+  }
+
+  // Load classes and exams based on selected branch
+  const branchId = resolvedBranchId.value || user.value.branch_id;
+  await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
 });
 </script>
+
+<style scoped>
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+</style>

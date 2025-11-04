@@ -72,6 +72,7 @@ const getAllExamSchedulesValidation = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
+  query('school_id').optional().isUUID().withMessage('Invalid school ID'),
   query('exam_id').optional().isUUID().withMessage('Invalid exam ID'),
   query('branch_id').optional().isUUID().withMessage('Invalid branch ID'),
   query('exam_hall_id').optional().isUUID().withMessage('Invalid exam hall ID'),

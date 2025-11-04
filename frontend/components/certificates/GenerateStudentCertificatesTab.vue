@@ -5,106 +5,80 @@
       class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-6"
     >
       <!-- Form Fields -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         <!-- Branch Selection -->
         <div class="space-y-2">
-          <label for="branch" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Branch *
-          </label>
-          <select
+          <EnhancedDropdown
             id="branch"
             v-model="filters.branch_id"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
+            :options="branches.map(branch => ({ value: branch.id, label: branch.name }))"
+            label="Branch"
+            placeholder="Select Branch"
+            required
             @change="loadClasses"
-          >
-            <option value="">Select Branch</option>
-            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
+          />
         </div>
 
         <!-- Class Selection -->
         <div class="space-y-2">
-          <label for="class" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Class *
-          </label>
-          <select
+          <EnhancedDropdown
             id="class"
             v-model="filters.class_id"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
+            :options="classes.map(classItem => ({ value: classItem.id, label: classItem.name }))"
+            label="Class"
+            placeholder="Select Class"
+            required
+            :disabled="!filters.branch_id"
             @change="loadStreamsAndSections"
-          >
-            <option value="">Select Class</option>
-            <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-              {{ classItem.name }}
-            </option>
-          </select>
+          />
         </div>
 
         <!-- Stream Selection (only if class has streams) -->
         <div v-if="filters.class_id && hasStreams" class="space-y-2">
-          <label for="stream" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Stream
-          </label>
-          <select
+          <EnhancedDropdown
             id="stream"
             v-model="filters.stream_id"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
+            :options="streams.map(stream => ({ value: stream.id, label: stream.name }))"
+            label="Stream"
+            placeholder="Select Stream"
             @change="loadSections"
-          >
-            <option value="">Select Stream</option>
-            <option v-for="stream in streams" :key="stream.id" :value="stream.id">
-              {{ stream.name }}
-            </option>
-          </select>
+          />
         </div>
 
         <!-- Section Selection (only if class is selected) -->
         <div v-if="filters.class_id" class="space-y-2">
-          <label for="section" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Section
-          </label>
-          <select
+          <EnhancedDropdown
             id="section"
             v-model="filters.section_id"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
+            :options="[{ value: '', label: 'All Sections' }, ...sections.map(section => ({ value: section.id, label: section.name }))]"
+            label="Section"
+            placeholder="Select Section"
             @change="loadStudents"
-          >
-            <option value="">All Sections</option>
-            <option v-for="section in sections" :key="section.id" :value="section.id">
-              {{ section.name }}
-            </option>
-          </select>
+          />
         </div>
 
         <!-- Template Selection -->
         <div class="space-y-2">
-          <label for="template" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Certificate Template *
-          </label>
-          <select
+          <EnhancedDropdown
             id="template"
             v-model="filters.template_id"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
-          >
-            <option value="">Select Template</option>
-            <option v-for="template in templates" :key="template.id" :value="template.id">
-              {{ template.name }}
-            </option>
-          </select>
+            :options="templates.map(template => ({ value: template.id, label: template.name }))"
+            label="Certificate Template"
+            placeholder="Select Template"
+            required
+          />
         </div>
 
         <!-- Print Date -->
         <div class="space-y-2">
-          <label for="printDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label for="printDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Print Date
           </label>
           <input
             id="printDate"
             v-model="filters.print_date"
             type="date"
-            class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-colors"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
           />
         </div>
       </div>
@@ -316,6 +290,7 @@ import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { usePrintReport } from '~/composables/usePrintReport';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { branches, fetchBranchesForUser } = useBranches();

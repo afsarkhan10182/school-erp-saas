@@ -43,7 +43,7 @@
           <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[65vh] overflow-y-auto">
             <div class="space-y-6">
               <!-- Basic Information -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Template Name -->
                 <div>
                   <label
@@ -57,133 +57,86 @@
                     v-model="form.name"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
                     placeholder="Enter template name"
                   />
                 </div>
 
                 <!-- User Type -->
                 <div>
-                  <label
-                    for="userType"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Applicable User *
-                  </label>
-                  <select
+                  <EnhancedDropdown
                     id="userType"
                     v-model="form.user_type"
+                    :options="[
+                      { value: 'student', label: 'Student' },
+                      { value: 'employee', label: 'Employee' }
+                    ]"
+                    label="Applicable User"
+                    placeholder="Select user type"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">Select user type</option>
-                    <option value="student">Student</option>
-                    <option value="employee">Employee</option>
-                  </select>
+                    @change="handleUserTypeChange"
+                  />
                 </div>
 
                 <!-- Page Layout -->
                 <div>
-                  <label
-                    for="pageLayout"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Page Layout *
-                  </label>
-                  <select
+                  <EnhancedDropdown
                     id="pageLayout"
                     v-model="form.page_layout"
+                    :options="[
+                      { value: 'portrait', label: 'A4 Portrait' },
+                      { value: 'landscape', label: 'A4 Landscape' }
+                    ]"
+                    label="Page Layout"
+                    placeholder="Select page layout"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="portrait">A4 Portrait</option>
-                    <option value="landscape">A4 Landscape</option>
-                  </select>
+                  />
                 </div>
 
                 <!-- Branch Selection -->
                 <div>
-                  <label
-                    for="branchId"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Branch *
-                  </label>
-                  <select
+                  <EnhancedDropdown
                     id="branchId"
                     v-model="form.branch_id"
+                    :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
+                    :placeholder="availableBranches.length === 0 ? 'Loading branches...' : 'Select branch'"
+                    label="Branch"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     :disabled="availableBranches.length === 0"
-                  >
-                    <option value="">
-                      {{ availableBranches.length === 0 ? 'Loading branches...' : 'Select branch' }}
-                    </option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }}
-                    </option>
-                  </select>
-                  <div
-                    v-if="availableBranches.length === 0"
-                    class="mt-1 text-xs text-gray-500 dark:text-gray-400"
-                  >
-                    No branches available. Please check your permissions.
-                  </div>
+                    :loading="availableBranches.length === 0"
+                    loading-text="Loading branches..."
+                    :helper-text="availableBranches.length === 0 ? 'No branches available. Please check your permissions.' : ''"
+                  />
                 </div>
 
                 <!-- QR Code Text -->
                 <div>
-                  <label
-                    for="qrCodeText"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    QR Code Text *
-                  </label>
-                  <select
+                  <EnhancedDropdown
                     id="qrCodeText"
                     v-model="form.qr_code_text"
+                    :options="qrCodeOptions"
+                    label="QR Code Text"
+                    placeholder="Select QR code text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">Select QR code text</option>
-                    <option v-if="form.user_type === 'student'" value="name">Student Name</option>
-                    <option v-if="form.user_type === 'student'" value="register_no">
-                      Register Number
-                    </option>
-                    <option v-if="form.user_type === 'student'" value="roll">Roll Number</option>
-                    <option v-if="form.user_type === 'student'" value="birthday">
-                      Date of Birth
-                    </option>
-                    <option v-if="form.user_type === 'employee'" value="staff_id">Staff ID</option>
-                    <option v-if="form.user_type === 'employee'" value="name">Employee Name</option>
-                    <option v-if="form.user_type === 'employee'" value="birthday">
-                      Date of Birth
-                    </option>
-                    <option v-if="form.user_type === 'employee'" value="joining_date">
-                      Joining Date
-                    </option>
-                  </select>
+                    :disabled="!form.user_type"
+                  />
                 </div>
               </div>
 
               <!-- Photo Settings -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label
-                    for="photoStyle"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    User Photo Style *
-                  </label>
-                  <select
+                  <EnhancedDropdown
                     id="photoStyle"
                     v-model="form.user_photo_style"
+                    :options="[
+                      { value: 'square', label: 'Square' },
+                      { value: 'round', label: 'Round' }
+                    ]"
+                    label="User Photo Style"
+                    placeholder="Select photo style"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="square">Square</option>
-                    <option value="round">Round</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
@@ -200,7 +153,7 @@
                     min="50"
                     max="300"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
                   />
                 </div>
               </div>
@@ -365,6 +318,7 @@ import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
 import RichTextEditor from '~/components/ui/RichTextEditor.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Props
 const props = defineProps({
@@ -492,6 +446,26 @@ const sampleTemplates = computed(() => {
 <p style="font-size: 14px; margin-top: 30px;">Date: {print_date}</p>
 </div>`
       }
+    ];
+  }
+  return [];
+});
+
+// QR Code options based on user type
+const qrCodeOptions = computed(() => {
+  if (form.user_type === 'student') {
+    return [
+      { value: 'name', label: 'Student Name' },
+      { value: 'register_no', label: 'Register Number' },
+      { value: 'roll', label: 'Roll Number' },
+      { value: 'birthday', label: 'Date of Birth' }
+    ];
+  } else if (form.user_type === 'employee') {
+    return [
+      { value: 'staff_id', label: 'Staff ID' },
+      { value: 'name', label: 'Employee Name' },
+      { value: 'birthday', label: 'Date of Birth' },
+      { value: 'joining_date', label: 'Joining Date' }
     ];
   }
   return [];
@@ -753,6 +727,11 @@ watch(
   },
   { immediate: true }
 );
+
+// Handle user type change
+const handleUserTypeChange = () => {
+  form.qr_code_text = '';
+};
 
 // Watch for user_type changes to reset QR code text
 watch(
