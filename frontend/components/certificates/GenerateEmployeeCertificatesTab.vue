@@ -1,100 +1,50 @@
 <template>
   <div class="space-y-6">
     <!-- Selection Form -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
         Select Employees for Certificate Generation
       </h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <!-- Branch Selection -->
         <div>
-          <label
-            for="branch"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Branch
-          </label>
-          <select
+          <EnhancedDropdown
             id="branch"
             v-model="filters.branch_id"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">Select Branch</option>
-            <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
+            :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
+            label="Branch"
+            placeholder="Select Branch"
+            @change="handleBranchChange"
+          />
         </div>
 
         <!-- Role Selection -->
         <div>
-          <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Role
-          </label>
-          <select
+          <EnhancedDropdown
             id="role"
             v-model="filters.role"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          >
-            <option value="">Select Role</option>
-            <option
-              v-for="roleOption in EMPLOYEE_ROLES"
-              :key="roleOption.value"
-              :value="roleOption.value"
-            >
-              {{ roleOption.label }}
-            </option>
-          </select>
+            :options="EMPLOYEE_ROLES"
+            label="Role"
+            placeholder="Select Role"
+          />
         </div>
 
         <!-- Template Selection -->
         <div>
-          <label
-            for="template"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Certificate Template
-          </label>
-          <select
+          <EnhancedDropdown
             id="template"
             v-model="filters.template_id"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+            :options="employeeTemplates.map(template => ({ value: template.id, label: template.name }))"
+            :placeholder="employeeTemplates.length === 0 && filters.branch_id ? `No ${user_type.value} templates found for this branch` : 'Select Template'"
+            label="Certificate Template"
             :disabled="!filters.branch_id || employeeTemplates.length === 0"
-          >
-            <option value="">
-              {{
-                employeeTemplates.length === 0 && filters.branch_id
-                  ? `No ${user_type.value} templates found for this branch`
-                  : 'Select Template'
-              }}
-            </option>
-            <option v-for="template in employeeTemplates" :key="template.id" :value="template.id">
-              {{ template.name }}
-            </option>
-          </select>
-          <p
-            v-if="
-              filters.branch_id && employeeTemplates.length === 0 && templates.value.length === 0
-            "
-            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
-          >
-            No templates found for this branch. Please create {{ user_type.value }} certificate
-            templates first.
-          </p>
-          <p
-            v-else-if="
-              filters.branch_id && employeeTemplates.length === 0 && templates.value.length > 0
-            "
-            class="mt-1 text-xs text-yellow-600 dark:text-yellow-400"
-          >
-            Found {{ templates.value.length }} template(s) but none are for {{ user_type.value }}s.
-            Please create {{ user_type.value }} certificate templates.
-          </p>
+            :helper-text="getTemplateHelperText()"
+          />
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Print Date -->
         <div>
           <label
@@ -107,7 +57,7 @@
             id="printDate"
             v-model="filters.print_date"
             type="date"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
           />
         </div>
 
@@ -124,7 +74,7 @@
             v-model="filters.search"
             type="text"
             placeholder="Search by name or staff ID..."
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
           />
         </div>
       </div>
@@ -153,7 +103,7 @@
     </div>
 
     <!-- Employees List -->
-    <div v-if="employees.length > 0" class="bg-white dark:bg-gray-800 shadow rounded-lg">
+    <div v-if="employees.length > 0" class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700">
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">
@@ -272,6 +222,7 @@ import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useToast } from '~/composables/useToast';
 import { Users as UsersApi } from '~/api';
 import { useAuth } from '~/composables/useAuth';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Props - allow user_type to be passed, otherwise determine from route
 const props = defineProps({
@@ -375,6 +326,25 @@ const mapUserToEmployee = userData => {
 };
 
 // Methods
+// Get helper text for template dropdown
+const getTemplateHelperText = () => {
+  if (filters.branch_id && employeeTemplates.value.length === 0 && templates.value.length === 0) {
+    return `No templates found for this branch. Please create ${user_type.value} certificate templates first.`;
+  }
+  if (filters.branch_id && employeeTemplates.value.length === 0 && templates.value.length > 0) {
+    return `Found ${templates.value.length} template(s) but none are for ${user_type.value}s. Please create ${user_type.value} certificate templates.`;
+  }
+  return '';
+};
+
+// Handle branch change
+const handleBranchChange = () => {
+  filters.role = '';
+  filters.template_id = '';
+  employees.value = [];
+  selectedEmployees.value = [];
+};
+
 // Load templates for the selected branch
 const loadTemplatesForBranch = async () => {
   if (!filters.branch_id) {
@@ -750,15 +720,7 @@ const emit = defineEmits(['success']);
 // Watch for branch changes to reload templates
 watch(
   () => filters.branch_id,
-  async (newBranchId, oldBranchId) => {
-    // Reset filters when branch changes
-    if (newBranchId !== oldBranchId) {
-      filters.role = '';
-      filters.template_id = '';
-      employees.value = [];
-      selectedEmployees.value = [];
-    }
-
+  async (newBranchId) => {
     // Load templates for the selected branch
     await loadTemplatesForBranch();
   }

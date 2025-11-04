@@ -81,7 +81,7 @@ const getStudentsForMarksEntry = async (req, res) => {
       class_id: class_id,
       school_id: school_id || req.user.school_id,
       branch_id: branch_id || req.user.branch_id,
-      is_active: true
+      status: 'active'
     };
 
     if (section_id) {
@@ -98,8 +98,9 @@ const getStudentsForMarksEntry = async (req, res) => {
         },
         {
           model: Section,
-          as: 'section',
-          attributes: ['id', 'name']
+          as: 'sectionInfo',
+          attributes: ['id', 'name'],
+          required: false
         }
       ],
       order: [['roll_number', 'ASC']]
@@ -126,10 +127,10 @@ const getStudentsForMarksEntry = async (req, res) => {
       const existingResult = resultsMap[student.id];
       return {
         id: student.id,
-        name: student.name,
+        name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.name,
         roll_number: student.roll_number,
         class: student.class?.name,
-        section: student.section?.name,
+        section: student.sectionInfo?.name,
         existing_marks: existingResult
           ? {
               theory_marks_obtained: existingResult.theory_marks_obtained,
@@ -303,7 +304,7 @@ const getMarksEntrySummary = async (req, res) => {
       class_id: class_id,
       school_id: req.user.school_id,
       branch_id: req.user.branch_id,
-      is_active: true
+      status: 'active'
     };
 
     if (section_id) {

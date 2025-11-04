@@ -136,6 +136,10 @@ jobs:
             chmod -R 755 uploads/ logs/
             chown -R digitalfuzed-schoolapi:digitalfuzed-schoolapi uploads/ logs/
 
+            # Run database migrations
+            source ~/.bashrc && source ~/.nvm/nvm.sh && nvm use default
+            npm run db:migrate
+
             # Cleanup
             rm -rf /tmp/uploads_backup /tmp/logs_backup
             rm /home/digitalfuzed-schoolapi/deploy-temp/backend.tar.gz

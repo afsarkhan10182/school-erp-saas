@@ -7,7 +7,6 @@ const {
   Class,
   Section,
   Subject,
-  ExamType,
   Student
 } = require('~/models');
 const BaseService = require('~/services/shared/base.service');
@@ -67,7 +66,7 @@ class ExamScheduleService extends BaseService {
 
         // Check hall capacity vs student count
         if (scheduleData.class_id) {
-          const studentCount = await this.getStudentCountForClass(
+          const studentCount = await ExamScheduleService.getStudentCountForClass(
             scheduleData.class_id,
             scheduleData.section_id
           );
@@ -151,6 +150,7 @@ class ExamScheduleService extends BaseService {
         search,
         exam_id,
         branch_id,
+        school_id,
         exam_hall_id,
         status,
         date_from,
@@ -160,8 +160,8 @@ class ExamScheduleService extends BaseService {
       const offset = (page - 1) * limit;
 
       const whereClause = {
-        school_id: user.school_id,
-        ...(user.role === 'branch_admin' && { branch_id: user.branch_id })
+        school_id: school_id || user.school_id,
+        ...(user.role === 'branch_admin' && !branch_id && { branch_id: user.branch_id })
       };
 
       // Add filters
@@ -194,7 +194,7 @@ class ExamScheduleService extends BaseService {
           {
             model: Exam,
             as: 'exam',
-            attributes: ['id', 'name', 'description', 'academic_year']
+            attributes: ['id', 'name', 'academic_year']
           },
           {
             model: Class,
@@ -216,7 +216,7 @@ class ExamScheduleService extends BaseService {
           {
             model: ExamHall,
             as: 'examHall',
-            attributes: ['id', 'name', 'code', 'capacity']
+            attributes: ['id', 'name', 'capacity']
           },
           {
             model: User,
@@ -266,39 +266,18 @@ class ExamScheduleService extends BaseService {
           {
             model: Exam,
             as: 'exam',
-            include: [
-              {
-                model: Class,
-                as: 'class',
-                attributes: ['id', 'name', 'code']
-              },
-              {
-                model: Section,
-                as: 'section',
-                attributes: ['id', 'name']
-              },
-              {
-                model: Subject,
-                as: 'subject',
-                attributes: ['id', 'name', 'code']
-              },
-              {
-                model: ExamType,
-                as: 'examType',
-                attributes: ['id', 'name', 'code']
-              }
-            ]
+            attributes: ['id', 'name', 'academic_year']
           },
           {
             model: ExamHall,
-            as: 'examHall'
+            as: 'examHall',
+            attributes: ['id', 'name', 'capacity']
           },
           {
             model: User,
             as: 'invigilator',
             attributes: ['id', 'first_name', 'last_name', 'email']
           },
-          // Status is now a string field, no need for include
           {
             model: Class,
             as: 'class',
@@ -313,7 +292,8 @@ class ExamScheduleService extends BaseService {
           {
             model: Subject,
             as: 'subject',
-            attributes: ['id', 'name', 'code']
+            attributes: ['id', 'name', 'code'],
+            required: false
           }
         ]
       });
@@ -472,10 +452,10 @@ class ExamScheduleService extends BaseService {
   /**
    * Get student count for a class and optional section
    */
-  async getStudentCountForClass(classId, sectionId = null) {
+  static async getStudentCountForClass(classId, sectionId = null) {
     const whereClause = {
       class_id: classId,
-      is_active: true
+      status: 'active'
     };
 
     if (sectionId) {
@@ -493,8 +473,8 @@ class ExamScheduleService extends BaseService {
    * Quick Schedule Creation ()
    * Creates multiple schedules for different classes/sections with same parameters
    */
-  async createQuickSchedule(quickScheduleData, userId) {
-    return await this.handleAsync(async () => {
+  static async createQuickSchedule(quickScheduleData, userId) {
+    return await this.executeWithErrorHandling(async () => {
       const {
         exam_id,
         class_ids, // Array of class IDs
@@ -546,7 +526,7 @@ class ExamScheduleService extends BaseService {
           // Check hall capacity if hall is assigned
           if (exam_hall_id) {
             const examHall = await ExamHall.findByPk(exam_hall_id);
-            const studentCount = await this.getStudentCountForClass(classId, sectionId);
+            const studentCount = await ExamScheduleService.getStudentCountForClass(classId, sectionId);
 
             if (studentCount > examHall.capacity) {
               errors.push(
