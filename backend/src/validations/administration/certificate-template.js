@@ -18,9 +18,8 @@ const createCertificateTemplateValidator = [
     .withMessage('Page layout must be either portrait or landscape'),
   
   body('qr_code_text')
+    .optional()
     .trim()
-    .notEmpty()
-    .withMessage('QR code text is required')
     .isLength({ max: 100 })
     .withMessage('QR code text must not exceed 100 characters'),
   

@@ -12,6 +12,7 @@ export const useMarksEntry = () => {
     exam_id: string;
     class_id: string;
     section_id?: string;
+    subject_id?: string;
     school_id?: string;
     branch_id?: string;
   }) => {

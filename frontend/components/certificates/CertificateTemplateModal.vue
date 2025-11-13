@@ -42,8 +42,24 @@
           <!-- Modal body -->
           <div class="bg-white dark:bg-gray-800 px-6 py-6 max-h-[65vh] overflow-y-auto">
             <div class="space-y-6">
-              <!-- Basic Information -->
+              <!-- Essential Fields -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Branch Selection -->
+                <div>
+                  <EnhancedDropdown
+                    id="branchId"
+                    v-model="form.branch_id"
+                    :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
+                    :placeholder="availableBranches.length === 0 ? 'Loading branches...' : 'Select branch'"
+                    label="Branch"
+                    required
+                    :disabled="availableBranches.length === 0"
+                    :loading="availableBranches.length === 0"
+                    loading-text="Loading branches..."
+                    :helper-text="availableBranches.length === 0 ? 'No branches available. Please check your permissions.' : ''"
+                  />
+                </div>
+
                 <!-- Template Name -->
                 <div>
                   <label
@@ -77,146 +93,150 @@
                     @change="handleUserTypeChange"
                   />
                 </div>
-
-                <!-- Page Layout -->
-                <div>
-                  <EnhancedDropdown
-                    id="pageLayout"
-                    v-model="form.page_layout"
-                    :options="[
-                      { value: 'portrait', label: 'A4 Portrait' },
-                      { value: 'landscape', label: 'A4 Landscape' }
-                    ]"
-                    label="Page Layout"
-                    placeholder="Select page layout"
-                    required
-                  />
-                </div>
-
-                <!-- Branch Selection -->
-                <div>
-                  <EnhancedDropdown
-                    id="branchId"
-                    v-model="form.branch_id"
-                    :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
-                    :placeholder="availableBranches.length === 0 ? 'Loading branches...' : 'Select branch'"
-                    label="Branch"
-                    required
-                    :disabled="availableBranches.length === 0"
-                    :loading="availableBranches.length === 0"
-                    loading-text="Loading branches..."
-                    :helper-text="availableBranches.length === 0 ? 'No branches available. Please check your permissions.' : ''"
-                  />
-                </div>
-
-                <!-- QR Code Text -->
-                <div>
-                  <EnhancedDropdown
-                    id="qrCodeText"
-                    v-model="form.qr_code_text"
-                    :options="qrCodeOptions"
-                    label="QR Code Text"
-                    placeholder="Select QR code text"
-                    required
-                    :disabled="!form.user_type"
-                  />
-                </div>
               </div>
 
-              <!-- Photo Settings -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <EnhancedDropdown
-                    id="photoStyle"
-                    v-model="form.user_photo_style"
-                    :options="[
-                      { value: 'square', label: 'Square' },
-                      { value: 'round', label: 'Round' }
+              <!-- Advanced Settings (Collapsible) -->
+              <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
+                <button
+                  type="button"
+                  @click="showAdvancedSettings = !showAdvancedSettings"
+                  class="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors rounded-t-lg"
+                >
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Advanced Settings (Optional)
+                  </span>
+                  <ChevronDown
+                    :class="[
+                      'h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform',
+                      showAdvancedSettings ? 'transform rotate-180' : ''
                     ]"
-                    label="User Photo Style"
-                    placeholder="Select photo style"
-                    required
                   />
-                </div>
+                </button>
 
-                <div>
-                  <label
-                    for="photoSize"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Photo Size (px) *
-                  </label>
-                  <input
-                    id="photoSize"
-                    v-model.number="form.photo_size"
-                    type="number"
-                    min="50"
-                    max="300"
-                    required
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <!-- Images Upload -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Certificate Images
-                </label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <!-- Logo Image -->
-                  <div>
-                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
-                      >Logo Image</label
-                    >
-                    <input
-                      ref="logoInput"
-                      type="file"
-                      accept="image/*"
-                      @change="handleFileUpload($event, 'logo_image')"
-                      class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
-                    />
-                    <div v-if="logoPreview" class="mt-2 relative inline-block">
-                      <img
-                        :src="logoPreview"
-                        alt="Logo"
-                        class="h-20 w-20 object-cover rounded border border-gray-300"
+                <div v-if="showAdvancedSettings" class="p-4 space-y-6 border-t border-gray-200 dark:border-gray-700">
+                  <!-- Layout & QR Settings -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Page Layout -->
+                    <div>
+                      <EnhancedDropdown
+                        id="pageLayout"
+                        v-model="form.page_layout"
+                        :options="[
+                          { value: 'portrait', label: 'A4 Portrait' },
+                          { value: 'landscape', label: 'A4 Landscape' }
+                        ]"
+                        label="Page Layout"
+                        placeholder="Select page layout"
                       />
-                      <button
-                        type="button"
-                        @click="clearImage('logo_image')"
-                        class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        <X class="h-3 w-3" />
-                      </button>
+                    </div>
+
+                    <!-- QR Code Text -->
+                    <div>
+                      <EnhancedDropdown
+                        id="qrCodeText"
+                        v-model="form.qr_code_text"
+                        :options="qrCodeOptions"
+                        label="QR Code Text"
+                        placeholder="Select QR code text"
+                        :disabled="!form.user_type"
+                      />
                     </div>
                   </div>
 
-                  <!-- Background Image -->
-                  <div>
-                    <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
-                      >Background Image</label
-                    >
-                    <input
-                      ref="bgInput"
-                      type="file"
-                      accept="image/*"
-                      @change="handleFileUpload($event, 'background_image')"
-                      class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
-                    />
-                    <div v-if="backgroundPreview" class="mt-2 relative inline-block">
-                      <img
-                        :src="backgroundPreview"
-                        alt="Background"
-                        class="h-20 w-32 object-cover rounded border border-gray-300"
+                  <!-- Photo Settings -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <EnhancedDropdown
+                        id="photoStyle"
+                        v-model="form.user_photo_style"
+                        :options="[
+                          { value: 'square', label: 'Square' },
+                          { value: 'round', label: 'Round' }
+                        ]"
+                        label="User Photo Style"
+                        placeholder="Select photo style"
                       />
-                      <button
-                        type="button"
-                        @click="clearImage('background_image')"
-                        class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    </div>
+
+                    <div>
+                      <label
+                        for="photoSize"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                       >
-                        <X class="h-3 w-3" />
-                      </button>
+                        Photo Size (px)
+                      </label>
+                      <input
+                        id="photoSize"
+                        v-model.number="form.photo_size"
+                        type="number"
+                        min="50"
+                        max="300"
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 ease-in-out hover:border-indigo-300 dark:hover:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Images Upload -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Certificate Images
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <!-- Logo Image -->
+                      <div>
+                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
+                          >Logo Image</label
+                        >
+                        <input
+                          ref="logoInput"
+                          type="file"
+                          accept="image/*"
+                          @change="handleFileUpload($event, 'logo_image')"
+                          class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
+                        />
+                        <div v-if="logoPreview" class="mt-2 relative inline-block">
+                          <img
+                            :src="logoPreview"
+                            alt="Logo"
+                            class="h-20 w-20 object-cover rounded border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            @click="clearImage('logo_image')"
+                            class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X class="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Background Image -->
+                      <div>
+                        <label class="block text-xs text-gray-600 dark:text-gray-400 mb-2"
+                          >Background Image</label
+                        >
+                        <input
+                          ref="bgInput"
+                          type="file"
+                          accept="image/*"
+                          @change="handleFileUpload($event, 'background_image')"
+                          class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-200"
+                        />
+                        <div v-if="backgroundPreview" class="mt-2 relative inline-block">
+                          <img
+                            :src="backgroundPreview"
+                            alt="Background"
+                            class="h-20 w-32 object-cover rounded border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            @click="clearImage('background_image')"
+                            class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X class="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -271,16 +291,38 @@
                   Preview
                 </label>
                 <div
-                  class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 max-h-48 overflow-y-auto"
+                  class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 max-h-[500px] overflow-y-auto"
+                  :style="
+                    getPreviewBackgroundImage
+                      ? `background-image: url('${getPreviewBackgroundImage}'); background-size: cover; background-position: center; background-repeat: no-repeat;`
+                      : ''
+                  "
                 >
                   <div
-                    class="prose prose-sm max-w-none"
+                    class="relative p-4 prose prose-sm max-w-none certificate-preview"
                     :class="[
                       'text-gray-900 dark:text-white',
-                      'prose-p:text-gray-700 dark:prose-p:text-gray-300'
+                      'prose-p:text-gray-700 dark:prose-p:text-gray-300',
+                      'prose-strong:text-gray-900 dark:prose-strong:text-white',
+                      'prose-em:text-gray-700 dark:prose-em:text-gray-300'
                     ]"
-                    v-html="getPreviewContent()"
-                  ></div>
+                    :style="
+                      getPreviewBackgroundImage
+                        ? 'background-color: rgba(255, 255, 255, 0.9);'
+                        : ''
+                    "
+                  >
+                    <!-- Logo Image -->
+                    <div v-if="getPreviewLogoImage" class="mb-4">
+                      <img
+                        :src="getPreviewLogoImage"
+                        alt="Logo"
+                        class="h-16 w-16 object-contain"
+                        @error="e => { e.target.style.display = 'none'; }"
+                      />
+                    </div>
+                    <div v-html="getPreviewContent()"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -313,12 +355,14 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
-import { X } from 'lucide-vue-next';
+import { X, ChevronDown } from 'lucide-vue-next';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
+import { useAuthStore } from '~/stores/auth';
 import RichTextEditor from '~/components/ui/RichTextEditor.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { getCertificateUrl } from '~/utils/image';
 
 // Props
 const props = defineProps({
@@ -339,12 +383,15 @@ const emit = defineEmits(['close', 'success']);
 const { createTemplate, updateTemplate } = useCertificateTemplates();
 const { availableBranches, fetchBranchesForUser, currentBranch } = useBranches();
 const { showToast } = useToast();
+const authStore = useAuthStore();
 
 // Reactive data
 const loading = ref(false);
 const logoPreview = ref(null);
 const backgroundPreview = ref(null);
 const showTemplates = ref(true);
+const showAdvancedSettings = ref(false);
+const userHasEnteredName = ref(false);
 
 const form = reactive({
   name: '',
@@ -532,6 +579,9 @@ const availableTags = computed(() => {
 
 // Methods
 const close = () => {
+  // Reset form state
+  userHasEnteredName.value = false;
+  showAdvancedSettings.value = false;
   emit('close');
 };
 
@@ -583,55 +633,109 @@ const loadSampleTemplate = content => {
   showToast('Template loaded successfully', 'success');
 };
 
+// Helper function to get full image URL for certificate images
+// Structure: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+const getFullImageUrl = (path) => {
+  if (!path) return null;
+  
+  // If it's already a full URL or data URL, return as is
+  if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  
+  // Get school code from multiple sources (priority order):
+  // 1. Selected branch's school code
+  // 2. Template's branch school code (if template has branch with school)
+  // 3. Current school from auth store
+  let schoolCode = '';
+  
+  // Try from selected branch
+  const selectedBranch = availableBranches.value.find(b => b.id === form.branch_id);
+  if (selectedBranch?.school?.code) {
+    schoolCode = selectedBranch.school.code;
+  } else if (selectedBranch?.school_code) {
+    schoolCode = selectedBranch.school_code;
+  }
+  
+  // Try from template's branch if available
+  if (!schoolCode && props.template?.branch) {
+    if (props.template.branch.school?.code) {
+      schoolCode = props.template.branch.school.code;
+    } else if (props.template.branch.school_code) {
+      schoolCode = props.template.branch.school_code;
+    }
+  }
+  
+  // Fallback to current school from auth store
+  if (!schoolCode && authStore.currentSchool?.code) {
+    schoolCode = authStore.currentSchool.code;
+  }
+  
+  if (!schoolCode) {
+    console.warn('⚠️ Could not determine school code for image URL');
+    return null;
+  }
+  
+  // Construct the certificate URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+  return getCertificateUrl(path, schoolCode);
+};
+
+// Get preview logo image URL (computed for reactivity)
+const getPreviewLogoImage = computed(() => {
+  // First check if there's a preview (uploaded file)
+  if (logoPreview.value) {
+    return logoPreview.value;
+  }
+  // Then check if there's an existing image in form
+  if (form.logo_image && typeof form.logo_image === 'string') {
+    const url = getFullImageUrl(form.logo_image);
+    return url;
+  }
+  return null;
+});
+
+// Get preview background image URL (computed for reactivity)
+const getPreviewBackgroundImage = computed(() => {
+  // First check if there's a preview (uploaded file)
+  if (backgroundPreview.value) {
+    return backgroundPreview.value;
+  }
+  // Then check if there's an existing image in form
+  if (form.background_image && typeof form.background_image === 'string') {
+    const url = getFullImageUrl(form.background_image);
+    return url;
+  }
+  return null;
+});
+
 const getPreviewContent = () => {
   if (!form.content) return '';
 
-  // Sample data for preview
-  const sampleData = {
-    name: 'John Doe',
-    gender: 'Male',
-    father_name: 'Robert Doe',
-    mother_name: 'Jane Doe',
-    student_photo: '👤',
-    register_no: 'REG001',
-    roll: '001',
-    admission_date: '2024-01-15',
-    class: '10th Grade',
-    section: 'A',
-    category: 'General',
-    caste: 'General',
-    religion: 'Hindu',
-    blood_group: 'O+',
-    birthday: '2010-05-15',
-    email: 'john.doe@example.com',
-    mobileno: '+1234567890',
-    present_address: '123 Main St, City',
-    permanent_address: '123 Main St, City',
-    staff_id: 'EMP001',
-    staff_photo: '👤',
-    designation: 'Teacher',
-    department: 'Mathematics',
-    joining_date: '2020-08-01',
-    logo: '🏫',
-    signature: '✍️',
-    qr_code: '📱',
-    institute_name: 'Sample School',
-    institute_email: 'info@school.com',
-    institute_address: 'School Street, Education City',
-    institute_mobile_no: '+1234567890',
-    print_date: new Date().toLocaleDateString()
-  };
-
-  // Replace dynamic tags with sample data
+  // Get the HTML content from the editor (preserves formatting)
   let previewContent = form.content;
 
-  // Replace {tag} patterns with sample data
-  Object.keys(sampleData).forEach(tag => {
-    const regex = new RegExp(`\\{${tag}\\}`, 'g');
-    previewContent = previewContent.replace(
-      regex,
-      `<span class="preview-tag">${sampleData[tag]}</span>`
-    );
+  // First, handle dynamic tags that are wrapped in span tags from the editor
+  // Extract the tag name from data-tag attribute and show as {tag}
+  // Pattern: <span class="dynamic-tag" data-tag="tagName">{tagName}</span>
+  const dynamicTagRegex = /<span[^>]*class=["']dynamic-tag["'][^>]*data-tag=["']([^"']+)["'][^>]*>(\{[^}]+\})<\/span>/gi;
+  previewContent = previewContent.replace(
+    dynamicTagRegex,
+    (match, tagName, tagContent) => {
+      // Use the tag name from data-tag attribute to ensure we show {tagName}
+      return `<span class="preview-tag">{${tagName}}</span>`;
+    }
+  );
+
+  // Then handle plain {tag} patterns that might not be wrapped in dynamic-tag spans
+  // Match {tag} patterns and wrap them in a span to highlight them visually
+  // But skip if already processed above
+  const tagRegex = /\{([^}]+)\}/g;
+  previewContent = previewContent.replace(tagRegex, (match, tagName) => {
+    // Only wrap if not already wrapped in preview-tag or dynamic-tag
+    if (!match.includes('preview-tag') && !match.includes('dynamic-tag')) {
+      return `<span class="preview-tag">${match}</span>`;
+    }
+    return match;
   });
 
   return previewContent;
@@ -723,21 +827,105 @@ watch(
           form[key] = newTemplate[key];
         }
       });
+      
+      // Load existing images into previews for editing
+      if (newTemplate.logo_image && typeof newTemplate.logo_image === 'string') {
+        // If it's already a full URL (from composable processing), use it directly
+        if (newTemplate.logo_image.startsWith('http') || newTemplate.logo_image.startsWith('blob:') || newTemplate.logo_image.startsWith('data:')) {
+          logoPreview.value = newTemplate.logo_image;
+        } else {
+          // Construct URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+          logoPreview.value = getFullImageUrl(newTemplate.logo_image);
+        }
+      } else {
+        logoPreview.value = null;
+      }
+      
+      if (newTemplate.background_image && typeof newTemplate.background_image === 'string') {
+        // If it's already a full URL (from composable processing), use it directly
+        if (newTemplate.background_image.startsWith('http') || newTemplate.background_image.startsWith('blob:') || newTemplate.background_image.startsWith('data:')) {
+          backgroundPreview.value = newTemplate.background_image;
+        } else {
+          // Construct URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+          backgroundPreview.value = getFullImageUrl(newTemplate.background_image);
+        }
+      } else {
+        backgroundPreview.value = null;
+      }
+      
+      // If editing, mark name as manually entered
+      if (newTemplate.name) {
+        userHasEnteredName.value = true;
+        // Keep advanced settings closed by default (user can expand if needed)
+        showAdvancedSettings.value = false;
+      }
+    } else {
+      // Reset form when creating new template
+      userHasEnteredName.value = false;
+      showAdvancedSettings.value = false; // Hide advanced settings when creating
+      logoPreview.value = null;
+      backgroundPreview.value = null;
     }
   },
   { immediate: true }
 );
 
-// Handle user type change
+// Handle user type change - Auto-fill logical values
 const handleUserTypeChange = () => {
-  form.qr_code_text = '';
+  if (form.user_type === 'student') {
+    // Auto-fill student-specific defaults
+    if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+      form.qr_code_text = 'register_no'; // Default to register number for students
+    }
+    // Only auto-fill template name if user hasn't manually entered one
+    if (!userHasEnteredName.value && (!form.name || form.name.trim() === '')) {
+      form.name = 'Student Certificate Template';
+    }
+    // Keep default photo style and size
+  } else if (form.user_type === 'employee') {
+    // Auto-fill employee-specific defaults
+    if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+      form.qr_code_text = 'staff_id'; // Default to staff ID for employees
+    }
+    // Only auto-fill template name if user hasn't manually entered one
+    if (!userHasEnteredName.value && (!form.name || form.name.trim() === '')) {
+      form.name = 'Employee Certificate Template';
+    }
+    // Keep default photo style and size
+  } else {
+    // Reset if no user type selected
+    form.qr_code_text = '';
+  }
 };
 
-// Watch for user_type changes to reset QR code text
+// Watch for user_type changes to auto-fill values
 watch(
   () => form.user_type,
-  () => {
-    form.qr_code_text = '';
+  (newUserType) => {
+    if (newUserType) {
+      // Auto-fill QR code text based on user type (only if not already set or invalid)
+      if (newUserType === 'student') {
+        if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+          form.qr_code_text = 'register_no';
+        }
+      } else if (newUserType === 'employee') {
+        if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+          form.qr_code_text = 'staff_id';
+        }
+      }
+    } else {
+      form.qr_code_text = '';
+    }
+  }
+);
+
+// Track manual name entry
+watch(
+  () => form.name,
+  (newName) => {
+    if (newName && newName.trim() !== '') {
+      userHasEnteredName.value = true;
+    }
   }
 );
 
@@ -754,23 +942,61 @@ watch(
 </script>
 
 <style scoped>
-/* Preview tag styles */
+/* Preview tag styles - highlight tags without replacing content */
 .certificate-preview :deep(.preview-tag) {
   display: inline-block;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: white;
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  margin: 0 1px;
+  margin: 0 2px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-family: 'Courier New', monospace;
 }
 
-.certificate-preview :deep(.preview-tag::before) {
-  content: '📋';
-  margin-right: 3px;
-  font-size: 0.7rem;
+/* Preserve HTML formatting in preview */
+.certificate-preview :deep(p) {
+  margin: 0.5em 0;
+}
+
+.certificate-preview :deep(strong) {
+  font-weight: 600;
+}
+
+.certificate-preview :deep(em) {
+  font-style: italic;
+}
+
+.certificate-preview :deep(u) {
+  text-decoration: underline;
+}
+
+.certificate-preview :deep([style*="text-align: center"]) {
+  text-align: center;
+}
+
+.certificate-preview :deep([style*="text-align: right"]) {
+  text-align: right;
+}
+
+.certificate-preview :deep([style*="text-align: left"]) {
+  text-align: left;
+}
+
+.certificate-preview :deep([style*="text-align: justify"]) {
+  text-align: justify;
+}
+
+.certificate-preview :deep(ul),
+.certificate-preview :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.certificate-preview :deep(li) {
+  margin: 0.25em 0;
 }
 </style>

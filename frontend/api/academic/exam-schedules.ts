@@ -226,9 +226,15 @@ export const examScheduleApi = {
   // Bulk create schedules
   async bulkCreate(
     schedules: CreateExamScheduleData[]
-  ): Promise<{ created: number; failed: number; errors: any[] }> {
+  ): Promise<{ 
+    created_schedules?: ExamSchedule[]; 
+    created?: ExamSchedule[];
+    errors?: Array<{ schedule: any; error: string }>;
+    success_count: number; 
+    error_count: number;
+  }> {
     const response = await apiCall('post', '/exam-schedules/bulk', { schedules });
-    return response.data;
+    return response.data || response;
   },
 
   // Update schedule status

@@ -29,7 +29,26 @@
     <!-- Filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+            Select Ground
+          </h3>
+        </div>
+        <div :class="['grid grid-cols-1 gap-4', showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4']">
+          <!-- Branch Selection -->
+          <div v-if="showBranchDropdown">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Branch
+            </label>
+            <EnhancedDropdown
+              v-model="selectedBranchId"
+              :options="branchOptions"
+              placeholder="Choose branch"
+              :loading="branchesLoading"
+              @change="onBranchChange"
+            />
+          </div>
+
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -39,7 +58,7 @@
               v-model="selectedExamId"
               :options="examOptions"
               placeholder="Choose exam"
-              :loading="false"
+              :loading="examsLoading"
               @change="onExamChange"
             />
           </div>
@@ -67,7 +86,7 @@
               v-model="selectedSectionId"
               :options="sectionOptions"
               placeholder="Choose section"
-              :loading="false"
+              :loading="sectionsLoading"
               @change="onSectionChange"
             />
           </div>
@@ -76,7 +95,7 @@
           <div class="flex items-end">
             <button
               @click="loadStudents"
-              :disabled="!selectedExamId || !selectedClassId || reportCardsLoading"
+              :disabled="!canLoadStudents || reportCardsLoading"
               class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Users class="h-4 w-4 mr-2" />
@@ -327,6 +346,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamReports } from '~/composables/useExamReports';
 import { useAuth } from '~/composables/useAuth';
+import { useBranches } from '~/composables/useBranches';
 
 // Types
 interface Student {
@@ -349,6 +369,7 @@ interface Template {
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
   sections,
@@ -356,18 +377,22 @@ const {
   sectionOptions,
   fetchClasses,
   fetchSections,
-  loading: classesLoading
+  loading: classesLoading,
+  sectionsLoading
 } = useAcademics();
-const { exams, loadExams } = useExams();
+const { exams, loadExams, loading: examsLoading } = useExams();
 const {
-  getStudentsForReportCards,
-  getReportCardTemplates,
-  generateReportCards,
+  fetchStudents: getStudentsForReportCards,
+  fetchTemplates: getReportCardTemplates,
+  generateReport: generateReportCards,
   loading: reportCardsLoading,
-  generating
+  error: reportCardsError
 } = useExamReports();
 
+const generating = computed(() => reportCardsLoading.value);
+
 // Reactive data
+const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -380,6 +405,21 @@ const emailToStudents = ref(false);
 const templates = ref<Template[]>([]);
 
 // Computed properties
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({
+    value: branch.id,
+    label: branch.name
+  }))
+);
+
+const showBranchDropdown = computed(() => {
+  return branches.value.length > 1;
+});
+
+const resolvedBranchId = computed(() => {
+  return selectedBranchId.value || user.value?.branch_id;
+});
+
 const examOptions = computed(() =>
   exams.value.map(exam => ({
     value: exam.id,
@@ -390,7 +430,16 @@ const examOptions = computed(() =>
 
 const showSectionField = computed(() => {
   const selectedClass = classes.value.find(c => c.id === selectedClassId.value);
-  return selectedClass?.has_stream || false;
+  return selectedClass?.has_sections || false;
+});
+
+const canLoadStudents = computed(() => {
+  return !!(
+    resolvedBranchId.value &&
+    selectedExamId.value &&
+    selectedClassId.value &&
+    (!showSectionField.value || selectedSectionId.value)
+  );
 });
 
 const selectAll = computed({
@@ -409,19 +458,52 @@ const canGenerate = computed(() => {
 });
 
 // Methods
-const onExamChange = () => {
+const onBranchChange = async () => {
+  selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
   students.value = [];
   selectedStudents.value = [];
   selectedTemplateId.value = '';
+  
+  // Load classes and exams for the selected branch
+  if (selectedBranchId.value) {
+    await Promise.all([
+      fetchClasses({
+        branchId: selectedBranchId.value
+      }),
+      loadExams({
+        branch_id: selectedBranchId.value,
+        school_id: user.value?.school_id
+      })
+    ]);
+  } else {
+    // Clear classes if no branch selected
+    classes.value = [];
+  }
 };
 
-const onClassChange = () => {
+const onExamChange = () => {
+  // Exam is independent of class, so don't clear class selection
+  // Only clear students since exam changed
+  students.value = [];
+  selectedStudents.value = [];
+  selectedTemplateId.value = '';
+};
+
+const onClassChange = async () => {
   selectedSectionId.value = '';
   students.value = [];
   selectedStudents.value = [];
   selectedTemplateId.value = '';
+  
+  if (selectedClassId.value) {
+    await fetchSections({
+      schoolId: user.value?.school_id,
+      branchId: resolvedBranchId.value,
+      classId: selectedClassId.value
+    });
+  }
 };
 
 const onSectionChange = () => {
@@ -436,7 +518,7 @@ const loadStudents = async () => {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
       school_id: user.value?.school_id,
-      branch_id: user.value?.branch_id
+      branch_id: resolvedBranchId.value
     };
 
     if (selectedSectionId.value) {
@@ -446,11 +528,12 @@ const loadStudents = async () => {
     const response = (await getStudentsForReportCards(params)) as any;
 
     if (response.success) {
-      students.value = response.data;
+      students.value = response.data.students || response.data || [];
       showToast('Students loaded successfully', 'success');
     }
-  } catch (error) {
-    showToast('Failed to load students', 'error');
+  } catch (error: any) {
+    console.error('Error loading students:', error);
+    showToast(error?.message || 'Failed to load students', 'error');
   }
 };
 
@@ -526,6 +609,31 @@ const loadTemplates = async () => {
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([loadExams(), fetchClasses(), loadTemplates()]);
+  await fetchBranches();
+  
+  // Auto-select branch if user has one
+  if (user.value?.branch_id) {
+    selectedBranchId.value = user.value.branch_id;
+    
+    // Load classes, exams, and templates for the user's branch
+    await Promise.all([
+      fetchClasses({
+        branchId: user.value.branch_id
+      }),
+      loadExams({
+        branch_id: user.value.branch_id,
+        school_id: user.value.school_id
+      }),
+      loadTemplates()
+    ]);
+  } else {
+    // Load all exams if no branch (for super admin)
+    await Promise.all([
+      loadExams({
+        school_id: user.value?.school_id
+      }),
+      loadTemplates()
+    ]);
+  }
 });
 </script>

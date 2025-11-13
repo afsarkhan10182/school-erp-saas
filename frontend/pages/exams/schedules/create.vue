@@ -11,7 +11,9 @@
             >
               <ArrowLeft class="h-5 w-5" />
             </button>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Add Schedule</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+              {{ isEditMode ? 'Edit Schedule' : 'Add Schedule' }}
+            </h1>
           </div>
         </div>
       </div>
@@ -475,7 +477,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
-import { navigateTo } from '#app';
+import { navigateTo, useRoute } from '#app';
 import { ArrowLeft, Clock, RotateCcw, Plus } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
@@ -489,6 +491,7 @@ import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignme
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 
 // Composables
+const route = useRoute();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
@@ -513,6 +516,8 @@ const { halls, hallOptions, loading: hallsLoading, loadExamHalls: loadHalls } = 
 // Reactive data
 const saving = ref(false);
 const filterApplied = ref(false);
+const isEditMode = ref(false);
+const existingScheduleIds = ref([]);
 
 // Selection form
 const selectionForm = reactive({
@@ -823,8 +828,11 @@ const onBranchSelectionChange = async () => {
 };
 
 const onExamSelectionChange = async () => {
-  generatedSchedules.value = [];
-  filterApplied.value = false;
+  // Don't clear schedules in edit mode - they will be reloaded
+  if (!isEditMode.value) {
+    generatedSchedules.value = [];
+    filterApplied.value = false;
+  }
 
   // Set selected exam
   if (selectionForm.exam_id) {
@@ -1131,6 +1139,19 @@ const saveSchedules = async () => {
     return;
   }
 
+  // In edit mode, delete existing schedules first
+  if (isEditMode.value && existingScheduleIds.value.length > 0) {
+    try {
+      const deletePromises = existingScheduleIds.value.map(id => examScheduleApi.delete(id));
+      await Promise.all(deletePromises);
+      existingScheduleIds.value = [];
+    } catch (error) {
+      console.error('Error deleting existing schedules:', error);
+      showToast('Failed to delete existing schedules', 'error');
+      return;
+    }
+  }
+
   // Validate all schedules before saving
   const validationErrors = [];
   generatedSchedules.value.forEach((schedule, index) => {
@@ -1160,88 +1181,93 @@ const saveSchedules = async () => {
   }
 
   saving.value = true;
-  const errors = [];
 
   try {
     const branchId = resolvedBranchId.value || user.value.branch_id;
     const durationMinutes = Number(scheduleParams.duration) || 0;
 
-    // Create schedules for each row
+    // Prepare all schedules data for bulk create
+    const schedulesData = [];
+
     for (const schedule of generatedSchedules.value) {
-      try {
-        // Validate this specific schedule
-        if (!schedule.date || !schedule.starting_time || !schedule.ending_time || !schedule.hall_id) {
-          const subjectName = schedule.subject_name || 'Unknown';
-          errors.push(`${subjectName}: Missing required fields (date, time, or hall)`);
-          continue;
-        }
-
-        // Calculate total marks and pass marks from mark distribution fields
-        let totalMarks = 0;
-        let passMarks = 0;
-        const markDistribution = {};
-
-        // Extract mark distribution values
-        dynamicMarkFields.value.forEach(field => {
-          const fullMark = Number(schedule[field.fullMarkKey]) || 0;
-          const passMark = Number(schedule[field.passMarkKey]) || 0;
-
-          totalMarks += fullMark;
-          passMarks += passMark;
-
-          // Map mark distribution based on field name
-          const fieldName = field.name.toLowerCase();
-          if (fieldName.includes('theory') || fieldName.includes('written')) {
-            markDistribution.theory_marks = fullMark;
-          } else if (fieldName.includes('practical')) {
-            markDistribution.practical_marks = fullMark;
-          } else if (fieldName.includes('viva')) {
-            markDistribution.viva_marks = fullMark;
-          } else if (fieldName.includes('assignment')) {
-            markDistribution.assignment_marks = fullMark;
-          }
-        });
-
-        // Prepare schedule data
-        const scheduleData = {
-          exam_id: selectionForm.exam_id,
-          class_id: selectionForm.class_id,
-          section_id: selectionForm.section_id || undefined,
-          subject_id: schedule.subject_id || undefined,
-          exam_hall_id: schedule.hall_id,
-          exam_date: schedule.date,
-          start_time: schedule.starting_time,
-          end_time: schedule.ending_time,
-          duration_minutes: durationMinutes,
-          ...markDistribution,
-          total_marks: totalMarks || undefined,
-          pass_marks: passMarks || undefined,
-          school_id: user.value.school_id,
-          branch_id: branchId
-        };
-
-        console.log('Saving schedule:', scheduleData);
-        await examScheduleApi.create(scheduleData);
-      } catch (error) {
+      // Validate this specific schedule
+      if (!schedule.date || !schedule.starting_time || !schedule.ending_time || !schedule.hall_id) {
         const subjectName = schedule.subject_name || 'Unknown';
-        const errorMsg = error?.response?.data?.message || error?.message || 'Unknown error';
-        errors.push(`${subjectName}: ${errorMsg}`);
-        console.error(`Error saving schedule for ${subjectName}:`, error);
+        showToast(`${subjectName}: Missing required fields (date, time, or hall)`, 'error');
+        return;
       }
+
+      // Calculate total marks and pass marks from mark distribution fields
+      let totalMarks = 0;
+      let passMarks = 0;
+      const markDistribution = {};
+
+      // Extract mark distribution values
+      dynamicMarkFields.value.forEach(field => {
+        const fullMark = Number(schedule[field.fullMarkKey]) || 0;
+        const passMark = Number(schedule[field.passMarkKey]) || 0;
+
+        totalMarks += fullMark;
+        passMarks += passMark;
+
+        // Map mark distribution based on field name
+        const fieldName = field.name.toLowerCase();
+        if (fieldName.includes('theory') || fieldName.includes('written')) {
+          markDistribution.theory_marks = fullMark;
+        } else if (fieldName.includes('practical')) {
+          markDistribution.practical_marks = fullMark;
+        } else if (fieldName.includes('viva')) {
+          markDistribution.viva_marks = fullMark;
+        } else if (fieldName.includes('assignment')) {
+          markDistribution.assignment_marks = fullMark;
+        }
+      });
+
+      // Prepare schedule data
+      const scheduleData = {
+        exam_id: selectionForm.exam_id,
+        class_id: selectionForm.class_id,
+        section_id: selectionForm.section_id || undefined,
+        subject_id: schedule.subject_id || undefined,
+        exam_hall_id: schedule.hall_id,
+        exam_date: schedule.date,
+        start_time: schedule.starting_time,
+        end_time: schedule.ending_time,
+        duration_minutes: durationMinutes,
+        ...markDistribution,
+        total_marks: totalMarks || undefined,
+        pass_marks: passMarks || undefined,
+        school_id: user.value.school_id,
+        branch_id: branchId
+      };
+
+      schedulesData.push(scheduleData);
     }
 
-    if (errors.length === 0) {
-      showToast('All schedules saved successfully!', 'success');
+    // Bulk create all schedules in one API call
+    console.log('Bulk saving schedules:', schedulesData);
+    const response = await examScheduleApi.bulkCreate(schedulesData);
+    
+    // Handle response - could be direct result or nested in data
+    const result = response.data || response;
+
+    if (result.error_count === 0) {
+      const successCount = result.success_count || result.created_schedules?.length || schedulesData.length;
+      showToast(`All ${successCount} schedules saved successfully!`, 'success');
       closeCreatePage();
-    } else if (errors.length < generatedSchedules.value.length) {
+    } else if (result.error_count < schedulesData.length) {
+      const successCount = result.success_count || result.created_schedules?.length || 0;
       showToast(
-        `Saved ${generatedSchedules.value.length - errors.length} schedules. ${errors.length} failed.`,
+        `Saved ${successCount} schedules. ${result.error_count} failed.`,
         'warning'
       );
-      console.error('Partial save errors:', errors);
+      if (result.errors && result.errors.length > 0) {
+        console.error('Partial save errors:', result.errors);
+      }
     } else {
-      showToast(`Failed to save schedules: ${errors[0]}`, 'error');
-      console.error('Save errors:', errors);
+      const firstError = result.errors?.[0]?.error || result.errors?.[0] || 'Failed to save schedules';
+      showToast(`Failed to save schedules: ${firstError}`, 'error');
+      console.error('Save errors:', result.errors);
     }
   } catch (error) {
     const errorMsg = error?.response?.data?.message || error?.message || 'Failed to save schedules';
@@ -1249,6 +1275,88 @@ const saveSchedules = async () => {
     console.error('Error in saveSchedules:', error);
   } finally {
     saving.value = false;
+  }
+};
+
+// Load existing schedules for edit mode
+const loadExistingSchedules = async () => {
+  if (!isEditMode.value || !selectionForm.exam_id || !selectionForm.class_id) {
+    return;
+  }
+
+  try {
+    const branchId = resolvedBranchId.value || user.value?.branch_id;
+    const response = await examScheduleApi.getAll({
+      school_id: user.value.school_id,
+      branch_id: branchId,
+      exam_id: selectionForm.exam_id,
+      class_id: selectionForm.class_id,
+      section_id: selectionForm.section_id || undefined
+    });
+
+    let schedulesList = [];
+    if (response?.data?.schedules && Array.isArray(response.data.schedules)) {
+      schedulesList = response.data.schedules;
+    } else if (response?.schedules && Array.isArray(response.schedules)) {
+      schedulesList = response.schedules;
+    } else if (Array.isArray(response?.data)) {
+      schedulesList = response.data;
+    } else if (Array.isArray(response)) {
+      schedulesList = response;
+    }
+
+    if (schedulesList.length > 0) {
+      // Convert existing schedules to generatedSchedules format
+      generatedSchedules.value = schedulesList.map(schedule => {
+        const subject = schedule.subject || schedule.Subject;
+        existingScheduleIds.value.push(schedule.id);
+
+        // Extract mark distribution values
+        const scheduleRow = {
+          subject_id: schedule.subject_id,
+          subject_name: subject?.name || 'Unknown Subject',
+          date: schedule.exam_date || '',
+          starting_time: schedule.start_time || '',
+          ending_time: schedule.end_time || '',
+          hall_id: schedule.exam_hall_id || schedule.exam_hall?.id || ''
+        };
+
+        // Add mark distribution fields
+        dynamicMarkFields.value.forEach(field => {
+          const fieldName = field.name.toLowerCase();
+          if (fieldName.includes('theory') || fieldName.includes('written')) {
+            scheduleRow[field.fullMarkKey] = schedule.theory_marks?.toString() || '';
+            scheduleRow[field.passMarkKey] = '';
+          } else if (fieldName.includes('practical')) {
+            scheduleRow[field.fullMarkKey] = schedule.practical_marks?.toString() || '';
+            scheduleRow[field.passMarkKey] = '';
+          } else if (fieldName.includes('viva')) {
+            scheduleRow[field.fullMarkKey] = schedule.viva_marks?.toString() || '';
+            scheduleRow[field.passMarkKey] = '';
+          } else if (fieldName.includes('assignment')) {
+            scheduleRow[field.fullMarkKey] = schedule.assignment_marks?.toString() || '';
+            scheduleRow[field.passMarkKey] = '';
+          }
+        });
+
+        return scheduleRow;
+      });
+
+      // Set schedule parameters from first schedule
+      if (schedulesList.length > 0) {
+        const firstSchedule = schedulesList[0];
+        scheduleParams.starting_date = firstSchedule.exam_date || '';
+        scheduleParams.starting_time = firstSchedule.start_time || '';
+        scheduleParams.duration = firstSchedule.duration_minutes || 180;
+        scheduleParams.hall_id = firstSchedule.exam_hall_id || firstSchedule.exam_hall?.id || '';
+      }
+
+      filterApplied.value = true;
+      showToast(`Loaded ${schedulesList.length} existing schedule(s) for editing`, 'success');
+    }
+  } catch (error) {
+    console.error('Error loading existing schedules:', error);
+    showToast('Failed to load existing schedules', 'error');
   }
 };
 
@@ -1265,19 +1373,91 @@ onMounted(async () => {
     showToast('Failed to load initial data', 'error');
   }
 
-  // Auto-set branch if only one branch
-  if (branches.value.length === 1) {
-    selectionForm.branch_id = branches.value[0].id;
-  }
+  // Check for edit mode from query params
+  const query = route.query;
+  if (query.edit_mode === 'true' && query.exam_id && query.class_id) {
+    isEditMode.value = true;
+    
+    // Set branch first if provided, otherwise use default
+    if (query.branch_id) {
+      selectionForm.branch_id = query.branch_id;
+    } else if (branches.value.length === 1) {
+      selectionForm.branch_id = branches.value[0].id;
+    } else if (user.value?.branch_id) {
+      selectionForm.branch_id = user.value.branch_id;
+    }
 
-  // Load data based on branch
-  const branchId = selectionForm.branch_id || user.value?.branch_id;
-  if (branchId) {
-    await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
-  }
+    // Load data based on branch first
+    const branchId = selectionForm.branch_id || user.value?.branch_id;
+    if (branchId) {
+      await Promise.all([
+        loadExams({ branch_id: branchId }),
+        fetchClasses({ branchId: branchId })
+      ]);
 
-  // Load initial mark distributions
-  await loadMarkDistributionsForExam();
+      // Now set the form values after data is loaded
+      // Wait for nextTick to ensure reactive updates
+      await nextTick();
+      
+      // Set form values - these will auto-populate the dropdowns via v-model
+      selectionForm.exam_id = query.exam_id;
+      selectionForm.class_id = query.class_id;
+      
+      // Set selected exam object for mark distribution loading
+      if (selectionForm.exam_id) {
+        selectedExam.value = exams.value.find(exam => exam.id === selectionForm.exam_id);
+      }
+
+      // Load sections if class has sections
+      if (selectionForm.class_id) {
+        const selectedClassData = classes.value.find(cls => cls.id === selectionForm.class_id);
+        selectedClass.value = selectedClassData;
+        
+        if (selectedClassData?.has_sections) {
+          await fetchSections({ classId: selectionForm.class_id });
+          // Wait for sections to load before setting section_id
+          await nextTick();
+          // Set section_id after sections are loaded - this will auto-populate dropdown
+          if (query.section_id) {
+            selectionForm.section_id = query.section_id;
+            // Set selected section for display
+            selectedSection.value = sectionOptions.value.find(
+              sec => sec.value === selectionForm.section_id
+            );
+          }
+        } else if (query.section_id) {
+          selectionForm.section_id = query.section_id;
+        }
+      }
+
+      // Wait for all dropdowns to update
+      await nextTick();
+
+      // Load subjects and mark distributions
+      await loadSubjectsForClass(selectionForm.class_id, selectionForm.section_id || null);
+      await loadMarkDistributionsForExam();
+      
+      // Then load existing schedules (needs mark distributions to be loaded)
+      await loadExistingSchedules();
+      
+      // Auto-apply filter to show the schedule table
+      filterApplied.value = true;
+    }
+  } else {
+    // Auto-set branch if only one branch
+    if (branches.value.length === 1) {
+      selectionForm.branch_id = branches.value[0].id;
+    }
+
+    // Load data based on branch
+    const branchId = selectionForm.branch_id || user.value?.branch_id;
+    if (branchId) {
+      await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
+    }
+
+    // Load initial mark distributions
+    await loadMarkDistributionsForExam();
+  }
 });
 </script>
 

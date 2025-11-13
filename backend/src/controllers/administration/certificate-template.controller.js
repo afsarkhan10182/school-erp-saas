@@ -44,20 +44,29 @@ class CertificateTemplateController {
         });
       }
 
+      // Handle file uploads
+      const uploadedFiles = req.files || {};
+      const logoImageFile = uploadedFiles.logo_image?.[0];
+      const backgroundImageFile = uploadedFiles.background_image?.[0];
+      const signatureImageFile = uploadedFiles.signature_image?.[0];
+
+      // Auto-fill qr_code_text based on user_type if not provided
+      const finalQrCodeText = qr_code_text || (user_type === 'student' ? 'register_no' : 'staff_id');
+
       const template = await CertificateTemplate.create({
         name,
         user_type,
         page_layout,
-        qr_code_text,
+        qr_code_text: finalQrCodeText,
         user_photo_style,
         photo_size,
         top_space,
         bottom_space,
         left_space,
         right_space,
-        signature_image,
-        logo_image,
-        background_image,
+        signature_image: signatureImageFile ? signatureImageFile.filename : signature_image || null,
+        logo_image: logoImageFile ? logoImageFile.filename : logo_image || null,
+        background_image: backgroundImageFile ? backgroundImageFile.filename : background_image || null,
         content,
         branch_id,
         created_by: req.user.id
@@ -260,6 +269,7 @@ class CertificateTemplateController {
     try {
       const { id } = req.params;
 
+      const School = require('~/models/administration/school.model');
       const template = await CertificateTemplate.findByPk(id, {
         attributes: [
           'id',
@@ -288,7 +298,14 @@ class CertificateTemplateController {
           {
             model: Branch,
             as: 'branch',
-            attributes: ['id', 'name', 'code']
+            attributes: ['id', 'name', 'code', 'school_id'],
+            include: [
+              {
+                model: School,
+                as: 'school',
+                attributes: ['id', 'name', 'code']
+              }
+            ]
           }
         ]
       });
@@ -340,7 +357,7 @@ class CertificateTemplateController {
   static async updateTemplate(req, res) {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const updateData = { ...req.body };
 
       const template = await CertificateTemplate.findByPk(id, {
         include: [
@@ -383,6 +400,40 @@ class CertificateTemplateController {
           success: false,
           message: 'Access denied to this template'
         });
+      }
+
+      // Handle file uploads
+      const uploadedFiles = req.files || {};
+      const logoImageFile = uploadedFiles.logo_image?.[0];
+      const backgroundImageFile = uploadedFiles.background_image?.[0];
+      const signatureImageFile = uploadedFiles.signature_image?.[0];
+
+      // Update image fields only if new files are uploaded or explicitly cleared
+      if (logoImageFile) {
+        // New file uploaded - use the new filename
+        updateData.logo_image = logoImageFile.filename;
+      } else if (updateData.hasOwnProperty('logo_image') && (updateData.logo_image === '' || updateData.logo_image === null)) {
+        // Explicitly cleared - set to null
+        updateData.logo_image = null;
+      } else {
+        // No new file and not explicitly cleared - remove from updateData to preserve existing
+        delete updateData.logo_image;
+      }
+
+      if (backgroundImageFile) {
+        updateData.background_image = backgroundImageFile.filename;
+      } else if (updateData.hasOwnProperty('background_image') && (updateData.background_image === '' || updateData.background_image === null)) {
+        updateData.background_image = null;
+      } else {
+        delete updateData.background_image;
+      }
+
+      if (signatureImageFile) {
+        updateData.signature_image = signatureImageFile.filename;
+      } else if (updateData.hasOwnProperty('signature_image') && (updateData.signature_image === '' || updateData.signature_image === null)) {
+        updateData.signature_image = null;
+      } else {
+        delete updateData.signature_image;
       }
 
       // Add updated_by field

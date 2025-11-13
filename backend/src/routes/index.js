@@ -100,8 +100,10 @@ router.use('/exam-schedules', examScheduleRoutes);
 router.use('/exam-halls', examHallRoutes);
 router.use('/exam-positions', examPositionsRoutes);
 router.use('/exam-results', examResultRoutes);
-router.use('/exam-reports', examReportRoutes);
+// Mount specific routes first (before catch-all routes)
+// examReportsRoutes must come first to handle /download/:reportId before catch-all routes
 router.use('/exam-reports', examReportsRoutes);
+router.use('/exam-reports', examReportRoutes);
 router.use('/exam-publication', examPublicationRoutes);
 router.use('/grading-systems', gradingSystemRoutes);
 router.use('/marks-entry', marksEntryRoutes);

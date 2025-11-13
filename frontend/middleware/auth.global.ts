@@ -56,7 +56,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // CASE 3: User not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute && !hasTokenCookie) {
-    // No token cookie and not authenticated - redirect to login with intended destination
+    // No token cookie and not authenticated - redirect to login
+    // Only add redirect parameter if not coming from root path
+    if (to.path === '/' || to.fullPath === '/') {
+      return navigateTo('/auth/login');
+    }
+    // For other protected routes, include redirect parameter to return after login
     return navigateTo(`/auth/login?redirect=${encodeURIComponent(to.fullPath)}`);
   }
 });

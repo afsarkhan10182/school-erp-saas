@@ -2,8 +2,11 @@ import { createApiInstance, apiCall } from '~/utils/api';
 
 export interface StudentForMarksEntry {
   id: string;
+  serial_number: number;
   name: string;
   roll_number: string;
+  admission_number: string;
+  category: string;
   class?: { name: string };
   section?: { name: string };
   existing_marks?: {
@@ -29,6 +32,7 @@ export interface MarksEntryFilters {
   exam_id: string;
   class_id: string;
   section_id?: string;
+  subject_id?: string;
   school_id?: string;
   branch_id?: string;
 }

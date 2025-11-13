@@ -771,6 +771,10 @@ const saveExam = async () => {
     showToast('Term is required', 'error');
     return;
   }
+  if (!form.mark_distribution_ids || form.mark_distribution_ids.length === 0) {
+    showToast('Mark distribution is required', 'error');
+    return;
+  }
 
   try {
     saving.value = true;

@@ -4,23 +4,24 @@ import { examPositionsApi } from '~/api/academic/exam-positions';
 export const useExamPositions = () => {
   const examPositions = ref([]);
   const loading = ref(false);
+  const calculating = ref(false);
+  const saving = ref(false);
   const error = ref(null);
 
-  // Fetch exam positions by exam ID and class ID
-  const fetchExamPositions = async (examId, classId, params = {}) => {
+  // Get students for positions
+  const getStudentsForPositions = async (params: {
+    exam_id: string;
+    class_id: string;
+    section_id?: string;
+    school_id?: string;
+    branch_id?: string;
+  }) => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await examPositionsApi.getStudents({
-        exam_id: examId,
-        class_id: classId,
-        ...params
-      });
-      if (response.success) {
-        examPositions.value = response.data.students || response.data || [];
-      }
+      const response = await examPositionsApi.getStudents(params);
       return response;
-    } catch (err) {
+    } catch (err: any) {
       error.value = err.message;
       throw err;
     } finally {
@@ -29,46 +30,48 @@ export const useExamPositions = () => {
   };
 
   // Calculate positions for an exam
-  const calculatePositions = async (examId, classId, calculationData) => {
+  const calculatePositions = async (data: {
+    exam_id: string;
+    class_id: string;
+    calculation_method: string;
+    tie_breaking_method: string;
+    include_absent: boolean;
+    section_id?: string;
+  }) => {
     try {
-      loading.value = true;
+      calculating.value = true;
       error.value = null;
-      const response = await examPositionsApi.calculate({
-        exam_id: examId,
-        class_id: classId,
-        ...calculationData
-      });
-      if (response.success && examId && classId) {
-        await fetchExamPositions(examId, classId);
-      }
+      const response = await examPositionsApi.calculate(data);
       return response;
-    } catch (err) {
+    } catch (err: any) {
       error.value = err.message;
       throw err;
     } finally {
-      loading.value = false;
+      calculating.value = false;
     }
   };
 
   // Save positions
-  const savePositions = async (examId, classId, positions) => {
+  const savePositions = async (data: {
+    exam_id: string;
+    class_id: string;
+    positions: Array<{
+      student_id: string;
+      position: number;
+      teacher_comment?: string;
+      principal_comment?: string;
+    }>;
+  }) => {
     try {
-      loading.value = true;
+      saving.value = true;
       error.value = null;
-      const response = await examPositionsApi.save({
-        exam_id: examId,
-        class_id: classId,
-        positions
-      });
-      if (response.success && examId && classId) {
-        await fetchExamPositions(examId, classId);
-      }
+      const response = await examPositionsApi.save(data);
       return response;
-    } catch (err) {
+    } catch (err: any) {
       error.value = err.message;
       throw err;
     } finally {
-      loading.value = false;
+      saving.value = false;
     }
   };
 
@@ -106,10 +109,12 @@ export const useExamPositions = () => {
   return {
     examPositions,
     loading,
+    calculating,
+    saving,
     error,
     topPerformers,
     positionStats,
-    fetchExamPositions,
+    getStudentsForPositions,
     calculatePositions,
     savePositions,
     getPositionStats

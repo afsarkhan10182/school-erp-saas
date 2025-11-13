@@ -19,7 +19,7 @@ export const examResultApi = {
 
   // Calculate grades for an exam
   calculateGrades: async (examId: string) => {
-    return apiCall('post', `/exams/${examId}/calculate-grades`);
+    return apiCall('post', `/exam-results/exams/${examId}/calculate-grades`);
   },
 
   // Export results

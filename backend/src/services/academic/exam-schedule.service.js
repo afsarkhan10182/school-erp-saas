@@ -131,6 +131,7 @@ class ExamScheduleService extends BaseService {
 
       const schedule = await ExamSchedule.create({
         ...scheduleData,
+        is_active: scheduleData.is_active !== undefined ? scheduleData.is_active : true,
         created_by: userId,
         updated_by: userId
       });
@@ -140,13 +141,161 @@ class ExamScheduleService extends BaseService {
   }
 
   /**
+   * Bulk create exam schedules
+   */
+  static async bulkCreateExamSchedules(schedulesData, userId) {
+    return this.executeWithErrorHandling(async () => {
+      if (!Array.isArray(schedulesData) || schedulesData.length === 0) {
+        throw new ApiError(400, 'Schedules array is required and cannot be empty');
+      }
+
+      const createdSchedules = [];
+      const errors = [];
+
+      // Process each schedule
+      for (const scheduleData of schedulesData) {
+        try {
+          // Validate exam exists
+          const exam = await Exam.findByPk(scheduleData.exam_id);
+          if (!exam) {
+            errors.push({
+              schedule: scheduleData,
+              error: 'Exam not found'
+            });
+            continue;
+          }
+
+          // Validate exam hall if provided
+          if (scheduleData.exam_hall_id) {
+            await this.validateEntityExists(ExamHall, scheduleData.exam_hall_id, 'Exam Hall');
+          }
+
+          // Validate invigilator if provided
+          if (scheduleData.invigilator_id) {
+            await this.validateEntityExists(User, scheduleData.invigilator_id, 'Invigilator');
+          }
+
+          // Validate class if provided
+          if (scheduleData.class_id) {
+            await this.validateEntityExists(Class, scheduleData.class_id, 'Class');
+          }
+
+          // Validate section if provided
+          if (scheduleData.section_id) {
+            await this.validateEntityExists(Section, scheduleData.section_id, 'Section');
+          }
+
+          // Validate subject if provided
+          if (scheduleData.subject_id) {
+            await this.validateEntityExists(Subject, scheduleData.subject_id, 'Subject');
+          }
+
+          // Enhanced conflict detection and hall capacity validation
+          if (scheduleData.exam_hall_id) {
+            // Check hall capacity
+            if (scheduleData.class_id) {
+              const examHall = await ExamHall.findByPk(scheduleData.exam_hall_id);
+              const studentCount = await this.getStudentCountForClass(
+                scheduleData.class_id,
+                scheduleData.section_id
+              );
+
+              if (studentCount > examHall.capacity) {
+                errors.push({
+                  schedule: scheduleData,
+                  error: `Hall capacity (${examHall.capacity}) insufficient for ${studentCount} students`
+                });
+                continue;
+              }
+            }
+
+            // Enhanced conflict detection (same hall, overlapping time)
+            if (scheduleData.start_time && scheduleData.end_time) {
+              const conflict = await ExamSchedule.findOne({
+                where: {
+                  exam_hall_id: scheduleData.exam_hall_id,
+                  exam_date: scheduleData.exam_date,
+                  is_active: true,
+                  [Op.or]: [
+                    {
+                      start_time: {
+                        [Op.between]: [scheduleData.start_time, scheduleData.end_time]
+                      }
+                    },
+                    {
+                      end_time: {
+                        [Op.between]: [scheduleData.start_time, scheduleData.end_time]
+                      }
+                    },
+                    {
+                      [Op.and]: [
+                        { start_time: { [Op.lte]: scheduleData.start_time } },
+                        { end_time: { [Op.gte]: scheduleData.end_time } }
+                      ]
+                    }
+                  ]
+                },
+                include: [
+                  {
+                    model: Exam,
+                    as: 'exam',
+                    attributes: ['name']
+                  }
+                ]
+              });
+
+              if (conflict) {
+                errors.push({
+                  schedule: scheduleData,
+                  error: `Exam hall is already booked for this time slot by exam: ${conflict.exam.name}`
+                });
+                continue;
+              }
+            }
+          }
+
+          // Calculate duration if start and end time provided
+          if (scheduleData.start_time && scheduleData.end_time && !scheduleData.duration_minutes) {
+            const start = new Date(`2000-01-01 ${scheduleData.start_time}`);
+            const end = new Date(`2000-01-01 ${scheduleData.end_time}`);
+            scheduleData.duration_minutes = Math.round((end - start) / 60000);
+          }
+
+          const schedule = await ExamSchedule.create({
+            ...scheduleData,
+            is_active: scheduleData.is_active !== undefined ? scheduleData.is_active : true,
+            created_by: userId,
+            updated_by: userId
+          });
+
+          const createdSchedule = await this.getExamScheduleById(schedule.id);
+          createdSchedules.push(createdSchedule);
+        } catch (error) {
+          logger.error('Error creating schedule in bulk:', error);
+          errors.push({
+            schedule: scheduleData,
+            error: error.message || 'Unknown error'
+          });
+        }
+      }
+
+      return {
+        created_schedules: createdSchedules,
+        errors: errors,
+        success_count: createdSchedules.length,
+        error_count: errors.length
+      };
+    }, 'Bulk Create Exam Schedules');
+  }
+
+  /**
    * Get all exam schedules with filtering
    */
   static async getAllExamSchedules(params, user) {
     return this.executeWithErrorHandling(async () => {
       const {
         page = 1,
-        limit = 10,
+        limit = 100,
         search,
         exam_id,
         branch_id,
@@ -155,7 +304,10 @@ class ExamScheduleService extends BaseService {
         status,
         date_from,
         date_to,
-        invigilator_id
+        invigilator_id,
+        class_id,
+        section_id,
+        is_active
       } = params;
       const offset = (page - 1) * limit;
 
@@ -164,12 +316,22 @@ class ExamScheduleService extends BaseService {
         ...(user.role === 'branch_admin' && !branch_id && { branch_id: user.branch_id })
       };
 
+      // Filter by is_active by default (unless explicitly set to false)
+      if (is_active !== undefined && is_active !== null && is_active !== '') {
+        whereClause.is_active = is_active === 'true' || is_active === true;
+      } else {
+        // Default to active schedules only
+        whereClause.is_active = true;
+      }
+
       // Add filters
       if (exam_id) whereClause.exam_id = exam_id;
       if (branch_id) whereClause.branch_id = branch_id;
       if (exam_hall_id) whereClause.exam_hall_id = exam_hall_id;
       if (status) whereClause.status = status;
       if (invigilator_id) whereClause.invigilator_id = invigilator_id;
+      if (class_id) whereClause.class_id = class_id;
+      if (section_id) whereClause.section_id = section_id;
 
       if (date_from && date_to) {
         whereClause.exam_date = {
@@ -187,6 +349,13 @@ class ExamScheduleService extends BaseService {
           { '$class.name$': { [Op.iLike]: `%${search}%` } }
         ];
       }
+
+      // Debug logging
+      logger.debug('ExamSchedule getAllExamSchedules query:', {
+        whereClause,
+        params,
+        userContext: { school_id: user.school_id, branch_id: user.branch_id, role: user.role }
+      });
 
       const { count, rows } = await ExamSchedule.findAndCountAll({
         where: whereClause,
@@ -234,6 +403,15 @@ class ExamScheduleService extends BaseService {
       });
 
       const totalPages = Math.ceil(count / parseInt(limit));
+
+      // Debug logging for results
+      logger.debug('ExamSchedule getAllExamSchedules results:', {
+        count,
+        rowsCount: rows.length,
+        limit,
+        offset,
+        totalPages
+      });
 
       return {
         schedules: rows,

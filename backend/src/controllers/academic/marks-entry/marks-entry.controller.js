@@ -123,12 +123,15 @@ const getStudentsForMarksEntry = async (req, res) => {
     });
 
     // Prepare student data with existing marks
-    const studentsWithMarks = students.map(student => {
+    const studentsWithMarks = students.map((student, index) => {
       const existingResult = resultsMap[student.id];
       return {
         id: student.id,
+        serial_number: index + 1,
         name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.name,
         roll_number: student.roll_number,
+        admission_number: student.admission_number,
+        category: student.category || 'general',
         class: student.class?.name,
         section: student.sectionInfo?.name,
         existing_marks: existingResult
