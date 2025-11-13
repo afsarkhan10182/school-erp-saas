@@ -14,8 +14,22 @@ export const useAuth = () => {
         // Wait a moment for auth state to be fully set
         await nextTick();
 
-        // Redirect to intended destination or dashboard - use replace to prevent back navigation
-        const destination = redirectTo || '/dashboard';
+        // Determine redirect destination with priority:
+        // 1. Explicit redirectTo parameter (from query string)
+        // 2. Post-logout redirect (saved before logout)
+        // 3. Default dashboard
+        let destination = redirectTo;
+        
+        if (!destination && import.meta.client) {
+          const savedRedirect = sessionStorage.getItem('post-logout-redirect');
+          if (savedRedirect) {
+            destination = savedRedirect;
+            // Clear saved redirect after use
+            sessionStorage.removeItem('post-logout-redirect');
+          }
+        }
+        
+        destination = destination || '/dashboard';
         await navigateTo(destination, { replace: true });
         return result;
       } else {
@@ -31,6 +45,16 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
+      // Save current route before logout for post-login redirect
+      if (import.meta.client) {
+        const route = useRoute();
+        const currentPath = route.fullPath;
+        // Only save if not already on login page or root path
+        if (currentPath !== '/auth/login' && currentPath !== '/') {
+          sessionStorage.setItem('post-logout-redirect', currentPath);
+        }
+      }
+      
       await authStore.logout();
       await navigateTo('/auth/login');
     } catch (error) {

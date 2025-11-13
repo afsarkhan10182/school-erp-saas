@@ -397,7 +397,16 @@ const checkExistingAuth = async () => {
 
     // If user is already logged in, redirect to intended destination or dashboard
     if (authStore.isLoggedIn && authStore.currentUser) {
-      const destination = redirectTo.value || '/dashboard';
+      // Priority: query redirect > post-logout redirect > dashboard
+      let destination = redirectTo.value;
+      if (!destination && import.meta.client) {
+        const savedRedirect = sessionStorage.getItem('post-logout-redirect');
+        if (savedRedirect) {
+          destination = savedRedirect;
+          sessionStorage.removeItem('post-logout-redirect');
+        }
+      }
+      destination = destination || '/dashboard';
       await navigateTo(destination, { replace: true });
       return;
     }
@@ -407,7 +416,16 @@ const checkExistingAuth = async () => {
       try {
         const isValid = await authStore.checkAuth();
         if (isValid) {
-          const destination = redirectTo.value || '/dashboard';
+          // Priority: query redirect > post-logout redirect > dashboard
+          let destination = redirectTo.value;
+          if (!destination && import.meta.client) {
+            const savedRedirect = sessionStorage.getItem('post-logout-redirect');
+            if (savedRedirect) {
+              destination = savedRedirect;
+              sessionStorage.removeItem('post-logout-redirect');
+            }
+          }
+          destination = destination || '/dashboard';
           await navigateTo(destination, { replace: true });
           return;
         }

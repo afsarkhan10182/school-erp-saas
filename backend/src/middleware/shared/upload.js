@@ -47,7 +47,7 @@ const storage = multer.diskStorage({
       const schoolCode = await getSchoolCodeFromId(schoolId);
 
       // Determine upload type based on field name
-      let uploadType = 'documents';
+      let uploadType = 'documents'; // Default to documents
       if (
         file.fieldname === 'schoolLogo' ||
         file.fieldname === 'receiptLogo' ||
@@ -62,6 +62,14 @@ const storage = multer.diskStorage({
         uploadType = 'profile-images';
       } else if (file.fieldname === 'id_card' || file.fieldname === 'student_id_card') {
         uploadType = 'id-cards';
+      } else if (
+        file.fieldname === 'logo_image' ||
+        file.fieldname === 'signature_image' ||
+        file.fieldname === 'background_image'
+      ) {
+        uploadType = 'certificates'; // Certificate template images go to certificates folder
+      } else if (file.fieldname === 'report_card_design') {
+        uploadType = 'report-cards'; // Report card design images go to report-cards folder
       }
 
       // Get current year for partitioning (optional)
@@ -196,14 +204,10 @@ const uploadMultiple =
           );
         }
         if (err.code === 'LIMIT_FIELD_COUNT') {
-          return next(
-            new ApiError(httpStatus.BAD_REQUEST, `Too many fields in the form.`)
-          );
+          return next(new ApiError(httpStatus.BAD_REQUEST, `Too many fields in the form.`));
         }
         if (err.code === 'LIMIT_PART_COUNT') {
-          return next(
-            new ApiError(httpStatus.BAD_REQUEST, `Too many parts in the form.`)
-          );
+          return next(new ApiError(httpStatus.BAD_REQUEST, `Too many parts in the form.`));
         }
         return next(new ApiError(httpStatus.BAD_REQUEST, err.message));
       }

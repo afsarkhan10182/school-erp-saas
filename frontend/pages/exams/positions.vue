@@ -34,10 +34,16 @@
       </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Select Ground Section -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+            Select Ground
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <!-- Branch Selection () -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -93,18 +99,19 @@
               @change="onExamChange"
             />
           </div>
-        </div>
+          </div>
 
-        <!-- Load Students Button -->
-        <div class="mt-4">
-          <button
-            @click="loadStudents"
-            :disabled="!selectedBranchId || !selectedClassId || !selectedExamId || positionsLoading"
-            class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Users class="h-4 w-4 mr-2" />
-            {{ positionsLoading ? 'Loading...' : 'Load Students' }}
-          </button>
+          <!-- Load Students Button -->
+          <div class="mt-4">
+            <button
+              @click="loadStudents"
+              :disabled="!canLoadStudents || loadingStudents"
+              class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Users class="h-4 w-4 mr-2" />
+              {{ loadingStudents ? 'Loading...' : 'Load Students' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -369,6 +376,8 @@ const {
   saving
 } = useExamPositions();
 
+const loadingStudents = computed(() => positionsLoading.value);
+
 // Reactive data
 const selectedBranchId = ref('');
 const selectedExamId = ref('');
@@ -400,6 +409,15 @@ const showSectionField = computed(() => {
   return selectedClass?.has_sections || false;
 });
 
+const canLoadStudents = computed(() => {
+  return !!(
+    selectedBranchId.value &&
+    selectedClassId.value &&
+    selectedExamId.value &&
+    (!showSectionField.value || selectedSectionId.value)
+  );
+});
+
 const canCalculate = computed(() => {
   return selectedExamId.value && selectedClassId.value && students.value.length > 0;
 });
@@ -414,22 +432,46 @@ const hasChanges = computed(() => {
 });
 
 // Methods
-const onBranchChange = () => {
+const onBranchChange = async () => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
   students.value = [];
+  
+  // Load classes for the selected branch
+  if (selectedBranchId.value) {
+    await fetchClasses({
+      branchId: selectedBranchId.value
+    });
+    
+    // Reload exams filtered by branch
+    await loadExams({
+      branch_id: selectedBranchId.value,
+      school_id: user.value?.school_id
+    });
+  } else {
+    // Clear classes if no branch selected
+    classes.value = [];
+  }
 };
 
 const onExamChange = () => {
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
+  // Exam is independent of class, so don't clear class selection
+  // Only clear students since exam changed
   students.value = [];
 };
 
-const onClassChange = () => {
+const onClassChange = async () => {
   selectedSectionId.value = '';
   students.value = [];
+  
+  if (selectedClassId.value) {
+    await fetchSections({
+      schoolId: user.value?.school_id,
+      branchId: selectedBranchId.value || user.value?.branch_id,
+      classId: selectedClassId.value
+    });
+  }
 };
 
 const onSectionChange = () => {
@@ -466,7 +508,7 @@ const loadStudents = async () => {
 
 const calculatePositions = async () => {
   try {
-    const requestData = {
+    const requestData: any = {
       exam_id: selectedExamId.value,
       class_id: selectedClassId.value,
       calculation_method: calculationMethod.value,
@@ -474,13 +516,21 @@ const calculatePositions = async () => {
       include_absent: includeAbsent.value
     };
 
+    if (selectedSectionId.value) {
+      requestData.section_id = selectedSectionId.value;
+    }
+
     const response = (await calculatePositionsAPI(requestData)) as any;
 
     if (response.success) {
       // Update positions in the UI
+      const positionsMap = new Map();
+      response.data.forEach((item: any) => {
+        positionsMap.set(item.student_id, item.position);
+      });
+
       students.value = students.value.map((student, index) => {
-        const newPosition =
-          response.data.find((s: any) => s.student_id === student.id)?.position || index + 1;
+        const newPosition = positionsMap.get(student.id) || index + 1;
         return {
           ...student,
           position: newPosition,
@@ -490,8 +540,9 @@ const calculatePositions = async () => {
 
       showToast('Positions calculated successfully', 'success');
     }
-  } catch (error) {
-    showToast('Failed to calculate positions', 'error');
+  } catch (error: any) {
+    console.error('Error calculating positions:', error);
+    showToast(error?.message || 'Failed to calculate positions', 'error');
   }
 };
 
@@ -515,12 +566,9 @@ const onCommentChange = (student: Student) => {
   student.original_position = student.original_position;
 };
 
-const resetToAuto = () => {
-  students.value = students.value.map((student, index) => ({
-    ...student,
-    position: index + 1,
-    original_position: index + 1
-  }));
+const resetToAuto = async () => {
+  // Recalculate positions automatically
+  await calculatePositions();
 };
 
 const savePositions = async () => {
@@ -531,8 +579,8 @@ const savePositions = async () => {
       positions: students.value.map(student => ({
         student_id: student.id,
         position: student.position,
-        teacher_comment: student.teacher_comment,
-        principal_comment: student.principal_comment
+        teacher_comment: student.teacher_comment?.trim() || null,
+        principal_comment: student.principal_comment?.trim() || null
       }))
     };
 
@@ -545,10 +593,11 @@ const savePositions = async () => {
         original_position: student.position
       }));
 
-      showToast('Positions saved successfully', 'success');
+      showToast(`Positions saved successfully for ${response.data?.successful?.length || students.value.length} students`, 'success');
     }
-  } catch (error) {
-    showToast('Failed to save positions', 'error');
+  } catch (error: any) {
+    console.error('Error saving positions:', error);
+    showToast(error?.message || 'Failed to save positions', 'error');
   }
 };
 
@@ -581,6 +630,27 @@ const getGradeClass = (grade: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await Promise.all([fetchBranches(), loadExams(), fetchClasses()]);
+  await fetchBranches();
+  
+  // Auto-select branch if user has one
+  if (user.value?.branch_id) {
+    selectedBranchId.value = user.value.branch_id;
+    
+    // Load classes and exams for the user's branch
+    await Promise.all([
+      fetchClasses({
+        branchId: user.value.branch_id
+      }),
+      loadExams({
+        branch_id: user.value.branch_id,
+        school_id: user.value.school_id
+      })
+    ]);
+  } else {
+    // Load all exams if no branch (for super admin)
+    await loadExams({
+      school_id: user.value?.school_id
+    });
+  }
 });
 </script>

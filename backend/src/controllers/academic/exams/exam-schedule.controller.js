@@ -24,7 +24,7 @@ class ExamScheduleController {
   static getAllExamSchedules = asyncHandler(async (req, res) => {
     const params = {
       page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 10,
+      limit: parseInt(req.query.limit) || 100,
       search: req.query.search,
       exam_id: req.query.exam_id,
       school_id: req.query.school_id || req.schoolId,
@@ -33,7 +33,10 @@ class ExamScheduleController {
       status: req.query.status,
       date_from: req.query.date_from,
       date_to: req.query.date_to,
-      invigilator_id: req.query.invigilator_id
+      invigilator_id: req.query.invigilator_id,
+      class_id: req.query.class_id,
+      section_id: req.query.section_id,
+      is_active: req.query.is_active
     };
 
     const result = await ExamScheduleService.getAllExamSchedules(params, req.user);
@@ -79,6 +82,36 @@ class ExamScheduleController {
     const schedules = await ExamScheduleService.getSchedulesForExam(examId, req.user);
 
     success(res, { schedules }, 'Exam schedules retrieved successfully');
+  });
+
+  /**
+   * Bulk create exam schedules
+   */
+  static bulkCreateExamSchedules = asyncHandler(async (req, res) => {
+    const { schedules } = req.body;
+
+    if (!Array.isArray(schedules) || schedules.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Schedules array is required and cannot be empty'
+      });
+    }
+
+    // Add school_id and branch_id to each schedule
+    const schedulesWithContext = schedules.map(schedule => ({
+      ...schedule,
+      school_id: req.schoolId || schedule.school_id,
+      branch_id: req.branchId || schedule.branch_id || req.user.branch_id
+    }));
+
+    const result = await ExamScheduleService.bulkCreateExamSchedules(
+      schedulesWithContext,
+      req.user.id
+    );
+
+    const message = `Bulk schedule creation completed. ${result.success_count} schedules created, ${result.error_count} errors.`;
+
+    success(res, result, message, httpStatus.CREATED);
   });
 
   /**

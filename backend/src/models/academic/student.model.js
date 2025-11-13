@@ -396,6 +396,12 @@ Student.associate = models => {
     as: 'parents'
   });
 
+  // Student has many ExamResults
+  Student.hasMany(models.ExamResult, {
+    foreignKey: 'student_id',
+    as: 'examResults'
+  });
+
   // Student has many FeeInvoices
   // Temporarily disabled due to database schema mismatch
   // Student.hasMany(models.FeeInvoice, {

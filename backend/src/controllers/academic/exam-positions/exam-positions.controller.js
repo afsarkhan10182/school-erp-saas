@@ -18,12 +18,17 @@ const getStudentsForPositions = async (req, res) => {
     }
 
     // Get students based on class
+    const { section_id } = req.query;
     const whereClause = {
       class_id: class_id,
       school_id: school_id || req.user.school_id,
       branch_id: branch_id || req.user.branch_id,
-      is_active: true
+      status: 'active'
     };
+
+    if (section_id) {
+      whereClause.section_id = section_id;
+    }
 
     const students = await Student.findAll({
       where: whereClause,
@@ -35,8 +40,9 @@ const getStudentsForPositions = async (req, res) => {
         },
         {
           model: Section,
-          as: 'section',
-          attributes: ['id', 'name']
+          as: 'sectionInfo',
+          attributes: ['id', 'name'],
+          required: false
         }
       ],
       order: [['roll_number', 'ASC']]
@@ -48,7 +54,9 @@ const getStudentsForPositions = async (req, res) => {
         exam_id: exam_id,
         student_id: {
           [Op.in]: students.map(s => s.id)
-        }
+        },
+        school_id: school_id || req.user.school_id,
+        branch_id: branch_id || req.user.branch_id
       }
     });
 
@@ -58,7 +66,9 @@ const getStudentsForPositions = async (req, res) => {
         exam_id: exam_id,
         student_id: {
           [Op.in]: students.map(s => s.id)
-        }
+        },
+        school_id: school_id || req.user.school_id,
+        branch_id: branch_id || req.user.branch_id
       }
     });
 
@@ -81,16 +91,16 @@ const getStudentsForPositions = async (req, res) => {
 
       return {
         id: student.id,
-        name: student.name,
+        name: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown',
         roll_number: student.roll_number,
         class: student.class?.name,
-        section: student.section?.name,
+        section: student.sectionInfo?.name,
         total_marks: result?.marks_obtained || 0,
         percentage: result?.percentage || 0,
         grade: result?.grade || null,
         position: position?.position || index + 1,
-        teacher_comment: position?.teacher_comment || '',
-        principal_comment: position?.principal_comment || '',
+        teacher_comment: position?.teacher_comment || position?.remarks || null,
+        principal_comment: position?.principal_comment || null,
         is_absent: result?.is_absent || false
       };
     });
@@ -125,13 +135,20 @@ const calculatePositions = async (req, res) => {
     }
 
     // Get students with their exam results
+    const { section_id } = req.body;
+    const whereClause = {
+      class_id: class_id,
+      school_id: req.user.school_id,
+      branch_id: req.user.branch_id,
+      status: 'active'
+    };
+
+    if (section_id) {
+      whereClause.section_id = section_id;
+    }
+
     const students = await Student.findAll({
-      where: {
-        class_id: class_id,
-        school_id: req.user.school_id,
-        branch_id: req.user.branch_id,
-        is_active: true
-      },
+      where: whereClause,
       include: [
         {
           model: ExamResult,
@@ -178,26 +195,49 @@ const calculatePositions = async (req, res) => {
         );
     }
 
-    // Assign positions
+    // Assign positions with proper tie handling
     const positions = [];
     let currentPosition = 1;
-    let currentScore = null;
 
     for (let i = 0; i < sortedStudents.length; i++) {
       const student = sortedStudents[i];
-      const score = student.examResults[0]?.marks_obtained || 0;
+      const result = student.examResults[0];
+      
+      // Get score based on calculation method
+      let score = 0;
+      if (calculation_method === 'percentage') {
+        score = result?.percentage || 0;
+      } else if (calculation_method === 'grade_points') {
+        score = parseFloat(result?.grade) || 0;
+      } else {
+        score = result?.marks_obtained || 0;
+      }
 
-      if (currentScore !== null && score !== currentScore) {
-        currentPosition = i + 1;
+      // If this is not the first student and score is different, update position
+      if (i > 0) {
+        const prevStudent = sortedStudents[i - 1];
+        const prevResult = prevStudent.examResults[0];
+        let prevScore = 0;
+        if (calculation_method === 'percentage') {
+          prevScore = prevResult?.percentage || 0;
+        } else if (calculation_method === 'grade_points') {
+          prevScore = parseFloat(prevResult?.grade) || 0;
+        } else {
+          prevScore = prevResult?.marks_obtained || 0;
+        }
+
+        if (score !== prevScore) {
+          currentPosition = i + 1;
+        }
       }
 
       positions.push({
         student_id: student.id,
         position: currentPosition,
-        marks: score
+        marks: result?.marks_obtained || 0,
+        percentage: result?.percentage || 0,
+        grade: result?.grade || null
       });
-
-      currentScore = score;
     }
 
     res.json({
@@ -232,10 +272,37 @@ const savePositions = async (req, res) => {
     const results = [];
     const errors = [];
 
+    // Get exam results for all students to get marks/percentage/grade
+    const studentIds = positions.map(p => p.student_id);
+    const examResults = await ExamResult.findAll({
+      where: {
+        exam_id: exam_id,
+        student_id: {
+          [Op.in]: studentIds
+        },
+        school_id: req.user.school_id,
+        branch_id: req.user.branch_id
+      }
+    });
+
+    const resultsMap = {};
+    examResults.forEach(result => {
+      resultsMap[result.student_id] = result;
+    });
+
     // Process each position
     for (const positionData of positions) {
       try {
         const { student_id, position, teacher_comment, principal_comment } = positionData;
+        const result = resultsMap[student_id];
+
+        if (!result) {
+          errors.push({
+            student_id: student_id,
+            error: 'Exam result not found for this student'
+          });
+          continue;
+        }
 
         // Check if position already exists
         const existingPosition = await ExamPosition.findOne({
@@ -249,8 +316,12 @@ const savePositions = async (req, res) => {
           exam_id: exam_id,
           student_id: student_id,
           position: position,
-          teacher_comment: teacher_comment || null,
-          principal_comment: principal_comment || null,
+          total_marks: result.marks_obtained || 0,
+          percentage: result.percentage || 0,
+          grade: result.grade || null,
+          is_passed: result.percentage >= 35, // Default pass percentage
+          teacher_comment: teacher_comment && teacher_comment.trim() !== '' ? teacher_comment.trim() : null,
+          principal_comment: principal_comment && principal_comment.trim() !== '' ? principal_comment.trim() : null,
           school_id: req.user.school_id,
           branch_id: req.user.branch_id,
           created_by: req.user.id,
@@ -259,18 +330,34 @@ const savePositions = async (req, res) => {
 
         let savedPosition;
         if (existingPosition) {
-          // Update existing position
-          await ExamPosition.update(positionRecord, {
-            where: {
-              exam_id: exam_id,
-              student_id: student_id
-            }
+          // Update existing position - explicitly set all fields including comments
+          // Use set method to ensure all fields are updated, including null values
+          await existingPosition.update({
+            position: positionRecord.position,
+            total_marks: positionRecord.total_marks,
+            percentage: positionRecord.percentage,
+            grade: positionRecord.grade,
+            is_passed: positionRecord.is_passed,
+            teacher_comment: positionRecord.teacher_comment,
+            principal_comment: positionRecord.principal_comment,
+            updated_by: req.user.id
           });
-          savedPosition = await ExamPosition.findByPk(existingPosition.id);
+          savedPosition = existingPosition;
         } else {
           // Create new position
           savedPosition = await ExamPosition.create(positionRecord);
         }
+        
+        // Reload from database to ensure we have the latest data
+        await savedPosition.reload();
+        
+        // Verify comments were saved
+        logger.debug('Position saved:', {
+          student_id: student_id,
+          position: savedPosition.position,
+          teacher_comment: savedPosition.teacher_comment,
+          principal_comment: savedPosition.principal_comment
+        });
 
         results.push({
           student_id: student_id,

@@ -121,16 +121,24 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div
-                      v-if="getFullImageUrl(template.background_image)"
+                      v-if="getFullImageUrl(template.background_image, template)"
                       class="w-12 h-8 rounded border border-gray-300 dark:border-gray-600 overflow-hidden"
                     >
                       <img
-                        :src="getFullImageUrl(template.background_image)"
+                        :src="getFullImageUrl(template.background_image, template)"
                         :alt="template.name"
                         class="w-full h-full object-cover"
-                        @error="(e) => { e.target.style.display = 'none'; e.target.parentNode.querySelector('.fallback-bg').style.display = 'flex'; }"
+                        @error="
+                          e => {
+                            e.target.style.display = 'none';
+                            e.target.parentNode.querySelector('.fallback-bg').style.display =
+                              'flex';
+                          }
+                        "
                       />
-                      <div class="fallback-bg hidden w-full h-full bg-gray-100 dark:bg-gray-700 items-center justify-center">
+                      <div
+                        class="fallback-bg hidden w-full h-full bg-gray-100 dark:bg-gray-700 items-center justify-center"
+                      >
                         <FileText class="h-3 w-3 text-gray-400" />
                       </div>
                     </div>
@@ -232,191 +240,253 @@
           >
             <div
               v-if="showPreviewModal"
-              class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full"
+              class="inline-block align-bottom rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full"
+              :class="['bg-white dark:bg-gray-800']"
             >
               <!-- Modal header -->
-              <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 pt-6 pb-4">
+              <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
                 <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-xl leading-6 font-bold text-white flex items-center gap-2">
-                      <Eye class="h-6 w-6" />
-                      Certificate Preview
-                    </h3>
-                    <p class="text-sm text-indigo-100 mt-1">
-                      {{ selectedTemplate?.name || 'Certificate Template' }}
-                    </p>
+                  <div class="flex items-center gap-3">
+                    <Eye class="h-6 w-6 text-white" />
+                    <div>
+                      <h3 class="text-lg font-bold text-white">Certificate Preview</h3>
+                      <p class="text-sm text-indigo-100 mt-0.5">
+                        {{ selectedTemplate?.name || 'Certificate Template' }}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     class="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
                     @click="showPreviewModal = false"
                   >
-                    <X class="h-6 w-6" />
+                    <X class="h-5 w-5" />
                   </button>
                 </div>
               </div>
 
               <!-- Modal body -->
-              <div class="bg-gray-50 dark:bg-gray-900 px-6 py-6 max-h-[75vh] overflow-y-auto">
-                <div v-if="selectedTemplate">
-                  <!-- Info Bar -->
-                  <div class="flex items-center justify-between mb-4 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
-                    <div class="flex items-center gap-4 text-sm">
-                      <span class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <Layout class="h-4 w-4" />
-                        <span class="font-medium">{{ selectedTemplate.page_layout === 'portrait' ? 'A4 Portrait' : 'A4 Landscape' }}</span>
-                      </span>
-                      <span class="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                        <Users class="h-4 w-4" />
-                        <span class="font-medium">{{ selectedTemplate.user_type === 'student' ? 'Student' : 'Employee' }}</span>
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        @click="zoomOut"
-                        class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="Zoom Out"
-                      >
-                        <ZoomOut class="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                      </button>
-                      <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ zoomLevel }}%</span>
-                      <button
-                        type="button"
-                        @click="zoomIn"
-                        class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="Zoom In"
-                      >
-                        <ZoomIn class="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                      </button>
-                    </div>
-                  </div>
-
+              <div
+                class="px-6 py-6 max-h-[80vh] overflow-y-auto transition-colors"
+                :class="['bg-gray-50 dark:bg-gray-900']"
+              >
+                <div v-if="selectedTemplate" class="flex flex-col items-center">
                   <!-- Certificate Preview -->
-                  <div class="flex justify-center">
+                  <div class="w-full flex justify-center">
                     <div
-                      class="certificate-preview-container bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden border-4 border-gray-200 dark:border-gray-700"
+                      class="certificate-preview-container rounded-lg shadow-2xl overflow-hidden border-2 transition-colors"
+                      :class="[
+                        selectedTemplate.page_layout === 'landscape'
+                          ? 'w-[800px] h-[565px]'
+                          : 'w-[595px] h-[842px]',
+                        'bg-white dark:bg-gray-800',
+                        'border-gray-300 dark:border-gray-700'
+                      ]"
                       :style="{
                         transform: `scale(${zoomLevel / 100})`,
                         transformOrigin: 'top center',
-                        transition: 'transform 0.2s ease'
+                        transition: 'transform 0.2s ease',
+                        maxWidth: '100%'
                       }"
-                      :class="selectedTemplate.page_layout === 'landscape' ? 'w-[800px] h-[565px]' : 'w-[565px] h-[800px]'"
                     >
                       <!-- Certificate Background -->
                       <div
-                        class="relative h-full p-12"
-                        :style="getFullImageUrl(selectedTemplate.background_image) ? `background-image: url('${getFullImageUrl(selectedTemplate.background_image)}'); background-size: cover; background-position: center; background-repeat: no-repeat;` : 'background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);'"
+                        class="relative h-full w-full transition-colors"
+                        :class="[
+                          getFullImageUrl(selectedTemplate.background_image, selectedTemplate)
+                            ? ''
+                            : 'bg-white dark:bg-gray-800'
+                        ]"
+                        :style="
+                          getFullImageUrl(selectedTemplate.background_image, selectedTemplate)
+                            ? `background-image: url('${getFullImageUrl(selectedTemplate.background_image, selectedTemplate)}'); background-size: cover; background-position: center; background-repeat: no-repeat;`
+                            : ''
+                        "
                       >
-                        <!-- Border decoration -->
-                        <div class="absolute inset-4 border-4 border-double border-indigo-300 dark:border-indigo-600 rounded-lg pointer-events-none"></div>
-                        
-                        <!-- Certificate Content with semi-transparent background for better text readability -->
-                        <div class="relative h-full flex flex-col z-10 p-6 bg-white/80 dark:bg-gray-900/80 rounded-lg">
-                          <!-- Header with Logo -->
-                          <div class="flex items-start justify-between mb-6">
-                            <div v-if="getFullImageUrl(selectedTemplate.logo_image)" class="w-20 h-20">
-                              <img 
-                                :src="getFullImageUrl(selectedTemplate.logo_image)" 
-                                alt="Logo" 
-                                class="w-full h-full object-contain" 
-                                @error="(e) => { e.target.style.display = 'none' }"
+                        <!-- Certificate Content -->
+                        <div
+                          class="relative h-full w-full p-10 flex flex-col transition-colors"
+                          :class="[
+                            getFullImageUrl(selectedTemplate.background_image, selectedTemplate)
+                              ? ''
+                              : 'bg-white dark:bg-gray-800'
+                          ]"
+                        >
+                          <!-- Header with Logo and Certificate Number -->
+                          <div class="flex items-start justify-between mb-8">
+                            <div
+                              v-if="getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)"
+                              class="w-16 h-16 flex-shrink-0"
+                            >
+                              <img
+                                :src="getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)"
+                                alt="Logo"
+                                class="w-full h-full object-contain"
+                                @error="
+                                  e => {
+                                    e.target.style.display = 'none';
+                                  }
+                                "
                               />
                             </div>
-                            <div v-else class="w-20 h-20 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
-                              <Building class="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
+                            <div
+                              v-else
+                              class="w-16 h-16 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+                              :class="['bg-gray-200 dark:bg-gray-700']"
+                            >
+                              <Building
+                                class="h-8 w-8 transition-colors"
+                                :class="['text-gray-500 dark:text-gray-400']"
+                              />
                             </div>
-                            <div class="text-right">
-                              <div class="text-xs text-gray-500 dark:text-gray-400">Certificate No.</div>
-                              <div class="text-sm font-bold text-gray-700 dark:text-gray-300">CERT-2024-001</div>
-                            </div>
-                          </div>
-
-                          <!-- Institute Name -->
-                          <div class="text-center mb-6">
-                            <h1 class="text-3xl font-bold text-indigo-900 dark:text-indigo-200 mb-2">
-                              Sample Institute Name
-                            </h1>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                              info@institute.com | +123 456 7890
-                            </p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                              123 Education Street, City, Country
-                            </p>
                           </div>
 
                           <!-- Certificate Title -->
-                          <div class="text-center mb-8">
-                            <div class="inline-block">
-                              <h2 class="text-2xl font-bold uppercase tracking-wider text-purple-900 dark:text-purple-200 border-b-4 border-purple-500 pb-2">
+                          <div class="text-center mb-6">
+                            <div
+                              class="inline-block border-b pb-2 transition-colors"
+                              :class="['border-purple-600 dark:border-purple-400']"
+                            >
+                              <h2
+                                class="text-lg font-bold uppercase tracking-wide transition-colors"
+                                :class="['text-gray-900 dark:text-gray-200']"
+                              >
                                 Certificate of Achievement
                               </h2>
                             </div>
                           </div>
 
                           <!-- Main Content -->
-                          <div class="flex-1">
-                            <div class="bg-white/50 dark:bg-gray-800/50 rounded-lg p-6 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
+                          <div class="flex-1 flex items-center justify-center py-2">
+                            <div
+                              class="w-full rounded-lg p-6 transition-colors"
+                              :class="[
+                                getFullImageUrl(selectedTemplate.background_image, selectedTemplate)
+                                  ? 'bg-white/90 dark:bg-gray-900/80'
+                                  : 'bg-gray-50 dark:bg-gray-700/50'
+                              ]"
+                            >
                               <div
-                                class="certificate-content prose prose-sm max-w-none text-center"
-                                :class="[
-                                  'text-gray-800 dark:text-gray-200',
-                                  'prose-headings:text-gray-900 dark:prose-headings:text-white',
-                                  'prose-p:text-gray-700 dark:prose-p:text-gray-300',
-                                  'prose-strong:text-gray-900 dark:prose-strong:text-white'
-                                ]"
+                                class="certificate-content certificate-preview-content"
+                                :class="['text-gray-800 dark:text-gray-200']"
                                 v-html="renderPreviewContent(selectedTemplate.content)"
                               ></div>
                             </div>
                           </div>
 
-                          <!-- Footer with Signature -->
-                          <div class="flex justify-between items-end mt-8 pt-6 border-t border-gray-300 dark:border-gray-600">
+                          <!-- Footer -->
+                          <div
+                            class="flex justify-between items-end mt-6 pt-4 border-t transition-colors"
+                            :class="['border-gray-300 dark:border-gray-700']"
+                          >
                             <div class="text-left">
-                              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Date of Issue</div>
-                              <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              <div
+                                class="text-xs mb-1 transition-colors"
+                                :class="['text-gray-500 dark:text-gray-400']"
+                              >
+                                Date
+                              </div>
+                              <div
+                                class="text-xs font-medium transition-colors"
+                                :class="['text-gray-700 dark:text-gray-300']"
+                              >
                                 {{ new Date().toLocaleDateString() }}
                               </div>
                             </div>
                             <div class="text-center">
-                              <div class="w-32 h-16 bg-gray-100 dark:bg-gray-700 rounded mb-1 flex items-center justify-center">
-                                <span class="text-xs text-gray-400">QR Code</span>
+                              <div
+                                class="w-20 h-10 rounded flex items-center justify-center mx-auto mb-1 transition-colors"
+                                :class="['bg-gray-100 dark:bg-gray-700']"
+                              >
+                                <span
+                                  class="text-xs transition-colors"
+                                  :class="['text-gray-500 dark:text-gray-400']"
+                                  >QR</span
+                                >
                               </div>
                             </div>
                             <div class="text-right">
-                              <div class="w-32 border-t-2 border-gray-400 mb-1"></div>
-                              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Authorized Signature</div>
-                              <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">Principal</div>
+                              <div
+                                class="w-20 border-t mb-1 mx-auto transition-colors"
+                                :class="['border-gray-400 dark:border-gray-600']"
+                              ></div>
+                              <div
+                                class="text-xs mb-1 transition-colors"
+                                :class="['text-gray-500 dark:text-gray-400']"
+                              >
+                                Signature
+                              </div>
+                              <div
+                                class="text-xs font-medium transition-colors"
+                                :class="['text-gray-700 dark:text-gray-300']"
+                              >
+                                Principal
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  <!-- Zoom Controls -->
+                  <div
+                    class="mt-6 flex items-center gap-3 rounded-lg px-4 py-2 shadow-sm border transition-colors"
+                    :class="['bg-white dark:bg-gray-800', 'border-gray-200 dark:border-gray-700']"
+                  >
+                    <button
+                      type="button"
+                      @click="zoomOut"
+                      class="p-2 rounded transition-colors"
+                      :class="['hover:bg-gray-100 dark:hover:bg-gray-700']"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut
+                        class="h-4 w-4 transition-colors"
+                        :class="['text-gray-600 dark:text-gray-400']"
+                      />
+                    </button>
+                    <span
+                      class="text-sm font-medium min-w-[3rem] text-center transition-colors"
+                      :class="['text-gray-700 dark:text-gray-300']"
+                      >{{ zoomLevel }}%</span
+                    >
+                    <button
+                      type="button"
+                      @click="zoomIn"
+                      class="p-2 rounded transition-colors"
+                      :class="['hover:bg-gray-100 dark:hover:bg-gray-700']"
+                      title="Zoom In"
+                    >
+                      <ZoomIn
+                        class="h-4 w-4 transition-colors"
+                        :class="['text-gray-600 dark:text-gray-400']"
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <!-- Modal footer -->
-              <div class="bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                <div class="flex justify-between items-center">
+              <div
+                class="px-6 py-4 border-t transition-colors"
+                :class="['bg-gray-50 dark:bg-gray-800', 'border-gray-200 dark:border-gray-700']"
+              >
+                <div class="flex justify-end">
                   <button
                     type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                    :class="[
+                      'bg-gray-600 dark:bg-gray-700',
+                      'text-white dark:text-gray-100',
+                      'hover:bg-gray-700 dark:hover:bg-gray-600',
+                      'focus:ring-gray-500 dark:focus:ring-gray-400'
+                    ]"
                     @click="showPreviewModal = false"
                   >
                     <X class="h-4 w-4" />
                     Close
                   </button>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      @click="editTemplate(selectedTemplate)"
-                      class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                    >
-                      <Edit class="h-4 w-4" />
-                      Edit Template
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -429,23 +499,71 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { FileText, Edit, Trash2, Users, Layout, Building, Eye, X, ZoomIn, ZoomOut } from 'lucide-vue-next';
-
-// Helper function to get full image URL
-const getFullImageUrl = (path) => {
-  if (!path) return null;
-  // If it's already a full URL, return as is
-  if (path.startsWith('http') || path.startsWith('blob:')) {
-    return path;
-  }
-  // Otherwise, prepend the API base URL if it's a relative path
-  const baseUrl = process.env.NUXT_PUBLIC_API_BASE_URL || '';
-  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
-};
+import {
+  FileText,
+  Edit,
+  Trash2,
+  Users,
+  Layout,
+  Building,
+  Eye,
+  X,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-vue-next';
 import Pagination from '~/components/ui/Pagination.vue';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
+import { getCertificateUrl } from '~/utils/image';
+import { useAuthStore } from '~/stores/auth';
+
+// Helper function to get full image URL for certificate images
+// Structure: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+const getFullImageUrl = (path, template = null) => {
+  if (!path) return null;
+  
+  // If it's already a full URL or data URL, return as is
+  if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  
+  // Get school code from multiple sources (priority order):
+  // 1. Template's branch school code (if template has branch with school)
+  // 2. Selected branch's school code (from availableBranches)
+  // 3. Current school from auth store
+  let schoolCode = '';
+  
+  // Try from template's branch if available
+  if (template?.branch?.school?.code) {
+    schoolCode = template.branch.school.code;
+  } else if (template?.branch?.school_code) {
+    schoolCode = template.branch.school_code;
+  }
+  
+  // Try from available branches if template has branch_id
+  if (!schoolCode && template?.branch_id) {
+    const branch = availableBranches.value.find(b => b.id === template.branch_id);
+    if (branch?.school?.code) {
+      schoolCode = branch.school.code;
+    } else if (branch?.school_code) {
+      schoolCode = branch.school_code;
+    }
+  }
+  
+  // Fallback to current school from auth store
+  if (!schoolCode && authStore.currentSchool?.code) {
+    schoolCode = authStore.currentSchool.code;
+  }
+  
+  if (!schoolCode) {
+    console.warn('⚠️ Could not determine school code for certificate image URL');
+    return null;
+  }
+  
+  // Construct the certificate URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
+  return getCertificateUrl(path, schoolCode);
+};
 
 // Composables
 const {
@@ -457,6 +575,7 @@ const {
 } = useCertificateTemplates();
 const { availableBranches, fetchBranchesForUser } = useBranches();
 const { showToast } = useToast();
+const authStore = useAuthStore();
 
 // Preview modal state
 const showPreviewModal = ref(false);
@@ -506,9 +625,9 @@ const zoomOut = () => {
   }
 };
 
-const renderPreviewContent = (content) => {
+const renderPreviewContent = content => {
   if (!content) return '<p class="text-gray-500">No content available</p>';
-  
+
   // Sample data for preview
   const sampleData = {
     name: 'John Doe',
@@ -528,17 +647,36 @@ const renderPreviewContent = (content) => {
     department: 'Mathematics',
     joining_date: '2020-08-01',
     institute_name: 'Sample Institute',
+    institute_email: 'info@institute.com',
+    institute_address: '123 Education Street, City, Country',
+    institute_mobile_no: '+123 456 7890',
+    logo: '🏫',
+    signature: '✍️',
+    qr_code: '📱',
     print_date: new Date().toLocaleDateString()
   };
 
   let previewContent = content;
-  
-  // Replace {tag} patterns with sample data
+
+  // First, handle dynamic tags that might be wrapped in span tags from the editor
+  // Match patterns like: <span class="dynamic-tag" data-tag="name">{name}</span>
+  Object.keys(sampleData).forEach(tag => {
+    const tagRegex = new RegExp(
+      `<span[^>]*class=["']dynamic-tag["'][^>]*data-tag=["']${tag}["'][^>]*>\\{${tag}\\}</span>`,
+      'gi'
+    );
+    previewContent = previewContent.replace(
+      tagRegex,
+      `<span class="preview-tag">${sampleData[tag]}</span>`
+    );
+  });
+
+  // Then replace plain {tag} patterns with sample data (preserves HTML structure)
   Object.keys(sampleData).forEach(tag => {
     const regex = new RegExp(`\\{${tag}\\}`, 'g');
     previewContent = previewContent.replace(
       regex,
-      `<span class="inline-block bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-2 py-0.5 rounded text-xs font-semibold">${sampleData[tag]}</span>`
+      `<span class="preview-tag">${sampleData[tag]}</span>`
     );
   });
 
@@ -558,3 +696,102 @@ onMounted(async () => {
   loadTemplates();
 });
 </script>
+
+<style scoped>
+/* Preview tag styles */
+.certificate-preview-content :deep(.preview-tag) {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin: 0 2px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Preserve HTML formatting in preview */
+.certificate-preview-content {
+  line-height: 1.6;
+}
+
+.certificate-preview-content :deep(p) {
+  margin: 0.75em 0;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+.certificate-preview-content :deep(strong) {
+  font-weight: 600;
+  color: inherit;
+}
+
+.certificate-preview-content :deep(em) {
+  font-style: italic;
+}
+
+.certificate-preview-content :deep(u) {
+  text-decoration: underline;
+}
+
+.certificate-preview-content :deep([style*='text-align: center']) {
+  text-align: center !important;
+}
+
+.certificate-preview-content :deep([style*='text-align: right']) {
+  text-align: right !important;
+}
+
+.certificate-preview-content :deep([style*='text-align: left']) {
+  text-align: left !important;
+}
+
+.certificate-preview-content :deep([style*='text-align: justify']) {
+  text-align: justify !important;
+}
+
+.certificate-preview-content :deep(ul),
+.certificate-preview-content :deep(ol) {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.certificate-preview-content :deep(li) {
+  margin: 0.25em 0;
+}
+
+.certificate-preview-content :deep(h1) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.certificate-preview-content :deep(h2) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.certificate-preview-content :deep(h3) {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.certificate-preview-content :deep(div) {
+  margin: 0;
+}
+
+/* Preserve inline styles from templates */
+.certificate-preview-content :deep([style]) {
+  /* All inline styles are preserved */
+}
+</style>

@@ -33,8 +33,9 @@ async function getSchoolCodeFromId(schoolId) {
 
 /**
  * Get school-specific upload path
+ * Structure: uploads/schools/{schoolCode}/{year}/{type}/
  * @param {string} schoolCode - School code (e.g., 'DPS', 'SMHS')
- * @param {string} type - Upload type (documents, logos, profile-images, id-cards)
+ * @param {string} type - Upload type (documents, logos, profile-images, id-cards, certificates, report-cards)
  * @param {string} year - Optional year for partitioning (YYYY format)
  * @returns {string} Full path to school-specific upload directory
  */

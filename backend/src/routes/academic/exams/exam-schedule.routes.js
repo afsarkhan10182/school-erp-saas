@@ -60,6 +60,17 @@ router.post(
 );
 
 /**
+ * @route   POST /api/exam-schedules/bulk
+ * @desc    Bulk create exam schedules
+ * @access  Private (Admin, Branch Admin)
+ */
+router.post(
+  '/bulk',
+  requireRole('admin', 'super_admin'),
+  ExamScheduleController.bulkCreateExamSchedules
+);
+
+/**
  * @route   POST /api/exam-schedules/quick
  * @desc    Create quick exam schedule ()
  * @access  Private (Admin, Branch Admin)

@@ -68,7 +68,16 @@ router.delete('/:reportId', requireRole(EXAM_ADMIN_ROLES), ExamReportController.
  * @route GET /api/exam-reports/:reportId
  * @desc Get single report
  * @access Private (EXAM_ROLES)
+ * @note This catch-all route should not match /download/:reportId which is handled in exam-reports.js
  */
-router.get('/:reportId', requireRole(EXAM_ROLES), ExamReportController.getById);
+router.get('/:reportId', requireRole(EXAM_ROLES), (req, res, next) => {
+  // Skip if this is a download request (should be handled by exam-reports.js)
+  // Check if the original URL contains /download/ to avoid matching download routes
+  const originalUrl = req.originalUrl || req.url;
+  if (originalUrl.includes('/download/')) {
+    return next('route'); // Skip this route handler, let it fall through to exam-reports.js
+  }
+  ExamReportController.getById(req, res, next);
+});
 
 module.exports = router;

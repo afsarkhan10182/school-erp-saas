@@ -125,8 +125,9 @@ const ExamResult = sequelize.define(
     hooks: {
       beforeSave: async result => {
         try {
-          // Auto-calculate percentage if not provided
-          if (result.marks_obtained && !result.percentage) {
+          // Auto-calculate percentage if marks_obtained is provided
+          // Always recalculate to ensure accuracy when marks change
+          if (result.marks_obtained !== null && result.marks_obtained !== undefined) {
             const exam = await sequelize.models.Exam.findByPk(result.exam_id);
             if (exam && exam.max_marks > 0) {
               result.percentage = (result.marks_obtained / exam.max_marks) * 100;
@@ -134,7 +135,8 @@ const ExamResult = sequelize.define(
           }
 
           // Auto-calculate grade and grade points using database-driven system
-          if (result.percentage && !result.grade) {
+          // Always recalculate grade when percentage changes
+          if (result.percentage !== null && result.percentage !== undefined) {
             // Get school_id from exam
             const exam = await sequelize.models.Exam.findByPk(result.exam_id);
             if (exam && exam.school_id) {

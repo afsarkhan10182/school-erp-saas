@@ -149,7 +149,7 @@
     >
       <editor-content
         :editor="editor"
-        class="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none cursor-text"
+        class="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none cursor-text certificate-editor"
         :class="[
           'bg-white dark:bg-gray-800 text-gray-900 dark:text-white',
           'prose-headings:text-gray-900 dark:prose-headings:text-white',
@@ -295,7 +295,15 @@ const handleEditorClick = () => {
 const processContentForTags = content => {
   if (!content) return '';
 
+  // First check if tags are already wrapped in dynamic-tag spans
+  // If they are, return as-is. Otherwise, convert plain {tag} patterns to styled tags
+  if (content.includes('class="dynamic-tag"') || content.includes("class='dynamic-tag'")) {
+    // Tags are already processed, return as-is
+    return content;
+  }
+
   // Convert plain {tag} patterns to styled tags
+  // This handles templates that have plain {tag} text
   return content.replace(
     /\{([^}]+)\}/g,
     '<span class="dynamic-tag" data-tag="$1" contenteditable="false">{$1}</span>'
@@ -419,5 +427,84 @@ onBeforeUnmount(() => {
 
 .dark .tag-menu::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Certificate editor styling to match preview */
+.certificate-editor :deep(.ProseMirror) {
+  min-height: 200px;
+}
+
+/* Preserve inline styles from templates */
+.certificate-editor :deep(.ProseMirror [style]) {
+  /* Allow all inline styles to be preserved */
+}
+
+/* Ensure headings display properly */
+.certificate-editor :deep(.ProseMirror h1) {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.certificate-editor :deep(.ProseMirror h2) {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.certificate-editor :deep(.ProseMirror h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Ensure paragraphs have proper spacing */
+.certificate-editor :deep(.ProseMirror p) {
+  margin: 0.5em 0;
+}
+
+/* Ensure divs preserve their styling */
+.certificate-editor :deep(.ProseMirror div) {
+  margin: 0;
+}
+
+/* Preserve text alignment */
+.certificate-editor :deep(.ProseMirror [style*="text-align: center"]) {
+  text-align: center !important;
+}
+
+.certificate-editor :deep(.ProseMirror [style*="text-align: right"]) {
+  text-align: right !important;
+}
+
+.certificate-editor :deep(.ProseMirror [style*="text-align: left"]) {
+  text-align: left !important;
+}
+
+.certificate-editor :deep(.ProseMirror [style*="text-align: justify"]) {
+  text-align: justify !important;
+}
+
+/* Preserve font sizes from inline styles */
+.certificate-editor :deep(.ProseMirror [style*="font-size"]) {
+  /* Font size will be preserved via inline style */
+}
+
+/* Preserve colors from inline styles */
+.certificate-editor :deep(.ProseMirror [style*="color"]) {
+  /* Color will be preserved via inline style */
+}
+
+/* Preserve line-height from inline styles */
+.certificate-editor :deep(.ProseMirror [style*="line-height"]) {
+  /* Line height will be preserved via inline style */
+}
+
+/* Preserve margins from inline styles */
+.certificate-editor :deep(.ProseMirror [style*="margin"]) {
+  /* Margins will be preserved via inline style */
 }
 </style>

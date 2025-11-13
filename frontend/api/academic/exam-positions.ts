@@ -18,6 +18,7 @@ export interface StudentForPosition {
 export interface PositionFilters {
   exam_id: string;
   class_id: string;
+  section_id?: string;
   school_id?: string;
   branch_id?: string;
 }
@@ -25,6 +26,7 @@ export interface PositionFilters {
 export interface CalculatePositionsData {
   exam_id: string;
   class_id: string;
+  section_id?: string;
   calculation_method: 'total_marks' | 'percentage' | 'grade_points';
   tie_breaking_method: 'average' | 'first' | 'manual';
   include_absent: boolean;

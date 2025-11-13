@@ -24,7 +24,7 @@ function getApiBase(): string {
  */
 export function getImageUrl(
   filename: string | null | undefined,
-  type: 'logos' | 'profile-images' | 'documents' | 'id-cards',
+  type: 'logos' | 'profile-images' | 'documents' | 'id-cards' | 'certificates' | 'report-cards',
   schoolCode?: string,
   apiBase?: string,
   year?: number
@@ -102,6 +102,23 @@ export function getDocumentUrl(
 }
 
 /**
+ * Generate certificate URL (commonly used for certificate template images)
+ * @param filename - The filename of the certificate image
+ * @param schoolCode - The school code for the image path
+ * @param apiBase - Optional API base URL
+ * @param year - Optional year, defaults to current year
+ * @returns Complete URL to the certificate image
+ */
+export function getCertificateUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'certificates', schoolCode, apiBase, year);
+}
+
+/**
  * Generate ID card URL (commonly used for student ID cards)
  * @param filename - The filename of the ID card
  * @param year - Optional year, defaults to current year
@@ -114,6 +131,23 @@ export function getIdCardUrl(
   year?: number
 ): string {
   return getImageUrl(filename, 'id-cards', schoolCode, apiBase, year);
+}
+
+/**
+ * Generate report card URL (commonly used for report card designs and generated PDFs)
+ * @param filename - The filename of the report card
+ * @param schoolCode - The school code for the image path
+ * @param apiBase - Optional API base URL
+ * @param year - Optional year, defaults to current year
+ * @returns Complete URL to the report card
+ */
+export function getReportCardUrl(
+  filename: string | null | undefined,
+  schoolCode?: string,
+  apiBase?: string,
+  year?: number
+): string {
+  return getImageUrl(filename, 'report-cards', schoolCode, apiBase, year);
 }
 
 /**

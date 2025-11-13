@@ -1,9 +1,9 @@
 const { DataTypes } = require('sequelize');
+const { sequelize } = require('~/config/database');
 
-const ExamPosition = sequelize => {
-  const ExamPosition = sequelize.define(
-    'ExamPosition',
-    {
+const ExamPosition = sequelize.define(
+  'ExamPosition',
+  {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
@@ -65,6 +65,16 @@ const ExamPosition = sequelize => {
         allowNull: true,
         comment: 'Additional remarks about the position'
       },
+      teacher_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Teacher comment on student performance'
+      },
+      principal_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Principal comment on student performance'
+      },
       school_id: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -89,6 +99,7 @@ const ExamPosition = sequelize => {
     {
       tableName: 'exam_positions',
       timestamps: true,
+      underscored: true,
       paranoid: false,
       indexes: [
         {
@@ -120,40 +131,37 @@ const ExamPosition = sequelize => {
     }
   );
 
-  // Associations
-  ExamPosition.associate = models => {
-    ExamPosition.belongsTo(models.Exam, {
-      foreignKey: 'exam_id',
-      as: 'exam'
-    });
+// Associations
+ExamPosition.associate = models => {
+  ExamPosition.belongsTo(models.Exam, {
+    foreignKey: 'exam_id',
+    as: 'exam'
+  });
 
-    ExamPosition.belongsTo(models.Student, {
-      foreignKey: 'student_id',
-      as: 'student'
-    });
+  ExamPosition.belongsTo(models.Student, {
+    foreignKey: 'student_id',
+    as: 'student'
+  });
 
-    ExamPosition.belongsTo(models.School, {
-      foreignKey: 'school_id',
-      as: 'school'
-    });
+  ExamPosition.belongsTo(models.School, {
+    foreignKey: 'school_id',
+    as: 'school'
+  });
 
-    ExamPosition.belongsTo(models.Branch, {
-      foreignKey: 'branch_id',
-      as: 'branch'
-    });
+  ExamPosition.belongsTo(models.Branch, {
+    foreignKey: 'branch_id',
+    as: 'branch'
+  });
 
-    ExamPosition.belongsTo(models.User, {
-      foreignKey: 'created_by',
-      as: 'createdBy'
-    });
+  ExamPosition.belongsTo(models.User, {
+    foreignKey: 'created_by',
+    as: 'createdBy'
+  });
 
-    ExamPosition.belongsTo(models.User, {
-      foreignKey: 'updated_by',
-      as: 'updatedBy'
-    });
-  };
-
-  return ExamPosition;
+  ExamPosition.belongsTo(models.User, {
+    foreignKey: 'updated_by',
+    as: 'updatedBy'
+  });
 };
 
 module.exports = ExamPosition;
