@@ -518,8 +518,8 @@
                     <input
                       v-model="form.amount"
                       type="number"
-                      step="100"
-                      min="100"
+                      step="0.01"
+                      min="0.01"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                       placeholder="e.g., 21000"
                     />
@@ -596,8 +596,8 @@
                             <input
                               v-model="form.installment_amounts[i - 1]"
                               type="number"
-                              step="100"
-                              min="100"
+                              step="0.01"
+                              min="0.01"
                               @input="onInstallmentAmountChange"
                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                               :placeholder="`Installment ${i} amount`"
@@ -661,8 +661,8 @@
                   <input
                     v-model="form.monthly_payment_amount"
                     type="number"
-                    step="100"
-                    min="100"
+                    step="0.01"
+                    min="0.01"
                     @input="onMonthlyPaymentChange"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., 1000"
@@ -1392,11 +1392,7 @@ const loadFormData = async () => {
 watch(
   user,
   async newUser => {
-    if (
-      newUser?.role === 'admin' &&
-      newUser?.school_id &&
-      availableBranches.value.length === 0
-    ) {
+    if (newUser?.role === 'admin' && newUser?.school_id && availableBranches.value.length === 0) {
       await fetchBranchesForSchoolAdmin();
     }
   },
