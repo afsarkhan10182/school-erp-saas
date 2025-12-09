@@ -3,6 +3,19 @@ require('dotenv').config();
 
 const env = process.env.NODE_ENV || 'development';
 
+// Critical environment variables that must be present
+const requiredEnvs = ['JWT_SECRET'];
+
+// Check for missing environment variables
+const missingEnvs = requiredEnvs.filter(key => !process.env[key]);
+
+if (missingEnvs.length > 0) {
+  throw new Error(
+    `Critical security error: Missing required environment variables: ${missingEnvs.join(', ')}. ` +
+      'Please check your .env file.'
+  );
+}
+
 const redisEnabled = process.env.REDIS_ENABLED !== 'false' && process.env.REDIS_ENABLED !== '0';
 
 const config = {
@@ -15,12 +28,12 @@ const config = {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
+    password: process.env.DB_PASSWORD, // No default password for security
     name: process.env.DB_NAME || 'school_erp',
     dialect: 'postgres'
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'your_jwt_secret',
+    secret: process.env.JWT_SECRET, // Required, checked above
     accessExpirationMinutes: process.env.JWT_ACCESS_EXPIRATION_MINUTES || 60 * 24, // 24 hours
     refreshExpirationDays: process.env.JWT_REFRESH_EXPIRATION_DAYS || 7 // 7 days
   },
@@ -37,7 +50,7 @@ const config = {
     enabled: redisEnabled,
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || ''
+    password: process.env.REDIS_PASSWORD // No default password
   },
   uploads: {
     dir: process.env.UPLOADS_DIR || './uploads',
@@ -71,8 +84,8 @@ const config = {
     port: process.env.SMTP_PORT || 587,
     secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER || '',
-      pass: process.env.SMTP_PASS || ''
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS // No default password
     },
     from: process.env.SMTP_FROM || 'School ERP <noreply@schoolerp.com>'
   },
