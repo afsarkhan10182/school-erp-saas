@@ -3,6 +3,7 @@ const { logger } = require('~/utils/shared/logger');
 const { getRedisClient } = require('~/config/redis');
 const ApiError = require('~/utils/shared/ApiError');
 const { robustMiddleware, safeMiddleware } = require('~/middleware/shared/robust');
+const { School } = require('~/models');
 
 const verifyToken = async (req, res, next) => {
   try {
@@ -60,6 +61,22 @@ const verifyToken = async (req, res, next) => {
       logger.error('Redis error during token verification:', redisError);
       // Continue without blacklist check if Redis is unavailable
       logger.warn('Proceeding without Redis blacklist check');
+    }
+
+    // Check if user's school is suspended (simple DB check)
+    if (decoded.school_id && decoded.role !== 'super_admin') {
+      try {
+        const school = await School.findByPk(decoded.school_id, {
+          attributes: ['id', 'status']
+        });
+        if (school && !['active', 'trial'].includes(school.status)) {
+          logger.warn(`School ${decoded.school_id} is suspended, rejecting token`);
+          return next(new ApiError(403, 'Your school account has been suspended. Please contact support.'));
+        }
+      } catch (error) {
+        logger.error('Error checking school status:', error);
+        // Continue if check fails to avoid blocking legitimate requests
+      }
     }
 
     // Add user to request object
