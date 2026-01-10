@@ -105,8 +105,8 @@ class AuthService {
         throw new ApiError(403, 'Your account is not active. Please contact support.');
       }
 
-      // Check if school is active (allow active, trial, and suspended statuses)
-      if (user.school && !['active', 'trial', 'suspended'].includes(user.school.status)) {
+      // Check if school is active (only allow active and trial statuses)
+      if (user.school && !['active', 'trial'].includes(user.school.status)) {
         throw new ApiError(403, 'Your school account is not active. Please contact support.');
       }
 
@@ -241,6 +241,24 @@ class AuthService {
 
       if (!user) {
         throw new ApiError(404, 'User not found');
+      }
+
+      // Check if user is active
+      if (user.status !== 'active') {
+        throw new ApiError(403, 'Your account is not active. Please contact support.');
+      }
+
+      // Check if school is active (only allow active and trial statuses)
+      if (user.school && !['active', 'trial'].includes(user.school.status)) {
+        throw new ApiError(403, 'Your school account has been suspended. Please contact support.');
+      }
+
+      // Check if branch is active
+      if (user.branch && user.branch.status !== 'active') {
+        throw new ApiError(
+          403,
+          'Your branch is not active. Please contact your school administrator.'
+        );
       }
 
       // Generate new tokens
