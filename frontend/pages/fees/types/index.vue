@@ -18,6 +18,22 @@
         </button>
       </div>
 
+      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Branch
+        </label>
+        <select
+          v-model="selectedBranchId"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+          @change="fetchFeeTypes"
+        >
+          <option value="">All Branches</option>
+          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+            {{ branch.name }}
+          </option>
+        </select>
+      </div>
+
       <!-- Fee Types List -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
@@ -559,6 +575,9 @@ const fetchFeeTypes = async () => {
     const params = {};
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
+    }
+    if (selectedBranchId.value) {
+      params.branch_id = selectedBranchId.value;
     }
     const response = await FeeTypes.getAll(params);
     feeTypes.value = response.data;

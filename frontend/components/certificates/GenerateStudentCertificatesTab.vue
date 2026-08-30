@@ -7,15 +7,15 @@
       <!-- Form Fields -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
         <!-- Branch Selection -->
-        <div class="space-y-2">
+        <div v-if="showBranchDropdown" class="space-y-2">
           <EnhancedDropdown
             id="branch"
             v-model="filters.branch_id"
-            :options="branches.map(branch => ({ value: branch.id, label: branch.name }))"
+            :options="branchChoices.map(branch => ({ value: branch.id, label: branch.name }))"
             label="Branch"
             placeholder="Select Branch"
             required
-            @change="loadClasses"
+            @change="handleBranchChange"
           />
         </div>
 
@@ -293,7 +293,7 @@ import { usePrintReport } from '~/composables/usePrintReport';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
-const { branches, fetchBranchesForUser } = useBranches();
+const { branches, availableBranches, fetchBranchesForUser } = useBranches();
 const { students, loadStudents: loadStudentsApi } = useStudents();
 const { templates, loadTemplates, generateStudentCertificates } = useCertificateTemplates();
 const {
@@ -329,6 +329,16 @@ const allSelected = computed(() => {
 const hasStreams = computed(() => {
   return streams.value.length > 0;
 });
+const branchChoices = computed(() => availableBranches.value.length ? availableBranches.value : branches.value);
+const showBranchDropdown = computed(() => branchChoices.value.length > 1);
+
+const handleBranchChange = async () => {
+  filters.template_id = '';
+  await Promise.all([
+    loadClasses(),
+    loadTemplates({ user_type: 'student', branch_id: filters.branch_id || undefined })
+  ]);
+};
 
 // Methods
 const loadClasses = async () => {
@@ -737,6 +747,10 @@ const emit = defineEmits(['success']);
 
 onMounted(async () => {
   await fetchBranchesForUser();
-  await loadTemplates({ user_type: 'student' });
+  if (branchChoices.value.length === 1) {
+    filters.branch_id = branchChoices.value[0].id;
+    await loadClasses();
+  }
+  await loadTemplates({ user_type: 'student', branch_id: filters.branch_id || undefined });
 });
 </script>

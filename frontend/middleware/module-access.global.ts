@@ -24,9 +24,10 @@ export default defineNuxtRouteMiddleware(async to => {
 
   // Skip for login/logout routes
   if (to.path === '/auth/login' || to.path === '/logout') return;
+  if (to.path.startsWith('/apply/')) return;
 
-  // Skip for dashboard
-  if (to.path === '/dashboard') return;
+  // Skip for dashboard and student/parent portal
+  if (to.path === '/dashboard' || to.path === '/portal') return;
 
   // Auth composable handles initialization automatically
 

@@ -17,6 +17,8 @@ export interface AcademicCalendarFilters {
   day_type?: string;
   start_date?: string;
   end_date?: string;
+  school_id?: string;
+  branch_id?: string;
   page?: number;
   limit?: number;
 }
@@ -26,6 +28,8 @@ export interface CreateCalendarEventData {
   day_type: 'working' | 'holiday' | 'weekend' | 'exam' | 'event';
   description?: string;
   academic_year: string;
+  school_id?: string;
+  branch_id?: string;
 }
 
 export interface UpdateCalendarEventData extends Partial<CreateCalendarEventData> {}
@@ -41,6 +45,8 @@ export const AcademicCalendar = {
     if (filters.day_type) params.append('day_type', filters.day_type);
     if (filters.start_date) params.append('start_date', filters.start_date);
     if (filters.end_date) params.append('end_date', filters.end_date);
+    if (filters.school_id) params.append('school_id', filters.school_id);
+    if (filters.branch_id) params.append('branch_id', filters.branch_id);
     if (filters.page) params.append('page', filters.page.toString());
     if (filters.limit) params.append('limit', filters.limit.toString());
 

@@ -82,6 +82,14 @@ const Student = sequelize.define(
       allowNull: true,
       defaultValue: 'general'
     },
+    category_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'student_categories',
+        key: 'id'
+      }
+    },
     nationality: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -276,6 +284,7 @@ const Student = sequelize.define(
       { fields: ['school_id'] },
       { fields: ['branch_id'] },
       { fields: ['status'] },
+      { fields: ['category_id'] },
       { fields: ['academic_year'] },
       { fields: ['current_class'] },
       { fields: ['admission_date'] },
@@ -386,6 +395,11 @@ Student.associate = models => {
   Student.belongsTo(models.Section, {
     foreignKey: 'section_id',
     as: 'sectionInfo'
+  });
+
+  Student.belongsTo(models.StudentCategory, {
+    foreignKey: 'category_id',
+    as: 'categoryInfo'
   });
 
   // Student has many Parents through StudentParent

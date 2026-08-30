@@ -335,18 +335,20 @@
             </label>
             <select
               id="category"
-              v-model="form.category"
+              v-model="form.category_id"
               class="input-field"
               :class="{
                 'border-red-500 focus:border-red-500 focus:ring-red-500': getFieldError('category')
               }"
             >
               <option value="">Select Category</option>
-              <option value="general">General</option>
-              <option value="obc">OBC</option>
-              <option value="sc">SC</option>
-              <option value="st">ST</option>
-              <option value="other">Other</option>
+              <option
+                v-for="category in studentCategories"
+                :key="category.id"
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
             </select>
             <div
               v-if="getFieldError('category')"
@@ -677,6 +679,34 @@
               placeholder="Enter student address"
             ></textarea>
           </div>
+          <div class="md:col-span-2">
+            <label
+              for="student_present_address"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Present Address</label
+            >
+            <textarea
+              id="student_present_address"
+              v-model="form.student.present_address"
+              class="input-field"
+              rows="2"
+              placeholder="Enter present address"
+            ></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label
+              for="student_permanent_address"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >Permanent Address</label
+            >
+            <textarea
+              id="student_permanent_address"
+              v-model="form.student.permanent_address"
+              class="input-field"
+              rows="2"
+              placeholder="Enter permanent address"
+            ></textarea>
+          </div>
 
           <div>
             <label
@@ -692,6 +722,71 @@
               class="input-field"
               @change="handleFileUpload('student_profile', $event)"
             />
+          </div>
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
+            Sibling Details
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sibling Admission No
+              </label>
+              <input
+                v-model.trim="form.student.sibling_admission_number"
+                type="text"
+                class="input-field"
+                placeholder="Existing sibling admission no"
+              />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sibling Details
+              </label>
+              <input
+                v-model.trim="form.student.sibling_details"
+                type="text"
+                class="input-field"
+                placeholder="Name, class or notes"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
+            Transport Details
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Route
+              </label>
+              <select v-model="form.student.transport_route_id" class="input-field" @change="syncTransportLabels">
+                <option value="">No transport route</option>
+                <option v-for="item in transportRoutes" :key="item.id" :value="item.id">{{ item.title }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Vehicle
+              </label>
+              <select v-model="form.student.transport_vehicle_id" class="input-field" @change="syncTransportLabels">
+                <option value="">No vehicle</option>
+                <option v-for="item in transportVehicles" :key="item.id" :value="item.id">{{ item.title }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Stoppage
+              </label>
+              <select v-model="form.student.transport_stop_id" class="input-field" @change="syncTransportLabels">
+                <option value="">No stoppage</option>
+                <option v-for="item in transportStops" :key="item.id" :value="item.id">{{ item.title }}</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -759,6 +854,42 @@
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Add details of previous examinations (SSC, FYJC, SYJC, etc.)
         </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Previous School Name
+            </label>
+            <input
+              v-model.trim="form.student.previous_school_name"
+              type="text"
+              class="input-field"
+              placeholder="Last school attended"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Qualification
+            </label>
+            <input
+              v-model.trim="form.student.previous_school_qualification"
+              type="text"
+              class="input-field"
+              placeholder="Previous qualification"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Remarks
+            </label>
+            <input
+              v-model.trim="form.student.previous_school_remarks"
+              type="text"
+              class="input-field"
+              placeholder="Previous school remarks"
+            />
+          </div>
+        </div>
 
         <!-- Previous Exam Entries -->
         <div
@@ -1212,6 +1343,61 @@
         </div>
       </div>
 
+      <div
+        v-if="admissionCustomFields.length"
+        class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"
+      >
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+          <span
+            class="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center mr-3"
+            >6</span
+          >
+          Custom Fields
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div v-for="field in admissionCustomFields" :key="field.id">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {{ field.title }} <span v-if="field.is_required" class="text-red-500">*</span>
+            </label>
+            <select
+              v-if="field.field_type === 'select'"
+              v-model="form.custom_fields[field.id]"
+              :required="field.is_required"
+              class="input-field"
+              :class="{ 'border-red-500': getFieldError(`custom_fields.${field.id}`) }"
+            >
+              <option value="">Select {{ field.title }}</option>
+              <option v-for="option in customFieldOptions(field)" :key="option" :value="option">
+                {{ option }}
+              </option>
+            </select>
+            <textarea
+              v-else-if="field.field_type === 'textarea'"
+              v-model="form.custom_fields[field.id]"
+              :required="field.is_required"
+              class="input-field"
+              rows="2"
+              :class="{ 'border-red-500': getFieldError(`custom_fields.${field.id}`) }"
+            ></textarea>
+            <label v-else-if="field.field_type === 'checkbox'" class="inline-flex items-center gap-2 mt-2">
+              <input v-model="form.custom_fields[field.id]" type="checkbox" class="rounded border-gray-300" />
+              <span class="text-sm text-gray-700 dark:text-gray-300">Yes</span>
+            </label>
+            <input
+              v-else
+              v-model="form.custom_fields[field.id]"
+              :type="['date', 'number'].includes(field.field_type) ? field.field_type : 'text'"
+              :required="field.is_required"
+              class="input-field"
+              :class="{ 'border-red-500': getFieldError(`custom_fields.${field.id}`) }"
+            />
+            <p v-if="getFieldError(`custom_fields.${field.id}`)" class="mt-1 text-sm text-red-600">
+              {{ getFieldError(`custom_fields.${field.id}`) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Action Buttons -->
       <div class="flex justify-end space-x-4">
         <button type="button" @click="resetForm" class="btn-secondary">Reset Form</button>
@@ -1266,6 +1452,8 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { Students } from '~/api';
+import { SchoolOps } from '~/api/shared/school-ops';
+import { StudentCategories } from '~/api/students';
 import { useRoute, useRouter } from 'vue-router';
 import FormField from '~/components/ui/FormField.vue';
 import FormValidationSummary from '~/components/ui/FormValidationSummary.vue';
@@ -1385,6 +1573,18 @@ const activeSectionsFiltered = computed(() => {
   return filteredSections;
 });
 
+const admissionCustomFields = computed(() =>
+  customFields.value
+    .filter(field => field.is_active !== false && field.show_on_admission !== false)
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+);
+
+const customFieldOptions = field =>
+  String(field.notes || '')
+    .split('\n')
+    .map(option => option.trim())
+    .filter(Boolean);
+
 // Academic data
 const {
   academicYears,
@@ -1433,6 +1633,11 @@ const {
 // Form state
 const loading = ref(false);
 const sectionsLoading = ref(false);
+const studentCategories = ref([]);
+const customFields = ref([]);
+const transportRoutes = ref([]);
+const transportVehicles = ref([]);
+const transportStops = ref([]);
 const streamsLoading = ref(false);
 const loadingSchools = ref(false);
 const loadingBranches = ref(false);
@@ -1458,6 +1663,7 @@ const form = reactive({
   stream_id: '',
   section_id: '',
   category: '',
+  category_id: '',
   admission_type: '',
 
   // Temporary fields for mapping names to IDs in edit mode
@@ -1481,10 +1687,24 @@ const form = reactive({
     city: '',
     state: '',
     address: '',
+    present_address: '',
+    permanent_address: '',
+    sibling_admission_number: '',
+    sibling_details: '',
+    previous_school_name: '',
+    previous_school_qualification: '',
+    previous_school_remarks: '',
+    transport_route_id: '',
+    transport_route: '',
+    transport_vehicle_id: '',
+    transport_vehicle: '',
+    transport_stop_id: '',
+    transport_stop: '',
     profile_picture: null,
     aadhaar_number: '',
     previous_exam_details: []
   },
+  custom_fields: {},
 
   // Login details
   login: {
@@ -1630,6 +1850,21 @@ watch(
       if (newData.state) form.student.state = newData.state;
       if (newData.address) form.student.address = newData.address;
       if (newData.aadhaar_number) form.student.aadhaar_number = newData.aadhaar_number;
+      const admissionExtras = newData.documents?.admission_extras || {};
+      form.student.present_address = admissionExtras.present_address || '';
+      form.student.permanent_address = admissionExtras.permanent_address || '';
+      form.student.sibling_admission_number = admissionExtras.sibling_admission_number || '';
+      form.student.sibling_details = admissionExtras.sibling_details || '';
+      form.student.previous_school_name = admissionExtras.previous_school_name || '';
+      form.student.previous_school_qualification = admissionExtras.previous_school_qualification || '';
+      form.student.previous_school_remarks = admissionExtras.previous_school_remarks || '';
+      form.student.transport_route_id = admissionExtras.transport_route_id || '';
+      form.student.transport_route = admissionExtras.transport_route || '';
+      form.student.transport_vehicle_id = admissionExtras.transport_vehicle_id || '';
+      form.student.transport_vehicle = admissionExtras.transport_vehicle || '';
+      form.student.transport_stop_id = admissionExtras.transport_stop_id || '';
+      form.student.transport_stop = admissionExtras.transport_stop || '';
+      Object.assign(form.custom_fields, newData.documents?.custom_fields || {});
 
       if (newData.previous_exam_details) {
         // Handle both string and array formats
@@ -2022,12 +2257,58 @@ const loadAcademicData = async () => {
 
     // Don't auto-select class in create mode - let user choose
     // Auto-selection only happens in edit mode through onBranchChange
+    await loadCustomFields();
+    await loadTransportOptions();
   } catch (error) {
     console.error('❌ loadAcademicData error:', error);
     showError('Failed to load academic data');
   } finally {
     academicsLoading.value = false;
   }
+};
+
+const loadCustomFields = async () => {
+  if (!form.school_id) return;
+  try {
+    const res = await SchoolOps.list('custom_field', {
+      school_id: form.school_id,
+      ...(form.branch_id ? { branch_id: form.branch_id } : {})
+    });
+    customFields.value = res.data?.records || [];
+    admissionCustomFields.value.forEach(field => {
+      if (form.custom_fields[field.id] === undefined) {
+        form.custom_fields[field.id] = field.field_type === 'checkbox' ? false : '';
+      }
+    });
+  } catch (error) {
+    customFields.value = [];
+  }
+};
+
+const loadTransportOptions = async () => {
+  if (!form.school_id || !form.branch_id) return;
+  const params = { school_id: form.school_id };
+  try {
+    const [routes, vehicles, stops] = await Promise.all([
+      SchoolOps.list('transport_route', params),
+      SchoolOps.list('transport_vehicle', params),
+      SchoolOps.list('transport_stop', params)
+    ]);
+    transportRoutes.value = routes.data?.records || [];
+    transportVehicles.value = vehicles.data?.records || [];
+    transportStops.value = stops.data?.records || [];
+    syncTransportLabels();
+  } catch (error) {
+    transportRoutes.value = [];
+    transportVehicles.value = [];
+    transportStops.value = [];
+  }
+};
+
+const syncTransportLabels = () => {
+  form.student.transport_route = transportRoutes.value.find(item => item.id === form.student.transport_route_id)?.title || '';
+  form.student.transport_vehicle = transportVehicles.value.find(item => item.id === form.student.transport_vehicle_id)?.title || '';
+  form.student.transport_stop = transportStops.value.find(item => item.id === form.student.transport_stop_id)?.title || '';
 };
 
 // Validation functions for numeric fields
@@ -2205,6 +2486,13 @@ const handleSubmit = async () => {
     setFieldError('guardian.email', 'Please enter a valid email address');
   }
 
+  admissionCustomFields.value.forEach(field => {
+    const value = form.custom_fields[field.id];
+    if (field.is_required && field.field_type !== 'checkbox' && !String(value || '').trim()) {
+      setFieldError(`custom_fields.${field.id}`, `${field.title} is required`);
+    }
+  });
+
   // Check if there are any validation errors
   if (hasErrors.value) {
     // Scroll to validation summary and show toast
@@ -2234,12 +2522,15 @@ const handleSubmit = async () => {
       stream_id: form.stream_id,
       section_id: form.section_id,
       category: form.category,
+      category_id: form.category_id,
       admission_type: form.admission_type,
       student: {
         ...form.student,
-        category: form.category, // Add category to student object
+        category: form.category, // legacy fallback
+        category_id: form.category_id,
         admission_date: form.admission_date // Add admission_date to student object
       },
+      custom_fields: { ...form.custom_fields },
       login: form.login,
       guardian: { ...form.guardian }
     };
@@ -2437,11 +2728,19 @@ const resetForm = () => {
       city: '',
       state: '',
       address: '',
+      present_address: '',
+      permanent_address: '',
+      sibling_admission_number: '',
+      sibling_details: '',
+      previous_school_name: '',
+      previous_school_qualification: '',
+      previous_school_remarks: '',
       profile_picture: null,
       aadhaar_number: '',
 
       previous_exam_details: []
     },
+    custom_fields: {},
     login: {
       username: '',
       password: '',
@@ -2615,6 +2914,7 @@ const updateFormWithResponseData = async data => {
   form.roll_number = data.roll_number || form.roll_number;
   form.admission_date = data.admission_date || form.admission_date;
   form.category = data.category || form.category;
+  form.category_id = data.category_id || data.categoryInfo?.id || form.category_id;
 
   console.log('🔍 Updating form with response data - roll_number:', data.roll_number);
 
@@ -2633,6 +2933,21 @@ const updateFormWithResponseData = async data => {
   if (data.state) form.student.state = data.state;
   if (data.address) form.student.address = data.address;
   if (data.aadhaar_number) form.student.aadhaar_number = data.aadhaar_number;
+  const admissionExtras = data.documents?.admission_extras || {};
+  form.student.present_address = admissionExtras.present_address || '';
+  form.student.permanent_address = admissionExtras.permanent_address || '';
+  form.student.sibling_admission_number = admissionExtras.sibling_admission_number || '';
+  form.student.sibling_details = admissionExtras.sibling_details || '';
+  form.student.previous_school_name = admissionExtras.previous_school_name || '';
+  form.student.previous_school_qualification = admissionExtras.previous_school_qualification || '';
+  form.student.previous_school_remarks = admissionExtras.previous_school_remarks || '';
+  form.student.transport_route_id = admissionExtras.transport_route_id || '';
+  form.student.transport_route = admissionExtras.transport_route || '';
+  form.student.transport_vehicle_id = admissionExtras.transport_vehicle_id || '';
+  form.student.transport_vehicle = admissionExtras.transport_vehicle || '';
+  form.student.transport_stop_id = admissionExtras.transport_stop_id || '';
+  form.student.transport_stop = admissionExtras.transport_stop || '';
+  Object.assign(form.custom_fields, data.documents?.custom_fields || {});
 
   if (data.previous_exam_details) {
     // Handle both string and array formats
@@ -2968,6 +3283,13 @@ const loadSchools = async () => {
 // Load data on component mount
 onMounted(async () => {
   try {
+    try {
+      const categoriesResponse = await StudentCategories.getAll();
+      studentCategories.value = categoriesResponse?.data?.categories || [];
+    } catch (error) {
+      studentCategories.value = [];
+    }
+
     if (!user.value) {
       showError('Please log in to access this page');
       router.push('/auth/login');

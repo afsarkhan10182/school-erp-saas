@@ -3,7 +3,7 @@ const { logger } = require('~/utils/shared/logger');
 const { getRedisClient } = require('~/config/redis');
 const ApiError = require('~/utils/shared/ApiError');
 const { robustMiddleware, safeMiddleware } = require('~/middleware/shared/robust');
-const { School } = require('~/models');
+const { School, Branch } = require('~/models');
 
 const verifyToken = async (req, res, next) => {
   try {
@@ -226,7 +226,7 @@ const setSchoolContext = (req, res, next) => {
 };
 
 // Branch context middleware
-const setBranchContext = (req, res, next) => {
+const setBranchContext = async (req, res, next) => {
   try {
     // Check if user is authenticated
     if (!req.user) {
@@ -238,12 +238,24 @@ const setBranchContext = (req, res, next) => {
     if (['super_admin', 'admin'].includes(req.user.role)) {
       // If branch_id is provided in query/params, use it
       req.branchId = req.query?.branch_id || req.params?.branch_id || req.body?.branch_id;
+      if (req.branchId) {
+        const branch = await Branch.findByPk(req.branchId);
+        if (!branch) return next(new ApiError(400, 'Invalid branch context'));
+        if (req.schoolId && branch.school_id !== req.schoolId) {
+          return next(new ApiError(403, 'Not authorized to access this branch context'));
+        }
+        if (req.user.role === 'super_admin' && !req.schoolId) req.schoolId = branch.school_id;
+      }
       logger.debug('setBranchContext: Super/School admin - branchId set to:', req.branchId);
       return next();
     }
 
     // For other roles, they can only access their own branch
     if (req.user.branch_id) {
+      const requestBranchId = req.query?.branch_id || req.params?.branch_id || req.body?.branch_id;
+      if (requestBranchId && requestBranchId !== req.user.branch_id) {
+        return next(new ApiError(403, 'Not authorized to access this branch context'));
+      }
       req.branchId = req.user.branch_id;
       logger.debug(
         'setBranchContext: User role (' + req.user.role + ') - branchId set to:',
@@ -263,8 +275,10 @@ const setBranchContext = (req, res, next) => {
 const tenantIsolation = model => {
   return async (req, res, next) => {
     try {
-      // For super admin, no tenant filtering
+      // For super admin, selected tenant context filters; no school stays global
       if (req.user.role === 'super_admin') {
+        if (req.schoolId) req.where = { ...req.where, school_id: req.schoolId };
+        if (req.branchId) req.where = { ...req.where, branch_id: req.branchId };
         return next();
       }
 

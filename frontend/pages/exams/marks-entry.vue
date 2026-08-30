@@ -26,6 +26,19 @@
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div v-if="showBranchDropdown">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Branch <span class="text-red-500">*</span>
+              </label>
+              <EnhancedDropdown
+                v-model="selectedBranchId"
+                :options="branchOptions"
+                placeholder="Select branch"
+                :loading="branchesLoading"
+                @change="onBranchChange"
+              />
+            </div>
+
             <!-- Exam -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -359,6 +372,7 @@ const branchOptions = computed(() =>
     label: branch.name
   }))
 );
+const showBranchDropdown = computed(() => branches.value.length > 1);
 
 const examOptions = computed(() =>
   exams.value.map(exam => ({
@@ -478,7 +492,7 @@ const loadSubjectsForClass = async () => {
   }
 };
 
-const onBranchChange = () => {
+const onBranchChange = async () => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
@@ -486,6 +500,10 @@ const onBranchChange = () => {
   students.value = [];
   Object.keys(studentMarks).forEach(key => delete studentMarks[key]);
   markDistribution.value = null;
+  await Promise.all([
+    loadExams(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {}),
+    fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id })
+  ]);
 };
 
 const onExamChange = () => {
@@ -615,7 +633,13 @@ const saveMarks = async () => {
     })) as any;
 
     if (response.success) {
-      showToast(`Marks saved for ${response.data.successful.length} students`, 'success');
+      const failed = response.data.errors?.length || 0;
+      showToast(
+        failed
+          ? `Marks saved for ${response.data.successful.length}; ${failed} failed`
+          : `Marks saved for ${response.data.successful.length} students`,
+        failed ? 'error' : 'success'
+      );
       // Reload students to show updated data
       await loadStudents();
     }
@@ -651,6 +675,11 @@ onMounted(async () => {
     await fetchClasses({
       branchId: user.value.branch_id
     });
+  } else if (branches.value.length === 1) {
+    selectedBranchId.value = branches.value[0].id;
+    await fetchClasses({ branchId: selectedBranchId.value });
+  } else {
+    await fetchClasses();
   }
 });
 </script>

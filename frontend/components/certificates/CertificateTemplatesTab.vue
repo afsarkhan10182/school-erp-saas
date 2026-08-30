@@ -1,5 +1,17 @@
 <template>
   <div class="space-y-6">
+    <select
+      v-if="availableBranches.length > 1"
+      v-model="selectedBranchId"
+      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+      @change="loadSelectedTemplates"
+    >
+      <option value="">All Branches</option>
+      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+        {{ branch.name }}
+      </option>
+    </select>
+
     <!-- Templates List -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
       <!-- Loading State -->
@@ -581,10 +593,15 @@ const authStore = useAuthStore();
 const showPreviewModal = ref(false);
 const selectedTemplate = ref(null);
 const zoomLevel = ref(100);
+const selectedBranchId = ref('');
 
 // Methods
 const handlePageChange = page => {
-  loadTemplates({ page });
+  loadTemplates({ page, ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {}) });
+};
+
+const loadSelectedTemplates = () => {
+  loadTemplates(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {});
 };
 
 const editTemplate = template => {
@@ -602,7 +619,7 @@ const deleteTemplate = async template => {
     try {
       await deleteTemplateApi(template.id);
       showToast('Template deleted successfully', 'success');
-      loadTemplates();
+      loadSelectedTemplates();
     } catch (error) {
       showToast('Failed to delete template', 'error');
     }
@@ -688,12 +705,13 @@ const emit = defineEmits(['edit', 'refresh', 'success']);
 
 // Expose methods for parent component
 defineExpose({
-  loadTemplates: () => loadTemplates()
+  loadTemplates: loadSelectedTemplates
 });
 
 onMounted(async () => {
   await fetchBranchesForUser();
-  loadTemplates();
+  if (availableBranches.value.length === 1) selectedBranchId.value = availableBranches.value[0].id;
+  loadSelectedTemplates();
 });
 </script>
 

@@ -1,4 +1,7 @@
 import { useAuthStore } from '~/stores/auth';
+import { homePathForRole } from '~/utils/home-path';
+
+export { homePathForRole };
 
 export const useAuth = () => {
   const authStore = useAuthStore();
@@ -17,9 +20,9 @@ export const useAuth = () => {
         // Determine redirect destination with priority:
         // 1. Explicit redirectTo parameter (from query string)
         // 2. Post-logout redirect (saved before logout)
-        // 3. Default dashboard
+        // 3. Role home (portal for student/parent)
         let destination = redirectTo;
-        
+
         if (!destination && import.meta.client) {
           const savedRedirect = sessionStorage.getItem('post-logout-redirect');
           if (savedRedirect) {
@@ -28,8 +31,9 @@ export const useAuth = () => {
             sessionStorage.removeItem('post-logout-redirect');
           }
         }
-        
-        destination = destination || '/dashboard';
+
+        const role = authStore.userRole || authStore.currentUser?.role;
+        destination = destination || homePathForRole(role);
         await navigateTo(destination, { replace: true });
         return result;
       } else {

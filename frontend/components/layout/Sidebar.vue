@@ -89,22 +89,26 @@
 
       <!-- Actual navigation content -->
       <nav v-else class="px-2 py-4 space-y-2">
-        <!-- Dashboard -->
+        <!-- Dashboard / Portal home -->
         <div class="relative group">
           <NuxtLink
-            :to="'/dashboard'"
-            :class="navClass('/dashboard')"
-            @click="handleMenuClick('/dashboard', $event)"
+            :to="homePath"
+            :class="navClass(homePath)"
+            @click="handleMenuClick(homePath, $event)"
           >
             <Home class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
-            <span v-if="open || isMobile">Dashboard</span>
+            <span v-if="open || isMobile">{{
+              homePath === '/portal' ? 'My Portal' : 'Dashboard'
+            }}</span>
           </NuxtLink>
           <!-- Hover Menu for Collapsed State -->
           <div
             v-if="!open && !isMobile"
             class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 px-3 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700"
           >
-            <span class="text-sm font-medium text-gray-900 dark:text-white">Dashboard</span>
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{
+              homePath === '/portal' ? 'My Portal' : 'Dashboard'
+            }}</span>
           </div>
         </div>
 
@@ -237,8 +241,8 @@
               <!-- Submenu Items -->
               <div
                 v-show="menuOpen === menuItem.id && open"
-                class="overflow-hidden transition-all duration-300 ease-in-out"
-                :class="[open ? 'max-h-96' : 'max-h-0']"
+                class="overflow-y-auto transition-all duration-300 ease-in-out"
+                :class="[open ? 'max-h-[70vh]' : 'max-h-0']"
               >
                 <div class="ml-8 space-y-1 py-1">
                   <!-- Handle nested submenus -->
@@ -264,8 +268,8 @@
                       <!-- Nested submenu items -->
                       <div
                         v-show="subMenuOpen === subItem.id && open"
-                        class="overflow-hidden transition-all duration-300 ease-in-out"
-                        :class="[open ? 'max-h-96' : 'max-h-0']"
+                        class="overflow-y-auto transition-all duration-300 ease-in-out"
+                        :class="[open ? 'max-h-[50vh]' : 'max-h-0']"
                       >
                         <div class="ml-8 space-y-1 py-1">
                           <NuxtLink
@@ -322,6 +326,7 @@ import { useMobileDetection } from '~/composables/useMobileDetection';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import { useAcademicSettings } from '~/utils/settings';
 import { getLogoUrl } from '~/utils/image';
+import { buildSchoolSidebar } from '~/config/school-sidebar';
 import {
   Home,
   School,
@@ -354,7 +359,20 @@ import {
   Award,
   Trophy,
   Globe,
-  FileBarChart
+  FileBarChart,
+  Bus,
+  Warehouse,
+  Mail,
+  MessageSquare,
+  Truck,
+  BedDouble,
+  Package,
+  Phone,
+  Megaphone,
+  Wallet,
+  Paperclip,
+  Video,
+  MapPin
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -451,599 +469,79 @@ const loadStreamsSetting = async () => {
   }
 };
 
-// Menu configuration
-const menuGroups = computed(() => {
-  const groups = [];
-
-  // SaaS Management (Super Admin Only)
-  if (isSuperAdmin.value) {
-    groups.push({
-      id: 'saas',
-      title: 'SaaS Management',
-      items: [
-        {
-          id: 'saas-management',
-          title: 'School Subscriptions',
-          icon: CreditCard,
-          children: [
-            {
-              id: 'customer-overview',
-              title: 'Overview',
-              path: '/saas',
-              icon: BarChart3
-            },
-            {
-              id: 'subscription-plans',
-              title: 'Subscription Plans',
-              path: '/saas/plans',
-              icon: List
-            },
-            {
-              id: 'renewal-requests',
-              title: 'Renewal Requests',
-              path: '/saas/renewal-requests',
-              icon: FileText
-            }
-          ]
-        }
-      ]
-    });
-
-    // Administration (Super Admin Only)
-    groups.push({
-      id: 'school-admin',
-      title: 'Administration',
-      items: [
-        {
-          id: 'manage-branches',
-          title: 'Branches',
-          path: '/branches',
-          icon: Building2
-        },
-        {
-          id: 'config-management',
-          title: 'Configuration',
-          path: '/admin/config',
-          icon: Settings
-        }
-      ]
-    });
-  }
-
-  // Student Management
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value || isReceptionist.value) {
-    groups.push({
-      id: 'students',
-      title: 'Student Management',
-      items: [
-        {
-          id: 'students',
-          title: 'Students',
-          icon: GraduationCap,
-          requiredModule: 'students',
-          children: [
-            {
-              id: 'new-student',
-              title: 'New Student',
-              path: '/students/create',
-              icon: UserPlus,
-              requiredModule: 'students'
-            },
-            {
-              id: 'all-students',
-              title: 'All Students',
-              path: '/students',
-              icon: Users,
-              requiredModule: 'students'
-            },
-            {
-              id: 'multiple-import',
-              title: 'Multiple Import',
-              path: '/students/import',
-              icon: ClipboardList,
-              requiredModule: 'students'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Academic Module
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
-    groups.push({
-      id: 'academic',
-      title: 'Academic Management',
-      items: [
-        {
-          id: 'academic-setup',
-          title: 'Academic Setup',
-          icon: BookOpen,
-          children: [
-            // Academic Years - only for super admin and school admin
-            ...(isSuperAdmin.value
-              ? [
-                  {
-                    id: 'academic-years',
-                    title: 'Academic Years',
-                    path: '/academic/years',
-                    icon: Calendar
-                  }
-                ]
-              : []),
-            {
-              id: 'classes',
-              title: 'Classes',
-              path: '/academic/classes',
-              icon: GraduationCap
-            },
-            // Streams - only show if streams are enabled
-            ...(streamsEnabled.value
-              ? [
-                  {
-                    id: 'streams',
-                    title: 'Streams',
-                    path: '/academic/streams',
-                    icon: BookOpen
-                  }
-                ]
-              : []),
-            {
-              id: 'class-management',
-              title: 'Class Assignments',
-              path: '/academic/class-assignments',
-              icon: BookOpen,
-              requiredModule: 'academic_management'
-            },
-            {
-              id: 'sections',
-              title: 'Sections',
-              path: '/academic/sections',
-              icon: Users
-            },
-            {
-              id: 'subjects',
-              title: 'Subjects',
-              path: '/academic/subjects',
-              icon: BookOpen,
-              requiredModule: 'academic_management'
-            },
-            {
-              id: 'timetable',
-              title: 'Timetable',
-              path: '/academic/timetable',
-              icon: Calendar,
-              requiredModule: 'academic_management'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Attendance Module
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
-    groups.push({
-      id: 'attendance',
-      title: 'Attendance Management',
-      items: [
-        {
-          id: 'attendance-management',
-          title: 'Attendance',
-          icon: ClipboardList,
-          requiredModule: 'attendance',
-          children: [
-            {
-              id: 'attendance-sessions',
-              title: 'Take Attendance',
-              path: '/attendance',
-              icon: ClipboardList,
-              requiredModule: 'attendance'
-            },
-            {
-              id: 'attendance-analytics',
-              title: 'Attendance Analytics',
-              path: '/attendance/analytics',
-              icon: BarChart3,
-              requiredModule: 'attendance'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Certificates Module
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
-    groups.push({
-      id: 'certificates',
-      title: 'Certificate Management',
-      items: [
-        {
-          id: 'certificate-management',
-          title: 'Certificates',
-          icon: Award,
-          requiredModule: 'certificates',
-          children: [
-            {
-              id: 'certificate-templates',
-              title: 'Certificate Templates',
-              path: '/certificates/templates',
-              icon: FileText,
-              requiredModule: 'certificates'
-            },
-            {
-              id: 'generate-student',
-              title: 'Student Certificates',
-              path: '/certificates/generate-students',
-              icon: GraduationCap,
-              requiredModule: 'certificates'
-            },
-            {
-              id: 'generate-employee',
-              title: 'Employee Certificates',
-              path: '/certificates/generate-employees',
-              icon: Users,
-              requiredModule: 'certificates'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Exams Module
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
-    groups.push({
-      id: 'exams',
-      title: 'Exam Management',
-      items: [
-        {
-          id: 'exam-management',
-          title: 'Exams',
-          icon: FileText,
-          requiredModule: 'exams',
-          children: [
-            {
-              id: 'exam-setup',
-              title: 'Exam Setup',
-              path: '/exams/setup',
-              icon: Settings,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'exams',
-              title: 'Exams',
-              path: '/exams',
-              icon: BookOpen,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'exam-schedules',
-              title: 'Exam Schedules',
-              path: '/exams/schedules',
-              icon: Calendar,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'exam-results',
-              title: 'Exam Results',
-              path: '/exams/results',
-              icon: BarChart3,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'marks-entry',
-              title: 'Marks Entry',
-              path: '/exams/marks-entry',
-              icon: Edit3,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'report-cards',
-              title: 'Report Cards',
-              path: '/exams/report-cards',
-              icon: FileText,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'positions',
-              title: 'Position Management',
-              path: '/exams/positions',
-              icon: Trophy,
-              requiredModule: 'exams'
-            },
-            {
-              id: 'publication',
-              title: 'Result Publication',
-              path: '/exams/publication',
-              icon: Globe,
-              requiredModule: 'exams'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Fee Management
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value || isAccountant.value) {
-    groups.push({
-      id: 'fees',
-      title: 'Fee Management',
-      items: [
-        {
-          id: 'fee-management',
-          title: 'Fees',
-          icon: DollarSign,
-          requiredModule: 'fees',
-          children: [
-            {
-              id: 'fee-types',
-              title: 'Fee Types',
-              path: '/fees/types',
-              icon: Tag,
-              requiredModule: 'fees'
-            },
-            {
-              id: 'fee-structures',
-              title: 'Fee Structures',
-              path: '/fees/structures',
-              icon: List,
-              requiredModule: 'fees'
-            },
-            {
-              id: 'invoices',
-              title: 'Invoices',
-              path: '/fees/invoices',
-              icon: Receipt,
-              requiredModule: 'fees'
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Reports & Analytics
-  if (isSuperAdmin.value || isAdmin.value || isBranchAdmin.value) {
-    groups.push({
-      id: 'reports',
-      title: 'Reports & Analytics',
-      items: [
-        {
-          id: 'reports',
-          title: 'Reports',
-          icon: BarChart3,
-          requiredModule: 'reports',
-          children: [
-            {
-              id: 'fees',
-              title: 'Fees',
-              icon: DollarSign,
-              requiredModule: 'fees',
-              children: [
-                {
-                  id: 'fee-management-report',
-                  title: 'Fee Management',
-                  path: '/reports/fees',
-                  icon: PieChart,
-                  requiredModule: 'fees'
-                },
-                {
-                  id: 'receipts-report',
-                  title: 'Receipts Report',
-                  path: '/reports/receipts',
-                  icon: Receipt,
-                  requiredModule: 'fees'
-                }
-              ]
-            },
-            {
-              id: 'student',
-              title: 'Student',
-              icon: Users,
-              requiredModule: 'students',
-              children: [
-                {
-                  id: 'student-reports',
-                  title: 'Student Reports',
-                  path: '/reports/students',
-                  icon: BarChart3,
-                  requiredModule: 'students'
-                },
-                {
-                  id: 'attendance-reports',
-                  title: 'Attendance Reports',
-                  path: '/reports/attendance',
-                  icon: UserCheck,
-                  requiredModule: 'attendance'
-                }
-              ]
-            },
-            {
-              id: 'exams',
-              title: 'Exams',
-              icon: BookOpen,
-              requiredModule: 'exams',
-              children: [
-                {
-                  id: 'exam-reports',
-                  title: 'Exam Reports',
-                  path: '/reports/exams',
-                  icon: FileBarChart,
-                  requiredModule: 'exams'
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  // Teacher Dashboard (Teachers only)
-  if (user.value?.role === 'teacher') {
-    groups.push({
-      id: 'teacher-dashboard',
-      title: 'My Schedule',
-      items: [
-        {
-          id: 'my-timetable',
-          title: 'My Timetable',
-          path: '/academic/timetables',
-          icon: Clock,
-          requiredModule: 'exams'
-        }
-      ]
-    });
-  }
-
-  if (isReceptionist.value) {
-    groups.push({
-      id: 'front-office',
-      title: 'Front Office',
-      items: [
-        {
-          id: 'new-student',
-          title: 'New Student',
-          path: '/students/create',
-          icon: UserPlus
-        },
-        {
-          id: 'all-students',
-          title: 'All Students',
-          path: '/students',
-          icon: Users
-        },
-        {
-          id: 'visitors',
-          title: 'Visitors',
-          path: '/visitors',
-          icon: UserCheck
-        }
-      ]
-    });
-  }
-
-  // User/Staff Management
-  if (isSuperAdmin.value || isAdmin.value) {
-    const userManagementItems = [];
-
-    if (isSuperAdmin.value) {
-      userManagementItems.push({
-        id: 'user-list',
-        title: 'User List',
-        path: '/users',
-        icon: Users
-      });
-    } else if (isAdmin.value) {
-      userManagementItems.push({
-        id: 'staff-list',
-        title: 'Staff List',
-        path: '/users',
-        icon: Users
-      });
+// Menu configuration — workflow groups (Admission / Student Details / Parents / ...)
+const menuGroups = computed(() =>
+  buildSchoolSidebar({
+    isSuperAdmin: isSuperAdmin.value,
+    isAdmin: isAdmin.value,
+    isBranchAdmin: isBranchAdmin.value,
+    isAccountant: isAccountant.value,
+    isReceptionist: isReceptionist.value,
+    isTeacher: user.value?.role === 'teacher',
+    isLibrarian: user.value?.role === 'librarian',
+    isStudent: user.value?.role === 'student',
+    isParent: user.value?.role === 'parent',
+    streamsEnabled: streamsEnabled.value,
+    icons: {
+      Home,
+      School,
+      Building2,
+      Users,
+      UserPlus,
+      GraduationCap,
+      DollarSign,
+      CreditCard,
+      Receipt,
+      BarChart3,
+      PieChart,
+      TrendingUp,
+      BookOpen,
+      Calendar,
+      List,
+      Tag,
+      ClipboardList,
+      User,
+      Settings,
+      UserCheck,
+      FileText,
+      Clock,
+      Edit3,
+      CheckCircle,
+      Building,
+      Award,
+      Trophy,
+      Globe,
+      FileBarChart,
+      Bus,
+      Warehouse,
+      Mail,
+      MessageSquare,
+      Truck,
+      BedDouble,
+      Package,
+      Phone,
+      Megaphone,
+      Wallet,
+      Paperclip,
+      Video,
+      MapPin
     }
+  })
+);
 
-    groups.push({
-      id: 'user-management',
-      title: isSuperAdmin.value ? 'User Management' : 'Staff Management',
-      items: userManagementItems
-    });
-  }
+/** Apply subscription module filter to each group (DRY via useModuleAccess). */
+const visibleMenuGroups = computed(() =>
+  menuGroups.value
+    .map(group => ({
+      ...group,
+      items: filterMenuByModules(group.items || [])
+    }))
+    .filter(group => (group.items || []).length > 0)
+);
 
-  // Settings
-  if (isSuperAdmin.value || isAdmin.value) {
-    const settingsItems = [];
-
-    // Super Admin gets full settings
-    if (isSuperAdmin.value) {
-      settingsItems.push(
-        {
-          id: 'settings-main',
-          title: 'Settings',
-          path: '/settings',
-          icon: Settings
-        },
-        {
-          id: 'profile',
-          title: 'Profile',
-          path: '/settings/profile',
-          icon: User
-        }
-      );
-    }
-    // Admin gets simplified settings
-    else if (isAdmin.value) {
-      settingsItems.push(
-        {
-          id: 'settings-main',
-          title: 'School Settings',
-          path: '/settings',
-          icon: Settings
-        },
-        {
-          id: 'profile',
-          title: 'Profile',
-          path: '/settings/profile',
-          icon: User
-        }
-      );
-    }
-
-    groups.push({
-      id: 'settings',
-      title: 'Settings',
-      items: settingsItems
-    });
-  }
-
-  // Branch Admin gets only profile access
-  if (isBranchAdmin.value) {
-    groups.push({
-      id: 'profile',
-      title: 'Profile',
-      items: [
-        {
-          id: 'profile',
-          title: 'Profile',
-          path: '/settings/profile',
-          icon: User
-        }
-      ]
-    });
-  }
-
-  return groups;
-});
-
-// Get visible menu groups based on user role and module access
-const visibleMenuGroups = computed(() => {
-  // Super admin: show all menu groups
-  if (isSuperAdmin.value) {
-    return menuGroups.value;
-  }
-
-  // For non-super admins, filter based on modules
-  if (!userModules.value?.length) {
-    // Return basic menu items that don't require modules
-    return menuGroups.value.filter(group => group.id === 'profile' || group.id === 'settings');
-  }
-
-  // Use the improved filtering from useModuleAccess
-  const filtered = menuGroups.value
-    .map(group => {
-      const filteredItems = filterMenuByModules(group.items);
-      return {
-        ...group,
-        items: filteredItems
-      };
-    })
-    .filter(group => group.items.length > 0); // remove empty groups
-
-  return filtered;
-});
+const homePath = computed(() =>
+  user.value?.role === 'student' || user.value?.role === 'parent' ? '/portal' : '/dashboard'
+);
 
 const toggleMenu = menu => {
   menuOpen.value = menuOpen.value === menu ? '' : menu;

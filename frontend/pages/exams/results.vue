@@ -505,7 +505,7 @@ const loadResults = async () => {
       // If specific exam selected, fetch just that exam
       const examResponse = await examApi.getById(selectedExamId.value);
       if (examResponse.success && examResponse.data) {
-        examsList = [examResponse.data];
+        examsList = [examResponse.data.exam || examResponse.data];
       }
     } else {
       // Fetch all exams matching filters
@@ -557,10 +557,14 @@ const loadResults = async () => {
             if (results.length > 0) {
               // Calculate statistics
               const totalStudents = results.length;
-              const passedCount = results.filter((r: any) => r.is_passed && !r.is_absent).length;
-              const failedCount = results.filter((r: any) => !r.is_passed && !r.is_absent).length;
+              const passedCount = results.filter(
+                (r: any) => !r.is_absent && Number(r.percentage) >= 40
+              ).length;
+              const failedCount = results.filter(
+                (r: any) => !r.is_absent && Number(r.percentage) < 40
+              ).length;
               const totalPercentage = results.reduce(
-                (sum: number, r: any) => sum + (r.percentage || 0),
+                (sum: number, r: any) => sum + Number(r.percentage || 0),
                 0
               );
               const averagePercentage = totalStudents > 0 ? totalPercentage / totalStudents : 0;

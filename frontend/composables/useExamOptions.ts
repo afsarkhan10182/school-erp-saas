@@ -9,7 +9,7 @@ interface DropdownOption {
 
 /**
  * Composable for managing hardcoded exam options
- * Uses hardcoded exam types following CodeIgniter approach
+ * Uses hardcoded exam types
  */
 export const useExamOptions = () => {
   const { showToast } = useToast();

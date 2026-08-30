@@ -17,6 +17,18 @@
       </button>
     </div>
 
+    <select
+      v-if="branches.length > 1"
+      v-model="selectedBranchId"
+      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+      @change="loadDistributions"
+    >
+      <option value="">All Branches</option>
+      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+        {{ branch.name }}
+      </option>
+    </select>
+
     <!-- Distributions Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <div v-if="loading" class="p-8 text-center">
@@ -214,6 +226,7 @@ const {
 const showModal = ref(false);
 const saving = ref(false);
 const editingDistribution = ref(null);
+const selectedBranchId = ref('');
 
 // Form data - Only essential fields
 const form = reactive({
@@ -233,8 +246,8 @@ const branchOptions = computed(() =>
 // Methods
 const loadDistributions = async () => {
   await loadMarkDistributions({
-    school_id: user.value.school_id
-    // Remove branch_id filter to show all distributions for the school
+    school_id: user.value.school_id,
+    ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
   });
 };
 
@@ -342,6 +355,8 @@ defineExpose({
 
 // Load initial data
 onMounted(async () => {
+  await fetchBranches();
+  if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
   await loadData();
 });
 </script>

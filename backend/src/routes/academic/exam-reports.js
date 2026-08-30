@@ -4,7 +4,9 @@ const {
   getStudentsForReportCards,
   getReportCardTemplates,
   generateReportCards,
-  downloadReportCard
+  downloadReportCard,
+  getTabulationSheet,
+  getProgressReport
 } = require('~/controllers/academic/exam-reports/exam-reports.controller');
 const { verifyToken, setSchoolContext, setBranchContext } = require('~/middleware/core/auth');
 const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
@@ -15,6 +17,9 @@ router.use(verifyToken, setSchoolContext, setBranchContext, requireModuleAccess(
 
 // GET /api/exam-reports/students - Get students for report cards
 router.get('/students', getStudentsForReportCards);
+
+router.get('/tabulation', getTabulationSheet);
+router.get('/progress', getProgressReport);
 
 // GET /api/exam-reports/templates - Get report card templates
 router.get('/templates', getReportCardTemplates);

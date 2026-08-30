@@ -27,6 +27,22 @@
         </div>
       </div>
 
+      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Branch
+        </label>
+        <select
+          v-model="filterBranchId"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+          @change="loadStreams"
+        >
+          <option value="">All Branches</option>
+          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+            {{ branch.name }}
+          </option>
+        </select>
+      </div>
+
       <!-- Streams Table -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
@@ -402,6 +418,7 @@ const submitting = ref(false);
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingStream = ref<any>(null);
+const filterBranchId = ref('');
 
 // Pagination
 const pagination = reactive({
@@ -497,6 +514,7 @@ const loadStreams = async () => {
       page: pagination.page,
       limit: pagination.limit
     };
+    if (filterBranchId.value) params.branch_id = filterBranchId.value;
 
     console.log('Streams API params:', params);
     const response = await Streams.getAll(params);

@@ -1,4 +1,5 @@
 import { useAuth } from '~/composables/useAuth';
+import { homePathForRole } from '~/utils/home-path';
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Only run on client side
@@ -13,7 +14,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     '/auth/forgot-password',
     '/auth/reset-password'
   ];
-  const isPublicRoute = publicRoutes.includes(to.path);
+  const isPublicRoute = publicRoutes.includes(to.path) || to.path.startsWith('/apply/');
 
   // INSTANT CHECK: Look for HTTP-only cookie presence (prevents flash on new tabs)
   const accessToken = useCookie('accessToken');
@@ -24,7 +25,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // CASE 1: User is authenticated (via store or cookie) and trying to access login page
   if (to.path === '/auth/login' && (isAuthenticated || hasTokenCookie)) {
-    return navigateTo('/dashboard');
+    return navigateTo(homePathForRole(user.value?.role));
   }
 
   // CASE 2: User has token cookie but store isn't initialized yet (new tab scenario)

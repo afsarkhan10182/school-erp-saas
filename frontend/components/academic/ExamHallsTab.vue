@@ -17,6 +17,18 @@
       </button>
     </div>
 
+    <select
+      v-if="branches.length > 1"
+      v-model="selectedBranchId"
+      class="border rounded-md px-3 py-2 text-sm mb-6 dark:bg-gray-800 dark:border-gray-700"
+      @change="loadData"
+    >
+      <option value="">All Branches</option>
+      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+        {{ branch.name }}
+      </option>
+    </select>
+
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">
@@ -150,6 +162,7 @@ import { ref, onMounted } from 'vue';
 import { Plus, Building, Edit, Trash2 } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useToast } from '~/composables/useToast';
+import { useBranches } from '~/composables/useBranches';
 import ExamHallModal from './ExamHallModal.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
@@ -165,6 +178,7 @@ const emit = defineEmits<{
 
 // Composables
 const { showToast } = useToast();
+const { branches, fetchBranches } = useBranches();
 const {
   halls,
   loading,
@@ -180,6 +194,7 @@ const {
 // State
 const showModal = ref(false);
 const editingHall = ref<ExamHall | null>(null);
+const selectedBranchId = ref('');
 
 // Methods
 const openCreateModal = () => {
@@ -196,7 +211,7 @@ const deleteHallConfirm = async (hall: ExamHall) => {
   if (confirm(`Are you sure you want to delete "${hall.name}"? This action cannot be undone.`)) {
     await deleteHall(hall.id);
     // Reload halls after deletion
-    await loadExamHalls();
+    await loadData();
     emit('success');
   }
 };
@@ -209,13 +224,13 @@ const closeModal = () => {
 const handleSuccess = async () => {
   closeModal();
   // Reload halls after create/update
-  await loadExamHalls();
+  await loadData();
   emit('success');
 };
 
 // Expose methods to parent component
 const loadData = async () => {
-  await loadExamHalls();
+  await loadExamHalls(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {});
 };
 
 defineExpose({
@@ -224,6 +239,8 @@ defineExpose({
 
 // Lifecycle
 onMounted(async () => {
+  await fetchBranches();
+  if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
   await loadData();
 });
 </script>

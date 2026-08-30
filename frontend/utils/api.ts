@@ -104,6 +104,27 @@ export const apiCall = async (
   data?: any
 ) => {
   const api = createApiInstance();
-  const response = await api[method](endpoint, data);
-  return response.data;
+  try {
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      delete api.defaults.headers.common['Content-Type'];
+      delete api.defaults.headers.post['Content-Type'];
+      delete api.defaults.headers.put['Content-Type'];
+      delete api.defaults.headers.patch['Content-Type'];
+    }
+    const response =
+      method === 'get' || method === 'delete'
+        ? await api[method](endpoint, data)
+        : await api[method](endpoint, data);
+    return response.data;
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Request failed';
+    const err = new Error(message) as any;
+    err.response = error?.response;
+    err.status = error?.response?.status;
+    throw err;
+  }
 };

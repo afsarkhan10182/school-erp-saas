@@ -1073,6 +1073,7 @@ watch(
 const onBranchChange = async event => {
   const branchId = event.target.value;
   selectedBranch.value = branchId;
+  authStore.setCurrentBranch(availableBranches.value.find(branch => branch.id === branchId) || null);
   // Refresh dashboard data with new branch filter
   await fetchDashboardData();
   // Refresh fee collection summary with new branch filter

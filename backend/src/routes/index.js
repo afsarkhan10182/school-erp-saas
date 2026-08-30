@@ -54,6 +54,19 @@ const certificateTemplateRoutes = require('./administration/certificate-template
 
 // Certificate generation routes
 const certificateGenerationRoutes = require('./administration/certificate-generation.routes');
+const studentPromotionRoutes = require('./academic/student-promotion.routes');
+const studentCategoryRoutes = require('./academic/student-category.routes');
+const parentRoutes = require('./academic/parent.routes');
+const feeFineRoutes = require('./financial/fee-fine.routes');
+const homeworkRoutes = require('./academic/homework.routes');
+const libraryRoutes = require('./academic/library.routes');
+const schoolOpsRoutes = require('./shared/school-ops.routes');
+const publicSchoolOpsRoutes = require('./shared/public-school-ops.routes');
+const portalRoutes = require('./shared/portal.routes');
+const reportsRoutes = require('./shared/reports.routes');
+const cardTemplateRoutes = require('./academic/card-template.routes');
+const examSeatingRoutes = require('./academic/exam-seating.routes');
+const onlineExamRoutes = require('./academic/online-exam.routes');
 
 // Upload routes
 const uploadRoutes = require('./shared/uploads.routes');
@@ -62,6 +75,7 @@ const router = express.Router();
 
 // Health check routes (no auth required)
 router.use('/health', healthRoutes);
+router.use('/public', publicSchoolOpsRoutes);
 
 // API routes with authentication
 router.use('/auth', authRoutes);
@@ -73,6 +87,18 @@ router.use('/dashboard', dashboardRoutes);
 
 // Student and Fee Management routes
 router.use('/students', studentRoutes);
+router.use('/student-promotions', studentPromotionRoutes);
+router.use('/student-categories', studentCategoryRoutes);
+router.use('/parents', parentRoutes);
+router.use('/fee-fines', feeFineRoutes);
+router.use('/homeworks', homeworkRoutes);
+router.use('/library', libraryRoutes);
+router.use('/school-ops', schoolOpsRoutes);
+router.use('/portal', portalRoutes);
+router.use('/reports', reportsRoutes);
+router.use('/cards', cardTemplateRoutes);
+router.use('/exam-seatings', examSeatingRoutes);
+router.use('/online-exams', onlineExamRoutes);
 router.use('/fee-types', feeTypeRoutes);
 router.use('/fee-structures', feeStructureRoutes);
 router.use('/fee-invoices', feeInvoiceRoutes);
