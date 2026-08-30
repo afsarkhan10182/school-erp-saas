@@ -2,11 +2,14 @@ import { ref, computed } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import { Saas } from '~/api/administration/saas';
 import { Schools } from '~/api/administration/schools';
+import { SCHOOL_OPS_ENTITIES } from '~/config/school-ops';
+import { ROUTE_MODULE_MAP } from '~/config/modules';
 
 // Global state to prevent multiple API calls
 let globalUserModules: string[] = [];
 let globalIsLoading = false;
 let globalLastFetch = 0;
+let globalModuleLoadFailed = false;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 // Function to clear global module cache (called on logout)
@@ -14,6 +17,7 @@ export const clearModuleCache = () => {
   globalUserModules = [];
   globalIsLoading = false;
   globalLastFetch = 0;
+  globalModuleLoadFailed = false;
 
   if (import.meta.client) {
     // Clear module cache
@@ -42,6 +46,8 @@ export function useModuleAccess() {
     if (isSuperAdmin.value) {
       return true;
     }
+
+    if (globalModuleLoadFailed) return true;
 
     const enabled = userModules.value.includes(moduleCode);
     return enabled;
@@ -102,6 +108,7 @@ export function useModuleAccess() {
 
           globalUserModules = allModules;
           userModules.value = allModules;
+          globalModuleLoadFailed = false;
           globalLastFetch = Date.now();
 
           // Cache in sessionStorage
@@ -116,6 +123,7 @@ export function useModuleAccess() {
           // Set empty modules to prevent blocking
           globalUserModules = [];
           userModules.value = [];
+          globalModuleLoadFailed = true;
         }
       } else {
         const schoolId = user.value?.school_id;
@@ -137,6 +145,7 @@ export function useModuleAccess() {
 
           globalUserModules = enabledModules;
           userModules.value = enabledModules;
+          globalModuleLoadFailed = false;
           globalLastFetch = Date.now();
 
           // Cache in sessionStorage
@@ -150,12 +159,14 @@ export function useModuleAccess() {
           // Set empty modules to prevent blocking
           globalUserModules = [];
           userModules.value = [];
+          globalModuleLoadFailed = true;
         }
       }
     } catch (error) {
       // Fallback: allow access if module loading fails
       globalUserModules = [];
       userModules.value = [];
+      globalModuleLoadFailed = true;
     } finally {
       globalIsLoading = false;
       isLoading.value = false;
@@ -197,57 +208,17 @@ export function useModuleAccess() {
     // Normalize route path (remove trailing slash for consistent matching)
     const normalizedPath = routePath.replace(/\/$/, '');
 
-    // Define route-to-module mapping with normalized paths
-    const routeModuleMap: Record<string, string> = {
-      '/fees': 'fees',
-      '/fees/types': 'fees',
-      '/fees/structures': 'fees',
-      '/fees/invoices': 'fees',
-      '/fees/collections': 'fees',
-      '/reports/fees': 'fees',
-      '/reports/receipts': 'fees',
-      '/fee-ledger': 'fees',
-
-      '/students': 'students',
-      '/students/create': 'students',
-      '/students/import': 'students',
-      '/reports/students': 'students',
-
-      '/attendance': 'attendance',
-      '/reports/attendance': 'attendance',
-
-      '/exams': 'exams',
-      '/exams/report-cards': 'exams',
-      '/exams/marks-entry': 'exams',
-      '/exams/results': 'exams',
-      '/exams/types': 'exams',
-      '/reports/exams': 'exams',
-
-      // Academic Management Module
-      '/academic/subjects': 'academic_management',
-      '/academic/class-assignments': 'academic_management',
-      '/academic/timetable': 'academic_management',
-
-      '/library': 'library',
-      '/reports/library': 'library',
-
-      '/hr': 'hr',
-      '/reports/hr': 'hr',
-
-      '/transport': 'transport',
-      '/reports/transport': 'transport',
-
-      '/reports': 'reports',
-      '/reports/advanced': 'reports',
-
-      // Certificate Management Module
-      '/certificates': 'certificates'
-
-      // Module settings page removed - now handled through subscription plans
-    };
+    // Route → module (shared catalog). Ops screens use SCHOOL_OPS_ENTITIES.module.
+    const routeModuleMap: Record<string, string> = { ...ROUTE_MODULE_MAP };
 
     // Check for exact match first
     let requiredModule = routeModuleMap[normalizedPath];
+
+    if (!requiredModule && normalizedPath.startsWith('/ops/')) {
+      const entity = normalizedPath.split('/')[2];
+      const meta = SCHOOL_OPS_ENTITIES[entity];
+      if (meta) requiredModule = meta.module;
+    }
 
     // Special case for fee-ledger route (dynamic student ID)
     if (!requiredModule && normalizedPath.includes('/fee-ledger')) {

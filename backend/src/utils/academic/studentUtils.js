@@ -8,7 +8,7 @@
  * @returns {Object} - Sanitized data object
  */
 const sanitizeEnumFields = data => {
-  const sanitized = { ...data };
+  const sanitized = data;
 
   // Gender field sanitization
   if (sanitized.gender && sanitized.gender.trim() !== '') {

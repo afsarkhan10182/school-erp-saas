@@ -193,6 +193,17 @@ const saveMarks = async (req, res) => {
       });
     }
 
+    const exam = await Exam.findOne({
+      where: {
+        id: exam_id,
+        school_id: req.user.school_id,
+        ...(req.user.branch_id && { branch_id: req.user.branch_id })
+      }
+    });
+    if (!exam) {
+      return res.status(404).json({ success: false, message: 'Exam not found' });
+    }
+
     const results = [];
     const errors = [];
 
@@ -234,6 +245,7 @@ const saveMarks = async (req, res) => {
           viva_marks_obtained: is_absent ? null : viva_marks_obtained,
           assignment_marks_obtained: is_absent ? null : assignment_marks_obtained,
           marks_obtained: is_absent ? 0 : totalMarks,
+          percentage: is_absent ? 0 : (totalMarks / exam.max_marks) * 100,
           is_absent: is_absent,
           school_id: req.user.school_id,
           branch_id: req.user.branch_id,

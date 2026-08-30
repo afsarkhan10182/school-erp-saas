@@ -39,7 +39,20 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div v-if="showBranchDropdown" class="space-y-2">
+              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                Branch
+              </label>
+              <EnhancedDropdown
+                v-model="listBranchId"
+                :options="[{ value: '', label: 'All Branches' }, ...branchOptions]"
+                placeholder="All Branches"
+                :loading="branchesLoading"
+                @change="onListBranchChange"
+              />
+            </div>
+
             <!-- Search -->
             <div class="space-y-2">
               <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -427,7 +440,7 @@ import { markDistributionApi } from '~/api/academic/mark-distributions';
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { branches, fetchBranchesForUser, loading: branchesLoading } = useBranches();
 const {
   exams,
   examOptions,
@@ -450,6 +463,7 @@ const editingExam = ref(null);
 
 // Filters
 const searchQuery = ref('');
+const listBranchId = ref('');
 const selectedExamTypeId = ref('');
 const selectedTermId = ref('');
 const statusFilter = ref('');
@@ -487,13 +501,15 @@ const selectedBranch = computed(() => {
 
 // Filtered terms and mark distributions based on selected branch
 const filteredTerms = computed(() => {
-  if (!form.branch_id) return terms.value;
-  return terms.value.filter(term => term.branch_id === form.branch_id);
+  const branchId = form.branch_id || listBranchId.value;
+  if (!branchId) return terms.value;
+  return terms.value.filter(term => term.branch_id === branchId);
 });
 
 const filteredMarkDistributions = computed(() => {
-  if (!form.branch_id) return markDistributions.value;
-  return markDistributions.value.filter(dist => dist.branch_id === form.branch_id);
+  const branchId = form.branch_id || listBranchId.value;
+  if (!branchId) return markDistributions.value;
+  return markDistributions.value.filter(dist => dist.branch_id === branchId);
 });
 
 // Update term and mark distribution options based on filtered data
@@ -566,7 +582,8 @@ const loadTerms = async () => {
   try {
     termsLoading.value = true;
     const response = await examTermApi.getAll({
-      is_active: true
+      is_active: true,
+      ...(listBranchId.value ? { branch_id: listBranchId.value } : {})
     });
     terms.value = response.data?.terms || [];
   } catch (error) {
@@ -582,8 +599,8 @@ const loadMarkDistributions = async () => {
     console.log('Loading mark distributions...');
     const response = await markDistributionApi.getAll({
       is_active: true,
-      school_id: user.value.school_id
-      // Don't filter by branch_id - load all distributions for the school
+      school_id: user.value.school_id,
+      ...(listBranchId.value ? { branch_id: listBranchId.value } : {})
     });
     console.log('Mark distributions response:', response);
     markDistributions.value = response.data?.distributions || [];
@@ -603,6 +620,15 @@ const loadMarkDistributions = async () => {
   }
 };
 
+const onListBranchChange = async () => {
+  selectedTermId.value = '';
+  await Promise.all([
+    loadExams(listBranchId.value ? { branch_id: listBranchId.value } : {}),
+    loadTerms(),
+    loadMarkDistributions()
+  ]);
+};
+
 const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
@@ -610,7 +636,7 @@ const openCreateModal = async () => {
   // Only load data if not already loaded
   const loadPromises = [];
   if (branches.value.length === 0) {
-    loadPromises.push(fetchBranches());
+    loadPromises.push(fetchBranchesForUser());
   }
   if (terms.value.length === 0) {
     loadPromises.push(loadTerms());
@@ -675,7 +701,7 @@ const editExam = async exam => {
   // Only load data if not already loaded
   const loadPromises = [];
   if (branches.value.length === 0) {
-    loadPromises.push(fetchBranches());
+    loadPromises.push(fetchBranchesForUser());
   }
   if (terms.value.length === 0) {
     loadPromises.push(loadTerms());
@@ -747,7 +773,7 @@ const deleteExam = async exam => {
   try {
     await deleteExamApi(exam.id);
     showToast('Exam deleted successfully', 'success');
-    await loadExams();
+    await loadExams(listBranchId.value ? { branch_id: listBranchId.value } : {});
   } catch (error) {
     showToast('Failed to delete exam', 'error');
   }
@@ -799,7 +825,7 @@ const saveExam = async () => {
     }
 
     closeModal();
-    await loadExams();
+    await loadExams(listBranchId.value ? { branch_id: listBranchId.value } : {});
   } catch (error) {
     showToast(`Failed to ${editingExam.value ? 'update' : 'create'} exam`, 'error');
   } finally {
@@ -824,9 +850,11 @@ const resetForm = () => {
 
 const clearFilters = () => {
   searchQuery.value = '';
+  listBranchId.value = '';
   selectedExamTypeId.value = '';
   selectedTermId.value = '';
   statusFilter.value = '';
+  loadExams();
 };
 
 const onExamTypeChange = () => {
@@ -900,6 +928,7 @@ const getBranchName = branchId => {
 
 // Load initial data
 onMounted(async () => {
+  await fetchBranchesForUser();
   // Load mark distributions first, then exams
   await loadMarkDistributions();
   await Promise.all([loadExams(), loadTerms()]);

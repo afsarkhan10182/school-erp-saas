@@ -30,6 +30,19 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div v-if="showBranchDropdown">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Branch
+            </label>
+            <EnhancedDropdown
+              v-model="selectedBranchId"
+              :options="branchOptions"
+              placeholder="Choose branch"
+              :loading="branchesLoading"
+              @change="onBranchChange"
+            />
+          </div>
+
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -343,6 +356,7 @@ import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExamPublication } from '~/composables/useExamPublication';
 import { useAuth } from '~/composables/useAuth';
+import { useBranches } from '~/composables/useBranches';
 
 // Types
 interface Exam {
@@ -359,6 +373,7 @@ interface Exam {
 const { showToast } = useToast();
 const { user } = useAuth();
 const { classes, classOptions, fetchClasses, loading: classesLoading } = useAcademics();
+const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   getPublicationStatus,
   publishExam,
@@ -371,6 +386,7 @@ const {
 
 // Reactive data
 const selectedExamId = ref('');
+const selectedBranchId = ref('');
 const selectedClassId = ref('');
 const statusFilter = ref('');
 const exams = ref<Exam[]>([]);
@@ -391,6 +407,10 @@ const examOptions = computed(() =>
     description: exam.examType?.name
   }))
 );
+const branchOptions = computed(() =>
+  branches.value.map(branch => ({ value: branch.id, label: branch.name }))
+);
+const showBranchDropdown = computed(() => branches.value.length > 1);
 
 const selectAll = computed({
   get: () => selectedExams.value.length === exams.value.length && exams.value.length > 0,
@@ -415,11 +435,19 @@ const onClassChange = () => {
   selectedExams.value = [];
 };
 
+const onBranchChange = async () => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  exams.value = [];
+  selectedExams.value = [];
+  await fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id });
+};
+
 const loadPublicationExams = async () => {
   try {
     const filters: any = {
       school_id: user.value?.school_id,
-      branch_id: user.value?.branch_id
+      branch_id: selectedBranchId.value || user.value?.branch_id
     };
 
     if (selectedExamId.value) {
@@ -556,6 +584,9 @@ const formatDate = (dateString: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchClasses();
+  await fetchBranches();
+  if (user.value?.branch_id) selectedBranchId.value = user.value.branch_id;
+  else if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
+  await fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id });
 });
 </script>

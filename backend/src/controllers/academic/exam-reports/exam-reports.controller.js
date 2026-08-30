@@ -338,7 +338,7 @@ const generatePDFReportCard = async (exam, students, resultsMap, filePath, templ
             .fillColor('#000000')
             .text(`Total Marks Obtained: ${result.marks_obtained || 0}`, { indent: 20 });
           doc.text(`Maximum Marks: ${exam.max_marks || 100}`, { indent: 20 });
-          doc.text(`Percentage: ${result.percentage?.toFixed(2) || 0}%`, { indent: 20 });
+          doc.text(`Percentage: ${Number(result.percentage || 0).toFixed(2)}%`, { indent: 20 });
           doc.text(`Grade: ${result.grade || 'N/A'}`, { indent: 20 });
 
           // Component marks if available
@@ -472,9 +472,185 @@ const downloadReportCard = async (req, res) => {
   }
 };
 
+/**
+ * Tabulation sheet: one row per student with totals/grade/rank for an exam + class
+ */
+const getTabulationSheet = async (req, res) => {
+  try {
+    const { exam_id, class_id, section_id } = req.query;
+    if (!exam_id || !class_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Exam ID and Class ID are required'
+      });
+    }
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(String(exam_id)) || !uuidRe.test(String(class_id))) {
+      return res.status(400).json({
+        success: false,
+        message: 'exam_id and class_id must be valid UUIDs'
+      });
+    }
+
+    const studentWhere = {
+      class_id,
+      school_id: req.schoolId || req.user.school_id,
+      status: { [Op.ne]: 'deleted' }
+    };
+    if (section_id) studentWhere.section_id = section_id;
+    if (req.user.role === 'branch_admin') studentWhere.branch_id = req.user.branch_id;
+
+    const students = await Student.findAll({
+      where: studentWhere,
+      include: [
+        { model: Class, as: 'class', attributes: ['id', 'name'] },
+        { model: Section, as: 'sectionInfo', attributes: ['id', 'name'], required: false }
+      ],
+      order: [
+        ['roll_number', 'ASC'],
+        ['first_name', 'ASC']
+      ]
+    });
+
+    const results = await ExamResult.findAll({
+      where: {
+        exam_id,
+        student_id: { [Op.in]: students.map(s => s.id) }
+      }
+    });
+    const byStudent = {};
+    results.forEach(r => {
+      byStudent[r.student_id] = r;
+    });
+
+    const rows = students.map(student => {
+      const result = byStudent[student.id];
+      return {
+        student_id: student.id,
+        name: `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+        admission_number: student.admission_number,
+        roll_number: student.roll_number,
+        class_name: student.class?.name,
+        section_name: student.sectionInfo?.name,
+        marks_obtained: result ? Number(result.marks_obtained) : null,
+        percentage: result ? Number(result.percentage) : null,
+        grade: result?.grade || null,
+        rank: result?.rank || null,
+        is_absent: result ? !!result.is_absent : false,
+        theory_marks_obtained: result?.theory_marks_obtained ?? null,
+        practical_marks_obtained: result?.practical_marks_obtained ?? null
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: 'Tabulation sheet loaded',
+      data: { rows }
+    });
+  } catch (error) {
+    logger.error('Error loading tabulation sheet:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load tabulation sheet',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Multi-exam progress: compare marks across selected exams for a class
+ */
+const getProgressReport = async (req, res) => {
+  try {
+    const { exam_ids, class_id, section_id } = req.query;
+    if (!exam_ids || !class_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'exam_ids and class_id are required'
+      });
+    }
+
+    const examIdList = String(exam_ids)
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
+
+    if (examIdList.length < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one exam is required'
+      });
+    }
+
+    const exams = await Exam.findAll({
+      where: { id: { [Op.in]: examIdList }, school_id: req.schoolId || req.user.school_id },
+      attributes: ['id', 'name']
+    });
+
+    const studentWhere = {
+      class_id,
+      school_id: req.schoolId || req.user.school_id,
+      status: { [Op.ne]: 'deleted' }
+    };
+    if (section_id) studentWhere.section_id = section_id;
+    if (req.user.role === 'branch_admin') studentWhere.branch_id = req.user.branch_id;
+
+    const students = await Student.findAll({
+      where: studentWhere,
+      attributes: ['id', 'first_name', 'last_name', 'admission_number', 'roll_number'],
+      order: [['roll_number', 'ASC']]
+    });
+
+    const results = await ExamResult.findAll({
+      where: {
+        exam_id: { [Op.in]: examIdList },
+        student_id: { [Op.in]: students.map(s => s.id) }
+      }
+    });
+
+    const rows = students.map(student => {
+      const examMarks = {};
+      examIdList.forEach(examId => {
+        const result = results.find(r => r.student_id === student.id && r.exam_id === examId);
+        examMarks[examId] = result
+          ? {
+              marks_obtained: Number(result.marks_obtained),
+              percentage: Number(result.percentage),
+              grade: result.grade,
+              is_absent: !!result.is_absent
+            }
+          : null;
+      });
+      return {
+        student_id: student.id,
+        name: `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+        admission_number: student.admission_number,
+        roll_number: student.roll_number,
+        exam_marks: examMarks
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: 'Progress report loaded',
+      data: { exams, rows }
+    });
+  } catch (error) {
+    logger.error('Error loading progress report:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load progress report',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getStudentsForReportCards,
   getReportCardTemplates,
   generateReportCards,
-  downloadReportCard
+  downloadReportCard,
+  getTabulationSheet,
+  getProgressReport
 };

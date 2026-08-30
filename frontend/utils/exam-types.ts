@@ -1,5 +1,5 @@
 /**
- * Hardcoded Exam Types - Following CodeIgniter Approach
+ * Hardcoded exam types
  * These are system-level constants, not user-configurable data
  */
 

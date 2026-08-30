@@ -121,6 +121,15 @@
           </div>
           <p v-if="isAdmin" class="text-sm text-gray-500 mt-1">Role cannot be changed by Admin</p>
         </div>
+        <div v-if="isSuperAdmin">
+          <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Branch *</label>
+          <select v-model="form.branch_id" required class="input-field">
+            <option value="">Select Branch</option>
+            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+              {{ branch.name }}
+            </option>
+          </select>
+        </div>
       </div>
       <div class="flex justify-end gap-3">
         <NuxtLink to="/users" class="btn-secondary">Cancel</NuxtLink>
@@ -168,7 +177,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
-import { Users } from '~/api';
+import { Users, Branches } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 
 const { isSuperAdmin, isAdmin, user } = useAuth();
@@ -188,6 +197,7 @@ const error = ref('');
 const saving = ref(false);
 const success = ref(false);
 const fieldErrors = ref({});
+const branches = ref([]);
 
 const form = ref({
   first_name: '',
@@ -195,6 +205,7 @@ const form = ref({
   email: '',
   phone: '',
   role: '',
+  branch_id: '',
   password: ''
 });
 
@@ -212,8 +223,13 @@ const fetchUser = async () => {
         last_name: res.data.last_name || '',
         email: res.data.email || '',
         phone: res.data.phone || '',
-        role: res.data.role || ''
+        role: res.data.role || '',
+        branch_id: res.data.branch_id || ''
       };
+      if (isSuperAdmin.value && res.data.school_id) {
+        const branchResponse = await Branches.getForDropdown({ school_id: res.data.school_id });
+        branches.value = branchResponse.data || [];
+      }
     } else {
       error.value = res.message || 'Failed to load user.';
     }
@@ -282,6 +298,7 @@ const handleSubmit = async () => {
     // Only include role if user is not Admin
     if (!isAdmin.value) {
       updateData.role = form.value.role;
+      updateData.branch_id = form.value.branch_id;
     }
 
     // Only include password if provided

@@ -159,6 +159,14 @@ const Parent = sequelize.define(
       type: DataTypes.STRING(100),
       allowNull: true
     },
+    user_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    },
     address: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -250,6 +258,12 @@ Parent.associate = models => {
   Parent.belongsTo(models.School, {
     foreignKey: 'school_id',
     as: 'school'
+  });
+
+  // Parent belongs to User (portal login)
+  Parent.belongsTo(models.User, {
+    foreignKey: 'user_id',
+    as: 'user'
   });
 
   // Parent belongs to User (created_by)

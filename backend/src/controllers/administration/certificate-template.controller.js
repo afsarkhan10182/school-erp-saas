@@ -37,7 +37,11 @@ class CertificateTemplateController {
       }
 
       // Check if user has access to this branch
-      if (req.user.branch_id !== branch_id && req.user.role !== 'super_admin') {
+      if (
+        req.user.role !== 'super_admin' &&
+        req.user.branch_id !== branch_id &&
+        !(req.user.role === 'admin' && req.user.school_id === branch.school_id)
+      ) {
         return res.status(403).json({
           success: false,
           message: 'Access denied to this branch'

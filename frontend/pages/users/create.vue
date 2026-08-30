@@ -110,6 +110,16 @@
           </div>
 
           <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Joining Date</label>
+            <input v-model="formData.joining_date" type="date" class="input-field" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Staff ID</label>
+            <input v-model="formData.staff_id" type="text" class="input-field" placeholder="Auto-generated if blank" />
+          </div>
+
+          <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">
               Role <span class="text-red-500">*</span>
             </label>
@@ -183,6 +193,118 @@
             </select>
             <div v-if="errors.branch_id" class="mt-1 text-sm text-red-600 dark:text-red-400">
               {{ errors.branch_id }}
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Designation</label>
+            <input v-model="formData.designation" type="text" class="input-field" placeholder="Teacher" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Department</label>
+            <input v-model="formData.department" type="text" class="input-field" placeholder="Academic" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Gender</label>
+            <select v-model="formData.gender" class="input-field">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Date Of Birth</label>
+            <input v-model="formData.date_of_birth" type="date" class="input-field" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Qualification</label>
+            <textarea v-model="formData.qualification" class="input-field" rows="2" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Experience Details</label>
+            <textarea v-model="formData.experience_details" class="input-field" rows="2" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Total Experience</label>
+            <input v-model="formData.total_experience" type="text" class="input-field" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Religion</label>
+            <input v-model="formData.religion" type="text" class="input-field" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Blood Group</label>
+            <select v-model="formData.blood_group" class="input-field">
+              <option value="">Select Blood Group</option>
+              <option v-for="group in bloodGroups" :key="group" :value="group">{{ group }}</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Present Address</label>
+              <textarea v-model="formData.present_address" class="input-field" rows="2" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Permanent Address</label>
+              <textarea v-model="formData.permanent_address" class="input-field" rows="2" />
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Facebook</label>
+              <input v-model="formData.facebook" type="url" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Twitter</label>
+              <input v-model="formData.twitter" type="url" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Linkedin</label>
+              <input v-model="formData.linkedin" type="url" class="input-field" />
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input v-model="formData.skip_bank_details" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              Skipped Bank Details
+            </label>
+          </div>
+
+          <div v-if="!formData.skip_bank_details" class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Name</label>
+              <input v-model="formData.bank_name" type="text" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Holder Name</label>
+              <input v-model="formData.holder_name" type="text" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Branch</label>
+              <input v-model="formData.bank_branch" type="text" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Address</label>
+              <input v-model="formData.bank_address" type="text" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">IFSC Code</label>
+              <input v-model="formData.ifsc_code" type="text" class="input-field" />
+            </div>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Account No</label>
+              <input v-model="formData.account_no" type="text" class="input-field" />
             </div>
           </div>
         </div>
@@ -304,6 +426,7 @@ import { useToast } from '~/composables/useToast';
 import { Users, Schools, Branches } from '~/api';
 import PasswordInput from '~/components/ui/PasswordInput.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { extractList } from '~/utils/list-response';
 
 const { isSuperAdmin, isAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
@@ -325,6 +448,7 @@ const schools = ref([]);
 const branches = ref([]);
 const isLoadingSchools = ref(false);
 const isLoadingBranches = ref(false);
+const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
 // Available roles based on current user's role
 const availableRoles = computed(() => {
@@ -337,6 +461,7 @@ const availableRoles = computed(() => {
   if (currentUserRole === 'super_admin') {
     return [
       { value: 'admin', label: 'Admin' },
+      { value: 'branch_admin', label: 'Branch Admin' },
       { value: 'teacher', label: 'Teacher' },
       { value: 'accountant', label: 'Accountant' },
       { value: 'librarian', label: 'Librarian' },
@@ -363,6 +488,29 @@ const formData = ref({
   phone: '',
   role: '',
   password: '',
+  staff_id: '',
+  joining_date: '',
+  designation: '',
+  department: '',
+  qualification: '',
+  experience_details: '',
+  total_experience: '',
+  gender: '',
+  religion: '',
+  blood_group: '',
+  date_of_birth: '',
+  present_address: '',
+  permanent_address: '',
+  facebook: '',
+  twitter: '',
+  linkedin: '',
+  skip_bank_details: false,
+  bank_name: '',
+  holder_name: '',
+  bank_branch: '',
+  bank_address: '',
+  ifsc_code: '',
+  account_no: '',
   school_id: user.value?.school_id || '',
   branch_id: '',
   created_by: user.value?.id || null
@@ -530,6 +678,43 @@ const handleSubmit = async () => {
   try {
     // Prepare the data
     const payload = { ...formData.value };
+    if (!payload.staff_id) {
+      payload.staff_id = `EMP-${Date.now().toString().slice(-6)}`;
+    }
+    payload.settings = {
+      employee: {
+        staff_id: payload.staff_id,
+        joining_date: payload.joining_date,
+        designation: payload.designation,
+        department: payload.department,
+        qualification: payload.qualification,
+        experience_details: payload.experience_details,
+        total_experience: payload.total_experience,
+        gender: payload.gender,
+        religion: payload.religion,
+        blood_group: payload.blood_group,
+        date_of_birth: payload.date_of_birth,
+        present_address: payload.present_address,
+        permanent_address: payload.permanent_address,
+        facebook: payload.facebook,
+        twitter: payload.twitter,
+        linkedin: payload.linkedin,
+        skip_bank_details: payload.skip_bank_details,
+        bank_name: payload.bank_name,
+        holder_name: payload.holder_name,
+        bank_branch: payload.bank_branch,
+        bank_address: payload.bank_address,
+        ifsc_code: payload.ifsc_code,
+        account_no: payload.account_no
+      }
+    };
+    [
+      'staff_id', 'joining_date', 'designation', 'department', 'qualification', 'experience_details',
+      'total_experience', 'gender', 'religion', 'blood_group', 'date_of_birth',
+      'present_address', 'permanent_address', 'facebook', 'twitter', 'linkedin',
+      'skip_bank_details', 'bank_name', 'holder_name', 'bank_branch', 'bank_address',
+      'ifsc_code', 'account_no'
+    ].forEach(key => delete payload[key]);
 
     // Remove empty phone field to avoid validation issues
     if (!payload.phone || payload.phone.trim() === '') {
@@ -638,7 +823,7 @@ const fetchSchools = async () => {
   try {
     const response = await Schools.getAll();
     // The API returns { success: true, data: { schools: [...], pagination: {...} } }
-    schools.value = response.data?.schools || response.data?.data?.schools || [];
+    schools.value = extractList(response, ['schools']);
   } catch (error) {
     console.error('Error fetching schools:', error);
     showError('Failed to fetch schools');

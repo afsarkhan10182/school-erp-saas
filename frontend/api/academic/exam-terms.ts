@@ -20,6 +20,8 @@ export interface ExamTerm {
 }
 
 export interface ExamTermFilters {
+  school_id?: string;
+  branch_id?: string;
   academic_year?: string;
   is_active?: boolean;
   page?: number;

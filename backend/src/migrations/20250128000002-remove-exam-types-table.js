@@ -3,7 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Remove the exam_types table since we're using hardcoded exam types
-    // This follows the CodeIgniter pattern where exam types are system constants
+    // Exam types are system constants, not user-managed records
 
     // First, check if the table exists
     const tableExists = await queryInterface

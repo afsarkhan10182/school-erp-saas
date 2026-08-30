@@ -392,7 +392,8 @@ export const useAuthStore = defineStore('auth', () => {
   const setCurrentBranch = (branch: any) => {
     currentBranch.value = branch;
     if (import.meta.client) {
-      sessionStorage.setItem('current-branch', JSON.stringify(branch));
+      if (branch) sessionStorage.setItem('current-branch', JSON.stringify(branch));
+      else sessionStorage.removeItem('current-branch');
     }
   };
 
@@ -414,7 +415,8 @@ export const useAuthStore = defineStore('auth', () => {
   const setCurrentSchool = (school: any) => {
     currentSchool.value = school;
     if (import.meta.client) {
-      sessionStorage.setItem('current-school', JSON.stringify(school));
+      if (school) sessionStorage.setItem('current-school', JSON.stringify(school));
+      else sessionStorage.removeItem('current-school');
     }
   };
 
@@ -457,9 +459,10 @@ export const useAuthStore = defineStore('auth', () => {
         // Refresh auth state from sessionStorage
         refreshFromStorage();
 
-        // Navigate to dashboard if on login page
+        // Navigate to role home if on login page
         if (window.location.pathname === '/auth/login') {
-          navigateTo('/dashboard');
+          const role = user.value?.role;
+          navigateTo(role === 'student' || role === 'parent' ? '/portal' : '/dashboard');
         }
       }
 

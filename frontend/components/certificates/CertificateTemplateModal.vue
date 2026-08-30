@@ -45,7 +45,7 @@
               <!-- Essential Fields -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Branch Selection -->
-                <div>
+                <div v-if="showBranchDropdown">
                   <EnhancedDropdown
                     id="branchId"
                     v-model="form.branch_id"
@@ -390,6 +390,7 @@ const loading = ref(false);
 const logoPreview = ref(null);
 const backgroundPreview = ref(null);
 const showTemplates = ref(true);
+const showBranchDropdown = computed(() => availableBranches.value.length > 1);
 const showAdvancedSettings = ref(false);
 const userHasEnteredName = ref(false);
 

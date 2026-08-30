@@ -3,7 +3,7 @@ import { apiCall } from '~/utils/api';
 export const Certificates = {
   // Get all certificate templates
   getAll: async (params = {}) => {
-    return await apiCall('get', '/certificate-templates', params);
+    return await apiCall('get', '/certificate-templates', { params });
   },
 
   // Get a single certificate template

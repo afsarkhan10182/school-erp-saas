@@ -17,7 +17,17 @@
       </button>
     </div>
 
-    <!-- No filters, simple approach -->
+    <select
+      v-if="branches.length > 1"
+      v-model="selectedBranchId"
+      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+      @change="loadData"
+    >
+      <option value="">All Branches</option>
+      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+        {{ branch.name }}
+      </option>
+    </select>
 
     <!-- Terms Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -212,6 +222,7 @@ const {
 const showModal = ref(false);
 const saving = ref(false);
 const editingTerm = ref(null);
+const selectedBranchId = ref('');
 
 // Form data: Only 2 essential fields
 const form = reactive({
@@ -229,7 +240,7 @@ const branchOptions = computed(() =>
 
 // Methods
 const loadData = async () => {
-  await fetchExamTerms();
+  await fetchExamTerms(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {});
 };
 
 const openCreateModal = async () => {
@@ -323,6 +334,8 @@ defineExpose({
 
 // Load data on mount
 onMounted(async () => {
+  await fetchBranches();
+  if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
   await loadData();
 });
 

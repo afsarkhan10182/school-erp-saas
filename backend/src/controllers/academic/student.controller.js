@@ -1,5 +1,6 @@
 const {
   Student,
+  StudentCategory,
   Parent,
   StudentParent,
   FeeStructure,
@@ -9,7 +10,12 @@ const {
   Class,
   Section,
   Stream,
-  Branch
+  Branch,
+  User,
+  SchoolOpsRecord,
+  StudentPromotion,
+  LibraryIssue,
+  LibraryBook
 } = require('~/models');
 const { Op } = require('sequelize');
 const ApiError = require('~/utils/shared/ApiError');
@@ -27,6 +33,101 @@ const {
 } = require('~/utils/shared/storage');
 
 // Utility function to handle ENUM validation errors
+const resolveStudentBranch = async (schoolId, branchId) => {
+  if (branchId) {
+    const branch = await Branch.findOne({
+      where: { id: branchId, school_id: schoolId, status: 'active' }
+    });
+    if (!branch) throw new ApiError(400, 'Invalid branch for this school');
+    return branch.id;
+  }
+
+  const branches = await Branch.findAll({
+    where: { school_id: schoolId, status: 'active' },
+    order: [
+      ['is_main_branch', 'DESC'],
+      ['created_at', 'ASC']
+    ],
+    limit: 2
+  });
+
+  if (branches.length === 1 || branches[0]?.is_main_branch) return branches[0].id;
+  throw new ApiError(400, 'Branch ID is required');
+};
+
+const setCategoryId = async (data, req) => {
+  const categoryId = data.category_id;
+  if (!categoryId) {
+    delete data.category_id;
+    return;
+  }
+
+  const category = await StudentCategory.findOne({
+    where: {
+      id: categoryId,
+      school_id: req.user.role === 'super_admin' ? (req.schoolId || data.school_id) : req.schoolId,
+      ...(req.user.role === 'branch_admin' && req.user.branch_id ? { branch_id: req.user.branch_id } : {})
+    }
+  });
+  if (!category) throw new ApiError(400, 'Invalid student category');
+
+  data.category_id = category.id;
+  data.category = 'other';
+};
+
+const ADMISSION_EXTRA_KEYS = [
+  'present_address',
+  'permanent_address',
+  'sibling_admission_number',
+  'sibling_details',
+  'previous_school_name',
+  'previous_school_qualification',
+  'previous_school_remarks',
+  'transport_route_id',
+  'transport_route',
+  'transport_vehicle_id',
+  'transport_vehicle',
+  'transport_stop_id',
+  'transport_stop'
+];
+
+const applyAdmissionExtras = async (studentData, customFieldValues, schoolId) => {
+  const documents = studentData.documents && typeof studentData.documents === 'object'
+    ? { ...studentData.documents }
+    : {};
+  documents.admission_extras = { ...(documents.admission_extras || {}) };
+  ADMISSION_EXTRA_KEYS.forEach(key => {
+    if (studentData[key] !== undefined) documents.admission_extras[key] = studentData[key] || null;
+    delete studentData[key];
+  });
+
+  const fields = await SchoolOpsRecord.findAll({
+    where: { school_id: schoolId, entity_type: 'custom_field', status: 'active' }
+  });
+  const activeFields = fields
+    .map(field => ({ id: field.id, ...(field.payload || {}) }))
+    .filter(field => field.is_active !== false && field.show_on_admission !== false);
+  const errors = {};
+  activeFields.forEach(field => {
+    const value = customFieldValues?.[field.id];
+    if (field.is_required && field.field_type !== 'checkbox' && !String(value || '').trim()) {
+      errors[`custom_fields.${field.id}`] = `${field.title || 'Custom field'} is required`;
+    }
+  });
+  if (Object.keys(errors).length) {
+    throw new ApiError(400, 'Please complete required custom fields', { errors });
+  }
+  documents.custom_fields = { ...(documents.custom_fields || {}), ...(customFieldValues || {}) };
+  documents.custom_field_labels = {
+    ...(documents.custom_field_labels || {}),
+    ...activeFields.reduce((labels, field) => {
+      labels[field.id] = field.title || field.id;
+      return labels;
+    }, {})
+  };
+  studentData.documents = documents;
+};
+
 const handleEnumValidationError = error => {
   if (error.message && error.message.includes('enum_students_admission_sought_in')) {
     throw new ApiError(
@@ -56,6 +157,7 @@ const createStudent = async (req, res, next) => {
     // Handle both FormData and JSON formats
     let studentData = {};
     let guardianData = {};
+    let customFieldValues = {};
 
     try {
       // Check if data is sent as FormData with JSON string
@@ -73,12 +175,18 @@ const createStudent = async (req, res, next) => {
         if (parsedData.guardian && typeof parsedData.guardian === 'object') {
           guardianData = { ...parsedData.guardian };
         }
+        if (parsedData.custom_fields && typeof parsedData.custom_fields === 'object') {
+          customFieldValues = { ...parsedData.custom_fields };
+        }
 
         // Always merge root-level academic fields with student data
+        if (parsedData.school_id) studentData.school_id = parsedData.school_id;
+        if (parsedData.branch_id) studentData.branch_id = parsedData.branch_id;
         if (parsedData.admission_number) studentData.admission_number = parsedData.admission_number;
         if (parsedData.roll_number) studentData.roll_number = parsedData.roll_number;
         if (parsedData.admission_date) studentData.admission_date = parsedData.admission_date;
         if (parsedData.category) studentData.category = parsedData.category;
+        if (parsedData.category_id) studentData.category_id = parsedData.category_id;
         if (parsedData.class_id) studentData._class_id = parsedData.class_id;
         if (parsedData.section_id) studentData._section_id = parsedData.section_id;
         if (parsedData.academic_year_id)
@@ -100,12 +208,16 @@ const createStudent = async (req, res, next) => {
         if (req.body.guardian && typeof req.body.guardian === 'object') {
           guardianData = { ...req.body.guardian };
         }
+        if (req.body.custom_fields && typeof req.body.custom_fields === 'object') {
+          customFieldValues = { ...req.body.custom_fields };
+        }
 
         // Always merge root-level academic fields with student data
         if (req.body.admission_number) studentData.admission_number = req.body.admission_number;
         if (req.body.roll_number) studentData.roll_number = req.body.roll_number;
         if (req.body.admission_date) studentData.admission_date = req.body.admission_date;
         if (req.body.category) studentData.category = req.body.category;
+        if (req.body.category_id) studentData.category_id = req.body.category_id;
         if (req.body.class_id) studentData._class_id = req.body.class_id;
         if (req.body.section_id) studentData._section_id = req.body.section_id;
         if (req.body.academic_year_id) studentData._academic_year_id = req.body.academic_year_id;
@@ -151,6 +263,9 @@ const createStudent = async (req, res, next) => {
       school_id = req.user.school_id;
       branch_id = req.user.branch_id;
     }
+
+    branch_id = await resolveStudentBranch(school_id, branch_id);
+    await applyAdmissionExtras(studentData, customFieldValues, school_id);
 
     // Check if student already exists
     const existingStudent = await Student.findOne({
@@ -290,6 +405,8 @@ const createStudent = async (req, res, next) => {
       created_by: req.user.id
     };
 
+    await setCategoryId(finalStudentData, req);
+
     // Sanitize ENUM fields
     sanitizeEnumFields(finalStudentData);
     // Create student record within a transaction to prevent race conditions
@@ -355,6 +472,7 @@ const createStudent = async (req, res, next) => {
 
     // Create guardian/parent record if provided
     if (guardianData && Object.keys(guardianData).length > 0) {
+      const siblingAdmissionNumber = student.documents?.admission_extras?.sibling_admission_number;
       const parentData = {
         // Set guardian information based on relation
         guardian_name: guardianData.name,
@@ -404,7 +522,22 @@ const createStudent = async (req, res, next) => {
 
       // Check if parent already exists with same phone number in same school/branch
       let parent;
-      const existingParent = await Parent.findOne({
+      let existingParent = null;
+      if (siblingAdmissionNumber) {
+        const sibling = await Student.findOne({
+          where: { admission_number: siblingAdmissionNumber, school_id, branch_id },
+          transaction
+        });
+        const siblingParent = sibling
+          ? await StudentParent.findOne({
+              where: { student_id: sibling.id, is_primary: true },
+              include: [{ model: Parent, as: 'parent' }],
+              transaction
+            })
+          : null;
+        existingParent = siblingParent?.parent || null;
+      }
+      existingParent = existingParent || await Parent.findOne({
         where: {
           guardian_phone: parentData.guardian_phone,
           school_id: school_id,
@@ -544,6 +677,12 @@ const getStudents = async (req, res, next) => {
           through: { attributes: [] }
         },
         {
+          model: StudentCategory,
+          as: 'categoryInfo',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
           model: Class,
           as: 'class',
           attributes: ['id', 'name', 'code']
@@ -590,15 +729,10 @@ const getStudentById = async (req, res, next) => {
     // First, try to find the student without school_id filter to see if it exists
     const studentWithoutFilter = await Student.findByPk(id);
 
-    // Check if schoolId is set
-    if (!req.schoolId) {
-      throw new ApiError(500, 'School context not properly set');
-    }
-
     const student = await Student.findOne({
       where: {
         id,
-        school_id: req.schoolId
+        ...(req.user.role === 'super_admin' ? {} : { school_id: req.schoolId })
       },
       include: [
         {
@@ -632,6 +766,12 @@ const getStudentById = async (req, res, next) => {
           ]
         },
         {
+          model: StudentCategory,
+          as: 'categoryInfo',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
           model: Class,
           as: 'class',
           attributes: ['id', 'name', 'code']
@@ -645,6 +785,12 @@ const getStudentById = async (req, res, next) => {
           model: Section,
           as: 'sectionInfo',
           attributes: ['id', 'name']
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'status', 'role'],
+          required: false
         }
       ]
     });
@@ -653,9 +799,67 @@ const getStudentById = async (req, res, next) => {
       throw new ApiError(404, 'Student not found');
     }
 
-    return res.status(200).json({ success: true, data: student });
+    const parentIds = student.parents.map(parent => parent.id);
+    const [promotionHistory, bookIssues, siblingLinks] = await Promise.all([
+      StudentPromotion.findAll({ where: { student_id: id, school_id: student.school_id }, order: [['created_at', 'DESC']] }),
+      LibraryIssue.findAll({
+        where: { student_id: id, school_id: student.school_id },
+        include: [{ model: LibraryBook, as: 'book', attributes: ['id', 'title'] }],
+        order: [['issue_date', 'DESC']]
+      }),
+      parentIds.length
+        ? StudentParent.findAll({ where: { parent_id: { [Op.in]: parentIds }, student_id: { [Op.ne]: id } }, attributes: ['student_id'] })
+        : []
+    ]);
+    const siblingIds = [...new Set(siblingLinks.map(link => link.student_id))];
+    const siblings = siblingIds.length
+      ? await Student.findAll({
+          where: { id: { [Op.in]: siblingIds }, school_id: student.school_id },
+          attributes: ['id', 'first_name', 'last_name', 'admission_number', 'gender', 'current_class', 'section', 'roll_number', 'phone', 'photo']
+        })
+      : [];
+
+    return res.status(200).json({
+      success: true,
+      data: { ...student.toJSON(), promotion_history: promotionHistory, book_issues: bookIssues, siblings }
+    });
   } catch (error) {
     logger.error('Error fetching student:', error);
+    return next(error);
+  }
+};
+
+const setStudentAuthentication = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const enabled = req.body.enabled;
+    if (typeof enabled !== 'boolean') {
+      throw new ApiError(400, 'enabled boolean is required');
+    }
+
+    const student = await Student.findOne({
+      where: { id, school_id: req.schoolId }
+    });
+    if (!student) {
+      throw new ApiError(404, 'Student not found');
+    }
+    if (!student.user_id) {
+      throw new ApiError(400, 'This student has no login account');
+    }
+
+    const user = await User.findByPk(student.user_id);
+    if (!user) {
+      throw new ApiError(404, 'Login account not found');
+    }
+
+    await user.update({ status: enabled ? 'active' : 'inactive' });
+    return res.status(200).json({
+      success: true,
+      message: enabled ? 'Login enabled' : 'Login disabled',
+      data: { user_id: user.id, status: user.status }
+    });
+  } catch (error) {
+    logger.error('Error updating student authentication:', error);
     return next(error);
   }
 };
@@ -680,6 +884,7 @@ const updateStudent = async (req, res, next) => {
     // Handle both FormData and JSON formats
     let studentUpdates = {};
     let academicUpdates = {};
+    let customFieldValues = {};
 
     try {
       // Check if data is sent as FormData with JSON string
@@ -697,6 +902,7 @@ const updateStudent = async (req, res, next) => {
         if (parsedData.roll_number) studentUpdates.roll_number = parsedData.roll_number;
         if (parsedData.admission_date) academicUpdates.admission_date = parsedData.admission_date;
         if (parsedData.category) academicUpdates.category = parsedData.category;
+        if (parsedData.category_id) academicUpdates.category_id = parsedData.category_id;
         if (parsedData.admission_number)
           academicUpdates.admission_number = parsedData.admission_number;
 
@@ -710,6 +916,9 @@ const updateStudent = async (req, res, next) => {
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
         if (typeof parsedData !== 'undefined' && 'admission_type' in parsedData)
           studentUpdates.admission_type = parsedData.admission_type;
+        if (parsedData.custom_fields && typeof parsedData.custom_fields === 'object') {
+          customFieldValues = { ...parsedData.custom_fields };
+        }
       } else if (updates.student && typeof updates.student === 'object') {
         // Direct nested object (already parsed) - this is the current case
         studentUpdates = { ...updates.student };
@@ -717,6 +926,7 @@ const updateStudent = async (req, res, next) => {
         if (updates.roll_number) studentUpdates.roll_number = updates.roll_number;
         if (updates.admission_date) academicUpdates.admission_date = updates.admission_date;
         if (updates.category) academicUpdates.category = updates.category;
+        if (updates.category_id) academicUpdates.category_id = updates.category_id;
         if (updates.admission_number) academicUpdates.admission_number = updates.admission_number;
 
         // Store class_id and section_id for later processing
@@ -727,6 +937,9 @@ const updateStudent = async (req, res, next) => {
 
         if (studentUpdates.mobile_no) studentUpdates.phone = studentUpdates.mobile_no;
         if ('admission_type' in updates) studentUpdates.admission_type = updates.admission_type;
+        if (updates.custom_fields && typeof updates.custom_fields === 'object') {
+          customFieldValues = { ...updates.custom_fields };
+        }
       } else {
         // Flat data structure
         studentUpdates = { ...updates };
@@ -755,6 +968,8 @@ const updateStudent = async (req, res, next) => {
     delete studentUpdates.created_at;
     delete studentUpdates.updated_at;
     delete studentUpdates.created_by;
+    studentUpdates.documents = studentUpdates.documents || student.documents || {};
+    await applyAdmissionExtras(studentUpdates, customFieldValues, student.school_id);
     // Get class and section names from IDs if provided
     if (academicUpdates._class_id) {
       try {
@@ -830,6 +1045,8 @@ const updateStudent = async (req, res, next) => {
       ...academicUpdates,
       updated_by: req.user.id
     };
+
+    await setCategoryId(updateData, req);
 
     // Sanitize ENUM fields
     sanitizeEnumFields(updateData);
@@ -2172,5 +2389,6 @@ module.exports = {
   getStudentReport,
   exportStudentReport,
   bulkImportStudents,
-  getStudentInvoiceBreakdown
+  getStudentInvoiceBreakdown,
+  setStudentAuthentication
 };

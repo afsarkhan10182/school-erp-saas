@@ -5,7 +5,8 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Module Management</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
-          {{ school?.name || 'School' }}
+          {{ school?.name || 'School' }} — toggle features on/off for this school (must be included in
+          the subscription plan first)
         </p>
         <div class="mt-2 flex items-center gap-4 text-sm">
           <span

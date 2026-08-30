@@ -2,7 +2,18 @@
   <div class="min-h-screen">
     <div class="container mx-auto py-8 px-4">
       <h1 class="text-2xl font-bold mb-4">Collections Management</h1>
-      <div class="flex justify-between mb-6">
+      <div class="flex flex-wrap gap-3 justify-between mb-6">
+        <select
+          v-if="branchOptions.length > 1"
+          v-model="filters.branch_id"
+          class="border p-2 rounded w-full max-w-xs"
+          @change="fetchCollections"
+        >
+          <option value="">All Branches</option>
+          <option v-for="branch in branchOptions" :key="branch.id" :value="branch.id">
+            {{ branch.name }}
+          </option>
+        </select>
         <input
           v-model="filters.search"
           @input="fetchCollections"
@@ -41,12 +52,14 @@ import { fetchCollectionsAPI } from '~/api';
 import CollectionTable from '~/components/financial/CollectionTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import { useToast } from '~/composables/useToast';
+import { useBranches } from '~/composables/useBranches';
 
 const router = useRouter();
 const { showError, showInfo } = useToast();
+const { availableBranches: branchOptions, fetchBranchesForUser } = useBranches();
 const collections = ref([]);
 const pagination = reactive({ page: 1, limit: 10, total: 0 });
-const filters = reactive({ search: '' });
+const filters = reactive({ search: '', branch_id: '' });
 
 const fetchCollections = async () => {
   try {
@@ -87,7 +100,9 @@ const onPageSizeChange = newLimit => {
   fetchCollections();
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchBranchesForUser();
+  if (branchOptions.value.length === 1) filters.branch_id = branchOptions.value[0].id;
   fetchCollections();
 });
 </script>

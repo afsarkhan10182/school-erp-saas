@@ -11,7 +11,7 @@
         </div>
         <div class="mt-4 sm:mt-0">
           <button
-            @click="showCreateModal = true"
+            @click="openCreateEvent"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Plus class="-ml-1 mr-2 h-5 w-5" />
@@ -31,7 +31,23 @@
       <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
       >
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div v-if="showBranchDropdown">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Branch</label
+            >
+            <select
+              v-model="selectedBranchId"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              @change="loadScopedCalendar"
+            >
+              <option value="">All Branches</option>
+              <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
+                {{ branch.label }}
+              </option>
+            </select>
+          </div>
+
           <!-- Academic Year -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -104,7 +120,7 @@
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Calendar Events</h3>
             <button
-              @click="showCreateModal = true"
+              @click="openCreateEvent"
               class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Plus class="-ml-1 mr-2 h-4 w-4" />
@@ -223,7 +239,7 @@
             </p>
             <div class="mt-6">
               <button
-                @click="showCreateModal = true"
+                @click="openCreateEvent"
                 class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <Plus class="-ml-1 mr-2 h-5 w-5" />
@@ -329,7 +345,7 @@
           <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Terms & Semesters</h3>
             <button
-              @click="showCreateTermModal = true"
+              @click="openCreateTerm"
               class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Plus class="-ml-1 mr-2 h-4 w-4" />
@@ -402,7 +418,7 @@
           </p>
           <div class="mt-6">
             <button
-              @click="showCreateTermModal = true"
+                @click="openCreateTerm"
               class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Plus class="-ml-1 mr-2 h-5 w-5" />
@@ -540,6 +556,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { Calendar, Clock } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
+import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import { useAcademics } from '~/composables/useAcademics';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '~/utils/formatters';
@@ -552,6 +569,7 @@ import { Plus, Edit, Trash2 } from 'lucide-vue-next';
 
 // Composables
 const { showToast } = useToast();
+const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
 const { academicYears, fetchAcademicYears } = useAcademics();
 // formatDate, getStatusBadgeClass, getStatusLabel imported directly from utils
 
@@ -598,7 +616,7 @@ const academicYearOptions = computed(() => {
 const loadCalendar = async () => {
   try {
     loading.value = true;
-    const response = await AcademicCalendar.getAll(filters.value);
+    const response = await AcademicCalendar.getAll({ ...filters.value, ...scopeParams.value });
     calendarEvents.value = response.data.events || response.data.rows || [];
   } catch (error) {
     showToast('Failed to load calendar events', 'error');
@@ -612,6 +630,18 @@ const editEvent = event => {
   isEditing.value = true;
   editingEvent.value = event;
   showCreateModal.value = true;
+};
+
+const needsBranch = () => showBranchDropdown.value && !selectedBranchId.value;
+
+const openCreateEvent = () => {
+  if (needsBranch()) return showToast('Please select a branch first', 'warning');
+  showCreateModal.value = true;
+};
+
+const openCreateTerm = () => {
+  if (needsBranch()) return showToast('Please select a branch first', 'warning');
+  showCreateTermModal.value = true;
 };
 
 const deleteEvent = async event => {
@@ -630,10 +660,10 @@ const deleteEvent = async event => {
 const handleEventSubmit = async eventData => {
   try {
     if (editingEvent.value) {
-      await AcademicCalendar.update(editingEvent.value.id, eventData);
+      await AcademicCalendar.update(editingEvent.value.id, { ...eventData, ...scopeParams.value });
       showToast('Calendar event updated successfully', 'success');
     } else {
-      await AcademicCalendar.create(eventData);
+      await AcademicCalendar.create({ ...eventData, ...scopeParams.value });
       showToast('Calendar event created successfully', 'success');
     }
     closeModal();
@@ -659,7 +689,7 @@ const closeTermModal = () => {
 const loadTerms = async () => {
   try {
     loading.value = true;
-    const response = await examTermApi.getAll(termFilters.value);
+    const response = await examTermApi.getAll({ ...termFilters.value, ...scopeParams.value });
     terms.value = response.data.terms || [];
   } catch (error) {
     showToast('Failed to load terms', 'error');
@@ -693,10 +723,10 @@ const deleteTerm = async term => {
 const handleTermSubmit = async formData => {
   try {
     if (isEditingTerm.value) {
-      await examTermApi.update(editingTerm.value.id, formData);
+      await examTermApi.update(editingTerm.value.id, { ...formData, ...scopeParams.value });
       showToast('Term updated successfully', 'success');
     } else {
-      await examTermApi.create(formData);
+      await examTermApi.create({ ...formData, ...scopeParams.value });
       showToast('Term created successfully', 'success');
     }
 
@@ -726,8 +756,13 @@ const resetTermFilters = () => {
   loadTerms();
 };
 
+const loadScopedCalendar = async () => {
+  await Promise.all([loadCalendar(), loadTerms()]);
+};
+
 // Lifecycle
 onMounted(async () => {
+  await loadScope();
   await fetchAcademicYears();
   await loadCalendar();
   await loadTerms();

@@ -548,7 +548,14 @@ class ExamService extends BaseService {
           {
             model: Student,
             as: 'student',
-            attributes: ['id', 'first_name', 'last_name', 'admission_number']
+            attributes: [
+              'id',
+              'first_name',
+              'last_name',
+              'admission_number',
+              'class_id',
+              'section_id'
+            ]
           }
         ],
         order: orderClause,
@@ -982,6 +989,26 @@ class ExamService extends BaseService {
         reject(error);
       }
     });
+  }
+
+  static async getStudentExamHistory(studentId, user, params = {}) {
+    return this.executeWithErrorHandling(async () => {
+      const page = Math.max(1, Number(params.page) || 1);
+      const limit = Math.max(1, Number(params.limit) || 10);
+      const examWhere = {
+        school_id: user.school_id,
+        ...(user.role === 'branch_admin' && { branch_id: user.branch_id }),
+        ...(params.academic_year && { academic_year: params.academic_year })
+      };
+      const { count, rows } = await ExamResult.findAndCountAll({
+        where: { student_id: studentId, school_id: user.school_id },
+        include: [{ model: Exam, as: 'exam', where: examWhere }],
+        order: [['created_at', 'DESC']],
+        limit,
+        offset: (page - 1) * limit
+      });
+      return { results: rows, pagination: { page, limit, total: count, pages: Math.ceil(count / limit) } };
+    }, 'Get student exam history');
   }
 
   /**

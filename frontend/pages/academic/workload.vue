@@ -15,7 +15,23 @@
       <div
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
       >
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div v-if="showBranchDropdown">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Branch</label
+            >
+            <select
+              v-model="selectedBranchId"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              @change="loadScopedOptions"
+            >
+              <option value="">All Branches</option>
+              <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
+                {{ branch.label }}
+              </option>
+            </select>
+          </div>
+
           <!-- Teacher Filter -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -403,6 +419,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
+import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { SubjectTeachers, Users } from '~/api';
 import Modal from '~/components/ui/Modal.vue';
 import { Users as UsersIcon, BookOpen, CheckCircle, Clock } from 'lucide-vue-next';
@@ -410,6 +427,7 @@ import { Users as UsersIcon, BookOpen, CheckCircle, Clock } from 'lucide-vue-nex
 // Composables
 const { showToast } = useToast();
 const { classOptions, academicYears, fetchClasses, fetchAcademicYears } = useAcademics();
+const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
 
 // Reactive data
 const loading = ref(false);
@@ -438,7 +456,7 @@ const academicYearOptions = computed(() => {
 const loadWorkload = async () => {
   try {
     loading.value = true;
-    const response = await SubjectTeachers.getWorkload(filters.value);
+    const response = await SubjectTeachers.getWorkload({ ...filters.value, ...scopeParams.value });
     workloadData.value = response.data.workload || [];
     stats.value = response.data.stats || {};
   } catch (error) {
@@ -451,7 +469,7 @@ const loadWorkload = async () => {
 
 const loadTeachers = async () => {
   try {
-    const response = await Users.getAll({ role: 'teacher' });
+    const response = await Users.getAll({ role: 'teacher', ...scopeParams.value });
     teacherOptions.value = (response.data.users || response.data.rows || []).map(teacher => ({
       value: teacher.id,
       label: `${teacher.first_name} ${teacher.last_name} (${teacher.email})`
@@ -468,6 +486,13 @@ const clearFilters = () => {
     class_id: ''
   };
   loadWorkload();
+};
+
+const loadScopedOptions = async () => {
+  filters.value.teacher_id = '';
+  filters.value.class_id = '';
+  await Promise.all([fetchClasses({ branchId: selectedBranchId.value || undefined }), loadTeachers()]);
+  await loadWorkload();
 };
 
 const viewTeacherDetails = teacher => {
@@ -492,7 +517,8 @@ const getInitials = name => {
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([loadClasses(), fetchAcademicYears(), loadTeachers()]);
+  await loadScope();
+  await Promise.all([fetchClasses({ branchId: selectedBranchId.value || undefined }), fetchAcademicYears(), loadTeachers()]);
   await loadWorkload();
 });
 </script>

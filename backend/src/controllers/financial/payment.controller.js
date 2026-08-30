@@ -593,7 +593,7 @@ const getStudentPayments = async (req, res, next) => {
 // Get collections (all payments for the school)
 const getCollections = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, search, payment_method, status, academic_year } = req.query;
+    const { page = 1, limit = 10, search, payment_method, status, academic_year, branch_id } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const whereClause = {
@@ -604,6 +604,8 @@ const getCollections = async (req, res, next) => {
     if (req.user.role === 'branch_admin') {
       // Branch admin can only see collections for their assigned branch
       whereClause['$invoice.branch_id$'] = req.user.branch_id;
+    } else if (branch_id) {
+      whereClause['$invoice.branch_id$'] = branch_id;
     }
 
     // Add search filter

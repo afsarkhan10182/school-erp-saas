@@ -8,7 +8,9 @@ const ROLES = {
   ACCOUNTANT: 'accountant', // Same as branch_admin for fee management
   TEACHER: 'teacher',
   LIBRARIAN: 'librarian',
-  RECEPTIONIST: 'receptionist'
+  RECEPTIONIST: 'receptionist',
+  STUDENT: 'student',
+  PARENT: 'parent'
 };
 
 // Role hierarchy - higher roles can access lower role resources
@@ -19,7 +21,9 @@ const ROLE_HIERARCHY = {
   [ROLES.ACCOUNTANT]: 8, // Same level as branch_admin
   [ROLES.TEACHER]: 7,
   [ROLES.LIBRARIAN]: 6,
-  [ROLES.RECEPTIONIST]: 5
+  [ROLES.RECEPTIONIST]: 5,
+  [ROLES.PARENT]: 2,
+  [ROLES.STUDENT]: 1
 };
 
 // Role permissions mapping - only for implemented features
@@ -92,7 +96,9 @@ const ROLE_PERMISSIONS = {
     'view_students',
     'manage_visitors',
     'manage_appointments'
-  ]
+  ],
+  [ROLES.STUDENT]: ['view_own_profile', 'view_own_fees', 'view_own_homework'],
+  [ROLES.PARENT]: ['view_children', 'view_own_fees', 'view_own_homework']
 };
 
 // Role access scopes - simplified for actual implementation
@@ -138,6 +144,18 @@ const ROLE_SCOPES = {
     branch_access: 'own',
     user_access: 'own_branch',
     data_access: 'own_branch'
+  },
+  [ROLES.STUDENT]: {
+    school_access: 'own',
+    branch_access: 'own',
+    user_access: 'self',
+    data_access: 'self'
+  },
+  [ROLES.PARENT]: {
+    school_access: 'own',
+    branch_access: 'own',
+    user_access: 'self',
+    data_access: 'children'
   }
 };
 

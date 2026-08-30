@@ -154,7 +154,7 @@ const User = sequelize.define(
     hooks: {
       beforeCreate: async user => {
         // Check subscription limits for staff users
-        if (user.school_id && user.role !== 'super_admin' && user.role !== 'admin') {
+        if (user.school_id && !['super_admin', 'admin', 'student', 'parent'].includes(user.role)) {
           const School = require('../administration/school.model');
           const SubscriptionPlan = require('../administration/subscription-plan.model');
           const school = await School.findByPk(user.school_id);
@@ -180,7 +180,7 @@ const User = sequelize.define(
                   where: {
                     school_id: user.school_id,
                     status: 'active',
-                    role: { [require('sequelize').Op.notIn]: ['super_admin', 'admin'] }
+                    role: { [require('sequelize').Op.notIn]: ['super_admin', 'admin', 'student', 'parent'] }
                   }
                 });
 

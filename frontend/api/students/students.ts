@@ -117,7 +117,14 @@ export const Student = {
       }
     });
     return response.data;
+  },
+
+  setAuthentication: async (studentId: string, enabled: boolean) => {
+    return apiCall('put', `/students/${studentId}/authentication`, { enabled });
   }
 };
+
+/** Alias used across pages (`Students.getAll`, etc.) */
+export const Students = Student;
 
 export default Student;

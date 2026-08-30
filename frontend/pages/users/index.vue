@@ -194,6 +194,21 @@
                   <th
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                   >
+                    Staff ID
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Designation
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    Department
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  >
                     Email
                   </th>
                   <th
@@ -225,9 +240,6 @@
                     <div class="text-sm font-medium text-gray-900 dark:text-white">
                       {{ user.first_name }} {{ user.last_name }}
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                      ID: {{ user.id.slice(-6) }}
-                    </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span
@@ -257,6 +269,15 @@
                     >
                       {{ formatRole(user.role) }}
                     </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ staffId(user) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ employeeInfo(user).designation || '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ employeeInfo(user).department || '-' }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     <div class="truncate max-w-xs">{{ user.email }}</div>
@@ -429,6 +450,9 @@ const roleTabs = ref([
 ]);
 
 const roleCounts = ref({});
+const employeeInfo = user => user.settings?.employee || {};
+const staffId = user => employeeInfo(user).staff_id || user.id.slice(-7);
+const staffRoles = ['super_admin', 'admin', 'branch_admin', 'teacher', 'accountant', 'librarian', 'receptionist'];
 
 const filteredRoleTabs = computed(() => {
   if (isAdmin.value) {
@@ -442,7 +466,7 @@ const filteredRoleTabs = computed(() => {
 });
 
 const filteredUsers = computed(() => {
-  let result = [...users.value];
+  let result = users.value.filter(user => staffRoles.includes(user.role));
 
   // If current user is Admin, exclude other Admin users
   if (isAdmin.value) {
@@ -457,6 +481,9 @@ const filteredUsers = computed(() => {
         `${user.first_name} ${user.last_name}`.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
         user.phone?.toLowerCase().includes(query) ||
+        staffId(user).toLowerCase().includes(query) ||
+        employeeInfo(user).designation?.toLowerCase().includes(query) ||
+        employeeInfo(user).department?.toLowerCase().includes(query) ||
         user.branch?.name?.toLowerCase().includes(query)
     );
   }
@@ -472,6 +499,7 @@ const filteredUsers = computed(() => {
 const updateRoleCounts = () => {
   // Filter users based on current user's role
   let filteredUsers = [...users.value];
+  filteredUsers = filteredUsers.filter(user => staffRoles.includes(user.role));
 
   // If current user is Admin, exclude other Admin users from counts
   if (isAdmin.value) {

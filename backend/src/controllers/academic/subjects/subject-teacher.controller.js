@@ -36,6 +36,9 @@ class SubjectTeacherController {
 
       // Build role-based where clause using common service
       let whereClause = CommonService.buildRoleBasedWhere(req.user);
+      if (req.branchId || req.query.branch_id) {
+        whereClause.branch_id = req.branchId || req.query.branch_id;
+      }
 
       // Special handling for teacher role
       if (req.user.role === 'teacher') {
@@ -438,6 +441,9 @@ class SubjectTeacherController {
 
       // Build role-based where clause using common service
       let whereClause = CommonService.buildRoleBasedWhere(req.user);
+      if (req.branchId || req.query.branch_id) {
+        whereClause.branch_id = req.branchId || req.query.branch_id;
+      }
 
       // Add filters
       if (teacher_id) {

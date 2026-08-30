@@ -49,6 +49,22 @@
         </div>
       </div>
 
+      <div v-if="branches.length > 1" class="mb-6 max-w-xs">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Branch
+        </label>
+        <select
+          v-model="selectedBranchId"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+          @change="onBranchFilterChange"
+        >
+          <option value="">All Branches</option>
+          <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+            {{ branch.name }}
+          </option>
+        </select>
+      </div>
+
       <!-- Sections List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="overflow-x-auto">
@@ -528,6 +544,17 @@ const onBranchChange = async () => {
   }
 };
 
+const onBranchFilterChange = async () => {
+  selectedClassId.value = '';
+  if (selectedBranchId.value) {
+    await fetchClasses({
+      schoolId: selectedSchoolId.value || user.value?.school_id,
+      branchId: selectedBranchId.value
+    });
+  }
+  await fetchSections();
+};
+
 // Load streams for the selected class
 const loadStreamsForClass = async classId => {
   if (!classId || !streamsEnabled.value) {
@@ -601,6 +628,7 @@ const fetchSections = async () => {
     } else if (userRole.value === 'admin') {
       // School admin sees only their school's sections
       params.school_id = user.value?.school_id;
+      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
     } else if (userRole.value === 'branch_admin') {
       // Branch admin sees only their branch's sections
       params.branch_id = user.value?.branch_id;
@@ -765,6 +793,10 @@ const loadStreamsSetting = async () => {
 
 onMounted(async () => {
   await loadStreamsSetting();
+  if (userRole.value === 'admin') {
+    selectedSchoolId.value = user.value?.school_id;
+    await fetchBranches(user.value?.school_id);
+  }
   fetchSections();
 });
 </script>

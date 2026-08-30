@@ -8,7 +8,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <!-- Branch Selection -->
-        <div>
+        <div v-if="showBranchDropdown">
           <EnhancedDropdown
             id="branch"
             v-model="filters.branch_id"
@@ -210,6 +210,16 @@
         Please select branch and role to load employees.
       </p>
     </div>
+
+    <div v-if="previewHtml" class="fixed inset-0 z-50 bg-black/50 p-4">
+      <div class="h-full bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ previewTitle }}</h3>
+          <button class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" @click="previewHtml = ''">Close</button>
+        </div>
+        <iframe :srcdoc="previewHtml" title="Employee certificate preview" class="flex-1 w-full bg-white" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -286,6 +296,8 @@ const employeeTemplates = computed(() => {
 const loading = ref(false);
 const employees = ref([]);
 const selectedEmployees = ref([]);
+const previewHtml = ref('');
+const previewTitle = ref('');
 const filters = reactive({
   branch_id: '',
   role: '',
@@ -298,6 +310,7 @@ const filters = reactive({
 const allSelected = computed(() => {
   return employees.value.length > 0 && selectedEmployees.value.length === employees.value.length;
 });
+const showBranchDropdown = computed(() => availableBranches.value.length > 1);
 
 // Format role label for display
 const formatRoleLabel = role => {
@@ -307,12 +320,13 @@ const formatRoleLabel = role => {
 
 // Map User model to employee display format
 const mapUserToEmployee = userData => {
+  const employee = userData.settings?.employee || {};
   return {
     id: userData.id,
     name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-    staff_id: userData.id?.substring(0, 8).toUpperCase() || 'N/A', // Use first 8 chars of UUID as staff ID
-    department: 'N/A', // Department doesn't exist in User model
-    designation: formatRoleLabel(userData.role),
+    staff_id: employee.staff_id || userData.id?.substring(0, 8).toUpperCase() || 'N/A',
+    department: employee.department || 'N/A',
+    designation: employee.designation || formatRoleLabel(userData.role),
     mobile_no: userData.phone || 'N/A',
     role: userData.role,
     // Preserve original user data for certificate generation
@@ -703,7 +717,9 @@ const openCertificatePrintPreview = async (htmlContent, title) => {
   try {
     const previewWindow = window.open('', '_blank', 'width=1200,height=800');
     if (!previewWindow) {
-      throw new Error('Please allow popups to view print preview');
+      previewTitle.value = title;
+      previewHtml.value = htmlContent;
+      return;
     }
 
     previewWindow.document.write(htmlContent);

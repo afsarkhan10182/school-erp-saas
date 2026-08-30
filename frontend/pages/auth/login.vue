@@ -257,6 +257,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Auth } from '~/api';
+import { homePathForRole } from '~/utils/home-path';
 
 const config = useRuntimeConfig();
 const apiBase = config.public.apiBase;
@@ -406,7 +407,7 @@ const checkExistingAuth = async () => {
           sessionStorage.removeItem('post-logout-redirect');
         }
       }
-      destination = destination || '/dashboard';
+      destination = destination || homePathForRole(authStore.currentUser?.role);
       await navigateTo(destination, { replace: true });
       return;
     }
@@ -416,7 +417,7 @@ const checkExistingAuth = async () => {
       try {
         const isValid = await authStore.checkAuth();
         if (isValid) {
-          // Priority: query redirect > post-logout redirect > dashboard
+          // Priority: query redirect > post-logout redirect > role home
           let destination = redirectTo.value;
           if (!destination && import.meta.client) {
             const savedRedirect = sessionStorage.getItem('post-logout-redirect');
@@ -425,7 +426,7 @@ const checkExistingAuth = async () => {
               sessionStorage.removeItem('post-logout-redirect');
             }
           }
-          destination = destination || '/dashboard';
+          destination = destination || homePathForRole(authStore.currentUser?.role);
           await navigateTo(destination, { replace: true });
           return;
         }

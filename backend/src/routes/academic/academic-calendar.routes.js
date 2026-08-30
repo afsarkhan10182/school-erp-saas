@@ -10,7 +10,7 @@ const {
   upsertCalendarEntry,
   bulkCreateCalendar
 } = require('~/controllers/academic/academic-calendar.controller');
-const { verifyToken, authorize, setSchoolContext } = require('~/middleware/core/auth');
+const { verifyToken, authorize, setSchoolContext, setBranchContext } = require('~/middleware/core/auth');
 const { validate } = require('~/middleware/shared/validate');
 const {
   createAcademicCalendarValidator,
@@ -18,7 +18,7 @@ const {
 } = require('~/validations/academic/academic-calendar');
 
 // Apply middleware
-router.use(verifyToken, setSchoolContext);
+router.use(verifyToken, setSchoolContext, setBranchContext);
 
 // Check if a date is a working day (all authenticated users)
 router.get('/check-working-day', checkWorkingDay);

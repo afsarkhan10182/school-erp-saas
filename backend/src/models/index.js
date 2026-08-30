@@ -36,6 +36,18 @@ const Timetable = require('./academic/timetable/timetable.model');
 const TimetableSlot = require('./academic/timetable/timetable-slot.model');
 const { Exam, ExamResult, ExamSchedule, ExamHall, ExamPosition } = require('./academic/exams');
 const MarkDistribution = require('./academic/mark-distribution.model');
+const StudentPromotion = require('./academic/student-promotion.model');
+const StudentCategory = require('./academic/student-category.model');
+const Homework = require('./academic/homework.model');
+const LibraryBook = require('./academic/library-book.model');
+const LibraryIssue = require('./academic/library-issue.model');
+const FeeFine = require('./financial/fee-fine.model');
+const SchoolOpsRecord = require('./shared/school-ops-record.model');
+const CardTemplate = require('./academic/card-template.model');
+const OnlineExam = require('./academic/online-exam.model');
+const OnlineExamQuestion = require('./academic/online-exam-question.model');
+const OnlineExamAttempt = require('./academic/online-exam-attempt.model');
+const ExamSeating = require('./academic/exam-seating.model');
 
 // Administration models
 const CertificateTemplate = require('./administration/certificate-template.model');
@@ -81,6 +93,18 @@ const models = {
   ExamHall,
   ExamPosition,
   MarkDistribution,
+  StudentPromotion,
+  StudentCategory,
+  Homework,
+  LibraryBook,
+  LibraryIssue,
+  FeeFine,
+  SchoolOpsRecord,
+  CardTemplate,
+  OnlineExam,
+  OnlineExamQuestion,
+  OnlineExamAttempt,
+  ExamSeating,
   CertificateTemplate
 };
 
