@@ -1,10 +1,10 @@
 /**
- * School-ops entity registry.
+ * Dynamic entities registry.
  * Each entity maps to a subscription module code so Super Admin can enable/disable
  * per plan (plan_modules) and per school (disabled_modules).
  *
  * API: requireModuleAccess(entity.module)
- * UI: SCHOOL_OPS_ENTITIES[entity].module + sidebar requiredModule
+ * UI: MODULE_ENTITY_DEFINITIONS[entity].module + sidebar requiredModule
  */
 const STAFF_ROLES = [
   'super_admin',
@@ -85,7 +85,31 @@ const ENTITIES = {
   staff_attendance: { module: 'attendance', roles: STAFF_ROLES },
   exam_attendance: { module: 'attendance', roles: STAFF_ROLES },
   homework_evaluation: { module: 'homework', roles: STAFF_ROLES },
-  library_category: { module: 'library', roles: STAFF_ROLES }
+  library_category: { module: 'library', roles: STAFF_ROLES },
+  reception_config: { module: 'reception', roles: STAFF_ROLES },
+  student_deactivation: { module: 'students', roles: STAFF_ROLES },
+  parent_deactivation: { module: 'students', roles: STAFF_ROLES },
+  employee_deactivation: { module: 'hr', roles: STAFF_ROLES },
+  attachment_type: { module: 'attachments', roles: STAFF_ROLES },
+  exam_term: { module: 'exams', roles: STAFF_ROLES },
+  exam_question_group: { module: 'exams', roles: STAFF_ROLES },
+  sms_template: { module: 'communication', roles: STAFF_ROLES },
+  email_template: { module: 'communication', roles: STAFF_ROLES },
+  sms_log: { module: 'communication', roles: STAFF_ROLES },
+  auto_notification: { module: 'communication', roles: STAFF_ROLES },
+  payment_type: { module: 'fees', roles: STAFF_ROLES },
+  alumni_event: { module: 'alumni', roles: STAFF_ROLES },
+  frontend_setting: { module: 'website', roles: STAFF_ROLES },
+  frontend_menu: { module: 'website', roles: STAFF_ROLES },
+  frontend_section: { module: 'website', roles: STAFF_ROLES },
+  frontend_slider: { module: 'website', roles: STAFF_ROLES },
+  frontend_features: { module: 'website', roles: STAFF_ROLES },
+  frontend_testimonial: { module: 'website', roles: STAFF_ROLES },
+  frontend_service: { module: 'website', roles: STAFF_ROLES },
+  frontend_faq: { module: 'website', roles: STAFF_ROLES },
+  gallery_category: { module: 'website', roles: STAFF_ROLES },
+  gallery: { module: 'website', roles: STAFF_ROLES },
+  news: { module: 'website', roles: STAFF_ROLES }
 };
 
 const NEW_MODULES = [
@@ -181,23 +205,40 @@ const FEATURE_MODULES = {
     'bulk-edit',
     'transfer',
     'cards',
-    'online-admission'
+    'online-admission',
+    'student_deactivation',
+    'parent_deactivation'
   ],
-  fees: ['due-invoices', 'fine-setup', 'fee-groups', 'fee-allocation'],
-  exams: ['exam-reports', 'seating', 'online-exam', 'marksheet-template'],
+  fees: ['due-invoices', 'fine-setup', 'fee-groups', 'fee-allocation', 'payment_type'],
+  exams: ['exam-reports', 'seating', 'online-exam', 'marksheet-template', 'exam_term', 'exam_question_group'],
   homework: ['homework', 'homework-evaluation'],
   library: ['books', 'issues', 'library-category'],
-  reception: ['enquiry', 'postal', 'call-log', 'complaint', 'visitor'],
-  hr: ['department', 'designation', 'leave', 'salary', 'awards'],
+  reception: ['enquiry', 'postal', 'call-log', 'complaint', 'visitor', 'reception_config'],
+  hr: ['department', 'designation', 'leave', 'salary', 'awards', 'employee_deactivation'],
   transport: ['routes', 'vehicles', 'stops', 'assignments'],
   hostel: ['hostel', 'rooms', 'allocation'],
   accounting: ['account-heads', 'vouchers'],
   inventory: ['products', 'stores', 'purchase', 'sales', 'issue'],
   events: ['event-types', 'events'],
-  alumni: ['alumni'],
-  communication: ['sms', 'email', 'mailbox'],
-  website: ['cms', 'translations', 'domain'],
-  attachments: ['attachments'],
+  alumni: ['alumni', 'alumni_event'],
+  communication: ['sms', 'email', 'mailbox', 'sms_template', 'email_template', 'sms_log', 'auto_notification'],
+  website: [
+    'cms',
+    'translations',
+    'domain',
+    'frontend_setting',
+    'frontend_menu',
+    'frontend_section',
+    'frontend_slider',
+    'frontend_features',
+    'frontend_testimonial',
+    'frontend_service',
+    'frontend_faq',
+    'gallery_category',
+    'gallery',
+    'news'
+  ],
+  attachments: ['attachments', 'attachment_type'],
   liveclass: ['live-class'],
   attendance: ['subject-attendance', 'staff-attendance', 'exam-attendance']
 };

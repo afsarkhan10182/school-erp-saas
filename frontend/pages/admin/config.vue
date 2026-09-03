@@ -229,7 +229,6 @@ import { Settings } from '~/api/administration/settings';
 // Meta
 definePageMeta({
   layout: 'admin',
-  middleware: 'auth',
   requiresRole: ['admin', 'super_admin']
 });
 

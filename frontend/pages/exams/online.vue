@@ -248,7 +248,7 @@ import { OnlineExams } from '~/api/academic/cards-exams-reports';
 import { Branches } from '~/api/administration/branches';
 import { Classes } from '~/api/academic/classes';
 import { Students } from '~/api/students';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuth } from '~/composables/useAuth';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
 
@@ -304,7 +304,7 @@ const loadLookups = async () => {
   ]);
   classes.value = extractList(cRes, ['classes', 'rows']);
   students.value = extractList(sRes, ['students', 'rows']);
-  const qRes: any = await SchoolOps.list('exam_question', branchParams());
+  const qRes: any = await DynamicEntities.list('exam_question', branchParams());
   questionBank.value = extractList(qRes, ['records', 'rows']);
 };
 

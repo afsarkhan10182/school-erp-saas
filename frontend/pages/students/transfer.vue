@@ -54,7 +54,7 @@
 import { computed, ref, onMounted } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Students } from '~/api/students';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
@@ -96,7 +96,7 @@ const transfer = async () => {
   saving.value = true;
   try {
     const transferredIds = [...selected.value];
-    await SchoolOps.transferStudents({
+    await DynamicEntities.transferStudents({
       student_ids: transferredIds,
       to_branch_id: toBranch.value
     });

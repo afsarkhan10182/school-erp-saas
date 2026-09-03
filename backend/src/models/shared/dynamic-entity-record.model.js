@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('~/config/database');
 
-const SchoolOpsRecord = sequelize.define(
-  'SchoolOpsRecord',
+const DynamicEntityRecord = sequelize.define(
+  'DynamicEntityRecord',
   {
     id: {
       type: DataTypes.UUID,
@@ -27,7 +27,7 @@ const SchoolOpsRecord = sequelize.define(
     updated_by: { type: DataTypes.UUID, allowNull: true }
   },
   {
-    tableName: 'school_ops_records',
+    tableName: 'dynamic_entity_records',
     timestamps: true,
     underscored: true,
     indexes: [
@@ -40,11 +40,14 @@ const SchoolOpsRecord = sequelize.define(
   }
 );
 
-SchoolOpsRecord.associate = models => {
-  SchoolOpsRecord.belongsTo(models.School, { foreignKey: 'school_id', as: 'school' });
-  SchoolOpsRecord.belongsTo(models.Student, { foreignKey: 'student_id', as: 'student' });
-  SchoolOpsRecord.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-  SchoolOpsRecord.belongsTo(models.Class, { foreignKey: 'class_id', as: 'class' });
+DynamicEntityRecord.associate = models => {
+  DynamicEntityRecord.belongsTo(models.School, { foreignKey: 'school_id', as: 'school' });
+  DynamicEntityRecord.belongsTo(models.Student, { foreignKey: 'student_id', as: 'student' });
+  DynamicEntityRecord.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
+  DynamicEntityRecord.belongsTo(models.Class, { foreignKey: 'class_id', as: 'class' });
 };
 
-module.exports = SchoolOpsRecord;
+const SchoolOpsRecord = DynamicEntityRecord;
+
+module.exports = DynamicEntityRecord;
+module.exports.SchoolOpsRecord = SchoolOpsRecord;

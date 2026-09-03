@@ -1452,7 +1452,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import { Students } from '~/api';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { StudentCategories } from '~/api/students';
 import { useRoute, useRouter } from 'vue-router';
 import FormField from '~/components/ui/FormField.vue';
@@ -2270,7 +2270,7 @@ const loadAcademicData = async () => {
 const loadCustomFields = async () => {
   if (!form.school_id) return;
   try {
-    const res = await SchoolOps.list('custom_field', {
+    const res = await DynamicEntities.list('custom_field', {
       school_id: form.school_id,
       ...(form.branch_id ? { branch_id: form.branch_id } : {})
     });
@@ -2290,9 +2290,9 @@ const loadTransportOptions = async () => {
   const params = { school_id: form.school_id };
   try {
     const [routes, vehicles, stops] = await Promise.all([
-      SchoolOps.list('transport_route', params),
-      SchoolOps.list('transport_vehicle', params),
-      SchoolOps.list('transport_stop', params)
+      DynamicEntities.list('transport_route', params),
+      DynamicEntities.list('transport_vehicle', params),
+      DynamicEntities.list('transport_stop', params)
     ]);
     transportRoutes.value = routes.data?.records || [];
     transportVehicles.value = vehicles.data?.records || [];

@@ -180,5 +180,8 @@ router.get('/fee-trend', DashboardController.getFeeTrendData);
  */
 router.get('/fee-collection-summary', DashboardController.getFeeCollectionSummary);
 router.get('/academic-year-months', DashboardController.getAcademicYearMonths);
+router.get('/income-vs-expense', DashboardController.getIncomeVsExpense);
+router.get('/weekend-attendance', DashboardController.getWeekendAttendance);
+router.get('/annual-fees-summary', DashboardController.getAnnualFeesSummary);
 
 module.exports = router;

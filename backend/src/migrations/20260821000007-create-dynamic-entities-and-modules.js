@@ -1,15 +1,19 @@
 'use strict';
 
-const { NEW_MODULES } = require('../config/school-ops-entities');
+const { NEW_MODULES } = require('../config/dynamic-entities');
 
 module.exports = {
   async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      const exists = await queryInterface.describeTable('school_ops_records').catch(() => null);
+      const legacyExists = await queryInterface.describeTable('school_ops_records').catch(() => null);
+      if (legacyExists) {
+        await queryInterface.renameTable('school_ops_records', 'dynamic_entity_records', { transaction });
+      }
+      const exists = await queryInterface.describeTable('dynamic_entity_records').catch(() => null);
       if (!exists) {
         await queryInterface.createTable(
-          'school_ops_records',
+          'dynamic_entity_records',
           {
             id: {
               type: Sequelize.UUID,
@@ -50,7 +54,7 @@ module.exports = {
           },
           { transaction }
         );
-        await queryInterface.addIndex('school_ops_records', ['school_id', 'entity_type'], {
+        await queryInterface.addIndex('dynamic_entity_records', ['school_id', 'entity_type'], {
           transaction
         });
       }
@@ -147,6 +151,6 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('school_ops_records');
+    await queryInterface.dropTable('dynamic_entity_records');
   }
 };

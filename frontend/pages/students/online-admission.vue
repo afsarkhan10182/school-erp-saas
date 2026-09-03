@@ -130,7 +130,7 @@
         </div>
       </section>
 
-      <!-- Applications list — real /school-ops/admission_application -->
+      <!-- Applications list — real /entities/admission_application -->
       <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden">
         <header
           class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2"
@@ -222,7 +222,7 @@ import { useToast } from '~/composables/useToast';
 import { Schools } from '~/api/administration/schools';
 import { Branches } from '~/api/administration/branches';
 import { Classes } from '~/api/academic/classes';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 type Opt = { value: string; label: string; description?: string };
@@ -426,7 +426,7 @@ const onBranchChange = async () => {
   await loadClasses();
 };
 
-/** GET /api/school-ops/admission_application */
+/** GET /api/entities/admission_application */
 const filter = async () => {
   if (showSchoolDropdown.value && !selectedSchoolId.value) {
     showToast('Select a school first', 'error');
@@ -441,7 +441,7 @@ const filter = async () => {
     if (isSuperAdmin.value && selectedSchoolId.value) {
       params.school_id = selectedSchoolId.value;
     }
-    const res: any = await SchoolOps.list('admission_application', params);
+    const res: any = await DynamicEntities.list('admission_application', params);
     rows.value = extractList(res, ['records']);
   } catch (error: any) {
     listError.value = apiErrorMessage(error);
@@ -455,7 +455,7 @@ const runAction = async (id: string, action: 'approve' | 'reject') => {
   if (!window.confirm(action === 'approve' ? 'Approve this application and create a student?' : 'Reject this application?')) return;
   actingId.value = id;
   try {
-    await SchoolOps.action('admission_application', id, action);
+    await DynamicEntities.action('admission_application', id, action);
     showToast(action === 'approve' ? 'Approved — student created' : 'Rejected', 'success');
     await filter();
   } catch (error: any) {

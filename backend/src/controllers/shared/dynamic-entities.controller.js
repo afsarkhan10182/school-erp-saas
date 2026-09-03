@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const {
-  SchoolOpsRecord,
+  DynamicEntityRecord,
   Student,
   Class,
   Section,
@@ -12,7 +12,7 @@ const {
   Homework,
   FeeInvoice
 } = require('~/models');
-const { ENTITIES } = require('~/config/school-ops-entities');
+const { ENTITIES } = require('~/config/dynamic-entities');
 const { logger } = require('~/utils/shared/logger');
 const { generateStudentIdCard } = require('~/services/academic/id-card.service');
 const {
@@ -61,7 +61,7 @@ const ADMISSION_EXTRA_KEYS = [
 ];
 
 const admissionCustomFields = async (schoolId, showKey) => {
-  const records = await SchoolOpsRecord.findAll({
+  const records = await DynamicEntityRecord.findAll({
     where: { school_id: schoolId, entity_type: 'custom_field', status: 'active' },
     order: [['created_at', 'ASC']]
   });
@@ -91,7 +91,7 @@ const list = async (req, res) => {
     if (req.query.status) where.status = req.query.status;
     if (req.query.class_id) where.class_id = req.query.class_id;
     if (req.query.student_id) where.student_id = req.query.student_id;
-    const records = await SchoolOpsRecord.findAll({
+    const records = await DynamicEntityRecord.findAll({
       where,
       include: [
         { model: Student, as: 'student', attributes: ['id', 'first_name', 'last_name', 'admission_number'], required: false },
@@ -102,7 +102,7 @@ const list = async (req, res) => {
     });
     return res.json({ success: true, data: { records: records.map(serialize) } });
   } catch (error) {
-    logger.error('school-ops list', error);
+    logger.error('dynamic-entities list', error);
     return res.status(errorStatus(error)).json({ success: false, message: error.message });
   }
 };
@@ -115,7 +115,7 @@ const create = async (req, res) => {
     const title = body.title || body.name || body.subject || `${entityType} ${Date.now()}`;
     const emptyToNull = value => (value === '' || value === undefined ? null : value);
     const scope = await resolveSchoolBranchScope(req, { branchRequired: false });
-    const record = await SchoolOpsRecord.create({
+    const record = await DynamicEntityRecord.create({
       entity_type: entityType,
       title,
       status: body.status || (entityType === 'admission_application' ? 'pending' : 'active'),
@@ -134,14 +134,14 @@ const create = async (req, res) => {
     });
     return res.status(201).json({ success: true, data: { record: serialize(record) } });
   } catch (error) {
-    logger.error('school-ops create', error);
+    logger.error('dynamic-entities create', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const update = async (req, res) => {
   try {
-    const record = await SchoolOpsRecord.findOne({
+    const record = await DynamicEntityRecord.findOne({
       where: { id: req.params.id, ...schoolWhere(req), entity_type: req.params.entity }
     });
     if (!record) return res.status(404).json({ success: false, message: 'Not found' });
@@ -161,21 +161,21 @@ const update = async (req, res) => {
     });
     return res.json({ success: true, data: { record: serialize(record) } });
   } catch (error) {
-    logger.error('school-ops update', error);
+    logger.error('dynamic-entities update', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const remove = async (req, res) => {
   try {
-    const record = await SchoolOpsRecord.findOne({
+    const record = await DynamicEntityRecord.findOne({
       where: { id: req.params.id, ...schoolWhere(req), entity_type: req.params.entity }
     });
     if (!record) return res.status(404).json({ success: false, message: 'Not found' });
     await record.destroy();
     return res.json({ success: true, message: 'Deleted' });
   } catch (error) {
-    logger.error('school-ops delete', error);
+    logger.error('dynamic-entities delete', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -205,10 +205,10 @@ const bulkCreate = async (req, res) => {
       branch_id: scope.branch_id,
       created_by: req.user.id
     }));
-    const records = await SchoolOpsRecord.bulkCreate(rows);
+    const records = await DynamicEntityRecord.bulkCreate(rows);
     return res.status(201).json({ success: true, data: { records: records.map(serialize) } });
   } catch (error) {
-    logger.error('school-ops bulk', error);
+    logger.error('dynamic-entities bulk', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -217,7 +217,7 @@ const runAction = async (req, res) => {
   try {
     const { entity, id, action } = req.params;
     const meta = getEntity(entity);
-    const record = await SchoolOpsRecord.findOne({
+    const record = await DynamicEntityRecord.findOne({
       where: { id, ...schoolWhere(req), entity_type: entity }
     });
     if (!record) return res.status(404).json({ success: false, message: 'Not found' });
@@ -280,7 +280,7 @@ const runAction = async (req, res) => {
     await record.update({ status: nextStatus, updated_by: req.user.id });
     return res.json({ success: true, data: { record: serialize(record) } });
   } catch (error) {
-    logger.error('school-ops action', error);
+    logger.error('dynamic-entities action', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -351,7 +351,7 @@ const publicAdmission = async (req, res) => {
       return labels;
     }, {});
 
-    const record = await SchoolOpsRecord.create({
+    const record = await DynamicEntityRecord.create({
       entity_type: 'admission_application',
       title: (payload.first_name + ' ' + payload.last_name).trim(),
       status: 'pending',
@@ -479,7 +479,7 @@ const studentReports = async (req, res) => {
 
     return res.status(404).json({ success: false, message: 'Unknown report' });
   } catch (error) {
-    logger.error('school-ops report', error);
+    logger.error('dynamic-entities report', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -573,7 +573,7 @@ const transferStudents = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Selected students are already in this branch' });
     }
     for (const student of transferable) {
-      await SchoolOpsRecord.create({
+      await DynamicEntityRecord.create({
         entity_type: 'branch_transfer',
         title: `${student.first_name} ${student.last_name || ''}`.trim(),
         status: 'completed',
@@ -632,7 +632,7 @@ const portalDashboard = async (req, res) => {
     if (role === 'student') {
       const student = await Student.findOne({ where: { user_id: req.user.id } });
       if (!student) return res.status(404).json({ success: false, message: 'Student profile not linked' });
-      const [homeworks, invoices, ops] = await Promise.all([
+      const [homeworks, invoices, entityRecords] = await Promise.all([
         Homework.findAll({
           where: { school_id: student.school_id, class_id: student.class_id },
           order: [['due_date', 'DESC']],
@@ -643,7 +643,7 @@ const portalDashboard = async (req, res) => {
           order: [['created_at', 'DESC']],
           limit: 20
         }).catch(() => []),
-        SchoolOpsRecord.findAll({
+        DynamicEntityRecord.findAll({
           where: { school_id: student.school_id, student_id: student.id },
           order: [['created_at', 'DESC']],
           limit: 20
@@ -651,7 +651,7 @@ const portalDashboard = async (req, res) => {
       ]);
       return res.json({
         success: true,
-        data: { kind: 'student', student, homeworks, invoices, records: ops }
+        data: { kind: 'student', student, homeworks, invoices, records: entityRecords }
       });
     }
     if (role === 'parent') {

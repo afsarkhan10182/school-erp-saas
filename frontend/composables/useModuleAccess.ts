@@ -2,7 +2,7 @@ import { ref, computed } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import { Saas } from '~/api/administration/saas';
 import { Schools } from '~/api/administration/schools';
-import { SCHOOL_OPS_ENTITIES } from '~/config/school-ops';
+import { MODULE_ENTITY_DEFINITIONS } from '~/config/entity-definitions';
 import { ROUTE_MODULE_MAP } from '~/config/modules';
 
 // Global state to prevent multiple API calls
@@ -208,15 +208,15 @@ export function useModuleAccess() {
     // Normalize route path (remove trailing slash for consistent matching)
     const normalizedPath = routePath.replace(/\/$/, '');
 
-    // Route → module (shared catalog). Ops screens use SCHOOL_OPS_ENTITIES.module.
+    // Route → module (shared catalog). Dynamic screens use MODULE_ENTITY_DEFINITIONS.module.
     const routeModuleMap: Record<string, string> = { ...ROUTE_MODULE_MAP };
 
     // Check for exact match first
     let requiredModule = routeModuleMap[normalizedPath];
 
-    if (!requiredModule && normalizedPath.startsWith('/ops/')) {
+    if (!requiredModule && normalizedPath.match(/^\/[^/]+\/[^/]+$/)) {
       const entity = normalizedPath.split('/')[2];
-      const meta = SCHOOL_OPS_ENTITIES[entity];
+      const meta = MODULE_ENTITY_DEFINITIONS[entity];
       if (meta) requiredModule = meta.module;
     }
 

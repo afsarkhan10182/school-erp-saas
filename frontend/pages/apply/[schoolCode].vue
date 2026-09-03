@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { PublicAdmission } from '~/api/shared/school-ops';
+import { PublicAdmission } from '~/api/shared/dynamic-entities';
 import { apiErrorMessage } from '~/utils/list-response';
 
 definePageMeta({ layout: false });

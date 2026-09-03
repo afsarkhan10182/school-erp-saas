@@ -19,19 +19,24 @@
       </div>
 
       <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
           Branch
         </label>
-        <select
-          v-model="selectedBranchId"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          @change="fetchFeeTypes"
-        >
-          <option value="">All Branches</option>
-          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-            {{ branch.name }}
-          </option>
-        </select>
+        <div class="relative">
+          <select
+            v-model="selectedBranchId"
+            class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
+            @change="fetchFeeTypes"
+          >
+            <option value="">All Branches</option>
+            <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+              {{ branch.name }}
+            </option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+            <ChevronDown class="w-4 h-4" />
+          </div>
+        </div>
       </div>
 
       <!-- Fee Types List -->
@@ -411,7 +416,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { PlusIcon, BanknoteIcon } from 'lucide-vue-next';
+import { PlusIcon, BanknoteIcon, ChevronDown } from 'lucide-vue-next';
 
 // SSR-safe window check
 const isClient = import.meta.client;

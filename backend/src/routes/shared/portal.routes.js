@@ -1,6 +1,6 @@
 const express = require('express');
 const { verifyToken, setSchoolContext, authorize } = require('~/middleware/core/auth');
-const { portalDashboard } = require('~/controllers/shared/school-ops.controller');
+const { portalDashboard } = require('~/controllers/shared/dynamic-entities.controller');
 
 const router = express.Router();
 router.use(

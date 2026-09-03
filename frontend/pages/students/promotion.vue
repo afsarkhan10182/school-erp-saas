@@ -91,7 +91,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
-import { Promotions } from '~/api/students/school-ops';
+import { Promotions } from '~/api/students/academic-services';
 import { AcademicYears } from '~/api/academic/academic-years';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 

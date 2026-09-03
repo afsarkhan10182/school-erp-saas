@@ -784,7 +784,7 @@ import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { CreditCard } from 'lucide-vue-next';
 import { Exams, Students } from '~/api';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuthStore } from '~/stores/auth';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
@@ -855,7 +855,7 @@ const createLogin = async () => {
     const email = student.value?.email || window.prompt('Login email');
     if (!email) return;
     const password = window.prompt('Password for student login (blank = auto-generate)') || undefined;
-    const res = await SchoolOps.createStudentLogin(studentId, { email, password });
+    const res = await DynamicEntities.createStudentLogin(studentId, { email, password });
     await fetchStudent();
     window.alert(`Login created. Email: ${res.data?.email} Password: ${res.data?.password}`);
   } catch (error) {

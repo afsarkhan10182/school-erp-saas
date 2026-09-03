@@ -8,7 +8,7 @@ const {
   AttendanceRecord,
   LibraryIssue,
   LibraryBook,
-  SchoolOpsRecord,
+  DynamicEntityRecord,
   Parent,
   StudentParent
 } = require('~/models');
@@ -37,7 +37,7 @@ const suite = async (req, res) => {
       return libraryModule(req, res, where, type);
     }
     if (moduleKey === 'hostel') {
-      return opsEntityReport(req, res, 'hostel_allocation', type);
+      return dynamicEntityReport(req, res, 'hostel_allocation', type);
     }
     if (moduleKey === 'transport') {
       return transportModule(req, res, type);
@@ -46,10 +46,10 @@ const suite = async (req, res) => {
       return hrModule(req, res, type);
     }
     if (moduleKey === 'inventory') {
-      return opsEntityReport(req, res, 'inventory_product', type);
+      return dynamicEntityReport(req, res, 'inventory_product', type);
     }
     if (moduleKey === 'accounting') {
-      return opsEntityReport(req, res, 'voucher', type);
+      return dynamicEntityReport(req, res, 'voucher', type);
     }
     if (moduleKey === 'exams') {
       return res.json({
@@ -384,7 +384,7 @@ const libraryModule = async (req, res, where, type) => {
 const transportModule = async (req, res, type) => {
   if (type === 'summary') {
     const [assignments, students] = await Promise.all([
-      SchoolOpsRecord.count({ where: { ...schoolWhere(req), entity_type: 'transport_assignment' } }),
+      DynamicEntityRecord.count({ where: { ...schoolWhere(req), entity_type: 'transport_assignment' } }),
       Student.findAll({ where: schoolWhere(req), attributes: ['documents'], limit: 500 })
     ]);
     return res.json({
@@ -431,12 +431,12 @@ const transportModule = async (req, res, type) => {
       .map(({ route_id, vehicle_id, stop_id, ...row }) => row);
     return res.json({ success: true, data: { columns: ['student', 'admission_number', 'class', 'route', 'vehicle', 'stop'], rows } });
   }
-  return opsEntityReport(req, res, 'transport_assignment', type);
+  return dynamicEntityReport(req, res, 'transport_assignment', type);
 };
 
-const opsEntityReport = async (req, res, entityType, type) => {
+const dynamicEntityReport = async (req, res, entityType, type) => {
   const where = { ...schoolWhere(req), entity_type: entityType };
-  const records = await SchoolOpsRecord.findAll({
+  const records = await DynamicEntityRecord.findAll({
     where,
     include: [{ model: Student, as: 'student', attributes: ['first_name', 'last_name', 'admission_number'], required: false }],
     order: [['created_at', 'DESC']],
@@ -510,7 +510,7 @@ const opsEntityReport = async (req, res, entityType, type) => {
 
 const hrModule = async (req, res, type) => {
   const entityTypes = ['leave_request', 'salary_payment', 'advance_salary', 'staff_award'];
-  const records = await SchoolOpsRecord.findAll({
+  const records = await DynamicEntityRecord.findAll({
     where: { ...schoolWhere(req), entity_type: { [Op.in]: entityTypes } },
     include: [{ model: User, as: 'user', attributes: ['first_name', 'last_name', 'email', 'role'], required: false }],
     order: [['created_at', 'DESC']],

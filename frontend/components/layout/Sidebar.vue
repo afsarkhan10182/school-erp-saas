@@ -240,9 +240,9 @@
 
               <!-- Submenu Items -->
               <div
-                v-show="menuOpen === menuItem.id && open"
+                v-show="menuOpen === menuItem.id && (open || isMobile)"
                 class="overflow-y-auto transition-all duration-300 ease-in-out"
-                :class="[open ? 'max-h-[70vh]' : 'max-h-0']"
+                :class="[open || isMobile ? 'max-h-[70vh]' : 'max-h-0']"
               >
                 <div class="ml-8 space-y-1 py-1">
                   <!-- Handle nested submenus -->
@@ -256,20 +256,20 @@
                         ]"
                         @click="toggleSubMenu(subItem.id)"
                       >
-                        <component :is="subItem.icon" class="w-5 h-5 mr-3" />
-                        <span class="flex-1">{{ subItem.title }}</span>
+                        <component :is="subItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                        <span v-if="open || isMobile" class="flex-1">{{ subItem.title }}</span>
                         <!-- Show chevron ONLY in expanded sidebar mode for nested submenus -->
                         <ChevronDown
-                          v-if="open && subItem.children.length > 0"
+                          v-if="(open || isMobile) && subItem.children.length > 0"
                           class="w-4 h-4 transition-transform duration-200"
                           :class="{ 'rotate-180': subMenuOpen === subItem.id }"
                         />
                       </div>
                       <!-- Nested submenu items -->
                       <div
-                        v-show="subMenuOpen === subItem.id && open"
+                        v-show="subMenuOpen === subItem.id && (open || isMobile)"
                         class="overflow-y-auto transition-all duration-300 ease-in-out"
-                        :class="[open ? 'max-h-[50vh]' : 'max-h-0']"
+                        :class="[open || isMobile ? 'max-h-[50vh]' : 'max-h-0']"
                       >
                         <div class="ml-8 space-y-1 py-1">
                           <NuxtLink
@@ -284,8 +284,8 @@
                                 : null
                             "
                           >
-                            <component :is="nestedItem.icon" class="w-5 h-5 mr-3" />
-                            <span>{{ nestedItem.title }}</span>
+                            <component :is="nestedItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                            <span v-if="open || isMobile">{{ nestedItem.title }}</span>
                           </NuxtLink>
                         </div>
                       </div>
@@ -302,8 +302,8 @@
                           : null
                       "
                     >
-                      <component :is="subItem.icon" class="w-5 h-5 mr-3" />
-                      <span>{{ subItem.title }}</span>
+                      <component :is="subItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                      <span v-if="open || isMobile">{{ subItem.title }}</span>
                     </NuxtLink>
                   </template>
                 </div>
@@ -372,7 +372,12 @@ import {
   Wallet,
   Paperclip,
   Video,
-  MapPin
+  MapPin,
+  Gift,
+  Image,
+  Star,
+  HelpCircle,
+  Layers
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -524,7 +529,12 @@ const menuGroups = computed(() =>
       Wallet,
       Paperclip,
       Video,
-      MapPin
+      MapPin,
+      Gift,
+      Image,
+      Star,
+      HelpCircle,
+      Layers
     }
   })
 );

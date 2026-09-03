@@ -7,7 +7,7 @@ export { FeeStructures } from './fee-structures';
 export { FeeInvoices } from './fee-invoices';
 export { Invoices } from './invoices';
 export { fetchCollectionsAPI } from './collections';
-export { Promotions, StudentCategories, Parents, FeeFines, Homeworks, Library } from './school-ops';
+export { Promotions, StudentCategories, Parents, FeeFines, Homeworks, Library } from './academic-services';
 
 // Re-export types
 export type { Student as StudentRecord, StudentFilters, StudentStats } from './students';

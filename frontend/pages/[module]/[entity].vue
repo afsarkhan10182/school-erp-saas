@@ -7,11 +7,11 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import SchoolCrudPage from '~/components/school/SchoolCrudPage.vue';
-import { SCHOOL_OPS_ENTITIES } from '~/config/school-ops';
+import { MODULE_ENTITY_DEFINITIONS } from '~/config/entity-definitions';
 
 const route = useRoute();
 const entityKey = computed(() => {
   const key = String(route.params.entity || '');
-  return SCHOOL_OPS_ENTITIES[key] ? key : '';
+  return MODULE_ENTITY_DEFINITIONS[key] ? key : '';
 });
 </script>

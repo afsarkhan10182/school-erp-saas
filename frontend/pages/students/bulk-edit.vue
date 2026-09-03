@@ -68,7 +68,7 @@
 import { computed, ref } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { StudentCategories, Students } from '~/api/students';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
@@ -113,7 +113,7 @@ const markDirty = (id: string) => { dirtyIds.value = new Set(dirtyIds.value).add
 const applyNumbering = () => { if (admissionStart.value === '' && rollStart.value === '') return showToast('Enter a starting number', 'error'); students.value.forEach((student, index) => { if (admissionStart.value !== '') student._edit.admission_number = String(Number(admissionStart.value) + index); if (rollStart.value !== '') student._edit.roll_number = String(Number(rollStart.value) + index); markDirty(student.id); }); };
 const saveAll = async () => {
   const changed = students.value.filter(student => dirtyIds.value.has(student.id)).map(student => ({ id: student.id, updates: Object.fromEntries(fields.value.filter(field => student._edit[field.key] !== student._original[field.key]).map(field => [field.key, student._edit[field.key]])) })).filter(student => Object.keys(student.updates).length); if (!changed.length || !window.confirm(`Save changes for ${changed.length} students?`)) return; saving.value = true;
-  try { await SchoolOps.bulkEditStudents({ students: changed }); showToast(`Updated ${changed.length} students`, 'success'); await load(); }
+  try { await DynamicEntities.bulkEditStudents({ students: changed }); showToast(`Updated ${changed.length} students`, 'success'); await load(); }
   catch (error: any) { showToast(apiErrorMessage(error), 'error'); } finally { saving.value = false; }
 };
 await loadScope();

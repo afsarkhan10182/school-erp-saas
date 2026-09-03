@@ -70,7 +70,7 @@
 import { ref, onMounted } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Branches } from '~/api/administration/branches';
-import { FeeFines } from '~/api/students/school-ops';
+import { FeeFines } from '~/api/students/academic-services';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { extractList, apiErrorMessage } from '~/utils/list-response';

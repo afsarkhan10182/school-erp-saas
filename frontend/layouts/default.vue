@@ -4,7 +4,7 @@
     class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300"
   >
     <ClientOnly>
-      <Sidebar v-if="isLoggedIn && user" :open="sidebarOpen" :user="user" @toggle="toggleSidebar" />
+      <Sidebar v-if="isLoggedIn && user && !isAuthPage" :open="sidebarOpen" :user="user" @toggle="toggleSidebar" />
     </ClientOnly>
 
     <div
@@ -14,7 +14,7 @@
     >
       <ClientOnly>
         <Header
-          v-if="isLoggedIn"
+          v-if="isLoggedIn && !isAuthPage"
           :user="user"
           :pageTitle="pageTitle"
           @logout="handleLogout"
@@ -23,8 +23,8 @@
       </ClientOnly>
 
       <main
-        class="main-content relative flex-1 bg-gray-50 dark:bg-gray-900"
-        :class="{ 'p-6': isLoggedIn }"
+        class="main-content relative flex-1 min-w-0 max-w-full bg-gray-50 dark:bg-gray-900 overflow-x-auto"
+        :class="{ 'p-6': isLoggedIn && !isAuthPage }"
       >
         <template v-if="!isHydrated">
           <div class="animate-pulse">
@@ -69,8 +69,10 @@ const shouldRender = computed(() => {
   return isHydrated.value;
 });
 
+const isAuthPage = computed(() => route.path?.startsWith('/auth/'));
+
 const mainContentClasses = computed(() => {
-  if (!isLoggedIn.value || isMobile.value) return '';
+  if (!isLoggedIn.value || isMobile.value || isAuthPage.value) return '';
   return sidebarOpen.value ? 'ml-64' : 'ml-16';
 });
 
@@ -205,11 +207,6 @@ onUnmounted(() => {
   .p-6 {
     padding: 1rem;
   }
-
-  .min-h-screen {
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
 }
 
 .main-content {
@@ -225,12 +222,6 @@ onUnmounted(() => {
 
 .ml-16 {
   margin-left: 4rem !important;
-}
-
-/* Prevent overlapping during hydration */
-.min-h-screen {
-  position: relative;
-  overflow-x: hidden;
 }
 
 /* Ensure proper stacking context */

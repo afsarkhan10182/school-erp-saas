@@ -80,8 +80,8 @@ import { computed, ref, onMounted } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Branches } from '~/api/administration/branches';
 import { Schools } from '~/api/administration/schools';
-import { Parents } from '~/api/students/school-ops';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { Parents } from '~/api/students/academic-services';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
@@ -165,7 +165,7 @@ const createLogin = async (item: any) => {
     const email = item.guardian_email || item.father_email || item.mother_email || window.prompt('Login email for parent');
     if (!email) return;
     const password = window.prompt('Password for parent login (blank = auto-generate)') || undefined;
-    const res: any = await SchoolOps.createParentLogin(item.id, { email, password });
+    const res: any = await DynamicEntities.createParentLogin(item.id, { email, password });
     showToast(`Login created: ${res.data?.email} / ${res.data?.password}`, 'success');
     await load();
   } catch (error: any) {
@@ -176,7 +176,7 @@ const createLogin = async (item: any) => {
 const toggleLogin = async (item: any) => {
   try {
     const enabled = item.user?.status !== 'active';
-    await SchoolOps.setParentAuthentication(item.id, enabled);
+    await DynamicEntities.setParentAuthentication(item.id, enabled);
     showToast(enabled ? 'Login enabled' : 'Login disabled', 'success');
     await load();
   } catch (error: any) {

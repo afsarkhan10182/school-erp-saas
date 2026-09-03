@@ -1,5 +1,5 @@
 const express = require('express');
-const controller = require('~/controllers/shared/school-ops.controller');
+const controller = require('~/controllers/shared/dynamic-entities.controller');
 
 const router = express.Router();
 router.get('/admissions/:schoolCode/classes', controller.publicClasses);

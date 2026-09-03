@@ -1,11 +1,11 @@
 /**
- * Ops entity field defs for SchoolCrudPage.
+ * Module entity field definitions for SchoolCrudPage.
  * `module` must match backend ENTITIES / modules.code so enable/disable works
  * from plan + school modules UI.
  */
 export type FieldType = 'text' | 'textarea' | 'date' | 'number' | 'select' | 'checkbox';
 
-export interface OpsField {
+export interface EntityField {
   key: string;
   label: string;
   type: FieldType;
@@ -14,16 +14,20 @@ export interface OpsField {
   lookup?: 'classes' | 'students' | 'users' | 'staff' | `entity:${string}`;
 }
 
-export interface OpsEntity {
+export interface EntityDefinition {
   title: string;
   description: string;
   module: string;
-  fields: OpsField[];
+  fields: EntityField[];
   columns: Array<{ key: string; label: string }>;
   actions?: Array<{ id: string; label: string }>;
 }
 
-export const SCHOOL_OPS_ENTITIES: Record<string, OpsEntity> = {
+// Backward compatibility types
+export type OpsField = EntityField;
+export type OpsEntity = EntityDefinition;
+
+export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
   disable_reason: {
     title: 'Disable reasons',
     description: 'Reasons used when disabling a student',
@@ -959,5 +963,280 @@ export const SCHOOL_OPS_ENTITIES: Record<string, OpsEntity> = {
     module: 'library',
     fields: [{ key: 'title', label: 'Category', type: 'text', required: true }],
     columns: [{ key: 'title', label: 'Category' }]
+  },
+  reception_config: {
+    title: 'Reception Configuration',
+    description: 'Configure references, sources, and complaint types',
+    module: 'reception',
+    fields: [
+      { key: 'title', label: 'Title / Name', type: 'text', required: true },
+      { key: 'config_type', label: 'Type', type: 'select', required: true, options: [
+        { label: 'Reference', value: 'reference' },
+        { label: 'Source', value: 'source' },
+        { label: 'Complaint Type', value: 'complaint_type' }
+      ] },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [
+      { key: 'title', label: 'Title' },
+      { key: 'config_type', label: 'Type' },
+      { key: 'notes', label: 'Description' }
+    ]
+  },
+  student_deactivation: {
+    title: 'Student Deactivation',
+    description: 'Manage inactive student login access',
+    module: 'students',
+    fields: [
+      { key: 'title', label: 'Student', type: 'select', lookup: 'students', required: true },
+      { key: 'notes', label: 'Reason for deactivation', type: 'textarea', required: true }
+    ],
+    columns: [
+      { key: 'title', label: 'Student' },
+      { key: 'status', label: 'Status' }
+    ]
+  },
+  parent_deactivation: {
+    title: 'Parent Deactivation',
+    description: 'Manage inactive parent login access',
+    module: 'students',
+    fields: [
+      { key: 'title', label: 'Parent / Guardian', type: 'text', required: true },
+      { key: 'notes', label: 'Reason for deactivation', type: 'textarea', required: true }
+    ],
+    columns: [
+      { key: 'title', label: 'Parent' },
+      { key: 'status', label: 'Status' }
+    ]
+  },
+  employee_deactivation: {
+    title: 'Employee Deactivation',
+    description: 'Manage inactive employee login access',
+    module: 'hr',
+    fields: [
+      { key: 'title', label: 'Staff Member', type: 'select', lookup: 'staff', required: true },
+      { key: 'notes', label: 'Reason for deactivation', type: 'textarea', required: true }
+    ],
+    columns: [
+      { key: 'title', label: 'Staff' },
+      { key: 'status', label: 'Status' }
+    ]
+  },
+  attachment_type: {
+    title: 'Attachment Types',
+    description: 'Categories for study material attachments',
+    module: 'attachments',
+    fields: [
+      { key: 'title', label: 'Type Name', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Type Name' }]
+  },
+  exam_term: {
+    title: 'Exam Terms',
+    description: 'Academic terms for examination',
+    module: 'exams',
+    fields: [
+      { key: 'title', label: 'Term Name', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Term Name' }]
+  },
+  exam_question_group: {
+    title: 'Question Groups',
+    description: 'Categories for question bank items',
+    module: 'exams',
+    fields: [
+      { key: 'title', label: 'Group Name', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Group Name' }]
+  },
+  sms_template: {
+    title: 'SMS Templates',
+    description: 'Reusable templates for SMS campaigns',
+    module: 'communication',
+    fields: [
+      { key: 'title', label: 'Template Name', type: 'text', required: true },
+      { key: 'notes', label: 'Template Content', type: 'textarea', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Template Name' }]
+  },
+  email_template: {
+    title: 'Email Templates',
+    description: 'Reusable templates for email campaigns',
+    module: 'communication',
+    fields: [
+      { key: 'title', label: 'Template Subject', type: 'text', required: true },
+      { key: 'notes', label: 'HTML Body / Content', type: 'textarea', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Subject' }]
+  },
+  sms_log: {
+    title: 'SMS & Delivery Logs',
+    description: 'SMS sending history and delivery logs',
+    module: 'communication',
+    fields: [
+      { key: 'title', label: 'Recipient / Number', type: 'text', required: true },
+      { key: 'notes', label: 'Message Details', type: 'textarea', required: true },
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { label: 'Delivered', value: 'delivered' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Failed', value: 'failed' }
+      ] }
+    ],
+    columns: [
+      { key: 'title', label: 'Recipient' },
+      { key: 'status', label: 'Status' }
+    ]
+  },
+  auto_notification: {
+    title: 'Auto Notifications',
+    description: 'Automatic birthday and reminder notifications',
+    module: 'communication',
+    fields: [
+      { key: 'title', label: 'Event Name', type: 'text', required: true },
+      { key: 'notes', label: 'Message Template', type: 'textarea', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Event' }]
+  },
+  payment_type: {
+    title: 'Payment Types',
+    description: 'Payment modes and gateways',
+    module: 'fees',
+    fields: [
+      { key: 'title', label: 'Payment Method', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Payment Method' }]
+  },
+  alumni_event: {
+    title: 'Alumni Events',
+    description: 'Reunions and alumni gatherings',
+    module: 'alumni',
+    fields: [
+      { key: 'title', label: 'Event Title', type: 'text', required: true },
+      { key: 'date_value', label: 'Date', type: 'date', required: true },
+      { key: 'notes', label: 'Venue & Details', type: 'textarea' }
+    ],
+    columns: [
+      { key: 'title', label: 'Event' },
+      { key: 'date_value', label: 'Date' }
+    ]
+  },
+  frontend_setting: {
+    title: 'Website Settings',
+    description: 'Configure school public website identity',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Setting Name', type: 'text', required: true },
+      { key: 'notes', label: 'Setting Value', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Setting' }]
+  },
+  frontend_menu: {
+    title: 'Website Menu',
+    description: 'Public website navigation items',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Menu Title', type: 'text', required: true },
+      { key: 'notes', label: 'URL / Route', type: 'text', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Menu Title' }]
+  },
+  frontend_section: {
+    title: 'Website Sections',
+    description: 'Manage homepage and landing page sections',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Section Name', type: 'text', required: true },
+      { key: 'notes', label: 'Section HTML / Markdown', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Section' }]
+  },
+  frontend_slider: {
+    title: 'Website Banner Sliders',
+    description: 'Hero carousel images and content',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Slide Title', type: 'text', required: true },
+      { key: 'notes', label: 'Subtitle / Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Slide Title' }]
+  },
+  frontend_features: {
+    title: 'Website Features',
+    description: 'School feature highlights',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Feature Title', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Feature' }]
+  },
+  frontend_testimonial: {
+    title: 'Website Testimonials',
+    description: 'Parent and student testimonials',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Author Name', type: 'text', required: true },
+      { key: 'notes', label: 'Testimonial Quote', type: 'textarea', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Author' }]
+  },
+  frontend_service: {
+    title: 'Website Services',
+    description: 'Services and facilities offered',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Service Name', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Service' }]
+  },
+  frontend_faq: {
+    title: 'Website FAQs',
+    description: 'Frequently Asked Questions',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Question', type: 'text', required: true },
+      { key: 'notes', label: 'Answer', type: 'textarea', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Question' }]
+  },
+  gallery_category: {
+    title: 'Gallery Categories',
+    description: 'Photo gallery albums',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Category Name', type: 'text', required: true },
+      { key: 'notes', label: 'Description', type: 'textarea' }
+    ],
+    columns: [{ key: 'title', label: 'Category' }]
+  },
+  gallery: {
+    title: 'Photo Gallery',
+    description: 'School photos and event images',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Photo Caption', type: 'text', required: true },
+      { key: 'notes', label: 'Image URL / Path', type: 'text', required: true }
+    ],
+    columns: [{ key: 'title', label: 'Caption' }]
+  },
+  news: {
+    title: 'School News & Announcements',
+    description: 'Public news and press releases',
+    module: 'website',
+    fields: [
+      { key: 'title', label: 'Headline / Title', type: 'text', required: true },
+      { key: 'date_value', label: 'Publish Date', type: 'date' },
+      { key: 'notes', label: 'Full Article Content', type: 'textarea', required: true }
+    ],
+    columns: [
+      { key: 'title', label: 'Headline' },
+      { key: 'date_value', label: 'Publish Date' }
+    ]
   }
 };
+

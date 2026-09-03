@@ -94,7 +94,7 @@
           <label class="label">Book title *</label><input v-model.trim="bookForm.title" class="input" placeholder="Book title" required />
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
             <div><label class="label">ISBN</label><input v-model.trim="bookForm.isbn" class="input" placeholder="ISBN number" /></div>
-            <div><div class="flex justify-between"><label class="label">Category</label><NuxtLink to="/ops/library_category" class="text-xs text-indigo-600">Manage</NuxtLink></div><select v-model="bookForm.category" class="input"><option value="">Select category</option><option v-if="bookForm.category && !categories.includes(bookForm.category)" :value="bookForm.category">{{ bookForm.category }}</option><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select></div>
+            <div><div class="flex justify-between"><label class="label">Category</label><NuxtLink to="/library/library_category" class="text-xs text-indigo-600">Manage</NuxtLink></div><select v-model="bookForm.category" class="input"><option value="">Select category</option><option v-if="bookForm.category && !categories.includes(bookForm.category)" :value="bookForm.category">{{ bookForm.category }}</option><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select></div>
             <div><label class="label">Author</label><input v-model.trim="bookForm.author" class="input" placeholder="Author" /></div>
             <div><label class="label">Publisher</label><input v-model.trim="bookForm.publisher" class="input" placeholder="Publisher" /></div>
             <div><label class="label">Edition</label><input v-model.trim="bookForm.edition" class="input" placeholder="Edition" /></div>
@@ -142,12 +142,12 @@ import { computed, ref, onMounted } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Branches } from '~/api/administration/branches';
 import { Schools } from '~/api/administration/schools';
-import { Library } from '~/api/students/school-ops';
+import { Library } from '~/api/students/academic-services';
 import { Students } from '~/api/students';
 import { Users } from '~/api/administration/users';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
-import { SchoolOps } from '~/api/shared/school-ops';
+import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
@@ -214,7 +214,7 @@ const load = async () => {
       Library.getBooks(params),
       Library.getIssues(params),
       Students.getAll({ limit: 200, ...params }),
-      SchoolOps.list('library_category', params),
+      DynamicEntities.list('library_category', params),
       Users.getAll({ limit: 200, schoolId: selectedSchoolId.value || undefined, branch_id: selectedBranchId.value || undefined })
     ]);
     books.value = extractList(b, ['books']);

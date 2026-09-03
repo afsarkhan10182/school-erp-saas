@@ -1,8 +1,8 @@
 const express = require('express');
 const { verifyToken, setSchoolContext, authorize } = require('~/middleware/core/auth');
 const { requireModuleAccess } = require('~/middleware/administration/moduleAccess');
-const { ENTITIES, STAFF_ROLES } = require('~/config/school-ops-entities');
-const controller = require('~/controllers/shared/school-ops.controller');
+const { ENTITIES, STAFF_ROLES } = require('~/config/dynamic-entities');
+const controller = require('~/controllers/shared/dynamic-entities.controller');
 
 const entityModule = (req, res, next) => {
   const meta = ENTITIES[req.params.entity];

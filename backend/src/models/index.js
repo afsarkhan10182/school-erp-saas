@@ -42,7 +42,8 @@ const Homework = require('./academic/homework.model');
 const LibraryBook = require('./academic/library-book.model');
 const LibraryIssue = require('./academic/library-issue.model');
 const FeeFine = require('./financial/fee-fine.model');
-const SchoolOpsRecord = require('./shared/school-ops-record.model');
+const DynamicEntityRecord = require('./shared/dynamic-entity-record.model');
+const SchoolOpsRecord = DynamicEntityRecord;
 const CardTemplate = require('./academic/card-template.model');
 const OnlineExam = require('./academic/online-exam.model');
 const OnlineExamQuestion = require('./academic/online-exam-question.model');
@@ -100,6 +101,7 @@ const models = {
   LibraryIssue,
   FeeFine,
   SchoolOpsRecord,
+  DynamicEntityRecord: SchoolOpsRecord,
   CardTemplate,
   OnlineExam,
   OnlineExamQuestion,
@@ -108,10 +110,12 @@ const models = {
   CertificateTemplate
 };
 
-// Call associate function for each model if it exists
-Object.keys(models).forEach(modelName => {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
+// Call associate function for each unique model if it exists
+const visitedModels = new Set();
+Object.values(models).forEach(model => {
+  if (model && model.associate && !visitedModels.has(model)) {
+    visitedModels.add(model);
+    model.associate(models);
   }
 });
 

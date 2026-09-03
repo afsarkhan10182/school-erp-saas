@@ -85,7 +85,7 @@
 import { ref, onMounted } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Branches } from '~/api/administration/branches';
-import { Homeworks } from '~/api/students/school-ops';
+import { Homeworks } from '~/api/students/academic-services';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';

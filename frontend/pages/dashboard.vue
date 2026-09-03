@@ -49,14 +49,35 @@
         <!-- Row 1: Quick Stats + Branch Filter -->
         <div :class="['grid gap-4', gridLayout]">
           <!-- Total Students -->
-          <div class="stat-card bg-blue-500 text-white">
+          <div class="stat-card bg-blue-500 text-white p-4 rounded-xl shadow-sm">
             <Users class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">Total Students</p>
             <p class="text-xl font-bold">{{ stats.totalStudents || 0 }}</p>
           </div>
 
+          <!-- Total Parents -->
+          <div class="stat-card bg-indigo-500 text-white p-4 rounded-xl shadow-sm">
+            <UserCheck class="w-5 h-5" />
+            <p class="mt-1 text-xs font-medium">Total Parents</p>
+            <p class="text-xl font-bold">{{ stats.totalParents || 0 }}</p>
+          </div>
+
+          <!-- Total Teachers -->
+          <div class="stat-card bg-teal-500 text-white p-4 rounded-xl shadow-sm">
+            <BookOpen class="w-5 h-5" />
+            <p class="mt-1 text-xs font-medium">Total Teachers</p>
+            <p class="text-xl font-bold">{{ stats.totalTeachers || 0 }}</p>
+          </div>
+
+          <!-- Total Employees/Staff -->
+          <div class="stat-card bg-amber-500 text-white p-4 rounded-xl shadow-sm">
+            <Activity class="w-5 h-5" />
+            <p class="mt-1 text-xs font-medium">Total Staff</p>
+            <p class="text-xl font-bold">{{ stats.totalEmployees || 0 }}</p>
+          </div>
+
           <!-- New Students -->
-          <div class="stat-card bg-green-500 text-white">
+          <div class="stat-card bg-green-500 text-white p-4 rounded-xl shadow-sm">
             <UserPlus class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">
               New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
@@ -65,14 +86,14 @@
           </div>
 
           <!-- This Month Collection -->
-          <div v-if="isModuleEnabled('fees')" class="stat-card bg-purple-500 text-white">
+          <div v-if="isModuleEnabled('fees')" class="stat-card bg-purple-500 text-white p-4 rounded-xl shadow-sm">
             <DollarSign class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">This Month Collection</p>
             <p class="text-xl font-bold">₹{{ formatCurrency(stats.feeCollection || 0) }}</p>
           </div>
 
           <!-- Pending Fees -->
-          <div v-if="isModuleEnabled('fees')" class="stat-card bg-red-500 text-white">
+          <div v-if="isModuleEnabled('fees')" class="stat-card bg-red-500 text-white p-4 rounded-xl shadow-sm">
             <AlertTriangle class="w-5 h-5" />
             <p class="mt-1 text-xs font-medium">Pending Fees</p>
             <p class="text-xl font-bold">
@@ -87,21 +108,26 @@
           >
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
-              <select
-                v-model="selectedBranch"
-                @change="onBranchChange"
-                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                :disabled="loadingBranches"
-              >
-                <option value="">All Branches</option>
-                <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-                <option v-else-if="branches.length === 0" value="" disabled>
-                  No branches available
-                </option>
-                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
+              <div class="relative">
+                <select
+                  v-model="selectedBranch"
+                  @change="onBranchChange"
+                  class="appearance-none px-3 py-1.5 pr-8 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
+                  :disabled="loadingBranches"
+                >
+                  <option value="">All Branches</option>
+                  <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
+                  <option v-else-if="branches.length === 0" value="" disabled>
+                    No branches available
+                  </option>
+                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
+                    {{ branch.name }}
+                  </option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
+                  <ChevronDown class="w-4 h-4" />
+                </div>
+              </div>
             </div>
             <p class="text-xs text-gray-600 dark:text-gray-400">Filter dashboard data by branch</p>
           </div>
@@ -128,19 +154,24 @@
                 <span v-else class="text-gray-500 dark:text-gray-400">(No data)</span>
               </h2>
               <div class="flex items-center space-x-2">
-                <select
-                  v-model="selectedAcademicYear"
-                  :disabled="loadingAcademicYears || academicYears.length === 0"
-                  class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option v-if="loadingAcademicYears" value="">Loading academic years...</option>
-                  <option v-else-if="academicYears.length === 0" value="">
-                    No academic years available
-                  </option>
-                  <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                  </option>
-                </select>
+                <div class="relative">
+                  <select
+                    v-model="selectedAcademicYear"
+                    :disabled="loadingAcademicYears || academicYears.length === 0"
+                    class="appearance-none px-3 py-1.5 pr-8 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option v-if="loadingAcademicYears" value="">Loading academic years...</option>
+                    <option v-else-if="academicYears.length === 0" value="">
+                      No academic years available
+                    </option>
+                    <option v-for="year in academicYears" :key="year.id" :value="year.name">
+                      {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
+                    </option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
+                    <ChevronDown class="w-4 h-4" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -354,7 +385,8 @@ import {
   BookOpen,
   UserCheck,
   FileText,
-  CreditCard
+  CreditCard,
+  ChevronDown
 } from 'lucide-vue-next';
 
 // Auth store
@@ -385,7 +417,7 @@ const gridLayout = computed(() => {
   const hasMultipleBranches = branches.value.length > 1;
 
   // Calculate total number of items
-  let totalItems = 2; // Total Students + New Students (always present)
+  let totalItems = 5; // Students, Parents, Teachers, Staff, New Students
 
   if (hasFeesModule) {
     totalItems += 2; // Collection + Pending Fees
@@ -396,14 +428,10 @@ const gridLayout = computed(() => {
   }
 
   // Return responsive grid based on total items
-  if (totalItems <= 2) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2';
-  } else if (totalItems <= 3) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3';
-  } else if (totalItems <= 4) {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4';
+  if (totalItems <= 4) {
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4';
   } else {
-    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5';
+    return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7';
   }
 });
 

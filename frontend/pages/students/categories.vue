@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { StudentCategories } from '~/api/students/school-ops';
+import { StudentCategories } from '~/api/students/academic-services';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { useToast } from '~/composables/useToast';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
