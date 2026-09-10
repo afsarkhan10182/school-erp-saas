@@ -51,40 +51,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Students } from '~/api/students';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
-import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { availableBranches, fetchBranchesForUser } = useBranches();
 const { showToast } = useToast();
-const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const students = ref<any[]>([]);
 const selected = ref<string[]>([]);
 const toBranch = ref('');
 const loading = ref(false);
 const saving = ref(false);
+
 const branchOptions = computed(() =>
   (availableBranches.value || [])
-    .filter((b: any) => b.id !== user.value?.branch_id)
+    .filter((b: any) => b.id !== selectedBranchId.value)
     .map((b: any) => ({ label: b.name, value: b.id }))
 );
 
-onMounted(async () => {
+const loadStudents = async () => {
   loading.value = true;
   try {
-    await fetchBranchesForUser();
-    const res: any = await Students.getAll({ limit: 200, branch_id: user.value?.branch_id });
+    const res: any = await Students.getAll({ limit: 200, branch_id: selectedBranchId.value || undefined });
     students.value = extractList(res, ['students']);
   } catch (error: any) {
     showToast(apiErrorMessage(error), 'error');
   } finally {
     loading.value = false;
   }
+};
+
+watch(selectedBranchId, () => {
+  toBranch.value = '';
+  selected.value = [];
+  loadStudents();
+});
+
+onMounted(async () => {
+  await fetchBranchesForUser();
+  await loadStudents();
 });
 
 const transfer = async () => {

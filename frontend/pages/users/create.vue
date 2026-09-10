@@ -428,8 +428,11 @@ import PasswordInput from '~/components/ui/PasswordInput.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { extractList } from '~/utils/list-response';
 
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+
 const { isSuperAdmin, isAdmin, user } = useAuth();
 const { showError, showSuccess } = useToast();
+const { selectedBranchId, currentBranch } = useGlobalBranch();
 
 // Access control - only Super Admin and Admin can access user management
 if (!isSuperAdmin.value && !isAdmin.value) {
@@ -928,8 +931,14 @@ onMounted(async () => {
     await fetchBranches();
   }
 
-  // Ensure branch_id is empty string initially
-  formData.value.branch_id = '';
+  // Pre-fill branch_id with active global branch if available
+  if (selectedBranchId.value) {
+    formData.value.branch_id = selectedBranchId.value;
+  } else if (user.value?.branch_id) {
+    formData.value.branch_id = user.value.branch_id;
+  } else {
+    formData.value.branch_id = '';
+  }
 });
 </script>
 

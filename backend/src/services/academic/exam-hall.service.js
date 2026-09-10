@@ -47,11 +47,28 @@ class ExamHallService extends BaseService {
         school_id: user.school_id
       };
 
+      // Filter by branch if provided, or show school-wide + branch specific
+      if (branch_id) {
+        whereClause[Op.or] = [
+          { branch_id: branch_id },
+          { branch_id: null }
+        ];
+      }
+
       // Add filters
       if (is_active !== undefined) whereClause.is_active = is_active === 'true';
 
       if (search) {
-        whereClause[Op.or] = [{ name: { [Op.iLike]: `%${search}%` } }];
+        const searchCondition = { name: { [Op.iLike]: `%${search}%` } };
+        if (whereClause[Op.or]) {
+          whereClause[Op.and] = [
+            { [Op.or]: whereClause[Op.or] },
+            searchCondition
+          ];
+          delete whereClause[Op.or];
+        } else {
+          whereClause[Op.or] = [searchCondition];
+        }
       }
 
       const { count, rows } = await ExamHall.findAndCountAll({

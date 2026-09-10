@@ -42,11 +42,7 @@
             Filter Students
           </h3>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{
-              isSuperAdmin
-                ? 'Select school and branch to view students, then click Apply Filters'
-                : 'Select branch to view students, then click Apply Filters'
-            }}
+            Filter students by class, section, or search criteria, then click Apply Filters
           </p>
         </div>
 

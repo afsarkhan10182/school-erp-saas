@@ -34,34 +34,6 @@
           Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening today.
         </p>
       </div>
-
-      <!-- Branch Filter in Top Bar -->
-      <div
-        v-if="shouldShowBranchFilter"
-        class="flex items-center gap-2 self-start sm:self-auto bg-white dark:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-200/80 dark:border-gray-700/80 shadow-xs"
-      >
-        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap">
-          Branch:
-        </span>
-        <div class="relative min-w-[150px]">
-          <select
-            v-model="selectedBranch"
-            @change="onBranchChange"
-            class="appearance-none w-full px-3 py-1 pr-8 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs"
-            :disabled="loadingBranches"
-          >
-            <option value="">All Branches</option>
-            <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-            <option v-else-if="branches.length === 0" value="" disabled>No branches available</option>
-            <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
-            <ChevronDown class="w-4 h-4" />
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Loading State -->

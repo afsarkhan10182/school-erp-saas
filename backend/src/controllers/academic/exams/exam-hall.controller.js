@@ -46,6 +46,7 @@ class ExamHallController {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 10,
       search: req.query.search,
+      branch_id: req.query.branch_id,
       is_active: req.query.is_active
     };
 

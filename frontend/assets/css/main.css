@@ -91,12 +91,15 @@
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
   }
 
-  .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-all duration-200;
+  .input-field,
+  .form-input {
+    @apply w-full px-3.5 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200;
   }
 
-  /* Custom select styling with better dropdown arrow positioning */
-  select.input-field {
+  /* Custom select styling with consistent dropdown arrow */
+  select.input-field,
+  select.form-select,
+  select.form-input {
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 12px center;
@@ -105,27 +108,34 @@
     padding-right: 40px;
   }
 
-  /* Dark mode select styling */
-  .dark select.input-field {
+  .dark select.input-field,
+  .dark select.form-select,
+  .dark select.form-input {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
 
-  /* Hover state for select */
-  select.input-field:hover {
+  select.input-field:hover,
+  select.form-select:hover,
+  select.form-input:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234b5563' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
 
-  .dark select.input-field:hover {
+  .dark select.input-field:hover,
+  .dark select.form-select:hover,
+  .dark select.form-input:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
 
-  /* Focus state for select */
-  select.input-field:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  select.input-field:focus,
+  select.form-select:focus,
+  select.form-input:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236366f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
 
-  .dark select.input-field:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2360a5fa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  .dark select.input-field:focus,
+  .dark select.form-select:focus,
+  .dark select.form-input:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23818cf8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
   }
 
   .card {
@@ -197,17 +207,21 @@
   }
 }
 
-/* Global dark mode fix for select dropdowns */
-@media (prefers-color-scheme: dark) {
-  select,
-  select option {
-    background-color: #1f2937 !important;
-    color: #f9fafb !important;
-  }
-  select option:checked,
-  select option:focus,
-  select option:hover {
-    background-color: #2563eb !important;
-    color: #fff !important;
-  }
+/* Global class-based dark mode styling for native select and option elements */
+.dark select,
+.dark select option {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.dark select option:checked,
+.dark select option:focus,
+.dark select option:hover {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #111827;
 }
