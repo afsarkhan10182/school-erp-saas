@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="shouldRender"
-    class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300"
+    class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300 w-full overflow-x-hidden"
   >
     <ClientOnly>
       <Sidebar v-if="isLoggedIn && user && !isAuthPage" :open="sidebarOpen" :user="user" @toggle="toggleSidebar" />
@@ -9,8 +9,7 @@
 
     <div
       :class="mainContentClasses"
-      class="main-content relative flex-1 flex flex-col min-h-screen transition-all duration-300"
-      :style="{ marginLeft: isHydrated ? undefined : '16rem' }"
+      class="main-content-wrapper relative flex-1 flex flex-col min-h-screen min-w-0 max-w-full transition-all duration-300"
     >
       <ClientOnly>
         <Header
@@ -23,14 +22,14 @@
       </ClientOnly>
 
       <main
-        class="main-content relative flex-1 min-w-0 max-w-full bg-gray-50 dark:bg-gray-900 overflow-x-auto"
-        :class="{ 'p-6': isLoggedIn && !isAuthPage }"
+        class="relative flex-1 min-w-0 max-w-full bg-gray-50 dark:bg-gray-900 overflow-x-hidden"
+        :class="{ 'p-4 sm:p-6 lg:p-8': isLoggedIn && !isAuthPage }"
       >
         <template v-if="!isHydrated">
-          <div class="animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+          <div class="animate-pulse space-y-4">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            <div class="h-32 bg-gray-200 dark:bg-gray-700 rounded-2xl"></div>
           </div>
         </template>
         <template v-else>
@@ -72,8 +71,9 @@ const shouldRender = computed(() => {
 const isAuthPage = computed(() => route.path?.startsWith('/auth/'));
 
 const mainContentClasses = computed(() => {
-  if (!isLoggedIn.value || isMobile.value || isAuthPage.value) return '';
-  return sidebarOpen.value ? 'ml-64' : 'ml-16';
+  if (!isLoggedIn.value || isAuthPage.value) return 'w-full ml-0';
+  if (isMobile.value) return 'w-full ml-0';
+  return sidebarOpen.value ? 'lg:ml-64' : 'lg:ml-16';
 });
 
 const toggleSidebar = () => {
@@ -90,11 +90,20 @@ const handleLogout = async () => {
 };
 
 const pageTitle = computed(() => {
+  if (route?.meta?.title) {
+    return String(route.meta.title);
+  }
   if (!route?.path) return 'School ERP';
 
   const path = route.path;
   const titleMap = {
     '/dashboard': 'Dashboard',
+    '/cards/templates': 'Card Templates',
+    '/cards': 'ID / Admit Cards',
+    '/certificates/generate-students': 'Student Certificates',
+    '/certificates/generate-employees': 'Employee Certificates',
+    '/certificates/templates': 'Certificate Templates',
+    '/certificates': 'Certificates',
     '/schools': 'Schools',
     '/users': 'Users',
     '/branches': 'Branches',
@@ -113,18 +122,23 @@ const pageTitle = computed(() => {
     '/academic': 'Academic Management',
     '/attendance': 'Attendance',
     '/attendance/analytics': 'Attendance Analytics',
-    '/exams': 'Exams',
-    '/exams/types': 'Exam Types',
     '/exams/marks-entry': 'Marks Entry',
     '/exams/results': 'Exam Results',
     '/exams/report-cards': 'Report Cards',
-    '/reports': 'Reports',
+    '/exams/types': 'Exam Types',
+    '/exams': 'Exams',
+    '/reports/exams': 'Exam Reports',
     '/reports/attendance': 'Attendance Reports',
+    '/reports': 'Reports',
     '/settings': 'Settings',
     '/saas': 'Subscriptions'
   };
 
-  return titleMap[Object.keys(titleMap).find(key => path.startsWith(key))] || 'School ERP';
+  const matched = Object.keys(titleMap)
+    .sort((a, b) => b.length - a.length)
+    .find(key => path.startsWith(key));
+
+  return matched ? titleMap[matched] : 'School ERP';
 });
 
 useHead({
@@ -159,7 +173,7 @@ const initializeSidebar = () => {
     const savedState = localStorage.getItem('sidebarOpen');
     sidebarOpen.value = savedState !== null ? savedState === 'true' : true; // Default to true for desktop
   } else {
-    sidebarOpen.value = false; // Always closed on mobile
+    sidebarOpen.value = false; // Always closed on mobile/tablet drawer
   }
 };
 
@@ -172,10 +186,10 @@ onMounted(async () => {
 
   if (import.meta.client) {
     initializeSidebar();
-    mql = window.matchMedia('(max-width: 767px)');
-    mql.addEventListener('change', () => {
-      if (isMobile.value) {
-        sidebarOpen.value = false; // Close on mobile
+    mql = window.matchMedia('(max-width: 1023px)');
+    mql.addEventListener('change', (e) => {
+      if (e.matches) {
+        sidebarOpen.value = false; // Close drawer on mobile/tablet
       } else {
         const savedState = localStorage.getItem('sidebarOpen');
         sidebarOpen.value = savedState !== null ? savedState === 'true' : true; // Default to true for desktop
@@ -194,43 +208,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@media (max-width: 768px) {
-  .ml-64,
-  .ml-16 {
-    margin-left: 0 !important;
-  }
-
-  .flex-1 {
-    width: 100%;
-  }
-
-  .p-6 {
-    padding: 1rem;
-  }
-}
-
-.main-content {
-  transition: margin-left 0.3s ease-in-out;
-  /* Ensure main content doesn't overlap sidebar */
+.main-content-wrapper {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 1;
 }
 
-.ml-64 {
-  margin-left: 16rem !important;
+@media (max-width: 1023px) {
+  .main-content-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
 }
 
-.ml-16 {
-  margin-left: 4rem !important;
-}
+@media (min-width: 1024px) {
+  .lg\:ml-64 {
+    margin-left: 16rem !important;
+    width: calc(100% - 16rem) !important;
+  }
 
-/* Ensure proper stacking context */
-.flex {
-  position: relative;
-}
-
-/* Prevent content from appearing above sidebar during page load */
-.main-content {
-  isolation: isolate;
+  .lg\:ml-16 {
+    margin-left: 4rem !important;
+    width: calc(100% - 4rem) !important;
+  }
 }
 </style>

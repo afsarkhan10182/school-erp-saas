@@ -1,172 +1,151 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="py-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Exam Results</h1>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Browse and view exam results across all exams
-              </p>
-            </div>
-            <div class="flex space-x-3">
-              <button
-                v-if="examsWithResults.length > 0"
-                @click="handleExportSummary"
-                :disabled="exporting"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download class="h-4 w-4 mr-2" />
-                {{ exporting ? 'Exporting...' : 'Export Summary' }}
-              </button>
-            </div>
-          </div>
-        </div>
+  <div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Exam Results</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Browse and view exam results across all exams
+        </p>
+      </div>
+      <div class="flex shrink-0 gap-3">
+        <button
+          v-if="examsWithResults.length > 0"
+          @click="handleExportSummary"
+          :disabled="exporting"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <Download class="h-4 w-4 mr-2" />
+          {{ exporting ? 'Exporting...' : 'Export Summary' }}
+        </button>
       </div>
     </div>
 
     <!-- Filters Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3
-            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
-          >
-            Select Ground
-          </h3>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">Filter Results</h3>
+      </div>
+      <div class="p-6">
+        <div
+          :class="[
+            'grid grid-cols-1 gap-4',
+            showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4'
+          ]"
+        >
+          <!-- Branch Selection -->
+          <div v-if="showBranchDropdown">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Branch
+            </label>
+            <EnhancedDropdown
+              v-model="selectedBranchId"
+              :options="branchOptions"
+              placeholder="Choose branch"
+              :loading="branchesLoading"
+              @change="onBranchChange"
+            />
+          </div>
+
+          <!-- Exam Selection -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Exam
+            </label>
+            <EnhancedDropdown
+              v-model="selectedExamId"
+              :options="examOptions"
+              placeholder="All exams"
+              :loading="examsLoading"
+              @change="onExamChange"
+            />
+          </div>
+
+          <!-- Term Selection -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Term
+            </label>
+            <EnhancedDropdown
+              v-model="selectedTermId"
+              :options="termOptions"
+              placeholder="All terms"
+              :loading="termsLoading"
+              @change="onTermChange"
+            />
+          </div>
+
+          <!-- Class Selection -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Class
+            </label>
+            <EnhancedDropdown
+              v-model="selectedClassId"
+              :options="classOptions"
+              placeholder="All classes"
+              :loading="classesLoading"
+              @change="onClassChange"
+            />
+          </div>
+
+          <!-- Section Selection -->
+          <div v-if="showSectionField">
+            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Section
+            </label>
+            <EnhancedDropdown
+              v-model="selectedSectionId"
+              :options="sectionOptions"
+              placeholder="All sections"
+              :loading="classesLoading"
+              @change="onSectionChange"
+            />
+          </div>
         </div>
-        <div class="p-6">
-          <div
-            :class="[
-              'grid grid-cols-1 gap-4',
-              showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4'
-            ]"
+
+        <!-- Filter Button -->
+        <div class="flex justify-end mt-4">
+          <button
+            @click="loadResults"
+            :disabled="loading"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <!-- Branch Selection -->
-            <div v-if="showBranchDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Choose branch"
-                :loading="branchesLoading"
-                @change="onBranchChange"
-              />
-            </div>
-
-            <!-- Exam Selection -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Exam
-              </label>
-              <EnhancedDropdown
-                v-model="selectedExamId"
-                :options="examOptions"
-                placeholder="All exams"
-                :loading="examsLoading"
-                @change="onExamChange"
-              />
-            </div>
-
-            <!-- Term Selection -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Term
-              </label>
-              <EnhancedDropdown
-                v-model="selectedTermId"
-                :options="termOptions"
-                placeholder="All terms"
-                :loading="termsLoading"
-                @change="onTermChange"
-              />
-            </div>
-
-            <!-- Class Selection -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Class
-              </label>
-              <EnhancedDropdown
-                v-model="selectedClassId"
-                :options="classOptions"
-                placeholder="All classes"
-                :loading="classesLoading"
-                @change="onClassChange"
-              />
-            </div>
-
-            <!-- Section Selection -->
-            <div v-if="showSectionField">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Section
-              </label>
-              <EnhancedDropdown
-                v-model="selectedSectionId"
-                :options="sectionOptions"
-                placeholder="All sections"
-                :loading="classesLoading"
-                @change="onSectionChange"
-              />
-            </div>
-          </div>
-
-          <!-- Filter Button -->
-          <div class="flex justify-end mt-4">
-            <button
-              @click="loadResults"
-              :disabled="loading"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Filter class="h-4 w-4 mr-2" />
-              {{ loading ? 'Loading...' : 'Filter' }}
-            </button>
-          </div>
+            <Filter class="h-4 w-4 mr-2" />
+            {{ loading ? 'Loading...' : 'Filter' }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Summary Statistics Cards -->
-    <div v-if="examsWithResults.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Total Exams</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">
-            {{ examsWithResults.length }}
-          </p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
-          <p class="text-2xl font-bold text-blue-600">{{ totalStudents }}</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Overall Pass Rate</p>
-          <p class="text-2xl font-bold text-green-600">{{ overallPassRate.toFixed(1) }}%</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Average Percentage</p>
-          <p class="text-2xl font-bold text-purple-600">{{ overallAverage.toFixed(2) }}%</p>
-        </div>
+    <div v-if="examsWithResults.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Exams</p>
+        <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+          {{ examsWithResults.length }}
+        </p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Students</p>
+        <p class="mt-2 text-2xl font-bold text-blue-600">{{ totalStudents }}</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pass Rate</p>
+        <p class="mt-2 text-2xl font-bold text-green-600">{{ overallPassRate.toFixed(1) }}%</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Percentage</p>
+        <p class="mt-2 text-2xl font-bold text-indigo-600">{{ overallAverage.toFixed(2) }}%</p>
       </div>
     </div>
 
     <!-- Results Table -->
-    <div v-if="examsWithResults.length > 0" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div class="flex items-center">
-            <BarChart3 class="h-5 w-5 mr-2 text-gray-600 dark:text-gray-400" />
-            <h3
-              class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
-            >
-              Exam Results Summary
-            </h3>
-          </div>
-        </div>
+    <div v-if="examsWithResults.length > 0" class="table-container">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <BarChart3 class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">Exam Results Summary</h3>
+      </div>
 
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -291,27 +270,24 @@
             </tbody>
           </table>
         </div>
-      </div>
     </div>
 
     <!-- No Results Message -->
     <div
       v-else-if="!loading && examsWithResults.length === 0"
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6"
+      class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-12 text-center"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-        <BarChart3 class="mx-auto h-12 w-12 text-gray-400" />
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-          No exam results found
-        </h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{
-            hasFilters
-              ? 'Try adjusting your filters or ensure marks have been entered for the selected exams.'
-              : 'Please select filters and click Filter to load exam results.'
-          }}
-        </p>
-      </div>
+      <BarChart3 class="mx-auto h-12 w-12 text-gray-400" />
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+        No exam results found
+      </h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{
+          hasFilters
+            ? 'Try adjusting your filters or ensure marks have been entered for the selected exams.'
+            : 'Please select filters and click Filter to load exam results.'
+        }}
+      </p>
     </div>
   </div>
 </template>

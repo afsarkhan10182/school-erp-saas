@@ -140,7 +140,7 @@
 
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700/60">
-          <thead class="bg-gray-50/70 dark:bg-gray-750">
+          <thead class="bg-gray-50/80 dark:bg-gray-800">
             <tr>
               <th
                 v-for="col in entity.columns"
@@ -149,7 +149,7 @@
               >
                 {{ col.label }}
               </th>
-              <th class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 min-w-[160px] sticky right-0 bg-gray-50/90 dark:bg-gray-750 backdrop-blur-sm shadow-sm">
+              <th class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 min-w-[160px] sticky right-0 bg-gray-50/95 dark:bg-gray-800 backdrop-blur-sm shadow-xs">
                 Actions
               </th>
             </tr>

@@ -1,17 +1,21 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Card templates</h1>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            ID / admit card layouts used when generating cards.
-          </p>
-        </div>
-        <NuxtLink to="/cards" class="inline-flex items-center rounded-md border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:border-indigo-500/30 dark:text-indigo-300 dark:hover:bg-indigo-500/10">
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Card Templates</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          ID / admit card layouts used when generating cards
+        </p>
+      </div>
+      <div>
+        <NuxtLink
+          to="/cards"
+          class="inline-flex items-center rounded-xl border border-indigo-200 dark:border-indigo-500/30 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors shadow-sm"
+        >
           Generate cards →
         </NuxtLink>
       </div>
+    </div>
 
       <form class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 mb-6 space-y-5" @submit.prevent="save">
         <div>
@@ -127,7 +131,6 @@
         </table>
         <p v-if="!templates.length" class="p-6 text-sm text-gray-500">No templates yet.</p>
       </div>
-    </div>
   </div>
 </template>
 

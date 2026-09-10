@@ -1,46 +1,46 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, readonly, onMounted, onUnmounted } from 'vue';
+
+// Shared singleton state so all components stay in sync
+const isMobileState = ref(false);
+let listenerCount = 0;
+let resizeListener: (() => void) | null = null;
+
+const updateMobileState = () => {
+  if (import.meta.client) {
+    isMobileState.value = window.innerWidth < 1024;
+  }
+};
 
 export const useMobileDetection = () => {
-  const isMobile = ref(false);
-  let resizeListener: (() => void) | null = null;
-
-  const updateMobileState = () => {
-    if (import.meta.client) {
-      isMobile.value = window.innerWidth < 768;
-    }
-  };
-
   onMounted(() => {
     if (import.meta.client) {
-      // Get initial state from cookie (set by SSR middleware)
-      const mobileCookie = useCookie('is-mobile');
-      if (mobileCookie.value) {
-        isMobile.value = mobileCookie.value === 'true';
+      if (listenerCount === 0) {
+        // Initial check
+        updateMobileState();
+
+        resizeListener = updateMobileState;
+        window.addEventListener('resize', resizeListener, { passive: true });
+        window.addEventListener('orientationchange', () => {
+          setTimeout(updateMobileState, 100);
+        }, { passive: true });
       }
-
-      // Update based on actual window size
-      updateMobileState();
-
-      // Set up resize listener for long-lived sessions
-      resizeListener = updateMobileState;
-      window.addEventListener('resize', resizeListener);
-
-      // Also listen for orientation changes on mobile
-      window.addEventListener('orientationchange', () => {
-        // Small delay to ensure orientation change is complete
-        setTimeout(updateMobileState, 100);
-      });
+      listenerCount++;
     }
   });
 
   onUnmounted(() => {
-    if (import.meta.client && resizeListener) {
-      window.removeEventListener('resize', resizeListener);
-      window.removeEventListener('orientationchange', resizeListener);
+    if (import.meta.client) {
+      listenerCount--;
+      if (listenerCount <= 0 && resizeListener) {
+        window.removeEventListener('resize', resizeListener);
+        resizeListener = null;
+        listenerCount = 0;
+      }
     }
   });
 
   return {
-    isMobile: readonly(isMobile)
+    isMobile: readonly(isMobileState)
   };
 };
+

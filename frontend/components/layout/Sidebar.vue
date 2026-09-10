@@ -1,8 +1,8 @@
 <template>
-  <!-- Mobile overlay -->
+  <!-- Mobile/Tablet overlay -->
   <div
     v-if="isMobile && open"
-    class="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden backdrop-blur-sm"
+    class="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-xs transition-opacity duration-300"
     @click="$emit('toggle')"
     @touchmove.prevent
   ></div>
@@ -10,7 +10,7 @@
   <!-- Sidebar -->
   <div
     :class="[
-      'sidebar-container fixed inset-y-0 left-0 z-[99999] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-lg flex flex-col',
+      'sidebar-container fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl flex flex-col',
       sidebarClasses,
       'transform transition-all duration-300 ease-in-out will-change-transform'
     ]"
@@ -241,8 +241,7 @@
               <!-- Submenu Items -->
               <div
                 v-show="menuOpen === menuItem.id && (open || isMobile)"
-                class="overflow-y-auto transition-all duration-300 ease-in-out"
-                :class="[open || isMobile ? 'max-h-[70vh]' : 'max-h-0']"
+                class="transition-all duration-200 ease-in-out"
               >
                 <div class="ml-8 space-y-1 py-1">
                   <!-- Handle nested submenus -->
@@ -268,8 +267,7 @@
                       <!-- Nested submenu items -->
                       <div
                         v-show="subMenuOpen === subItem.id && (open || isMobile)"
-                        class="overflow-y-auto transition-all duration-300 ease-in-out"
-                        :class="[open || isMobile ? 'max-h-[50vh]' : 'max-h-0']"
+                        class="transition-all duration-200 ease-in-out"
                       >
                         <div class="ml-8 space-y-1 py-1">
                           <NuxtLink
@@ -563,12 +561,16 @@ const toggleSubMenu = subMenu => {
 
 const navClass = path => {
   const route = useRoute();
-  const isActive = path ? route.path === path : false;
+  const isActive = path
+    ? path === '/' || path === '/dashboard' || path === '/portal'
+      ? route.path === path
+      : route.path === path || route.path.startsWith(path + '/')
+    : false;
   return [
     'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer',
     isActive
-      ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
-      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 font-semibold shadow-xs'
+      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
   ];
 };
 
@@ -599,14 +601,14 @@ let mql;
 // Computed sidebar classes to avoid hydration issues
 const sidebarClasses = computed(() => {
   if (isMobile.value) {
-    return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full';
+    return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full pointer-events-none';
   }
-  return props.open ? 'w-64' : 'w-16';
+  return props.open ? 'w-64 translate-x-0' : 'w-16 translate-x-0';
 });
 
 const checkMobile = () => {
   if (import.meta.client) {
-    const newIsMobile = window.innerWidth < 768;
+    const newIsMobile = window.innerWidth < 1024;
     if (newIsMobile !== isMobile.value) {
       emit('toggle', !newIsMobile);
       document.body.style.overflow = newIsMobile && props.open ? 'hidden' : '';
@@ -617,7 +619,7 @@ const checkMobile = () => {
 onMounted(async () => {
   if (import.meta.client) {
     checkMobile();
-    mql = window.matchMedia('(max-width: 767px)');
+    mql = window.matchMedia('(max-width: 1023px)');
     mql.addEventListener('change', checkMobile);
   }
 
@@ -776,13 +778,13 @@ nav {
   backface-visibility: hidden;
 }
 
-/* Ensure proper mobile positioning */
-@media (max-width: 767px) {
+/* Ensure proper mobile/tablet drawer positioning */
+@media (max-width: 1023px) {
   .sidebar-container {
     transform: translateX(-100%);
   }
 
-  .sidebar-container.w-\[280px\].translate-x-0 {
+  .sidebar-container.translate-x-0 {
     transform: translateX(0);
   }
 }

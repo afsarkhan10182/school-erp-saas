@@ -13,7 +13,7 @@
     </select>
 
     <!-- Templates List -->
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+    <div class="table-container">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
