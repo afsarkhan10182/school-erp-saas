@@ -77,7 +77,7 @@
         <button
           @click="loadStudents"
           :disabled="!filters.branch_id || !filters.class_id"
-          class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Search class="h-4 w-4 mr-2" />
           Load Students
@@ -86,7 +86,7 @@
         <button
           @click="generateCertificates"
           :disabled="selectedStudents.length === 0 || !filters.template_id || loading"
-          class="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <FileText class="h-4 w-4 mr-2" />
           {{ loading ? 'Generating...' : 'Generate Certificates' }}
