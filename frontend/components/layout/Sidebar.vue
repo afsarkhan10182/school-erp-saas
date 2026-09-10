@@ -561,11 +561,17 @@ const toggleSubMenu = subMenu => {
 
 const navClass = path => {
   const route = useRoute();
-  const isActive = path
-    ? path === '/' || path === '/dashboard' || path === '/portal'
-      ? route.path === path
-      : route.path === path || route.path.startsWith(path + '/')
-    : false;
+  let isActive = false;
+  if (path) {
+    if (path === '/' || path === '/dashboard' || path === '/portal') {
+      isActive = route.path === path;
+    } else if (path === '/students') {
+      // Exact match for /students or dynamic details /students/123, but not sub-pages like /students/bulk-edit or /students/categories
+      isActive = route.path === '/students' || /^\/students\/\d+/.test(route.path);
+    } else {
+      isActive = route.path === path || route.path.startsWith(path + '/');
+    }
+  }
   return [
     'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer',
     isActive
