@@ -12,66 +12,6 @@
       </div>
 
       <!-- Branch Selection -->
-      <div
-        v-if="shouldShowBranchFilter"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Branch Selection</h3>
-          <div class="flex items-center space-x-2">
-            <Building2 class="h-5 w-5 text-indigo-600" />
-            <span class="text-sm text-gray-600 dark:text-gray-400"
-              >Select branch to manage classes and assignments</span
-            >
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- School Selection (Super Admin only) -->
-          <div v-if="isSuperAdmin">
-            <EnhancedDropdown
-              v-model="selectedSchoolId"
-              :options="schoolOptions"
-              label="School"
-              placeholder="Select School"
-              :loading="schoolsLoading"
-              @update:model-value="onSchoolChange"
-            />
-          </div>
-
-          <!-- Branch Selection using EnhancedDropdown -->
-          <div>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              label="Branch"
-              placeholder="Select Branch"
-              :loading="branchesLoading"
-              :disabled="isSuperAdmin && !selectedSchoolId"
-              @update:model-value="onBranchChange"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Branch Info (for non-admin users) -->
-      <div
-        v-if="!shouldShowBranchFilter"
-        class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
-      >
-        <div class="flex items-center">
-          <Building2 class="h-5 w-5 text-blue-600 mr-2" />
-          <div>
-            <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">
-              Your Branch: {{ user?.branch_name || 'Your Branch' }}
-            </h4>
-            <p class="text-xs text-blue-700 dark:text-blue-300">
-              Managing class teachers for your assigned branch
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- Tab Navigation -->
       <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event" />
 
@@ -80,11 +20,11 @@
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
       >
         <!-- Branch Selection Required Message -->
-        <div v-if="!selectedBranchId && shouldShowBranchFilter" class="p-8 text-center">
+        <div v-if="!selectedBranchId" class="p-8 text-center">
           <Building2 class="mx-auto h-12 w-12 text-gray-400" />
           <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Select a Branch</h3>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Please select a branch to manage classes and assignments.
+            Please select a branch from the top bar to manage classes and assignments.
           </p>
         </div>
 
@@ -152,10 +92,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, reactive } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
@@ -170,6 +112,8 @@ import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables
+const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 const {
   academicYears,
@@ -523,30 +467,26 @@ const handleClassSubjectUnassign = async id => {
 onMounted(async () => {
   await fetchAcademicYears();
 
-  if (shouldShowBranchFilter.value) {
-    // Super Admin and Admin - show branch selection
-    await loadSchools();
+  if (isSuperAdmin.value) {
+    selectedSchoolId.value = authStore.currentSchool?.id || '';
     await loadBranches();
-  } else if (isBranchAdmin.value) {
-    // Branch Admin - use their assigned branch directly
-    selectedBranchId.value = user.value.branch_id;
-    selectedBranch.value = {
-      id: user.value.branch_id,
-      name: user.value.branch_name || 'Your Branch'
-    };
+  } else {
+    selectedSchoolId.value = user.value?.school_id || '';
+    await loadBranches();
+  }
 
-    if (selectedBranchId.value) {
-      // Load classes first, then extract sections and streams from classes
-      await loadClasses();
-      await Promise.all([
-        loadSubjects(),
-        loadSections(),
-        loadStreams(),
-        loadClassSubjectMappings(),
-        loadClassTeacherAllocations(),
-        loadTeachers()
-      ]);
-    }
+  const activeBranch = globalBranchId.value || user.value?.branch_id;
+  if (activeBranch) {
+    await onBranchChange(activeBranch);
+  }
+});
+
+watch(globalBranchId, async (newBranch) => {
+  if (newBranch) {
+    await onBranchChange(newBranch);
+  } else {
+    selectedBranchId.value = '';
+    selectedBranch.value = null;
   }
 });
 </script>

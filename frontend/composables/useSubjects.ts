@@ -1,13 +1,17 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Subjects, SubjectTeachers, Users } from '~/api';
 
 export function useSubjects() {
   const { showToast, showApiError } = useToast();
+  const authStore = useAuthStore();
+  const { selectedBranchId: globalBranchId } = useGlobalBranch();
   const {
     academicYears,
     classes,
@@ -26,16 +30,13 @@ export function useSubjects() {
   const subjectsLoading = ref(false);
   const assignmentsLoading = ref(false);
 
-  // Branch selection
+  // Branch selection - driven by global branch
   const selectedSchoolId = ref('');
-  const selectedBranchId = ref('');
+  const selectedBranchId = ref(globalBranchId.value || '');
   const selectedBranch = ref<{ id: string; name: string } | null>(null);
 
   // Computed properties
-  const shouldShowBranchFilter = computed(() => {
-    const shouldShow = isSuperAdmin.value || isAdmin.value || isBranchAdmin.value;
-    return shouldShow;
-  });
+  const shouldShowBranchFilter = computed(() => false);
 
   const academicYearOptions = computed(() => {
     return academicYears.value.map(year => ({
@@ -274,32 +275,23 @@ export function useSubjects() {
       // Set up based on user role
       if (isSuperAdmin.value) {
         await loadSchoolsData();
-      } else if (isAdmin.value) {
-        // Auto-select user's school and load branches
+        selectedSchoolId.value = authStore.currentSchool?.id || '';
+      } else {
         selectedSchoolId.value = user.value?.school_id || '';
-        if (selectedSchoolId.value) {
-          await loadBranchesData(selectedSchoolId.value);
-          // Auto-select if only one branch
-          if (branches.value.length === 1) {
-            selectedBranchId.value = branches.value[0].id;
-            await onBranchChange();
-          }
-        }
-      } else if (isBranchAdmin.value) {
-        // Auto-select user's branch
-        selectedSchoolId.value = user.value?.school_id || '';
-        selectedBranchId.value = user.value?.branch_id || '';
-        selectedBranch.value = {
-          id: user.value?.branch_id || '',
-          name: user.value?.branch_name || 'Your Branch'
-        };
-        // Add the branch to availableBranches for display
-        // Load academic data for the branch first
-        await loadAcademicDataForBranch();
-
-        // Load data for the selected branch
-        await Promise.all([loadSubjects(), loadClassesData(), loadTeacherAssignments()]);
       }
+
+      // Sync branch from global store
+      const activeBranch = globalBranchId.value || user.value?.branch_id || '';
+      if (activeBranch) {
+        selectedBranchId.value = activeBranch;
+        await onBranchChange();
+      }
+
+      // Watch global branch changes and reload
+      watch(globalBranchId, async (newVal) => {
+        selectedBranchId.value = newVal || '';
+        await onBranchChange();
+      });
     } catch (error) {
       console.error('Error initializing subjects page:', error);
       showToast('Failed to initialize page', 'error');

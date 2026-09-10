@@ -18,26 +18,7 @@
         </button>
       </div>
 
-      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-          Branch
-        </label>
-        <div class="relative">
-          <select
-            v-model="selectedBranchId"
-            class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-            @change="fetchFeeStructures"
-          >
-            <option value="">All Branches</option>
-            <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-            <ChevronDown class="w-4 h-4" />
-          </div>
-        </div>
-      </div>
+
 
       <!-- Fee Structures List -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
@@ -242,109 +223,25 @@
           </h3>
 
           <form @submit.prevent="saveFeeStructure">
-            <!-- School Selector for Super Admin -->
+            <!-- Context Info -->
             <div
-              v-if="user?.role === 'super_admin'"
-              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+              v-if="currentBranch || currentSchool"
+              class="mb-6 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
             >
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                📍 Select School Context
-              </h4>
-              <div class="space-y-3">
+              <div class="flex items-center space-x-2">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                  {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
+                </span>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >School *</label
-                  >
-                  <select
-                    v-model="selectedSchoolId"
-                    required
-                    :disabled="isEditing"
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''
-                    ]"
-                    @change="onSchoolChange"
-                  >
-                    <option value="">Select a school first</option>
-                    <option v-for="school in availableSchools" :key="school.id" :value="school.id">
-                      {{ school.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- Branch Selector for Super Admin -->
-                <div v-if="selectedSchoolId">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Branch *</label
-                  >
-                  <select
-                    v-model="selectedBranchId"
-                    required
-                    :disabled="isEditing"
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''
-                    ]"
-                    @change="onBranchChange"
-                  >
-                    <option value="">Select a branch</option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div
-                  v-if="!isEditing && !selectedSchoolId"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a school before creating the fee structure
-                </div>
-                <div
-                  v-if="!isEditing && selectedSchoolId && !selectedBranchId"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a branch before creating the fee structure
+                  <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                    {{ currentBranch?.name || 'Active Branch' }}
+                  </span>
+                  <span v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                    ({{ currentSchool.name }})
+                  </span>
                 </div>
               </div>
-            </div>
-
-            <!-- Branch Selector for Admin -->
-            <div
-              v-if="user?.role === 'admin'"
-              class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-            >
-              <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                📍 Select Branch Context
-              </h4>
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                    >Branch *</label
-                  >
-                  <select
-                    v-model="selectedBranchId"
-                    required
-                    :disabled="isEditing"
-                    :class="[
-                      'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white',
-                      isEditing ? 'bg-gray-50 dark:bg-gray-600 cursor-not-allowed' : ''
-                    ]"
-                    @change="onBranchChange"
-                  >
-                    <option value="">Select a branch</option>
-                    <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                      {{ branch.name }}
-                    </option>
-                  </select>
-                </div>
-                <div
-                  v-if="!isEditing && !selectedBranchId"
-                  class="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  ⚠️ Please select a branch before creating the fee structure
-                </div>
-              </div>
+              <span class="text-xs text-gray-400 italic">Top Navigation</span>
             </div>
 
             <!-- Fee Structure Form -->
@@ -826,6 +723,7 @@ import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Streams } from '~/api';
 import { PlusIcon, BanknoteIcon, ChevronDown } from 'lucide-vue-next';
 
@@ -834,6 +732,7 @@ const isClient = import.meta.client;
 
 // Get auth context
 const { user } = useAuth();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const router = useRouter();
 const route = useRoute();
 const {
@@ -1350,8 +1249,9 @@ const fetchFeeStructures = async () => {
     if (user.value?.school_id) {
       params.school_id = user.value.school_id;
     }
-    if (selectedBranchId.value) {
-      params.branch_id = selectedBranchId.value;
+    const branchId = globalBranchId.value || selectedBranchId.value;
+    if (branchId) {
+      params.branch_id = branchId;
     }
     const response = await FeeStructures.getAll(params);
     feeStructures.value = response.data;
@@ -1362,6 +1262,10 @@ const fetchFeeStructures = async () => {
   }
 };
 
+watch(globalBranchId, () => {
+  fetchFeeStructures();
+});
+
 const fetchFeeTypes = async () => {
   try {
     const params = {};
@@ -1369,8 +1273,9 @@ const fetchFeeTypes = async () => {
       params.school_id = user.value.school_id;
     }
     // Filter fee types by the selected branch
-    if (selectedBranchId.value) {
-      params.branch_id = selectedBranchId.value;
+    const branchId = selectedBranchId.value || globalBranchId.value;
+    if (branchId) {
+      params.branch_id = branchId;
     }
     const response = await FeeTypes.getAll(params);
     feeTypes.value = response.data.filter(type => type.is_active);
@@ -1384,7 +1289,7 @@ const loadFormData = async () => {
   try {
     const schoolId =
       user.value?.role === 'super_admin' ? selectedSchoolId.value : user.value?.school_id;
-    const branchId = selectedBranchId.value;
+    const branchId = selectedBranchId.value || globalBranchId.value;
 
     // Load academic years
     await fetchAcademicYears();
@@ -1427,6 +1332,11 @@ const openCreateModal = async () => {
   resetForm();
   isEditing.value = false;
   showModal.value = true;
+
+  // Pre-fill branch from global context
+  if (globalBranchId.value) {
+    selectedBranchId.value = globalBranchId.value;
+  }
 
   // Load schools for super admin
   if (user.value?.role === 'super_admin') {

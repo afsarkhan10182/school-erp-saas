@@ -16,22 +16,6 @@
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
       >
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div v-if="showBranchDropdown">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <select
-              v-model="selectedBranchId"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadScopedOptions"
-            >
-              <option value="">All Branches</option>
-              <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-                {{ branch.label }}
-              </option>
-            </select>
-          </div>
-
           <!-- Teacher Filter -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -520,5 +504,9 @@ onMounted(async () => {
   await loadScope();
   await Promise.all([fetchClasses({ branchId: selectedBranchId.value || undefined }), fetchAcademicYears(), loadTeachers()]);
   await loadWorkload();
+});
+
+watch(selectedBranchId, async () => {
+  await loadScopedOptions();
 });
 </script>

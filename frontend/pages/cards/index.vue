@@ -21,13 +21,7 @@
           </div>
 
           <div class="space-y-4">
-            <label v-if="branchOptions.length > 1" class="block space-y-1.5">
-              <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Branch</span>
-              <select v-model="selectedBranchId" class="w-full border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" @change="reloadScope">
-                <option value="">Branch</option>
-                <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
-              </select>
-            </label>
+
             <label class="block space-y-1.5">
               <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">For</span>
               <select v-model="userType" class="w-full border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" @change="onUserTypeChange">
@@ -101,20 +95,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { Branches } from '~/api/administration/branches';
 import { Students } from '~/api/students';
 import { Users } from '~/api/administration/users';
 import { CardTemplates } from '~/api/academic/cards-exams-reports';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const students = ref<any[]>([]);
 const employees = ref<any[]>([]);
 const templates = ref<any[]>([]);
 const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
+
+watch(selectedBranchId, () => {
+  reloadScope();
+});
 const studentId = ref('');
 const employeeId = ref('');
 const userType = ref('student');

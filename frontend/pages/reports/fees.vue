@@ -370,83 +370,7 @@
                 </button>
               </div>
             </div>
-            <!-- School dropdown for super admin -->
-            <div v-if="isSuperAdmin">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >School</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.school_id"
-                  @change="onSchoolChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Schools</option>
-                  <option v-for="school in schools" :key="school.id" :value="school.id">
-                    {{ school.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >Branch</label
-              >
-              <div class="relative group">
-                <select
-                  v-model="filters.branch_id"
-                  @change="onBranchChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Branches</option>
-                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
+
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >Class</label
@@ -1199,6 +1123,8 @@ import {
 } from '~/api';
 import { Dashboard } from '~/api/shared/dashboard';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
@@ -1276,13 +1202,16 @@ const currentPage = ref(1);
 const pageSize = ref(10); // Changed back to 10 for student groups (showing 10 students per page)
 const totalItems = ref(0);
 
+const { selectedBranchId, currentSchool } = useGlobalBranch();
+const authStore = useAuthStore();
+
 // Filters
 const filters = reactive({
   dateRange: 'today', // Changed to 'today' as default since 'all_time' is removed
   fromDate: '',
   toDate: '',
-  school_id: '', // Add school_id for super admin
-  branch_id: '',
+  school_id: authStore.currentSchool?.id || '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   stream_id: '',
   section_id: '',
@@ -1291,6 +1220,24 @@ const filters = reactive({
   student_search: '',
   payment_model: '',
   selectedMonths: []
+});
+
+// Watch for global branch or school change
+watch(selectedBranchId, async (newVal) => {
+  filters.branch_id = newVal || '';
+  filters.class_id = '';
+  filters.stream_id = '';
+  filters.section_id = '';
+  await fetchClasses();
+});
+
+watch(currentSchool, async () => {
+  filters.school_id = authStore.currentSchool?.id || '';
+  filters.branch_id = selectedBranchId.value || '';
+  filters.class_id = '';
+  filters.stream_id = '';
+  filters.section_id = '';
+  await fetchClasses();
 });
 
 // Debug: Log filters object

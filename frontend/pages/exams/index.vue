@@ -40,18 +40,7 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <div v-if="showBranchDropdown" class="space-y-2">
-              <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                Branch
-              </label>
-              <EnhancedDropdown
-                v-model="listBranchId"
-                :options="[{ value: '', label: 'All Branches' }, ...branchOptions]"
-                placeholder="All Branches"
-                :loading="branchesLoading"
-                @change="onListBranchChange"
-              />
-            </div>
+
 
             <!-- Search -->
             <div class="space-y-2">
@@ -293,36 +282,10 @@
 
         <template #body>
           <form @submit.prevent="saveExam" class="space-y-6">
-            <!--  - Exactly 6 fields as per specification -->
+            <!-- Only essential fields -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Branch (conditional) -->
-              <div v-if="showBranchDropdown">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Branch <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.branch_id"
-                  :options="branchOptions"
-                  placeholder="Select branch"
-                  :loading="branchesLoading"
-                  @change="onBranchChange"
-                />
-              </div>
-
-              <!-- Auto-selected branch info (when single branch) -->
-              <div v-else-if="selectedBranch">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Branch
-                </label>
-                <div
-                  class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md text-sm text-gray-900 dark:text-white"
-                >
-                  {{ selectedBranch.name }}
-                </div>
-              </div>
-
-              <!-- Name () -->
-              <div>
+              <!-- Name -->
+              <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Name <span class="text-red-500">*</span>
                 </label>
@@ -434,12 +397,14 @@ import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
 import { useExams } from '~/composables/useExams';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { examTermApi } from '~/api/academic/exam-terms';
 import { markDistributionApi } from '~/api/academic/mark-distributions';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranchesForUser, loading: branchesLoading } = useBranches();
 const {
   exams,
@@ -629,9 +594,19 @@ const onListBranchChange = async () => {
   ]);
 };
 
+watch(selectedBranchId, async (newBranchId) => {
+  listBranchId.value = newBranchId || '';
+  await onListBranchChange();
+});
+
 const openCreateModal = async () => {
   editingExam.value = null;
   resetForm();
+
+  // Pre-fill branch from global context
+  if (selectedBranchId.value) {
+    form.branch_id = selectedBranchId.value;
+  }
 
   // Only load data if not already loaded
   const loadPromises = [];
@@ -652,7 +627,9 @@ const openCreateModal = async () => {
   // Auto-select branch if user has only one branch
   if (branches.value.length === 1) {
     form.branch_id = branches.value[0].id;
-    // Load filtered data for the single branch
+  }
+
+  if (form.branch_id) {
     await loadFilteredData();
   }
 

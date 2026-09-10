@@ -10,10 +10,7 @@
       </div>
 
       <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div v-if="showBranchDropdown">
-          <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Branch</label>
-          <EnhancedDropdown v-model="selectedBranchId" :options="branchOptions" placeholder="All branches" @update:model-value="onBranchChange" />
-        </div>
+
         <div>
           <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">From class</label>
           <EnhancedDropdown v-model="fromClassId" :options="classOptions" placeholder="Select class" @change="onFromClass" />

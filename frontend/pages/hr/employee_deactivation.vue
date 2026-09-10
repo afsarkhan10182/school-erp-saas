@@ -19,41 +19,11 @@
         Select Ground
       </h2>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- School Selector -->
-        <div v-if="showSchoolDropdown">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-            School <span class="text-rose-500">*</span>
-          </label>
-          <select
-            v-model="selectedSchoolId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-            @change="changeSchool"
-          >
-            <option value="">Select School</option>
-            <option v-for="s in schoolOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
-          </select>
-        </div>
-
-        <!-- Branch Selector -->
-        <div v-if="showBranchDropdown">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-            Branch <span class="text-rose-500">*</span>
-          </label>
-          <select
-            v-model="selectedBranchId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-            @change="fetchEmployees"
-          >
-            <option value="">All Branches</option>
-            <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
-          </select>
-        </div>
-
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Role Selector -->
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-            Role <span class="text-rose-500">*</span>
+            Role
           </label>
           <select
             v-model="selectedRole"
@@ -61,7 +31,7 @@
             @change="fetchEmployees"
           >
             <option value="">All Roles</option>
-            <option value="admin font">Admin</option>
+            <option value="admin">Admin</option>
             <option value="teacher">Teacher</option>
             <option value="accountant">Accountant</option>
             <option value="librarian">Librarian</option>
@@ -188,7 +158,7 @@
           <Users class="w-8 h-8" />
         </div>
         <p class="text-base font-medium text-gray-900 dark:text-white">No employees found</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Select branch or role above to filter employee records.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No employee records match the current filters.</p>
       </div>
 
       <!-- Footer Bulk Action Controls -->
@@ -220,23 +190,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ShieldAlert, Users, Lock, Unlock } from 'lucide-vue-next';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Users as UsersApi } from '~/api/administration/users';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 
-const {
-  schoolOptions,
-  branchOptions,
-  selectedSchoolId,
-  selectedBranchId,
-  showSchoolDropdown,
-  showBranchDropdown,
-  scopeParams,
-  loadScope,
-  onSchoolChange
-} = useSchoolBranchScope();
+const { selectedBranchId, currentSchool, branchScopeParams } = useGlobalBranch();
 
 const selectedRole = ref('');
 const employees = ref<any[]>([]);
@@ -257,9 +217,10 @@ const toggleSelectAll = () => {
 
 const fetchEmployees = async () => {
   loading.value = true;
+  selectedEmployeeIds.value = [];
   try {
     const params: any = {
-      ...scopeParams.value,
+      ...branchScopeParams.value,
       limit: 500
     };
     if (selectedRole.value) params.role = selectedRole.value;
@@ -275,11 +236,6 @@ const fetchEmployees = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const changeSchool = async () => {
-  await onSchoolChange();
-  await fetchEmployees();
 };
 
 const toggleEmployeeStatus = async (emp: any, status: 'active' | 'inactive') => {
@@ -304,8 +260,15 @@ const bulkToggleStatus = async (status: 'active' | 'inactive') => {
   selectedEmployeeIds.value = [];
 };
 
+watch(selectedBranchId, () => {
+  fetchEmployees();
+});
+
+watch(currentSchool, () => {
+  fetchEmployees();
+});
+
 onMounted(async () => {
-  await loadScope();
   await fetchEmployees();
 });
 </script>

@@ -10,10 +10,7 @@
         class="bg-white dark:bg-gray-800 rounded-md shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3"
         @submit.prevent="createExam"
       >
-        <select v-if="branchOptions.length > 1" v-model="selectedBranchId" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" @change="onBranchChange">
-          <option value="">Branch</option>
-          <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
-        </select>
+
         <input
           v-model="form.title"
           required
@@ -243,22 +240,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { OnlineExams } from '~/api/academic/cards-exams-reports';
-import { Branches } from '~/api/administration/branches';
 import { Classes } from '~/api/academic/classes';
 import { Students } from '~/api/students';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
 
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const exams = ref<any[]>([]);
 const classes = ref<any[]>([]);
 const students = ref<any[]>([]);
 const questionBank = ref<any[]>([]);
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
 const active = ref<any>(null);
 const error = ref('');
 const takeMode = ref(false);
@@ -268,6 +264,13 @@ const takeStudentId = ref('');
 const questionBankId = ref('');
 const submitResult = ref<any>(null);
 const results = ref<any[]>([]);
+
+watch(selectedBranchId, async () => {
+  form.class_id = '';
+  active.value = null;
+  await loadLookups();
+  await loadList();
+});
 
 const form = reactive({
   title: '',
@@ -449,7 +452,6 @@ const loadResults = async () => {
 
 onMounted(async () => {
   try {
-    await loadBranches();
     await loadLookups();
     await loadList();
   } catch (e) {

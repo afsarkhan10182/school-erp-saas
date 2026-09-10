@@ -101,36 +101,7 @@
             </p>
           </div>
 
-          <!-- Branch Filter - Only show for Super Admin or Admin with multiple branches -->
-          <div
-            v-if="shouldShowBranchFilter"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-base font-semibold text-gray-900 dark:text-white">Branch Filter</h3>
-              <div class="relative">
-                <select
-                  v-model="selectedBranch"
-                  @change="onBranchChange"
-                  class="appearance-none px-3 py-1.5 pr-8 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-                  :disabled="loadingBranches"
-                >
-                  <option value="">All Branches</option>
-                  <option v-if="loadingBranches" value="" disabled>Loading branches...</option>
-                  <option v-else-if="branches.length === 0" value="" disabled>
-                    No branches available
-                  </option>
-                  <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
-                  <ChevronDown class="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-400">Filter dashboard data by branch</p>
-          </div>
+
         </div>
 
         <!-- Row 2: Core Insights -->
@@ -391,6 +362,7 @@ import {
 
 // Auth store
 const authStore = useAuthStore();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 
 // Module access
 const { isModuleEnabled, loadUserModules } = useModuleAccess();
@@ -451,7 +423,7 @@ const loading = ref(true);
 const loadingFeeSummary = ref(false);
 const loadingAcademicYears = ref(false);
 const loadingActivities = ref(false);
-const selectedBranch = ref('');
+const selectedBranch = ref(selectedBranchId.value || '');
 const selectedAcademicYear = ref('');
 
 // Stats and data
@@ -1097,18 +1069,22 @@ watch(
   { deep: true }
 );
 
-// Handle branch change
-const onBranchChange = async event => {
-  const branchId = event.target.value;
-  selectedBranch.value = branchId;
-  authStore.setCurrentBranch(availableBranches.value.find(branch => branch.id === branchId) || null);
-  // Refresh dashboard data with new branch filter
+// Watch for changes in global selected branch
+watch(selectedBranchId, async (newVal) => {
+  selectedBranch.value = newVal || '';
   await fetchDashboardData();
-  // Refresh fee collection summary with new branch filter
   if (selectedAcademicYear.value) {
     await fetchFeeCollectionSummary();
   }
-};
+});
+
+watch(currentSchool, async () => {
+  selectedBranch.value = selectedBranchId.value || '';
+  await fetchDashboardData();
+  if (selectedAcademicYear.value) {
+    await fetchFeeCollectionSummary();
+  }
+});
 
 // Cleanup charts on component unmount
 onUnmounted(() => {

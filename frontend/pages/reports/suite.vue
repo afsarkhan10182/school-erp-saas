@@ -8,27 +8,6 @@
       </p>
 
       <div class="flex flex-wrap gap-3 mb-6">
-        <select
-          v-if="showSchoolDropdown"
-          v-model="selectedSchoolId"
-          class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-          @change="changeSchool"
-        >
-          <option v-for="school in schoolOptions" :key="school.value" :value="school.value">
-            {{ school.label }}
-          </option>
-        </select>
-        <select
-          v-if="showBranchDropdown"
-          v-model="selectedBranchId"
-          class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-          @change="onBranchChange"
-        >
-          <option value="">All branches</option>
-          <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-            {{ branch.label }}
-          </option>
-        </select>
         <select v-model="classId" class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700" @change="onClassChange">
           <option value="">All classes</option>
           <option v-for="option in classOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
@@ -107,25 +86,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ReportsSuite } from '~/api/academic/cards-exams-reports';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { apiErrorMessage } from '~/utils/list-response';
 
 const route = useRoute();
-const {
-  schoolOptions,
-  branchOptions,
-  selectedSchoolId,
-  selectedBranchId,
-  showSchoolDropdown,
-  showBranchDropdown,
-  scopeParams,
-  loadScope,
-  onSchoolChange
-} = useSchoolBranchScope();
+const { selectedBranchId, currentSchool, branchScopeParams } = useGlobalBranch();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const modules = ref<any[]>([]);
 const activeModule = ref('students');
@@ -159,21 +128,6 @@ const selectModule = async (m: any) => {
   await load(types.value[0] || 'summary');
 };
 
-const changeSchool = async () => {
-  await onSchoolChange();
-  classId.value = '';
-  sectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
-  await load(activeType.value);
-};
-
-const onBranchChange = async () => {
-  classId.value = '';
-  sectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
-  await load(activeType.value);
-};
-
 const onClassChange = async () => {
   sectionId.value = '';
   if (classId.value) await fetchSections({ classId: classId.value, branchId: selectedBranchId.value });
@@ -186,7 +140,7 @@ const load = async (type: string) => {
   error.value = '';
   try {
     const res: any = await ReportsSuite.run(activeModule.value, type, {
-      ...scopeParams.value,
+      ...branchScopeParams.value,
       ...(classId.value ? { class_id: classId.value } : {}),
       ...(sectionId.value ? { section_id: sectionId.value } : {}),
       ...(fromDate.value ? { from_date: fromDate.value } : {}),
@@ -203,9 +157,23 @@ const load = async (type: string) => {
   }
 };
 
+const onScopeChange = async () => {
+  classId.value = '';
+  sectionId.value = '';
+  await fetchClasses({ branchId: selectedBranchId.value });
+  await load(activeType.value);
+};
+
+watch(selectedBranchId, () => {
+  onScopeChange();
+});
+
+watch(currentSchool, () => {
+  onScopeChange();
+});
+
 onMounted(async () => {
   try {
-    await loadScope();
     await fetchClasses({ branchId: selectedBranchId.value });
     const res: any = await ReportsSuite.catalog();
     modules.value = res.data?.modules || [];

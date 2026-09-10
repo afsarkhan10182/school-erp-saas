@@ -26,18 +26,7 @@
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div v-if="showBranchDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Select branch"
-                :loading="branchesLoading"
-                @change="onBranchChange"
-              />
-            </div>
+
 
             <!-- Exam -->
             <div>
@@ -293,11 +282,13 @@ import { useExams } from '~/composables/useExams';
 import { useMarksEntry } from '~/composables/useMarksEntry';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
@@ -354,7 +345,6 @@ interface MarkDistribution {
 }
 
 // Reactive data
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -364,6 +354,19 @@ const studentMarks = reactive<Record<string, StudentMarks>>({});
 const markDistribution = ref<MarkDistribution | null>(null);
 const loadingStudents = ref(false);
 const saving = ref(false);
+
+watch(selectedBranchId, async (newBranchId) => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  selectedSubjectId.value = '';
+  students.value = [];
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  } else {
+    await fetchClasses();
+  }
+});
 
 // Computed properties
 const branchOptions = computed(() =>
@@ -669,15 +672,10 @@ watch(selectedSectionId, async () => {
 onMounted(async () => {
   await Promise.all([fetchBranches(), loadExams()]);
   
-  // Load classes if branch is already set
-  if (user.value?.branch_id) {
-    selectedBranchId.value = user.value.branch_id;
+  if (selectedBranchId.value) {
     await fetchClasses({
-      branchId: user.value.branch_id
+      branchId: selectedBranchId.value
     });
-  } else if (branches.value.length === 1) {
-    selectedBranchId.value = branches.value[0].id;
-    await fetchClasses({ branchId: selectedBranchId.value });
   } else {
     await fetchClasses();
   }

@@ -44,20 +44,6 @@
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Branch Selection () -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Branch
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
-
           <!-- Class Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -336,25 +322,31 @@ import { useExams } from '~/composables/useExams';
 import { useExamPositions } from '~/composables/useExamPositions';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Types
 interface Student {
   id: string;
   name: string;
   roll_number: string;
-  total_marks?: number;
+  class?: { name: string };
+  section?: { name: string };
+  total_marks: number;
   percentage?: number;
-  grade?: string;
+  grade: string;
   position: number;
-  teacher_comment?: string;
-  principal_comment?: string;
+  original_position: number;
+  is_tied: boolean;
+  tie_broken: boolean;
+  teacher_comment: string;
+  principal_comment: string;
   is_absent?: boolean;
-  original_position?: number;
 }
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
@@ -368,18 +360,17 @@ const {
 } = useAcademics();
 const { exams, loadExams, loading: examsLoading } = useExams();
 const {
-  getStudentsForPositions,
+  fetchStudents: getStudentsForPositions,
   calculatePositions: calculatePositionsAPI,
   savePositions: savePositionsAPI,
   loading: positionsLoading,
-  calculating,
-  saving
+  error: positionsError
 } = useExamPositions();
 
-const loadingStudents = computed(() => positionsLoading.value);
+const calculating = computed(() => positionsLoading.value);
+const saving = computed(() => positionsLoading.value);
 
 // Reactive data
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
@@ -387,6 +378,23 @@ const students = ref<Student[]>([]);
 const calculationMethod = ref('total_marks');
 const tieBreakingMethod = ref('average');
 const includeAbsent = ref(false);
+
+watch(selectedBranchId, async (newBranchId) => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  students.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      fetchClasses({ branchId: newBranchId }),
+      loadExams({ branch_id: newBranchId, school_id: user.value?.school_id })
+    ]);
+  } else {
+    await Promise.all([
+      loadExams({ school_id: user.value?.school_id })
+    ]);
+  }
+});
 
 // Computed properties
 const branchOptions = computed(() =>
@@ -632,18 +640,14 @@ const getGradeClass = (grade: string) => {
 onMounted(async () => {
   await fetchBranches();
   
-  // Auto-select branch if user has one
-  if (user.value?.branch_id) {
-    selectedBranchId.value = user.value.branch_id;
-    
-    // Load classes and exams for the user's branch
+  if (selectedBranchId.value) {
     await Promise.all([
       fetchClasses({
-        branchId: user.value.branch_id
+        branchId: selectedBranchId.value
       }),
       loadExams({
-        branch_id: user.value.branch_id,
-        school_id: user.value.school_id
+        branch_id: selectedBranchId.value,
+        school_id: user.value?.school_id
       })
     ]);
   } else {

@@ -34,17 +34,7 @@
       </div>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-        <div :class="['grid grid-cols-1 gap-4', showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4']">
-          <div v-if="showBranchDropdown">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Branch</label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Exam</label>
             <EnhancedDropdown
@@ -182,14 +172,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { examReportsApi } from '~/api/academic/exam-reports';
 
 const tabs = [
@@ -204,7 +194,7 @@ const initialTab = String(route.query.tab || 'tabulation');
 const activeTab = ref(tabs.some(tab => tab.id === initialTab) ? initialTab : 'tabulation');
 const { showToast } = useToast();
 const { user } = useAuth();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const {
   classOptions,
   sectionOptions,
@@ -214,7 +204,6 @@ const {
 } = useAcademics();
 const { exams, loadExams, loading: examsLoading } = useExams();
 
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const compareExamId = ref('');
 const selectedClassId = ref('');
@@ -224,11 +213,9 @@ const tabulationRows = ref<any[]>([]);
 const progressRows = ref<any[]>([]);
 const progressExams = ref<any[]>([]);
 
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({ value: branch.id, label: branch.name }))
-);
-const showBranchDropdown = computed(() => branches.value.length > 1);
+const resolvedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id);
 const resolvedBranchId = computed(() => selectedBranchId.value || user.value?.branch_id);
+
 const examOptions = computed(() =>
   exams.value.map((exam: any) => ({ value: exam.id, label: exam.name }))
 );
@@ -250,26 +237,30 @@ const setTab = (tabId: string) => {
   router.replace({ query: { ...route.query, tab: tabId } });
 };
 
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({ branchId: selectedBranchId.value }),
-      loadExams({ branch_id: selectedBranchId.value, school_id: user.value?.school_id })
-    ]);
-  }
-};
-
 const onClassChange = async () => {
   selectedSectionId.value = '';
   if (selectedClassId.value) {
     await fetchSections({
-      schoolId: user.value?.school_id,
+      schoolId: resolvedSchoolId.value,
       branchId: resolvedBranchId.value,
       classId: selectedClassId.value
     });
   }
+};
+
+const loadOptions = async () => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  compareExamId.value = '';
+  tabulationRows.value = [];
+  progressRows.value = [];
+  progressExams.value = [];
+
+  await Promise.all([
+    fetchClasses({ branchId: resolvedBranchId.value, schoolId: resolvedSchoolId.value }),
+    loadExams({ school_id: resolvedSchoolId.value, branch_id: resolvedBranchId.value })
+  ]);
 };
 
 const loadReport = async () => {
@@ -304,14 +295,15 @@ const loadReport = async () => {
   }
 };
 
+watch(selectedBranchId, () => {
+  loadOptions();
+});
+
+watch(currentSchool, () => {
+  loadOptions();
+});
+
 onMounted(async () => {
-  await fetchBranches();
-  selectedBranchId.value = user.value?.branch_id || (branches.value.length === 1 ? branches.value[0].id : '');
-  if (user.value?.school_id) {
-    await Promise.all([
-      fetchClasses({ branchId: resolvedBranchId.value }),
-      loadExams({ school_id: user.value?.school_id, branch_id: resolvedBranchId.value })
-    ]);
-  }
+  await loadOptions();
 });
 </script>

@@ -93,16 +93,6 @@
               @change="onSchoolChange"
             />
             <EnhancedDropdown
-              v-if="showBranchDropdown"
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              label="Branch"
-              placeholder="Select branch"
-              required
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-            <EnhancedDropdown
               v-model="selectedClassId"
               :options="classOptions"
               label="Class"
@@ -215,9 +205,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { Schools } from '~/api/administration/schools';
 import { Branches } from '~/api/administration/branches';
@@ -228,6 +220,8 @@ import { extractList, apiErrorMessage } from '~/utils/list-response';
 type Opt = { value: string; label: string; description?: string };
 
 const { user, currentSchool, isSuperAdmin } = useAuth();
+const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 
 const schoolOptions = ref<Opt[]>([]);
@@ -241,7 +235,7 @@ const classesLoading = ref(false);
 const lookupError = ref('');
 
 const selectedSchoolId = ref('');
-const selectedBranchId = ref('');
+const selectedBranchId = ref(globalBranchId.value || '');
 const selectedClassId = ref('');
 
 const rows = ref<any[]>([]);
@@ -254,10 +248,10 @@ const actingId = ref('');
 const showSchoolDropdown = computed(() => !!isSuperAdmin.value);
 
 /** Multi-branch only (school admin). Super admin: after school, only if >1 branch. */
-const showBranchDropdown = computed(() => branchOptions.value.length > 1);
+const showBranchDropdown = computed(() => false);
 
 const filterColsClass = computed(() => {
-  const n = 1 + (showSchoolDropdown.value ? 1 : 0) + (showBranchDropdown.value ? 1 : 0);
+  const n = 1 + (showSchoolDropdown.value ? 1 : 0);
   if (n >= 3) return 'md:grid-cols-3';
   if (n === 2) return 'md:grid-cols-2';
   return 'md:grid-cols-1 max-w-md';
@@ -503,4 +497,10 @@ const bootLookups = async () => {
 };
 
 onMounted(bootLookups);
+
+watch(globalBranchId, async (newVal) => {
+  selectedBranchId.value = newVal || '';
+  await loadClasses();
+  await filter();
+});
 </script>

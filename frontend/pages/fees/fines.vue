@@ -9,9 +9,7 @@
         <button class="px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700" @click="openCreate">Add fine</button>
       </div>
 
-      <section v-if="branchOptions.length > 1" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 max-w-md">
-        <EnhancedDropdown v-model="selectedBranchId" :options="branchOptions" label="Branch" placeholder="Select branch" @change="load" />
-      </section>
+
 
       <div v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {{ errorMessage }}
@@ -67,19 +65,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { Branches } from '~/api/administration/branches';
+import { ref, watch, onMounted } from 'vue';
 import { FeeFines } from '~/api/students/academic-services';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const items = ref<any[]>([]);
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
 const showForm = ref(false);
 const loading = ref(false);
 const saving = ref(false);
@@ -89,12 +85,9 @@ const form = ref({ name: '', fine_type: 'fixed', amount: 0, days_after_due: 0 })
 
 const branchParams = () => selectedBranchId.value ? { branch_id: selectedBranchId.value } : {};
 
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active' });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
+watch(selectedBranchId, () => {
+  load();
+});
 
 const load = async () => {
   loading.value = true;
@@ -154,7 +147,6 @@ const remove = async (id: string) => {
 };
 
 onMounted(async () => {
-  await loadBranches();
   await load();
 });
 </script>

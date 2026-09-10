@@ -21,18 +21,6 @@
         <button class="ml-3 underline" @click="load">Retry</button>
       </div>
 
-      <select
-        v-if="showBranchDropdown"
-        v-model="selectedBranchId"
-        class="w-full max-w-xs border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-900 dark:text-white"
-        @change="load"
-      >
-        <option value="">All branches</option>
-        <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-          {{ branch.label }}
-        </option>
-      </select>
-
       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden">
         <div v-if="loading" class="p-6 text-sm text-gray-500">Loading…</div>
         <table v-else class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -85,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { StudentCategories } from '~/api/students/academic-services';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { useToast } from '~/composables/useToast';
@@ -150,6 +138,10 @@ const remove = async (id: string) => {
 
 onMounted(async () => {
   await loadScope();
+  await load();
+});
+
+watch(selectedBranchId, async () => {
   await load();
 });
 </script>

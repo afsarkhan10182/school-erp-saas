@@ -44,21 +44,6 @@
             <div class="space-y-6">
               <!-- Essential Fields -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Branch Selection -->
-                <div v-if="showBranchDropdown">
-                  <EnhancedDropdown
-                    id="branchId"
-                    v-model="form.branch_id"
-                    :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
-                    :placeholder="availableBranches.length === 0 ? 'Loading branches...' : 'Select branch'"
-                    label="Branch"
-                    required
-                    :disabled="availableBranches.length === 0"
-                    :loading="availableBranches.length === 0"
-                    loading-text="Loading branches..."
-                    :helper-text="availableBranches.length === 0 ? 'No branches available. Please check your permissions.' : ''"
-                  />
-                </div>
 
                 <!-- Template Name -->
                 <div>
@@ -358,6 +343,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { X, ChevronDown } from 'lucide-vue-next';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { useAuthStore } from '~/stores/auth';
 import RichTextEditor from '~/components/ui/RichTextEditor.vue';
@@ -382,6 +368,7 @@ const emit = defineEmits(['close', 'success']);
 // Composables
 const { createTemplate, updateTemplate } = useCertificateTemplates();
 const { availableBranches, fetchBranchesForUser, currentBranch } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 const authStore = useAuthStore();
 
@@ -744,11 +731,13 @@ const getPreviewContent = () => {
 
 const handleSubmit = async () => {
   try {
-    loading.value = true;
+    // Ensure branch_id is set from global context
+    form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || availableBranches.value?.[0]?.id || '';
 
+    // Create FormData for multipart upload
     const formData = new FormData();
 
-    // Add all form fields to FormData
+    // Append all form fields
     Object.keys(form).forEach(key => {
       // Skip preview properties
       if (key.endsWith('_preview')) return;
@@ -805,13 +794,8 @@ const handleSubmit = async () => {
 onMounted(async () => {
   try {
     await fetchBranchesForUser();
-
-    // Set default branch if only one branch exists
-    if (availableBranches.value.length === 1) {
-      form.branch_id = availableBranches.value[0].id;
-    } else if (availableBranches.value.length === 0 && currentBranch.value) {
-      // Fallback: use current branch if no branches are loaded
-      form.branch_id = currentBranch.value.id;
+    if (!form.branch_id) {
+      form.branch_id = selectedBranchId.value || currentBranch.value?.id || (availableBranches.value.length === 1 ? availableBranches.value[0].id : '');
     }
   } catch (error) {
     showToast('Failed to load branches. Please refresh the page.', 'error');

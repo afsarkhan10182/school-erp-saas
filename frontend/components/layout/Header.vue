@@ -16,7 +16,7 @@
         {{ pageTitle }}
       </h2>
     </div>
-    <div class="flex items-center space-x-4">
+    <div class="flex items-center space-x-3">
       <!-- Theme Toggle -->
       <button
         @click="toggleTheme"
@@ -26,6 +26,9 @@
         <Sun v-if="isDark" class="w-5 h-5 text-yellow-500" />
         <Moon v-else class="w-5 h-5 text-gray-600" />
       </button>
+
+      <!-- Global Branch Selector — single source of truth for branch context -->
+      <BranchSelector />
 
       <UserProfileDropdown :user="user" @logout="$emit('logout')" />
     </div>
@@ -47,6 +50,7 @@ import {
   Menu
 } from 'lucide-vue-next';
 import UserProfileDropdown from '~/components/shared/UserProfileDropdown.vue';
+import BranchSelector from '~/components/layout/BranchSelector.vue';
 
 const props = defineProps({
   user: {

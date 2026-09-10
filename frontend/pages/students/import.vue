@@ -103,52 +103,29 @@
       >
         <div class="p-6">
           <form @submit.prevent="handleSubmit" class="space-y-6">
-            <!-- School Selection (Super Admin Only) -->
-            <div v-if="isSuperAdmin">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                School <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="form.school_id"
-                :options="schoolOptions"
-                placeholder="Select School"
-                :loading="schoolsLoading"
-                @update:model-value="onSchoolChange"
-              />
-            </div>
-
-            <!-- Branch Selection -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <!-- Show read-only branch info for branch admin -->
-              <div v-if="isBranchAdmin" class="mt-1">
-                <div
-                  class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white"
-                >
-                  {{ userBranch?.name || 'Current Branch' }}
+            <!-- Branch / School Context -->
+            <div v-if="currentBranch || currentSchool" class="p-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg border border-blue-200 dark:border-gray-600 flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <span class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                  {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
+                </span>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                      {{ currentBranch?.name || 'Active Branch' }}
+                    </span>
+                    <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                      Active Branch
+                    </span>
+                  </div>
+                  <p v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ currentSchool.name }}
+                  </p>
                 </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Branch admin can only import students to their assigned branch
-                </p>
               </div>
-              <!-- Show dropdown for other roles -->
-              <EnhancedDropdown
-                v-else
-                v-model="form.branch_id"
-                :options="branchOptions"
-                :placeholder="
-                  isSuperAdmin
-                    ? form.school_id
-                      ? 'Select Branch'
-                      : 'Select School First'
-                    : 'Select Branch'
-                "
-                :loading="branchesLoading"
-                :disabled="isSuperAdmin && !form.school_id"
-                @update:model-value="onBranchChange"
-              />
+              <span class="text-xs text-gray-500 dark:text-gray-400 italic hidden sm:block">
+                Top Navigation Context
+              </span>
             </div>
 
             <!-- Class Selection -->
@@ -416,6 +393,8 @@ import { Streams } from '~/api';
 import { Download, CheckCircle, X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Modal from '~/components/ui/Modal.vue';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Meta
 definePageMeta({
@@ -423,6 +402,8 @@ definePageMeta({
   title: 'Multiple Import'
 });
 
+const authStore = useAuthStore();
+const { selectedBranchId, currentBranch, currentSchool } = useGlobalBranch();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
@@ -933,40 +914,20 @@ const handleSubmit = async () => {
 
 // Initialize form data
 async function initializeForm() {
+  // Auto-sync with global school and branch
+  form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
+  form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+
   // Fetch and auto-select current academic year
-  const schoolId = isSuperAdmin.value ? null : user.value?.school_id;
-  await fetchAcademicYears(schoolId);
+  await fetchAcademicYears(form.school_id || null);
 
   // Auto-select current academic year
   if (currentAcademicYear.value) {
     form.academic_year_id = currentAcademicYear.value.id;
   }
 
-  if (isSuperAdmin.value) {
-    // Load schools for super admin
-    await fetchSchools();
-
-    // Auto-select school if there's only one
-    if (schools.value.length === 1) {
-      form.school_id = schools.value[0].id;
-      await onSchoolChange();
-    }
-  } else {
-    // For school admin and branch admin, load branches directly
-    await fetchBranches(user.value?.school_id);
-
-    if (isBranchAdmin.value) {
-      // For branch admin, set their assigned branch
-      form.branch_id = user.value?.branch_id;
-      userBranch.value = branches.value.find(b => b.id === user.value?.branch_id);
-      await onBranchChange();
-    } else {
-      // For school admin, auto-select branch if there's only one
-      if (branches.value.length === 1) {
-        form.branch_id = branches.value[0].id;
-        await onBranchChange();
-      }
-    }
+  if (form.branch_id) {
+    await onBranchChange();
   }
 
   // Add click outside handler for dropdown
@@ -982,11 +943,19 @@ async function initializeForm() {
   document.addEventListener('click', handleClickOutside);
 
   // Cleanup event listener
-
   onBeforeUnmount(() => {
     document.removeEventListener('click', handleClickOutside);
   });
 }
+
+// Watch global branch changes from top navigation
+watch(selectedBranchId, async (newVal) => {
+  if (newVal && newVal !== form.branch_id) {
+    form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
+    form.branch_id = newVal;
+    await onBranchChange();
+  }
+});
 
 // Initialize data
 onMounted(() => {

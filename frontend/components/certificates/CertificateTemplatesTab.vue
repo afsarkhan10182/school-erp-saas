@@ -1,17 +1,5 @@
 <template>
   <div class="space-y-6">
-    <select
-      v-if="availableBranches.length > 1"
-      v-model="selectedBranchId"
-      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-      @change="loadSelectedTemplates"
-    >
-      <option value="">All Branches</option>
-      <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-        {{ branch.name }}
-      </option>
-    </select>
-
     <!-- Templates List -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
       <!-- Loading State -->
@@ -510,7 +498,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import {
   FileText,
   Edit,
@@ -526,6 +514,7 @@ import {
 import Pagination from '~/components/ui/Pagination.vue';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { getCertificateUrl } from '~/utils/image';
 import { useAuthStore } from '~/stores/auth';
@@ -585,7 +574,8 @@ const {
   loadTemplates,
   deleteTemplate: deleteTemplateApi
 } = useCertificateTemplates();
-const { availableBranches, fetchBranchesForUser } = useBranches();
+const { availableBranches } = useBranches();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const { showToast } = useToast();
 const authStore = useAuthStore();
 
@@ -593,7 +583,6 @@ const authStore = useAuthStore();
 const showPreviewModal = ref(false);
 const selectedTemplate = ref(null);
 const zoomLevel = ref(100);
-const selectedBranchId = ref('');
 
 // Methods
 const handlePageChange = page => {
@@ -708,9 +697,15 @@ defineExpose({
   loadTemplates: loadSelectedTemplates
 });
 
-onMounted(async () => {
-  await fetchBranchesForUser();
-  if (availableBranches.value.length === 1) selectedBranchId.value = availableBranches.value[0].id;
+watch(selectedBranchId, () => {
+  loadSelectedTemplates();
+});
+
+watch(currentSchool, () => {
+  loadSelectedTemplates();
+});
+
+onMounted(() => {
   loadSelectedTemplates();
 });
 </script>

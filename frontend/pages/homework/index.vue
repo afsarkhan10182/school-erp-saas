@@ -13,14 +13,7 @@
 
       <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <EnhancedDropdown
-            v-if="branchOptions.length > 1"
-            v-model="selectedBranchId"
-            :options="branchOptions"
-            label="Branch"
-            placeholder="Select branch"
-            @change="onBranchChange"
-          />
+
           <EnhancedDropdown
             v-model="filterClassId"
             :options="classOptions"
@@ -82,21 +75,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { Branches } from '~/api/administration/branches';
 import { Homeworks } from '~/api/students/academic-services';
 import { useAcademics } from '~/composables/useAcademics';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const { classOptions, fetchClasses } = useAcademics();
 const items = ref<any[]>([]);
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
 const filterClassId = ref('');
 const showForm = ref(false);
 const loading = ref(false);
@@ -105,14 +97,18 @@ const errorMessage = ref('');
 const editingId = ref('');
 const form = ref({ title: '', description: '', class_id: '', due_date: '' });
 
-const branchParams = () => selectedBranchId.value ? { branch_id: selectedBranchId.value } : {};
+watch(selectedBranchId, () => {
+  onBranchChange();
+});
 
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active' });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
+watch(currentSchool, () => {
+  onBranchChange();
+});
+
+const branchParams = () => ({
+  ...(currentSchool.value?.id || user.value?.school_id ? { school_id: currentSchool.value?.id || user.value?.school_id } : {}),
+  ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
+});
 
 const loadClasses = async () => {
   await fetchClasses({ branchId: selectedBranchId.value || user.value?.branch_id });
@@ -182,7 +178,6 @@ const remove = async (id: string) => {
 };
 
 onMounted(async () => {
-  await loadBranches();
   await loadClasses();
   await load();
 });

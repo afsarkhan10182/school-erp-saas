@@ -39,20 +39,8 @@
 
           <!-- Body -->
           <div class="bg-white dark:bg-gray-800 px-4 pb-4 sm:p-6">
-            <!--  - Only 3 fields -->
+            <!-- Only essential fields -->
             <div class="space-y-4">
-              <!-- Branch () -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Branch <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.branch_id"
-                  :options="branchOptions"
-                  placeholder="Select branch"
-                  :loading="branchesLoading"
-                />
-              </div>
 
               <!-- Hall No () -->
               <div>
@@ -113,6 +101,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { X } from 'lucide-vue-next';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import type { ExamHall } from '~/api/academic/exam-halls';
@@ -133,6 +122,7 @@ const emit = defineEmits<{
 const { showToast } = useToast();
 const { createHall, updateHall } = useExamHalls();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 
 // State
 const saving = ref(false);
@@ -140,7 +130,7 @@ const loading = ref(false);
 
 // Form - Only essential fields
 const form = ref({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   name: '',
   capacity: 30
 });
@@ -163,7 +153,7 @@ const closeModal = () => {
 
 const resetForm = () => {
   form.value = {
-    branch_id: '',
+    branch_id: selectedBranchId.value || '',
     name: '',
     capacity: 30
   };
@@ -180,6 +170,7 @@ const loadFormData = () => {
 };
 
 const saveHall = async () => {
+  form.value.branch_id = form.value.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
   //  - Only validate essential fields
   if (!form.value.branch_id) {
     showToast('Branch is required', 'error');

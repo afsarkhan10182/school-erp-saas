@@ -229,22 +229,10 @@
       <template #body>
         <form @submit.prevent="saveExam" class="space-y-6">
           <!--  - Only 6 fields -->
+          <!-- Only essential fields -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch () -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="form.branch_id"
-                :options="branchOptions"
-                placeholder="Select branch"
-                :loading="branchesLoading"
-              />
-            </div>
-
-            <!-- Name () -->
-            <div>
+            <!-- Name -->
+            <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name <span class="text-red-500">*</span>
               </label>
@@ -554,6 +542,7 @@ const openCreateModal = async () => {
     }
   }
 
+  form.branch_id = currentBranchId.value || '';
   showModal.value = true;
 };
 
@@ -632,8 +621,9 @@ const resetForm = () => {
 const saveExam = async () => {
   try {
     saving.value = true;
+    form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
 
-    //  - Only validate essential fields
+    // Only validate essential fields
     if (!form.branch_id) {
       showToast('Branch is required', 'error');
       return;

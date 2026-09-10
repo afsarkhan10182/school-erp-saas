@@ -38,21 +38,6 @@
           </select>
         </div>
 
-        <!-- Branch Selector -->
-        <div v-if="showBranchDropdown" class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-            Branch <span class="text-rose-500">*</span>
-          </label>
-          <select
-            v-model="selectedBranchId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-            @change="changeBranch"
-          >
-            <option value="">Select Branch</option>
-            <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
-          </select>
-        </div>
-
         <!-- Class Selector -->
         <div class="flex-1 min-w-[180px]">
           <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
@@ -280,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ShieldAlert, Filter, Lock, Unlock } from 'lucide-vue-next';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { useAcademics } from '~/composables/useAcademics';
@@ -430,6 +415,13 @@ const bulkToggleStatus = async (status: 'active' | 'inactive') => {
 
 onMounted(async () => {
   await loadScope();
+  await fetchClasses({ branchId: selectedBranchId.value });
+  await fetchStudents();
+});
+
+watch(selectedBranchId, async () => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
   await fetchClasses({ branchId: selectedBranchId.value });
   await fetchStudents();
 });

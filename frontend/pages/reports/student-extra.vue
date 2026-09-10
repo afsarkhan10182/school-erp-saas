@@ -16,27 +16,6 @@
       <!-- Filter Controls Bar -->
       <div class="bg-white dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-3 items-center">
         <select
-          v-if="showSchoolDropdown"
-          v-model="selectedSchoolId"
-          class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-          @change="changeSchool"
-        >
-          <option v-for="school in schoolOptions" :key="school.value" :value="school.value">
-            {{ school.label }}
-          </option>
-        </select>
-        <select
-          v-if="showBranchDropdown"
-          v-model="selectedBranchId"
-          class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-          @change="onBranchChange"
-        >
-          <option value="">All branches</option>
-          <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-            {{ branch.label }}
-          </option>
-        </select>
-        <select
           v-model="classId"
           class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
           @change="onClassChange"
@@ -144,24 +123,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 
 const route = useRoute();
-const {
-  schoolOptions,
-  branchOptions,
-  selectedSchoolId,
-  selectedBranchId,
-  showSchoolDropdown,
-  showBranchDropdown,
-  scopeParams,
-  loadScope,
-  onSchoolChange
-} = useSchoolBranchScope();
+const { selectedBranchId, currentSchool, branchScopeParams } = useGlobalBranch();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 
 const tabs = [
@@ -207,7 +176,7 @@ const cell = (row: any, h: string) => {
 const load = async (id: string) => {
   active.value = id;
   const res: any = await DynamicEntities.reports(id === 'register' ? 'credentials' : id, {
-    ...scopeParams.value,
+    ...branchScopeParams.value,
     ...(classId.value ? { class_id: classId.value } : {}),
     ...(sectionId.value ? { section_id: sectionId.value } : {}),
     ...(fromDate.value ? { from_date: fromDate.value } : {}),
@@ -216,15 +185,7 @@ const load = async (id: string) => {
   rows.value = res.data?.rows || [];
 };
 
-const changeSchool = async () => {
-  await onSchoolChange();
-  classId.value = '';
-  sectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
-  await load(active.value);
-};
-
-const onBranchChange = async () => {
+const onScopeChange = async () => {
   classId.value = '';
   sectionId.value = '';
   await fetchClasses({ branchId: selectedBranchId.value });
@@ -239,8 +200,15 @@ const onClassChange = async () => {
   await load(active.value);
 };
 
+watch(selectedBranchId, () => {
+  onScopeChange();
+});
+
+watch(currentSchool, () => {
+  onScopeChange();
+});
+
 onMounted(async () => {
-  await loadScope();
   await fetchClasses({ branchId: selectedBranchId.value });
   const initialTab = tabs.some(tab => tab.id === route.query.tab) ? String(route.query.tab) : 'credentials';
   await load(initialTab);

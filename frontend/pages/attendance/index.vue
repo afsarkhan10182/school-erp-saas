@@ -200,34 +200,7 @@
           />
         </div>
 
-        <!-- Branch Selector (Super Admin and Admin) -->
-        <div v-if="isSuperAdmin || isAdmin">
-          <label
-            class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
-          >
-            <svg
-              class="w-4 h-4 mr-2 text-green-600 dark:text-green-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              ></path>
-            </svg>
-            Branch <span class="text-red-500" aria-hidden="true">*</span>
-          </label>
-          <EnhancedDropdown
-            :options="branchOptions"
-            v-model="form.branch_id"
-            placeholder="Select Branch"
-            @update:modelValue="onBranchChange"
-            class="w-full"
-          />
-        </div>
+
 
         <!-- Class Selector -->
         <div>
@@ -585,6 +558,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useAcademicSettings } from '~/utils/settings';
 import { useAttendance } from '~/composables/useAttendance';
 import { useAcademics } from '~/composables/useAcademics';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Attendance } from '~/api';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -592,6 +566,7 @@ import Pagination from '~/components/ui/Pagination.vue';
 // Composables - Following common reusable patterns
 const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
@@ -646,10 +621,20 @@ const statusOptions = ref([
 const form = reactive({
   date: new Date().toISOString().slice(0, 10),
   school_id: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   academic_year: ''
+});
+
+watch(selectedBranchId, async (newBranchId) => {
+  form.branch_id = newBranchId || '';
+  form.class_id = '';
+  form.section_id = '';
+  students.value = [];
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  }
 });
 
 const searchQuery = ref('');

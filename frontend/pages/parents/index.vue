@@ -11,11 +11,6 @@
         </button>
       </div>
 
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 max-w-md space-y-3">
-        <EnhancedDropdown v-if="isSuperAdmin" v-model="selectedSchoolId" :options="schoolOptions" label="School" placeholder="Select school" @change="onSchoolChange" />
-        <EnhancedDropdown v-if="branchOptions.length > 1 || isSuperAdmin" v-model="selectedBranchId" :options="branchOptions" label="Branch" placeholder="Select branch" @change="load" />
-      </section>
-
       <div v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
         {{ errorMessage }}
         <button class="ml-3 underline" @click="load">Retry</button>
@@ -76,24 +71,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
-import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { Branches } from '~/api/administration/branches';
-import { Schools } from '~/api/administration/schools';
+import { computed, ref, onMounted, watch } from 'vue';
 import { Parents } from '~/api/students/academic-services';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
 const items = ref<any[]>([]);
-const schoolOptions = ref<any[]>([]);
-const selectedSchoolId = ref('');
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
+const selectedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id || '');
 const showForm = ref(false);
 const loading = ref(false);
 const errorMessage = ref('');
@@ -106,29 +97,11 @@ const portalBadgeClass = (item: any) => [
   !item.user_id ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' : item.user?.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
 ];
 
-const branchParams = () => ({
-  ...(selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}),
-  ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
-});
-
-const loadSchools = async () => {
-  if (!isSuperAdmin.value) return;
-  const response: any = await Schools.getAll({ limit: 200, status: 'active' });
-  schoolOptions.value = extractList(response, ['schools']).map((s: any) => ({ value: s.id, label: s.name }));
-  selectedSchoolId.value = selectedSchoolId.value || schoolOptions.value[0]?.value || '';
-};
-
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active', ...(selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}) });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
-
-const onSchoolChange = async () => {
-  selectedBranchId.value = '';
-  await loadBranches();
-  await load();
+const branchParams = () => {
+  return {
+    ...(selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}),
+    ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
+  };
 };
 
 const load = async () => {
@@ -184,9 +157,15 @@ const toggleLogin = async (item: any) => {
   }
 };
 
+watch(selectedBranchId, () => {
+  load();
+});
+
+watch(currentSchool, () => {
+  load();
+});
+
 onMounted(async () => {
-  await loadSchools();
-  await loadBranches();
   await load();
 });
 </script>

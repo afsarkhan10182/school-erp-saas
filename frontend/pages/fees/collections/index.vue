@@ -28,26 +28,6 @@
       <!-- Filters Card -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex flex-wrap gap-4 items-center justify-between">
-          <div v-if="branchOptions.length > 1" class="w-full sm:w-64">
-            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-              Branch
-            </label>
-            <div class="relative">
-              <select
-                v-model="filters.branch_id"
-                @change="fetchCollections"
-                class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-              >
-                <option value="">All Branches</option>
-                <option v-for="branch in branchOptions" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
-          </div>
 
           <div class="flex-1 min-w-[240px]">
             <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
@@ -93,21 +73,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Coins, RefreshCw, Search, ChevronDown } from 'lucide-vue-next';
+import { Coins, RefreshCw, Search } from 'lucide-vue-next';
 import { fetchCollectionsAPI } from '~/api';
 import CollectionTable from '~/components/financial/CollectionTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import { useToast } from '~/composables/useToast';
-import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 const router = useRouter();
 const { showError, showInfo } = useToast();
-const { availableBranches: branchOptions, fetchBranchesForUser } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const collections = ref([]);
 const pagination = reactive({ page: 1, limit: 10, total: 0 });
-const filters = reactive({ search: '', branch_id: '' });
+const filters = reactive({ search: '', branch_id: selectedBranchId.value || '' });
+
+watch(selectedBranchId, (newBranchId) => {
+  filters.branch_id = newBranchId || '';
+  pagination.page = 1;
+  fetchCollections();
+});
 
 const fetchCollections = async () => {
   try {
@@ -148,9 +134,7 @@ const onPageSizeChange = newLimit => {
   fetchCollections();
 };
 
-onMounted(async () => {
-  await fetchBranchesForUser();
-  if (branchOptions.value.length === 1) filters.branch_id = branchOptions.value[0].id;
+onMounted(() => {
   fetchCollections();
 });
 </script>

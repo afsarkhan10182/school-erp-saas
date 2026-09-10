@@ -7,17 +7,7 @@
       </h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <!-- Branch Selection -->
-        <div v-if="showBranchDropdown">
-          <EnhancedDropdown
-            id="branch"
-            v-model="filters.branch_id"
-            :options="availableBranches.map(branch => ({ value: branch.id, label: branch.name }))"
-            label="Branch"
-            placeholder="Select Branch"
-            @change="handleBranchChange"
-          />
-        </div>
+
 
         <!-- Role Selection -->
         <div>
@@ -267,6 +257,7 @@ const user_type = computed(() => {
 
 // Composables
 const { branches, availableBranches, fetchBranchesForUser } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const { templates, loadTemplates, generateEmployeeCertificates } = useCertificateTemplates();
 const { showToast } = useToast();
 const { user } = useAuth();
@@ -299,11 +290,16 @@ const selectedEmployees = ref([]);
 const previewHtml = ref('');
 const previewTitle = ref('');
 const filters = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   role: '',
   template_id: '',
   print_date: new Date().toISOString().split('T')[0],
   search: ''
+});
+
+watch(selectedBranchId, async (newVal) => {
+  filters.branch_id = newVal || '';
+  await handleBranchChange();
 });
 
 // Computed

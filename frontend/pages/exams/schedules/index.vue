@@ -21,19 +21,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Select Ground</h2>
         <div class="flex items-end gap-4">
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown" class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch <span class="text-red-500">*</span>
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Select branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
+
 
           <!-- Class Selection -->
           <div class="flex-1">
@@ -387,16 +375,18 @@ import {
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
-import { useAcademics } from '~/composables/useAcademics';
-import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useAcademics } from '~/composables/useAcademics';
+import { useExams } from '~/composables/useExams';
 import { examScheduleApi } from '~/api/academic/exam-schedules';
 
 // Composables
 const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const { classes, classOptions, sectionOptions, sectionsLoading, fetchClasses, fetchSections } =
   useAcademics();
@@ -409,11 +399,28 @@ const showDetailsModal = ref(false);
 const selectedScheduleGroup = ref(null);
 
 // Filters
-const selectedBranchId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
 const filterApplied = ref(false);
 const searchQuery = ref('');
+
+watch(selectedBranchId, async (newBranchId) => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  schedules.value = [];
+  filterApplied.value = false;
+  if (newBranchId) {
+    await Promise.all([
+      loadExams({ branch_id: newBranchId }),
+      fetchClasses({ branchId: newBranchId })
+    ]);
+  } else {
+    await Promise.all([
+      loadExams(),
+      fetchClasses()
+    ]);
+  }
+});
 
 // Pagination
 const currentPage = ref(1);
@@ -690,19 +697,9 @@ onMounted(async () => {
     return;
   }
 
-  // Load branches first
   await fetchBranches();
 
-  // Auto-select branch if only one branch
-  if (branches.value.length === 1) {
-    selectedBranchId.value = branches.value[0].id;
-  } else if (user.value.branch_id) {
-    // Pre-select user's branch if multiple branches
-    selectedBranchId.value = user.value.branch_id;
-  }
-
-  // Load classes and exams based on selected branch
-  const branchId = resolvedBranchId.value || user.value.branch_id;
+  const branchId = selectedBranchId.value || user.value.branch_id;
   await Promise.all([loadExams({ branch_id: branchId }), fetchClasses({ branchId: branchId })]);
 });
 </script>

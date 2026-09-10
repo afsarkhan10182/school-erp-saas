@@ -11,69 +11,6 @@
         </div>
       </div>
 
-      <!-- Branch Selection -->
-      <div v-if="shouldShowBranchFilter" class="bg-white dark:bg-gray-800 shadow rounded-md mb-6">
-        <div class="px-4 py-5 sm:px-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                Select Branch
-              </h3>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Choose a branch to manage subjects and teacher assignments
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="px-4 py-5 sm:px-6 border-t border-gray-200 dark:border-gray-700">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- School Selection (Super Admin only) -->
-            <div v-if="isSuperAdmin">
-              <EnhancedDropdown
-                v-model="selectedSchoolId"
-                :options="schoolOptions"
-                label="School"
-                placeholder="Select School"
-                :loading="subjectsLoading"
-                @update:model-value="onSchoolChange"
-              />
-            </div>
-
-            <!-- Branch Selection -->
-            <div>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                label="Branch"
-                placeholder="Select Branch"
-                :loading="subjectsLoading"
-                :disabled="isSuperAdmin && !selectedSchoolId"
-                required
-                @update:model-value="onBranchChange"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Branch Info for Branch Admin -->
-      <div
-        v-else-if="isBranchAdmin"
-        class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"
-      >
-        <div class="flex items-center">
-          <Building2 class="h-5 w-5 text-blue-600 mr-2" />
-          <div>
-            <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100">
-              {{ selectedBranch?.name || 'Your Branch' }}
-            </h4>
-            <p class="text-xs text-blue-600 dark:text-blue-400">
-              Managing subjects and teacher assignments for this branch
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- Tabs -->
       <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event">
         <!-- Subjects Tab -->

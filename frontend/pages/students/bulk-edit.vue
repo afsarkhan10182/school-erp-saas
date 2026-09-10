@@ -12,7 +12,6 @@
       <section class="panel">
         <h2 class="section-title">Load students</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <EnhancedDropdown v-if="showBranchDropdown" v-model="selectedBranchId" :options="branchOptions" label="Branch" placeholder="All branches" @update:model-value="onBranchChange" />
           <EnhancedDropdown v-model="classId" :options="classOptions" label="Class *" placeholder="Select class" @update:model-value="onClassChange" />
           <EnhancedDropdown v-model="sectionId" :options="sectionOptions" label="Section" placeholder="All sections" :disabled="!classId" />
           <div class="flex items-end"><button class="primary-button w-full" :disabled="!classId || loading" @click="load">{{ loading ? 'Loading…' : 'Load Students' }}</button></div>
@@ -65,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { StudentCategories, Students } from '~/api/students';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
@@ -122,6 +121,12 @@ const [, categoryResponse] = await Promise.all([
   StudentCategories.getAll(scopeParams.value)
 ]);
 categories.value = extractList(categoryResponse, ['categories']);
+
+watch(selectedBranchId, async () => {
+  await onBranchChange();
+  const catRes = await StudentCategories.getAll(scopeParams.value);
+  categories.value = extractList(catRes, ['categories']);
+});
 </script>
 
 <style scoped>

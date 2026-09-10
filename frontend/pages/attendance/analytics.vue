@@ -44,16 +44,7 @@
           />
         </div>
 
-        <!-- Branch (for Super Admin and Admin) -->
-        <div v-if="isSuperAdmin || isAdmin">
-          <EnhancedDropdown
-            v-model="filters.branch_id"
-            :options="branchOptions"
-            label="Branch"
-            placeholder="All Branches"
-            @change="onBranchChange"
-          />
-        </div>
+
 
         <!-- Period -->
         <div>
@@ -586,18 +577,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAttendance } from '~/composables/useAttendance';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
 const { branches, fetchAllBranches } = useBranches();
 const {
@@ -616,12 +609,22 @@ const { analytics, analyticsLoading: loading, loadAnalytics, exportAnalytics } =
 const filters = ref({
   period: 'this_month',
   school_id: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   academic_year: '',
   custom_start_date: '',
   custom_end_date: ''
+});
+
+watch(selectedBranchId, async (newBranchId) => {
+  filters.value.branch_id = newBranchId || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  if (newBranchId) {
+    await fetchClasses({ branchId: newBranchId });
+  }
+  await loadAnalyticsData();
 });
 
 // Computed options for dropdowns

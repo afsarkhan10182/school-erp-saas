@@ -17,17 +17,7 @@
       </button>
     </div>
 
-    <select
-      v-if="branches.length > 1"
-      v-model="selectedBranchId"
-      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-      @change="loadDistributions"
-    >
-      <option value="">All Branches</option>
-      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-        {{ branch.name }}
-      </option>
-    </select>
+
 
     <!-- Distributions Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -132,22 +122,9 @@
 
       <template #body>
         <form @submit.prevent="saveDistribution" class="space-y-6">
-          <!--  - Only 2 fields -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch () -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="form.branch_id"
-                :options="branchOptions"
-                placeholder="Select branch"
-                :loading="branchesLoading"
-              />
-            </div>
-
-            <!-- Name () -->
+          <!-- Only essential fields -->
+          <div>
+            <!-- Name -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name <span class="text-red-500">*</span>
@@ -194,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { Plus, Calculator, Edit, Trash2 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -202,11 +179,13 @@ import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   distributions,
@@ -226,12 +205,16 @@ const {
 const showModal = ref(false);
 const saving = ref(false);
 const editingDistribution = ref(null);
-const selectedBranchId = ref('');
 
 // Form data - Only essential fields
 const form = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   name: ''
+});
+
+watch(selectedBranchId, () => {
+  form.branch_id = selectedBranchId.value || '';
+  loadDistributions();
 });
 
 // Computed properties
@@ -279,6 +262,7 @@ const handleDeleteDistribution = async distribution => {
 };
 
 const saveDistribution = async () => {
+  form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
   //  - Only validate essential fields
   if (!form.branch_id) {
     showToast('Branch is required', 'error');
@@ -356,7 +340,6 @@ defineExpose({
 // Load initial data
 onMounted(async () => {
   await fetchBranches();
-  if (branches.value.length === 1) selectedBranchId.value = branches.value[0].id;
   await loadData();
 });
 </script>

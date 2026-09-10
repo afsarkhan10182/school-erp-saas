@@ -32,22 +32,6 @@
         class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
       >
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div v-if="showBranchDropdown">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <select
-              v-model="selectedBranchId"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadScopedCalendar"
-            >
-              <option value="">All Branches</option>
-              <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-                {{ branch.label }}
-              </option>
-            </select>
-          </div>
-
           <!-- Academic Year -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -553,7 +537,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Calendar, Clock } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
@@ -766,5 +750,9 @@ onMounted(async () => {
   await fetchAcademicYears();
   await loadCalendar();
   await loadTerms();
+});
+
+watch(selectedBranchId, async () => {
+  await loadScopedCalendar();
 });
 </script>

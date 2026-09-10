@@ -6,18 +6,7 @@
     >
       <!-- Form Fields -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-        <!-- Branch Selection -->
-        <div v-if="showBranchDropdown" class="space-y-2">
-          <EnhancedDropdown
-            id="branch"
-            v-model="filters.branch_id"
-            :options="branchChoices.map(branch => ({ value: branch.id, label: branch.name }))"
-            label="Branch"
-            placeholder="Select Branch"
-            required
-            @change="handleBranchChange"
-          />
-        </div>
+
 
         <!-- Class Selection -->
         <div class="space-y-2">
@@ -282,18 +271,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { Search, FileText, GraduationCap, Users, X } from 'lucide-vue-next';
 import { useBranches } from '~/composables/useBranches';
 import { useStudents } from '~/composables/useStudents';
 import { useCertificateTemplates } from '~/composables/useCertificateTemplates';
 import { useAcademics } from '~/composables/useAcademics';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { usePrintReport } from '~/composables/usePrintReport';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const { branches, availableBranches, fetchBranchesForUser } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const { students, loadStudents: loadStudentsApi } = useStudents();
 const { templates, loadTemplates, generateStudentCertificates } = useCertificateTemplates();
 const {
@@ -313,12 +304,17 @@ const { printReport } = usePrintReport();
 const loading = ref(false);
 const selectedStudents = ref([]);
 const filters = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   stream_id: '',
   section_id: '',
   template_id: '',
   print_date: new Date().toISOString().split('T')[0]
+});
+
+watch(selectedBranchId, async (newVal) => {
+  filters.branch_id = newVal || '';
+  await handleBranchChange();
 });
 
 // Computed

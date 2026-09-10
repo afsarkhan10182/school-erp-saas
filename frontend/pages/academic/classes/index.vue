@@ -20,40 +20,6 @@
         </div>
       </div>
 
-      <!-- Branch Filter for Admin -->
-      <div
-        v-if="isAdmin && branches.length > 1"
-        class="bg-white dark:bg-gray-800 shadow rounded-md mb-6"
-      >
-        <div class="px-4 py-5 sm:px-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                Filter by Branch
-              </h3>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Select a branch to view its classes
-              </p>
-            </div>
-            <div class="flex items-center space-x-3">
-              <label
-                for="branch-filter"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Branch:
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="All Branches"
-                @update:model-value="onBranchChange"
-                class="w-40"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Classes List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="overflow-x-auto">
@@ -198,74 +164,25 @@
             </h3>
 
             <form @submit.prevent="saveClass">
-              <!-- School Selector for Super Admin -->
+              <!-- Context Info -->
               <div
-                v-if="isSuperAdmin && !isEditing"
-                class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+                v-if="currentBranch || currentSchool"
+                class="mb-6 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
               >
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                  📍 Select School & Branch
-                </h4>
-                <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                  <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                    {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
+                  </span>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >School *</label
-                    >
-                    <EnhancedDropdown
-                      v-model="selectedSchoolId"
-                      :options="schoolOptions"
-                      placeholder="Select a school first"
-                      required
-                      @update:model-value="onSchoolChange"
-                    />
-                  </div>
-                  <div v-if="selectedSchoolId">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                      >Branch *</label
-                    >
-                    <EnhancedDropdown
-                      v-model="selectedBranchId"
-                      :options="branchOptions"
-                      placeholder="Select a branch"
-                      required
-                    />
-                  </div>
-                  <div
-                    v-if="!selectedSchoolId || !selectedBranchId"
-                    class="text-xs text-blue-600 dark:text-blue-400"
-                  >
-                    ⚠️ Please select both school and branch before creating the class
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                      {{ currentBranch?.name || 'Active Branch' }}
+                    </span>
+                    <span v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                      ({{ currentSchool.name }})
+                    </span>
                   </div>
                 </div>
-              </div>
-
-              <!-- Branch Selector for Admin -->
-              <div v-if="isAdmin && !isEditing && branches.length > 1" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Branch *</label
-                >
-                <EnhancedDropdown
-                  v-model="selectedBranchId"
-                  :options="branchOptions"
-                  placeholder="Select a branch"
-                  required
-                />
-              </div>
-
-              <!-- Branch Information Display for Admin with Single Branch -->
-              <div
-                v-if="isAdmin && !isEditing && branches.length === 1"
-                class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-              >
-                <h4 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                  📍 Branch Information
-                </h4>
-                <div class="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>{{ branches[0].name }}</strong>
-                  <span class="block text-xs text-blue-600 dark:text-blue-400 mt-1"
-                    >This is your only branch - automatically selected</span
-                  >
-                </div>
+                <span class="text-xs text-gray-400 italic">Top Navigation</span>
               </div>
 
               <!-- Branch Information Display for Edit Mode -->
@@ -384,10 +301,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { Classes } from '~/api';
 import { Plus } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useToast } from '~/composables/useToast';
@@ -396,6 +315,8 @@ import { useAcademics } from '~/composables/useAcademics';
 import Pagination from '~/components/ui/Pagination.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
+const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { isStreamsEnabled } = useAcademicSettings();
 const { showError, showWarning, showSuccess } = useToast();
 const { schools, fetchSchools } = useSchools();
@@ -567,9 +488,10 @@ const loadClasses = async () => {
       useTableData: true // Use table data endpoint
     };
 
-    // Add branch filter if selected
-    if (selectedBranchId.value) {
-      options.branchId = selectedBranchId.value;
+    // Add branch filter from global selection if present
+    const activeBranchId = globalBranchId.value || selectedBranchId.value;
+    if (activeBranchId) {
+      options.branchId = activeBranchId;
     }
 
     const response = await fetchClasses(options);
@@ -587,6 +509,15 @@ const openCreateModal = () => {
   resetForm();
   isEditing.value = false;
   editingId.value = null;
+
+  // Pre-fill from global branch context if available
+  if (globalBranchId.value) {
+    selectedBranchId.value = globalBranchId.value;
+  }
+  if (authStore.currentSchool?.id) {
+    selectedSchoolId.value = authStore.currentSchool.id;
+  }
+
   showModal.value = true;
 };
 
@@ -639,33 +570,10 @@ const saveClass = async () => {
       has_stream: form.has_stream
     };
 
-    // Add school_id and branch_id for super admin when creating a new class
-    if (!isEditing.value && isSuperAdmin.value) {
-      if (!selectedSchoolId.value || !selectedBranchId.value) {
-        showWarning('Please select both school and branch first to create the class');
-        return;
-      }
-
-      payload.school_id = selectedSchoolId.value;
-      payload.branch_id = selectedBranchId.value;
-    }
-
-    // Add branch_id for school admin when creating a new class
-    if (!isEditing.value && isAdmin.value) {
-      if (branches.value.length > 1 && !selectedBranchId.value) {
-        showWarning('Please select a branch first to create the class');
-        return;
-      }
-
-      if (selectedBranchId.value) {
-        payload.branch_id = selectedBranchId.value;
-      } else if (branches.value.length === 1) {
-        // Auto-select the only branch
-        payload.branch_id = branches.value[0].id;
-      } else {
-        showError('Please select a branch to create the class');
-        return;
-      }
+    // Add school_id and branch_id when creating a new class
+    if (!isEditing.value) {
+      payload.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id;
+      payload.branch_id = selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
     }
 
     if (isEditing.value) {
@@ -727,6 +635,12 @@ onMounted(async () => {
     await loadBranchesForCurrentSchool();
   }
 
+  await loadClasses();
+});
+
+// Watch global branch selection and reload classes
+watch(globalBranchId, async () => {
+  pagination.page = 1;
   await loadClasses();
 });
 </script>

@@ -52,46 +52,6 @@
       <div class="bg-white dark:bg-gray-800 shadow rounded-md mb-6">
         <div class="px-4 py-5 sm:px-6">
           <div class="flex flex-wrap items-end gap-4">
-            <!-- School Selection (Super Admin only) -->
-            <div v-if="shouldShowSchoolFilter" class="flex-shrink-0">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                School *
-              </label>
-              <EnhancedDropdown
-                v-model="selectedSchoolId"
-                :options="schoolOptions"
-                placeholder="Select School"
-                @update:model-value="onSchoolChangeHandler"
-                class="w-48"
-              />
-            </div>
-
-            <!-- Branch Selection -->
-            <div v-if="shouldShowBranchFilter" class="flex-shrink-0">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Branch *
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Select Branch"
-                :disabled="isSuperAdmin && !selectedSchoolId"
-                @update:model-value="onBranchChangeHandler"
-                class="w-48"
-              />
-            </div>
-
-            <!-- Branch Info for Branch Admin -->
-            <div v-else-if="isBranchAdmin" class="flex items-center">
-              <div
-                class="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md"
-              >
-                <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Your Branch
-                </span>
-              </div>
-            </div>
-
             <!-- Class Selection -->
             <div class="flex-shrink-0">
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

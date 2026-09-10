@@ -38,25 +38,7 @@
           </h3>
         </div>
         <div class="p-6">
-          <div
-            :class="[
-              'grid grid-cols-1 gap-4',
-              showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4'
-            ]"
-          >
-            <!-- Branch Selection -->
-            <div v-if="showBranchDropdown">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch
-              </label>
-              <EnhancedDropdown
-                v-model="selectedBranchId"
-                :options="branchOptions"
-                placeholder="Choose branch"
-                :loading="branchesLoading"
-                @change="onBranchChange"
-              />
-            </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
             <!-- Exam Selection -->
             <div>
@@ -326,6 +308,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { examApi } from '~/api/academic/exams';
 import { examTermApi } from '~/api/academic/exam-terms';
 import { getExamTypeLabel } from '~/utils/exam-types';
@@ -333,6 +316,7 @@ import { getExamTypeLabel } from '~/utils/exam-types';
 const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranchesForUser, loading: branchesLoading } = useBranches();
 const {
   classes,
@@ -346,13 +330,30 @@ const {
 const { exams, isLoading: examsLoading, loadExams } = useExams();
 
 // Filter state
-const selectedBranchId = ref('');
 const selectedExamId = ref('');
 const selectedTermId = ref('');
 const selectedClassId = ref('');
 const selectedSectionId = ref('');
 const loading = ref(false);
 const exporting = ref(false);
+
+watch(selectedBranchId, async (newBranchId) => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  examsWithResults.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      fetchClasses({ branchId: newBranchId }),
+      loadExams({ branch_id: newBranchId })
+    ]);
+  } else {
+    await Promise.all([
+      fetchClasses(),
+      loadExams()
+    ]);
+  }
+});
 
 // Results state
 const examsWithResults = ref<any[]>([]);
@@ -624,9 +625,7 @@ onMounted(async () => {
     await fetchBranchesForUser();
     await loadTerms();
 
-    // Auto-select branch if single branch
-    if (branches.value.length === 1) {
-      selectedBranchId.value = branches.value[0].id;
+    if (selectedBranchId.value) {
       await Promise.all([
         fetchClasses({ branchId: selectedBranchId.value }),
         loadExams({ branch_id: selectedBranchId.value })

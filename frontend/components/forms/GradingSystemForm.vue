@@ -29,24 +29,8 @@
               </button>
             </div>
 
-            <!-- Form Fields ( - 5 fields) -->
+            <!-- Form Fields -->
             <div class="space-y-4">
-              <!-- Branch -->
-              <div>
-                <label
-                  for="branch_id"
-                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Branch <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.branch_id"
-                  :options="branchOptions"
-                  placeholder="Choose branch"
-                  :loading="branchesLoading"
-                  required
-                />
-              </div>
 
               <!-- Name -->
               <div>
@@ -184,6 +168,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { X } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useBranches } from '~/composables/useBranches';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Props
 const props = defineProps({
@@ -201,18 +187,12 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit']);
 
 // Composables
+const authStore = useAuthStore();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 
 // Computed
 const isEditing = computed(() => !!props.system);
-
-// Branch options
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 // Form data ( - 6 fields)
 const form = reactive({
@@ -237,7 +217,7 @@ onMounted(async () => {
     form.description = props.system.description || '';
   } else {
     // Set defaults for new grading system
-    form.branch_id = '';
+    form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || '';
     form.name = '';
     form.grade_point = 4.0;
     form.min_percentage = 0;
@@ -248,6 +228,7 @@ onMounted(async () => {
 
 // Methods
 const validateForm = () => {
+  form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || '';
   if (!form.branch_id) {
     alert('Branch is required');
     return false;

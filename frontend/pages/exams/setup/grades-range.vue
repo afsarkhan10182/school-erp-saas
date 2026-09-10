@@ -148,23 +148,10 @@
 
         <template #body>
           <form @submit.prevent="saveGrade" class="space-y-6">
-            <!--  - Exactly 5 fields as per specification -->
+            <!-- Only essential fields -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Branch () -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Branch <span class="text-red-500">*</span>
-                </label>
-                <EnhancedDropdown
-                  v-model="form.branch_id"
-                  :options="branchOptions"
-                  placeholder="Select branch"
-                  :loading="branchesLoading"
-                />
-              </div>
-
-              <!-- Name () -->
-              <div>
+              <!-- Name -->
+              <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Name <span class="text-red-500">*</span>
                 </label>
@@ -256,17 +243,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { Plus, Award, Edit, Trash2 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Composables
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 
 // Reactive data
@@ -278,11 +267,16 @@ const editingGrade = ref(null);
 
 // Form data
 const form = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   name: '',
   grade_point: '',
   min_percentage: '',
   max_percentage: ''
+});
+
+watch(selectedBranchId, (newBranchId) => {
+  form.branch_id = newBranchId || '';
+  loadGrades();
 });
 
 // Computed properties
@@ -350,6 +344,7 @@ const editGrade = async grade => {
 };
 
 const saveGrade = async () => {
+  form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
   if (
     !form.branch_id ||
     !form.name ||

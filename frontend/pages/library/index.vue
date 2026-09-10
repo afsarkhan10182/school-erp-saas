@@ -16,10 +16,7 @@
         </div>
       </div>
 
-      <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 max-w-md space-y-3">
-        <EnhancedDropdown v-if="isSuperAdmin" v-model="selectedSchoolId" :options="schoolOptions" label="School" placeholder="Select school" @change="onSchoolChange" />
-        <EnhancedDropdown v-if="branchOptions.length > 1 || isSuperAdmin" v-model="selectedBranchId" :options="branchOptions" label="Branch" placeholder="Select branch" @change="load" />
-      </section>
+
 
       <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-x-auto">
         <header class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -138,30 +135,35 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
-import { Branches } from '~/api/administration/branches';
-import { Schools } from '~/api/administration/schools';
 import { Library } from '~/api/students/academic-services';
 import { Students } from '~/api/students';
 import { Users } from '~/api/administration/users';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
 const books = ref<any[]>([]);
 const issues = ref<any[]>([]);
 const students = ref<any[]>([]);
 const users = ref<any[]>([]);
 const categories = ref<string[]>([]);
-const schoolOptions = ref<any[]>([]);
-const selectedSchoolId = ref('');
-const branchOptions = ref<any[]>([]);
-const selectedBranchId = ref('');
+const selectedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id || '');
+
+watch(selectedBranchId, () => {
+  load();
+});
+
+watch(currentSchool, () => {
+  load();
+});
 const showBook = ref(false);
 const showIssue = ref(false);
 const loading = ref(false);
@@ -185,26 +187,6 @@ const borrowerUserOptions = computed(() => users.value
   .filter((u: any) => issueForm.value.borrower_type === 'parent' ? u.role === 'parent' : !['student', 'parent'].includes(u.role))
   .map((u: any) => ({ value: u.id, label: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email })));
 const issueStatus = (issue: any) => issue.status === 'issued' && issue.due_date < new Date().toISOString().slice(0, 10) ? 'overdue' : issue.status;
-
-const loadSchools = async () => {
-  if (!isSuperAdmin.value) return;
-  const response: any = await Schools.getAll({ limit: 200, status: 'active' });
-  schoolOptions.value = extractList(response, ['schools']).map((s: any) => ({ value: s.id, label: s.name }));
-  selectedSchoolId.value = selectedSchoolId.value || schoolOptions.value[0]?.value || '';
-};
-
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active', ...(selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}) });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
-
-const onSchoolChange = async () => {
-  selectedBranchId.value = '';
-  await loadBranches();
-  await load();
-};
 
 const load = async () => {
   loading.value = true;
@@ -307,8 +289,6 @@ const returnBook = async (id: string) => {
 };
 
 onMounted(async () => {
-  await loadSchools();
-  await loadBranches();
   await load();
 });
 </script>

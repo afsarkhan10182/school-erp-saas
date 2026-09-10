@@ -20,20 +20,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <label v-if="showBranchDropdown" class="space-y-1.5">
-            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Branch</span>
-            <select
-              v-model="selectedBranchId"
-              required
-              class="w-full border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
-              @change="load"
-            >
-              <option value="" disabled>Select branch</option>
-              <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-                {{ branch.label }}
-              </option>
-            </select>
-          </label>
+
           <label class="space-y-1.5">
             <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Template name</span>
             <input v-model="form.name" required placeholder="Template name" class="w-full border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600" />
@@ -132,13 +119,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { CardTemplates } from '~/api/academic/cards-exams-reports';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
 
-const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
+const { branchOptions, selectedBranchId, scopeParams, loadScope } = useSchoolBranchScope();
 const templates = ref<any[]>([]);
+
+watch(selectedBranchId, () => {
+  load();
+});
 const editingId = ref('');
 const error = ref('');
 const defaultFields = {

@@ -1,79 +1,81 @@
 import { computed, ref } from 'vue';
-import { Branches } from '~/api/administration/branches';
-import { Schools } from '~/api/administration/schools';
 import { useAuthStore } from '~/stores/auth';
-import { extractList } from '~/utils/list-response';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
+/**
+ * useSchoolBranchScope — backward-compatible thin wrapper over useGlobalBranch.
+ *
+ * Previously this composable maintained its OWN local branch/school state and
+ * fetched branches independently on each page. Now it simply reads from the
+ * global branch context (authStore + useGlobalBranch) that the topbar BranchSelector
+ * writes to.
+ *
+ * Migration: replace `loadScope()` calls with a `watch(selectedBranchId, reload)`.
+ * The `loadScope()` function is now a no-op kept only for backward compatibility.
+ */
 export function useSchoolBranchScope() {
   const auth = useAuthStore();
+  const {
+    selectedBranchId: globalBranchId,
+    currentBranch,
+    availableBranches,
+    currentSchool,
+    isSuperAdmin,
+    showBranchSelector,
+    branchScopeParams
+  } = useGlobalBranch();
+
+  // Branch options derived from the global available branches
+  const branchOptions = computed(() =>
+    (availableBranches.value || []).map((b: any) => ({
+      label: b.name || b.code || b.id,
+      value: b.id
+    }))
+  );
+
+  // School options are not maintained here anymore — use useGlobalBranch directly
+  // for super_admin school switching (it happens in the topbar BranchSelector).
   const schoolOptions = ref<Array<{ label: string; value: string }>>([]);
-  const branchOptions = ref<Array<{ label: string; value: string }>>([]);
-  const selectedSchoolId = ref('');
-  const selectedBranchId = ref('');
 
-  const showSchoolDropdown = computed(() => auth.isSuperAdmin);
-  const showBranchDropdown = computed(() => !auth.isBranchAdmin && branchOptions.value.length > 1);
-  const scopeParams = computed(() => ({
-    ...(selectedSchoolId.value ? { school_id: selectedSchoolId.value } : {}),
-    ...(selectedBranchId.value ? { branch_id: selectedBranchId.value } : {})
-  }));
+  // Selected branch id — reads from global store
+  const selectedBranchId = globalBranchId;
 
-  const loadSchools = async () => {
-    if (!auth.isSuperAdmin) {
-      selectedSchoolId.value = auth.currentSchool?.id || auth.user?.school_id || '';
-      return;
-    }
-    const res: any = await Schools.getAll({ limit: 200, status: 'active' });
-    schoolOptions.value = extractList(res, ['schools', 'rows']).map((school: any) => ({
-      label: school.name,
-      value: school.id
-    }));
-    selectedSchoolId.value ||= auth.currentSchool?.id || auth.user?.school_id || schoolOptions.value[0]?.value || '';
-    const selected = schoolOptions.value.find(school => school.value === selectedSchoolId.value);
-    if (selected) auth.setCurrentSchool({ id: selected.value, name: selected.label });
-  };
+  // Selected school id — reads from global store
+  const selectedSchoolId = computed(() => auth.currentSchool?.id || auth.user?.school_id || '');
 
-  const loadBranches = async () => {
-    const schoolId = selectedSchoolId.value || auth.currentSchool?.id || auth.user?.school_id;
-    if (!schoolId && !auth.isSuperAdmin) return;
+  /**
+   * Whether a branch dropdown should be shown ON A PAGE.
+   * After migration this should always return false because the topbar handles it.
+   * Kept here for any remaining legacy usage during the transition.
+   */
+  const showBranchDropdown = computed(() => false);
 
-    const res: any = await Branches.getForDropdown({
-      status: 'active',
-      ...(schoolId ? { school_id: schoolId } : {})
-    });
-    branchOptions.value = extractList(res, ['branches', 'rows']).map((branch: any) => ({
-      label: branch.name || branch.code || branch.id,
-      value: branch.id
-    }));
-    const preferredBranchId = auth.currentBranch?.id || auth.user?.branch_id || '';
-    selectedBranchId.value = branchOptions.value.some(branch => branch.value === preferredBranchId)
-      ? preferredBranchId
-      : branchOptions.value.length === 1
-        ? branchOptions.value[0].value
-        : '';
-    const selected = branchOptions.value.find(branch => branch.value === selectedBranchId.value);
-    auth.setCurrentBranch(selected ? { id: selected.value, name: selected.label, school_id: schoolId } : null);
-  };
+  /**
+   * Scope params for API calls — reads from global store.
+   */
+  const scopeParams = branchScopeParams;
 
+  /**
+   * loadScope — now a no-op.
+   * The topbar BranchSelector + layout's fetchBranchesForUser() already handles loading.
+   * Pages should use: watch(selectedBranchId, () => reload(), { immediate: true })
+   */
   const loadScope = async () => {
-    await loadSchools();
-    await loadBranches();
+    // No-op: branches are already loaded by the layout's fetchBranchesForUser()
+    // and the topbar BranchSelector handles school switching for super_admin.
   };
 
-  const onSchoolChange = async () => {
-    const selected = schoolOptions.value.find(school => school.value === selectedSchoolId.value);
-    auth.setCurrentSchool(selected ? { id: selected.value, name: selected.label } : null);
-    selectedBranchId.value = '';
-    auth.setCurrentBranch(null);
-    await loadBranches();
-  };
+  /**
+   * onSchoolChange — no-op, school switching happens in the topbar.
+   */
+  const onSchoolChange = async () => {};
 
   return {
     schoolOptions,
     branchOptions,
     selectedSchoolId,
     selectedBranchId,
-    showSchoolDropdown,
+    showSchoolDropdown: computed(() => false),
     showBranchDropdown,
     scopeParams,
     loadScope,

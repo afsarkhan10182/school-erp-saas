@@ -27,22 +27,6 @@
         </div>
       </div>
 
-      <div v-if="availableBranches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Branch
-        </label>
-        <select
-          v-model="filterBranchId"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-          @change="loadStreams"
-        >
-          <option value="">All Branches</option>
-          <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-            {{ branch.name }}
-          </option>
-        </select>
-      </div>
-
       <!-- Streams Table -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
@@ -222,42 +206,25 @@
           </h3>
 
           <form @submit.prevent="handleSubmit">
-            <!-- School Selection (Super Admin Only) - Create Mode Only -->
-            <div v-if="userRole === 'super_admin' && !isEditing" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >School *</label
-              >
-              <select
-                v-model="form.school_id"
-                @change="onSchoolChange"
-                required
-                :disabled="loading"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{{ loading ? 'Loading schools...' : 'Select School' }}</option>
-                <option v-for="school in schools" :key="school.id" :value="school.id">
-                  {{ school.name }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Branch Selection (Super Admin & Admin) - Create Mode Only -->
-            <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >Branch *</label
-              >
-              <select
-                v-model="form.branch_id"
-                @change="onBranchChange"
-                required
-                :disabled="loading"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{{ loading ? 'Loading branches...' : 'Select Branch' }}</option>
-                <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                  {{ branch.name }}
-                </option>
-              </select>
+            <!-- Context Info -->
+            <div
+              v-if="currentBranch || currentSchool"
+              class="mb-4 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
+            >
+              <div class="flex items-center space-x-2">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                  {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
+                </span>
+                <div>
+                  <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                    {{ currentBranch?.name || 'Active Branch' }}
+                  </span>
+                  <span v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                    ({{ currentSchool.name }})
+                  </span>
+                </div>
+              </div>
+              <span class="text-xs text-gray-400 italic">Top Navigation</span>
             </div>
 
             <!-- Class Selection - Create Mode Only -->
@@ -393,9 +360,11 @@ definePageMeta({
   }
 });
 
-import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue';
+import { ref, reactive, onMounted, computed, onBeforeUnmount, watch } from 'vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useSchools } from '~/composables/useSchools';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
@@ -404,6 +373,8 @@ import { Streams } from '~/api';
 import Pagination from '~/components/ui/Pagination.vue';
 
 // Composables
+const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { schools, fetchSchools } = useSchools();
@@ -510,11 +481,13 @@ const loadStreams = async () => {
       branch_id: user.value.branch_id
     });
 
-    const params = {
+    const params: any = {
       page: pagination.page,
       limit: pagination.limit
     };
-    if (filterBranchId.value) params.branch_id = filterBranchId.value;
+    const activeBranchId = globalBranchId.value || filterBranchId.value;
+    if (activeBranchId) params.branch_id = activeBranchId;
+    if (authStore.currentSchool?.id) params.school_id = authStore.currentSchool.id;
 
     console.log('Streams API params:', params);
     const response = await Streams.getAll(params);
@@ -554,6 +527,14 @@ const openCreateModal = () => {
   isEditing.value = false;
   editingStream.value = null;
   resetForm();
+
+  if (globalBranchId.value) {
+    form.branch_id = globalBranchId.value;
+  }
+  if (authStore.currentSchool?.id) {
+    form.school_id = authStore.currentSchool.id;
+  }
+
   showModal.value = true;
 };
 
@@ -825,6 +806,11 @@ onMounted(async () => {
     console.error('Error loading initial data:', error);
     showToast('Failed to load initial data', 'error');
   }
+});
+
+watch(globalBranchId, async () => {
+  pagination.page = 1;
+  await loadStreams();
 });
 </script>
 

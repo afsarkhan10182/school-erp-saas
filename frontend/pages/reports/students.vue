@@ -584,32 +584,7 @@
               class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
-          <!-- School (Super Admin Only) -->
-          <div v-if="isSuperAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              :options="schoolOptions"
-              v-model="filters.school_id"
-              placeholder="All Schools"
-              @update:modelValue="onSchoolChange"
-              :disabled="isLoading"
-            />
-          </div>
-          <!-- Branch (Super Admin and Admin) -->
-          <div v-if="isSuperAdmin || isAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              :options="branchOptions"
-              v-model="filters.branch_id"
-              placeholder="All Branches"
-              @update:modelValue="onBranchChange"
-              :disabled="isLoading"
-            />
-          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >Class</label
@@ -849,7 +824,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useAuthStore } from '~/stores/auth';
 import {
   Download,
   Users,
@@ -1002,20 +979,34 @@ const filters = reactive({
   status: ''
 });
 
-// Initialize filters based on user role
+const { selectedBranchId, currentSchool } = useGlobalBranch();
+const authStore = useAuthStore();
+
+// Initialize filters based on global selection
 const initializeFilters = () => {
-  if (isSuperAdmin.value) {
-    // Super admin can select any school
-    filters.school_id = '';
-  } else if (isAdmin.value) {
-    // School admin is restricted to their school
-    filters.school_id = user.value?.school_id;
-  } else if (isBranchAdmin.value) {
-    // Branch admin is restricted to their school and branch
-    filters.school_id = user.value?.school_id;
-    filters.branch_id = user.value?.branch_id;
-  }
+  filters.school_id = authStore.currentSchool?.id || user.value?.school_id || '';
+  filters.branch_id = selectedBranchId.value || '';
 };
+
+// Watch for global branch or school change
+watch(selectedBranchId, async (newVal) => {
+  filters.branch_id = newVal || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  filters.stream_id = '';
+  await loadClasses();
+  await loadData();
+});
+
+watch(currentSchool, async () => {
+  filters.school_id = authStore.currentSchool?.id || user.value?.school_id || '';
+  filters.branch_id = selectedBranchId.value || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  filters.stream_id = '';
+  await loadClasses();
+  await loadData();
+});
 
 // Pagination - using the new structure
 const currentPage = computed(() => pagination.value.current_page);

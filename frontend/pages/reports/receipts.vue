@@ -235,34 +235,7 @@
             />
           </div>
 
-          <!-- School dropdown for super admin -->
-          <div v-if="userRole === 'super_admin'" class="flex-1 min-w-[150px]">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              v-model="filters.school_id"
-              :options="schoolOptions"
-              placeholder="All Schools"
-              @change="onSchoolChange"
-            />
-          </div>
 
-          <!-- Branch dropdown for super admin (when school selected) and school admin -->
-          <div
-            v-if="(userRole === 'super_admin' && filters.school_id) || userRole === 'admin'"
-            class="flex-1 min-w-[150px]"
-          >
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              v-model="filters.branch_id"
-              :options="branchOptions"
-              placeholder="All Branches"
-              @change="onBranchChange"
-            />
-          </div>
 
           <!-- Student Search -->
           <div class="flex-1 min-w-[200px]">
@@ -659,13 +632,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useExportService } from '~/composables/useExportService';
 import { usePrintReport } from '~/composables/usePrintReport';
 import Pagination from '~/components/ui/Pagination.vue';
@@ -776,17 +751,36 @@ const displayedColumns = computed(() => {
 // User role for conditional filtering
 const userRole = computed(() => user.value?.role || 'branch_admin');
 
+const { selectedBranchId, currentSchool } = useGlobalBranch();
+const authStore = useAuthStore();
+
 // Filters
 const filters = reactive({
   dateRange: 'today', // Changed from 'month' to 'today'
   from_date: '',
   to_date: '',
   payment_method: '',
-  school_id: '',
-  branch_id: '',
+  school_id: authStore.currentSchool?.id || '',
+  branch_id: selectedBranchId.value || '',
   class_id: '',
   section_id: '',
   search: ''
+});
+
+// Watch for global branch or school change
+watch(selectedBranchId, async (newVal) => {
+  filters.branch_id = newVal || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  await fetchReceiptsData(1);
+});
+
+watch(currentSchool, async () => {
+  filters.school_id = authStore.currentSchool?.id || '';
+  filters.branch_id = selectedBranchId.value || '';
+  filters.class_id = '';
+  filters.section_id = '';
+  await fetchReceiptsData(1);
 });
 
 // Methods

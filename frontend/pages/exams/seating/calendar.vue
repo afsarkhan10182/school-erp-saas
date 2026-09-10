@@ -2,10 +2,6 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-6xl mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Seating calendar</h1>
-      <select v-if="showBranchDropdown" v-model="selectedBranchId" class="border rounded-md px-3 py-2 mb-6 dark:bg-gray-900 dark:border-gray-600" @change="load">
-        <option value="">All branches</option>
-        <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
-      </select>
       <div class="grid gap-3">
         <div v-for="row in rows" :key="row.id" class="bg-white dark:bg-gray-800 rounded-md shadow p-4">
           <div class="text-sm text-gray-500">{{ slot(row).exam_date || 'No date' }}</div>
@@ -21,12 +17,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { ExamSeatings } from '~/api/academic/cards-exams-reports';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 
 const rows = ref<any[]>([]);
-const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
+const { branchOptions, selectedBranchId, scopeParams, loadScope } = useSchoolBranchScope();
+
+watch(selectedBranchId, () => {
+  load();
+});
 const slot = (row: any) => row.plan_json?.schedule || {};
 const load = async () => {
   const res: any = await ExamSeatings.list(scopeParams.value);

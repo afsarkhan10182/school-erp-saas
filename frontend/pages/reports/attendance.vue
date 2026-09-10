@@ -245,33 +245,7 @@
             />
           </div>
 
-          <!-- School (Super Admin Only) -->
-          <div v-if="isSuperAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >School</label
-            >
-            <EnhancedDropdown
-              :options="schoolOptions"
-              v-model="filters.school_id"
-              placeholder="All Schools"
-              @update:modelValue="onSchoolChange"
-              :disabled="loading"
-            />
-          </div>
 
-          <!-- Branch (Super Admin and Admin) -->
-          <div v-if="isSuperAdmin || isAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Branch</label
-            >
-            <EnhancedDropdown
-              :options="branchOptions"
-              v-model="filters.branch_id"
-              placeholder="All Branches"
-              @update:modelValue="onBranchChange"
-              :disabled="loading"
-            />
-          </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -622,7 +596,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
@@ -638,13 +613,13 @@ import FilterCard from '~/components/ui/FilterCard.vue';
 import DataTable from '~/components/ui/DataTable.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 
-// Removed reportTypeOptions as we now use date range filters
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 
 const filters = ref<any>({
   date_from: new Date().toISOString().slice(0, 10),
   date_to: new Date().toISOString().slice(0, 10),
-  school_id: '',
-  branch_id: '',
+  school_id: authStore.currentSchool?.id || '',
+  branch_id: selectedBranchId.value || '',
   academic_year: '',
   class_id: '',
   section_id: ''
@@ -652,6 +627,24 @@ const filters = ref<any>({
 const loading = ref(false);
 const records = ref<any[]>([]);
 const summary = ref<any>(null);
+
+// Watch for global branch or school change
+watch(selectedBranchId, async (newVal) => {
+  filters.value.branch_id = newVal || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  await loadClasses();
+  await load(1);
+});
+
+watch(currentSchool, async () => {
+  filters.value.school_id = authStore.currentSchool?.id || '';
+  filters.value.branch_id = selectedBranchId.value || '';
+  filters.value.class_id = '';
+  filters.value.section_id = '';
+  await loadClasses();
+  await load(1);
+});
 
 // Pagination state
 const pagination = ref({

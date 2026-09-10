@@ -35,39 +35,7 @@
           </div>
         </div>
 
-        <!-- Branch Filter - Only show for Super Admin or Admin with multiple branches -->
-        <div v-if="shouldShowBranchFilter">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >Branch</label
-          >
-          <div class="relative">
-            <select
-              v-model="localFilters.branch_id"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Branches</option>
-              <option v-for="branch in availableBranches" :key="branch.id" :value="branch.id">
-                {{ branch.name }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+
 
         <!-- Academic Year Filter -->
         <div>
@@ -273,15 +241,7 @@
                 ×
               </button>
             </span>
-            <span
-              v-if="localFilters.branch_id"
-              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-            >
-              {{ getBranchName(localFilters.branch_id) }}
-              <button @click="clearFilter('branch_id')" class="ml-1 hover:text-indigo-600">
-                ×
-              </button>
-            </span>
+
             <span
               v-if="localFilters.academic_year"
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"

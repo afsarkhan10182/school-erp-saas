@@ -2,10 +2,6 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-6xl mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Seating overview</h1>
-      <select v-if="showBranchDropdown" v-model="selectedBranchId" class="border rounded-md px-3 py-2 mb-6 dark:bg-gray-900 dark:border-gray-600" @change="load">
-        <option value="">All branches</option>
-        <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
-      </select>
       <div class="bg-white dark:bg-gray-800 shadow rounded-md overflow-x-auto">
         <table class="min-w-full divide-y">
           <thead>
@@ -34,12 +30,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { ExamSeatings } from '~/api/academic/cards-exams-reports';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 
 const rows = ref<any[]>([]);
-const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
+const { branchOptions, selectedBranchId, scopeParams, loadScope } = useSchoolBranchScope();
+
+watch(selectedBranchId, () => {
+  load();
+});
 const benches = (planJson: any) => Array.isArray(planJson) ? planJson : planJson?.benches || [];
 const slot = (row: any) => row.plan_json?.schedule ? [row.plan_json.schedule.exam_date, row.plan_json.schedule.start_time, row.plan_json.schedule.end_time].filter(Boolean).join(' · ') : '—';
 const load = async () => {

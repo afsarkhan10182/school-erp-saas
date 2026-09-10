@@ -117,11 +117,9 @@
         :classes="classes"
         :sections="sections"
         :streams="streams"
-        :branches="branches"
         :is-loading="isLoading"
         @filter-change="onFilterChange"
         @clear-filters="clearFilters"
-        @branch-change="onBranchChange"
         @class-change="onClassChange"
       />
 
@@ -494,6 +492,7 @@ import { Invoices, FeeInvoices, FeeStructures, Branches, Schools } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 // Strategic imports: Direct for always-present, Async for on-demand
 import InvoiceFilters from '~/components/financial/InvoiceFilters.vue';
 import InvoiceTable from '~/components/financial/InvoiceTable.vue';
@@ -531,6 +530,7 @@ const { schools, fetchSchools, loading: schoolsLoading } = useSchools();
 
 // Auth composable
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 
 // State
 const invoices = ref([]);
@@ -558,15 +558,27 @@ const pageSize = ref(10);
 // View mode (only grouped)
 const viewMode = ref('grouped');
 
-// Filters - Start with empty filters
+// Filters - Start with branch from global context
 const filters = reactive({
   payment_model: '',
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   academic_year: '',
   class_id: '',
   section: '',
   stream: '',
   status: ''
+});
+
+watch(selectedBranchId, async (newBranchId) => {
+  filters.branch_id = newBranchId || '';
+  currentPage.value = 1;
+  const schoolId = user.value?.school_id;
+  if (newBranchId) {
+    await fetchClasses({ schoolId, branchId: newBranchId });
+  } else {
+    await fetchClasses({ schoolId });
+  }
+  await fetchInvoices();
 });
 
 // Use existing data from composables - no need to redeclare

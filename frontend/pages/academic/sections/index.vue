@@ -49,27 +49,6 @@
         </div>
       </div>
 
-      <div v-if="branches.length > 1" class="mb-6 max-w-xs">
-        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-          Branch
-        </label>
-        <div class="relative">
-          <select
-            v-model="selectedBranchId"
-            class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-            @change="onBranchFilterChange"
-          >
-            <option value="">All Branches</option>
-            <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-              {{ branch.name }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-            <ChevronDown class="w-4 h-4" />
-          </div>
-        </div>
-      </div>
-
       <!-- Sections List -->
       <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
         <div class="overflow-x-auto">
@@ -201,46 +180,25 @@
             </h3>
 
             <form @submit.prevent="saveSection">
-              <!-- School Selection (Super Admin Only) - Create Mode Only -->
-              <div v-if="userRole === 'super_admin' && !isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >School *</label
-                >
-                <select
-                  v-model="selectedSchoolId"
-                  @change="onSchoolChange"
-                  required
-                  :disabled="loadingSchools"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">
-                    {{ loadingSchools ? 'Loading schools...' : 'Select School' }}
-                  </option>
-                  <option v-for="school in schools" :key="school.id" :value="school.id">
-                    {{ school.name }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Branch Selection (Super Admin & Admin) - Create Mode Only -->
-              <div v-if="userRole !== 'branch_admin' && !isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Branch *</label
-                >
-                <select
-                  v-model="selectedBranchId"
-                  @change="onBranchChange"
-                  required
-                  :disabled="!selectedSchoolId || loadingBranches"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">
-                    {{ loadingBranches ? 'Loading branches...' : 'Select Branch' }}
-                  </option>
-                  <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
+              <!-- Context Info -->
+              <div
+                v-if="currentBranch || currentSchool"
+                class="mb-4 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
+              >
+                <div class="flex items-center space-x-2">
+                  <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                    {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
+                  </span>
+                  <div>
+                    <span class="text-xs font-semibold text-gray-900 dark:text-white">
+                      {{ currentBranch?.name || 'Active Branch' }}
+                    </span>
+                    <span v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                      ({{ currentSchool.name }})
+                    </span>
+                  </div>
+                </div>
+                <span class="text-xs text-gray-400 italic">Top Navigation</span>
               </div>
 
               <!-- Class Selection - Create Mode Only -->
@@ -398,10 +356,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { Sections } from '~/api';
 import { Plus, ChevronDown } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
+import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
@@ -409,6 +369,8 @@ import { useAcademicSettings } from '~/utils/settings';
 import { useToast } from '~/composables/useToast';
 import { Streams } from '~/api';
 
+const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showError, showSuccess } = useToast();
 
 const sections = ref([]);
@@ -627,13 +589,16 @@ const fetchSections = async () => {
       sort_order: 'ASC'
     };
 
+    const activeBranchId = globalBranchId.value || selectedBranchId.value;
+
     // Add role-based filters
     if (userRole.value === 'super_admin') {
-      // Super admin can see all sections
+      if (activeBranchId) params.branch_id = activeBranchId;
+      if (authStore.currentSchool?.id) params.school_id = authStore.currentSchool.id;
     } else if (userRole.value === 'admin') {
       // School admin sees only their school's sections
       params.school_id = user.value?.school_id;
-      if (selectedBranchId.value) params.branch_id = selectedBranchId.value;
+      if (activeBranchId) params.branch_id = activeBranchId;
     } else if (userRole.value === 'branch_admin') {
       // Branch admin sees only their branch's sections
       params.branch_id = user.value?.branch_id;
@@ -653,23 +618,15 @@ const openCreateModal = async () => {
   isEditing.value = false;
   editingId.value = null;
 
-  // Initialize based on user role
-  if (userRole.value === 'super_admin') {
-    // Load schools for super admin
-    await fetchSchools();
-  } else if (userRole.value === 'admin') {
-    // Set school and load branches for school admin
-    selectedSchoolId.value = user.value?.school_id;
-    await fetchBranches(user.value?.school_id);
-  } else if (userRole.value === 'branch_admin') {
-    // Set school and branch for branch admin, load classes
-    selectedSchoolId.value = user.value?.school_id;
-    selectedBranchId.value = user.value?.branch_id;
-    await fetchClasses({
-      schoolId: user.value?.school_id,
-      branchId: user.value?.branch_id
-    });
-  }
+  // Set context from global branch / school
+  selectedSchoolId.value = authStore.currentSchool?.id || user.value?.school_id || '';
+  selectedBranchId.value = globalBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+
+  // Load classes for the active branch
+  await fetchClasses({
+    schoolId: selectedSchoolId.value,
+    branchId: selectedBranchId.value
+  });
 
   showModal.value = true;
 };
@@ -803,6 +760,10 @@ onMounted(async () => {
     await fetchBranches(user.value?.school_id);
   }
   fetchSections();
+});
+
+watch(globalBranchId, async () => {
+  await fetchSections();
 });
 </script>
 

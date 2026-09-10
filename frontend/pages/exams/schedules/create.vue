@@ -28,42 +28,7 @@
         </h2>
 
         <div class="flex items-end gap-6 mb-6">
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown" class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch <span class="text-red-500">*</span>
-            </label>
-            <EnhancedDropdown
-              v-model="selectionForm.branch_id"
-              :options="branchOptions"
-              placeholder="Select branch"
-              :loading="branchesLoading"
-              @change="onBranchSelectionChange"
-            />
-          </div>
 
-          <!-- Single Branch Info -->
-          <div
-            v-else-if="branches.length === 1"
-            class="flex-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
-          >
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-4 w-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="ml-2">
-                <p class="text-xs text-blue-700 dark:text-blue-300">
-                  Using: {{ branches[0]?.name }}
-                </p>
-              </div>
-            </div>
-          </div>
 
           <!-- Exam Selection -->
           <div class="flex-1">
@@ -485,6 +450,7 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
 import { useBranches } from '~/composables/useBranches';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useExamHalls } from '~/composables/useExamHalls';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
@@ -494,6 +460,7 @@ import { examScheduleApi } from '~/api/academic/exam-schedules';
 const route = useRoute();
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId } = useGlobalBranch();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
@@ -521,11 +488,32 @@ const existingScheduleIds = ref([]);
 
 // Selection form
 const selectionForm = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   exam_id: '',
   class_id: '',
   section_id: '',
   stream_id: ''
+});
+
+watch(selectedBranchId, async (newBranchId) => {
+  selectionForm.branch_id = newBranchId || '';
+  selectionForm.exam_id = '';
+  selectionForm.class_id = '';
+  selectionForm.section_id = '';
+  selectionForm.stream_id = '';
+  filterApplied.value = false;
+  generatedSchedules.value = [];
+  if (newBranchId) {
+    await Promise.all([
+      loadExams({ branch_id: newBranchId }),
+      fetchClasses({ branchId: newBranchId })
+    ]);
+  } else {
+    await Promise.all([
+      loadExams(),
+      fetchClasses()
+    ]);
+  }
 });
 
 // Schedule parameters
@@ -585,11 +573,7 @@ const showStreamField = computed(() => {
 });
 
 const resolvedBranchId = computed(() => {
-  if (showBranchDropdown.value) {
-    return selectionForm.branch_id || '';
-  }
-
-  return branches.value[0]?.id || user.value?.branch_id || '';
+  return selectedBranchId.value || user.value?.branch_id || branches.value[0]?.id || '';
 });
 
 // Check if can proceed to step 2 (now requires filter to be applied)
@@ -599,12 +583,7 @@ const canProceedToStep2 = computed(() => {
 
 // Check if filter button can be enabled
 const canApplyFilter = computed(() => {
-  // For single branch, automatically set branch_id
-  const currentBranchId = showBranchDropdown.value
-    ? selectionForm.branch_id
-    : branches.value[0]?.id || '';
-
-  const basicRequirements = currentBranchId && selectionForm.exam_id && selectionForm.class_id;
+  const basicRequirements = resolvedBranchId.value && selectionForm.exam_id && selectionForm.class_id;
 
   if (!basicRequirements) {
     return false;

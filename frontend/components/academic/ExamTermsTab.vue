@@ -17,17 +17,7 @@
       </button>
     </div>
 
-    <select
-      v-if="branches.length > 1"
-      v-model="selectedBranchId"
-      class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
-      @change="loadData"
-    >
-      <option value="">All Branches</option>
-      <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-        {{ branch.name }}
-      </option>
-    </select>
+
 
     <!-- Terms Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -130,21 +120,7 @@
 
       <template #body>
         <form @submit.prevent="saveTerm" class="space-y-6">
-          <!-- Only 2 fields -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Branch <span class="text-red-500">*</span>
-              </label>
-              <EnhancedDropdown
-                v-model="form.branch_id"
-                :options="branchOptions"
-                placeholder="Select branch"
-                :loading="branchesLoading"
-              />
-            </div>
-
+          <div>
             <!-- Name -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -154,8 +130,8 @@
                 v-model="form.name"
                 type="text"
                 required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="e.g., First Term, Second Term, Final"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="e.g. Term 1, Mid Term"
               />
             </div>
           </div>
@@ -186,13 +162,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useBranches } from '~/composables/useBranches';
 import { useExamTerms } from '~/composables/useExamTerms';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import Pagination from '~/components/ui/Pagination.vue';
 
 // Props - No longer needed since we manage our own data
@@ -204,6 +181,7 @@ const emit = defineEmits(['refresh', 'create', 'update', 'delete', 'success']);
 // Composables
 const { showToast } = useToast();
 const { branches, fetchBranches, loading: branchesLoading } = useBranches();
+const { selectedBranchId } = useGlobalBranch();
 const {
   examTerms: terms,
   loading,
@@ -222,12 +200,15 @@ const {
 const showModal = ref(false);
 const saving = ref(false);
 const editingTerm = ref(null);
-const selectedBranchId = ref('');
 
 // Form data: Only 2 essential fields
 const form = reactive({
-  branch_id: '',
+  branch_id: selectedBranchId.value || '',
   name: ''
+});
+
+watch(selectedBranchId, () => {
+  loadData();
 });
 
 // Computed properties
@@ -246,6 +227,7 @@ const loadData = async () => {
 const openCreateModal = async () => {
   editingTerm.value = null;
   resetForm();
+  form.branch_id = selectedBranchId.value || '';
   await fetchBranches();
   showModal.value = true;
 };
@@ -278,6 +260,7 @@ const deleteTerm = async term => {
 const saveTerm = async () => {
   try {
     saving.value = true;
+    form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
 
     // Only validate essential fields
     if (!form.branch_id) {

@@ -17,49 +17,7 @@
         </div>
 
         <div class="flex flex-wrap items-end gap-3">
-          <!-- School Selector (Super Admin) -->
-          <div v-if="isSuperAdmin" class="flex-1 min-w-[180px]">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-              School
-            </label>
-            <div class="relative">
-              <select
-                v-model="selectedSchoolId"
-                class="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 pr-8 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-                @change="onSchoolChange"
-              >
-                <option value="">Select school</option>
-                <option v-for="school in schoolOptions" :key="school.value" :value="school.value">
-                  {{ school.label }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
-          </div>
 
-          <!-- Branch Selector -->
-          <div v-if="showBranchDropdown" class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-              Branch
-            </label>
-            <div class="relative">
-              <select
-                v-model="selectedBranchId"
-                class="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 pr-8 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-                @change="reload"
-              >
-                <option value="">All branches</option>
-                <option v-for="branch in branchOptions" :key="branch.value" :value="branch.value">
-                  {{ branch.label }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
-          </div>
 
           <!-- Class Selector -->
           <div class="flex-1 min-w-[150px]">
@@ -281,20 +239,18 @@ import { MODULE_ENTITY_DEFINITIONS, type EntityField } from '~/config/entity-def
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { Students } from '~/api/students';
 import { Classes } from '~/api/academic/classes';
-import { Schools } from '~/api/administration/schools';
-import { Branches } from '~/api/administration/branches';
 import { Users } from '~/api/administration/users';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
 import { ChevronDown, Plus, Pencil, Trash2, RefreshCw, Layers } from 'lucide-vue-next';
 
 const props = defineProps<{ entityKey: string }>();
 const { showToast } = useToast();
 const { user } = useAuth();
+const { selectedBranchId, currentSchool, isSuperAdmin } = useGlobalBranch();
 const entity = computed(() => MODULE_ENTITY_DEFINITIONS[props.entityKey]);
-const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
-const isBranchAdmin = computed(() => user.value?.role === 'branch_admin');
 const items = ref<any[]>([]);
 const loading = ref(false);
 const errorMessage = ref('');
@@ -309,11 +265,7 @@ const studentOptions = ref<Array<{ label: string; value: string }>>([]);
 const userOptions = ref<Array<{ label: string; value: string }>>([]);
 const staffOptions = ref<Array<{ label: string; value: string }>>([]);
 const entityOptions = ref<Record<string, Array<{ label: string; value: string }>>>({});
-const schoolOptions = ref<Array<{ label: string; value: string }>>([]);
-const selectedSchoolId = ref('');
-const branchOptions = ref<Array<{ label: string; value: string }>>([]);
-const selectedBranchId = ref('');
-const showBranchDropdown = computed(() => !isBranchAdmin.value && branchOptions.value.length > 1);
+const selectedSchoolId = computed(() => currentSchool.value?.id || user.value?.school_id || '');
 
 const errText = (error: any) => apiErrorMessage(error);
 
@@ -388,14 +340,6 @@ const loadClassesForBranch = async () => {
   }
 };
 
-const onBranchChange = async () => {
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  sectionOptions.value = [];
-  await loadClassesForBranch();
-  await reload();
-};
-
 const onClassFilterChange = async () => {
   selectedSectionId.value = '';
   if (selectedClassId.value) {
@@ -438,32 +382,6 @@ const scopeParams = computed(() => ({
   ...(selectedClassId.value ? { class_id: selectedClassId.value } : {}),
   ...(selectedSectionId.value ? { section_id: selectedSectionId.value } : {})
 }));
-
-const loadSchools = async () => {
-  if (!isSuperAdmin.value) return;
-  const res: any = await Schools.getAll({ limit: 200 });
-  schoolOptions.value = extractList(res, ['schools']).map((school: any) => ({ label: school.name, value: school.id }));
-  if (!selectedSchoolId.value && schoolOptions.value.length) selectedSchoolId.value = schoolOptions.value[0].value;
-};
-
-const loadBranches = async () => {
-  const schoolId = selectedSchoolId.value || user.value?.school_id;
-  if (!schoolId) return;
-  const res: any = await Branches.getForDropdown({ status: 'active', school_id: schoolId });
-  const branches = extractList(res, ['branches']);
-  branchOptions.value = branches.map((branch: any) => ({ label: branch.name || branch.code || branch.id, value: branch.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
-
-const onSchoolChange = async () => {
-  selectedBranchId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  sectionOptions.value = [];
-  await loadBranches();
-  await loadClassesForBranch();
-  await reload();
-};
 
 const reload = async () => {
   await Promise.all([load(), loadLookups()]);
@@ -536,9 +454,23 @@ watch(
   }
 );
 
+watch(selectedBranchId, () => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  sectionOptions.value = [];
+  loadClassesForBranch();
+  reload();
+});
+
+watch(currentSchool, () => {
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  sectionOptions.value = [];
+  loadClassesForBranch();
+  reload();
+});
+
 onMounted(async () => {
-  await loadSchools();
-  await loadBranches();
   await reload();
 });
 </script>

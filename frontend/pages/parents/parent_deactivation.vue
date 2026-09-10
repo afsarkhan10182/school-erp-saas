@@ -16,14 +16,14 @@
     </div>
 
     <!-- Filter Card ("Select Ground") -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/80 dark:border-gray-700 shadow-sm space-y-4">
+    <div v-if="showSchoolDropdown" class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/80 dark:border-gray-700 shadow-sm space-y-4">
       <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/60 pb-3 flex items-center gap-2">
         Select Ground
       </h2>
       
       <div class="flex flex-wrap items-end gap-4">
         <!-- School Selector -->
-        <div v-if="showSchoolDropdown" class="flex-1 min-w-[200px]">
+        <div class="flex-1 min-w-[200px]">
           <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
             School <span class="text-rose-500">*</span>
           </label>
@@ -34,21 +34,6 @@
           >
             <option value="">Select School</option>
             <option v-for="s in schoolOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
-          </select>
-        </div>
-
-        <!-- Branch Selector -->
-        <div v-if="showBranchDropdown" class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-            Branch <span class="text-rose-500">*</span>
-          </label>
-          <select
-            v-model="selectedBranchId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
-            @change="fetchParents"
-          >
-            <option value="">All Branches</option>
-            <option v-for="b in branchOptions" :key="b.value" :value="b.value">{{ b.label }}</option>
           </select>
         </div>
       </div>
@@ -189,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { ShieldAlert, Users, Lock, Unlock } from 'lucide-vue-next';
 import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
@@ -209,6 +194,10 @@ const {
 const parents = ref<any[]>([]);
 const loading = ref(false);
 const selectedParentIds = ref<string[]>([]);
+
+watch(selectedBranchId, () => {
+  fetchParents();
+});
 
 const isAllSelected = computed(() => {
   return parents.value.length > 0 && selectedParentIds.value.length === parents.value.length;

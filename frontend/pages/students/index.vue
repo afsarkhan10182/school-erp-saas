@@ -63,30 +63,6 @@
           />
 
           <EnhancedDropdown
-            v-if="!isBranchAdmin"
-            v-model="selectedBranch"
-            :options="branchOptions"
-            label="Branch"
-            placeholder="Select Branch"
-            id="branch-filter"
-            :loading="branchesLoading"
-            :disabled="isSuperAdmin && !selectedSchool"
-            @update:modelValue="onBranchChange"
-            @change="onBranchChange"
-          />
-
-          <div v-if="isBranchAdmin">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Branch
-            </label>
-            <div
-              class="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100"
-            >
-              {{ authStore.currentUser?.branch_name || 'Your Branch' }}
-            </div>
-          </div>
-
-          <EnhancedDropdown
             v-model="selectedClass"
             :options="classOptions"
             label="Class (Optional)"
@@ -745,6 +721,7 @@ import { ref, onMounted, reactive, computed, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
@@ -755,6 +732,7 @@ import { PlusIcon, Users, CheckCircle, UserPlus, GraduationCap } from 'lucide-vu
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const authStore = useAuthStore();
+const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const {
   academicYears,
@@ -791,25 +769,13 @@ const isBranchAdmin = computed(() => authStore.currentUser?.role === 'branch_adm
 
 // Selection state
 const selectedSchool = ref('');
-const selectedBranch = ref('');
+const selectedBranch = ref(globalBranchId.value || '');
 const selectedClass = ref('');
 const selectedSection = ref('');
 const selectedStream = ref('');
 
 const canApplyFilters = computed(() => {
-  if (isSuperAdmin.value) {
-    // Super Admin needs school and branch selection
-    return selectedSchool.value && selectedBranch.value;
-  } else if (isAdmin.value) {
-    // Admin needs branch selection
-    return selectedBranch.value;
-  } else if (isBranchAdmin.value) {
-    // Branch Admin can apply filters immediately (branch is auto-selected)
-    return true;
-  } else {
-    // Default fallback
-    return selectedBranch.value;
-  }
+  return true;
 });
 
 const selectedSchoolName = computed(() => {
@@ -1160,7 +1126,14 @@ onMounted(async () => {
   }
 });
 
-// Watch for branch changes
+// Watch for global branch changes from topbar
+watch(globalBranchId, (newBranch) => {
+  selectedBranch.value = newBranch || '';
+  onBranchChange();
+  fetchStudents(1);
+});
+
+// Watch for local branch changes
 watch(selectedBranch, (newBranch, oldBranch) => {
   if (newBranch !== oldBranch && newBranch) {
     onBranchChange();
