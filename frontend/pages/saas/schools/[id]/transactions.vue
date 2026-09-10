@@ -18,7 +18,7 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >Payment Status</label
         >
-        <select v-model="filters.payment_status" class="input-field">
+        <select v-model="filters.payment_status" class="form-select">
           <option value="">All</option>
           <option value="completed">Completed</option>
           <option value="pending">Pending</option>
@@ -29,7 +29,7 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >Payment Method</label
         >
-        <select v-model="filters.payment_method" class="input-field">
+        <select v-model="filters.payment_method" class="form-select">
           <option value="">All</option>
           <option value="offline_cash">Cash</option>
           <option value="offline_cheque">Cheque</option>
@@ -164,7 +164,7 @@
     <!-- Add Manual Payment Modal -->
     <div
       v-if="showAddModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 flex items-center justify-center z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
     >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-lg">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Add Manual Payment</h3>
@@ -178,7 +178,7 @@
                 v-model.number="form.amount"
                 type="number"
                 step="0.01"
-                class="input-field"
+                class="form-input"
                 required
               />
             </div>
@@ -186,7 +186,7 @@
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
                 >Currency *</label
               >
-              <select v-model="form.currency" class="input-field" required>
+              <select v-model="form.currency" class="form-select" required>
                 <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
@@ -196,7 +196,7 @@
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
                 >Payment Method *</label
               >
-              <select v-model="form.payment_method" class="input-field" required>
+              <select v-model="form.payment_method" class="form-select" required>
                 <option value="offline_cash">Cash</option>
                 <option value="offline_cheque">Cheque</option>
                 <option value="offline_bank_transfer">Bank Transfer</option>
@@ -208,7 +208,7 @@
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
                 >Billing Cycle</label
               >
-              <select v-model="form.billing_cycle" class="input-field">
+              <select v-model="form.billing_cycle" class="form-select">
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
                 <option value="lifetime">Lifetime</option>
@@ -218,14 +218,14 @@
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
                 >Description</label
               >
-              <textarea v-model="form.description" class="input-field" rows="2"></textarea>
+              <textarea v-model="form.description" class="form-input" rows="2"></textarea>
             </div>
             <div class="md:col-span-2 flex items-center gap-2 mt-2">
               <input
                 id="markPaidNow"
                 type="checkbox"
                 v-model="form.mark_paid_now"
-                class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                class="h-4 w-4 text-indigo-600 border-gray-300 rounded"
               />
               <label for="markPaidNow" class="text-sm text-gray-700 dark:text-gray-300"
                 >Mark as paid now</label
@@ -487,12 +487,9 @@ onMounted(fetchTransactions);
 
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
 }
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
-}
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style>

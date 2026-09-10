@@ -7,7 +7,7 @@
         Create a new school with subscription plan and admin user
       </p>
       <div
-        class="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+        class="mt-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg"
       >
         <div class="flex items-start">
           <div class="flex-shrink-0">
@@ -20,10 +20,10 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+            <h3 class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
               What happens when you create a school?
             </h3>
-            <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+            <div class="mt-2 text-sm text-indigo-700 dark:text-indigo-300">
               <ul class="list-disc list-inside space-y-1">
                 <li>A new school record is created in the schools table</li>
                 <li>
@@ -92,7 +92,7 @@
               v-model="form.schoolData.name"
               type="text"
               required
-              class="input-field"
+              class="form-input"
               placeholder="Enter school name"
             />
           </div>
@@ -113,7 +113,7 @@
               type="text"
               required
               :class="[
-                'input-field',
+                'form-input',
                 form.schoolData.code && !isSchoolCodeValid
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : ''
@@ -130,7 +130,7 @@
               v-model="form.schoolData.branch_name"
               type="text"
               required
-              class="input-field"
+              class="form-input"
               placeholder="Enter first branch name"
             />
           </div>
@@ -148,7 +148,7 @@
               type="email"
               required
               :class="[
-                'input-field',
+                'form-input',
                 emailError ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
               ]"
               placeholder="Enter school email"
@@ -169,7 +169,7 @@
             <input
               v-model="form.schoolData.currency"
               type="text"
-              class="input-field"
+              class="form-input"
               placeholder="e.g. INR, USD"
             />
           </div>
@@ -180,7 +180,7 @@
             <input
               v-model="form.schoolData.currency_symbol"
               type="text"
-              class="input-field"
+              class="form-input"
               placeholder="e.g. ₹, $"
             />
           </div>
@@ -188,7 +188,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Academic Year Starting Month</label
             >
-            <select v-model="form.schoolData.starting_month" class="input-field">
+            <select v-model="form.schoolData.starting_month" class="form-select">
               <option value="1">January</option>
               <option value="2">February</option>
               <option value="3">March</option>
@@ -210,7 +210,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Default Payment Model</label
             >
-            <select v-model="form.schoolData.default_payment_model" class="input-field">
+            <select v-model="form.schoolData.default_payment_model" class="form-select">
               <option value="class_based">Class-based (Default)</option>
               <option value="monthly">Monthly</option>
               <option value="term_based">Term-based</option>
@@ -223,7 +223,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Academic Year Type</label
             >
-            <select v-model="form.schoolData.academic_year_start" class="input-field">
+            <select v-model="form.schoolData.academic_year_start" class="form-select">
               <option value="academic">Academic Year (Custom starting month)</option>
               <option value="calendar">Calendar Year (January-December)</option>
             </select>
@@ -239,7 +239,7 @@
               v-model="form.schoolData.city"
               type="text"
               required
-              class="input-field"
+              class="form-input"
               placeholder="Enter city"
             />
           </div>
@@ -251,7 +251,7 @@
               v-model="form.schoolData.state"
               type="text"
               required
-              class="input-field"
+              class="form-input"
               placeholder="Enter state"
             />
           </div>
@@ -263,7 +263,7 @@
               ref="systemLogoInput"
               type="file"
               accept="image/*"
-              class="input-field"
+              class="form-input"
               @change="onFileChange('system_logo', $event)"
             />
           </div>
@@ -275,7 +275,7 @@
               ref="textLogoInput"
               type="file"
               accept="image/*"
-              class="input-field"
+              class="form-input"
               @change="onFileChange('text_logo', $event)"
             />
           </div>
@@ -287,7 +287,7 @@
               ref="printingLogoInput"
               type="file"
               accept="image/*"
-              class="input-field"
+              class="form-input"
               @change="onFileChange('printing_logo', $event)"
             />
           </div>
@@ -299,7 +299,7 @@
               ref="reportCardInput"
               type="file"
               accept="image/*,application/pdf"
-              class="input-field"
+              class="form-input"
               @change="onFileChange('report_card_design', $event)"
             />
           </div>
@@ -310,7 +310,7 @@
             <input
               v-model="form.schoolData.phone"
               type="tel"
-              class="input-field"
+              class="form-input"
               placeholder="Enter phone number"
             />
           </div>
@@ -321,7 +321,7 @@
             <textarea
               v-model="form.schoolData.address"
               rows="3"
-              class="input-field"
+              class="form-input"
               placeholder="Enter school address"
             ></textarea>
           </div>
@@ -332,7 +332,7 @@
             <input
               v-model="form.schoolData.country"
               type="text"
-              class="input-field"
+              class="form-input"
               placeholder="Enter country"
             />
           </div>
@@ -343,7 +343,7 @@
             <input
               v-model="form.schoolData.postal_code"
               type="text"
-              class="input-field"
+              class="form-input"
               placeholder="Enter postal code"
             />
           </div>
@@ -354,7 +354,7 @@
             <input
               v-model="form.schoolData.website"
               type="url"
-              class="input-field"
+              class="form-input"
               placeholder="Enter website URL"
             />
           </div>
@@ -374,7 +374,7 @@
             <select
               v-model="form.subscriptionData.plan_code"
               required
-              class="input-field"
+              class="form-select"
               :disabled="plansLoading"
             >
               <option value="">{{ plansLoading ? 'Loading plans...' : 'Select a plan' }}</option>
@@ -388,7 +388,7 @@
             <select
               v-model="form.subscriptionData.status"
               required
-              class="input-field"
+              class="form-select"
               @change="handleStatusChange"
             >
               <option value="trial">Trial</option>
@@ -405,7 +405,7 @@
               v-model.number="form.subscriptionData.trial_days"
               type="number"
               min="1"
-              class="input-field"
+              class="form-input"
               :placeholder="selectedPlan?.trial_days || '30'"
               @input="autoSetTrialEndDate"
             />
@@ -418,7 +418,7 @@
               v-model="form.subscriptionData.start_date"
               type="date"
               required
-              class="input-field"
+              class="form-input"
               @change="autoSetTrialEndDate"
             />
           </div>
@@ -434,7 +434,7 @@
               v-model="form.subscriptionData.end_date"
               type="date"
               :readonly="true"
-              class="input-field bg-gray-100 dark:bg-gray-700"
+              class="form-input bg-gray-100 dark:bg-gray-700"
             />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Auto-calculated based on billing cycle
@@ -477,7 +477,7 @@
               <span
                 v-for="module in selectedPlan.modules"
                 :key="module.code || module"
-                class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-600 dark:bg-blue-700 text-white"
+                class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-600 dark:bg-blue-700 text-white"
               >
                 {{ module.name || module }}
               </span>
@@ -498,7 +498,7 @@
               v-model="form.subscriptionData.admin_first_name"
               type="text"
               required
-              class="input-field"
+              class="form-input"
             />
           </div>
           <div>
@@ -509,7 +509,7 @@
               v-model="form.subscriptionData.admin_last_name"
               type="text"
               required
-              class="input-field"
+              class="form-input"
             />
           </div>
           <div>
@@ -518,7 +518,7 @@
               v-model="form.subscriptionData.admin_email"
               type="email"
               required
-              class="input-field"
+              class="form-input"
               @blur="validateUniqueEmail('admin')"
             />
             <span v-if="adminEmailError" class="text-red-500 text-xs">{{ adminEmailError }}</span>
@@ -528,7 +528,7 @@
             <input
               v-model="form.subscriptionData.admin_phone"
               type="text"
-              class="input-field"
+              class="form-input"
               @input="
                 form.subscriptionData.admin_phone = form.subscriptionData.admin_phone.replace(
                   /[^\d]/g,
@@ -543,7 +543,7 @@
               <input
                 :type="showAdminPassword ? 'text' : 'password'"
                 v-model="form.subscriptionData.admin_password"
-                class="input-field pr-10"
+                class="form-input pr-10"
                 placeholder="Enter password or leave blank for auto-generation"
               />
               <button
@@ -564,7 +564,7 @@
           </div>
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Role</label>
-            <select v-model="form.subscriptionData.admin_role" class="input-field">
+            <select v-model="form.subscriptionData.admin_role" class="form-select">
               <option value="admin">Admin</option>
               <option value="accountant">Accountant</option>
               <option value="admission_clerk">Admission Clerk</option>
@@ -592,7 +592,7 @@
               v-model="form.subscriptionData.payment_amount"
               type="number"
               step="0.01"
-              class="input-field"
+              class="form-input"
               placeholder="Enter amount"
             />
           </div>
@@ -600,7 +600,7 @@
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
               >Payment Method</label
             >
-            <select v-model="form.subscriptionData.payment_method" class="input-field">
+            <select v-model="form.subscriptionData.payment_method" class="form-select">
               <option value="offline_cash">Cash</option>
               <option value="offline_cheque">Cheque</option>
               <option value="offline_bank_transfer">Bank Transfer</option>
@@ -612,7 +612,7 @@
             <label class="block font-medium mb-1 text-gray-300 dark:text-gray-300">Currency</label>
             <select
               v-model="form.subscriptionData.payment_currency"
-              class="input-field"
+              class="form-select"
               @change="autoFillCurrencySymbol"
             >
               <option value="INR">INR (₹)</option>
@@ -627,7 +627,7 @@
             <input
               v-model="form.subscriptionData.trx_id"
               type="text"
-              class="input-field"
+              class="form-input"
               placeholder="Transaction ID, Cheque No, etc."
             />
           </div>
@@ -637,7 +637,7 @@
             >
             <textarea
               v-model="form.subscriptionData.notes"
-              class="input-field"
+              class="form-input"
               rows="2"
               placeholder="Bank reference, remarks, etc."
             ></textarea>
@@ -1110,14 +1110,12 @@ const toggleAdminPassword = () => {
 
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
 
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
+
 </style>

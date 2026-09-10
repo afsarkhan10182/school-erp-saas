@@ -47,7 +47,7 @@
         </p>
       </div>
 
-      <div v-if="showForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div v-if="showForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h2 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit' : 'Add' }} category</h2>
           <input

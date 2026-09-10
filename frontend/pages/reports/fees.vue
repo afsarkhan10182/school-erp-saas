@@ -358,7 +358,7 @@
               <div class="flex space-x-1 mb-2">
                 <button
                   @click="selectAllMonths"
-                  class="flex-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors duration-200"
+                  class="flex-1 px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors duration-200"
                 >
                   All
                 </button>
@@ -789,7 +789,7 @@
             <div class="text-sm text-gray-500 dark:text-gray-400">Total Pending</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
               {{ summaryData.totalInvoices > 0 ? `${summaryData.collectionRate}%` : '0%' }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</div>

@@ -249,7 +249,7 @@
                           'admin',
                           'super_admin'
                         ].includes(user.role),
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200':
+                        'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200':
                           user.role === 'teacher',
                         'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200':
                           user.role === 'accountant',
@@ -339,7 +339,7 @@
   <!-- Delete Confirmation Modal -->
   <div
     v-if="showDeleteModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
   >
     <div
       class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"

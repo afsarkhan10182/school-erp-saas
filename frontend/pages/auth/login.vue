@@ -12,7 +12,7 @@
           class="absolute top-40 right-20 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"
         ></div>
         <div
-          class="absolute bottom-20 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-2000"
+          class="absolute bottom-20 left-1/3 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-2000"
         ></div>
       </div>
     </div>
@@ -51,7 +51,7 @@
         <!-- Loading Screen -->
         <div class="text-center">
           <div
-            class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+            class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
           >
             <span class="text-white font-bold text-2xl">S</span>
           </div>
@@ -72,7 +72,7 @@
             <!-- Logo/Brand -->
             <div class="text-center mb-8">
               <div
-                class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+                class="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
               >
                 <span class="text-white font-bold text-2xl">S</span>
               </div>
@@ -135,7 +135,7 @@
                 <button
                   type="button"
                   @click="showForgotPassword = true"
-                  class="text-sm text-blue-300 hover:text-blue-200 transition-colors cursor-pointer"
+                  class="text-sm text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -144,7 +144,7 @@
               <button
                 type="submit"
                 :disabled="loading"
-                class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="!loading">Sign In</span>
                 <span v-else class="flex items-center justify-center">
@@ -235,7 +235,7 @@
             <button
               type="submit"
               :disabled="forgotPasswordLoading"
-              class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span v-if="!forgotPasswordLoading">Send Reset Link</span>
               <span v-else class="flex items-center justify-center">
@@ -289,38 +289,10 @@ const redirectTo = computed(() => {
   return redirect && typeof redirect === 'string' ? decodeURIComponent(redirect) : null;
 });
 
-const isDark = ref(false);
+const { isDark, toggleTheme, initializeTheme } = useTheme();
 
 // Dynamic year for copyright
 const currentYear = computed(() => new Date().getFullYear());
-
-// Apply theme using Nuxt's useHead - called once outside toggle
-const applyTheme = () => {
-  useHead({
-    htmlAttrs: {
-      class: isDark.value ? 'dark' : ''
-    }
-  });
-};
-
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-
-  if (import.meta.client) {
-    // Use the same approach as theme.client.ts
-    if (isDark.value) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-
-    // Also update cookie for SSR consistency
-    const themeCookie = useCookie('theme');
-    themeCookie.value = isDark.value ? 'dark' : 'light';
-  }
-};
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
 // No need to store credentials locally - the backend manages session persistence
@@ -442,17 +414,13 @@ const checkExistingAuth = async () => {
 
 // Use Nuxt 3's onMounted lifecycle hook for theme setup and auth check
 onMounted(() => {
-  // Don't override theme - let theme.client.ts handle it
-  // Just sync with existing DOM state
-  if (import.meta.client) {
-    isDark.value = document.documentElement.classList.contains('dark');
-  }
-
+  initializeTheme();
   // Run auth check after component is mounted
   checkExistingAuth();
 });
 
 const handleLogin = async () => {
+  console.log('handleLogin called', form);
   error.value = '';
   loading.value = true;
 
@@ -465,6 +433,7 @@ const handleLogin = async () => {
       },
       redirectTo.value || undefined
     );
+    console.log('Login result:', result);
     if (result.success) {
       // Login successful - let the useAuth composable handle navigation
       // No need to navigate here as useAuth will do it

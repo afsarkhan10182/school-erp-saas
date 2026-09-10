@@ -12,7 +12,7 @@
         <div class="mt-4 sm:mt-0">
           <button
             @click="goBack"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <ArrowLeft class="h-4 w-4 mr-2" />
             Back to Schedules
@@ -29,12 +29,12 @@
             :class="[
               'p-4 border-2 rounded-lg text-left transition-colors',
               scheduleType === 'quick'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
             ]"
           >
             <div class="flex items-center">
-              <Zap class="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
+              <Zap class="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-3" />
               <div>
                 <h4 class="font-medium text-gray-900 dark:text-white">Quick Schedule</h4>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -49,12 +49,12 @@
             :class="[
               'p-4 border-2 rounded-lg text-left transition-colors',
               scheduleType === 'individual'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
             ]"
           >
             <div class="flex items-center">
-              <Calendar class="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
+              <Calendar class="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-3" />
               <div>
                 <h4 class="font-medium text-gray-900 dark:text-white">
                   Individual Subject Schedule
@@ -83,7 +83,7 @@
                 v-model="quickForm.starting_date"
                 type="date"
                 required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
 
@@ -96,7 +96,7 @@
                 v-model="quickForm.starting_time"
                 type="time"
                 required
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
 
@@ -111,7 +111,7 @@
                 min="1"
                 required
                 placeholder="120"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
 
@@ -136,14 +136,14 @@
             <button
               type="button"
               @click="goBack"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="saving"
-              class="px-4 py-2 border border-transparent text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 border border-transparent text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ saving ? 'Creating...' : 'Create Quick Schedule' }}
             </button>
@@ -204,7 +204,7 @@
                   v-model="schedule.date"
                   type="date"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
@@ -217,7 +217,7 @@
                   v-model="schedule.starting_time"
                   type="time"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
@@ -230,7 +230,7 @@
                   v-model="schedule.ending_time"
                   type="time"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
@@ -267,7 +267,7 @@
         <div class="mb-6">
           <button
             @click="addSubjectSchedule"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Plus class="h-4 w-4 mr-2" />
             Add Subject Schedule
@@ -278,14 +278,14 @@
         <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             @click="goBack"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Cancel
           </button>
           <button
             @click="saveIndividualSchedules"
             :disabled="saving || subjectSchedules.length === 0"
-            class="px-4 py-2 border border-transparent text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 border border-transparent text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ saving ? 'Creating...' : 'Create Individual Schedules' }}
           </button>

@@ -29,7 +29,7 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -49,7 +49,7 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -69,7 +69,7 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -89,7 +89,7 @@
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
           <div class="p-5">
             <div class="flex items-center">
               <div class="flex-shrink-0">
@@ -124,7 +124,7 @@
       />
 
       <!-- Invoices Table Component -->
-      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
         <InvoiceTable
           ref="invoiceTableRef"
           :invoices="invoices"
@@ -186,7 +186,7 @@
   <!-- Payment Modal -->
   <div
     v-if="showPaymentModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
   >
     <div
       class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
@@ -312,7 +312,7 @@
   <!-- Receipt Modal -->
   <div
     v-if="showReceiptModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
   >
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
@@ -339,7 +339,7 @@
   <!-- Multiple Payments Modal -->
   <div
     v-if="showMultiplePaymentsModal"
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
   >
     <div
       class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
@@ -439,7 +439,7 @@
                       <div>
                         <button
                           @click="viewPaymentReceipt(paymentItem)"
-                          class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                         >
                           <svg
                             class="h-4 w-4 mr-1"
@@ -1479,7 +1479,7 @@ const getMonthsCovered = invoice => {
 
 const getPaymentModelClass = invoice => {
   if (isMonthlyPayment(invoice)) {
-    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
   } else if (isGroupedPayment(invoice)) {
     return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
   }

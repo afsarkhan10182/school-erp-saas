@@ -15,7 +15,7 @@
               <button
                 @click="calculatePositions"
                 :disabled="!canCalculate || calculating"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calculator class="h-4 w-4 mr-2" />
                 {{ calculating ? 'Calculating...' : 'Calculate Positions' }}
@@ -115,7 +115,7 @@
             </label>
             <select
               v-model="calculationMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="total_marks">Total Marks</option>
               <option value="percentage">Percentage</option>
@@ -129,7 +129,7 @@
             </label>
             <select
               v-model="tieBreakingMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="average">Average of tied positions</option>
               <option value="first">First occurrence</option>
@@ -146,7 +146,7 @@
                 <input
                   v-model="includeAbsent"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                   Include absent students in ranking
@@ -167,7 +167,7 @@
               Student Positions ({{ students.length }} students)
             </h3>
             <div class="flex space-x-2">
-              <button @click="resetToAuto" class="text-sm text-blue-600 hover:text-blue-800">
+              <button @click="resetToAuto" class="text-sm text-indigo-600 hover:text-indigo-800">
                 Reset to Auto
               </button>
             </div>
@@ -233,7 +233,7 @@
                       type="number"
                       min="1"
                       :max="students.length"
-                      class="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                       @change="onPositionChange(student, index)"
                     />
                     <span class="ml-2 text-sm text-gray-500">
@@ -275,7 +275,7 @@
                   <textarea
                     v-model="student.teacher_comment"
                     rows="2"
-                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Teacher comment..."
                     @change="onCommentChange(student)"
                   />
@@ -284,7 +284,7 @@
                   <textarea
                     v-model="student.principal_comment"
                     rows="2"
-                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Principal comment..."
                     @change="onCommentChange(student)"
                   />
@@ -630,7 +630,7 @@ const getGradeClass = (grade: string) => {
 
   const gradeNum = parseInt(grade);
   if (gradeNum >= 90) return 'bg-green-100 text-green-800';
-  if (gradeNum >= 80) return 'bg-blue-100 text-blue-800';
+  if (gradeNum >= 80) return 'bg-indigo-100 text-indigo-800';
   if (gradeNum >= 70) return 'bg-yellow-100 text-yellow-800';
   if (gradeNum >= 60) return 'bg-orange-100 text-orange-800';
   return 'bg-red-100 text-red-800';

@@ -59,7 +59,9 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
   } = ctx;
 
   const groups: SidebarGroup[] = [];
-  const schoolStaff = isSuperAdmin || isAdmin || isBranchAdmin;
+  // Treat school_admin same as admin for sidebar access
+  const isSchoolAdmin = isAdmin;
+  const schoolStaff = isSuperAdmin || isSchoolAdmin || isBranchAdmin;
   const feeStaff = schoolStaff || isAccountant;
   const studentStaff = schoolStaff || isReceptionist;
 

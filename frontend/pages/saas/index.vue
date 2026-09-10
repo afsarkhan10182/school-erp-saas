@@ -55,14 +55,14 @@
             @input="debouncedSearch"
             type="text"
             placeholder="Search schools..."
-            class="input-field"
+            class="form-input"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Status</label
           >
-          <select v-model="filters.status" @change="fetchSchools" class="input-field">
+          <select v-model="filters.status" @change="fetchSchools" class="form-select">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="trial">Trial</option>
@@ -74,7 +74,7 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >Plan</label
           >
-          <select v-model="filters.subscription_plan" @change="fetchSchools" class="input-field">
+          <select v-model="filters.subscription_plan" @change="fetchSchools" class="form-select">
             <option value="">All Plans</option>
             <option v-for="plan in plans" :key="plan.code" :value="plan.code">
               {{ plan.name }}
@@ -251,7 +251,7 @@
                   <div class="flex space-x-2">
                     <NuxtLink
                       :to="`/saas/schools/${school.id}`"
-                      class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                      class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
                     >
                       View
                     </NuxtLink>
@@ -461,7 +461,7 @@ const getStatusClass = status => {
     case 'active':
       return 'bg-green-100 text-green-800';
     case 'trial':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-indigo-100 text-indigo-800';
     case 'suspended':
       return 'bg-red-100 text-red-800';
     case 'expired':
@@ -511,14 +511,10 @@ onMounted(() => {
 
 <style scoped>
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
 }
 
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
-}
-
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
 }
 </style>

@@ -17,7 +17,7 @@
               type="text"
               required
               :class="[
-                'input-field',
+                'form-input',
                 errors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               placeholder="John"
@@ -38,7 +38,7 @@
               type="text"
               required
               :class="[
-                'input-field',
+                'form-input',
                 errors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               placeholder="Doe"
@@ -62,7 +62,7 @@
                   type="email"
                   required
                   :class="[
-                    'input-field',
+                    'form-input',
                     errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
                   ]"
                   placeholder="Email address"
@@ -97,7 +97,7 @@
               v-model="formData.phone"
               type="tel"
               :class="[
-                'input-field',
+                'form-input',
                 errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               placeholder="9898989898"
@@ -111,12 +111,12 @@
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Joining Date</label>
-            <input v-model="formData.joining_date" type="date" class="input-field" />
+            <input v-model="formData.joining_date" type="date" class="form-input" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Staff ID</label>
-            <input v-model="formData.staff_id" type="text" class="input-field" placeholder="Auto-generated if blank" />
+            <input v-model="formData.staff_id" type="text" class="form-input" placeholder="Auto-generated if blank" />
           </div>
 
           <div>
@@ -127,7 +127,7 @@
               v-model="formData.role"
               required
               :class="[
-                'input-field',
+                'form-select',
                 errors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               @change="onRoleChange"
@@ -151,7 +151,7 @@
               v-model="formData.school_id"
               required
               :class="[
-                'input-field',
+                'form-select',
                 errors.school_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               @change="onSchoolChange"
@@ -178,7 +178,7 @@
               v-model="formData.branch_id"
               required
               :class="[
-                'input-field',
+                'form-select',
                 errors.branch_id ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
               ]"
               @change="onBranchChange"
@@ -198,17 +198,17 @@
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Designation</label>
-            <input v-model="formData.designation" type="text" class="input-field" placeholder="Teacher" />
+            <input v-model="formData.designation" type="text" class="form-input" placeholder="Teacher" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Department</label>
-            <input v-model="formData.department" type="text" class="input-field" placeholder="Academic" />
+            <input v-model="formData.department" type="text" class="form-input" placeholder="Academic" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Gender</label>
-            <select v-model="formData.gender" class="input-field">
+            <select v-model="formData.gender" class="form-select">
               <option value="">Select Gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -217,32 +217,32 @@
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Date Of Birth</label>
-            <input v-model="formData.date_of_birth" type="date" class="input-field" />
+            <input v-model="formData.date_of_birth" type="date" class="form-input" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Qualification</label>
-            <textarea v-model="formData.qualification" class="input-field" rows="2" />
+            <textarea v-model="formData.qualification" class="form-input" rows="2" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Experience Details</label>
-            <textarea v-model="formData.experience_details" class="input-field" rows="2" />
+            <textarea v-model="formData.experience_details" class="form-input" rows="2" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Total Experience</label>
-            <input v-model="formData.total_experience" type="text" class="input-field" />
+            <input v-model="formData.total_experience" type="text" class="form-input" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Religion</label>
-            <input v-model="formData.religion" type="text" class="input-field" />
+            <input v-model="formData.religion" type="text" class="form-input" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Blood Group</label>
-            <select v-model="formData.blood_group" class="input-field">
+            <select v-model="formData.blood_group" class="form-select">
               <option value="">Select Blood Group</option>
               <option v-for="group in bloodGroups" :key="group" :value="group">{{ group }}</option>
             </select>
@@ -251,26 +251,26 @@
           <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Present Address</label>
-              <textarea v-model="formData.present_address" class="input-field" rows="2" />
+              <textarea v-model="formData.present_address" class="form-input" rows="2" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Permanent Address</label>
-              <textarea v-model="formData.permanent_address" class="input-field" rows="2" />
+              <textarea v-model="formData.permanent_address" class="form-input" rows="2" />
             </div>
           </div>
 
           <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Facebook</label>
-              <input v-model="formData.facebook" type="url" class="input-field" />
+              <input v-model="formData.facebook" type="url" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Twitter</label>
-              <input v-model="formData.twitter" type="url" class="input-field" />
+              <input v-model="formData.twitter" type="url" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Linkedin</label>
-              <input v-model="formData.linkedin" type="url" class="input-field" />
+              <input v-model="formData.linkedin" type="url" class="form-input" />
             </div>
           </div>
 
@@ -284,27 +284,27 @@
           <div v-if="!formData.skip_bank_details" class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Name</label>
-              <input v-model="formData.bank_name" type="text" class="input-field" />
+              <input v-model="formData.bank_name" type="text" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Holder Name</label>
-              <input v-model="formData.holder_name" type="text" class="input-field" />
+              <input v-model="formData.holder_name" type="text" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Branch</label>
-              <input v-model="formData.bank_branch" type="text" class="input-field" />
+              <input v-model="formData.bank_branch" type="text" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Address</label>
-              <input v-model="formData.bank_address" type="text" class="input-field" />
+              <input v-model="formData.bank_address" type="text" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">IFSC Code</label>
-              <input v-model="formData.ifsc_code" type="text" class="input-field" />
+              <input v-model="formData.ifsc_code" type="text" class="form-input" />
             </div>
             <div>
               <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Account No</label>
-              <input v-model="formData.account_no" type="text" class="input-field" />
+              <input v-model="formData.account_no" type="text" class="form-input" />
             </div>
           </div>
         </div>
@@ -351,7 +351,7 @@
     <!-- Generated Password Modal -->
     <div
       v-if="showPasswordModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
     >
       <div
         class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-md mx-4 sm:mx-auto shadow-lg rounded-md bg-white dark:bg-gray-800"
@@ -383,7 +383,7 @@
                 </code>
                 <button
                   @click="copyPassword"
-                  class="p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 flex-shrink-0"
+                  class="p-1 text-gray-500 hover:text-indigo-600 dark:hover:text-blue-400 flex-shrink-0"
                   title="Copy password"
                 >
                   <svg
@@ -407,7 +407,7 @@
           <div class="mt-6 flex justify-end">
             <button
               @click="closePasswordModal"
-              class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               OK
             </button>
@@ -933,12 +933,3 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-.input-field {
-  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors duration-200;
-}
-
-.input-field:focus {
-  @apply ring-2 ring-offset-2;
-}
-</style>

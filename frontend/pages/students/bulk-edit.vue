@@ -21,8 +21,8 @@
       <section v-if="students.length" class="panel space-y-5">
         <div><h2 class="section-title mb-0">Bulk numbering</h2><p class="mt-1 text-xs text-gray-500">Leave a starting value blank to skip that number series.</p></div>
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          <label class="field-label">Admission numbers<input v-model="admissionStart" type="number" min="0" placeholder="Start from" class="input-field mt-1" /></label>
-          <label class="field-label">Roll numbers<input v-model="rollStart" type="number" min="0" placeholder="Start from" class="input-field mt-1" /></label>
+          <label class="field-label">Admission numbers<input v-model="admissionStart" type="number" min="0" placeholder="Start from" class="form-input mt-1" /></label>
+          <label class="field-label">Roll numbers<input v-model="rollStart" type="number" min="0" placeholder="Start from" class="form-input mt-1" /></label>
           <button class="secondary-button" @click="applyNumbering">Apply Changes</button>
           <button class="primary-button md:col-span-2" :disabled="saving || !dirtyIds.size" @click="saveAll">{{ saving ? 'Saving…' : `Save All Changes (${dirtyIds.size})` }}</button>
         </div>
@@ -51,8 +51,8 @@
             <tr v-for="student in students" :key="student.id" :class="dirtyIds.has(student.id) ? 'bg-amber-50 dark:bg-amber-900/10' : ''">
               <td class="sticky left-0 bg-inherit px-4 py-3 min-w-56"><div class="text-sm font-medium text-gray-900 dark:text-white">{{ student.first_name }} {{ student.last_name }}</div><div class="text-xs text-gray-500">{{ student.admission_number }}</div></td>
               <td v-for="field in visibleFields" :key="field.key" class="px-3 py-2 min-w-44">
-                <select v-if="field.options" v-model="student._edit[field.key]" class="input-field" @change="markDirty(student.id)"><option value="">Select</option><option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option></select>
-                <input v-else v-model="student._edit[field.key]" :type="field.type || 'text'" class="input-field" @input="markDirty(student.id)" />
+                <select v-if="field.options" v-model="student._edit[field.key]" class="form-select" @change="markDirty(student.id)"><option value="">Select</option><option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option></select>
+                <input v-else v-model="student._edit[field.key]" :type="field.type || 'text'" class="form-input" @input="markDirty(student.id)" />
               </td>
             </tr>
           </tbody>
@@ -133,7 +133,6 @@ watch(selectedBranchId, async () => {
 .panel { @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5; }
 .section-title { @apply text-sm font-semibold text-gray-900 dark:text-white mb-4; }
 .field-label { @apply text-sm font-medium text-gray-700 dark:text-gray-300; }
-.input-field { @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white; }
 .primary-button { @apply px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50; }
 .secondary-button { @apply px-4 py-2.5 border border-indigo-300 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium; }
 .table-heading { @apply text-xs font-semibold uppercase text-gray-500 dark:text-gray-300; }

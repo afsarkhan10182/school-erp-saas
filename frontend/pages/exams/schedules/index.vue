@@ -9,7 +9,7 @@
         <div class="mt-4 sm:mt-0">
           <button
             @click="$router.push('/exams/schedules/create')"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <Plus class="h-4 w-4 mr-2" />
             Create Schedule
@@ -57,7 +57,7 @@
             <button
               @click="applyFilter"
               :disabled="!canApplyFilter"
-              class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Filter class="h-5 w-5 mr-2" />
               Filter
@@ -82,7 +82,7 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search..."
-                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white w-64"
+                class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white w-64"
               />
               <Search
                 class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -146,7 +146,7 @@
                   <div class="flex items-center space-x-3">
                     <button
                       @click="viewScheduleDetails(examGroup)"
-                      class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                       title="View Details"
                     >
                       <Eye class="h-4 w-4" />
@@ -201,7 +201,7 @@
             >
               <ChevronLeft class="h-5 w-5" />
             </button>
-            <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ currentPage }}</span>
+            <span class="px-3 py-1 bg-indigo-600 text-white rounded">{{ currentPage }}</span>
             <button
               @click="currentPage++"
               :disabled="currentPage >= totalPages"
@@ -217,7 +217,7 @@
     <!-- Schedule Details Modal -->
     <div
       v-if="showDetailsModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
       @click="closeDetailsModal"
     >
       <div
@@ -343,7 +343,7 @@
           <div class="mt-6 flex justify-end">
             <button
               @click="closeDetailsModal"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Close
             </button>

@@ -55,13 +55,13 @@
         <p v-if="!loading && !items.length && !errorMessage" class="p-6 text-sm text-gray-500 dark:text-gray-400">No homework for this scope.</p>
       </section>
 
-      <div v-if="showForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div v-if="showForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 w-full max-w-lg shadow-xl">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ editingId ? 'Edit homework' : 'Add homework' }}</h2>
-          <input v-model.trim="form.title" class="input" placeholder="Title" />
+          <input v-model.trim="form.title" class="input-field mb-3" placeholder="Title" />
           <textarea v-model.trim="form.description" class="input min-h-24" placeholder="Description" />
           <EnhancedDropdown v-model="form.class_id" :options="classOptions" label="Class" placeholder="Select class" class="mb-3" />
-          <input v-model="form.due_date" type="date" class="input" />
+          <input v-model="form.due_date" type="date" class="input-field mb-3" />
           <div class="flex justify-end gap-2 mt-4">
             <button class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200" @click="showForm = false">Cancel</button>
             <button class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg disabled:opacity-50" :disabled="saving" @click="save">
@@ -183,8 +183,4 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-.input {
-  @apply w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 mb-3 text-sm dark:bg-gray-900 dark:text-white;
-}
-</style>
+

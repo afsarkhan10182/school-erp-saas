@@ -80,7 +80,7 @@
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
           <p class="text-sm text-gray-500 dark:text-gray-400">Average %</p>
-          <p class="text-2xl font-bold text-blue-600">{{ averagePercentage.toFixed(2) }}%</p>
+          <p class="text-2xl font-bold text-indigo-600">{{ averagePercentage.toFixed(2) }}%</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search by name, admission number..."
-                class="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                class="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
                 @input="handleSearch"
               />
             </div>
@@ -111,7 +111,7 @@
             <select
               v-model="gradeFilter"
               @change="handleFilter"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="">All Grades</option>
               <option v-for="grade in uniqueGrades" :key="grade" :value="grade">
@@ -126,7 +126,7 @@
             <select
               v-model="sortBy"
               @change="handleFilter"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="marks_obtained">Marks (High to Low)</option>
               <option value="percentage">Percentage (High to Low)</option>
@@ -287,7 +287,7 @@
             >
               <ChevronLeft class="h-5 w-5" />
             </button>
-            <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ pagination.page }}</span>
+            <span class="px-3 py-1 bg-indigo-600 text-white rounded">{{ pagination.page }}</span>
             <button
               @click="loadPage(pagination.page + 1)"
               :disabled="pagination.page >= pagination.pages"
@@ -537,7 +537,7 @@ const formatStatus = status => {
 const getStatusClass = status => {
   const classes = {
     draft: 'text-gray-600 dark:text-gray-400',
-    scheduled: 'text-blue-600 dark:text-blue-400',
+    scheduled: 'text-indigo-600 dark:text-indigo-400',
     marks_entered: 'text-yellow-600 dark:text-yellow-400',
     grades_calculated: 'text-purple-600 dark:text-purple-400',
     completed: 'text-green-600 dark:text-green-400'
@@ -549,7 +549,7 @@ const getGradeClass = grade => {
   // Common grade color mapping
   const gradeColors = {
     A: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    B: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    B: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
     C: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     D: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
     F: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'

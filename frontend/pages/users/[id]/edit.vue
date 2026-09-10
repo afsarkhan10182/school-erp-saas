@@ -18,7 +18,7 @@
             type="text"
             required
             :class="[
-              'input-field',
+              'form-input',
               fieldErrors.first_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
             @input="clearFieldError('first_name')"
@@ -34,7 +34,7 @@
             type="text"
             required
             :class="[
-              'input-field',
+              'form-input',
               fieldErrors.last_name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
             @input="clearFieldError('last_name')"
@@ -50,7 +50,7 @@
             type="email"
             required
             :class="[
-              'input-field',
+              'form-input',
               fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
             @input="clearFieldError('email')"
@@ -65,7 +65,7 @@
             v-model="form.phone"
             type="tel"
             :class="[
-              'input-field',
+              'form-input',
               fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
             placeholder="Enter phone number"
@@ -97,7 +97,7 @@
             v-model="form.role"
             required
             :class="[
-              'input-field',
+              'form-input',
               fieldErrors.role ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             ]"
             :disabled="isAdmin"
@@ -123,8 +123,7 @@
         </div>
         <div v-if="isSuperAdmin">
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Branch *</label>
-          <select v-model="form.branch_id" required class="input-field">
-            <option value="">Select Branch</option>
+          <select v-model="form.branch_id" required class="form-select">
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">
               {{ branch.name }}
             </option>
@@ -341,11 +340,9 @@ onMounted(fetchUser);
 </script>
 
 <style scoped>
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
+
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;

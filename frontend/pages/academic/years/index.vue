@@ -115,11 +115,11 @@
       <!-- Info Banner -->
       <div
         v-if="!authError"
-        class="mb-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+        class="mb-8 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4"
       >
         <div class="flex items-center">
           <svg
-            class="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3"
+            class="w-5 h-5 text-indigo-600 dark:text-indigo-400 mr-3"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -132,10 +132,10 @@
             />
           </svg>
           <div>
-            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+            <h3 class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
               Global Academic Years
             </h3>
-            <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
+            <p class="mt-1 text-sm text-indigo-700 dark:text-indigo-300">
               These academic years are shared across all schools. When you set an academic year as
               "Current", all schools are automatically linked to it.
             </p>
@@ -288,7 +288,7 @@
       <!-- Create/Edit Modal -->
       <div
         v-if="showCreateForm && isSuperAdmin"
-        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
       >
         <div
           class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"

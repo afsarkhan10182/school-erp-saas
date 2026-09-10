@@ -335,7 +335,7 @@
         <div
           class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
         >
-          <div class="text-sm font-medium text-blue-600 dark:text-blue-400">Excused</div>
+          <div class="text-sm font-medium text-indigo-600 dark:text-indigo-400">Excused</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary.excused }}</div>
         </div>
       </div>
@@ -424,7 +424,7 @@
                         record.status === 'absent',
                       'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
                         record.status === 'late',
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+                      'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300':
                         record.status === 'excused'
                     }"
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
@@ -461,7 +461,7 @@
               'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': item.status === 'absent',
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300':
                 item.status === 'late',
-              'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300':
+              'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300':
                 item.status === 'excused'
             }"
             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize"
@@ -488,7 +488,7 @@
               <select
                 v-model="notificationForm.type"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">Select notification type</option>
                 <option value="absence">Send Absence Notifications</option>
@@ -505,7 +505,7 @@
                 v-model="notificationForm.date"
                 type="date"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 :max="new Date().toISOString().split('T')[0]"
               />
             </div>
@@ -517,7 +517,7 @@
               <select
                 v-model="notificationForm.class_id"
                 required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 @change="loadNotificationSections"
               >
                 <option value="">Choose a class</option>
@@ -533,7 +533,7 @@
               >
               <select
                 v-model="notificationForm.section_id"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">All sections</option>
                 <option
@@ -547,7 +547,7 @@
             </div>
 
             <div
-              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
+              class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4"
             >
               <div class="flex">
                 <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -558,8 +558,8 @@
                   ></path>
                 </svg>
                 <div class="ml-3">
-                  <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">How it works</h3>
-                  <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <h3 class="text-sm font-medium text-indigo-800 dark:text-indigo-200">How it works</h3>
+                  <div class="mt-2 text-sm text-indigo-700 dark:text-indigo-300">
                     <p>{{ getNotificationDescription() }}</p>
                   </div>
                 </div>

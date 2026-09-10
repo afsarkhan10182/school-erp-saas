@@ -30,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => isLoggedIn.value);
   const userRole = computed(() => user.value?.role);
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin');
-  const isAdmin = computed(() => user.value?.role === 'admin');
+  const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'school_admin');
   const isBranchAdmin = computed(() => user.value?.role === 'branch_admin');
   const currentUser = computed(() => user.value);
 

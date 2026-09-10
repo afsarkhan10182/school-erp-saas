@@ -11,7 +11,7 @@
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">School</label>
         <input
           :value="branch.school?.name || branch.school_name || '-'"
-          class="input-field"
+          class="form-input"
           readonly
         />
       </div>
@@ -21,43 +21,43 @@
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
             >Branch Name *</label
           >
-          <input v-model="form.name" type="text" required class="input-field" />
+          <input v-model="form.name" type="text" required class="form-input" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
-          <input v-model="form.email" type="email" class="input-field" />
+          <input v-model="form.email" type="email" class="form-input" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Mobile No</label>
           <input
             v-model="form.phone"
             type="text"
-            class="input-field"
+            class="form-input"
             @input="form.phone = form.phone.replace(/[^\d]/g, '')"
           />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Currency *</label>
-          <input v-model="form.currency" type="text" required class="input-field" />
+          <input v-model="form.currency" type="text" required class="form-input" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
             >Currency Symbol *</label
           >
-          <input v-model="form.currency_symbol" type="text" required class="input-field" />
+          <input v-model="form.currency_symbol" type="text" required class="form-input" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">City *</label>
-          <input v-model="form.city" type="text" required class="input-field" />
+          <input v-model="form.city" type="text" required class="form-input" />
         </div>
         <div>
           <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">State *</label>
-          <input v-model="form.state" type="text" required class="input-field" />
+          <input v-model="form.state" type="text" required class="form-input" />
         </div>
       </div>
       <div>
         <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Address</label>
-        <textarea v-model="form.address" class="input-field" rows="2"></textarea>
+        <textarea v-model="form.address" class="form-input" rows="2"></textarea>
       </div>
       <!-- File Uploads -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,7 +67,7 @@
             ref="systemLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('system_logo', $event)"
           />
           <div v-if="branch.settings?.system_logo" class="mt-1">
@@ -84,7 +84,7 @@
             ref="textLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('text_logo', $event)"
           />
           <div v-if="branch.settings?.text_logo" class="mt-1">
@@ -103,7 +103,7 @@
             ref="printingLogoInput"
             type="file"
             accept="image/*"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('printing_logo', $event)"
           />
           <div v-if="branch.settings?.printing_logo" class="mt-1">
@@ -122,14 +122,14 @@
             ref="reportCardInput"
             type="file"
             accept="image/*,application/pdf"
-            class="input-field"
+            class="form-input"
             @change="onFileChange('report_card_design', $event)"
           />
           <div v-if="branch.settings?.report_card_design" class="mt-1">
             <a
               :href="branch.settings.report_card_design"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 underline"
+              class="text-indigo-600 dark:text-indigo-400 underline"
               >Download/View</a
             >
           </div>
@@ -263,11 +263,8 @@ const handleSubmit = async () => {
 onMounted(fetchBranch);
 </script>
 <style scoped>
-.input-field {
-  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white sm:text-sm;
-}
 .btn-primary {
-  @apply bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+  @apply bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
 }
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;

@@ -73,7 +73,7 @@
             class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center"
           >
             <svg
-              class="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400"
+              class="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -265,7 +265,7 @@
           <button
             @click="loadStudentsForAttendance"
             :disabled="!form.class_id || loading"
-            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap"
+            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none whitespace-nowrap"
           >
             <span class="font-medium">{{ loading ? 'Loading Students...' : 'Load Students' }}</span>
           </button>
@@ -362,10 +362,10 @@
           <div class="text-sm text-yellow-700 dark:text-yellow-300">Late</div>
         </div>
         <div
-          class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800"
+          class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800"
         >
-          <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalStudents }}</div>
-          <div class="text-sm text-blue-700 dark:text-blue-300">Total</div>
+          <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ totalStudents }}</div>
+          <div class="text-sm text-indigo-700 dark:text-indigo-300">Total</div>
         </div>
       </div>
 

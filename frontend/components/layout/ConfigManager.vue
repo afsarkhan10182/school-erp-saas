@@ -5,34 +5,19 @@
       <div class="flex gap-4 mb-6">
         <button
           @click="activeTab = 'school'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'school'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'school' ? 'btn-primary' : 'btn-secondary']"
         >
           School Settings
         </button>
         <button
           @click="activeTab = 'modules'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'modules'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'modules' ? 'btn-primary' : 'btn-secondary']"
         >
           Module Settings
         </button>
         <button
           @click="activeTab = 'system'"
-          :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
-            activeTab === 'system'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          ]"
+          :class="['btn', activeTab === 'system' ? 'btn-primary' : 'btn-secondary']"
         >
           System Settings
         </button>
@@ -41,7 +26,7 @@
 
     <!-- School Settings Tab -->
     <div v-if="activeTab === 'school'" class="config-content">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="card card-body">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">School Configuration</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,7 +38,7 @@
               <label class="block text-sm font-medium text-gray-600 mb-1"> Currency </label>
               <select
                 v-model="schoolConfig.currency"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="updateSchoolConfig('currency', schoolConfig.currency)"
               >
                 <option value="USD">USD - US Dollar</option>
@@ -69,7 +54,7 @@
               <label class="block text-sm font-medium text-gray-600 mb-1"> Timezone </label>
               <select
                 v-model="schoolConfig.timezone"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="updateSchoolConfig('timezone', schoolConfig.timezone)"
               >
                 <option value="UTC">UTC</option>
@@ -87,7 +72,7 @@
               <label class="block text-sm font-medium text-gray-600 mb-1"> Date Format </label>
               <select
                 v-model="schoolConfig.date_format"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="updateSchoolConfig('date_format', schoolConfig.date_format)"
               >
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -101,7 +86,7 @@
               <label class="block text-sm font-medium text-gray-600 mb-1"> Time Format </label>
               <select
                 v-model="schoolConfig.time_format"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="updateSchoolConfig('time_format', schoolConfig.time_format)"
               >
                 <option value="12">12 Hour (AM/PM)</option>
@@ -120,7 +105,7 @@
               </label>
               <select
                 v-model="schoolConfig.academic_year_start_month"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="
                   updateSchoolConfig(
                     'academic_year_start_month',
@@ -140,7 +125,7 @@
               </label>
               <select
                 v-model="schoolConfig.default_grading_system"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-select"
                 @change="
                   updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)
                 "
@@ -161,7 +146,7 @@
                 type="number"
                 min="1"
                 max="7"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="form-input"
                 @change="
                   updateSchoolConfig('working_days_per_week', schoolConfig.working_days_per_week)
                 "
@@ -178,27 +163,22 @@
         <div
           v-for="module in enabledModules"
           :key="module.id"
-          class="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          class="card card-body"
         >
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">{{ module.name }}</h3>
             <div class="flex items-center space-x-2">
               <span
                 :class="[
-                  'px-2 py-1 rounded-full text-xs font-medium',
-                  module.is_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  'badge',
+                  module.is_enabled ? 'badge-success' : 'badge-danger'
                 ]"
               >
                 {{ module.is_enabled ? 'Enabled' : 'Disabled' }}
               </span>
               <button
                 @click="toggleModule(module)"
-                :class="[
-                  'px-3 py-1 rounded text-sm font-medium transition-colors',
-                  module.is_enabled
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                ]"
+                :class="['btn btn-sm', module.is_enabled ? 'btn-danger' : 'btn-success']"
               >
                 {{ module.is_enabled ? 'Disable' : 'Enable' }}
               </button>
@@ -220,20 +200,22 @@
                   v-if="setting.type === 'boolean'"
                   v-model="setting.value"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
                 <input
                   v-else-if="setting.type === 'number'"
                   v-model.number="setting.value"
                   type="number"
-                  class="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
+                  style="width: 6rem;"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
                 <select
                   v-else-if="setting.type === 'select'"
                   v-model="setting.value"
-                  class="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-select"
+                  style="width: auto;"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 >
                   <option
@@ -248,7 +230,8 @@
                   v-else
                   v-model="setting.value"
                   type="text"
-                  class="w-32 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
+                  style="width: 8rem;"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
               </div>
@@ -260,7 +243,7 @@
 
     <!-- System Settings Tab -->
     <div v-if="activeTab === 'system'" class="config-content">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="card card-body">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">System Configuration</h3>
 
         <div class="space-y-6">
@@ -277,7 +260,7 @@
                   type="number"
                   min="5"
                   max="480"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="updateSystemConfig('session_timeout', systemConfig.session_timeout)"
                 />
               </div>
@@ -290,7 +273,7 @@
                   type="number"
                   min="3"
                   max="10"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="
                     updateSystemConfig('max_login_attempts', systemConfig.max_login_attempts)
                   "
@@ -311,7 +294,7 @@
                 <input
                   v-model="systemConfig.email_notifications"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="
                     updateSystemConfig('email_notifications', systemConfig.email_notifications)
                   "
@@ -325,7 +308,7 @@
                 <input
                   v-model="systemConfig.sms_notifications"
                   type="checkbox"
-                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  class="form-checkbox"
                   @change="updateSystemConfig('sms_notifications', systemConfig.sms_notifications)"
                 />
               </div>
@@ -342,7 +325,7 @@
                 </label>
                 <select
                   v-model="systemConfig.backup_frequency"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-select"
                   @change="updateSystemConfig('backup_frequency', systemConfig.backup_frequency)"
                 >
                   <option value="daily">Daily</option>
@@ -360,7 +343,7 @@
                   type="number"
                   min="7"
                   max="365"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="form-input"
                   @change="
                     updateSystemConfig('backup_retention_days', systemConfig.backup_retention_days)
                   "
@@ -382,10 +365,8 @@
     <div v-if="message" class="mt-4">
       <div
         :class="[
-          'p-4 rounded-lg',
-          message.type === 'success'
-            ? 'bg-green-100 text-green-800 border border-green-200'
-            : 'bg-red-100 text-red-800 border border-red-200'
+          'alert',
+          message.type === 'success' ? 'alert-success' : 'alert-danger'
         ]"
       >
         {{ message.text }}
@@ -527,43 +508,3 @@ onMounted(() => {
   loadConfigurations();
 });
 </script>
-
-<style scoped>
-.config-manager {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.config-content {
-  min-height: 400px;
-}
-
-/* Custom checkbox styles */
-input[type='checkbox']:checked {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-/* Focus styles */
-input:focus,
-select:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Transition effects */
-button {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .config-manager {
-    padding: 0.5rem;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

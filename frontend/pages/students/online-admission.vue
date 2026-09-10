@@ -18,7 +18,7 @@
         <div class="p-6">
           <div
             v-if="!canShowQr"
-            class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-800 dark:text-blue-200"
+            class="rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 px-4 py-3 text-sm text-indigo-800 dark:text-indigo-200"
           >
             {{
               isSuperAdmin
