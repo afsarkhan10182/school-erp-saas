@@ -25,3 +25,5 @@ playwright/.cache/
 *.png
 *.log
 
+# Documentation & Audit Artifacts
+docs/
