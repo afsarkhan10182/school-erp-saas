@@ -105,12 +105,24 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.UserCheck,
           requiredModule: 'reception',
           children: [
-            link('enquiry', 'Admission Enquiry', '/reception/enquiry', I.ClipboardList, 'reception'),
+            link(
+              'enquiry',
+              'Admission Enquiry',
+              '/reception/enquiry',
+              I.ClipboardList,
+              'reception'
+            ),
             link('postal', 'Postal Record', '/reception/postal', I.Mail, 'reception'),
             link('call-log', 'Call Log', '/reception/call_log', I.Phone, 'reception'),
             link('visitors', 'Visitor Log', '/reception/visitor', I.UserCheck, 'reception'),
             link('complaint', 'Complaint', '/reception/complaint', I.MessageSquare, 'reception'),
-            link('config-reception', 'Config Reception', '/reception/reception_config', I.Settings, 'reception')
+            link(
+              'config-reception',
+              'Config Reception',
+              '/reception/reception_config',
+              I.Settings,
+              'reception'
+            )
           ]
         }
       ]
@@ -129,12 +141,42 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Edit3,
           requiredModule: 'students',
           children: [
-            link('create-admission', 'Create Admission', '/students/create', I.UserPlus, 'students'),
-            link('online-admission', 'Online Admission', '/students/online-admission', I.Globe, 'students'),
-            link('admission-queue', 'Admission Queue', '/students/admission_application', I.ClipboardList, 'students'),
-            link('multiple-import', 'Multiple Import', '/students/import', I.ClipboardList, 'students'),
+            link(
+              'create-admission',
+              'Create Admission',
+              '/students/create',
+              I.UserPlus,
+              'students'
+            ),
+            link(
+              'online-admission',
+              'Online Admission',
+              '/students/online-admission',
+              I.Globe,
+              'students'
+            ),
+            link(
+              'admission-queue',
+              'Admission Queue',
+              '/students/admission_application',
+              I.ClipboardList,
+              'students'
+            ),
+            link(
+              'multiple-import',
+              'Multiple Import',
+              '/students/import',
+              I.ClipboardList,
+              'students'
+            ),
             link('student-categories', 'Category', '/students/categories', I.Tag, 'students'),
-            link('admission-report', 'Admission Report', '/reports/student-extra?tab=admissions', I.FileText, 'reports')
+            link(
+              'admission-report',
+              'Admission Report',
+              '/reports/student-extra?tab=admissions',
+              I.FileText,
+              'reports'
+            )
           ]
         }
       ]
@@ -155,10 +197,34 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           children: [
             link('all-students', 'Student List', '/students', I.Users, 'students'),
             link('bulk-edit', 'Bulk Edit Students', '/students/bulk-edit', I.Edit3, 'students'),
-            link('general-register', 'General Register', '/reports/student-extra?tab=register', I.FileText, 'students'),
-            link('login-deactivate-student', 'Login Deactivate', '/students/student_deactivation', I.UserCheck, 'students'),
-            link('disable-reasons', 'Deactivate Reason', '/students/disable_reason', I.Tag, 'students'),
-            link('branch-transfer', 'Branch Transfer', '/students/transfer', I.TrendingUp, 'students'),
+            link(
+              'general-register',
+              'General Register',
+              '/reports/student-extra?tab=register',
+              I.FileText,
+              'students'
+            ),
+            link(
+              'login-deactivate-student',
+              'Login Deactivate',
+              '/students/student_deactivation',
+              I.UserCheck,
+              'students'
+            ),
+            link(
+              'disable-reasons',
+              'Deactivate Reason',
+              '/students/disable_reason',
+              I.Tag,
+              'students'
+            ),
+            link(
+              'branch-transfer',
+              'Branch Transfer',
+              '/students/transfer',
+              I.TrendingUp,
+              'students'
+            ),
             link('custom-fields', 'Custom Fields', '/students/custom_field', I.Tag, 'students')
           ]
         }
@@ -180,7 +246,13 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           children: [
             link('parents-list', 'Parents List', '/parents', I.Users, 'students'),
             link('add-parent', 'Add Parent', '/parents?action=create', I.UserPlus, 'students'),
-            link('parent-deactivate', 'Login Deactivate', '/parents/parent_deactivation', I.UserCheck, 'students')
+            link(
+              'parent-deactivate',
+              'Login Deactivate',
+              '/parents/parent_deactivation',
+              I.UserCheck,
+              'students'
+            )
           ]
         }
       ]
@@ -232,11 +304,35 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Award,
           requiredModule: 'students',
           children: [
-            link('id-card-templates', 'ID Card Template', '/cards/templates', I.FileText, 'students'),
+            link(
+              'id-card-templates',
+              'ID Card Template',
+              '/cards/templates',
+              I.FileText,
+              'students'
+            ),
             link('id-cards', 'Student ID Card', '/cards', I.Award, 'students'),
-            link('employee-id-card', 'Employee ID Card', '/cards?type=employee', I.Users, 'students'),
-            link('admit-card-template', 'Admit Card Template', '/cards/templates?type=admit', I.FileText, 'students'),
-            link('generate-admit-card', 'Generate Admit Card', '/cards?type=admit', I.Award, 'students')
+            link(
+              'employee-id-card',
+              'Employee ID Card',
+              '/cards?type=employee',
+              I.Users,
+              'students'
+            ),
+            link(
+              'admit-card-template',
+              'Admit Card Template',
+              '/cards/templates?type=admit',
+              I.FileText,
+              'students'
+            ),
+            link(
+              'generate-admit-card',
+              'Generate Admit Card',
+              '/cards?type=admit',
+              I.Award,
+              'students'
+            )
           ]
         }
       ]
@@ -255,9 +351,27 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Award,
           requiredModule: 'certificates',
           children: [
-            link('certificate-templates', 'Certificate Template', '/certificates/templates', I.FileText, 'certificates'),
-            link('generate-students', 'Generate Student', '/certificates/generate-students', I.GraduationCap, 'certificates'),
-            link('generate-employees', 'Generate Employee', '/certificates/generate-employees', I.Users, 'certificates')
+            link(
+              'certificate-templates',
+              'Certificate Template',
+              '/certificates/templates',
+              I.FileText,
+              'certificates'
+            ),
+            link(
+              'generate-students',
+              'Generate Student',
+              '/certificates/generate-students',
+              I.GraduationCap,
+              'certificates'
+            ),
+            link(
+              'generate-employees',
+              'Generate Employee',
+              '/certificates/generate-employees',
+              I.Users,
+              'certificates'
+            )
           ]
         }
       ]
@@ -268,26 +382,70 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
   if (schoolStaff) {
     const academicChildren: SidebarItem[] = [];
     if (isSuperAdmin) {
-      academicChildren.push(link('academic-years', 'Session Settings', '/academic/years', I.Calendar));
+      academicChildren.push(
+        link('academic-years', 'Session Settings', '/academic/years', I.Calendar)
+      );
     }
     academicChildren.push(
       link('classes', 'Control Classes', '/academic/classes', I.GraduationCap),
-      link('assign-class-teacher', 'Assign Class Teacher', '/academic/class-assignments?tab=teacher', I.UserCheck, 'academic_management'),
+      link(
+        'assign-class-teacher',
+        'Assign Class Teacher',
+        '/academic/class-assignments?tab=teacher',
+        I.UserCheck,
+        'academic_management'
+      ),
       link('sections', 'Sections', '/academic/sections', I.Users),
       link('subjects', 'Subject', '/academic/subjects', I.BookOpen, 'academic_management'),
-      link('class-assign', 'Class Assign', '/academic/class-assignments', I.BookOpen, 'academic_management')
+      link(
+        'class-assign',
+        'Class Assign',
+        '/academic/class-assignments',
+        I.BookOpen,
+        'academic_management'
+      )
     );
     if (streamsEnabled) {
       academicChildren.push(link('streams', 'Streams', '/academic/streams', I.BookOpen));
     }
     academicChildren.push(
       link('timetable', 'Class Schedule', '/academic/timetable', I.Calendar, 'academic_management'),
-      link('teacher-schedule', 'Teacher Schedule', '/academic/timetables', I.Clock, 'academic_management'),
-      link('comprehensive-schedule', 'Comprehensive Schedule', '/academic/timetable?view=comprehensive', I.Calendar, 'academic_management'),
-      link('teacher-conflicts', 'Teacher Conflicts', '/academic/workload?tab=conflicts', I.Users, 'academic_management'),
+      link(
+        'teacher-schedule',
+        'Teacher Schedule',
+        '/academic/timetables',
+        I.Clock,
+        'academic_management'
+      ),
+      link(
+        'comprehensive-schedule',
+        'Comprehensive Schedule',
+        '/academic/timetable?view=comprehensive',
+        I.Calendar,
+        'academic_management'
+      ),
+      link(
+        'teacher-conflicts',
+        'Teacher Conflicts',
+        '/academic/workload?tab=conflicts',
+        I.Users,
+        'academic_management'
+      ),
       link('student-promotion', 'Promotion', '/students/promotion', I.TrendingUp, 'students'),
-      link('student-dropbox', 'Student Dropbox', '/students/promotion?tab=dropbox', I.Tag, 'students'),
-      link('branch-transfer-acad', 'Branch Transfer', '/students/transfer', I.TrendingUp, 'students')
+      link(
+        'student-dropbox',
+        'Student Dropbox',
+        '/students/promotion?tab=dropbox',
+        I.Tag,
+        'students'
+      ),
+      link(
+        'branch-transfer-acad',
+        'Branch Transfer',
+        '/students/transfer',
+        I.TrendingUp,
+        'students'
+      )
     );
     groups.push({
       id: 'academic',
@@ -315,8 +473,20 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Video,
           requiredModule: 'liveclass',
           children: [
-            link('live-class-rooms', 'Live Class Rooms', '/academic/live_class', I.Video, 'liveclass'),
-            link('live-class-reports', 'Live Class Reports', '/reports/suite?module=liveclass', I.FileBarChart, 'liveclass')
+            link(
+              'live-class-rooms',
+              'Live Class Rooms',
+              '/academic/live_class',
+              I.Video,
+              'liveclass'
+            ),
+            link(
+              'live-class-reports',
+              'Live Class Reports',
+              '/reports/suite?module=liveclass',
+              I.FileBarChart,
+              'liveclass'
+            )
           ]
         },
         {
@@ -325,8 +495,20 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Paperclip,
           requiredModule: 'attachments',
           children: [
-            link('attachments', 'Upload Content', '/academic/attachment', I.Paperclip, 'attachments'),
-            link('attachment-type', 'Attachment Type', '/academic/attachment_type', I.Tag, 'attachments')
+            link(
+              'attachments',
+              'Upload Content',
+              '/academic/attachment',
+              I.Paperclip,
+              'attachments'
+            ),
+            link(
+              'attachment-type',
+              'Attachment Type',
+              '/academic/attachment_type',
+              I.Tag,
+              'attachments'
+            )
           ]
         },
         {
@@ -336,7 +518,13 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           requiredModule: 'homework',
           children: [
             link('homework-list', 'Homework', '/homework', I.ClipboardList, 'homework'),
-            link('homework-eval', 'Evaluation Report', '/homework/homework_evaluation', I.CheckCircle, 'homework')
+            link(
+              'homework-eval',
+              'Evaluation Report',
+              '/homework/homework_evaluation',
+              I.CheckCircle,
+              'homework'
+            )
           ]
         }
       ]
@@ -357,22 +545,64 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           children: [
             link('exam-term', 'Exam Term', '/exams/exam_term', I.Tag, 'exams'),
             link('exam-hall', 'Exam Hall', '/exams/setup/exam-halls', I.Building, 'exams'),
-            link('exam-distribution', 'Distribution', '/exams/setup/mark-distributions', I.PieChart, 'exams'),
+            link(
+              'exam-distribution',
+              'Distribution',
+              '/exams/setup/mark-distributions',
+              I.PieChart,
+              'exams'
+            ),
             link('exam-setup', 'Exam Setup', '/exams/setup', I.Settings, 'exams'),
-            link('marksheet-templates', 'Marksheet Template', '/exams/marksheet_template', I.FileText, 'exams'),
+            link(
+              'marksheet-templates',
+              'Marksheet Template',
+              '/exams/marksheet_template',
+              I.FileText,
+              'exams'
+            ),
             link('exam-schedules', 'Schedule', '/exams/schedules', I.Calendar, 'exams'),
             link('add-schedule', 'Add Schedule', '/exams/schedules/add', I.UserPlus, 'exams'),
-            link('comp-exam-schedule', 'Comprehensive Schedule', '/exams/schedules?view=comprehensive', I.Calendar, 'exams'),
-            link('school-wide-schedule', 'School Wide Schedule', '/exams/schedules?view=school', I.Calendar, 'exams'),
+            link(
+              'comp-exam-schedule',
+              'Comprehensive Schedule',
+              '/exams/schedules?view=comprehensive',
+              I.Calendar,
+              'exams'
+            ),
+            link(
+              'school-wide-schedule',
+              'School Wide Schedule',
+              '/exams/schedules?view=school',
+              I.Calendar,
+              'exams'
+            ),
             link('exam-seating', 'Seating Arrangement', '/exams/seating', I.Users, 'exams'),
-            link('exam-seating-overview', 'Seating Overview', '/exams/seating/overview', I.FileText, 'exams'),
-            link('exam-seating-calendar', 'Seating Calendar', '/exams/seating/calendar', I.Calendar, 'exams'),
+            link(
+              'exam-seating-overview',
+              'Seating Overview',
+              '/exams/seating/overview',
+              I.FileText,
+              'exams'
+            ),
+            link(
+              'exam-seating-calendar',
+              'Seating Calendar',
+              '/exams/seating/calendar',
+              I.Calendar,
+              'exams'
+            ),
             link('exam-seat-stickers', 'Seat Stickers', '/exams/seating/stickers', I.Tag, 'exams'),
             link('marks-entry', 'Mark Entries', '/exams/marks-entry', I.Edit3, 'exams'),
             link('positions', 'Generate Position', '/exams/positions', I.Trophy, 'exams'),
             link('grades-range', 'Grades Range', '/exams/setup/grades-range', I.Tag, 'exams'),
             link('online-exam', 'Online Exam', '/exams/online', I.Video, 'exams'),
-            link('question-bank', 'Question Bank', '/exams/exam_question', I.ClipboardList, 'exams'),
+            link(
+              'question-bank',
+              'Question Bank',
+              '/exams/exam_question',
+              I.ClipboardList,
+              'exams'
+            ),
             link('question-group', 'Question Group', '/exams/exam_question_group', I.Tag, 'exams'),
             link('exam-results', 'Exam Result', '/exams/results', I.BarChart3, 'exams')
           ]
@@ -393,10 +623,9 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Building,
           requiredModule: 'hostel',
           children: [
-            link('hostel-list', 'Hostel Master', '/hostel/hostel', I.Building, 'hostel'),
-            link('hostel-rooms', 'Hostel Room', '/hostel/hostel_room', I.BedDouble, 'hostel'),
-            link('hostel-category', 'Category', '/hostel/hostel_category', I.Tag, 'hostel'),
-            link('hostel-alloc', 'Allocation Report', '/hostel/hostel_allocation', I.FileText, 'hostel')
+            link('hostel-manage', 'Manage Hostels', '/hostel/manage', I.Building, 'hostel'),
+            link('hostel-rooms', 'Rooms & Types', '/hostel/rooms', I.BedDouble, 'hostel'),
+            link('hostel-allocations', 'Allocations', '/hostel/allocations', I.Users, 'hostel')
           ]
         },
         {
@@ -405,12 +634,28 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Bus,
           requiredModule: 'transport',
           children: [
-            link('tr-route', 'Route Master', '/transport/transport_route', I.Bus, 'transport'),
-            link('tr-vehicle', 'Vehicle Master', '/transport/transport_vehicle', I.Truck, 'transport'),
-            link('tr-stop', 'Stoppage', '/transport/transport_stop', I.MapPin, 'transport'),
-            link('tr-assign', 'Assign Vehicle', '/transport/transport_assignment', I.Users, 'transport'),
-            link('tr-fees', 'Fees Setup', '/transport/transport_fee_setup', I.DollarSign, 'transport'),
-            link('tr-report', 'Allocation Report', '/reports/suite?module=transport', I.FileText, 'transport')
+            link('tr-route', 'Routes', '/transport/routes', I.Bus, 'transport'),
+            link(
+              'tr-vehicle',
+              'Vehicles',
+              '/transport/vehicles',
+              I.Truck,
+              'transport'
+            ),
+            link(
+              'tr-alloc',
+              'Allocations',
+              '/transport/allocations',
+              I.Users,
+              'transport'
+            ),
+            link(
+              'tr-report',
+              'Allocation Report',
+              '/reports/suite?module=transport',
+              I.FileText,
+              'transport'
+            )
           ]
         }
       ]
@@ -430,9 +675,27 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           requiredModule: 'attendance',
           children: [
             link('attendance-student', 'Student', '/attendance', I.ClipboardList, 'attendance'),
-            link('subject-attendance', 'Subject Wise', '/attendance/subject_attendance', I.ClipboardList, 'attendance'),
-            link('staff-attendance', 'Employee', '/attendance/staff_attendance', I.UserCheck, 'attendance'),
-            link('exam-attendance', 'Exam', '/attendance/exam_attendance', I.CheckCircle, 'attendance')
+            link(
+              'subject-attendance',
+              'Subject Wise',
+              '/attendance/subject_attendance',
+              I.ClipboardList,
+              'attendance'
+            ),
+            link(
+              'staff-attendance',
+              'Employee',
+              '/attendance/staff_attendance',
+              I.UserCheck,
+              'attendance'
+            ),
+            link(
+              'exam-attendance',
+              'Exam',
+              '/attendance/exam_attendance',
+              I.CheckCircle,
+              'attendance'
+            )
           ]
         }
       ]
@@ -452,9 +715,27 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           requiredModule: 'library',
           children: [
             link('library-books', 'Books', '/library', I.BookOpen, 'library'),
-            link('import-books', 'Import Books', '/library?action=import', I.ClipboardList, 'library'),
-            link('import-issues', 'Import Book Issues', '/library?action=import_issues', I.ClipboardList, 'library'),
-            link('library-categories', 'Books Category', '/library/library_category', I.Tag, 'library'),
+            link(
+              'import-books',
+              'Import Books',
+              '/library?action=import',
+              I.ClipboardList,
+              'library'
+            ),
+            link(
+              'import-issues',
+              'Import Book Issues',
+              '/library?action=import_issues',
+              I.ClipboardList,
+              'library'
+            ),
+            link(
+              'library-categories',
+              'Books Category',
+              '/library/library_category',
+              I.Tag,
+              'library'
+            ),
             link('my-issued-book', 'My Issued Book', '/library?view=issued', I.BookOpen, 'library'),
             link('book-manage', 'Book Issue/return', '/library?view=manage', I.BookOpen, 'library')
           ]
@@ -505,12 +786,48 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Megaphone,
           requiredModule: 'communication',
           children: [
-            link('sms', 'Send SMS / Email', '/communication/sms_campaign', I.Megaphone, 'communication'),
-            link('sms-report', 'Sms / Email Report', '/reports/suite?module=communication', I.FileBarChart, 'communication'),
-            link('sms-template', 'Sms Template', '/communication/sms_template', I.FileText, 'communication'),
-            link('email-template', 'Email Template', '/communication/email_template', I.Mail, 'communication'),
-            link('student-birthday', 'Student Birthday Wishes', '/communication/auto_notification?type=birthday_student', I.Gift, 'communication'),
-            link('staff-birthday', 'Staff Birthday Wishes', '/communication/auto_notification?type=birthday_staff', I.Gift, 'communication')
+            link(
+              'sms',
+              'Send SMS / Email',
+              '/communication/sms_campaign',
+              I.Megaphone,
+              'communication'
+            ),
+            link(
+              'sms-report',
+              'Sms / Email Report',
+              '/reports/suite?module=communication',
+              I.FileBarChart,
+              'communication'
+            ),
+            link(
+              'sms-template',
+              'Sms Template',
+              '/communication/sms_template',
+              I.FileText,
+              'communication'
+            ),
+            link(
+              'email-template',
+              'Email Template',
+              '/communication/email_template',
+              I.Mail,
+              'communication'
+            ),
+            link(
+              'student-birthday',
+              'Student Birthday Wishes',
+              '/communication/auto_notification?type=birthday_student',
+              I.Gift,
+              'communication'
+            ),
+            link(
+              'staff-birthday',
+              'Staff Birthday Wishes',
+              '/communication/auto_notification?type=birthday_staff',
+              I.Gift,
+              'communication'
+            )
           ]
         }
       ]
@@ -530,7 +847,13 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           requiredModule: 'fees',
           children: [
             link('payments-type', 'Payments Type', '/fees/payment_type', I.CreditCard, 'fees'),
-            link('offline-payments', 'Offline Payments', '/fees/offline_payment', I.CreditCard, 'fees'),
+            link(
+              'offline-payments',
+              'Offline Payments',
+              '/fees/offline_payment',
+              I.CreditCard,
+              'fees'
+            ),
             link('fee-types', 'Fees Type', '/fees/types', I.Tag, 'fees'),
             link('fee-groups', 'Fees Group', '/fees/fee_group', I.List, 'fees'),
             link('fine-setup', 'Fine Setup', '/fees/fines', I.Tag, 'fees'),
@@ -557,9 +880,27 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           requiredModule: 'accounting',
           children: [
             link('acct-accounts', 'Account', '/accounting/account', I.Wallet, 'accounting'),
-            link('acct-deposit', 'New Deposit', '/accounting/voucher?type=deposit', I.Receipt, 'accounting'),
-            link('acct-expense', 'New Expense', '/accounting/voucher?type=expense', I.Receipt, 'accounting'),
-            link('acct-transactions', 'All Transactions', '/accounting/voucher', I.List, 'accounting'),
+            link(
+              'acct-deposit',
+              'New Deposit',
+              '/accounting/voucher?type=deposit',
+              I.Receipt,
+              'accounting'
+            ),
+            link(
+              'acct-expense',
+              'New Expense',
+              '/accounting/voucher?type=expense',
+              I.Receipt,
+              'accounting'
+            ),
+            link(
+              'acct-transactions',
+              'All Transactions',
+              '/accounting/voucher',
+              I.List,
+              'accounting'
+            ),
             link('acct-heads', 'Voucher Head', '/accounting/account_head', I.Tag, 'accounting')
           ]
         }
@@ -579,14 +920,11 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.Package,
           requiredModule: 'inventory',
           children: [
-            link('inv-prod', 'Product', '/inventory/inventory_product', I.Package, 'inventory'),
-            link('inv-cat', 'Category', '/inventory/inventory_category', I.Tag, 'inventory'),
-            link('inv-store', 'Store', '/inventory/inventory_store', I.Warehouse, 'inventory'),
-            link('inv-sup', 'Supplier', '/inventory/inventory_supplier', I.Users, 'inventory'),
-            link('inv-unit', 'Unit', '/inventory/inventory_unit', I.Tag, 'inventory'),
-            link('inv-pur', 'Purchase', '/inventory/inventory_purchase', I.ClipboardList, 'inventory'),
-            link('inv-sale', 'Sales', '/inventory/inventory_sale', I.DollarSign, 'inventory'),
-            link('inv-issue', 'Issue', '/inventory/inventory_issue', I.Package, 'inventory')
+            link('inv-prod', 'Items', '/inventory/items', I.Package, 'inventory'),
+            link('inv-cat', 'Categories', '/inventory/categories', I.Tag, 'inventory'),
+            link('inv-store', 'Stores', '/inventory/stores', I.Warehouse, 'inventory'),
+            link('inv-sup', 'Suppliers', '/inventory/suppliers', I.Users, 'inventory'),
+            link('inv-issue', 'Issues', '/inventory/issues', I.ClipboardList, 'inventory')
           ]
         }
       ]
@@ -611,10 +949,34 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.GraduationCap,
               requiredModule: 'students',
               children: [
-                link('rep-login-cred', 'Login Credential', '/reports/student-extra?tab=credentials', I.FileText, 'students'),
-                link('rep-admission', 'Admission Report', '/reports/student-extra?tab=admissions', I.FileText, 'students'),
-                link('rep-class-sec', 'Class & Section Report', '/reports/student-extra?tab=classsection', I.FileText, 'students'),
-                link('rep-sibling', 'Sibling Report', '/reports/student-extra?tab=siblings', I.Users, 'students')
+                link(
+                  'rep-login-cred',
+                  'Login Credential',
+                  '/reports/student-extra?tab=credentials',
+                  I.FileText,
+                  'students'
+                ),
+                link(
+                  'rep-admission',
+                  'Admission Report',
+                  '/reports/student-extra?tab=admissions',
+                  I.FileText,
+                  'students'
+                ),
+                link(
+                  'rep-class-sec',
+                  'Class & Section Report',
+                  '/reports/student-extra?tab=classsection',
+                  I.FileText,
+                  'students'
+                ),
+                link(
+                  'rep-sibling',
+                  'Sibling Report',
+                  '/reports/student-extra?tab=siblings',
+                  I.Users,
+                  'students'
+                )
               ]
             },
             {
@@ -624,9 +986,21 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               requiredModule: 'fees',
               children: [
                 link('rep-fees', 'Fees Report', '/reports/fees', I.PieChart, 'fees'),
-                link('rep-group-fees', 'Group Wise Fees Report', '/reports/fees?type=group', I.PieChart, 'fees'),
+                link(
+                  'rep-group-fees',
+                  'Group Wise Fees Report',
+                  '/reports/fees?type=group',
+                  I.PieChart,
+                  'fees'
+                ),
                 link('rep-receipts', 'Receipts Report', '/reports/receipts', I.Receipt, 'fees'),
-                link('rep-due-fees', 'Due Fees Report', '/reports/fees?type=due', I.FileText, 'fees'),
+                link(
+                  'rep-due-fees',
+                  'Due Fees Report',
+                  '/reports/fees?type=due',
+                  I.FileText,
+                  'fees'
+                ),
                 link('rep-fine', 'Fine Report', '/reports/fees?type=fine', I.Tag, 'fees')
               ]
             },
@@ -636,12 +1010,48 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.Wallet,
               requiredModule: 'accounting',
               children: [
-                link('rep-acct-stmt', 'Account Statement', '/reports/suite?module=accounting&tab=statement', I.FileText, 'accounting'),
-                link('rep-income', 'Income Reports', '/reports/suite?module=accounting&tab=income', I.BarChart3, 'accounting'),
-                link('rep-expense', 'Expense Reports', '/reports/suite?module=accounting&tab=expense', I.BarChart3, 'accounting'),
-                link('rep-transactions', 'Transitions Reports', '/reports/suite?module=accounting&tab=transactions', I.List, 'accounting'),
-                link('rep-balance', 'Balance Sheet', '/reports/suite?module=accounting&tab=balance', I.FileText, 'accounting'),
-                link('rep-inc-vs-exp', 'Income Vs Expense', '/reports/suite?module=accounting&tab=incomevsexpense', I.TrendingUp, 'accounting')
+                link(
+                  'rep-acct-stmt',
+                  'Account Statement',
+                  '/reports/suite?module=accounting&tab=statement',
+                  I.FileText,
+                  'accounting'
+                ),
+                link(
+                  'rep-income',
+                  'Income Reports',
+                  '/reports/suite?module=accounting&tab=income',
+                  I.BarChart3,
+                  'accounting'
+                ),
+                link(
+                  'rep-expense',
+                  'Expense Reports',
+                  '/reports/suite?module=accounting&tab=expense',
+                  I.BarChart3,
+                  'accounting'
+                ),
+                link(
+                  'rep-transactions',
+                  'Transitions Reports',
+                  '/reports/suite?module=accounting&tab=transactions',
+                  I.List,
+                  'accounting'
+                ),
+                link(
+                  'rep-balance',
+                  'Balance Sheet',
+                  '/reports/suite?module=accounting&tab=balance',
+                  I.FileText,
+                  'accounting'
+                ),
+                link(
+                  'rep-inc-vs-exp',
+                  'Income Vs Expense',
+                  '/reports/suite?module=accounting&tab=incomevsexpense',
+                  I.TrendingUp,
+                  'accounting'
+                )
               ]
             },
             {
@@ -650,12 +1060,48 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.UserCheck,
               requiredModule: 'attendance',
               children: [
-                link('rep-std-attn', 'Student Reports', '/reports/attendance?tab=studentwise', I.UserCheck, 'attendance'),
-                link('rep-std-daily', 'Student Daily Reports', '/reports/attendance?tab=daily', I.UserCheck, 'attendance'),
-                link('rep-std-overview', 'Student Overview Reports', '/reports/attendance?tab=overview', I.UserCheck, 'attendance'),
-                link('rep-subj-reports', 'Subject Wise Reports', '/reports/attendance?tab=subject', I.UserCheck, 'attendance'),
-                link('rep-emp-attn', 'Employee Reports', '/reports/attendance?tab=employee', I.UserCheck, 'attendance'),
-                link('rep-exam-attn', 'Exam Reports', '/reports/attendance?tab=exam', I.UserCheck, 'attendance')
+                link(
+                  'rep-std-attn',
+                  'Student Reports',
+                  '/reports/attendance?tab=studentwise',
+                  I.UserCheck,
+                  'attendance'
+                ),
+                link(
+                  'rep-std-daily',
+                  'Student Daily Reports',
+                  '/reports/attendance?tab=daily',
+                  I.UserCheck,
+                  'attendance'
+                ),
+                link(
+                  'rep-std-overview',
+                  'Student Overview Reports',
+                  '/reports/attendance?tab=overview',
+                  I.UserCheck,
+                  'attendance'
+                ),
+                link(
+                  'rep-subj-reports',
+                  'Subject Wise Reports',
+                  '/reports/attendance?tab=subject',
+                  I.UserCheck,
+                  'attendance'
+                ),
+                link(
+                  'rep-emp-attn',
+                  'Employee Reports',
+                  '/reports/attendance?tab=employee',
+                  I.UserCheck,
+                  'attendance'
+                ),
+                link(
+                  'rep-exam-attn',
+                  'Exam Reports',
+                  '/reports/attendance?tab=exam',
+                  I.UserCheck,
+                  'attendance'
+                )
               ]
             },
             {
@@ -664,8 +1110,20 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.Users,
               requiredModule: 'hr',
               children: [
-                link('rep-payroll', 'Payroll Summary', '/reports/suite?module=hr&tab=payroll', I.FileText, 'hr'),
-                link('rep-leave', 'Leave Reports', '/reports/suite?module=hr&tab=leave', I.ClipboardList, 'hr')
+                link(
+                  'rep-payroll',
+                  'Payroll Summary',
+                  '/reports/suite?module=hr&tab=payroll',
+                  I.FileText,
+                  'hr'
+                ),
+                link(
+                  'rep-leave',
+                  'Leave Reports',
+                  '/reports/suite?module=hr&tab=leave',
+                  I.ClipboardList,
+                  'hr'
+                )
               ]
             },
             {
@@ -674,9 +1132,27 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.BookOpen,
               requiredModule: 'exams',
               children: [
-                link('single-exam-report-card', 'Single Exam Report Card', '/exams/report-cards', I.FileText, 'exams'),
-                link('tabulation-sheet', 'Tabulation Sheet', '/reports/exams?tab=tabulation', I.FileBarChart, 'exams'),
-                link('multi-exam-progress-report', 'Multi Exam Progress Report', '/reports/exams?tab=progress', I.BarChart3, 'exams')
+                link(
+                  'single-exam-report-card',
+                  'Single Exam Report Card',
+                  '/exams/report-cards',
+                  I.FileText,
+                  'exams'
+                ),
+                link(
+                  'tabulation-sheet',
+                  'Tabulation Sheet',
+                  '/reports/exams?tab=tabulation',
+                  I.FileBarChart,
+                  'exams'
+                ),
+                link(
+                  'multi-exam-progress-report',
+                  'Multi Exam Progress Report',
+                  '/reports/exams?tab=progress',
+                  I.BarChart3,
+                  'exams'
+                )
               ]
             },
             {
@@ -685,10 +1161,34 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               icon: I.Package,
               requiredModule: 'inventory',
               children: [
-                link('rep-stock', 'Stock Report', '/reports/suite?module=inventory&tab=stock', I.Package, 'inventory'),
-                link('rep-purchase', 'Purchase Report', '/reports/suite?module=inventory&tab=purchase', I.ClipboardList, 'inventory'),
-                link('rep-sales', 'Sales Report', '/reports/suite?module=inventory&tab=sales', I.DollarSign, 'inventory'),
-                link('rep-issues', 'Issues Report', '/reports/suite?module=inventory&tab=issue', I.Package, 'inventory')
+                link(
+                  'rep-stock',
+                  'Stock Report',
+                  '/reports/suite?module=inventory&tab=stock',
+                  I.Package,
+                  'inventory'
+                ),
+                link(
+                  'rep-purchase',
+                  'Purchase Report',
+                  '/reports/suite?module=inventory&tab=purchase',
+                  I.ClipboardList,
+                  'inventory'
+                ),
+                link(
+                  'rep-sales',
+                  'Sales Report',
+                  '/reports/suite?module=inventory&tab=sales',
+                  I.DollarSign,
+                  'inventory'
+                ),
+                link(
+                  'rep-issues',
+                  'Issues Report',
+                  '/reports/suite?module=inventory&tab=issue',
+                  I.Package,
+                  'inventory'
+                )
               ]
             }
           ]
@@ -711,14 +1211,38 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           children: [
             link('frontend-setting', 'Setting', '/website/frontend_setting', I.Settings, 'website'),
             link('frontend-menu', 'Menu', '/website/frontend_menu', I.List, 'website'),
-            link('frontend-section', 'Page Section', '/website/frontend_section', I.Layers, 'website'),
+            link(
+              'frontend-section',
+              'Page Section',
+              '/website/frontend_section',
+              I.Layers,
+              'website'
+            ),
             link('frontend-content', 'Manage Page', '/website/cms_page', I.Globe, 'website'),
             link('frontend-slider', 'Slider', '/website/frontend_slider', I.Image, 'website'),
             link('frontend-features', 'Features', '/website/frontend_features', I.Star, 'website'),
-            link('frontend-testimonial', 'Testimonial', '/website/frontend_testimonial', I.MessageSquare, 'website'),
-            link('frontend-service', 'Service', '/website/frontend_service', I.CheckCircle, 'website'),
+            link(
+              'frontend-testimonial',
+              'Testimonial',
+              '/website/frontend_testimonial',
+              I.MessageSquare,
+              'website'
+            ),
+            link(
+              'frontend-service',
+              'Service',
+              '/website/frontend_service',
+              I.CheckCircle,
+              'website'
+            ),
             link('frontend-faq', 'Faq', '/website/frontend_faq', I.HelpCircle, 'website'),
-            link('frontend-gallery-cat', 'Gallery Category', '/website/gallery_category', I.Tag, 'website'),
+            link(
+              'frontend-gallery-cat',
+              'Gallery Category',
+              '/website/gallery_category',
+              I.Tag,
+              'website'
+            ),
             link('frontend-gallery', 'Gallery', '/website/gallery', I.Image, 'website'),
             link('frontend-news', 'News', '/website/news', I.FileText, 'website')
           ]
@@ -745,7 +1269,12 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
             link('translations', 'Translations', '/settings/translation', I.Globe),
             link('cron-job', 'Cron Job', '/admin/config?tab=cron', I.Clock),
             link('modules', 'Modules', '/admin/config?tab=modules', I.Layers),
-            link('system-student-field', 'System Student Field', '/students/custom_field?tab=system', I.Tag),
+            link(
+              'system-student-field',
+              'System Student Field',
+              '/students/custom_field?tab=system',
+              I.Tag
+            ),
             link('custom-field', 'Custom Field', '/students/custom_field', I.Tag)
           ]
         }
