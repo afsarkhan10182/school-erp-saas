@@ -1,51 +1,49 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Academic Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage subjects and teacher assignments for your school
-          </p>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Academic Management</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage subjects and teacher assignments for your school
+        </p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event">
+      <!-- Subjects Tab -->
+      <div v-if="activeTab === 'subjects'" class="pt-4">
+        <SubjectsTab
+          :subjects="subjects"
+          :loading="subjectsLoading"
+          :academic-years="academicYears"
+          :school-id="currentSchool?.id"
+          :branch-id="selectedBranchId"
+          @create="handleSubjectCreate"
+          @update="handleSubjectUpdate"
+          @delete="handleSubjectDelete"
+        />
       </div>
 
-      <!-- Tabs -->
-      <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event">
-        <!-- Subjects Tab -->
-        <div v-if="activeTab === 'subjects'" class="p-6">
-          <SubjectsTab
-            :subjects="subjects"
-            :loading="subjectsLoading"
-            :academic-years="academicYears"
-            :school-id="selectedSchoolId"
-            :branch-id="selectedBranchId"
-            @create="handleSubjectCreate"
-            @update="handleSubjectUpdate"
-            @delete="handleSubjectDelete"
-          />
-        </div>
-
-        <!-- Teacher Assignment Tab -->
-        <div v-else-if="activeTab === 'teacher-assignment'" class="p-6">
-          <TeacherAssignmentTab
-            :assignments="teacherAssignments"
-            :classes="classes"
-            :subjects="subjects"
-            :teachers="teacherOptions"
-            :loading="assignmentsLoading"
-            :academic-years="academicYears"
-            :school-id="selectedSchoolId"
-            :branch-id="selectedBranchId"
-            @refresh="loadTeacherAssignments"
-            @assign="handleTeacherAssign"
-            @update="handleTeacherUpdate"
-            @remove="handleTeacherRemove"
-          />
-        </div>
-      </ScrollableTabs>
-    </div>
+      <!-- Teacher Assignment Tab -->
+      <div v-else-if="activeTab === 'teacher-assignment'" class="pt-4">
+        <TeacherAssignmentTab
+          :assignments="teacherAssignments"
+          :classes="classes"
+          :subjects="subjects"
+          :teachers="teacherOptions"
+          :loading="assignmentsLoading"
+          :academic-years="academicYears"
+          :school-id="currentSchool?.id"
+          :branch-id="selectedBranchId"
+          @refresh="loadTeacherAssignments"
+          @assign="handleTeacherAssign"
+          @update="handleTeacherUpdate"
+          @remove="handleTeacherRemove"
+        />
+      </div>
+    </ScrollableTabs>
   </div>
 </template>
 
@@ -53,6 +51,7 @@
 import { ref, onMounted } from 'vue';
 import { useSubjects } from '~/composables/useSubjects';
 import { useAuth } from '~/composables/useAuth';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { BookOpen, UserCheck, Building2 } from 'lucide-vue-next';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
@@ -61,6 +60,8 @@ import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import SubjectsTab from '~/components/academic/SubjectsTab.vue';
 import TeacherAssignmentTab from '~/components/academic/TeacherAssignmentTab.vue';
 
+const { currentBranch, currentSchool, selectedBranchId, branchScopeParams } = useGlobalBranch();
+
 // Composables
 const {
   // State
@@ -68,30 +69,20 @@ const {
   teacherAssignments,
   subjectsLoading,
   assignmentsLoading,
-  selectedSchoolId,
-  selectedBranchId,
-  selectedBranch,
-  schools,
-  branches,
   classes,
   teacherOptions,
   academicYears,
 
   // Computed
-  shouldShowBranchFilter,
   academicYearOptions,
   currentAcademicYear,
 
   // Methods
-  loadSchoolsData,
-  loadBranchesData,
   loadTeachersData,
   loadAcademicDataForBranch,
   loadSubjects,
   loadClassesData,
   loadTeacherAssignments,
-  onSchoolChange,
-  onBranchChange,
   handleSubjectCreate,
   handleSubjectUpdate,
   handleSubjectDelete,
@@ -100,21 +91,6 @@ const {
   handleTeacherRemove,
   initialize
 } = useSubjects();
-
-// Dropdown options
-const schoolOptions = computed(() => [
-  ...schools.value.map(school => ({
-    value: school.id,
-    label: school.name
-  }))
-]);
-
-const branchOptions = computed(() => [
-  ...branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const { isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 

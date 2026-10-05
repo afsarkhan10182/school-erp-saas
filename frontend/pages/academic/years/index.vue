@@ -365,6 +365,14 @@
       </div>
     </div>
   </div>
+    <ConfirmDialog
+      :open="deleteDialog.open"
+      title="Delete academic year"
+      message="Are you sure you want to delete this academic year?"
+      confirm-label="Delete"
+      @confirm="confirmDeleteYear"
+      @cancel="deleteDialog.open = false"
+    />
 </template>
 
 <script setup>
@@ -373,6 +381,7 @@ import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { AcademicYears } from '~/api';
 import { useAuth } from '~/composables/useAuth';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 definePageMeta({
   // Global auth middleware handles authentication
@@ -501,15 +510,20 @@ const deleteYear = async year => {
     return;
   }
 
-  if (confirm(`Are you sure you want to delete academic year ${year.name}?`)) {
-    try {
-      await AcademicYears.delete(year.id);
-      showToast('Academic year deleted successfully', 'success');
-      fetchAcademicYears();
-    } catch (error) {
-      showToast('Error deleting academic year', 'error');
-      console.error('Error deleting academic year:', error);
-    }
+  deleteDialog.value = { open: true, id: year.id, name: year.name };
+};
+
+const deleteDialog = ref({ open: false, id: '', name: '' });
+const confirmDeleteYear = async () => {
+  try {
+    await AcademicYears.delete(deleteDialog.value.id);
+    showToast('Academic year deleted successfully', 'success');
+    fetchAcademicYears();
+  } catch (error) {
+    showToast('Error deleting academic year', 'error');
+    console.error('Error deleting academic year:', error);
+  } finally {
+    deleteDialog.value = { open: false, id: '', name: '' };
   }
 };
 

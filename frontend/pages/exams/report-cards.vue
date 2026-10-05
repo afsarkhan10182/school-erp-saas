@@ -30,7 +30,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+          <h3
+            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+          >
             Select Ground
           </h3>
         </div>
@@ -332,7 +334,6 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamReports } from '~/composables/useExamReports';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Types
@@ -357,7 +358,6 @@ interface Template {
 const { showToast } = useToast();
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
   sections,
@@ -391,7 +391,7 @@ const emailToParents = ref(false);
 const emailToStudents = ref(false);
 const templates = ref<Template[]>([]);
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
@@ -404,25 +404,11 @@ watch(selectedBranchId, async (newBranchId) => {
       loadTemplates()
     ]);
   } else {
-    await Promise.all([
-      loadExams({ school_id: user.value?.school_id }),
-      loadTemplates()
-    ]);
+    await Promise.all([loadExams({ school_id: user.value?.school_id }), loadTemplates()]);
   }
 });
 
 // Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
-const showBranchDropdown = computed(() => {
-  return branches.value.length > 1;
-});
-
 const resolvedBranchId = computed(() => {
   return selectedBranchId.value || user.value?.branch_id;
 });
@@ -465,31 +451,6 @@ const canGenerate = computed(() => {
 });
 
 // Methods
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  students.value = [];
-  selectedStudents.value = [];
-  selectedTemplateId.value = '';
-  
-  // Load classes and exams for the selected branch
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({
-        branchId: selectedBranchId.value
-      }),
-      loadExams({
-        branch_id: selectedBranchId.value,
-        school_id: user.value?.school_id
-      })
-    ]);
-  } else {
-    // Clear classes if no branch selected
-    classes.value = [];
-  }
-};
-
 const onExamChange = () => {
   // Exam is independent of class, so don't clear class selection
   // Only clear students since exam changed
@@ -503,7 +464,7 @@ const onClassChange = async () => {
   students.value = [];
   selectedStudents.value = [];
   selectedTemplateId.value = '';
-  
+
   if (selectedClassId.value) {
     await fetchSections({
       schoolId: user.value?.school_id,
@@ -616,8 +577,6 @@ const loadTemplates = async () => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
-  
   if (selectedBranchId.value) {
     await Promise.all([
       fetchClasses({

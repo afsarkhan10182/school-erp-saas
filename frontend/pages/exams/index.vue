@@ -40,8 +40,6 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-
-
             <!-- Search -->
             <div class="space-y-2">
               <label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -101,19 +99,7 @@
                 Status
               </label>
               <div class="relative">
-                <select
-                  v-model="statusFilter"
-                  class="w-full pl-10 pr-10 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white appearance-none transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-500"
-                >
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="published">Published</option>
-                  <option value="results_published">Results Published</option>
-                </select>
-                <ChevronDown
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none transition-colors duration-200"
-                />
+                <EnhancedDropdown v-model="statusFilter" :options="statusOptions" placeholder="All Status" />
               </div>
             </div>
           </div>
@@ -371,6 +357,15 @@
           </form>
         </template>
       </Modal>
+
+      <ConfirmDialog
+        :show="Boolean(examToDelete)"
+        title="Delete exam"
+        :message="`Delete ${examToDelete?.name || 'this exam'}? This cannot be undone.`"
+        confirm-label="Delete exam"
+        @close="examToDelete = null"
+        @confirm="confirmDeleteExam"
+      />
     </div>
   </div>
 </template>
@@ -388,24 +383,19 @@ import {
   BookOpen,
   Calendar,
   Activity,
-  ChevronDown
 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import EnhancedMultiSelect from '~/components/ui/EnhancedMultiSelect.vue';
-import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
-import { useExams } from '~/composables/useExams';
-import { useGlobalBranch } from '~/composables/useGlobalBranch';
-import { examTermApi } from '~/api/academic/exam-terms';
+import { useToast } from '~/composables/useToast';
 import { markDistributionApi } from '~/api/academic/mark-distributions';
+import { examTermApi } from '~/api/academic/exam-terms';
 
-// Composables
-const { showToast } = useToast();
 const { user } = useAuth();
-const { selectedBranchId } = useGlobalBranch();
-const { branches, fetchBranchesForUser, loading: branchesLoading } = useBranches();
+const { showToast } = useToast();
+const { selectedBranchId, currentSchool } = useGlobalBranch();
 const {
   exams,
   examOptions,
@@ -425,6 +415,7 @@ const loading = ref(false);
 const showModal = ref(false);
 const saving = ref(false);
 const editingExam = ref(null);
+const examToDelete = ref(null);
 
 // Filters
 const searchQuery = ref('');
@@ -432,6 +423,13 @@ const listBranchId = ref('');
 const selectedExamTypeId = ref('');
 const selectedTermId = ref('');
 const statusFilter = ref('');
+const statusOptions = [
+  { label: 'All Status', value: '' },
+  { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
+  { label: 'Published', value: 'published' },
+  { label: 'Results Published', value: 'results_published' }
+];
 
 // Terms data
 const terms = ref([]);
@@ -440,29 +438,6 @@ const termsLoading = ref(false);
 // Mark Distributions data
 const markDistributions = ref([]);
 const markDistributionsLoading = ref(false);
-
-// Branch options
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
-// Branch logic for conditional display
-const showBranchDropdown = computed(() => {
-  return branches.value.length > 1;
-});
-
-const selectedBranch = computed(() => {
-  if (branches.value.length === 1) {
-    return branches.value[0];
-  }
-  if (form.branch_id && branches.value.length > 1) {
-    return branches.value.find(branch => branch.id === form.branch_id);
-  }
-  return null;
-});
 
 // Filtered terms and mark distributions based on selected branch
 const filteredTerms = computed(() => {
@@ -594,7 +569,7 @@ const onListBranchChange = async () => {
   ]);
 };
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   listBranchId.value = newBranchId || '';
   await onListBranchChange();
 });
@@ -610,9 +585,6 @@ const openCreateModal = async () => {
 
   // Only load data if not already loaded
   const loadPromises = [];
-  if (branches.value.length === 0) {
-    loadPromises.push(fetchBranchesForUser());
-  }
   if (terms.value.length === 0) {
     loadPromises.push(loadTerms());
   }
@@ -624,26 +596,11 @@ const openCreateModal = async () => {
     await Promise.all(loadPromises);
   }
 
-  // Auto-select branch if user has only one branch
-  if (branches.value.length === 1) {
-    form.branch_id = branches.value[0].id;
-  }
-
   if (form.branch_id) {
     await loadFilteredData();
   }
 
   showModal.value = true;
-};
-
-// Handle branch change and filter data accordingly
-const onBranchChange = async branchId => {
-  form.branch_id = branchId;
-  // Clear dependent fields when branch changes
-  form.term_id = '';
-  form.mark_distribution_ids = [];
-  // Load filtered data for the selected branch
-  await loadFilteredData();
 };
 
 // Load filtered terms and mark distributions based on selected branch
@@ -677,9 +634,6 @@ const editExam = async exam => {
 
   // Only load data if not already loaded
   const loadPromises = [];
-  if (branches.value.length === 0) {
-    loadPromises.push(fetchBranchesForUser());
-  }
   if (terms.value.length === 0) {
     loadPromises.push(loadTerms());
   }
@@ -738,15 +692,17 @@ const editExam = async exam => {
 };
 
 const viewExam = exam => {
-  // TODO: Implement exam details view
-  showToast('Exam details view coming soon', 'info');
+  router.push(`/exams/${exam.id}/results`);
 };
 
 const deleteExam = async exam => {
-  if (!confirm(`Are you sure you want to delete "${exam.name}"?`)) {
-    return;
-  }
+  examToDelete.value = exam;
+};
 
+const confirmDeleteExam = async () => {
+  const exam = examToDelete.value;
+  examToDelete.value = null;
+  if (!exam) return;
   try {
     await deleteExamApi(exam.id);
     showToast('Exam deleted successfully', 'success');
@@ -897,15 +853,8 @@ const getMarkDistributionNames = markDistributionIds => {
   return result;
 };
 
-const getBranchName = branchId => {
-  if (!branchId) return 'No branch';
-  const branch = branches.value.find(b => b.id === branchId);
-  return branch ? branch.name : 'Unknown branch';
-};
-
 // Load initial data
 onMounted(async () => {
-  await fetchBranchesForUser();
   // Load mark distributions first, then exams
   await loadMarkDistributions();
   await Promise.all([loadExams(), loadTerms()]);

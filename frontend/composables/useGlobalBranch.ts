@@ -12,7 +12,9 @@ export function useGlobalBranch() {
   const authStore = useAuthStore();
 
   // Currently selected branch id (null = "All Branches")
-  const selectedBranchId = computed<string>(() => authStore.currentBranch?.id || '');
+  const selectedBranchId = computed<string>(
+    () => authStore.currentBranch?.id || authStore.user?.branch_id || ''
+  );
 
   // Currently selected branch object
   const currentBranch = computed(() => authStore.currentBranch);
@@ -78,7 +80,6 @@ export function useGlobalBranch() {
     authStore.setCurrentBranch(null);
     // Caller should re-fetch branches for the new school
   };
-
 
   return {
     selectedBranchId,

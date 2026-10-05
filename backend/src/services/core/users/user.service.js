@@ -135,7 +135,7 @@ class UserService {
         });
 
         // Use base service for pagination response
-        return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+        return BaseService.buildPaginationResponse(rows, page, limit, count, 'users');
       },
       300
     );
@@ -307,7 +307,7 @@ class UserService {
         });
 
         // Use base service for pagination response
-        return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+        return BaseService.buildPaginationResponse(rows, page, limit, count, 'users');
       },
       300
     );
@@ -355,7 +355,7 @@ class UserService {
         });
 
         // Use base service for pagination response
-        return BaseService.buildPaginationResponse(rows, count, page, limit, 'users');
+        return BaseService.buildPaginationResponse(rows, page, limit, count, 'users');
       },
       300
     );

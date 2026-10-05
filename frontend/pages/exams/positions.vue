@@ -38,53 +38,55 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block">
+          <h3
+            class="text-lg font-semibold text-gray-900 dark:text-white border-b-2 border-red-500 pb-2 inline-block"
+          >
             Select Ground
           </h3>
         </div>
         <div class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <!-- Class Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Class
-            </label>
-            <EnhancedDropdown
-              v-model="selectedClassId"
-              :options="classOptions"
-              placeholder="Choose class"
-              :loading="classesLoading"
-              @change="onClassChange"
-            />
-          </div>
+            <!-- Class Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Class
+              </label>
+              <EnhancedDropdown
+                v-model="selectedClassId"
+                :options="classOptions"
+                placeholder="Choose class"
+                :loading="classesLoading"
+                @change="onClassChange"
+              />
+            </div>
 
-          <!-- Section Selection -->
-          <div v-if="showSectionField">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Section
-            </label>
-            <EnhancedDropdown
-              v-model="selectedSectionId"
-              :options="sectionOptions"
-              placeholder="Choose section"
-              :loading="sectionsLoading"
-              @change="onSectionChange"
-            />
-          </div>
+            <!-- Section Selection -->
+            <div v-if="showSectionField">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Section
+              </label>
+              <EnhancedDropdown
+                v-model="selectedSectionId"
+                :options="sectionOptions"
+                placeholder="Choose section"
+                :loading="sectionsLoading"
+                @change="onSectionChange"
+              />
+            </div>
 
-          <!-- Exam Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Exam
-            </label>
-            <EnhancedDropdown
-              v-model="selectedExamId"
-              :options="examOptions"
-              placeholder="Choose exam"
-              :loading="examsLoading"
-              @change="onExamChange"
-            />
-          </div>
+            <!-- Exam Selection -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Exam
+              </label>
+              <EnhancedDropdown
+                v-model="selectedExamId"
+                :options="examOptions"
+                placeholder="Choose exam"
+                :loading="examsLoading"
+                @change="onExamChange"
+              />
+            </div>
           </div>
 
           <!-- Load Students Button -->
@@ -113,28 +115,22 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Calculation Method
             </label>
-            <select
+            <EnhancedDropdown
               v-model="calculationMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="total_marks">Total Marks</option>
-              <option value="percentage">Percentage</option>
-              <option value="grade_points">Grade Points</option>
-            </select>
+              :options="calculationMethodOptions"
+              placeholder="Calculation method"
+            />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tie Breaking
             </label>
-            <select
+            <EnhancedDropdown
               v-model="tieBreakingMethod"
-              class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="average">Average of tied positions</option>
-              <option value="first">First occurrence</option>
-              <option value="manual">Manual override</option>
-            </select>
+              :options="tieBreakingOptions"
+              placeholder="Tie breaking"
+            />
           </div>
 
           <div>
@@ -321,8 +317,18 @@ import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useExamPositions } from '~/composables/useExamPositions';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
+
+const calculationMethodOptions = [
+  { value: 'total_marks', label: 'Total Marks' },
+  { value: 'percentage', label: 'Percentage' },
+  { value: 'grade_points', label: 'Grade Points' }
+];
+const tieBreakingOptions = [
+  { value: 'average', label: 'Average of tied positions' },
+  { value: 'first', label: 'First occurrence' },
+  { value: 'manual', label: 'Manual override' }
+];
 
 // Types
 interface Student {
@@ -347,7 +353,6 @@ interface Student {
 const { showToast } = useToast();
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   classes,
   sections,
@@ -379,7 +384,7 @@ const calculationMethod = ref('total_marks');
 const tieBreakingMethod = ref('average');
 const includeAbsent = ref(false);
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
@@ -390,19 +395,11 @@ watch(selectedBranchId, async (newBranchId) => {
       loadExams({ branch_id: newBranchId, school_id: user.value?.school_id })
     ]);
   } else {
-    await Promise.all([
-      loadExams({ school_id: user.value?.school_id })
-    ]);
+    await Promise.all([loadExams({ school_id: user.value?.school_id })]);
   }
 });
 
 // Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 const examOptions = computed(() =>
   exams.value.map(exam => ({
@@ -445,13 +442,13 @@ const onBranchChange = async () => {
   selectedClassId.value = '';
   selectedSectionId.value = '';
   students.value = [];
-  
+
   // Load classes for the selected branch
   if (selectedBranchId.value) {
     await fetchClasses({
       branchId: selectedBranchId.value
     });
-    
+
     // Reload exams filtered by branch
     await loadExams({
       branch_id: selectedBranchId.value,
@@ -472,7 +469,7 @@ const onExamChange = () => {
 const onClassChange = async () => {
   selectedSectionId.value = '';
   students.value = [];
-  
+
   if (selectedClassId.value) {
     await fetchSections({
       schoolId: user.value?.school_id,
@@ -601,7 +598,10 @@ const savePositions = async () => {
         original_position: student.position
       }));
 
-      showToast(`Positions saved successfully for ${response.data?.successful?.length || students.value.length} students`, 'success');
+      showToast(
+        `Positions saved successfully for ${response.data?.successful?.length || students.value.length} students`,
+        'success'
+      );
     }
   } catch (error: any) {
     console.error('Error saving positions:', error);
@@ -638,8 +638,7 @@ const getGradeClass = (grade: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
-  
+
   if (selectedBranchId.value) {
     await Promise.all([
       fetchClasses({

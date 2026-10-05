@@ -125,7 +125,11 @@ export const examScheduleApi = {
   // Get all exam schedules with optional filters
   async getAll(
     filters: ExamScheduleFilters = {}
-  ): Promise<{ schedules?: ExamSchedule[]; data?: ExamSchedule[]; pagination?: { page: number; limit: number; total: number; totalPages: number } }> {
+  ): Promise<{
+    schedules?: ExamSchedule[];
+    data?: ExamSchedule[];
+    pagination?: { page: number; limit: number; total: number; totalPages: number };
+  }> {
     // Build query string from filters
     const queryParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -224,13 +228,11 @@ export const examScheduleApi = {
   },
 
   // Bulk create schedules
-  async bulkCreate(
-    schedules: CreateExamScheduleData[]
-  ): Promise<{ 
-    created_schedules?: ExamSchedule[]; 
+  async bulkCreate(schedules: CreateExamScheduleData[]): Promise<{
+    created_schedules?: ExamSchedule[];
     created?: ExamSchedule[];
     errors?: Array<{ schedule: any; error: string }>;
-    success_count: number; 
+    success_count: number;
     error_count: number;
   }> {
     const response = await apiCall('post', '/exam-schedules/bulk', { schedules });

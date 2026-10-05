@@ -52,11 +52,16 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'email', label: 'Email', type: 'text' },
       { key: 'class_id', label: 'Class', type: 'select', lookup: 'classes' },
       { key: 'date_of_birth', label: 'Date of birth', type: 'date' },
-      { key: 'gender', label: 'Gender', type: 'select', options: [
-        { label: 'Male', value: 'male' },
-        { label: 'Female', value: 'female' },
-        { label: 'Other', value: 'other' }
-      ] }
+      {
+        key: 'gender',
+        label: 'Gender',
+        type: 'select',
+        options: [
+          { label: 'Male', value: 'male' },
+          { label: 'Female', value: 'female' },
+          { label: 'Other', value: 'other' }
+        ]
+      }
     ],
     columns: [
       { key: 'title', label: 'Applicant' },
@@ -157,10 +162,28 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hr',
     fields: [
       { key: 'title', label: 'Name', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'All staff', value: 'all' }, { label: 'Admin', value: 'admin' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Librarian', value: 'librarian' }, { label: 'Student', value: 'student' }, { label: 'Receptionist', value: 'receptionist' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'All staff', value: 'all' },
+          { label: 'Admin', value: 'admin' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Librarian', value: 'librarian' },
+          { label: 'Student', value: 'student' },
+          { label: 'Receptionist', value: 'receptionist' }
+        ]
+      },
       { key: 'leave_days', label: 'Days', type: 'number', required: true }
     ],
-    columns: [{ key: 'title', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'leave_days', label: 'Days' }]
+    columns: [
+      { key: 'title', label: 'Name' },
+      { key: 'role', label: 'Role' },
+      { key: 'leave_days', label: 'Days' }
+    ]
   },
   leave_request: {
     title: 'Leave requests',
@@ -168,7 +191,13 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hr',
     fields: [
       { key: 'title', label: 'Subject', type: 'text', required: true },
-      { key: 'category_id', label: 'Leave category', type: 'select', lookup: 'entity:leave_category', required: true },
+      {
+        key: 'category_id',
+        label: 'Leave category',
+        type: 'select',
+        lookup: 'entity:leave_category',
+        required: true
+      },
       { key: 'user_id', label: 'Staff', type: 'select', lookup: 'staff', required: true },
       { key: 'date_value', label: 'Date of start', type: 'date', required: true },
       { key: 'end_date', label: 'Date of end', type: 'date', required: true },
@@ -202,7 +231,8 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     ],
     columns: [
       { key: 'title', label: 'Template' },
-      { key: 'amount', label: 'Basic' }, { key: 'overtime_rate', label: 'Overtime / hour' }
+      { key: 'amount', label: 'Basic' },
+      { key: 'overtime_rate', label: 'Overtime / hour' }
     ]
   },
   salary_payment: {
@@ -211,12 +241,39 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hr',
     fields: [
       { key: 'title', label: 'Payroll reference', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'Admin', value: 'admin' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Librarian', value: 'librarian' }, { label: 'Receptionist', value: 'receptionist' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Admin', value: 'admin' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Librarian', value: 'librarian' },
+          { label: 'Receptionist', value: 'receptionist' }
+        ]
+      },
       { key: 'user_id', label: 'Employee', type: 'select', lookup: 'staff', required: true },
-      { key: 'template_id', label: 'Salary template', type: 'select', lookup: 'entity:salary_template' },
+      {
+        key: 'template_id',
+        label: 'Salary template',
+        type: 'select',
+        lookup: 'entity:salary_template'
+      },
       { key: 'month_year', label: 'Month', type: 'text', required: true },
       { key: 'amount', label: 'Net salary', type: 'number', required: true },
-      { key: 'payment_method', label: 'Payment method', type: 'select', options: [{ label: 'Cash', value: 'cash' }, { label: 'Cheque', value: 'cheque' }, { label: 'Bank transfer', value: 'bank_transfer' }, { label: 'UPI', value: 'upi' }] },
+      {
+        key: 'payment_method',
+        label: 'Payment method',
+        type: 'select',
+        options: [
+          { label: 'Cash', value: 'cash' },
+          { label: 'Cheque', value: 'cheque' },
+          { label: 'Bank transfer', value: 'bank_transfer' },
+          { label: 'UPI', value: 'upi' }
+        ]
+      },
       { key: 'date_value', label: 'Payment date', type: 'date' },
       { key: 'notes', label: 'Remarks', type: 'textarea' }
     ],
@@ -229,9 +286,26 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     ]
   },
   salary_assignment: {
-    title: 'Salary assignments', description: 'Assign a salary template to an employee', module: 'hr',
-    fields: [{ key: 'title', label: 'Assignment reference', type: 'text', required: true }, { key: 'user_id', label: 'Employee', type: 'select', lookup: 'staff', required: true }, { key: 'template_id', label: 'Salary template', type: 'select', lookup: 'entity:salary_template', required: true }, { key: 'date_value', label: 'Effective from', type: 'date', required: true }],
-    columns: [{ key: 'title', label: 'Reference' }, { key: 'template_id_label', label: 'Template' }, { key: 'date_value', label: 'Effective from' }]
+    title: 'Salary assignments',
+    description: 'Assign a salary template to an employee',
+    module: 'hr',
+    fields: [
+      { key: 'title', label: 'Assignment reference', type: 'text', required: true },
+      { key: 'user_id', label: 'Employee', type: 'select', lookup: 'staff', required: true },
+      {
+        key: 'template_id',
+        label: 'Salary template',
+        type: 'select',
+        lookup: 'entity:salary_template',
+        required: true
+      },
+      { key: 'date_value', label: 'Effective from', type: 'date', required: true }
+    ],
+    columns: [
+      { key: 'title', label: 'Reference' },
+      { key: 'template_id_label', label: 'Template' },
+      { key: 'date_value', label: 'Effective from' }
+    ]
   },
   staff_award: {
     title: 'Staff awards',
@@ -239,7 +313,20 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hr',
     fields: [
       { key: 'title', label: 'Award', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'Admin', value: 'admin' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Librarian', value: 'librarian' }, { label: 'Student', value: 'student' }, { label: 'Receptionist', value: 'receptionist' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Admin', value: 'admin' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Librarian', value: 'librarian' },
+          { label: 'Student', value: 'student' },
+          { label: 'Receptionist', value: 'receptionist' }
+        ]
+      },
       { key: 'class_id', label: 'Class', type: 'select', lookup: 'classes' },
       { key: 'user_id', label: 'Winner', type: 'select', lookup: 'users', required: true },
       { key: 'gift_item', label: 'Gift item', type: 'text', required: true },
@@ -251,7 +338,9 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'title', label: 'Award' },
       { key: 'user_id_label', label: 'Winner' },
       { key: 'role', label: 'Role' },
-      { key: 'gift_item', label: 'Gift' }, { key: 'amount', label: 'Cash prize' }, { key: 'date_value', label: 'Date' }
+      { key: 'gift_item', label: 'Gift' },
+      { key: 'amount', label: 'Cash prize' },
+      { key: 'date_value', label: 'Date' }
     ]
   },
   advance_salary: {
@@ -260,7 +349,19 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hr',
     fields: [
       { key: 'title', label: 'Application reference', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'Admin', value: 'admin' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Librarian', value: 'librarian' }, { label: 'Receptionist', value: 'receptionist' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Admin', value: 'admin' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Librarian', value: 'librarian' },
+          { label: 'Receptionist', value: 'receptionist' }
+        ]
+      },
       { key: 'user_id', label: 'Applicant', type: 'select', lookup: 'staff', required: true },
       { key: 'month_year', label: 'Deduct month', type: 'text', required: true },
       { key: 'amount', label: 'Amount', type: 'number', required: true },
@@ -371,7 +472,11 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'stop_place', label: 'Stop place', type: 'text', required: true },
       { key: 'notes', label: 'Remarks', type: 'textarea' }
     ],
-    columns: [{ key: 'title', label: 'Route' }, { key: 'start_place', label: 'Start' }, { key: 'stop_place', label: 'Destination' }]
+    columns: [
+      { key: 'title', label: 'Route' },
+      { key: 'start_place', label: 'Start' },
+      { key: 'stop_place', label: 'Destination' }
+    ]
   },
   transport_vehicle: {
     title: 'Vehicles',
@@ -387,7 +492,8 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     ],
     columns: [
       { key: 'title', label: 'Vehicle' },
-      { key: 'capacity', label: 'Capacity' }, { key: 'driver_name', label: 'Driver' }
+      { key: 'capacity', label: 'Capacity' },
+      { key: 'driver_name', label: 'Driver' }
     ]
   },
   transport_stop: {
@@ -399,7 +505,11 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'stop_time', label: 'Stop time', type: 'text', required: true },
       { key: 'amount', label: 'Route fare', type: 'number', required: true }
     ],
-    columns: [{ key: 'title', label: 'Stop' }, { key: 'stop_time', label: 'Time' }, { key: 'amount', label: 'Fare' }]
+    columns: [
+      { key: 'title', label: 'Stop' },
+      { key: 'stop_time', label: 'Time' },
+      { key: 'amount', label: 'Fare' }
+    ]
   },
   transport_assignment: {
     title: 'Transport assignment',
@@ -407,11 +517,25 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'transport',
     fields: [
       { key: 'title', label: 'Assignment name', type: 'text', required: true },
-      { key: 'route_id', label: 'Transport route', type: 'select', lookup: 'entity:transport_route', required: true },
-      { key: 'vehicle_id', label: 'Vehicle', type: 'select', lookup: 'entity:transport_vehicle', required: true }
+      {
+        key: 'route_id',
+        label: 'Transport route',
+        type: 'select',
+        lookup: 'entity:transport_route',
+        required: true
+      },
+      {
+        key: 'vehicle_id',
+        label: 'Vehicle',
+        type: 'select',
+        lookup: 'entity:transport_vehicle',
+        required: true
+      }
     ],
     columns: [
-      { key: 'title', label: 'Assignment' }, { key: 'route_id_label', label: 'Route' }, { key: 'vehicle_id_label', label: 'Vehicle' }
+      { key: 'title', label: 'Assignment' },
+      { key: 'route_id_label', label: 'Route' },
+      { key: 'vehicle_id_label', label: 'Vehicle' }
     ]
   },
   transport_fee_setup: {
@@ -419,14 +543,58 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     description: 'Monthly due dates and late-fee rules',
     module: 'transport',
     fields: [
-      { key: 'title', label: 'Month', type: 'select', required: true, options: ['January','February','March','April','May','June','July','August','September','October','November','December'].map(value => ({ label: value, value })) },
+      {
+        key: 'title',
+        label: 'Month',
+        type: 'select',
+        required: true,
+        options: [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December'
+        ].map(value => ({ label: value, value }))
+      },
       { key: 'date_value', label: 'Due date', type: 'date', required: true },
-      { key: 'fine_type', label: 'Fine type', type: 'select', options: [{ label: 'No fine', value: 'none' }, { label: 'Fixed amount', value: 'fixed' }, { label: 'Percentage', value: 'percentage' }] },
+      {
+        key: 'fine_type',
+        label: 'Fine type',
+        type: 'select',
+        options: [
+          { label: 'No fine', value: 'none' },
+          { label: 'Fixed amount', value: 'fixed' },
+          { label: 'Percentage', value: 'percentage' }
+        ]
+      },
       { key: 'amount', label: 'Fine value', type: 'number' },
-      { key: 'fee_frequency', label: 'Late-fee frequency', type: 'select', options: [{ label: 'Fixed', value: 'fixed' }, { label: 'Daily', value: 'daily' }, { label: 'Weekly', value: 'weekly' }, { label: 'Monthly', value: 'monthly' }, { label: 'Annually', value: 'annually' }] },
+      {
+        key: 'fee_frequency',
+        label: 'Late-fee frequency',
+        type: 'select',
+        options: [
+          { label: 'Fixed', value: 'fixed' },
+          { label: 'Daily', value: 'daily' },
+          { label: 'Weekly', value: 'weekly' },
+          { label: 'Monthly', value: 'monthly' },
+          { label: 'Annually', value: 'annually' }
+        ]
+      },
       { key: 'apply_for_all_months', label: 'Apply this rule to all months', type: 'checkbox' }
     ],
-    columns: [{ key: 'title', label: 'Month' }, { key: 'date_value', label: 'Due date' }, { key: 'fine_type', label: 'Fine type' }, { key: 'amount', label: 'Fine value' }]
+    columns: [
+      { key: 'title', label: 'Month' },
+      { key: 'date_value', label: 'Due date' },
+      { key: 'fine_type', label: 'Fine type' },
+      { key: 'amount', label: 'Fine value' }
+    ]
   },
   hostel: {
     title: 'Hostels',
@@ -434,17 +602,47 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hostel',
     fields: [
       { key: 'title', label: 'Hostel name', type: 'text', required: true },
-      { key: 'category_id', label: 'Category', type: 'select', lookup: 'entity:hostel_category', required: true },
+      {
+        key: 'category_id',
+        label: 'Category',
+        type: 'select',
+        lookup: 'entity:hostel_category',
+        required: true
+      },
       { key: 'watchman_name', label: 'Watchman name', type: 'text', required: true },
       { key: 'hostel_address', label: 'Hostel address', type: 'textarea' },
       { key: 'notes', label: 'Remarks', type: 'textarea' }
     ],
-    columns: [{ key: 'title', label: 'Name' }, { key: 'category_id_label', label: 'Category' }, { key: 'watchman_name', label: 'Watchman' }]
+    columns: [
+      { key: 'title', label: 'Name' },
+      { key: 'category_id_label', label: 'Category' },
+      { key: 'watchman_name', label: 'Watchman' }
+    ]
   },
   hostel_category: {
-    title: 'Hostel categories', description: 'Categories for hostels and rooms', module: 'hostel',
-    fields: [{ key: 'title', label: 'Name', type: 'text', required: true }, { key: 'category_for', label: 'Category for', type: 'select', required: true, options: [{ label: 'Boys', value: 'boys' }, { label: 'Girls', value: 'girls' }, { label: 'Both', value: 'both' }] }, { key: 'notes', label: 'Remarks', type: 'textarea' }],
-    columns: [{ key: 'title', label: 'Name' }, { key: 'category_for', label: 'Type' }, { key: 'notes', label: 'Remarks' }]
+    title: 'Hostel categories',
+    description: 'Categories for hostels and rooms',
+    module: 'hostel',
+    fields: [
+      { key: 'title', label: 'Name', type: 'text', required: true },
+      {
+        key: 'category_for',
+        label: 'Category for',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Boys', value: 'boys' },
+          { label: 'Girls', value: 'girls' },
+          { label: 'Both', value: 'both' }
+        ]
+      },
+      { key: 'notes', label: 'Remarks', type: 'textarea' }
+    ],
+    columns: [
+      { key: 'title', label: 'Name' },
+      { key: 'category_for', label: 'Type' },
+      { key: 'notes', label: 'Remarks' }
+    ]
   },
   hostel_room: {
     title: 'Hostel rooms',
@@ -452,13 +650,30 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'hostel',
     fields: [
       { key: 'title', label: 'Room', type: 'text', required: true },
-      { key: 'hostel_id', label: 'Hostel', type: 'select', lookup: 'entity:hostel', required: true },
-      { key: 'category_id', label: 'Category', type: 'select', lookup: 'entity:hostel_category', required: true },
+      {
+        key: 'hostel_id',
+        label: 'Hostel',
+        type: 'select',
+        lookup: 'entity:hostel',
+        required: true
+      },
+      {
+        key: 'category_id',
+        label: 'Category',
+        type: 'select',
+        lookup: 'entity:hostel_category',
+        required: true
+      },
       { key: 'number_of_beds', label: 'Number of beds', type: 'number', required: true },
       { key: 'amount', label: 'Cost per bed', type: 'number', required: true },
       { key: 'notes', label: 'Remarks', type: 'textarea' }
     ],
-    columns: [{ key: 'title', label: 'Room' }, { key: 'hostel_id_label', label: 'Hostel' }, { key: 'number_of_beds', label: 'Beds' }, { key: 'amount', label: 'Cost / bed' }]
+    columns: [
+      { key: 'title', label: 'Room' },
+      { key: 'hostel_id_label', label: 'Hostel' },
+      { key: 'number_of_beds', label: 'Beds' },
+      { key: 'amount', label: 'Cost / bed' }
+    ]
   },
   hostel_allocation: {
     title: 'Hostel allocation',
@@ -467,12 +682,25 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     fields: [
       { key: 'title', label: 'Allocation reference', type: 'text', required: true },
       { key: 'student_id', label: 'Student', type: 'select', lookup: 'students', required: true },
-      { key: 'hostel_id', label: 'Hostel', type: 'select', lookup: 'entity:hostel', required: true },
-      { key: 'room_id', label: 'Room', type: 'select', lookup: 'entity:hostel_room', required: true }
+      {
+        key: 'hostel_id',
+        label: 'Hostel',
+        type: 'select',
+        lookup: 'entity:hostel',
+        required: true
+      },
+      {
+        key: 'room_id',
+        label: 'Room',
+        type: 'select',
+        lookup: 'entity:hostel_room',
+        required: true
+      }
     ],
     columns: [
       { key: 'title', label: 'Label' },
-      { key: 'hostel_id_label', label: 'Hostel' }, { key: 'room_id_label', label: 'Room' }
+      { key: 'hostel_id_label', label: 'Hostel' },
+      { key: 'room_id_label', label: 'Room' }
     ]
   },
   enquiry: {
@@ -497,10 +725,15 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'reception',
     fields: [
       { key: 'title', label: 'Subject', type: 'text', required: true },
-      { key: 'status', label: 'Direction', type: 'select', options: [
-        { label: 'Inward', value: 'inward' },
-        { label: 'Outward', value: 'outward' }
-      ] },
+      {
+        key: 'status',
+        label: 'Direction',
+        type: 'select',
+        options: [
+          { label: 'Inward', value: 'inward' },
+          { label: 'Outward', value: 'outward' }
+        ]
+      },
       { key: 'date_value', label: 'Date', type: 'date' },
       { key: 'notes', label: 'Details', type: 'textarea' }
     ],
@@ -531,10 +764,15 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     fields: [
       { key: 'title', label: 'Subject', type: 'text', required: true },
       { key: 'notes', label: 'Details', type: 'textarea' },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { label: 'Open', value: 'open' },
-        { label: 'Closed', value: 'closed' }
-      ] }
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        options: [
+          { label: 'Open', value: 'open' },
+          { label: 'Closed', value: 'closed' }
+        ]
+      }
     ],
     columns: [
       { key: 'title', label: 'Subject' },
@@ -567,7 +805,11 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'opening_balance', label: 'Opening balance', type: 'number' },
       { key: 'notes', label: 'Description', type: 'textarea' }
     ],
-    columns: [{ key: 'title', label: 'Account name' }, { key: 'reference_no', label: 'Account number' }, { key: 'opening_balance', label: 'Opening balance' }]
+    columns: [
+      { key: 'title', label: 'Account name' },
+      { key: 'reference_no', label: 'Account number' },
+      { key: 'opening_balance', label: 'Opening balance' }
+    ]
   },
   account_head: {
     title: 'Voucher heads',
@@ -575,9 +817,21 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'accounting',
     fields: [
       { key: 'title', label: 'Name', type: 'text', required: true },
-      { key: 'voucher_type', label: 'Type', type: 'select', required: true, options: [{ label: 'Income', value: 'income' }, { label: 'Expense', value: 'expense' }] }
+      {
+        key: 'voucher_type',
+        label: 'Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Income', value: 'income' },
+          { label: 'Expense', value: 'expense' }
+        ]
+      }
     ],
-    columns: [{ key: 'title', label: 'Name' }, { key: 'voucher_type', label: 'Type' }]
+    columns: [
+      { key: 'title', label: 'Name' },
+      { key: 'voucher_type', label: 'Type' }
+    ]
   },
   voucher: {
     title: 'Vouchers',
@@ -585,13 +839,44 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'accounting',
     fields: [
       { key: 'title', label: 'Narration', type: 'text', required: true },
-      { key: 'account_id', label: 'Account', type: 'select', lookup: 'entity:account', required: true },
-      { key: 'voucher_type', label: 'Voucher type', type: 'select', required: true, options: [{ label: 'Deposit', value: 'deposit' }, { label: 'Expense', value: 'expense' }] },
-      { key: 'voucher_head_id', label: 'Voucher head', type: 'select', lookup: 'entity:account_head', required: true },
+      {
+        key: 'account_id',
+        label: 'Account',
+        type: 'select',
+        lookup: 'entity:account',
+        required: true
+      },
+      {
+        key: 'voucher_type',
+        label: 'Voucher type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Deposit', value: 'deposit' },
+          { label: 'Expense', value: 'expense' }
+        ]
+      },
+      {
+        key: 'voucher_head_id',
+        label: 'Voucher head',
+        type: 'select',
+        lookup: 'entity:account_head',
+        required: true
+      },
       { key: 'reference_no', label: 'Ref no', type: 'text' },
       { key: 'amount', label: 'Amount', type: 'number', required: true },
       { key: 'date_value', label: 'Date', type: 'date', required: true },
-      { key: 'pay_via', label: 'Pay via', type: 'select', options: [{ label: 'Cash', value: 'cash' }, { label: 'Cheque', value: 'cheque' }, { label: 'Bank transfer', value: 'bank_transfer' }, { label: 'UPI', value: 'upi' }] },
+      {
+        key: 'pay_via',
+        label: 'Pay via',
+        type: 'select',
+        options: [
+          { label: 'Cash', value: 'cash' },
+          { label: 'Cheque', value: 'cheque' },
+          { label: 'Bank transfer', value: 'bank_transfer' },
+          { label: 'UPI', value: 'upi' }
+        ]
+      },
       { key: 'notes', label: 'Description', type: 'textarea' }
     ],
     columns: [
@@ -611,9 +896,27 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     fields: [
       { key: 'title', label: 'Product', type: 'text', required: true },
       { key: 'reference_no', label: 'Product code', type: 'text', required: true },
-      { key: 'category_id', label: 'Product category', type: 'select', lookup: 'entity:inventory_category', required: true },
-      { key: 'purchase_unit_id', label: 'Purchase unit', type: 'select', lookup: 'entity:inventory_unit', required: true },
-      { key: 'sales_unit_id', label: 'Sales unit', type: 'select', lookup: 'entity:inventory_unit', required: true },
+      {
+        key: 'category_id',
+        label: 'Product category',
+        type: 'select',
+        lookup: 'entity:inventory_category',
+        required: true
+      },
+      {
+        key: 'purchase_unit_id',
+        label: 'Purchase unit',
+        type: 'select',
+        lookup: 'entity:inventory_unit',
+        required: true
+      },
+      {
+        key: 'sales_unit_id',
+        label: 'Sales unit',
+        type: 'select',
+        lookup: 'entity:inventory_unit',
+        required: true
+      },
       { key: 'unit_ratio', label: 'Unit ratio', type: 'number', required: true },
       { key: 'purchase_price', label: 'Purchase price', type: 'number', required: true },
       { key: 'amount', label: 'Sales price', type: 'number', required: true },
@@ -652,7 +955,11 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'address', label: 'Address', type: 'text' },
       { key: 'notes', label: 'Description', type: 'text' }
     ],
-    columns: [{ key: 'title', label: 'Store' }, { key: 'reference_no', label: 'Store code' }, { key: 'mobile_no', label: 'Mobile no' }]
+    columns: [
+      { key: 'title', label: 'Store' },
+      { key: 'reference_no', label: 'Store code' },
+      { key: 'mobile_no', label: 'Mobile no' }
+    ]
   },
   inventory_supplier: {
     title: 'Suppliers',
@@ -679,12 +986,50 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'inventory',
     fields: [
       { key: 'title', label: 'Bill no', type: 'text', required: true },
-      { key: 'supplier_id', label: 'Supplier', type: 'select', lookup: 'entity:inventory_supplier', required: true },
-      { key: 'store_id', label: 'Store', type: 'select', lookup: 'entity:inventory_store', required: true },
-      { key: 'purchase_status', label: 'Purchase status', type: 'select', required: true, options: [{ label: 'Ordered', value: 'ordered' }, { label: 'Received', value: 'received' }, { label: 'Pending', value: 'pending' }] },
-      { key: 'payment_status', label: 'Payment status', type: 'select', required: true, options: [{ label: 'Paid', value: 'paid' }, { label: 'Unpaid', value: 'unpaid' }, { label: 'Partial', value: 'partial' }] },
+      {
+        key: 'supplier_id',
+        label: 'Supplier',
+        type: 'select',
+        lookup: 'entity:inventory_supplier',
+        required: true
+      },
+      {
+        key: 'store_id',
+        label: 'Store',
+        type: 'select',
+        lookup: 'entity:inventory_store',
+        required: true
+      },
+      {
+        key: 'purchase_status',
+        label: 'Purchase status',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Ordered', value: 'ordered' },
+          { label: 'Received', value: 'received' },
+          { label: 'Pending', value: 'pending' }
+        ]
+      },
+      {
+        key: 'payment_status',
+        label: 'Payment status',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Paid', value: 'paid' },
+          { label: 'Unpaid', value: 'unpaid' },
+          { label: 'Partial', value: 'partial' }
+        ]
+      },
       { key: 'date_value', label: 'Purchase date', type: 'date', required: true },
-      { key: 'product_id', label: 'Product', type: 'select', lookup: 'entity:inventory_product', required: true },
+      {
+        key: 'product_id',
+        label: 'Product',
+        type: 'select',
+        lookup: 'entity:inventory_product',
+        required: true
+      },
       { key: 'unit_price', label: 'Unit price', type: 'number', required: true },
       { key: 'quantity', label: 'Quantity', type: 'number', required: true },
       { key: 'discount', label: 'Discount', type: 'number' },
@@ -706,11 +1051,39 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'inventory',
     fields: [
       { key: 'title', label: 'Bill no', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'Student', value: 'student' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Parent', value: 'parent' }, { label: 'Other', value: 'other' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Student', value: 'student' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Parent', value: 'parent' },
+          { label: 'Other', value: 'other' }
+        ]
+      },
       { key: 'user_id', label: 'Sale to', type: 'select', lookup: 'users' },
-      { key: 'payment_status', label: 'Payment status', type: 'select', required: true, options: [{ label: 'Paid', value: 'paid' }, { label: 'Unpaid', value: 'unpaid' }, { label: 'Partial', value: 'partial' }] },
+      {
+        key: 'payment_status',
+        label: 'Payment status',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Paid', value: 'paid' },
+          { label: 'Unpaid', value: 'unpaid' },
+          { label: 'Partial', value: 'partial' }
+        ]
+      },
       { key: 'date_value', label: 'Date', type: 'date', required: true },
-      { key: 'product_id', label: 'Product', type: 'select', lookup: 'entity:inventory_product', required: true },
+      {
+        key: 'product_id',
+        label: 'Product',
+        type: 'select',
+        lookup: 'entity:inventory_product',
+        required: true
+      },
       { key: 'unit_price', label: 'Unit price', type: 'number', required: true },
       { key: 'quantity', label: 'Quantity', type: 'number', required: true },
       { key: 'discount', label: 'Discount', type: 'number' },
@@ -731,12 +1104,30 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'inventory',
     fields: [
       { key: 'title', label: 'Issue reference', type: 'text', required: true },
-      { key: 'role', label: 'Role', type: 'select', required: true, options: [{ label: 'Student', value: 'student' }, { label: 'Teacher', value: 'teacher' }, { label: 'Accountant', value: 'accountant' }, { label: 'Parent', value: 'parent' }, { label: 'Other', value: 'other' }] },
+      {
+        key: 'role',
+        label: 'Role',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Student', value: 'student' },
+          { label: 'Teacher', value: 'teacher' },
+          { label: 'Accountant', value: 'accountant' },
+          { label: 'Parent', value: 'parent' },
+          { label: 'Other', value: 'other' }
+        ]
+      },
       { key: 'class_id', label: 'Class', type: 'select', lookup: 'classes' },
       { key: 'user_id', label: 'Issue to', type: 'select', lookup: 'users' },
       { key: 'date_value', label: 'Date of issue', type: 'date', required: true },
       { key: 'due_date', label: 'Due date', type: 'date', required: true },
-      { key: 'product_id', label: 'Product', type: 'select', lookup: 'entity:inventory_product', required: true },
+      {
+        key: 'product_id',
+        label: 'Product',
+        type: 'select',
+        lookup: 'entity:inventory_product',
+        required: true
+      },
       { key: 'quantity', label: 'Quantity', type: 'number', required: true },
       { key: 'notes', label: 'Remark', type: 'textarea' }
     ],
@@ -839,18 +1230,30 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'students',
     fields: [
       { key: 'title', label: 'Field name', type: 'text', required: true },
-      { key: 'applies_to', label: 'Applies to', type: 'select', required: true, options: [
-        { label: 'Student', value: 'student' },
-        { label: 'Parent / guardian', value: 'parent' }
-      ] },
-      { key: 'field_type', label: 'Field type', type: 'select', required: true, options: [
-        { label: 'Text', value: 'text' },
-        { label: 'Long text', value: 'textarea' },
-        { label: 'Number', value: 'number' },
-        { label: 'Date', value: 'date' },
-        { label: 'Dropdown', value: 'select' },
-        { label: 'Checkbox', value: 'checkbox' }
-      ] },
+      {
+        key: 'applies_to',
+        label: 'Applies to',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Student', value: 'student' },
+          { label: 'Parent / guardian', value: 'parent' }
+        ]
+      },
+      {
+        key: 'field_type',
+        label: 'Field type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Text', value: 'text' },
+          { label: 'Long text', value: 'textarea' },
+          { label: 'Number', value: 'number' },
+          { label: 'Date', value: 'date' },
+          { label: 'Dropdown', value: 'select' },
+          { label: 'Checkbox', value: 'checkbox' }
+        ]
+      },
       { key: 'notes', label: 'Dropdown options (one per line)', type: 'textarea' },
       { key: 'sort_order', label: 'Display order', type: 'number' },
       { key: 'is_required', label: 'Required field', type: 'checkbox' },
@@ -913,11 +1316,16 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'title', label: 'Label', type: 'text', required: true },
       { key: 'user_id', label: 'Staff', type: 'select', lookup: 'users', required: true },
       { key: 'date_value', label: 'Date', type: 'date', required: true },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { label: 'Present', value: 'present' },
-        { label: 'Absent', value: 'absent' },
-        { label: 'Leave', value: 'leave' }
-      ] }
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        options: [
+          { label: 'Present', value: 'present' },
+          { label: 'Absent', value: 'absent' },
+          { label: 'Leave', value: 'leave' }
+        ]
+      }
     ],
     columns: [
       { key: 'title', label: 'Label' },
@@ -933,10 +1341,15 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
       { key: 'title', label: 'Label', type: 'text', required: true },
       { key: 'student_id', label: 'Student', type: 'select', lookup: 'students', required: true },
       { key: 'date_value', label: 'Date', type: 'date' },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { label: 'Present', value: 'present' },
-        { label: 'Absent', value: 'absent' }
-      ] }
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        options: [
+          { label: 'Present', value: 'present' },
+          { label: 'Absent', value: 'absent' }
+        ]
+      }
     ],
     columns: [
       { key: 'title', label: 'Label' },
@@ -970,11 +1383,17 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     module: 'reception',
     fields: [
       { key: 'title', label: 'Title / Name', type: 'text', required: true },
-      { key: 'config_type', label: 'Type', type: 'select', required: true, options: [
-        { label: 'Reference', value: 'reference' },
-        { label: 'Source', value: 'source' },
-        { label: 'Complaint Type', value: 'complaint_type' }
-      ] },
+      {
+        key: 'config_type',
+        label: 'Type',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Reference', value: 'reference' },
+          { label: 'Source', value: 'source' },
+          { label: 'Complaint Type', value: 'complaint_type' }
+        ]
+      },
       { key: 'notes', label: 'Description', type: 'textarea' }
     ],
     columns: [
@@ -1079,11 +1498,16 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     fields: [
       { key: 'title', label: 'Recipient / Number', type: 'text', required: true },
       { key: 'notes', label: 'Message Details', type: 'textarea', required: true },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { label: 'Delivered', value: 'delivered' },
-        { label: 'Pending', value: 'pending' },
-        { label: 'Failed', value: 'failed' }
-      ] }
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'select',
+        options: [
+          { label: 'Delivered', value: 'delivered' },
+          { label: 'Pending', value: 'pending' },
+          { label: 'Failed', value: 'failed' }
+        ]
+      }
     ],
     columns: [
       { key: 'title', label: 'Recipient' },
@@ -1239,4 +1663,3 @@ export const MODULE_ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
     ]
   }
 };
-

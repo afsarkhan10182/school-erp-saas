@@ -25,9 +25,14 @@
       />
 
       <!-- Branch / School Context Info -->
-      <div v-if="currentBranch || currentSchool" class="bg-blue-50 dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-gray-700 shadow-sm flex items-center justify-between">
+      <div
+        v-if="currentBranch || currentSchool"
+        class="bg-blue-50 dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-gray-700 shadow-sm flex items-center justify-between"
+      >
         <div class="flex items-center space-x-3">
-          <span class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+          <span
+            class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-sm"
+          >
             {{ (currentBranch?.name || currentSchool?.name || 'S').charAt(0).toUpperCase() }}
           </span>
           <div>
@@ -35,7 +40,9 @@
               <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
                 {{ currentBranch?.name || 'Active Branch' }}
               </h3>
-              <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+              <span
+                class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium"
+              >
                 Active Branch
               </span>
             </div>
@@ -245,11 +252,7 @@
               }"
             >
               <option value="">Select Category</option>
-              <option
-                v-for="category in studentCategories"
-                :key="category.id"
-                :value="category.id"
-              >
+              <option v-for="category in studentCategories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
             </select>
@@ -629,9 +632,7 @@
         </div>
 
         <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
-            Sibling Details
-          </h3>
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Sibling Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -659,35 +660,51 @@
         </div>
 
         <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">
-            Transport Details
-          </h3>
+          <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Transport Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Route
               </label>
-              <select v-model="form.student.transport_route_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_route_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No transport route</option>
-                <option v-for="item in transportRoutes" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportRoutes" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Vehicle
               </label>
-              <select v-model="form.student.transport_vehicle_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_vehicle_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No vehicle</option>
-                <option v-for="item in transportVehicles" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportVehicles" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Stoppage
               </label>
-              <select v-model="form.student.transport_stop_id" class="input-field" @change="syncTransportLabels">
+              <select
+                v-model="form.student.transport_stop_id"
+                class="input-field"
+                @change="syncTransportLabels"
+              >
                 <option value="">No stoppage</option>
-                <option v-for="item in transportStops" :key="item.id" :value="item.id">{{ item.title }}</option>
+                <option v-for="item in transportStops" :key="item.id" :value="item.id">
+                  {{ item.title }}
+                </option>
               </select>
             </div>
           </div>
@@ -1282,8 +1299,15 @@
               rows="2"
               :class="{ 'border-red-500': getFieldError(`custom_fields.${field.id}`) }"
             ></textarea>
-            <label v-else-if="field.field_type === 'checkbox'" class="inline-flex items-center gap-2 mt-2">
-              <input v-model="form.custom_fields[field.id]" type="checkbox" class="rounded border-gray-300" />
+            <label
+              v-else-if="field.field_type === 'checkbox'"
+              class="inline-flex items-center gap-2 mt-2"
+            >
+              <input
+                v-model="form.custom_fields[field.id]"
+                type="checkbox"
+                class="rounded border-gray-300"
+              />
               <span class="text-sm text-gray-700 dark:text-gray-300">Yes</span>
             </label>
             <input
@@ -1765,7 +1789,8 @@ watch(
       form.student.sibling_admission_number = admissionExtras.sibling_admission_number || '';
       form.student.sibling_details = admissionExtras.sibling_details || '';
       form.student.previous_school_name = admissionExtras.previous_school_name || '';
-      form.student.previous_school_qualification = admissionExtras.previous_school_qualification || '';
+      form.student.previous_school_qualification =
+        admissionExtras.previous_school_qualification || '';
       form.student.previous_school_remarks = admissionExtras.previous_school_remarks || '';
       form.student.transport_route_id = admissionExtras.transport_route_id || '';
       form.student.transport_route = admissionExtras.transport_route || '';
@@ -2215,9 +2240,13 @@ const loadTransportOptions = async () => {
 };
 
 const syncTransportLabels = () => {
-  form.student.transport_route = transportRoutes.value.find(item => item.id === form.student.transport_route_id)?.title || '';
-  form.student.transport_vehicle = transportVehicles.value.find(item => item.id === form.student.transport_vehicle_id)?.title || '';
-  form.student.transport_stop = transportStops.value.find(item => item.id === form.student.transport_stop_id)?.title || '';
+  form.student.transport_route =
+    transportRoutes.value.find(item => item.id === form.student.transport_route_id)?.title || '';
+  form.student.transport_vehicle =
+    transportVehicles.value.find(item => item.id === form.student.transport_vehicle_id)?.title ||
+    '';
+  form.student.transport_stop =
+    transportStops.value.find(item => item.id === form.student.transport_stop_id)?.title || '';
 };
 
 // Validation functions for numeric fields
@@ -3207,8 +3236,13 @@ onMounted(async () => {
 
     // Auto-sync with global branch and school
     if (!props.isEditing) {
-      form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
-      form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+      form.school_id =
+        currentSchool.value?.id ||
+        authStore.currentBranch?.school_id ||
+        user.value?.school_id ||
+        '';
+      form.branch_id =
+        selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
       if (form.branch_id) {
         await onBranchChange();
       }
@@ -3219,9 +3253,13 @@ onMounted(async () => {
     }
 
     // Watch top bar branch switch for create mode
-    watch(selectedBranchId, async (newVal) => {
+    watch(selectedBranchId, async newVal => {
       if (!props.isEditing && newVal && newVal !== form.branch_id) {
-        form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
+        form.school_id =
+          currentSchool.value?.id ||
+          authStore.currentBranch?.school_id ||
+          user.value?.school_id ||
+          '';
         form.branch_id = newVal;
         await onBranchChange();
       }

@@ -98,7 +98,7 @@ class DashboardController {
               Sequelize.fn(
                 'SUM',
                 Sequelize.literal(
-                  `CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
+                  `CASE WHEN status IN ('paid', 'partial_paid') AND updated_at >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
                 )
               ),
               'fee_collection'
@@ -115,7 +115,7 @@ class DashboardController {
           User.count({
             where: {
               ...userWhere,
-              role: ['accountant', 'hr', 'receptionist', 'librarian', 'transport_manager', 'branch_admin', 'admin']
+              role: ['accountant', 'receptionist', 'librarian', 'branch_admin', 'admin']
             }
           })
         ]);
@@ -206,7 +206,7 @@ class DashboardController {
               Sequelize.fn(
                 'SUM',
                 Sequelize.literal(
-                  `CASE WHEN status IN ('paid', 'partial_paid') AND last_payment_date >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
+                  `CASE WHEN status IN ('paid', 'partial_paid') AND updated_at >= '${currentMonthStart.toISOString()}' THEN paid_amount ELSE 0 END`
                 )
               ),
               'fee_collection'
@@ -235,7 +235,7 @@ class DashboardController {
           User.count({
             where: {
               branch_id: user.branch_id,
-              role: ['accountant', 'hr', 'receptionist', 'librarian', 'transport_manager', 'branch_admin', 'admin']
+              role: ['accountant', 'receptionist', 'librarian', 'branch_admin', 'admin']
             }
           })
         ]);
@@ -344,10 +344,8 @@ class DashboardController {
               school_id: schoolId,
               role: [
                 'accountant',
-                'hr',
                 'receptionist',
                 'librarian',
-                'transport_manager',
                 'branch_admin',
                 'admin'
               ]
@@ -401,11 +399,11 @@ class DashboardController {
             'payment' as type,
             id,
             CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
-            last_payment_date as created_at,
+            updated_at as created_at,
             NULL as extra_info
           FROM fee_invoices 
           WHERE status = 'paid' 
-          ORDER BY last_payment_date DESC 
+          ORDER BY updated_at DESC
           LIMIT ${Math.ceil(limit / 3)})
           UNION ALL
           (SELECT 
@@ -465,11 +463,11 @@ class DashboardController {
             'payment' as type,
             id,
             CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
-            last_payment_date as created_at,
+            updated_at as created_at,
             NULL as extra_info
           FROM fee_invoices 
           WHERE school_id = '${user.school_id}' ${schoolFilter} AND status = 'paid'
-          ORDER BY last_payment_date DESC 
+          ORDER BY updated_at DESC
           LIMIT ${Math.ceil(limit / 2)})
           ORDER BY created_at DESC
           LIMIT ${limit}
@@ -508,11 +506,11 @@ class DashboardController {
             'payment' as type,
             id,
             CONCAT('₹', COALESCE(paid_amount, 0), ' payment received') as description,
-            last_payment_date as created_at,
+            updated_at as created_at,
             NULL as extra_info
           FROM fee_invoices 
           WHERE branch_id = '${user.branch_id}' AND status = 'paid'
-          ORDER BY last_payment_date DESC 
+          ORDER BY updated_at DESC
           LIMIT ${Math.ceil(limit / 2)})
           ORDER BY created_at DESC
           LIMIT ${limit}
@@ -1041,7 +1039,7 @@ class DashboardController {
         where: {
           ...where,
           status: ['paid', 'partial_paid'],
-          last_payment_date: { [Op.gte]: currentMonthStart }
+          updated_at: { [Op.gte]: currentMonthStart }
         }
       });
 

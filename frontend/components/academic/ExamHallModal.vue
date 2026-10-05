@@ -41,7 +41,6 @@
           <div class="bg-white dark:bg-gray-800 px-4 pb-4 sm:p-6">
             <!-- Only essential fields -->
             <div class="space-y-4">
-
               <!-- Hall No () -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -138,12 +137,6 @@ const form = ref({
 // Computed
 const isEditing = computed(() => !!props.hall);
 
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 // Methods
 const closeModal = () => {
@@ -170,7 +163,12 @@ const loadFormData = () => {
 };
 
 const saveHall = async () => {
-  form.value.branch_id = form.value.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
+  form.value.branch_id =
+    form.value.branch_id ||
+    selectedBranchId.value ||
+    authStore.currentBranch?.id ||
+    branches.value?.[0]?.id ||
+    user.value?.branch_id;
   //  - Only validate essential fields
   if (!form.value.branch_id) {
     showToast('Branch is required', 'error');

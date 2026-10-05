@@ -30,8 +30,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-
           <!-- Exam Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -345,7 +343,6 @@ import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExamPublication } from '~/composables/useExamPublication';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 // Types
@@ -364,7 +361,6 @@ const { showToast } = useToast();
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
 const { classes, classOptions, fetchClasses, loading: classesLoading } = useAcademics();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   getPublicationStatus,
   publishExam,
@@ -389,7 +385,7 @@ const notificationSettings = reactive({
   notification_message: ''
 });
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   exams.value = [];
@@ -409,10 +405,6 @@ const examOptions = computed(() =>
     description: exam.examType?.name
   }))
 );
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({ value: branch.id, label: branch.name }))
-);
-const showBranchDropdown = computed(() => branches.value.length > 1);
 
 const selectAll = computed({
   get: () => selectedExams.value.length === exams.value.length && exams.value.length > 0,
@@ -586,7 +578,6 @@ const formatDate = (dateString: string) => {
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
   if (selectedBranchId.value) {
     await fetchClasses({ branchId: selectedBranchId.value });
   } else {

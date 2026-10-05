@@ -230,39 +230,7 @@
                 >Date Range</label
               >
               <div class="relative group">
-                <select
-                  v-model="filters.dateRange"
-                  @change="handleDateRangeChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="today">Today</option>
-                  <option value="yesterday">Yesterday</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                <EnhancedDropdown v-model="filters.dateRange" :options="dateRangeOptions" :disabled="isLoading" placeholder="Select date range" @update:model-value="handleDateRangeChange" />
               </div>
             </div>
             <div v-if="filters.dateRange === 'custom' && filters.payment_model !== 'monthly'">
@@ -293,36 +261,7 @@
                 >Payment Model</label
               >
               <div class="relative group">
-                <select
-                  v-model="filters.payment_model"
-                  @change="handlePaymentModelChange"
-                  :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Models</option>
-                  <option value="installment">Installment Payments</option>
-                  <option value="monthly">Monthly Payments</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                <EnhancedDropdown v-model="filters.payment_model" :options="paymentModelOptions" :disabled="isLoading" placeholder="All Models" @update:model-value="handlePaymentModelChange" />
               </div>
             </div>
             <!-- Month Filter - Only show when monthly is selected -->
@@ -376,37 +315,13 @@
                 >Class</label
               >
               <div class="relative group">
-                <select
+                <EnhancedDropdown
                   v-model="filters.class_id"
-                  @change="onClassChange"
+                  :options="[{ label: 'All Classes', value: '' }, ...classes.map(item => ({ label: item.name, value: item.id }))]"
                   :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Classes</option>
-                  <option v-for="classItem in classes" :key="classItem.id" :value="classItem.id">
-                    {{ classItem.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                  placeholder="All Classes"
+                  @update:model-value="onClassChange"
+                />
               </div>
             </div>
             <div v-if="showSectionDropdown">
@@ -414,36 +329,12 @@
                 >Section</label
               >
               <div class="relative group">
-                <select
+                <EnhancedDropdown
                   v-model="filters.section_id"
+                  :options="[{ label: 'All Sections', value: '' }, ...sections.map(item => ({ label: item.name, value: item.id }))]"
                   :disabled="isLoading || !filters.class_id"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Sections</option>
-                  <option v-for="section in sections" :key="section.id" :value="section.id">
-                    {{ section.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                  placeholder="All Sections"
+                />
               </div>
             </div>
             <div v-if="showStreamDropdown">
@@ -451,22 +342,13 @@
                 >Stream</label
               >
               <div class="relative group">
-                <select
+                <EnhancedDropdown
                   v-model="filters.stream_id"
-                  @change="onStreamChange"
+                  :options="[{ label: 'All Streams', value: '' }, ...streams.map(item => ({ label: item.name, value: item.id }))]"
                   :disabled="isLoading || !filters.class_id"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Streams</option>
-                  <option v-for="stream in streams" :key="stream.id" :value="stream.id">
-                    {{ stream.name }}
-                  </option>
-                </select>
+                  placeholder="All Streams"
+                  @update:model-value="onStreamChange"
+                />
                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
                     class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
@@ -489,37 +371,18 @@
                 >Payment Status</label
               >
               <div class="relative group">
-                <select
+                <EnhancedDropdown
                   v-model="filters.status"
+                  :options="[
+                    { label: 'All Status', value: '' },
+                    { label: 'Paid', value: 'paid' },
+                    { label: 'Partial Paid', value: 'partial_paid' },
+                    { label: 'Unpaid', value: 'unpaid' },
+                    { label: 'Overdue', value: 'overdue' }
+                  ]"
                   :disabled="isLoading"
-                  class="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group-hover:border-indigo-400 dark:group-hover:border-indigo-500"
-                  style="
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  "
-                >
-                  <option value="">All Status</option>
-                  <option value="paid">Paid</option>
-                  <option value="partial_paid">Partial Paid</option>
-                  <option value="unpaid">Unpaid</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    class="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
+                  placeholder="All Status"
+                />
               </div>
             </div>
             <div>
@@ -1133,6 +996,18 @@ import { useBranches } from '~/composables/useBranches';
 import Pagination from '~/components/ui/Pagination.vue';
 import UserAvatar from '~/components/shared/UserAvatar.vue';
 import { formatMonthsForAPI } from '~/utils/academic-year';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+
+const dateRangeOptions = [
+  { label: 'Today', value: 'today' }, { label: 'Yesterday', value: 'yesterday' },
+  { label: 'This Week', value: 'week' }, { label: 'This Month', value: 'month' },
+  { label: 'This Year', value: 'year' }, { label: 'Custom Range', value: 'custom' }
+];
+const paymentModelOptions = [
+  { label: 'All Models', value: '' },
+  { label: 'Installment Payments', value: 'installment' },
+  { label: 'Monthly Payments', value: 'monthly' }
+];
 
 // Get auth store and toast
 const { user, isSuperAdmin } = useAuth();
@@ -1223,7 +1098,7 @@ const filters = reactive({
 });
 
 // Watch for global branch or school change
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   filters.branch_id = newVal || '';
   filters.class_id = '';
   filters.stream_id = '';

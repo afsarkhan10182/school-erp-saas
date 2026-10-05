@@ -188,20 +188,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Academic Year Starting Month</label
             >
-            <select v-model="form.schoolData.starting_month" class="form-select">
-              <option value="1">January</option>
-              <option value="2">February</option>
-              <option value="3">March</option>
-              <option value="4">April</option>
-              <option value="5">May</option>
-              <option value="6">June (Default)</option>
-              <option value="7">July</option>
-              <option value="8">August</option>
-              <option value="9">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
+            <EnhancedDropdown v-model="form.schoolData.starting_month" :options="startingMonthOptions" placeholder="Select month" />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               This determines when the academic year starts and how payment months are calculated
             </p>
@@ -210,11 +197,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Default Payment Model</label
             >
-            <select v-model="form.schoolData.default_payment_model" class="form-select">
-              <option value="class_based">Class-based (Default)</option>
-              <option value="monthly">Monthly</option>
-              <option value="term_based">Term-based</option>
-            </select>
+            <EnhancedDropdown v-model="form.schoolData.default_payment_model" :options="paymentModelOptions" placeholder="Select payment model" />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Default payment model for new fee structures
             </p>
@@ -223,10 +206,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Academic Year Type</label
             >
-            <select v-model="form.schoolData.academic_year_start" class="form-select">
-              <option value="academic">Academic Year (Custom starting month)</option>
-              <option value="calendar">Calendar Year (January-December)</option>
-            </select>
+            <EnhancedDropdown v-model="form.schoolData.academic_year_start" :options="academicYearTypeOptions" placeholder="Select year type" />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Academic: June-May or custom starting month, Calendar: January-December
             </p>
@@ -707,6 +687,21 @@ import { useSubscriptions } from '~/composables/useSubscriptions';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { Eye, EyeOff } from 'lucide-vue-next';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+
+const startingMonthOptions = [
+  'January', 'February', 'March', 'April', 'May', 'June (Default)',
+  'July', 'August', 'September', 'October', 'November', 'December'
+].map((label, index) => ({ label, value: String(index + 1) }));
+const paymentModelOptions = [
+  { label: 'Class-based (Default)', value: 'class_based' },
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Term-based', value: 'term_based' }
+];
+const academicYearTypeOptions = [
+  { label: 'Academic Year (Custom starting month)', value: 'academic' },
+  { label: 'Calendar Year (January-December)', value: 'calendar' }
+];
 
 const authStore = useAuthStore();
 const { showError, showApiError } = useToast();
@@ -1116,6 +1111,4 @@ const toggleAdminPassword = () => {
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
-
-
 </style>

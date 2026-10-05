@@ -160,4 +160,19 @@ router.use('/certificates', certificateGenerationRoutes);
 // Upload routes
 router.use('/uploads', uploadRoutes);
 
+// Transport routes
+router.use('/transport', require('./transport'));
+
+// Hostel routes
+router.use('/hostel', require('./hostel'));
+
+// Inventory routes
+router.use('/inventory', require('./inventory'));
+
+// Accounting routes
+router.use('/accounting', require('./accounting'));
+
+// Alumni routes
+router.use('/alumni', require('./alumni'));
+
 module.exports = router;

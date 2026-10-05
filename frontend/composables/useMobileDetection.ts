@@ -20,9 +20,13 @@ export const useMobileDetection = () => {
 
         resizeListener = updateMobileState;
         window.addEventListener('resize', resizeListener, { passive: true });
-        window.addEventListener('orientationchange', () => {
-          setTimeout(updateMobileState, 100);
-        }, { passive: true });
+        window.addEventListener(
+          'orientationchange',
+          () => {
+            setTimeout(updateMobileState, 100);
+          },
+          { passive: true }
+        );
       }
       listenerCount++;
     }
@@ -43,4 +47,3 @@ export const useMobileDetection = () => {
     isMobile: readonly(isMobileState)
   };
 };
-

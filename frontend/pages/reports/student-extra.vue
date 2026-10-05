@@ -1,20 +1,30 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+  <div
+    class="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 px-4 sm:px-6 lg:px-8 transition-colors duration-300"
+  >
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header Banner -->
-      <div class="bg-white dark:bg-gray-800/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div
+        class="bg-white dark:bg-gray-800/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
             {{ active === 'register' ? 'General Register' : 'Student Extra Reports' }}
           </h1>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {{ active === 'register' ? 'Official student register roster, admission credentials, and roll numbers.' : 'Comprehensive reporting across student credentials, admissions, class rosters, and sibling groups.' }}
+            {{
+              active === 'register'
+                ? 'Official student register roster, admission credentials, and roll numbers.'
+                : 'Comprehensive reporting across student credentials, admissions, class rosters, and sibling groups.'
+            }}
           </p>
         </div>
       </div>
 
       <!-- Filter Controls Bar -->
-      <div class="bg-white dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-3 items-center">
+      <div
+        class="bg-white dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-3 items-center"
+      >
         <select
           v-model="classId"
           class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -51,14 +61,19 @@
       </div>
 
       <!-- Navigation Tabs (Only when viewing as multi-report suite) -->
-      <div v-if="route.query.tab !== 'register'" class="flex gap-2 flex-wrap border-b border-gray-200 dark:border-gray-700 pb-3">
+      <div
+        v-if="route.query.tab !== 'register'"
+        class="flex gap-2 flex-wrap border-b border-gray-200 dark:border-gray-700 pb-3"
+      >
         <button
           v-for="tab in tabs.filter(t => t.id !== 'register')"
           :key="tab.id"
           class="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
-          :class="active === tab.id
-            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'"
+          :class="
+            active === tab.id
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+          "
           @click="load(tab.id)"
         >
           {{ tab.label }}
@@ -66,11 +81,15 @@
       </div>
 
       <!-- Data Table Card Container -->
-      <div class="bg-white dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden">
+      <div
+        class="bg-white dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden"
+      >
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+              <tr
+                class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50"
+              >
                 <th
                   v-for="h in headers"
                   :key="h"
@@ -111,11 +130,18 @@
         <div v-if="!rows.length" class="p-12 text-center">
           <div class="inline-flex p-4 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 mb-3">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
           <p class="text-base font-medium text-gray-900 dark:text-white">No records found</p>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Select filters above to search student records.</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Select filters above to search student records.
+          </p>
         </div>
       </div>
     </div>
@@ -149,9 +175,28 @@ const fromDate = ref('');
 const toDate = ref('');
 
 const headers = computed(() => {
-  if (active.value === 'credentials') return ['name', 'admission_number', 'class_name', 'login_email', 'login_status'];
-  if (active.value === 'admissions') return ['first_name', 'last_name', 'admission_number', 'admission_date', 'current_class', 'present_address', 'permanent_address', 'previous_school_name'];
-  if (active.value === 'register') return ['first_name', 'last_name', 'admission_number', 'current_class', 'login_email', 'login_status'];
+  if (active.value === 'credentials')
+    return ['name', 'admission_number', 'class_name', 'login_email', 'login_status'];
+  if (active.value === 'admissions')
+    return [
+      'first_name',
+      'last_name',
+      'admission_number',
+      'admission_date',
+      'current_class',
+      'present_address',
+      'permanent_address',
+      'previous_school_name'
+    ];
+  if (active.value === 'register')
+    return [
+      'first_name',
+      'last_name',
+      'admission_number',
+      'current_class',
+      'login_email',
+      'login_status'
+    ];
   if (active.value === 'class-section') return ['label', 'count'];
   return ['parent', 'students'];
 });
@@ -161,8 +206,10 @@ const formatHeader = (h: string) => {
 };
 
 const getStatusBadgeClass = (status?: string) => {
-  if (status === 'active') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
-  if (status === 'inactive' || status === 'disabled') return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
+  if (status === 'active')
+    return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+  if (status === 'inactive' || status === 'disabled')
+    return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20';
   return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20';
 };
 
@@ -210,7 +257,9 @@ watch(currentSchool, () => {
 
 onMounted(async () => {
   await fetchClasses({ branchId: selectedBranchId.value });
-  const initialTab = tabs.some(tab => tab.id === route.query.tab) ? String(route.query.tab) : 'credentials';
+  const initialTab = tabs.some(tab => tab.id === route.query.tab)
+    ? String(route.query.tab)
+    : 'credentials';
   await load(initialTab);
 });
 </script>

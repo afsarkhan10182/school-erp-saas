@@ -1,29 +1,26 @@
 <template>
-  <div class="bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Students</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage student records and information
-          </p>
-        </div>
-        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
-          <button
-            @click="navigateTo('/students/create')"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-          >
-            <PlusIcon class="-ml-1 mr-2 h-5 w-5" />
-            Add Student
-          </button>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Students</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Manage student records and information
+        </p>
       </div>
+      <div class="flex items-center gap-3">
+        <button
+          @click="navigateTo('/students/create')"
+          class="btn-primary flex items-center gap-2"
+        >
+          <PlusIcon class="h-4 w-4" />
+          Add Student
+        </button>
+      </div>
+    </div>
 
-      <!-- Filters Section -->
-      <div
-        class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-6 py-6 border border-gray-200 dark:border-gray-700"
-      >
+    <!-- Filters Section -->
+    <div class="card">
         <div class="mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <svg
@@ -65,7 +62,7 @@
             placeholder="All Classes"
             id="class-filter"
             :loading="classesLoading"
-            :disabled="!selectedBranch"
+            :disabled="!globalBranchId"
             @update:modelValue="onClassChange"
           />
 
@@ -97,14 +94,13 @@
             label="Academic Year"
             placeholder="All Years"
             id="academic-year"
-            @update:modelValue="onAcademicYearChange"
           />
 
           <!-- Search -->
           <div class="relative">
             <label
               for="search"
-              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
             >
               <svg
                 class="w-4 h-4 inline mr-1 text-gray-500"
@@ -126,7 +122,7 @@
               v-model="searchQuery"
               type="text"
               placeholder="Search students..."
-              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200 ease-in-out text-sm font-medium"
+              class="input-field"
             />
           </div>
         </div>
@@ -138,9 +134,9 @@
           <button
             @click="applyFilters"
             :disabled="!canApplyFilters"
-            class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed dark:from-indigo-500 dark:to-indigo-600 dark:hover:from-indigo-600 dark:hover:to-indigo-700 dark:focus:ring-offset-gray-800 transition-all duration-200 ease-in-out shadow-lg hover:shadow-xl"
+            class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Users class="-ml-1 mr-2 h-5 w-5" />
+            <Users class="h-4 w-4" />
             Apply Filters
           </button>
 
@@ -162,11 +158,9 @@
       </div>
 
       <!-- Students Table -->
-      <div
-        class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
+      <div class="card overflow-hidden">
         <div
-          class="px-6 py-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800"
+          class="px-6 py-4 border-b border-gray-200/80 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50"
         >
           <div class="flex items-center justify-between">
             <div>
@@ -709,7 +703,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -718,7 +711,6 @@ import { useDebounceFn } from '@vueuse/core';
 import { Students } from '~/api';
 import { useAuthStore } from '~/stores/auth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
-import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useStudents } from '~/composables/useStudents';
@@ -728,8 +720,7 @@ import { PlusIcon, Users, CheckCircle, UserPlus, GraduationCap } from 'lucide-vu
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const authStore = useAuthStore();
-const { selectedBranchId: globalBranchId } = useGlobalBranch();
-const { branches, loading: branchesLoading, fetchBranches } = useBranches();
+const { selectedBranchId: globalBranchId, currentBranch } = useGlobalBranch();
 const {
   academicYears,
   classes,
@@ -780,7 +771,7 @@ const selectedSchoolName = computed(() => {
 });
 
 const selectedBranchName = computed(() => {
-  const branch = branches.value.find(b => b.id === selectedBranch.value);
+  const branch = currentBranch.value;
   return branch?.name || '';
 });
 
@@ -807,12 +798,6 @@ const schoolOptions = computed(() => {
   }));
 });
 
-const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }));
-});
 
 const classOptions = computed(() => {
   const options = classes.value.map(cls => ({
@@ -853,48 +838,29 @@ const filters = reactive({
 });
 
 // Methods
-const onSchoolChange = async () => {
-  selectedBranch.value = '';
+watch(globalBranchId, async (newBranchId) => {
+  selectedBranch.value = newBranchId || '';
   selectedClass.value = '';
   selectedSection.value = '';
   selectedStream.value = '';
-  branches.value = [];
-  classes.value = [];
-  sections.value = [];
-  streams.value = [];
+  filters.academic_year = '';
   hasAppliedFilters.value = false;
   students.value = [];
 
-  if (selectedSchool.value) {
-    await fetchBranches(selectedSchool.value);
-  }
-};
-
-const onBranchChange = async () => {
-  selectedClass.value = '';
-  selectedSection.value = '';
-  selectedStream.value = '';
-  classes.value = [];
-  sections.value = [];
-  streams.value = [];
-  hasAppliedFilters.value = false;
-  students.value = [];
-
-  if (selectedBranch.value) {
+  if (newBranchId) {
     classesLoading.value = true;
     try {
-      const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
-      await fetchClasses({
-        schoolId: schoolId,
-        branchId: selectedBranch.value
-      });
+      await Promise.all([
+        fetchClasses({ branchId: newBranchId }),
+        fetchAcademicYears({ branchId: newBranchId })
+      ]);
     } catch (error) {
-      // Error loading classes
+      console.error('Error loading data for branch:', error);
     } finally {
       classesLoading.value = false;
     }
   }
-};
+}, { immediate: true });
 
 const onClassChange = async () => {
   selectedSection.value = '';
@@ -908,8 +874,8 @@ const onClassChange = async () => {
     try {
       const schoolId = isSuperAdmin.value ? selectedSchool.value : authStore.currentUser?.school_id;
       await Promise.all([
-        fetchSections({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value }),
-        fetchStreams({ schoolId, branchId: selectedBranchId.value, classId: selectedClass.value })
+        fetchSections({ schoolId, branchId: globalBranchId.value, classId: selectedClass.value }),
+        fetchStreams({ schoolId, branchId: globalBranchId.value, classId: selectedClass.value })
       ]);
     } finally {
       sectionsLoading.value = false;
@@ -932,20 +898,20 @@ const applyFilters = async () => {
   }
 };
 
-const resetFilters = () => {
-  selectedSchool.value = '';
-  selectedBranch.value = '';
+const resetFilters = async () => {
+  // School/branch are workspace scope, not optional list filters.
+  if (isSuperAdmin.value && !selectedSchool.value) {
+    selectedSchool.value = authStore.currentUser?.school_id || '';
+  }
+  selectedBranch.value = globalBranchId.value || authStore.currentUser?.branch_id || '';
   selectedClass.value = '';
   selectedSection.value = '';
   selectedStream.value = '';
   filters.academic_year = '';
   searchQuery.value = '';
-  students.value = [];
-  stats.value = {};
-  hasAppliedFilters.value = false;
   currentPage.value = 1;
   pageSize.value = 10; // Reset to default page size
-  totalItems.value = 0;
+  await fetchStudents(1);
 };
 
 const fetchStudents = async (page = 1) => {
@@ -1096,7 +1062,6 @@ onMounted(async () => {
   }
 
   if (isAdmin.value) {
-    await fetchBranches(authStore.currentUser?.school_id);
   }
 
   if (isBranchAdmin.value) {
@@ -1123,7 +1088,7 @@ onMounted(async () => {
 });
 
 // Watch for global branch changes from topbar
-watch(globalBranchId, (newBranch) => {
+watch(globalBranchId, newBranch => {
   selectedBranch.value = newBranch || '';
   onBranchChange();
   fetchStudents(1);

@@ -200,8 +200,6 @@
           />
         </div>
 
-
-
         <!-- Class Selector -->
         <div>
           <label
@@ -364,7 +362,9 @@
         <div
           class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800"
         >
-          <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ totalStudents }}</div>
+          <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+            {{ totalStudents }}
+          </div>
           <div class="text-sm text-indigo-700 dark:text-indigo-300">Total</div>
         </div>
       </div>
@@ -554,7 +554,6 @@ import { useDebounceFn } from '@vueuse/core';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { useAcademicSettings } from '~/utils/settings';
 import { useAttendance } from '~/composables/useAttendance';
 import { useAcademics } from '~/composables/useAcademics';
@@ -568,7 +567,6 @@ const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchAllBranches } = useBranches();
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const { getAttendanceSettings, getWorkingDays, getCutoffTime } = useAcademicSettings();
 
@@ -600,12 +598,6 @@ const schoolOptions = computed(() =>
     label: school.name
   }))
 );
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 // Status filter options
 // Status options - will be loaded from database settings later
@@ -627,7 +619,7 @@ const form = reactive({
   academic_year: ''
 });
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   form.branch_id = newBranchId || '';
   form.class_id = '';
   form.section_id = '';
@@ -839,9 +831,6 @@ const onSchoolChange = async (schoolId: string) => {
   form.section_id = '';
 
   try {
-    await fetchAllBranches({ school_id: schoolId });
-
-    // Clear students when school changes
     students.value = [];
     Object.keys(attendanceRecords.value).forEach(key => {
       delete attendanceRecords.value[key];
@@ -1144,8 +1133,8 @@ onMounted(async () => {
     } else if (isAdmin.value) {
       // Admin: Load branches for their school directly
       form.school_id = user.value?.school_id || '';
-      await fetchAllBranches({ school_id: form.school_id });
-      form.branch_id = user.value?.branch_id || (branches.value.length === 1 ? branches.value[0].id : '');
+      form.branch_id =
+        user.value?.branch_id || '';
       if (form.branch_id) await fetchClasses({ branchId: form.branch_id });
     } else if (isBranchAdmin.value) {
       // Branch Admin: Load classes for their branch directly

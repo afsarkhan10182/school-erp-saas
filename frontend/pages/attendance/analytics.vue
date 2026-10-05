@@ -44,8 +44,6 @@
           />
         </div>
 
-
-
         <!-- Period -->
         <div>
           <EnhancedDropdown
@@ -582,7 +580,6 @@ import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { useAttendance } from '~/composables/useAttendance';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
@@ -592,7 +589,6 @@ const { showToast } = useToast();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchAllBranches } = useBranches();
 const {
   classOptions,
   sectionOptions,
@@ -617,7 +613,7 @@ const filters = ref({
   custom_end_date: ''
 });
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   filters.value.branch_id = newBranchId || '';
   filters.value.class_id = '';
   filters.value.section_id = '';
@@ -635,12 +631,6 @@ const schoolOptions = computed(() =>
   }))
 );
 
-const branchOptions = computed(() =>
-  branches.value.map((branch: any) => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 const periodOptions = computed(() => [
   { value: 'today', label: 'Today' },
@@ -666,10 +656,8 @@ const onSchoolChange = async () => {
   filters.value.section_id = '';
 
   if (filters.value.school_id) {
-    await fetchAllBranches({ school_id: filters.value.school_id });
   } else {
-    branches.value = [];
-  }
+      }
 };
 
 const onBranchChange = async () => {
@@ -746,7 +734,6 @@ onMounted(async () => {
     } else if (isAdmin.value) {
       // Admin: Load branches for their school directly
       filters.value.school_id = user.value?.school_id || '';
-      await fetchAllBranches({ school_id: filters.value.school_id });
     } else if (isBranchAdmin.value) {
       // Branch Admin: Load classes for their branch directly
       filters.value.school_id = user.value?.school_id || '';

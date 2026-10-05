@@ -91,16 +91,26 @@ const list = async (req, res) => {
     if (req.query.status) where.status = req.query.status;
     if (req.query.class_id) where.class_id = req.query.class_id;
     if (req.query.student_id) where.student_id = req.query.student_id;
-    const records = await DynamicEntityRecord.findAll({
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 10, 1), 100);
+    const { count, rows } = await DynamicEntityRecord.findAndCountAll({
       where,
       include: [
         { model: Student, as: 'student', attributes: ['id', 'first_name', 'last_name', 'admission_number'], required: false },
         { model: Class, as: 'class', attributes: ['id', 'name'], required: false },
         { model: User, as: 'user', attributes: ['id', 'first_name', 'last_name', 'email', 'status'], required: false }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      limit,
+      offset: (page - 1) * limit
     });
-    return res.json({ success: true, data: { records: records.map(serialize) } });
+    return res.json({
+      success: true,
+      data: {
+        records: rows.map(serialize),
+        pagination: { page, limit, total: count, totalPages: Math.max(Math.ceil(count / limit), 1) }
+      }
+    });
   } catch (error) {
     logger.error('dynamic-entities list', error);
     return res.status(errorStatus(error)).json({ success: false, message: error.message });

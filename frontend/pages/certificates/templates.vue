@@ -3,7 +3,9 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Certificate Templates</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Certificate Templates
+        </h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Create and manage certificate templates for students and employees
         </p>

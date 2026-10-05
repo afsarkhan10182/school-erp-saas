@@ -415,12 +415,6 @@ const termOptions = computed(() =>
 );
 
 // Branch options
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
 
 // Mark distribution options
 const markDistributionOptions = computed(() =>
@@ -621,7 +615,12 @@ const resetForm = () => {
 const saveExam = async () => {
   try {
     saving.value = true;
-    form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
+    form.branch_id =
+      form.branch_id ||
+      selectedBranchId.value ||
+      authStore.currentBranch?.id ||
+      branches.value?.[0]?.id ||
+      user.value?.branch_id;
 
     // Only validate essential fields
     if (!form.branch_id) {

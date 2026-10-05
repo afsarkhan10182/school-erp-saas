@@ -4,11 +4,17 @@
   </div>
   <div v-else class="space-y-6 max-w-full">
     <!-- Page Header & Filter Controls -->
-    <div class="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 rounded-2xl shadow-sm p-6">
+    <div
+      class="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 rounded-2xl shadow-sm p-6"
+    >
       <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <span class="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+          <h1
+            class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2.5"
+          >
+            <span
+              class="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl"
+            >
               <Layers class="w-5 h-5" />
             </span>
             {{ entity.title }}
@@ -17,50 +23,36 @@
         </div>
 
         <div class="flex flex-wrap items-end gap-3">
-
-
           <!-- Class Selector -->
           <div class="flex-1 min-w-[150px]">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Class
             </label>
-            <div class="relative">
-              <select
-                v-model="selectedClassId"
-                class="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 pr-8 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-                @change="onClassFilterChange"
-              >
-                <option value="">All classes</option>
-                <option v-for="c in classOptions" :key="c.value" :value="c.value">
-                  {{ c.label }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="selectedClassId"
+              :options="classOptions"
+              placeholder="All classes"
+              id="entity-class-filter"
+              @change="onClassFilterChange"
+            />
           </div>
 
           <!-- Section Selector -->
           <div v-if="selectedClassId" class="flex-1 min-w-[140px]">
-            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Section
             </label>
-            <div class="relative">
-              <select
-                v-model="selectedSectionId"
-                class="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2 pr-8 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-                @change="reload"
-              >
-                <option value="">All sections</option>
-                <option v-for="s in sectionOptions" :key="s.value" :value="s.value">
-                  {{ s.label }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <EnhancedDropdown
+              v-model="selectedSectionId"
+              :options="sectionOptions"
+              placeholder="All sections"
+              id="entity-section-filter"
+              @change="reload"
+            />
           </div>
 
           <!-- Add Button -->
@@ -75,6 +67,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- Error Alert -->
@@ -83,15 +76,23 @@
       class="rounded-2xl border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800/80 p-4 text-sm text-red-700 dark:text-red-300 flex items-center justify-between shadow-sm"
     >
       <span class="font-medium">{{ errorMessage }}</span>
-      <button class="px-3.5 py-1.5 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-xl text-xs font-semibold hover:bg-red-200 transition-colors flex items-center gap-1.5" @click="reload">
+      <button
+        class="px-3.5 py-1.5 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-xl text-xs font-semibold hover:bg-red-200 transition-colors flex items-center gap-1.5"
+        @click="reload"
+      >
         <RefreshCw class="w-3.5 h-3.5" />
         Retry
       </button>
     </div>
 
     <!-- Table Container -->
-    <div class="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden">
-      <div v-if="loading" class="p-12 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-3">
+    <div
+      class="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden"
+    >
+      <div
+        v-if="loading"
+        class="p-12 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-3"
+      >
         <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
         Loading records…
       </div>
@@ -107,17 +108,29 @@
               >
                 {{ col.label }}
               </th>
-              <th class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 min-w-[160px] sticky right-0 bg-gray-50/95 dark:bg-gray-800 backdrop-blur-sm shadow-xs">
+              <th
+                class="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 min-w-[160px] sticky right-0 bg-gray-50/95 dark:bg-gray-800 backdrop-blur-sm shadow-xs"
+              >
                 Actions
               </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700/60 bg-white dark:bg-gray-800">
-            <tr v-for="item in items" :key="item.id" class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition-colors">
-              <td v-for="col in entity.columns" :key="col.key" class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+            <tr
+              v-for="item in items"
+              :key="item.id"
+              class="hover:bg-gray-50/60 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td
+                v-for="col in entity.columns"
+                :key="col.key"
+                class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100"
+              >
                 {{ display(item, col.key) }}
               </td>
-              <td class="px-6 py-4 text-sm whitespace-nowrap text-right space-x-2 sticky right-0 bg-white dark:bg-gray-800 shadow-sm">
+              <td
+                class="px-6 py-4 text-sm whitespace-nowrap text-right space-x-2 sticky right-0 bg-white dark:bg-gray-800 shadow-sm"
+              >
                 <button
                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors border border-amber-200 dark:border-amber-900/50"
                   @click="openEdit(item)"
@@ -128,6 +141,7 @@
                 <button
                   v-for="action in entity.actions || []"
                   :key="action.id"
+                  v-if="props.entityKey !== 'admission_application' || !item.status || item.status === 'pending'"
                   class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors border border-indigo-200 dark:border-indigo-900/50"
                   @click="runAction(item.id, action.id)"
                 >
@@ -135,7 +149,7 @@
                 </button>
                 <button
                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors border border-red-200 dark:border-red-900/50"
-                  @click="remove(item.id)"
+                  @click="openDelete(item.id)"
                 >
                   <Trash2 class="w-3.5 h-3.5" />
                   Delete
@@ -145,90 +159,141 @@
           </tbody>
         </table>
 
-          <div v-if="!items.length && !errorMessage" class="p-12 text-center space-y-3">
-            <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto text-gray-400">
-              <Layers class="w-6 h-6" />
-            </div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">No records found</p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">Click the button above to add your first record.</p>
+        <div v-if="!items.length && !errorMessage" class="p-12 text-center space-y-3">
+          <div
+            class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto text-gray-400"
+          >
+            <Layers class="w-6 h-6" />
           </div>
-        </div>
-      </div>
-
-      <!-- Add/Edit Modal Dialog -->
-      <div v-if="showForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-          <div class="flex items-center justify-between mb-5 border-b border-gray-100 dark:border-gray-700 pb-3">
-            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ editingId ? 'Edit' : 'Add' }} {{ entity.title }}</h2>
-            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="showForm = false">✕</button>
-          </div>
-
-          <div v-for="field in entity.fields" :key="field.key" class="mb-4">
-            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-              {{ field.label }} <span v-if="field.required" class="text-red-500">*</span>
-            </label>
-
-            <!-- Textarea Field -->
-            <textarea
-              v-if="field.type === 'textarea'"
-              v-model="form[field.key]"
-              :required="field.required"
-              rows="3"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-            />
-
-            <!-- Select Field with Custom Chevron -->
-            <div v-else-if="field.type === 'select'" class="relative">
-              <select
-                v-model="form[field.key]"
-                :required="field.required"
-                class="appearance-none w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-8 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-              >
-                <option value="">Select {{ field.label }}</option>
-                <option
-                  v-for="opt in fieldOptions(field)"
-                  :key="opt.value"
-                  :value="opt.value"
-                >
-                  {{ opt.label }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
-
-            <!-- Checkbox Field -->
-            <div v-else-if="field.type === 'checkbox'" class="flex items-center gap-2">
-              <input
-                v-model="form[field.key]"
-                type="checkbox"
-                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ field.label }}</span>
-            </div>
-
-            <!-- Standard Input Field -->
-            <input
-              v-else
-              v-model="form[field.key]"
-              :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
-              :required="field.required"
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
-            />
-          </div>
-
-          <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" @click="showForm = false">
-              Cancel
-            </button>
-            <button class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors" @click="save">
-              Save
-            </button>
-          </div>
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-400">No records found</p>
+          <p class="text-xs text-gray-500 dark:text-gray-500">
+            Click the button above to add your first record.
+          </p>
         </div>
       </div>
     </div>
+
+    <Pagination
+      :pagination="pagination"
+      item-label="records"
+      @page-changed="page = $event"
+      @page-size-changed="pageSize = $event"
+    />
+
+    <!-- Add/Edit Modal Dialog -->
+    <div
+      v-if="showForm"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
+      >
+        <div
+          class="flex items-center justify-between mb-5 border-b border-gray-100 dark:border-gray-700 pb-3"
+        >
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+            {{ editingId ? 'Edit' : 'Add' }} {{ entity.title }}
+          </h2>
+          <button
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            @click="showForm = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div v-for="field in entity.fields" :key="field.key" class="mb-4">
+          <label
+            class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+          >
+            {{ field.label }} <span v-if="field.required" class="text-red-500">*</span>
+          </label>
+
+          <!-- Textarea Field -->
+          <textarea
+            v-if="field.type === 'textarea'"
+            v-model="form[field.key]"
+            :required="field.required"
+            rows="3"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+          />
+
+          <!-- Select Field -->
+          <EnhancedDropdown
+            v-else-if="field.type === 'select'"
+            v-model="form[field.key]"
+            :options="fieldOptions(field)"
+            :placeholder="`Select ${field.label}`"
+            :required="field.required"
+            :id="`${props.entityKey}-${field.key}`"
+            class="w-full"
+          />
+          <!-- Checkbox Field -->
+          <div v-else-if="field.type === 'checkbox'" class="flex items-center gap-2">
+            <input
+              v-model="form[field.key]"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{
+              field.label
+            }}</span>
+          </div>
+
+          <!-- Standard Input Field -->
+          <input
+            v-else
+            v-model="form[field.key]"
+            :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
+            :required="field.required"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+          />
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            @click="showForm = false"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+            @click="save"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <Modal :show="Boolean(pendingDeleteId)" size="sm" @close="pendingDeleteId = null">
+      <template #header>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Delete {{ entity.title }}?</h2>
+      </template>
+      <template #body>
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          This action cannot be undone. The selected record will be permanently removed.
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            @click="pendingDeleteId = null"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg"
+            @click="confirmDelete"
+          >
+            Delete
+          </button>
+        </div>
+      </template>
+    </Modal>
+  </div>
 </template>
 
 <!-- SchoolCrudPage component -->
@@ -244,7 +309,10 @@ import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { extractList, apiErrorMessage } from '~/utils/list-response';
-import { ChevronDown, Plus, Pencil, Trash2, RefreshCw, Layers } from 'lucide-vue-next';
+import Modal from '~/components/ui/Modal.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import Pagination from '~/components/ui/Pagination.vue';
+import { Plus, Pencil, Trash2, RefreshCw, Layers } from 'lucide-vue-next';
 
 const props = defineProps<{ entityKey: string }>();
 const { showToast } = useToast();
@@ -256,6 +324,10 @@ const loading = ref(false);
 const errorMessage = ref('');
 const showForm = ref(false);
 const editingId = ref<string | null>(null);
+const pendingDeleteId = ref<string | null>(null);
+const page = ref(1);
+const pageSize = ref(10);
+const pagination = reactive({ page: 1, limit: 10, total: 0, totalPages: 1 });
 const form = reactive<Record<string, any>>({});
 const classOptions = ref<Array<{ label: string; value: string }>>([]);
 const sectionOptions = ref<Array<{ label: string; value: string }>>([]);
@@ -292,11 +364,18 @@ const loadLookups = async () => {
   if (!entity.value) return;
   try {
     const needs = entity.value.fields.map(f => f.lookup).filter(Boolean);
-    const entityNeeds = needs.filter((lookup): lookup is `entity:${string}` => Boolean(lookup?.startsWith('entity:'))).map(lookup => lookup.slice(7));
-    await Promise.all(entityNeeds.map(async entityKey => {
-      const res: any = await DynamicEntities.list(entityKey, scopeParams.value);
-      entityOptions.value[entityKey] = extractList(res, ['records']).map((item: any) => ({ label: item.title, value: item.id }));
-    }));
+    const entityNeeds = needs
+      .filter((lookup): lookup is `entity:${string}` => Boolean(lookup?.startsWith('entity:')))
+      .map(lookup => lookup.slice(7));
+    await Promise.all(
+      entityNeeds.map(async entityKey => {
+        const res: any = await DynamicEntities.list(entityKey, scopeParams.value);
+        entityOptions.value[entityKey] = extractList(res, ['records']).map((item: any) => ({
+          label: item.title,
+          value: item.id
+        }));
+      })
+    );
 
     // Fetch class list for header filter and field options (scoped to selected branch/school)
     await loadClassesForBranch();
@@ -315,8 +394,18 @@ const loadLookups = async () => {
         label: `${u.first_name} ${u.last_name || ''}`.trim(),
         value: u.id
       }));
-      const staffRoles = new Set(['super_admin', 'admin', 'branch_admin', 'accountant', 'teacher', 'librarian', 'receptionist']);
-      staffOptions.value = users.filter((u: any) => staffRoles.has(u.role)).map((u: any) => ({ label: `${u.first_name} ${u.last_name || ''}`.trim(), value: u.id }));
+      const staffRoles = new Set([
+        'super_admin',
+        'admin',
+        'branch_admin',
+        'accountant',
+        'teacher',
+        'librarian',
+        'receptionist'
+      ]);
+      staffOptions.value = users
+        .filter((u: any) => staffRoles.has(u.role))
+        .map((u: any) => ({ label: `${u.first_name} ${u.last_name || ''}`.trim(), value: u.id }));
     }
   } catch (error: any) {
     console.warn('Lookup load failed', errText(error));
@@ -366,8 +455,18 @@ const load = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const res: any = await DynamicEntities.list(props.entityKey, scopeParams.value);
+    const res: any = await DynamicEntities.list(props.entityKey, {
+      ...scopeParams.value,
+      page: page.value,
+      limit: pageSize.value
+    });
     items.value = extractList(res, ['records']);
+    Object.assign(pagination, res?.data?.pagination || {
+      page: page.value,
+      limit: pageSize.value,
+      total: items.value.length,
+      totalPages: 1
+    });
   } catch (error: any) {
     errorMessage.value = errText(error);
     items.value = [];
@@ -383,7 +482,10 @@ const scopeParams = computed(() => ({
   ...(selectedSectionId.value ? { section_id: selectedSectionId.value } : {})
 }));
 
+watch([page, pageSize], () => load());
+
 const reload = async () => {
+  page.value = 1;
   await Promise.all([load(), loadLookups()]);
 };
 
@@ -407,9 +509,12 @@ const save = async () => {
     const payload = { ...form };
     if (selectedSchoolId.value) payload.school_id = selectedSchoolId.value;
     if (selectedBranchId.value) payload.branch_id = selectedBranchId.value;
-    entity.value?.fields.filter(field => field.type === 'select' && field.lookup && payload[field.key]).forEach(field => {
-      payload[`${field.key}_label`] = fieldOptions(field).find(option => option.value === payload[field.key])?.label || '';
-    });
+    entity.value?.fields
+      .filter(field => field.type === 'select' && field.lookup && payload[field.key])
+      .forEach(field => {
+        payload[`${field.key}_label`] =
+          fieldOptions(field).find(option => option.value === payload[field.key])?.label || '';
+      });
     if (!payload.title && payload.first_name) {
       payload.title = `${payload.first_name} ${payload.last_name || ''}`.trim();
     }
@@ -427,11 +532,18 @@ const save = async () => {
   }
 };
 
-const remove = async (id: string) => {
-  if (!window.confirm('Delete this record?')) return;
+const openDelete = (id: string) => {
+  pendingDeleteId.value = id;
+};
+
+const confirmDelete = async () => {
+  if (!pendingDeleteId.value) return;
+  const id = pendingDeleteId.value;
+  pendingDeleteId.value = null;
   try {
     await DynamicEntities.remove(props.entityKey, id);
     await load();
+    showToast('Deleted', 'success');
   } catch (error: any) {
     showToast(errText(error), 'error');
   }

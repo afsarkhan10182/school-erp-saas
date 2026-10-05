@@ -36,62 +36,22 @@
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Currency </label>
-              <select
-                v-model="schoolConfig.currency"
-                class="form-select"
-                @change="updateSchoolConfig('currency', schoolConfig.currency)"
-              >
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-                <option value="INR">INR - Indian Rupee</option>
-                <option value="PKR">PKR - Pakistani Rupee</option>
-                <option value="AED">AED - UAE Dirham</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.currency" :options="currencyOptions" placeholder="Select currency" @change="updateSchoolConfig('currency', schoolConfig.currency)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Timezone </label>
-              <select
-                v-model="schoolConfig.timezone"
-                class="form-select"
-                @change="updateSchoolConfig('timezone', schoolConfig.timezone)"
-              >
-                <option value="UTC">UTC</option>
-                <option value="America/New_York">America/New_York</option>
-                <option value="America/Los_Angeles">America/Los_Angeles</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Europe/Paris">Europe/Paris</option>
-                <option value="Asia/Kolkata">Asia/Kolkata</option>
-                <option value="Asia/Karachi">Asia/Karachi</option>
-                <option value="Asia/Dubai">Asia/Dubai</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.timezone" :options="timezoneOptions" placeholder="Select timezone" @change="updateSchoolConfig('timezone', schoolConfig.timezone)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Date Format </label>
-              <select
-                v-model="schoolConfig.date_format"
-                class="form-select"
-                @change="updateSchoolConfig('date_format', schoolConfig.date_format)"
-              >
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD-MM-YYYY">DD-MM-YYYY</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.date_format" :options="dateFormatOptions" placeholder="Select date format" @change="updateSchoolConfig('date_format', schoolConfig.date_format)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1"> Time Format </label>
-              <select
-                v-model="schoolConfig.time_format"
-                class="form-select"
-                @change="updateSchoolConfig('time_format', schoolConfig.time_format)"
-              >
-                <option value="12">12 Hour (AM/PM)</option>
-                <option value="24">24 Hour</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.time_format" :options="timeFormatOptions" placeholder="Select time format" @change="updateSchoolConfig('time_format', schoolConfig.time_format)" />
             </div>
           </div>
 
@@ -103,38 +63,14 @@
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 Academic Year Start Month
               </label>
-              <select
-                v-model="schoolConfig.academic_year_start_month"
-                class="form-select"
-                @change="
-                  updateSchoolConfig(
-                    'academic_year_start_month',
-                    schoolConfig.academic_year_start_month
-                  )
-                "
-              >
-                <option v-for="month in months" :key="month.value" :value="month.value">
-                  {{ month.label }}
-                </option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.academic_year_start_month" :options="months" placeholder="Select month" @change="updateSchoolConfig('academic_year_start_month', schoolConfig.academic_year_start_month)" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-600 mb-1">
                 Default Grading System
               </label>
-              <select
-                v-model="schoolConfig.default_grading_system"
-                class="form-select"
-                @change="
-                  updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)
-                "
-              >
-                <option value="percentage">Percentage</option>
-                <option value="letter_grade">Letter Grade</option>
-                <option value="gpa">GPA</option>
-                <option value="custom">Custom</option>
-              </select>
+              <EnhancedDropdown v-model="schoolConfig.default_grading_system" :options="gradingOptions" placeholder="Select grading system" @change="updateSchoolConfig('default_grading_system', schoolConfig.default_grading_system)" />
             </div>
 
             <div>
@@ -160,28 +96,21 @@
     <!-- Module Settings Tab -->
     <div v-if="activeTab === 'modules'" class="config-content">
       <div class="space-y-6">
-        <div
-          v-for="module in enabledModules"
-          :key="module.id"
-          class="card card-body"
-        >
+        <div v-for="module in enabledModules" :key="module.id" class="card card-body">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">{{ module.name }}</h3>
             <div class="flex items-center space-x-2">
-              <span
-                :class="[
-                  'badge',
-                  module.is_enabled ? 'badge-success' : 'badge-danger'
-                ]"
-              >
+              <span :class="['badge', module.is_enabled ? 'badge-success' : 'badge-danger']">
                 {{ module.is_enabled ? 'Enabled' : 'Disabled' }}
               </span>
               <button
+                v-if="module.canEnable"
                 @click="toggleModule(module)"
                 :class="['btn btn-sm', module.is_enabled ? 'btn-danger' : 'btn-success']"
               >
                 {{ module.is_enabled ? 'Disable' : 'Enable' }}
               </button>
+              <span v-else class="text-xs text-gray-500 dark:text-gray-400">Managed by plan</span>
             </div>
           </div>
 
@@ -208,30 +137,23 @@
                   v-model.number="setting.value"
                   type="number"
                   class="form-input"
-                  style="width: 6rem;"
+                  style="width: 6rem"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
-                <select
+                <EnhancedDropdown
                   v-else-if="setting.type === 'select'"
                   v-model="setting.value"
-                  class="form-select"
-                  style="width: auto;"
+                  :options="setting.options || []"
+                  placeholder="Select value"
+                  class="min-w-32"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
-                >
-                  <option
-                    v-for="option in setting.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
+                />
                 <input
                   v-else
                   v-model="setting.value"
                   type="text"
                   class="form-input"
-                  style="width: 8rem;"
+                  style="width: 8rem"
                   @change="updateModuleConfig(module.code, setting.key, setting.value)"
                 />
               </div>
@@ -323,16 +245,7 @@
                 <label class="block text-sm font-medium text-gray-600 mb-1">
                   Auto Backup Frequency
                 </label>
-                <select
-                  v-model="systemConfig.backup_frequency"
-                  class="form-select"
-                  @change="updateSystemConfig('backup_frequency', systemConfig.backup_frequency)"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="disabled">Disabled</option>
-                </select>
+                <EnhancedDropdown v-model="systemConfig.backup_frequency" :options="backupFrequencyOptions" placeholder="Select backup frequency" @change="updateSystemConfig('backup_frequency', systemConfig.backup_frequency)" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -363,12 +276,7 @@
 
     <!-- Success/Error Messages -->
     <div v-if="message" class="mt-4">
-      <div
-        :class="[
-          'alert',
-          message.type === 'success' ? 'alert-success' : 'alert-danger'
-        ]"
-      >
+      <div :class="['alert', message.type === 'success' ? 'alert-success' : 'alert-danger']">
         {{ message.text }}
       </div>
     </div>
@@ -378,6 +286,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useConfig } from '~/composables/useConfig';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // Composables
 const config = useConfig();
@@ -426,6 +335,16 @@ const months = computed(() => [
   { value: 'November', label: 'November' },
   { value: 'December', label: 'December' }
 ]);
+const currencyOptions = [
+  { value: 'USD', label: 'USD - US Dollar' }, { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British Pound' }, { value: 'INR', label: 'INR - Indian Rupee' },
+  { value: 'PKR', label: 'PKR - Pakistani Rupee' }, { value: 'AED', label: 'AED - UAE Dirham' }
+];
+const timezoneOptions = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Kolkata', 'Asia/Karachi', 'Asia/Dubai'];
+const dateFormatOptions = ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY'];
+const timeFormatOptions = [{ value: '12', label: '12 Hour (AM/PM)' }, { value: '24', label: '24 Hour' }];
+const gradingOptions = [{ value: 'percentage', label: 'Percentage' }, { value: 'letter_grade', label: 'Letter Grade' }, { value: 'gpa', label: 'GPA' }, { value: 'custom', label: 'Custom' }];
+const backupFrequencyOptions = ['daily', 'weekly', 'monthly', 'disabled'];
 
 // Methods
 const loadConfigurations = async () => {
@@ -476,8 +395,7 @@ const updateModuleConfig = async (moduleCode: string, key: string, value: any) =
 
 const updateSystemConfig = async (key: string, value: any) => {
   try {
-    // Note: System config updates would typically require admin privileges
-    // and might be handled differently in the backend
+    await config.setSystemConfig(key, value);
     showMessage('success', 'System configuration updated successfully');
   } catch (error) {
     console.error('Error updating system config:', error);

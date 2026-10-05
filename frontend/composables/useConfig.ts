@@ -1,5 +1,7 @@
 import { ref, computed, readonly } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { Settings } from '~/api/administration/settings';
+import { Schools } from '~/api/administration/schools';
 
 /**
  * Configuration Composable - Dynamic configuration management
@@ -8,6 +10,8 @@ import { useAuthStore } from '~/stores/auth';
 export const useConfig = () => {
   const authStore = useAuthStore();
   const errors = ref<Map<string, string>>(new Map());
+  const schoolSnapshot = ref<any>(null);
+  const systemSnapshot = ref<Record<string, any>>({});
 
   /**
    * Get school configuration
@@ -19,8 +23,19 @@ export const useConfig = () => {
         throw new Error('No school ID available');
       }
 
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('School configuration API not implemented yet');
+      const response: any = await Settings.getSchoolSettings();
+      const school = response?.data?.school || response?.data;
+      if (!school) return null;
+      schoolSnapshot.value = school;
+      return {
+        ...response.data,
+        settings: {
+          ...(school.settings || {}),
+          currency: school.currency || 'USD',
+          timezone: school.timezone || 'UTC',
+          date_format: school.date_format || 'MM/DD/YYYY'
+        }
+      };
     } catch (error: any) {
       errors.value.set('school_config', error.message);
       throw error;
@@ -37,8 +52,39 @@ export const useConfig = () => {
         throw new Error('No school ID available');
       }
 
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('School configuration API not implemented yet');
+      const school = schoolSnapshot.value || (await getSchoolConfig())?.school;
+      const settings = { ...(school?.settings || {}), [key]: value };
+      const response: any = await Settings.updateSchoolSettings({
+        schoolInfo: {
+          name: school?.name,
+          code: school?.code,
+          logo: school?.logo,
+          trustName: settings.trust_name,
+          receiptSchoolName: settings.receipt_school_name,
+          type: settings.type,
+          establishmentYear: settings.establishment_year,
+          principalName: settings.principal_name,
+          principalEmail: settings.principal_email
+        },
+        contactInfo: {
+          phone: school?.phone,
+          email: school?.email,
+          website: school?.website,
+          address: school?.address,
+          city: school?.city,
+          state: school?.state,
+          postalCode: school?.postal_code,
+          country: school?.country
+        },
+        operationalSettings: {
+          defaultAcademicYear: school?.current_academic_year_id,
+          defaultCurrency: settings.currency || school?.currency,
+          timezone: settings.timezone || school?.timezone,
+          dateFormat: settings.date_format || school?.date_format
+        }
+      });
+      schoolSnapshot.value = response?.data?.school || school;
+      return response;
     } catch (error: any) {
       errors.value.set('school_config', error.message);
       throw error;
@@ -60,8 +106,15 @@ export const useConfig = () => {
         throw new Error('No school ID available');
       }
 
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('Module configuration API not implemented yet');
+      if (key !== 'is_enabled') {
+        throw new Error(`Unsupported module setting: ${key}`);
+      }
+      const response: any = await Schools.getModules(schoolId);
+      const modules = response?.data?.modules || response?.modules || [];
+      const enabled = modules
+        .filter((module: any) => (module.code || module.key) !== moduleCode || value)
+        .map((module: any) => module.code || module.key);
+      return await Schools.updateModules(schoolId, enabled);
     } catch (error: any) {
       errors.value.set('module_config', error.message);
       throw error;
@@ -111,11 +164,20 @@ export const useConfig = () => {
    */
   const getSystemConfig = async (key?: string) => {
     try {
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('System configuration API not implemented yet');
+      const response: any = await Settings.getSystemSettings();
+      const settings = response?.data?.systemSettings || {};
+      systemSnapshot.value = settings;
+      return key ? settings[key] : settings;
     } catch (error) {
       return null;
     }
+  };
+
+  const setSystemConfig = async (key: string, value: any) => {
+    const systemSettings = { ...systemSnapshot.value, [key]: value };
+    const response = await Settings.updateSystemSettings({ systemSettings });
+    systemSnapshot.value = systemSettings;
+    return response;
   };
 
   /**
@@ -128,8 +190,12 @@ export const useConfig = () => {
         return [];
       }
 
-      // TODO: Implement actual API call when backend endpoints are ready
-      throw new Error('Enabled modules API not implemented yet');
+      const response: any = await Schools.getModules(schoolId);
+      const modules = response?.data?.modules || response?.modules || [];
+      return modules.map((module: any) => ({
+        ...module,
+        is_enabled: module.is_enabled ?? module.enabled ?? false
+      }));
     } catch (error) {
       return [];
     }
@@ -231,6 +297,7 @@ export const useConfig = () => {
     getModuleConfig,
     setModuleConfig,
     getSystemConfig,
+    setSystemConfig,
     getEnabledModules,
     isModuleEnabled,
 

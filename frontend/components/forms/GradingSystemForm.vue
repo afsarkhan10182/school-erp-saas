@@ -31,7 +31,6 @@
 
             <!-- Form Fields -->
             <div class="space-y-4">
-
               <!-- Name -->
               <div>
                 <label
@@ -217,7 +216,8 @@ onMounted(async () => {
     form.description = props.system.description || '';
   } else {
     // Set defaults for new grading system
-    form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || '';
+    form.branch_id =
+      selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || '';
     form.name = '';
     form.grade_point = 4.0;
     form.min_percentage = 0;
@@ -228,7 +228,12 @@ onMounted(async () => {
 
 // Methods
 const validateForm = () => {
-  form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || '';
+  form.branch_id =
+    form.branch_id ||
+    selectedBranchId.value ||
+    authStore.currentBranch?.id ||
+    branches.value?.[0]?.id ||
+    '';
   if (!form.branch_id) {
     alert('Branch is required');
     return false;

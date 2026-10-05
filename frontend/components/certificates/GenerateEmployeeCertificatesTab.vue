@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-6">
     <!-- Selection Form -->
-    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+    <div
+      class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+    >
       <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
         Select Employees for Certificate Generation
       </h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-
-
         <!-- Role Selection -->
         <div>
           <EnhancedDropdown
@@ -25,8 +25,14 @@
           <EnhancedDropdown
             id="template"
             v-model="filters.template_id"
-            :options="employeeTemplates.map(template => ({ value: template.id, label: template.name }))"
-            :placeholder="employeeTemplates.length === 0 && filters.branch_id ? `No ${user_type.value} templates found for this branch` : 'Select Template'"
+            :options="
+              employeeTemplates.map(template => ({ value: template.id, label: template.name }))
+            "
+            :placeholder="
+              employeeTemplates.length === 0 && filters.branch_id
+                ? `No ${user_type.value} templates found for this branch`
+                : 'Select Template'
+            "
             label="Certificate Template"
             :disabled="!filters.branch_id || employeeTemplates.length === 0"
             :helper-text="getTemplateHelperText()"
@@ -93,7 +99,10 @@
     </div>
 
     <!-- Employees List -->
-    <div v-if="employees.length > 0" class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700">
+    <div
+      v-if="employees.length > 0"
+      class="bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700"
+    >
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-medium text-gray-900 dark:text-white">
@@ -203,11 +212,22 @@
 
     <div v-if="previewHtml" class="fixed inset-0 z-50 bg-black/50 p-4">
       <div class="h-full bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div
+          class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+        >
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ previewTitle }}</h3>
-          <button class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" @click="previewHtml = ''">Close</button>
+          <button
+            class="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            @click="previewHtml = ''"
+          >
+            Close
+          </button>
         </div>
-        <iframe :srcdoc="previewHtml" title="Employee certificate preview" class="flex-1 w-full bg-white" />
+        <iframe
+          :srcdoc="previewHtml"
+          title="Employee certificate preview"
+          class="flex-1 w-full bg-white"
+        />
       </div>
     </div>
   </div>
@@ -297,7 +317,7 @@ const filters = reactive({
   search: ''
 });
 
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   filters.branch_id = newVal || '';
   await handleBranchChange();
 });
@@ -732,7 +752,7 @@ const emit = defineEmits(['success']);
 // Watch for branch changes to reload templates
 watch(
   () => filters.branch_id,
-  async (newBranchId) => {
+  async newBranchId => {
     // Load templates for the selected branch
     await loadTemplatesForBranch();
   }

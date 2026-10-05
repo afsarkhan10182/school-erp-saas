@@ -47,7 +47,9 @@
         </ul>
       </div>
 
-      <p v-else class="text-sm text-gray-500">{{ data.message || 'Staff users should use the main dashboard.' }}</p>
+      <p v-else class="text-sm text-gray-500">
+        {{ data.message || 'Staff users should use the main dashboard.' }}
+      </p>
     </div>
   </div>
 </template>

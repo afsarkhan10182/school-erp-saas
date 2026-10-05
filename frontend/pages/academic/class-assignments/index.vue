@@ -1,91 +1,88 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Class Assignments</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Assign subjects and teachers to classes
-          </p>
-        </div>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Class Assignments</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Assign subjects and teachers to classes
+        </p>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event" />
+
+    <!-- Tab Content -->
+    <div
+      class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+    >
+      <!-- Branch Selection Required Message -->
+      <div v-if="!selectedBranchId" class="p-8 text-center">
+        <Building2 class="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Select a Branch</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Please select a branch from the top bar to manage classes and assignments.
+        </p>
       </div>
 
-      <!-- Branch Selection -->
-      <!-- Tab Navigation -->
-      <ScrollableTabs :tabs="tabs" :active-tab="activeTab" @tab-change="activeTab = $event" />
+      <!-- Class Assignment Tab -->
+      <div v-else-if="activeTab === 'class-assignment' && selectedBranchId" class="p-6">
+        <ClassAssignmentTab
+          :classes="classes"
+          :subjects="subjects"
+          :mappings="classSubjectMappings"
+          :loading="mappingsLoading"
+          :academic-years="academicYears"
+          :branch-id="selectedBranchId"
+          @refresh="loadClassSubjectMappings"
+          @assign="handleClassSubjectAssign"
+          @unassign="handleClassSubjectUnassign"
+        />
 
-      <!-- Tab Content -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
-      >
-        <!-- Branch Selection Required Message -->
-        <div v-if="!selectedBranchId" class="p-8 text-center">
-          <Building2 class="mx-auto h-12 w-12 text-gray-400" />
-          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Select a Branch</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Please select a branch from the top bar to manage classes and assignments.
-          </p>
-        </div>
+        <!-- Pagination for Classes -->
+        <Pagination
+          v-if="classes.length > 0"
+          :pagination="{
+            page: classPagination.page,
+            limit: classPagination.limit,
+            total: classPagination.total || classes.length
+          }"
+          item-label="classes"
+          @page-changed="goToClassPage"
+          @page-size-changed="changeClassLimit"
+        />
+      </div>
 
-        <!-- Class Assignment Tab -->
-        <div v-else-if="activeTab === 'class-assignment' && selectedBranchId" class="p-6">
-          <ClassAssignmentTab
-            :classes="classes"
-            :subjects="subjects"
-            :mappings="classSubjectMappings"
-            :loading="mappingsLoading"
-            :academic-years="academicYears"
-            :branch-id="selectedBranchId"
-            @refresh="loadClassSubjectMappings"
-            @assign="handleClassSubjectAssign"
-            @unassign="handleClassSubjectUnassign"
-          />
+      <!-- Class Teachers Tab -->
+      <div v-else-if="activeTab === 'class-teachers' && selectedBranchId" class="p-6">
+        <ClassTeacherTab
+          :classTeachers="classTeacherAllocations"
+          :classes="classes"
+          :sections="sections"
+          :streams="streams"
+          :teachers="teacherOptions"
+          :loading="classTeacherLoading"
+          :academicYears="academicYearOptions"
+          :branchId="selectedBranchId"
+          @refresh="loadClassTeacherAllocations"
+          @assign="handleClassTeacherAssign"
+          @update="handleClassTeacherUpdate"
+          @remove="handleClassTeacherRemove"
+        />
 
-          <!-- Pagination for Classes -->
-          <Pagination
-            v-if="classes.length > 0"
-            :pagination="{
-              page: classPagination.page,
-              limit: classPagination.limit,
-              total: classPagination.total || classes.length
-            }"
-            item-label="classes"
-            @page-changed="goToClassPage"
-            @page-size-changed="changeClassLimit"
-          />
-        </div>
-
-        <!-- Class Teachers Tab -->
-        <div v-else-if="activeTab === 'class-teachers' && selectedBranchId" class="p-6">
-          <ClassTeacherTab
-            :classTeachers="classTeacherAllocations"
-            :classes="classes"
-            :sections="sections"
-            :streams="streams"
-            :teachers="teacherOptions"
-            :loading="classTeacherLoading"
-            :academicYears="academicYearOptions"
-            :branchId="selectedBranchId"
-            @refresh="loadClassTeacherAllocations"
-            @assign="handleClassTeacherAssign"
-            @update="handleClassTeacherUpdate"
-            @remove="handleClassTeacherRemove"
-          />
-
-          <!-- Pagination for Class Teachers -->
-          <Pagination
-            v-if="classTeacherAllocations.length > 0"
-            :pagination="{
-              page: classTeacherPagination.page,
-              limit: classTeacherPagination.limit,
-              total: classTeacherPagination.total || classTeacherAllocations.length
-            }"
-            item-label="class teachers"
-            @page-changed="goToClassTeacherPage"
-            @page-size-changed="changeClassTeacherLimit"
-          />
-        </div>
+        <!-- Pagination for Class Teachers -->
+        <Pagination
+          v-if="classTeacherAllocations.length > 0"
+          :pagination="{
+            page: classTeacherPagination.page,
+            limit: classTeacherPagination.limit,
+            total: classTeacherPagination.total || classTeacherAllocations.length
+          }"
+          item-label="class teachers"
+          @page-changed="goToClassTeacherPage"
+          @page-size-changed="changeClassTeacherLimit"
+        />
       </div>
     </div>
   </div>
@@ -99,7 +96,6 @@ import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import { classSubjectAssignmentApi } from '~/api/academic/class-subject-assignment';
 import { ClassTeachers } from '~/api/academic/class-teacher';
 import { Building2, Users as UsersIcon, UserCheck } from 'lucide-vue-next';
@@ -135,7 +131,6 @@ const {
   fetchStreams
 } = useAcademics();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchBranches } = useBranches();
 const { isSuperAdmin, isAdmin, isBranchAdmin, user } = useAuth();
 
 // Tab configuration
@@ -189,12 +184,6 @@ const schoolOptions = computed(() => {
 });
 
 // Convert branches to options format for EnhancedDropdown
-const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }));
-});
 
 // Methods
 const loadClasses = async () => {
@@ -290,29 +279,13 @@ const loadSchools = async () => {
   await fetchSchools();
 };
 
-const loadBranches = async () => {
-  if (isSuperAdmin.value && selectedSchoolId.value) {
-    await fetchBranches(selectedSchoolId.value);
-  } else if (isAdmin.value) {
-    await fetchBranches(user.value.school_id);
-  } else if (isBranchAdmin.value) {
-    await fetchBranches(user.value.school_id);
-  }
-};
 
-const onSchoolChange = async () => {
-  selectedBranchId.value = '';
-  selectedBranch.value = null;
-  await loadBranches();
-};
 
 const onBranchChange = async branchId => {
   // Set the selected branch ID
   selectedBranchId.value = branchId;
 
   // Find the selected branch object
-  const branchObj = branches.value.find(b => b.id === branchId);
-  selectedBranch.value = branchObj;
 
   if (selectedBranchId.value) {
     // Reset pagination when branch changes
@@ -469,10 +442,8 @@ onMounted(async () => {
 
   if (isSuperAdmin.value) {
     selectedSchoolId.value = authStore.currentSchool?.id || '';
-    await loadBranches();
   } else {
     selectedSchoolId.value = user.value?.school_id || '';
-    await loadBranches();
   }
 
   const activeBranch = globalBranchId.value || user.value?.branch_id;
@@ -481,7 +452,7 @@ onMounted(async () => {
   }
 });
 
-watch(globalBranchId, async (newBranch) => {
+watch(globalBranchId, async newBranch => {
   if (newBranch) {
     await onBranchChange(newBranch);
   } else {

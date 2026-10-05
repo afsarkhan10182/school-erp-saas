@@ -319,7 +319,9 @@
                               class="w-16 h-16 flex-shrink-0"
                             >
                               <img
-                                :src="getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)"
+                                :src="
+                                  getFullImageUrl(selectedTemplate.logo_image, selectedTemplate)
+                                "
                                 alt="Logo"
                                 class="w-full h-full object-contain"
                                 @error="
@@ -523,25 +525,25 @@ import { useAuthStore } from '~/stores/auth';
 // Structure: uploads/schools/{schoolCode}/{year}/certificates/{filename}
 const getFullImageUrl = (path, template = null) => {
   if (!path) return null;
-  
+
   // If it's already a full URL or data URL, return as is
   if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
     return path;
   }
-  
+
   // Get school code from multiple sources (priority order):
   // 1. Template's branch school code (if template has branch with school)
   // 2. Selected branch's school code (from availableBranches)
   // 3. Current school from auth store
   let schoolCode = '';
-  
+
   // Try from template's branch if available
   if (template?.branch?.school?.code) {
     schoolCode = template.branch.school.code;
   } else if (template?.branch?.school_code) {
     schoolCode = template.branch.school_code;
   }
-  
+
   // Try from available branches if template has branch_id
   if (!schoolCode && template?.branch_id) {
     const branch = availableBranches.value.find(b => b.id === template.branch_id);
@@ -551,17 +553,17 @@ const getFullImageUrl = (path, template = null) => {
       schoolCode = branch.school_code;
     }
   }
-  
+
   // Fallback to current school from auth store
   if (!schoolCode && authStore.currentSchool?.code) {
     schoolCode = authStore.currentSchool.code;
   }
-  
+
   if (!schoolCode) {
     console.warn('⚠️ Could not determine school code for certificate image URL');
     return null;
   }
-  
+
   // Construct the certificate URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
   return getCertificateUrl(path, schoolCode);
 };

@@ -3,7 +3,9 @@
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Exam Results</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+          Exam Results
+        </h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Browse and view exam results across all exams
         </p>
@@ -22,34 +24,19 @@
     </div>
 
     <!-- Filters Section -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm"
+    >
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">Filter Results</h3>
       </div>
       <div class="p-6">
-        <div
-          :class="[
-            'grid grid-cols-1 gap-4',
-            showBranchDropdown ? 'md:grid-cols-5' : 'md:grid-cols-4'
-          ]"
-        >
-          <!-- Branch Selection -->
-          <div v-if="showBranchDropdown">
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
-              Branch
-            </label>
-            <EnhancedDropdown
-              v-model="selectedBranchId"
-              :options="branchOptions"
-              placeholder="Choose branch"
-              :loading="branchesLoading"
-              @change="onBranchChange"
-            />
-          </div>
-
+        <div :class="['grid grid-cols-1 gap-4', 'md:grid-cols-4']">
           <!-- Exam Selection -->
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Exam
             </label>
             <EnhancedDropdown
@@ -63,7 +50,9 @@
 
           <!-- Term Selection -->
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Term
             </label>
             <EnhancedDropdown
@@ -77,7 +66,9 @@
 
           <!-- Class Selection -->
           <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Class
             </label>
             <EnhancedDropdown
@@ -91,7 +82,9 @@
 
           <!-- Section Selection -->
           <div v-if="showSectionField">
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+            <label
+              class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5"
+            >
               Section
             </label>
             <EnhancedDropdown
@@ -102,39 +95,55 @@
               @change="onSectionChange"
             />
           </div>
-        <!-- Filter Button -->
-        <div class="flex justify-end mt-4">
-          <button
-            @click="loadResults"
-            :disabled="loading"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Filter class="h-4 w-4 mr-2" />
-            {{ loading ? 'Loading...' : 'Filter' }}
-          </button>
-        </div>
+          <!-- Filter Button -->
+          <div class="flex justify-end mt-4">
+            <button
+              @click="loadResults"
+              :disabled="loading"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Filter class="h-4 w-4 mr-2" />
+              {{ loading ? 'Loading...' : 'Filter' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Summary Statistics Cards -->
     <div v-if="examsWithResults.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Exams</p>
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Total Exams
+        </p>
         <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
           {{ examsWithResults.length }}
         </p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Students</p>
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Total Students
+        </p>
         <p class="mt-2 text-2xl font-bold text-blue-600">{{ totalStudents }}</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pass Rate</p>
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Pass Rate
+        </p>
         <p class="mt-2 text-2xl font-bold text-green-600">{{ overallPassRate.toFixed(1) }}%</p>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Percentage</p>
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-5"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Avg Percentage
+        </p>
         <p class="mt-2 text-2xl font-bold text-indigo-600">{{ overallAverage.toFixed(2) }}%</p>
       </div>
     </div>
@@ -146,129 +155,129 @@
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">Exam Results Summary</h3>
       </div>
 
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  #
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Exam Name
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Term
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Class
-                </th>
-                <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Total Students
-                </th>
-                <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Passed
-                </th>
-                <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Failed
-                </th>
-                <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Average %
-                </th>
-                <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="(exam, index) in examsWithResults"
-                :key="exam.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
               >
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ index + 1 }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ exam.name }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ getExamTypeLabel(exam.type_id) }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ exam.term?.name || 'N/A' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ exam.class?.name || 'N/A' }}
-                </td>
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white"
+                #
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Exam Name
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Term
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Class
+              </th>
+              <th
+                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Total Students
+              </th>
+              <th
+                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Passed
+              </th>
+              <th
+                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Failed
+              </th>
+              <th
+                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Average %
+              </th>
+              <th
+                class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="(exam, index) in examsWithResults"
+              :key="exam.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ index + 1 }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ exam.name }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ getExamTypeLabel(exam.type_id) }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ exam.term?.name || 'N/A' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {{ exam.class?.name || 'N/A' }}
+              </td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white"
+              >
+                {{ exam.statistics?.total_students || 0 }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <span class="text-sm font-medium text-green-600">
+                  {{ exam.statistics?.passed_count || 0 }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <span class="text-sm font-medium text-red-600">
+                  {{ exam.statistics?.failed_count || 0 }}
+                </span>
+              </td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white"
+              >
+                {{ exam.statistics?.average_percentage?.toFixed(2) || '0.00' }}%
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <span
+                  :class="[
+                    'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
+                    exam.result_status
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  ]"
                 >
-                  {{ exam.statistics?.total_students || 0 }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <span class="text-sm font-medium text-green-600">
-                    {{ exam.statistics?.passed_count || 0 }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <span class="text-sm font-medium text-red-600">
-                    {{ exam.statistics?.failed_count || 0 }}
-                  </span>
-                </td>
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white"
+                  {{ exam.result_status ? 'Published' : 'Hidden' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  @click="viewDetailedResults(exam.id)"
+                  class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
-                  {{ exam.statistics?.average_percentage?.toFixed(2) || '0.00' }}%
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                  <span
-                    :class="[
-                      'inline-flex px-2 py-1 text-xs font-semibold rounded-full',
-                      exam.result_status
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    ]"
-                  >
-                    {{ exam.result_status ? 'Published' : 'Hidden' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    @click="viewDetailedResults(exam.id)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  >
-                    View Results
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  View Results
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- No Results Message -->
@@ -277,9 +286,7 @@
       class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm p-12 text-center"
     >
       <BarChart3 class="mx-auto h-12 w-12 text-gray-400" />
-      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-        No exam results found
-      </h3>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No exam results found</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         {{
           hasFilters
@@ -300,7 +307,6 @@ import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useExams } from '~/composables/useExams';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { examApi } from '~/api/academic/exams';
 import { examTermApi } from '~/api/academic/exam-terms';
@@ -310,7 +316,6 @@ const router = useRouter();
 const { showToast } = useToast();
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
-const { branches, fetchBranchesForUser, loading: branchesLoading } = useBranches();
 const {
   classes,
   sections,
@@ -330,7 +335,7 @@ const selectedSectionId = ref('');
 const loading = ref(false);
 const exporting = ref(false);
 
-watch(selectedBranchId, async (newBranchId) => {
+watch(selectedBranchId, async newBranchId => {
   selectedExamId.value = '';
   selectedClassId.value = '';
   selectedSectionId.value = '';
@@ -341,10 +346,7 @@ watch(selectedBranchId, async (newBranchId) => {
       loadExams({ branch_id: newBranchId })
     ]);
   } else {
-    await Promise.all([
-      fetchClasses(),
-      loadExams()
-    ]);
+    await Promise.all([fetchClasses(), loadExams()]);
   }
 });
 
@@ -352,13 +354,6 @@ watch(selectedBranchId, async (newBranchId) => {
 const examsWithResults = ref<any[]>([]);
 
 // Computed properties
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
 const examOptions = computed(() =>
   exams.value.map(exam => ({
     value: exam.id,
@@ -366,8 +361,6 @@ const examOptions = computed(() =>
     description: exam.examType?.name
   }))
 );
-
-const showBranchDropdown = computed(() => branches.value.length > 1);
 
 const showSectionField = computed(() => {
   if (!selectedClassId.value) return false;
@@ -436,23 +429,6 @@ const loadTerms = async () => {
     // Silent fail
   } finally {
     termsLoading.value = false;
-  }
-};
-
-const onBranchChange = async () => {
-  selectedExamId.value = '';
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  examsWithResults.value = [];
-
-  if (selectedBranchId.value) {
-    await Promise.all([
-      fetchClasses({ branchId: selectedBranchId.value }),
-      loadExams({ branch_id: selectedBranchId.value })
-    ]);
-  } else {
-    classes.value = [];
-    await loadExams();
   }
 };
 
@@ -603,8 +579,25 @@ const viewDetailedResults = (examId: string) => {
 const handleExportSummary = async () => {
   try {
     exporting.value = true;
-    // TODO: Implement export functionality
-    showToast('Export functionality coming soon', 'info');
+    const headers = ['Exam', 'Class', 'Students', 'Passed', 'Failed', 'Average %'];
+    const rows = examsWithResults.value.map(exam => [
+      exam.name,
+      exam.class?.name || '',
+      exam.statistics?.total_students || 0,
+      exam.statistics?.passed_count || 0,
+      exam.statistics?.failed_count || 0,
+      Number(exam.statistics?.average_percentage || 0).toFixed(2)
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `exam-results-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Exam summary exported', 'success');
   } catch (error: any) {
     showToast(error?.message || 'Failed to export summary', 'error');
   } finally {
@@ -615,7 +608,6 @@ const handleExportSummary = async () => {
 // Initialize
 onMounted(async () => {
   try {
-    await fetchBranchesForUser();
     await loadTerms();
 
     if (selectedBranchId.value) {

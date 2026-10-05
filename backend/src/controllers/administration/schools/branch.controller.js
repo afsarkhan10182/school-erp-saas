@@ -29,7 +29,8 @@ class BranchController {
   // Get all branches (Super Admin only)
   static async getAllBranches(req, res, next) {
     try {
-      const { page = 1, limit = 10, search, status, school_id } = req.query;
+      const { page = 1, limit = 10, search, status } = req.query;
+      const school_id = req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id;
 
       const branches = await BranchService.getAllBranches({
         page: parseInt(page),

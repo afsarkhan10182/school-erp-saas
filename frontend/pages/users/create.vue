@@ -110,13 +110,20 @@
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Joining Date</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Joining Date</label
+            >
             <input v-model="formData.joining_date" type="date" class="form-input" />
           </div>
 
           <div>
             <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Staff ID</label>
-            <input v-model="formData.staff_id" type="text" class="form-input" placeholder="Auto-generated if blank" />
+            <input
+              v-model="formData.staff_id"
+              type="text"
+              class="form-input"
+              placeholder="Auto-generated if blank"
+            />
           </div>
 
           <div>
@@ -197,13 +204,27 @@
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Designation</label>
-            <input v-model="formData.designation" type="text" class="form-input" placeholder="Teacher" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Designation</label
+            >
+            <input
+              v-model="formData.designation"
+              type="text"
+              class="form-input"
+              placeholder="Teacher"
+            />
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Department</label>
-            <input v-model="formData.department" type="text" class="form-input" placeholder="Academic" />
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Department</label
+            >
+            <input
+              v-model="formData.department"
+              type="text"
+              class="form-input"
+              placeholder="Academic"
+            />
           </div>
 
           <div>
@@ -216,22 +237,30 @@
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Date Of Birth</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Date Of Birth</label
+            >
             <input v-model="formData.date_of_birth" type="date" class="form-input" />
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Qualification</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Qualification</label
+            >
             <textarea v-model="formData.qualification" class="form-input" rows="2" />
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Experience Details</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Experience Details</label
+            >
             <textarea v-model="formData.experience_details" class="form-input" rows="2" />
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Total Experience</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Total Experience</label
+            >
             <input v-model="formData.total_experience" type="text" class="form-input" />
           </div>
 
@@ -241,7 +270,9 @@
           </div>
 
           <div>
-            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Blood Group</label>
+            <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+              >Blood Group</label
+            >
             <select v-model="formData.blood_group" class="form-select">
               <option value="">Select Blood Group</option>
               <option v-for="group in bloodGroups" :key="group" :value="group">{{ group }}</option>
@@ -250,18 +281,24 @@
 
           <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Present Address</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Present Address</label
+              >
               <textarea v-model="formData.present_address" class="form-input" rows="2" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Permanent Address</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Permanent Address</label
+              >
               <textarea v-model="formData.permanent_address" class="form-input" rows="2" />
             </div>
           </div>
 
           <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Facebook</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Facebook</label
+              >
               <input v-model="formData.facebook" type="url" class="form-input" />
             </div>
             <div>
@@ -269,41 +306,64 @@
               <input v-model="formData.twitter" type="url" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Linkedin</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Linkedin</label
+              >
               <input v-model="formData.linkedin" type="url" class="form-input" />
             </div>
           </div>
 
           <div class="lg:col-span-2">
-            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <input v-model="formData.skip_bank_details" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            <label
+              class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              <input
+                v-model="formData.skip_bank_details"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
               Skipped Bank Details
             </label>
           </div>
 
-          <div v-if="!formData.skip_bank_details" class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div
+            v-if="!formData.skip_bank_details"
+            class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4"
+          >
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Name</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Bank Name</label
+              >
               <input v-model="formData.bank_name" type="text" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Holder Name</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Holder Name</label
+              >
               <input v-model="formData.holder_name" type="text" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Branch</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Bank Branch</label
+              >
               <input v-model="formData.bank_branch" type="text" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Bank Address</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Bank Address</label
+              >
               <input v-model="formData.bank_address" type="text" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">IFSC Code</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >IFSC Code</label
+              >
               <input v-model="formData.ifsc_code" type="text" class="form-input" />
             </div>
             <div>
-              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Account No</label>
+              <label class="block font-medium mb-1 text-gray-700 dark:text-gray-300"
+                >Account No</label
+              >
               <input v-model="formData.account_no" type="text" class="form-input" />
             </div>
           </div>
@@ -349,10 +409,7 @@
     </div>
 
     <!-- Generated Password Modal -->
-    <div
-      v-if="showPasswordModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-md mx-4 sm:mx-auto shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -712,11 +769,29 @@ const handleSubmit = async () => {
       }
     };
     [
-      'staff_id', 'joining_date', 'designation', 'department', 'qualification', 'experience_details',
-      'total_experience', 'gender', 'religion', 'blood_group', 'date_of_birth',
-      'present_address', 'permanent_address', 'facebook', 'twitter', 'linkedin',
-      'skip_bank_details', 'bank_name', 'holder_name', 'bank_branch', 'bank_address',
-      'ifsc_code', 'account_no'
+      'staff_id',
+      'joining_date',
+      'designation',
+      'department',
+      'qualification',
+      'experience_details',
+      'total_experience',
+      'gender',
+      'religion',
+      'blood_group',
+      'date_of_birth',
+      'present_address',
+      'permanent_address',
+      'facebook',
+      'twitter',
+      'linkedin',
+      'skip_bank_details',
+      'bank_name',
+      'holder_name',
+      'bank_branch',
+      'bank_address',
+      'ifsc_code',
+      'account_no'
     ].forEach(key => delete payload[key]);
 
     // Remove empty phone field to avoid validation issues
@@ -941,4 +1016,3 @@ onMounted(async () => {
   }
 });
 </script>
-

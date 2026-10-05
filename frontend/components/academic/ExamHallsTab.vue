@@ -17,8 +17,6 @@
       </button>
     </div>
 
-
-
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-center">

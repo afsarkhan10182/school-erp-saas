@@ -9,12 +9,7 @@
       @click="handleOverlayClick"
       @keydown.escape="$emit('close')"
     >
-      <div
-        class="modal-content"
-        ref="modalRef"
-        :class="[sizeClasses, 'slide-in']"
-        @click.stop
-      >
+      <div class="modal-content" ref="modalRef" :class="[sizeClasses, 'slide-in']" @click.stop>
         <!-- Close button -->
         <button
           @click="$emit('close')"
@@ -88,7 +83,7 @@ const sizeClasses = computed(() => {
 });
 
 // Focus trap — keep Tab within modal
-const handleFocusTrap = (e) => {
+const handleFocusTrap = e => {
   if (!modalRef.value) return;
   const focusable = modalRef.value.querySelectorAll(
     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -112,29 +107,32 @@ const handleFocusTrap = (e) => {
 };
 
 // Lock body scroll when modal opens
-watch(() => props.show, (visible) => {
-  if (typeof window === 'undefined') return;
+watch(
+  () => props.show,
+  visible => {
+    if (typeof window === 'undefined') return;
 
-  if (visible) {
-    previousFocusEl.value = document.activeElement;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleFocusTrap);
-    nextTick(() => {
-      // Focus first focusable element or modal itself
-      const firstFocusable = modalRef.value?.querySelector(
-        'button, [href], input, select, textarea'
-      );
-      firstFocusable ? firstFocusable.focus() : modalRef.value?.focus();
-    });
-  } else {
-    document.body.style.overflow = '';
-    document.removeEventListener('keydown', handleFocusTrap);
-    // Restore focus to element that opened the modal
-    if (previousFocusEl.value) {
-      previousFocusEl.value.focus();
+    if (visible) {
+      previousFocusEl.value = document.activeElement;
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleFocusTrap);
+      nextTick(() => {
+        // Focus first focusable element or modal itself
+        const firstFocusable = modalRef.value?.querySelector(
+          'button, [href], input, select, textarea'
+        );
+        firstFocusable ? firstFocusable.focus() : modalRef.value?.focus();
+      });
+    } else {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleFocusTrap);
+      // Restore focus to element that opened the modal
+      if (previousFocusEl.value) {
+        previousFocusEl.value.focus();
+      }
     }
   }
-});
+);
 
 // Clean up on unmount
 onBeforeUnmount(() => {

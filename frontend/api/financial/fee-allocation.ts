@@ -21,4 +21,3 @@ export const FeeAllocationAPI = {
   saveAllocation: (payload: SaveAllocationPayload) =>
     apiCall('post', '/fee-allocation/save', payload)
 };
-

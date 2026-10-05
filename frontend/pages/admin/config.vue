@@ -1,50 +1,41 @@
 <template>
-  <div class="max-w-[1400px] mx-auto p-4">
-    <div class="page-header">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="page-title">Configuration Management</h1>
-          <p class="page-subtitle">
-            Manage system-wide settings, school configurations, and module preferences
-          </p>
-        </div>
-        <div class="flex items-center gap-3">
-          <button
-            @click="refreshConfigurations"
-            :disabled="loading"
-            class="btn btn-secondary"
+  <div class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Configuration Management</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Manage system-wide settings, school configurations, and module preferences
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button @click="refreshConfigurations" :disabled="loading" class="btn btn-secondary">
+          <svg
+            class="w-4 h-4"
+            :class="{ 'animate-spin': loading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <svg
-              class="w-4 h-4"
-              :class="{ 'animate-spin': loading }"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Refresh
-          </button>
-          <button
-            @click="exportConfigurations"
-            class="btn btn-primary"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Export
-          </button>
-        </div>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          Refresh
+        </button>
+        <button @click="exportConfigurations" class="btn btn-primary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Export
+        </button>
       </div>
     </div>
 
@@ -55,11 +46,11 @@
     <!-- Quick Actions Panel -->
     <div class="card mt-8">
       <div class="card-body">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             @click="resetToDefaults"
-            class="btn btn-ghost text-left p-4 h-auto"
+            class="btn btn-ghost text-left p-4 h-auto hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl"
           >
             <div class="flex items-center">
               <svg
@@ -76,15 +67,17 @@
                 />
               </svg>
               <div>
-                <h4 class="font-medium text-gray-800">Reset to Defaults</h4>
-                <p class="text-sm text-gray-500">Restore all settings to default values</p>
+                <h4 class="font-medium text-gray-900 dark:text-white">Reset to Defaults</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  Restore all settings to default values
+                </p>
               </div>
             </div>
           </button>
 
           <button
             @click="backupConfigurations"
-            class="btn btn-ghost text-left p-4 h-auto"
+            class="btn btn-ghost text-left p-4 h-auto hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl"
           >
             <div class="flex items-center">
               <svg
@@ -101,15 +94,17 @@
                 />
               </svg>
               <div>
-                <h4 class="font-medium text-gray-800">Backup Configurations</h4>
-                <p class="text-sm text-gray-500">Create a backup of current settings</p>
+                <h4 class="font-medium text-gray-900 dark:text-white">Backup Configurations</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  Create a backup of current settings
+                </p>
               </div>
             </div>
           </button>
 
           <button
             @click="showImportModal = true"
-            class="btn btn-ghost text-left p-4 h-auto"
+            class="btn btn-ghost text-left p-4 h-auto hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl"
           >
             <div class="flex items-center">
               <svg
@@ -126,8 +121,10 @@
                 />
               </svg>
               <div>
-                <h4 class="font-medium text-gray-800">Import Configurations</h4>
-                <p class="text-sm text-gray-500">Restore settings from backup file</p>
+                <h4 class="font-medium text-gray-900 dark:text-white">Import Configurations</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  Restore settings from backup file
+                </p>
               </div>
             </div>
           </button>
@@ -138,44 +135,48 @@
     <!-- Configuration Summary -->
     <div class="card mt-8">
       <div class="card-body">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Configuration Summary</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Configuration Summary
+        </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ enabledModulesCount }}</div>
-            <div class="text-sm text-gray-500">Enabled Modules</div>
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+              {{ enabledModulesCount }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Enabled Modules</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-green-600">{{ totalSettingsCount }}</div>
-            <div class="text-sm text-gray-500">Total Settings</div>
+            <div class="text-2xl font-bold text-green-600 dark:text-green-400">
+              {{ totalSettingsCount }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Total Settings</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-orange-600">{{ customSettingsCount }}</div>
-            <div class="text-sm text-gray-500">Custom Settings</div>
+            <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {{ customSettingsCount }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Custom Settings</div>
           </div>
           <div class="text-center">
-            <div class="text-2xl font-bold text-purple-600">{{ lastUpdated }}</div>
-            <div class="text-sm text-gray-500">Last Updated</div>
+            <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {{ lastUpdated || 'Not configured' }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Last Updated</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Import Modal -->
-    <div
-      v-if="showImportModal"
-      class="modal-overlay"
-      @click.self="showImportModal = false"
-    >
+    <div v-if="showImportModal" class="modal-overlay" @click.self="showImportModal = false">
       <div class="modal-content">
         <div class="modal-header">
           <h3 class="page-title">Import Configurations</h3>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">
-              Select Configuration File
-            </label>
+            <label class="form-label"> Select Configuration File </label>
             <input
               ref="fileInput"
               type="file"
@@ -191,17 +192,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button
-            @click="showImportModal = false"
-            class="btn btn-ghost"
-          >
-            Cancel
-          </button>
-          <button
-            @click="importConfigurations"
-            :disabled="!selectedFile"
-            class="btn btn-primary"
-          >
+          <button @click="showImportModal = false" class="btn btn-ghost">Cancel</button>
+          <button @click="importConfigurations" :disabled="!selectedFile" class="btn btn-primary">
             Import
           </button>
         </div>
@@ -210,12 +202,7 @@
 
     <!-- Success/Error Messages -->
     <div v-if="message" class="mt-4">
-      <div
-        :class="[
-          'alert',
-          message.type === 'success' ? 'alert-success' : 'alert-danger'
-        ]"
-      >
+      <div :class="['alert', message.type === 'success' ? 'alert-success' : 'alert-danger']">
         {{ message.text }}
       </div>
     </div>
@@ -226,10 +213,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useConfig } from '~/composables/useConfig';
 import { Settings } from '~/api/administration/settings';
+import ConfigManager from '~/components/layout/ConfigManager.vue';
 
 // Meta
 definePageMeta({
-  layout: 'admin',
+  layout: 'default',
   requiresRole: ['admin', 'super_admin']
 });
 

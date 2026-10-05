@@ -53,8 +53,37 @@ const ExamSeating = require('./academic/exam-seating.model');
 // Administration models
 const CertificateTemplate = require('./administration/certificate-template.model');
 
+// Transport models
+const Vehicle = require('./transport/vehicle.model');
+const TransportRoute = require('./transport/transport-route.model');
+const VehicleRoute = require('./transport/vehicle-route.model');
+const StudentTransport = require('./transport/student-transport.model');
+
+// Hostel models
+const Hostel = require('./hostel/hostel.model');
+const RoomType = require('./hostel/room-type.model');
+const HostelRoom = require('./hostel/hostel-room.model');
+const HostelAllocation = require('./hostel/hostel-allocation.model');
+
+// Inventory models
+const ItemCategory = require('./inventory/item-category.model');
+const Supplier = require('./inventory/supplier.model');
+const Store = require('./inventory/store.model');
+const InventoryItem = require('./inventory/inventory-item.model');
+const ItemIssue = require('./inventory/item-issue.model');
+
+// Accounting models
+const AccountCategory = require('./accounting/account-category.model');
+const SchoolTransaction = require('./accounting/school-transaction.model');
+
+// Alumni models
+const Alumni = require('./alumni/alumni.model');
+const AlumniEvent = require('./alumni/alumni-event.model');
+
 // Initialize associations
 const models = {
+  Alumni,
+  AlumniEvent,
   User,
   School,
   Branch,
@@ -107,7 +136,22 @@ const models = {
   OnlineExamQuestion,
   OnlineExamAttempt,
   ExamSeating,
-  CertificateTemplate
+  CertificateTemplate,
+  Vehicle,
+  TransportRoute,
+  VehicleRoute,
+  StudentTransport,
+  Hostel,
+  RoomType,
+  HostelRoom,
+  HostelAllocation,
+  ItemCategory,
+  Supplier,
+  Store,
+  InventoryItem,
+  ItemIssue,
+  AccountCategory,
+  SchoolTransaction
 };
 
 // Call associate function for each unique model if it exists

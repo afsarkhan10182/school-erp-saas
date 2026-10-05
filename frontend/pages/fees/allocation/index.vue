@@ -1,11 +1,12 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto space-y-6">
-      
       <!-- Page Header -->
       <div class="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+          <h1
+            class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3"
+          >
             <ClipboardList class="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             Fee Allocation
           </h1>
@@ -13,7 +14,7 @@
             Assign and manage fee structures for students by Class, Section, and Branch.
           </p>
         </div>
-        
+
         <div class="mt-4 sm:mt-0 flex gap-3">
           <button
             @click="fetchStudents"
@@ -36,79 +37,47 @@
       </div>
 
       <!-- Filters Card -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5"
+      >
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
           <!-- Class Dropdown -->
           <div>
-            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+            <label
+              class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+            >
               Class *
             </label>
-            <div class="relative">
-              <select
-                v-model="filters.class_id"
-                @change="onClassChange"
-                class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-              >
-                <option value="">Select Class</option>
-                <option v-for="c in classes" :key="c.id" :value="c.id">
-                  {{ c.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <EnhancedDropdown v-model="filters.class_id" :options="classes.map(c => ({ value: c.id, label: c.name }))" placeholder="Select Class" id="allocation-class" @change="onClassChange" />
           </div>
 
           <!-- Section Dropdown -->
           <div>
-            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+            <label
+              class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+            >
               Section
             </label>
-            <div class="relative">
-              <select
-                v-model="filters.section_id"
-                class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-              >
-                <option value="">All Sections</option>
-                <option v-for="s in filteredSections" :key="s.id" :value="s.id">
-                  {{ s.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <EnhancedDropdown v-model="filters.section_id" :options="filteredSections.map(s => ({ value: s.id, label: s.name }))" placeholder="All Sections" id="allocation-section" />
           </div>
 
           <!-- Fee Structure / Group Dropdown -->
           <div>
-            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+            <label
+              class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5"
+            >
               Fee Structure *
             </label>
-            <div class="relative">
-              <select
-                v-model="filters.fee_group_id"
-                class="appearance-none w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all shadow-sm"
-              >
-                <option value="">Select Fee Structure</option>
-                <option v-for="fs in feeStructures" :key="fs.id" :value="fs.id">
-                  {{ fs.name }} (₹{{ fs.amount || 0 }})
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-400">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <EnhancedDropdown v-model="filters.fee_group_id" :options="feeStructures.map(fs => ({ value: fs.id, label: `${fs.name} (₹${fs.amount || 0})` }))" placeholder="Select Fee Structure" id="allocation-fee-structure" />
           </div>
-
         </div>
       </div>
 
       <!-- Overview Stats Header -->
       <div v-if="hasSearched" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
           <div>
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Total Students</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ students.length }}</p>
@@ -116,28 +85,41 @@
           <Users class="w-8 h-8 text-blue-500 opacity-80" />
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
           <div>
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Selected for Allocation</p>
-            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ selectedStudentIds.size }}</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Selected for Allocation
+            </p>
+            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {{ selectedStudentIds.size }}
+            </p>
           </div>
           <CheckCircle2 class="w-8 h-8 text-emerald-500 opacity-80" />
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div
+          class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between"
+        >
           <div>
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Unallocated</p>
-            <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ students.length - selectedStudentIds.size }}</p>
+            <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {{ students.length - selectedStudentIds.size }}
+            </p>
           </div>
           <AlertCircle class="w-8 h-8 text-amber-500 opacity-80" />
         </div>
       </div>
 
       <!-- Main Allocation Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        
+      <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
         <!-- Table Control Toolbar -->
-        <div class="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+        <div
+          class="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4"
+        >
           <div class="flex items-center gap-3">
             <input
               type="checkbox"
@@ -164,7 +146,9 @@
 
         <!-- Loading State -->
         <div v-if="isLoading" class="p-12 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+          <div
+            class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"
+          ></div>
           <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading student records...</p>
         </div>
 
@@ -173,20 +157,25 @@
           <ClipboardList class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
           <h3 class="text-base font-semibold text-gray-700 dark:text-gray-300">Select Criteria</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            Choose a Class and Fee Structure above, then click <strong>Fetch Students</strong> to manage fee allocations.
+            Choose a Class and Fee Structure above, then click <strong>Fetch Students</strong> to
+            manage fee allocations.
           </p>
         </div>
 
         <!-- Empty Result State -->
         <div v-else-if="filteredStudents.length === 0" class="p-12 text-center space-y-2">
           <Users class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto" />
-          <p class="text-sm text-gray-500 dark:text-gray-400">No students found matching your criteria.</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            No students found matching your criteria.
+          </p>
         </div>
 
         <!-- Students Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-left text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700">
+            <thead
+              class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-gray-700"
+            >
               <tr>
                 <th class="p-4 w-12 text-center">#</th>
                 <th class="p-4">Admission No</th>
@@ -222,7 +211,8 @@
                   {{ student.first_name }} {{ student.last_name || '' }}
                 </td>
                 <td class="p-4 text-gray-600 dark:text-gray-300">
-                  {{ student.class?.name || '—' }} <span v-if="student.sectionInfo">({{ student.sectionInfo.name }})</span>
+                  {{ student.class?.name || '—' }}
+                  <span v-if="student.sectionInfo">({{ student.sectionInfo.name }})</span>
                 </td>
                 <td class="p-4">
                   <span
@@ -242,9 +232,7 @@
             </tbody>
           </table>
         </div>
-
       </div>
-
     </div>
   </div>
 </template>
@@ -266,6 +254,7 @@ import { FeeStructures } from '~/api';
 import { useAcademics } from '~/composables/useAcademics';
 import { useToast } from '~/composables/useToast';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { showToast } = useToast();
 const { selectedBranchId } = useGlobalBranch();
@@ -287,7 +276,7 @@ const filters = reactive({
   fee_group_id: ''
 });
 
-watch(selectedBranchId, (newBranchId) => {
+watch(selectedBranchId, newBranchId => {
   filters.branch_id = newBranchId || '';
   students.value = [];
   selectedStudentIds.value = new Set();
@@ -372,7 +361,7 @@ const fetchStudents = async () => {
   }
 };
 
-const toggleStudent = (id) => {
+const toggleStudent = id => {
   const strId = String(id);
   const next = new Set(selectedStudentIds.value);
   if (next.has(strId)) {
@@ -412,10 +401,6 @@ const saveAllocation = async () => {
 };
 
 onMounted(async () => {
-  await Promise.all([
-    fetchClasses(),
-    fetchSections(),
-    fetchFeeStructures()
-  ]);
+  await Promise.all([fetchClasses(), fetchSections(), fetchFeeStructures()]);
 });
 </script>

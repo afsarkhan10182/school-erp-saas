@@ -10,17 +10,17 @@
         class="bg-white dark:bg-gray-800 rounded-md shadow p-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-3"
         @submit.prevent="createExam"
       >
-
         <input
           v-model="form.title"
           required
           placeholder="Exam title"
           class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
         />
-        <select v-model="form.class_id" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-          <option value="">Class (optional)</option>
-          <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
+        <EnhancedDropdown
+          v-model="form.class_id"
+          :options="classOptions"
+          placeholder="Class (optional)"
+        />
         <input
           v-model.number="form.duration_minutes"
           type="number"
@@ -51,7 +51,10 @@
             class="mt-1 w-full border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600"
           />
         </label>
-        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm md:col-span-2">
+        <button
+          type="submit"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm md:col-span-2"
+        >
           Create online exam
         </button>
       </form>
@@ -79,11 +82,7 @@
               <td class="px-4 py-3 text-sm">{{ e.status }}</td>
               <td class="px-4 py-3 text-sm text-right space-x-2">
                 <button class="text-indigo-600" @click="openExam(e.id)">Manage</button>
-                <button
-                  v-if="e.status !== 'published'"
-                  class="text-green-700"
-                  @click="publish(e)"
-                >
+                <button v-if="e.status !== 'published'" class="text-green-700" @click="publish(e)">
                   Publish
                 </button>
                 <button class="text-red-600" @click="removeExam(e.id)">Delete</button>
@@ -98,7 +97,9 @@
         <div class="flex items-center justify-between flex-wrap gap-2">
           <h2 class="text-xl font-semibold">{{ active.title }}</h2>
           <div class="flex gap-2">
-            <button class="px-3 py-1.5 text-sm border rounded-md" @click="loadResults">Results</button>
+            <button class="px-3 py-1.5 text-sm border rounded-md" @click="loadResults">
+              Results
+            </button>
             <button
               v-if="active.status === 'published'"
               class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md"
@@ -109,14 +110,23 @@
           </div>
         </div>
 
-        <form class="bg-white dark:bg-gray-800 rounded-md shadow p-4 space-y-3" @submit.prevent="addQuestion">
+        <form
+          class="bg-white dark:bg-gray-800 rounded-md shadow p-4 space-y-3"
+          @submit.prevent="addQuestion"
+        >
           <h3 class="font-medium">Add question</h3>
           <div class="flex flex-wrap gap-2">
-            <select v-model="questionBankId" class="border rounded-md px-3 py-2 dark:bg-gray-900 dark:border-gray-600">
-              <option value="">Import from question bank</option>
-              <option v-for="question in questionBank" :key="question.id" :value="question.id">{{ question.title }}</option>
-            </select>
-            <button type="button" class="px-3 py-2 border rounded-md text-sm" :disabled="!questionBankId" @click="importQuestion">
+            <EnhancedDropdown
+              v-model="questionBankId"
+              :options="questionBankOptions"
+              placeholder="Import from question bank"
+            />
+            <button
+              type="button"
+              class="px-3 py-2 border rounded-md text-sm"
+              :disabled="!questionBankId"
+              @click="importQuestion"
+            >
               Import
             </button>
           </div>
@@ -139,12 +149,12 @@
           </div>
           <div class="flex flex-wrap gap-3 items-center">
             <label class="text-sm">Correct option</label>
-            <select v-model.number="qForm.correct_option" class="border rounded-md px-2 py-1 dark:bg-gray-900">
-              <option :value="0">1</option>
-              <option :value="1">2</option>
-              <option :value="2">3</option>
-              <option :value="3">4</option>
-            </select>
+            <EnhancedDropdown
+              v-model="qForm.correct_option"
+              :options="correctOptionOptions"
+              placeholder="Correct option"
+              class="w-32"
+            />
             <input
               v-model.number="qForm.marks"
               type="number"
@@ -167,7 +177,11 @@
         </form>
 
         <div class="bg-white dark:bg-gray-800 rounded-md shadow divide-y">
-          <div v-for="q in active.questions || []" :key="q.id" class="p-4 flex justify-between gap-4">
+          <div
+            v-for="q in active.questions || []"
+            :key="q.id"
+            class="p-4 flex justify-between gap-4"
+          >
             <div>
               <div class="font-medium text-sm">{{ q.question_text }}</div>
               <div class="text-xs text-gray-500 mt-1">
@@ -176,20 +190,24 @@
                 }}
               </div>
             </div>
-            <button class="text-red-600 text-sm shrink-0" @click="deleteQuestion(q.id)">Delete</button>
+            <button class="text-red-600 text-sm shrink-0" @click="deleteQuestion(q.id)">
+              Delete
+            </button>
           </div>
-          <p v-if="!(active.questions || []).length" class="p-4 text-sm text-gray-500">No questions.</p>
+          <p v-if="!(active.questions || []).length" class="p-4 text-sm text-gray-500">
+            No questions.
+          </p>
         </div>
 
         <div v-if="takeMode" class="bg-white dark:bg-gray-800 rounded-md shadow p-4 space-y-4">
           <h3 class="font-medium">Take exam (staff preview)</h3>
           <p class="text-sm text-gray-500">Duration: {{ active.duration_minutes }} minutes</p>
-          <select v-model="takeStudentId" class="border rounded-md px-3 py-2 dark:bg-gray-900 w-full md:w-80">
-            <option value="">Select student</option>
-            <option v-for="s in students" :key="s.id" :value="s.id">
-              {{ s.first_name }} {{ s.last_name }} ({{ s.admission_number }})
-            </option>
-          </select>
+          <EnhancedDropdown
+            v-model="takeStudentId"
+            :options="studentOptions"
+            placeholder="Select student"
+            class="w-full md:w-80"
+          />
           <div v-for="q in paperQuestions" :key="q.id" class="border rounded p-3">
             <div class="text-sm font-medium mb-2">{{ q.question_text }}</div>
             <label
@@ -209,12 +227,16 @@
             Submit answers
           </button>
           <p v-if="submitResult" class="text-sm text-green-700">
-            Score: {{ submitResult.score }} / {{ submitResult.total_marks }}
-            ({{ submitResult.passed ? 'Passed' : 'Failed' }})
+            Score: {{ submitResult.score }} / {{ submitResult.total_marks }} ({{
+              submitResult.passed ? 'Passed' : 'Failed'
+            }})
           </p>
         </div>
 
-        <div v-if="results.length" class="bg-white dark:bg-gray-800 rounded-md shadow overflow-x-auto">
+        <div
+          v-if="results.length"
+          class="bg-white dark:bg-gray-800 rounded-md shadow overflow-x-auto"
+        >
           <table class="min-w-full divide-y">
             <thead>
               <tr>
@@ -235,12 +257,21 @@
           </table>
         </div>
       </div>
+
+      <ConfirmDialog
+        :show="Boolean(examToDelete)"
+        title="Delete online exam"
+        message="Delete this online exam? This cannot be undone."
+        confirm-label="Delete exam"
+        @close="examToDelete = ''"
+        @confirm="confirmRemoveExam"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { OnlineExams } from '~/api/academic/cards-exams-reports';
 import { Classes } from '~/api/academic/classes';
 import { Students } from '~/api/students';
@@ -248,6 +279,8 @@ import { DynamicEntities } from '~/api/shared/dynamic-entities';
 import { useAuth } from '~/composables/useAuth';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { apiErrorMessage, extractList } from '~/utils/list-response';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
@@ -264,6 +297,23 @@ const takeStudentId = ref('');
 const questionBankId = ref('');
 const submitResult = ref<any>(null);
 const results = ref<any[]>([]);
+const examToDelete = ref('');
+const classOptions = computed(() => classes.value.map(item => ({ value: item.id, label: item.name })));
+const questionBankOptions = computed(() =>
+  questionBank.value.map(item => ({ value: item.id, label: item.title }))
+);
+const studentOptions = computed(() =>
+  students.value.map(item => ({
+    value: item.id,
+    label: `${item.first_name} ${item.last_name} (${item.admission_number})`
+  }))
+);
+const correctOptionOptions = [
+  { value: 0, label: '1' },
+  { value: 1, label: '2' },
+  { value: 2, label: '3' },
+  { value: 3, label: '4' }
+];
 
 watch(selectedBranchId, async () => {
   form.class_id = '';
@@ -289,14 +339,7 @@ const qForm = reactive({
   sort_order: 0
 });
 
-const branchParams = () => selectedBranchId.value ? { branch_id: selectedBranchId.value } : {};
-
-const loadBranches = async () => {
-  const response: any = await Branches.getForDropdown({ status: 'active' });
-  const branches = extractList(response, ['branches']);
-  branchOptions.value = branches.map((b: any) => ({ value: b.id, label: b.name || b.code || b.id }));
-  selectedBranchId.value = user.value?.branch_id || (branchOptions.value.length === 1 ? branchOptions.value[0].value : '');
-};
+const branchParams = () => (selectedBranchId.value ? { branch_id: selectedBranchId.value } : {});
 
 const loadLookups = async () => {
   const qs = new URLSearchParams();
@@ -314,13 +357,6 @@ const loadLookups = async () => {
 const loadList = async () => {
   const res: any = await OnlineExams.list(branchParams());
   exams.value = res.data?.exams || [];
-};
-
-const onBranchChange = async () => {
-  form.class_id = '';
-  active.value = null;
-  await loadLookups();
-  await loadList();
 };
 
 const createExam = async () => {
@@ -354,7 +390,13 @@ const publish = async (e: any) => {
 };
 
 const removeExam = async (id: string) => {
-  if (!confirm('Delete this online exam?')) return;
+  examToDelete.value = id;
+};
+
+const confirmRemoveExam = async () => {
+  const id = examToDelete.value;
+  examToDelete.value = '';
+  if (!id) return;
   try {
     await OnlineExams.remove(id);
     if (active.value?.id === id) active.value = null;
@@ -389,10 +431,14 @@ const addQuestion = async () => {
 const importQuestion = async () => {
   const record = questionBank.value.find(q => q.id === questionBankId.value);
   if (!record || !active.value) return;
-  const lines = String(record.notes || '').split('\n').map(line => line.trim()).filter(Boolean);
+  const lines = String(record.notes || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
   await OnlineExams.addQuestion(active.value.id, {
     question_text: record.title,
-    options_json: lines.length >= 2 ? lines.slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'],
+    options_json:
+      lines.length >= 2 ? lines.slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'],
     correct_option: 0,
     marks: 1,
     sort_order: (active.value.questions || []).length

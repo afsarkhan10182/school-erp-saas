@@ -843,7 +843,6 @@ import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
-import { useBranches } from '~/composables/useBranches';
 import Pagination from '~/components/ui/Pagination.vue';
 import { usePrintReport } from '~/composables/usePrintReport';
 import { useExportService } from '~/composables/useExportService';
@@ -866,7 +865,6 @@ const {
   fetchStreams
 } = useAcademics();
 const { schools, fetchSchools } = useSchools();
-const { branches, fetchBranches } = useBranches();
 
 // Get print and export composables
 const { printReport: printReportUtil } = usePrintReport();
@@ -910,12 +908,6 @@ const schoolOptions = computed(() => [
   }))
 ]);
 
-const branchOptions = computed(() => [
-  ...branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const classOptions = computed(() => [
   ...classes.value.map(cls => ({
@@ -989,7 +981,7 @@ const initializeFilters = () => {
 };
 
 // Watch for global branch or school change
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   filters.branch_id = newVal || '';
   filters.class_id = '';
   filters.section_id = '';
@@ -1260,22 +1252,6 @@ const loadStreams = async () => {
   }
 };
 
-const loadBranches = async () => {
-  try {
-    const options = {};
-
-    // Filter by school if selected (for super admin)
-    if (filters.school_id) {
-      options.schoolId = filters.school_id;
-    }
-
-    console.log('Loading branches with options:', options);
-    await fetchBranches(options);
-    console.log('Branches loaded:', branches.value.length);
-  } catch (error) {
-    console.error('Error loading branches:', error);
-  }
-};
 
 const loadSchools = async () => {
   if (isSuperAdmin.value) {
@@ -1652,8 +1628,6 @@ const onSchoolChange = async () => {
   filters.class_id = '';
   filters.section_id = '';
   filters.stream_id = '';
-
-  await loadBranches(); // Reload branches for selected school
   await loadClasses(); // Reload classes for selected school
   sections.value = []; // Clear sections
   streams.value = []; // Clear streams
@@ -1843,7 +1817,7 @@ const printStudentsReport = async () => {
           ? schools.value.find(s => s.id === filters.school_id)?.name
           : 'All Schools',
         Branch: filters.branch_id
-          ? branches.value.find(b => b.id === filters.branch_id)?.name
+          ? (filters.branch_id ? 'Selected Branch' : '')
           : 'All Branches',
         Class: filters.class_id
           ? classes.value.find(c => c.id === filters.class_id)?.name
@@ -1907,7 +1881,7 @@ onMounted(async () => {
     // Wait for auth store to initialize
     // Auth composable handles initialization automatically
 
-    await Promise.all([loadAcademicYears(), loadSchools(), loadBranches(), loadClasses()]);
+    await Promise.all([loadAcademicYears(), loadSchools(), loadClasses()]);
 
     // Initialize filters based on user role
     initializeFilters();

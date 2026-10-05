@@ -216,10 +216,7 @@ const emit = defineEmits(['submit', 'cancel']);
 
 // Composables
 const { showToast } = useToast();
-const { 
-  sectionOptions, academicYears,
-  fetchSections, fetchAcademicYears
-} = useAcademics();
+const { sectionOptions, academicYears, fetchSections, fetchAcademicYears } = useAcademics();
 
 // Reactive data
 const isSubmitting = ref(false);

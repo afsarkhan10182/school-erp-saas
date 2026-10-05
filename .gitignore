@@ -27,3 +27,6 @@ playwright/.cache/
 
 # Documentation & Audit Artifacts
 docs/
+
+# Root-level local dependencies
+node_modules/

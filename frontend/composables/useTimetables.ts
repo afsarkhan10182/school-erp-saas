@@ -67,12 +67,6 @@ export function useTimetables() {
     }))
   );
 
-  const branchOptions = computed(() =>
-    branches.value.map(branch => ({
-      value: branch.id,
-      label: branch.name
-    }))
-  );
 
   // Academic year options (for reports/history - not needed for current operations)
   const academicYearOptions = computed(() => [
@@ -315,7 +309,7 @@ export function useTimetables() {
       }
 
       // Watch global branch changes and reload
-      watch(globalBranchId, async (newVal) => {
+      watch(globalBranchId, async newVal => {
         selectedBranchId.value = newVal || '';
         await onBranchChange();
       });
@@ -343,7 +337,6 @@ export function useTimetables() {
     // Computed
     shouldShowBranchFilter,
     schoolOptions,
-    branchOptions,
     academicYearOptions,
     classDropdownOptions,
     sectionDropdownOptions,

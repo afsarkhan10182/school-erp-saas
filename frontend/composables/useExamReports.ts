@@ -9,7 +9,7 @@ export const useExamReports = () => {
   const error = ref(null);
 
   // Fetch students for report cards
-  const fetchStudents = async (filters) => {
+  const fetchStudents = async filters => {
     try {
       loading.value = true;
       error.value = null;
@@ -45,7 +45,7 @@ export const useExamReports = () => {
   };
 
   // Generate report cards
-  const generateReport = async (reportData) => {
+  const generateReport = async reportData => {
     try {
       loading.value = true;
       error.value = null;
@@ -60,7 +60,7 @@ export const useExamReports = () => {
   };
 
   // Download report
-  const downloadReport = async (reportId) => {
+  const downloadReport = async reportId => {
     try {
       const response = await examReportsApi.download(reportId);
       return response;
@@ -71,7 +71,7 @@ export const useExamReports = () => {
   };
 
   // Get report generation status
-  const getReportStatus = async (reportId) => {
+  const getReportStatus = async reportId => {
     try {
       loading.value = true;
       error.value = null;

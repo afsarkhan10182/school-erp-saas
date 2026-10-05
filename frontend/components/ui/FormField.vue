@@ -3,10 +3,7 @@
     <label
       v-if="label"
       :for="id"
-      :class="[
-        'form-label',
-        { 'form-label-required': required, 'form-label-disabled': disabled }
-      ]"
+      :class="['form-label', { 'form-label-required': required, 'form-label-disabled': disabled }]"
     >
       {{ label }}
     </label>
@@ -59,13 +56,13 @@
 
     <!-- Error Message -->
     <transition name="fade">
-      <div
-        v-if="hasError"
-        :id="`${id}-error`"
-        class="form-error flex items-start"
-        role="alert"
-      >
-        <svg class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <div v-if="hasError" :id="`${id}-error`" class="form-error flex items-start" role="alert">
+        <svg
+          class="h-4 w-4 mr-1 mt-0.5 flex-shrink-0"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
           <path
             fill-rule="evenodd"
             d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"

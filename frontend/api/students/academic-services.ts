@@ -1,7 +1,12 @@
 import { apiCall } from '~/utils/api';
 
 export const Promotions = {
-  getStudents: async (params: { class_id: string; section_id?: string; branch_id?: string; school_id?: string }) => {
+  getStudents: async (params: {
+    class_id: string;
+    section_id?: string;
+    branch_id?: string;
+    school_id?: string;
+  }) => {
     return apiCall('get', '/student-promotions/students', { params });
   },
   promote: async (data: {
@@ -21,8 +26,12 @@ export const Promotions = {
 export const StudentCategories = {
   getAll: async (params?: { school_id?: string; branch_id?: string }) =>
     apiCall('get', '/student-categories', { params }),
-  create: async (data: { name: string; description?: string; school_id?: string; branch_id?: string }) =>
-    apiCall('post', '/student-categories', data),
+  create: async (data: {
+    name: string;
+    description?: string;
+    school_id?: string;
+    branch_id?: string;
+  }) => apiCall('post', '/student-categories', data),
   update: async (id: string, data: any) => apiCall('put', `/student-categories/${id}`, data),
   remove: async (id: string) => apiCall('delete', `/student-categories/${id}`)
 };
@@ -41,7 +50,8 @@ export const FeeFines = {
 };
 
 export const Homeworks = {
-  getAll: async (params?: { class_id?: string; branch_id?: string }) => apiCall('get', '/homeworks', { params }),
+  getAll: async (params?: { class_id?: string; branch_id?: string }) =>
+    apiCall('get', '/homeworks', { params }),
   create: async (data: any) => apiCall('post', '/homeworks', data),
   update: async (id: string, data: any) => apiCall('put', `/homeworks/${id}`, data),
   remove: async (id: string) => apiCall('delete', `/homeworks/${id}`)
@@ -52,7 +62,8 @@ export const Library = {
   createBook: async (data: any) => apiCall('post', '/library/books', data),
   updateBook: async (id: string, data: any) => apiCall('put', `/library/books/${id}`, data),
   importBooks: async (data: FormData) => apiCall('post', '/library/books/import', data),
-  getIssues: async (params?: { status?: string; branch_id?: string }) => apiCall('get', '/library/issues', { params }),
+  getIssues: async (params?: { status?: string; branch_id?: string }) =>
+    apiCall('get', '/library/issues', { params }),
   issueBook: async (data: any) => apiCall('post', '/library/issues', data),
   returnBook: async (id: string) => apiCall('post', `/library/issues/${id}/return`)
 };

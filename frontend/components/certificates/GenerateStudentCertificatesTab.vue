@@ -6,8 +6,6 @@
     >
       <!-- Form Fields -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
-
-
         <!-- Class Selection -->
         <div class="space-y-2">
           <EnhancedDropdown
@@ -39,7 +37,10 @@
           <EnhancedDropdown
             id="section"
             v-model="filters.section_id"
-            :options="[{ value: '', label: 'All Sections' }, ...sections.map(section => ({ value: section.id, label: section.name }))]"
+            :options="[
+              { value: '', label: 'All Sections' },
+              ...sections.map(section => ({ value: section.id, label: section.name }))
+            ]"
             label="Section"
             placeholder="Select Section"
             @change="loadStudents"
@@ -60,7 +61,10 @@
 
         <!-- Print Date -->
         <div class="space-y-2">
-          <label for="printDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label
+            for="printDate"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
             Print Date
           </label>
           <input
@@ -312,7 +316,7 @@ const filters = reactive({
   print_date: new Date().toISOString().split('T')[0]
 });
 
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   filters.branch_id = newVal || '';
   await handleBranchChange();
 });
@@ -325,7 +329,9 @@ const allSelected = computed(() => {
 const hasStreams = computed(() => {
   return streams.value.length > 0;
 });
-const branchChoices = computed(() => availableBranches.value.length ? availableBranches.value : branches.value);
+const branchChoices = computed(() =>
+  availableBranches.value.length ? availableBranches.value : branches.value
+);
 const showBranchDropdown = computed(() => branchChoices.value.length > 1);
 
 const handleBranchChange = async () => {
@@ -493,7 +499,8 @@ const generateCertificates = async () => {
       print_date: filters.print_date,
       branch_id: filters.branch_id || undefined,
       class_id: filters.class_id || undefined,
-      section_id: filters.section_id && filters.section_id.trim() !== '' ? filters.section_id : undefined
+      section_id:
+        filters.section_id && filters.section_id.trim() !== '' ? filters.section_id : undefined
     };
 
     console.log('Generating certificates with data:', generationData);

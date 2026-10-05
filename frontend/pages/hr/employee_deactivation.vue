@@ -1,7 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50/50 dark:bg-gray-900 p-6 space-y-6">
     <!-- Header Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+    <div
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm"
+    >
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <ShieldAlert class="w-6 h-6 text-rose-500" />
@@ -14,15 +16,21 @@
     </div>
 
     <!-- Filter Card ("Select Ground") -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-4">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/50 pb-3">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-4"
+    >
+      <h2
+        class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/50 pb-3"
+      >
         Select Ground
       </h2>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Role Selector -->
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+          <label
+            class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1"
+          >
             Role
           </label>
           <select
@@ -42,7 +50,9 @@
     </div>
 
     <!-- Staff List Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden space-y-4">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden space-y-4"
+    >
       <div class="p-6 pb-0 flex items-center justify-between">
         <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Users class="w-5 h-5 text-indigo-500" />
@@ -55,7 +65,9 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center text-gray-500 dark:text-gray-400">
-        <div class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+        <div
+          class="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3"
+        ></div>
         Loading employees list...
       </div>
 
@@ -63,7 +75,9 @@
       <div v-else-if="employees.length" class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <tr
+              class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               <th class="px-4 py-3.5 w-10">
                 <input
                   type="checkbox"
@@ -98,7 +112,9 @@
                 />
               </td>
               <td class="px-4 py-3.5">
-                <div class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs">
+                <div
+                  class="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs"
+                >
                   {{ emp.first_name ? emp.first_name[0] : 'E' }}
                 </div>
               </td>
@@ -123,12 +139,25 @@
               <td class="px-4 py-3.5">
                 <span
                   class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1"
-                  :class="emp.status === 'inactive' || emp.status === 'disabled'
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'"
+                  :class="
+                    emp.status === 'inactive' || emp.status === 'disabled'
+                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                  "
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="emp.status === 'inactive' || emp.status === 'disabled' ? 'bg-rose-500' : 'bg-emerald-500'"></span>
-                  {{ emp.status === 'inactive' || emp.status === 'disabled' ? 'Deactivated' : 'Active' }}
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="
+                      emp.status === 'inactive' || emp.status === 'disabled'
+                        ? 'bg-rose-500'
+                        : 'bg-emerald-500'
+                    "
+                  ></span>
+                  {{
+                    emp.status === 'inactive' || emp.status === 'disabled'
+                      ? 'Deactivated'
+                      : 'Active'
+                  }}
                 </span>
               </td>
               <td class="px-4 py-3.5 text-right">
@@ -158,13 +187,20 @@
           <Users class="w-8 h-8" />
         </div>
         <p class="text-base font-medium text-gray-900 dark:text-white">No employees found</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">No employee records match the current filters.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          No employee records match the current filters.
+        </p>
       </div>
 
       <!-- Footer Bulk Action Controls -->
-      <div v-if="employees.length" class="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div
+        v-if="employees.length"
+        class="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
         <div class="text-sm text-gray-500 dark:text-gray-400">
-          Selected: <strong class="text-gray-900 dark:text-white">{{ selectedEmployeeIds.length }}</strong> of {{ employees.length }}
+          Selected:
+          <strong class="text-gray-900 dark:text-white">{{ selectedEmployeeIds.length }}</strong> of
+          {{ employees.length }}
         </div>
         <div class="flex items-center gap-3">
           <button
@@ -228,7 +264,15 @@ const fetchEmployees = async () => {
     const res: any = await UsersApi.getAll(params);
     const list = Array.isArray(res.data) ? res.data : Array.isArray(res.users) ? res.users : [];
     // filter out student / parent roles
-    const staffRoles = new Set(['super_admin', 'admin', 'branch_admin', 'accountant', 'teacher', 'librarian', 'receptionist']);
+    const staffRoles = new Set([
+      'super_admin',
+      'admin',
+      'branch_admin',
+      'accountant',
+      'teacher',
+      'librarian',
+      'receptionist'
+    ]);
     employees.value = list.filter((u: any) => staffRoles.has(u.role));
   } catch (error) {
     console.error('Error fetching employees:', error);

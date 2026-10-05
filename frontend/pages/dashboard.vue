@@ -18,7 +18,9 @@
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Module Access Denied</h3>
           <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-            You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong>. This feature requires a higher subscription plan. Please contact your administrator to upgrade your subscription.
+            You don't have access to <strong>{{ getModuleName($route.query.module) }}</strong
+            >. This feature requires a higher subscription plan. Please contact your administrator
+            to upgrade your subscription.
           </p>
         </div>
       </div>
@@ -31,7 +33,8 @@
           {{ dashboardTitle }}
         </h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening today.
+          Welcome back, {{ authStore.currentUser?.first_name || 'User' }}! Here's what's happening
+          today.
         </p>
       </div>
     </div>
@@ -49,93 +52,147 @@
         <!-- Total Students -->
         <div class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Students</span>
-            <div class="p-2.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Students</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+            >
               <Users class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stats.totalStudents || 0 }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalStudents || 0 }}</span
+            >
           </div>
         </div>
 
         <!-- Total Parents -->
         <div class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Parents</span>
-            <div class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Parents</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+            >
               <UserCheck class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stats.totalParents || 0 }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalParents || 0 }}</span
+            >
           </div>
         </div>
 
         <!-- Total Teachers -->
         <div class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Teachers</span>
-            <div class="p-2.5 rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Teachers</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+            >
               <BookOpen class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stats.totalTeachers || 0 }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalTeachers || 0 }}</span
+            >
           </div>
         </div>
 
         <!-- Total Staff -->
         <div class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Staff</span>
-            <div class="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Total Staff</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+            >
               <Activity class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stats.totalEmployees || 0 }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.totalEmployees || 0 }}</span
+            >
           </div>
         </div>
 
         <!-- New Students -->
         <div class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               New Students ({{ stats.newStudentsDays || dashboardConfig.newStudentsDays }}d)
             </span>
-            <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <div
+              class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+            >
               <UserPlus class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{{ stats.newStudents || 0 }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >{{ stats.newStudents || 0 }}</span
+            >
           </div>
         </div>
 
         <!-- This Month Collection -->
         <div v-if="isModuleEnabled('fees')" class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">This Month Fees</span>
-            <div class="p-2.5 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >This Month Fees</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+            >
               <DollarSign class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₹{{ formatCurrency(stats.feeCollection || 0) }}</span>
+            <span
+              class="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >₹{{ formatCurrency(stats.feeCollection || 0) }}</span
+            >
           </div>
         </div>
 
         <!-- Pending Fees -->
         <div v-if="isModuleEnabled('fees')" class="stat-card flex flex-col justify-between">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending Fees</span>
-            <div class="p-2.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
+            <span
+              class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >Pending Fees</span
+            >
+            <div
+              class="p-2.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+            >
               <AlertTriangle class="w-5 h-5" />
             </div>
           </div>
           <div class="mt-3">
-            <span class="text-2xl lg:text-3xl font-bold text-rose-600 dark:text-rose-400 tracking-tight">
+            <span
+              class="text-2xl lg:text-3xl font-bold text-rose-600 dark:text-rose-400 tracking-tight"
+            >
               {{ (stats.pendingFees || 0) + (stats.overdueFees || 0) }}
             </span>
           </div>
@@ -152,52 +209,67 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
               Fee Collection Summary
-              <span v-if="loadingAcademicYears" class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">(Loading...)</span>
-              <span v-else-if="feeCollectionSummary.academic_year" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium ml-1">({{ feeCollectionSummary.academic_year }})</span>
-              <span v-else class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">(No data)</span>
+              <span
+                v-if="loadingAcademicYears"
+                class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1"
+                >(Loading...)</span
+              >
+              <span
+                v-else-if="feeCollectionSummary.academic_year"
+                class="text-xs text-indigo-600 dark:text-indigo-400 font-medium ml-1"
+                >({{ feeCollectionSummary.academic_year }})</span
+              >
+              <span v-else class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1"
+                >(No data)</span
+              >
             </h2>
             <div class="flex items-center space-x-2">
-              <div class="relative">
-                <select
-                  v-model="selectedAcademicYear"
-                  :disabled="loadingAcademicYears || academicYears.length === 0"
-                  class="appearance-none px-3 py-1.5 pr-8 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option v-if="loadingAcademicYears" value="">Loading...</option>
-                  <option v-else-if="academicYears.length === 0" value="">No years</option>
-                  <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                    {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
-                  <ChevronDown class="w-4 h-4" />
-                </div>
-              </div>
+              <EnhancedDropdown
+                v-model="selectedAcademicYear"
+                :options="academicYears.map(year => ({ value: year.name, label: `${year.name}${year.is_current ? ' (Current)' : ''}` }))"
+                placeholder="Select academic year"
+                id="dashboard-academic-year"
+                :disabled="loadingAcademicYears || academicYears.length === 0"
+              />
             </div>
           </div>
 
           <div v-if="loadingFeeSummary" class="flex items-center justify-center py-12">
             <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading fee summary...</span>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+              >Loading fee summary...</span
+            >
           </div>
 
           <div v-else class="space-y-6">
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 gap-3 sm:gap-4">
-              <div class="bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl p-3.5 sm:p-4">
+              <div
+                class="bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 rounded-xl p-3.5 sm:p-4"
+              >
                 <div class="flex items-center gap-1.5">
                   <CheckCircle class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wider">Collected</span>
+                  <span
+                    class="text-xs font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wider"
+                    >Collected</span
+                  >
                 </div>
-                <p class="text-xl sm:text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
+                <p
+                  class="text-xl sm:text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1"
+                >
                   ₹{{ formatCurrency(feeCollectionSummary.total_collected || 0) }}
                 </p>
               </div>
 
-              <div class="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/60 rounded-xl p-3.5 sm:p-4">
+              <div
+                class="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/60 rounded-xl p-3.5 sm:p-4"
+              >
                 <div class="flex items-center gap-1.5">
                   <AlertTriangle class="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                  <span class="text-xs font-semibold text-rose-800 dark:text-rose-200 uppercase tracking-wider">Pending</span>
+                  <span
+                    class="text-xs font-semibold text-rose-800 dark:text-rose-200 uppercase tracking-wider"
+                    >Pending</span
+                  >
                 </div>
                 <p class="text-xl sm:text-2xl font-bold text-rose-900 dark:text-rose-100 mt-1">
                   ₹{{ formatCurrency(feeCollectionSummary.total_pending || 0) }}
@@ -206,12 +278,16 @@
             </div>
 
             <!-- Fee Collection Chart -->
-            <div class="relative w-full h-48 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0">
+            <div
+              class="relative w-full h-48 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
               <canvas ref="feesChart"></canvas>
             </div>
 
             <!-- Additional Stats -->
-            <div class="grid grid-cols-4 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700/80 text-center">
+            <div
+              class="grid grid-cols-4 gap-2 sm:gap-4 pt-4 border-t border-gray-200 dark:border-gray-700/80 text-center"
+            >
               <div>
                 <p class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                   {{ feeCollectionSummary.total_invoices || 0 }}
@@ -241,27 +317,39 @@
         </div>
 
         <!-- Student Distribution + Monthly Trends -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0">
-          <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
+          >
             Student Distribution & Trends
           </h2>
 
           <!-- Student Distribution Chart -->
           <div class="mb-6">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3"
+            >
               Distribution by Class
             </h3>
-            <div class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0">
+            <div
+              class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
               <canvas ref="studentDistributionChart"></canvas>
             </div>
           </div>
 
           <!-- Monthly Trends -->
           <div>
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+            <h3
+              class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3"
+            >
               Monthly Enrollment Trends
             </h3>
-            <div class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0">
+            <div
+              class="relative w-full h-44 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+            >
               <canvas ref="studentsChart"></canvas>
             </div>
           </div>
@@ -275,28 +363,40 @@
           v-if="isModuleEnabled('fees')"
           class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
         >
-          <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6">
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
+          >
             Fee Collection Trend ({{ dashboardConfig.feeTrendMonths }} Months)
           </h2>
-          <div class="relative w-full h-60 sm:h-64 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0">
+          <div
+            class="relative w-full h-60 sm:h-64 bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 overflow-hidden min-w-0"
+          >
             <canvas ref="feeTrendChart"></canvas>
           </div>
         </div>
 
         <!-- Recent Activities -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0">
-          <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-sm p-5 sm:p-6 min-w-0"
+        >
+          <h2
+            class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-6"
+          >
             Recent Activities
           </h2>
 
           <div class="space-y-3">
             <div v-if="loadingActivities" class="flex items-center justify-center py-12">
               <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading activities...</span>
+              <span class="ml-2 text-sm text-gray-600 dark:text-gray-400"
+                >Loading activities...</span
+              >
             </div>
 
             <div v-else-if="recentActivities.length === 0" class="text-center py-10">
-              <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div
+                class="w-12 h-12 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3"
+              >
                 <Activity class="w-6 h-6 text-gray-400" />
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400">No recent activities</p>
@@ -345,6 +445,7 @@ import { useBranches } from '~/composables/useBranches';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Dashboard } from '~/api';
 import { useToast } from '~/composables/useToast';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import Chart from 'chart.js/auto';
 
 // Icons
@@ -358,8 +459,7 @@ import {
   BookOpen,
   UserCheck,
   FileText,
-  CreditCard,
-  ChevronDown
+  CreditCard
 } from 'lucide-vue-next';
 
 // Auth store
@@ -1072,7 +1172,7 @@ watch(
 );
 
 // Watch for changes in global selected branch
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   selectedBranch.value = newVal || '';
   await fetchDashboardData();
   if (selectedAcademicYear.value) {

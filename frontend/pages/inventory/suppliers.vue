@@ -1,38 +1,400 @@
+<template>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Suppliers</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage inventory suppliers for your branch
+        </p>
+      </div>
+      <div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
+        >
+          <Plus class="w-4 h-4" />
+          Add Supplier
+        </button>
+      </div>
+    </div>
+
+    <!-- Suppliers List -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50/80 dark:bg-gray-900/40">
+            <tr>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Name
+              </th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Contact Person
+              </th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Contact Details
+              </th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Status
+              </th>
+              <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="item in suppliers"
+              :key="item.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                {{ item.name }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ item.contact_person || '-' }}
+              </td>
+              <td class="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-300">
+                <div>{{ item.phone || '-' }}</div>
+                <div class="text-xs text-gray-500">{{ item.email || '-' }}</div>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    item.is_active
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
+                  ]"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="item.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                  ></span>
+                  {{ item.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  @click="editSupplier(item)"
+                  class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="deleteSupplier(item.id)"
+                  class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+            <tr v-if="suppliers.length === 0 && !loading">
+              <td colspan="5" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                No suppliers found. Create one to get started.
+              </td>
+            </tr>
+            <tr v-if="loading">
+              <td colspan="5" class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                Loading...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination
+        v-if="pagination.total > 0"
+        :pagination="pagination"
+        item-label="suppliers"
+        @page-changed="goToPage"
+        @page-size-changed="changeLimit"
+      />
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4"
+      >
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Supplier' : 'Create New Supplier' }}
+        </h3>
+
+        <form @submit.prevent="saveSupplier" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Supplier Name <span class="text-rose-500">*</span></label
+            >
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+              placeholder="e.g., ABC Supplies"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Contact Person</label
+            >
+            <input
+              v-model="form.contact_person"
+              type="text"
+              class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                >Phone</label
+              >
+              <input
+                v-model="form.phone"
+                type="text"
+                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Phone number"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                >Email</label
+              >
+              <input
+                v-model="form.email"
+                type="email"
+                class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+                placeholder="Email address"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Address</label
+            >
+            <textarea
+              v-model="form.address"
+              rows="2"
+              class="input-field w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+              placeholder="Full address"
+            ></textarea>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="form.is_active"
+                type="checkbox"
+                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <ConfirmDialog :open="deleteDialog.open" title="Delete supplier" message="Are you sure you want to delete this supplier?" confirm-label="Delete" @confirm="confirmDeleteSupplier" @cancel="deleteDialog.open = false" />
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
-import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { InventorySuppliers } from '~/api/inventory';
+import { Plus } from 'lucide-vue-next';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useToast } from '~/composables/useToast';
+import { extractList, apiErrorMessage } from '~/utils/list-response';
+import Pagination from '~/components/ui/Pagination.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const { selectedBranchId } = useGlobalBranch();
-const data = ref([]);
-const loading = ref(false);
+const { showError, showSuccess } = useToast();
 
-const fetchData = async () => {
+const suppliers = ref<any[]>([]);
+const loading = ref(false);
+const showModal = ref(false);
+const isEditing = ref(false);
+const isSubmitting = ref(false);
+const editingId = ref<string | null>(null);
+const deleteDialog = reactive({ open: false, id: '' });
+
+const pagination = reactive({
+  page: 1,
+  limit: 10,
+  total: 0
+});
+
+const form = reactive({
+  name: '',
+  contact_person: '',
+  phone: '',
+  email: '',
+  address: '',
+  is_active: true
+});
+
+const resetForm = () => {
+  form.name = '';
+  form.contact_person = '';
+  form.phone = '';
+  form.email = '';
+  form.address = '';
+  form.is_active = true;
+};
+
+const goToPage = async (page: number) => {
+  const totalPages = Math.ceil(pagination.total / pagination.limit);
+  if (page >= 1 && page <= totalPages) {
+    pagination.page = page;
+    await loadData();
+  }
+};
+
+const changeLimit = async (newLimit: number) => {
+  pagination.limit = newLimit;
+  pagination.page = 1;
+  await loadData();
+};
+
+const loadData = async () => {
   if (!selectedBranchId.value) return;
   loading.value = true;
   try {
-    const res = await InventorySuppliers.getAll({ branch_id: selectedBranchId.value });
-    data.value = res.data || [];
-  } catch (error) {
-    console.error('Error fetching suppliers:', error);
+    const response = await InventorySuppliers.getAll({
+      branch_id: selectedBranchId.value,
+      page: pagination.page,
+      limit: pagination.limit
+    });
+
+    suppliers.value = extractList(response);
+
+    if (response?.pagination?.total !== undefined) {
+      pagination.total = response.pagination.total;
+    } else if (response?.total !== undefined) {
+      pagination.total = response.total;
+    } else {
+      pagination.total = suppliers.value.length;
+    }
+  } catch (error: any) {
+    showError(apiErrorMessage(error, 'Failed to fetch suppliers'));
   } finally {
     loading.value = false;
   }
 };
 
-onMounted(fetchData);
-watch(selectedBranchId, fetchData);
-</script>
+const openCreateModal = () => {
+  resetForm();
+  isEditing.value = false;
+  editingId.value = null;
+  showModal.value = true;
+};
 
-<template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4">Inventory Suppliers</h1>
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <ul class="list-disc pl-5">
-        <li v-for="item in data" :key="item.id">{{ item.name }}</li>
-      </ul>
-      <p v-if="!data.length">No suppliers found for this branch.</p>
-    </div>
-  </div>
-</template>
+const editSupplier = (item: any) => {
+  isEditing.value = true;
+  editingId.value = item.id;
+  form.name = item.name || '';
+  form.contact_person = item.contact_person || '';
+  form.phone = item.phone || '';
+  form.email = item.email || '';
+  form.address = item.address || '';
+  form.is_active = item.is_active !== undefined ? item.is_active : true;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  resetForm();
+  editingId.value = null;
+  isEditing.value = false;
+};
+
+const saveSupplier = async () => {
+  if (!selectedBranchId.value) {
+    showError('No branch selected');
+    return;
+  }
+  if (!form.name?.trim()) {
+    showError('Supplier name is required');
+    return;
+  }
+
+  isSubmitting.value = true;
+  try {
+    const payload = {
+      name: form.name.trim(),
+      contact_person: form.contact_person,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      is_active: form.is_active,
+      branch_id: selectedBranchId.value
+    };
+
+    if (isEditing.value && editingId.value) {
+      await InventorySuppliers.update(editingId.value, payload);
+      showSuccess('Supplier updated successfully');
+    } else {
+      await InventorySuppliers.create(payload);
+      showSuccess('Supplier created successfully');
+    }
+
+    closeModal();
+    await loadData();
+  } catch (error: any) {
+    showError(apiErrorMessage(error, 'Error saving supplier'));
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const deleteSupplier = async (id: string) => {
+  deleteDialog.id = id;
+  deleteDialog.open = true;
+};
+
+const confirmDeleteSupplier = async () => {
+  try {
+    await InventorySuppliers.delete(deleteDialog.id);
+    showSuccess('Supplier deleted successfully');
+    await loadData();
+  } catch (error: any) {
+    showError(apiErrorMessage(error, 'Error deleting supplier'));
+  } finally {
+    deleteDialog.open = false;
+    deleteDialog.id = '';
+  }
+};
+
+onMounted(() => {
+  loadData();
+});
+
+watch(selectedBranchId, () => {
+  pagination.page = 1;
+  loadData();
+});
+</script>

@@ -12,17 +12,17 @@
     :class="[
       'sidebar-container fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl flex flex-col',
       sidebarClasses,
-      'transform transition-all duration-300 ease-in-out will-change-transform'
+      'transform transition-all duration-150 ease-out will-change-transform'
     ]"
   >
-    <!-- Logo/Brand Header -->
     <div
-      class="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700"
+      class="flex-shrink-0 flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-700 relative"
+      :class="open || isMobile ? 'justify-between' : 'justify-center'"
     >
       <div class="flex items-center">
         <!-- School Logo or Fallback Icon -->
         <div
-          class="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer overflow-hidden"
+          class="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer overflow-hidden transition-all duration-300 shadow-sm"
           @click="$emit('toggle')"
         >
           <img
@@ -34,32 +34,41 @@
           />
           <div
             v-else
-            class="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center"
+            class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center"
           >
             <School class="w-5 h-5 text-white" />
           </div>
         </div>
-        <span
-          v-if="open || isMobile"
-          class="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate max-w-[200px]"
-          :title="schoolName || 'School ERP'"
-          >{{ schoolName || 'School ERP' }}</span
-        >
+        <transition name="fade">
+          <span
+            v-if="open || isMobile"
+            class="ml-3 text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 truncate max-w-[180px]"
+            :title="schoolName || 'School ERP'"
+            >{{ schoolName || 'School ERP' }}</span
+          >
+        </transition>
       </div>
+
+      <!-- Mobile Close Button -->
       <button
-        v-if="open || isMobile"
+        v-if="isMobile"
         @click="$emit('toggle')"
-        class="p-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
       >
-        <ChevronLeft v-if="!isMobile" class="w-5 h-5" />
-        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          />
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
+      </button>
+
+      <!-- Desktop Floating Toggle -->
+      <button
+        v-if="!isMobile"
+        @click="$emit('toggle')"
+        class="absolute -right-3 top-5 w-6 h-6 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-md text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/50 transition-all duration-300 z-50 cursor-pointer"
+        :class="{ 'rotate-180': !open }"
+        title="Toggle Sidebar"
+      >
+        <ChevronLeft class="w-3.5 h-3.5" />
       </button>
     </div>
 
@@ -149,11 +158,14 @@
               v-else-if="menuItem.children && menuItem.children.length > 0"
               class="space-y-1 relative group"
             >
-              <div
+              <button
+                type="button"
                 :class="[
                   navClass(''),
                   menuOpen === menuItem.id ? 'bg-gray-100 dark:bg-gray-700' : ''
                 ]"
+                :aria-expanded="menuOpen === menuItem.id"
+                :aria-controls="`submenu-${menuItem.id}`"
                 @click="toggleMenu(menuItem.id)"
               >
                 <component
@@ -168,18 +180,18 @@
                   class="w-4 h-4 transition-transform duration-200"
                   :class="{ 'rotate-180': menuOpen === menuItem.id }"
                 />
-              </div>
+              </button>
               <!-- Hover Menu for Collapsed State -->
               <div
                 v-if="!open && !isMobile"
-                class="hidden group-hover:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[200px] z-40 border border-gray-200 dark:border-gray-700 transform-gpu translate-y-0"
+                class="hidden group-hover:block absolute left-full top-0 ml-2 bg-white/95 backdrop-blur-md dark:bg-gray-800/95 rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] py-2 min-w-[220px] z-40 border border-gray-100 dark:border-gray-700 transform-gpu translate-y-0 animate-in fade-in slide-in-from-left-2 duration-200"
               >
                 <div
-                  class="px-3 py-2 font-medium text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700"
+                  class="px-4 py-2.5 font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1"
                 >
                   {{ menuItem.title }}
                 </div>
-                <div class="py-1">
+                <div class="py-1 px-2 space-y-0.5">
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
                     <div
@@ -187,35 +199,35 @@
                       class="relative group/sub"
                     >
                       <div
-                        class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                        class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300 rounded-lg cursor-pointer transition-colors"
                       >
-                        <component :is="subItem.icon" class="w-4 h-4 mr-2" />
-                        <span>{{ subItem.title }}</span>
+                        <component :is="subItem.icon" class="w-4 h-4 mr-3 opacity-70" />
+                        <span class="font-medium">{{ subItem.title }}</span>
                         <!-- No chevron in hover menus for nested items -->
                       </div>
                       <!-- Nested hover menu -->
                       <div
-                        class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 min-w-[180px] z-50 border border-gray-200 dark:border-gray-700"
+                        class="hidden group-hover/sub:block absolute left-full top-0 ml-1 bg-white/95 backdrop-blur-md dark:bg-gray-800/95 rounded-xl shadow-lg py-2 min-w-[200px] z-50 border border-gray-100 dark:border-gray-700 animate-in fade-in slide-in-from-left-2 duration-200"
                       >
                         <div
-                          class="px-3 py-2 font-medium text-xs text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700"
+                          class="px-4 py-2 font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-1"
                         >
                           {{ subItem.title }}
                         </div>
-                        <div class="py-1">
+                        <div class="py-1 px-2 space-y-0.5">
                           <NuxtLink
                             v-for="nestedItem in subItem.children"
                             :key="nestedItem.id"
                             :to="nestedItem.path"
-                            class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                            class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300 rounded-lg transition-colors"
                             @click.middle.prevent="
                               $event.ctrlKey || $event.metaKey
                                 ? window.open($router.resolve(nestedItem.path).href, '_blank')
                                 : null
                             "
                           >
-                            <component :is="nestedItem.icon" class="w-4 h-4 mr-2" />
-                            <span>{{ nestedItem.title }}</span>
+                            <component :is="nestedItem.icon" class="w-4 h-4 mr-3 opacity-70" />
+                            <span class="font-medium">{{ nestedItem.title }}</span>
                           </NuxtLink>
                         </div>
                       </div>
@@ -224,15 +236,15 @@
                     <NuxtLink
                       v-else
                       :to="subItem.path"
-                      class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-300"
+                      class="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300 rounded-lg transition-colors"
                       @click.middle.prevent="
                         $event.ctrlKey || $event.metaKey
                           ? window.open($router.resolve(subItem.path).href, '_blank')
                           : null
                       "
                     >
-                      <component :is="subItem.icon" class="w-4 h-4 mr-2" />
-                      <span>{{ subItem.title }}</span>
+                      <component :is="subItem.icon" class="w-4 h-4 mr-3 opacity-70" />
+                      <span class="font-medium">{{ subItem.title }}</span>
                     </NuxtLink>
                   </template>
                 </div>
@@ -240,6 +252,7 @@
 
               <!-- Submenu Items -->
               <div
+                :id="`submenu-${menuItem.id}`"
                 v-show="menuOpen === menuItem.id && (open || isMobile)"
                 class="transition-all duration-200 ease-in-out"
               >
@@ -248,14 +261,21 @@
                   <template v-for="subItem in menuItem.children" :key="subItem.id">
                     <!-- If subItem has children (nested submenu) -->
                     <div v-if="subItem.children && subItem.children.length > 0" class="space-y-1">
-                      <div
+                      <button
+                        type="button"
                         :class="[
                           navClass(''),
                           subMenuOpen === subItem.id ? 'bg-gray-100 dark:bg-gray-700' : ''
                         ]"
+                        :aria-expanded="subMenuOpen === subItem.id"
+                        :aria-controls="`nested-submenu-${subItem.id}`"
                         @click="toggleSubMenu(subItem.id)"
                       >
-                        <component :is="subItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                        <component
+                          :is="subItem.icon"
+                          class="w-5 h-5"
+                          :class="{ 'mr-3': open || isMobile }"
+                        />
                         <span v-if="open || isMobile" class="flex-1">{{ subItem.title }}</span>
                         <!-- Show chevron ONLY in expanded sidebar mode for nested submenus -->
                         <ChevronDown
@@ -263,9 +283,10 @@
                           class="w-4 h-4 transition-transform duration-200"
                           :class="{ 'rotate-180': subMenuOpen === subItem.id }"
                         />
-                      </div>
+                      </button>
                       <!-- Nested submenu items -->
                       <div
+                        :id="`nested-submenu-${subItem.id}`"
                         v-show="subMenuOpen === subItem.id && (open || isMobile)"
                         class="transition-all duration-200 ease-in-out"
                       >
@@ -282,7 +303,11 @@
                                 : null
                             "
                           >
-                            <component :is="nestedItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                            <component
+                              :is="nestedItem.icon"
+                              class="w-5 h-5"
+                              :class="{ 'mr-3': open || isMobile }"
+                            />
                             <span v-if="open || isMobile">{{ nestedItem.title }}</span>
                           </NuxtLink>
                         </div>
@@ -300,7 +325,11 @@
                           : null
                       "
                     >
-                      <component :is="subItem.icon" class="w-5 h-5" :class="{ 'mr-3': open || isMobile }" />
+                      <component
+                        :is="subItem.icon"
+                        class="w-5 h-5"
+                        :class="{ 'mr-3': open || isMobile }"
+                      />
                       <span v-if="open || isMobile">{{ subItem.title }}</span>
                     </NuxtLink>
                   </template>
@@ -537,7 +566,7 @@ const menuGroups = computed(() =>
   })
 );
 
-/** Apply subscription module filter to each group (DRY via useModuleAccess). */
+/** Apply subscription and role/module filters to each group. */
 const visibleMenuGroups = computed(() =>
   menuGroups.value
     .map(group => ({
@@ -573,10 +602,10 @@ const navClass = path => {
     }
   }
   return [
-    'flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 cursor-pointer',
+    'group flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-300 cursor-pointer relative',
     isActive
-      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 font-semibold shadow-xs'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'
+      ? 'bg-gradient-to-r from-indigo-50/80 to-indigo-100/30 text-indigo-700 dark:from-indigo-900/40 dark:to-indigo-800/10 dark:text-indigo-300 font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.02)] ring-1 ring-indigo-100 dark:ring-indigo-800/50'
+      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-white border border-transparent'
   ];
 };
 
@@ -607,7 +636,9 @@ let mql;
 // Computed sidebar classes to avoid hydration issues
 const sidebarClasses = computed(() => {
   if (isMobile.value) {
-    return props.open ? 'w-[280px] translate-x-0' : 'w-[280px] -translate-x-full pointer-events-none';
+    return props.open
+      ? 'w-[280px] translate-x-0'
+      : 'w-[280px] -translate-x-full pointer-events-none';
   }
   return props.open ? 'w-64 translate-x-0' : 'w-16 translate-x-0';
 });

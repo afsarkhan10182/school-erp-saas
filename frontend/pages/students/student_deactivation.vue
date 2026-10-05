@@ -1,77 +1,57 @@
 <template>
   <div class="space-y-6 max-w-full">
     <!-- Header Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm">
+    <div
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm"
+    >
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight">
+        <h1
+          class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5 tracking-tight"
+        >
           <span class="p-2 bg-rose-50 dark:bg-rose-950/40 text-rose-500 rounded-xl">
             <ShieldAlert class="w-6 h-6" />
           </span>
           Deactivate Account
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Filter students by class and section to view, manage, and toggle login authentication status.
+          Filter students by class and section to view, manage, and toggle login authentication
+          status.
         </p>
       </div>
     </div>
 
     <!-- Filter Card ("Select Ground") -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200/80 dark:border-gray-700 shadow-sm space-y-4">
-      <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700/60 pb-3 flex items-center gap-2">
-        <Filter class="w-3.5 h-3.5" />
-        Select Ground
-      </h2>
-      
+    <div
+      class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm space-y-4"
+    >
       <div class="flex flex-wrap items-end gap-4">
-        <!-- School Selector (Super Admin) -->
-        <div v-if="showSchoolDropdown" class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-            School <span class="text-rose-500">*</span>
-          </label>
-          <select
-            v-model="selectedSchoolId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-            @change="changeSchool"
-          >
-            <option value="">Select School</option>
-            <option v-for="s in schoolOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
-          </select>
-        </div>
-
         <!-- Class Selector -->
-        <div class="flex-1 min-w-[180px]">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-            Class <span class="text-rose-500">*</span>
-          </label>
-          <select
+        <div class="flex-1 min-w-[200px]">
+          <EnhancedDropdown
             v-model="selectedClassId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-            @change="changeClass"
-          >
-            <option value="">Select Class</option>
-            <option v-for="c in classOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
-          </select>
+            label="Class"
+            :options="classOptions"
+            placeholder="Select Class"
+            :required="true"
+            @update:model-value="changeClass"
+          />
         </div>
 
         <!-- Section Selector -->
-        <div class="flex-1 min-w-[160px]">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-            Section <span class="text-rose-500">*</span>
-          </label>
-          <select
+        <div class="flex-1 min-w-[200px]">
+          <EnhancedDropdown
             v-model="selectedSectionId"
-            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3.5 py-2.5 text-sm font-medium bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-            @change="fetchStudents"
-          >
-            <option value="">All Sections</option>
-            <option v-for="s in sectionOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
-          </select>
+            label="Section"
+            :options="sectionOptions"
+            placeholder="All Sections"
+            @update:model-value="fetchStudents"
+          />
         </div>
 
         <!-- Filter Button -->
-        <div class="self-end">
+        <div>
           <button
-            class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+            class="h-[46px] inline-flex items-center gap-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg shadow-sm transition-colors duration-150"
             @click="fetchStudents"
           >
             <Filter class="w-4 h-4" />
@@ -82,20 +62,32 @@
     </div>
 
     <!-- Student List Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm overflow-hidden">
-      <div class="p-6 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60">
+    <div
+      class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-sm overflow-hidden"
+    >
+      <div
+        class="p-6 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60"
+      >
         <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <UserGraduate class="w-5 h-5 text-indigo-500" />
           Student List
         </h2>
-        <span v-if="students.length" class="text-xs font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-900">
+        <span
+          v-if="students.length"
+          class="text-xs font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-900"
+        >
           Showing {{ students.length }} student(s)
         </span>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="p-12 text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-3">
-        <div class="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+      <div
+        v-if="loading"
+        class="p-12 text-center text-gray-500 dark:text-gray-400 flex items-center justify-center gap-3"
+      >
+        <div
+          class="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"
+        ></div>
         <span class="text-sm font-medium">Fetching student roster…</span>
       </div>
 
@@ -103,7 +95,9 @@
       <div v-else-if="students.length" class="overflow-x-auto">
         <table class="w-full text-left border-collapse min-w-[1000px]">
           <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-750 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <tr
+              class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-750 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               <th class="px-4 py-3.5 w-10 text-center">
                 <input
                   type="checkbox"
@@ -120,7 +114,11 @@
               <th class="px-4 py-3.5 min-w-[140px]">Class & Section</th>
               <th class="px-4 py-3.5 min-w-[160px]">Deactivate Reason</th>
               <th class="px-4 py-3.5 min-w-[130px]">Login Status</th>
-              <th class="px-6 py-3.5 text-right min-w-[140px] sticky right-0 bg-gray-50/90 dark:bg-gray-750 backdrop-blur-sm">Action</th>
+              <th
+                class="px-6 py-3.5 text-right min-w-[140px] sticky right-0 bg-gray-50/90 dark:bg-gray-750 backdrop-blur-sm"
+              >
+                Action
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700/60 text-sm">
@@ -138,7 +136,9 @@
                 />
               </td>
               <td class="px-4 py-3.5 text-center">
-                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-sm mx-auto">
+                <div
+                  class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-sm mx-auto"
+                >
                   {{ student.first_name ? student.first_name[0] : 'S' }}
                 </div>
               </td>
@@ -158,7 +158,10 @@
                 {{ student.current_class }} {{ student.section ? `(${student.section})` : '' }}
               </td>
               <td class="px-4 py-3.5">
-                <span v-if="deactivationReasons[student.id]" class="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-lg font-medium border border-rose-200 dark:border-rose-900 inline-block">
+                <span
+                  v-if="deactivationReasons[student.id]"
+                  class="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-lg font-medium border border-rose-200 dark:border-rose-900 inline-block"
+                >
                   {{ deactivationReasons[student.id] }}
                 </span>
                 <span v-else class="text-gray-400 dark:text-gray-500 italic text-xs">—</span>
@@ -166,15 +169,30 @@
               <td class="px-4 py-3.5">
                 <span
                   class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
-                  :class="student.user?.status === 'inactive' || student.status === 'inactive'
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'"
+                  :class="
+                    student.user?.status === 'inactive' || student.status === 'inactive'
+                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                  "
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="student.user?.status === 'inactive' || student.status === 'inactive' ? 'bg-rose-500' : 'bg-emerald-500'"></span>
-                  {{ student.user?.status === 'inactive' || student.status === 'inactive' ? 'Deactivated' : 'Active' }}
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="
+                      student.user?.status === 'inactive' || student.status === 'inactive'
+                        ? 'bg-rose-500'
+                        : 'bg-emerald-500'
+                    "
+                  ></span>
+                  {{
+                    student.user?.status === 'inactive' || student.status === 'inactive'
+                      ? 'Deactivated'
+                      : 'Active'
+                  }}
                 </span>
               </td>
-              <td class="px-6 py-3.5 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-800 shadow-sm">
+              <td
+                class="px-6 py-3.5 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-800 shadow-sm"
+              >
                 <button
                   v-if="student.user?.status === 'inactive' || student.status === 'inactive'"
                   class="px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 rounded-xl transition-all border border-emerald-200 dark:border-emerald-800 shadow-sm"
@@ -201,13 +219,20 @@
           <UserGraduate class="w-8 h-8" />
         </div>
         <p class="text-base font-medium text-gray-900 dark:text-white">No students found</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Select class and section above to view the student list.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Select class and section above to view the student list.
+        </p>
       </div>
 
       <!-- Footer Bulk Action Controls -->
-      <div v-if="students.length" class="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div
+        v-if="students.length"
+        class="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
         <div class="text-sm text-gray-500 dark:text-gray-400">
-          Selected: <strong class="text-gray-900 dark:text-white">{{ selectedStudentIds.length }}</strong> of {{ students.length }}
+          Selected:
+          <strong class="text-gray-900 dark:text-white">{{ selectedStudentIds.length }}</strong> of
+          {{ students.length }}
         </div>
         <div class="flex items-center gap-3">
           <button
@@ -231,13 +256,20 @@
     </div>
 
     <!-- Reason Modal Prompt when Deactivating -->
-    <div v-if="activeStudentToDeactivate" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-gray-100 dark:border-gray-700">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-          Deactivate Student Login
-        </h3>
+    <div
+      v-if="activeStudentToDeactivate"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-gray-100 dark:border-gray-700"
+      >
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Deactivate Student Login</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Provide a reason for deactivating authentication for <strong>{{ activeStudentToDeactivate.first_name }} {{ activeStudentToDeactivate.last_name }}</strong>:
+          Provide a reason for deactivating authentication for
+          <strong
+            >{{ activeStudentToDeactivate.first_name }}
+            {{ activeStudentToDeactivate.last_name }}</strong
+          >:
         </p>
         <textarea
           v-model="inputReason"
@@ -267,22 +299,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { ShieldAlert, Filter, Lock, Unlock } from 'lucide-vue-next';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { Students } from '~/api/students/students';
 import { DynamicEntities } from '~/api/shared/dynamic-entities';
 
-const {
-  schoolOptions,
-  branchOptions,
-  selectedSchoolId,
-  selectedBranchId,
-  showSchoolDropdown,
-  showBranchDropdown,
-  scopeParams,
-  loadScope,
-  onSchoolChange
-} = useSchoolBranchScope();
+const { selectedBranchId, branchScopeParams: scopeParams } = useGlobalBranch();
 
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 
@@ -330,7 +353,11 @@ const fetchStudents = async () => {
 
     // Also fetch deactivation records for reason display
     const deactRes: any = await DynamicEntities.list('student_deactivation', scopeParams.value);
-    const records = Array.isArray(deactRes.data?.rows) ? deactRes.data.rows : Array.isArray(deactRes.data?.records) ? deactRes.data.records : [];
+    const records = Array.isArray(deactRes.data?.rows)
+      ? deactRes.data.rows
+      : Array.isArray(deactRes.data?.records)
+        ? deactRes.data.records
+        : [];
     const reasonsMap: Record<string, string> = {};
     records.forEach((r: any) => {
       const sid = r.user_id || r.student_id;
@@ -343,21 +370,6 @@ const fetchStudents = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const changeSchool = async () => {
-  await onSchoolChange();
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
-  await fetchStudents();
-};
-
-const changeBranch = async () => {
-  selectedClassId.value = '';
-  selectedSectionId.value = '';
-  await fetchClasses({ branchId: selectedBranchId.value });
-  await fetchStudents();
 };
 
 const changeClass = async () => {
@@ -381,7 +393,11 @@ const confirmDeactivate = async () => {
   inputReason.value = '';
 };
 
-const toggleStudentStatus = async (student: any, status: 'active' | 'inactive', reason?: string) => {
+const toggleStudentStatus = async (
+  student: any,
+  status: 'active' | 'inactive',
+  reason?: string
+) => {
   try {
     if (student.user?.id) {
       // Toggle backend user status
@@ -407,14 +423,17 @@ const bulkToggleStatus = async (status: 'active' | 'inactive') => {
   for (const id of selectedStudentIds.value) {
     const student = students.value.find(s => s.id === id);
     if (student) {
-      await toggleStudentStatus(student, status, status === 'inactive' ? 'Bulk deactivation' : undefined);
+      await toggleStudentStatus(
+        student,
+        status,
+        status === 'inactive' ? 'Bulk deactivation' : undefined
+      );
     }
   }
   selectedStudentIds.value = [];
 };
 
 onMounted(async () => {
-  await loadScope();
   await fetchClasses({ branchId: selectedBranchId.value });
   await fetchStudents();
 });

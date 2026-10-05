@@ -5,8 +5,8 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Module Management</h1>
         <p class="text-gray-600 dark:text-gray-400 mt-1">
-          {{ school?.name || 'School' }} — toggle features on/off for this school (must be included in
-          the subscription plan first)
+          {{ school?.name || 'School' }} — toggle features on/off for this school (must be included
+          in the subscription plan first)
         </p>
         <div class="mt-2 flex items-center gap-4 text-sm">
           <span
@@ -127,7 +127,7 @@
                   type="checkbox"
                   :id="module.code"
                   v-model="module.enabled"
-                  @change="toggleModule(module.code, module.enabled)"
+                  @change="requestToggle(module.code, module.enabled)"
                   :disabled="saving || module.is_core"
                   class="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                   :class="{ 'opacity-50 cursor-not-allowed': module.is_core }"
@@ -177,7 +177,7 @@
                   type="checkbox"
                   :id="module.code"
                   v-model="module.enabled"
-                  @change="toggleModule(module.code, module.enabled)"
+                  @change="requestToggle(module.code, module.enabled)"
                   :disabled="saving || module.is_core"
                   class="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                   :class="{ 'opacity-50 cursor-not-allowed': module.is_core }"
@@ -269,6 +269,14 @@
       </div>
     </div>
   </div>
+  <ConfirmDialog
+    :show="Boolean(pendingToggle)"
+    title="Disable the last module?"
+    message="This will leave only core features available for the school. Continue?"
+    confirm-label="Disable module"
+    @close="pendingToggle = null"
+    @confirm="confirmToggle"
+  />
 </template>
 
 <script setup>
@@ -278,6 +286,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useToast } from '~/composables/useToast';
 import { useModuleAccess } from '~/composables/useModuleAccess';
 import { Schools, Saas } from '~/api';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const authStore = useAuthStore();
 const { showError, showSuccess } = useToast();
@@ -298,6 +307,7 @@ const error = ref('');
 const school = ref(null);
 const planDetails = ref(null);
 const modules = ref([]);
+const pendingToggle = ref(null);
 
 // Toast notification state
 const showToast = ref(false);
@@ -406,6 +416,20 @@ const loadSchoolModules = async () => {
   }
 };
 
+const requestToggle = (moduleCode, enabled) => {
+  if (!enabled && modules.value.filter(m => m.enabled && !m.is_core && m.code !== moduleCode).length === 0) {
+    pendingToggle.value = { moduleCode, enabled };
+    return;
+  }
+  toggleModule(moduleCode, enabled);
+};
+
+const confirmToggle = () => {
+  const toggle = pendingToggle.value;
+  pendingToggle.value = null;
+  if (toggle) toggleModule(toggle.moduleCode, toggle.enabled);
+};
+
 const toggleModule = async (moduleCode, enabled) => {
   if (saving.value) return;
 
@@ -420,23 +444,6 @@ const toggleModule = async (moduleCode, enabled) => {
     isExamModule: moduleCode === 'exams',
     isAttendanceModule: moduleCode === 'attendance'
   });
-
-  // Check if this is the last enabled non-core module being disabled
-  if (!enabled) {
-    const enabledNonCoreModules = modules.value.filter(
-      m => m.enabled && !m.is_core && m.code !== moduleCode
-    );
-
-    if (enabledNonCoreModules.length === 0) {
-      const confirmed = confirm(
-        '⚠️ Warning: This is the last enabled module.\n\n' +
-          'Disabling it will remove access to all features except core modules.\n\n' +
-          'Are you sure you want to continue?'
-      );
-
-      if (!confirmed) return;
-    }
-  }
 
   saving.value = true;
 
@@ -568,6 +575,4 @@ onMounted(async () => {
 .btn-secondary {
   @apply bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500;
 }
-
-
 </style>

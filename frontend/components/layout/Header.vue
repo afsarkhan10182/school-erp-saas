@@ -1,6 +1,6 @@
 <template>
   <header
-    class="sticky top-0 z-30 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xs border-b border-gray-200 dark:border-gray-700/80 flex items-center justify-between px-4 sm:px-6 h-16 transition-colors duration-300"
+    class="sticky top-0 z-30 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xs border-b border-gray-200 dark:border-gray-700/80 flex items-center justify-between px-4 sm:px-6 h-16"
   >
     <div class="flex items-center">
       <!-- Mobile Sidebar Toggle -->

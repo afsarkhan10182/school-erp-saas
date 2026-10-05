@@ -386,10 +386,7 @@
     </div>
 
     <!-- Payment Modal -->
-    <div
-      v-if="showPaymentModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -481,10 +478,7 @@
     </div>
 
     <!-- Adjustment Modal -->
-    <div
-      v-if="showAdjustmentModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -553,10 +547,7 @@
     </div>
 
     <!-- Payment History Modal -->
-    <div
-      v-if="showPaymentHistoryModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showPaymentHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -681,10 +672,7 @@
     </div>
 
     <!-- Receipt Modal -->
-    <div
-      v-if="showReceiptModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showReceiptModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >
@@ -729,10 +717,7 @@
     </div>
 
     <!-- All Receipts Modal -->
-    <div
-      v-if="showAllReceiptsModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-    >
+    <div v-if="showAllReceiptsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
       <div
         class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white dark:bg-gray-800"
       >

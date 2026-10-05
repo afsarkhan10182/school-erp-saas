@@ -288,7 +288,7 @@ export function useSubjects() {
       }
 
       // Watch global branch changes and reload
-      watch(globalBranchId, async (newVal) => {
+      watch(globalBranchId, async newVal => {
         selectedBranchId.value = newVal || '';
         await onBranchChange();
       });

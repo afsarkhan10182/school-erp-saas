@@ -1,239 +1,127 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Academic Calendar</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage academic year events, holidays, terms, and important dates
-          </p>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Academic Calendar</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage academic year events, holidays, terms, and important dates
+        </p>
+      </div>
+      <div>
+        <button
+          v-if="activeTab === 'calendar'"
+          @click="openCreateEvent"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
+        >
+          <Plus class="w-4 h-4" />
+          Add Event
+        </button>
+        <button
+          v-else-if="activeTab === 'terms'"
+          @click="openCreateTerm"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
+        >
+          <Plus class="w-4 h-4" />
+          Add Term
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ScrollableTabs
+      :tabs="calendarTabs"
+      :active-tab="activeTab"
+      @tab-change="activeTab = $event"
+    />
+
+    <!-- Calendar Events Tab -->
+    <div
+      v-if="activeTab === 'calendar'"
+      class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden space-y-4"
+    >
+      <!-- Filters -->
+      <div
+        class="p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50"
+      >
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Academic Year Filter -->
+          <div>
+            <EnhancedDropdown
+              v-model="filters.academic_year"
+              label="Academic Year"
+              :options="[{ label: 'All Years', value: '' }, ...academicYearOptions]"
+              placeholder="All Years"
+              @update:model-value="loadCalendar"
+            />
+          </div>
+
+          <!-- Day Type Filter -->
+          <div>
+            <EnhancedDropdown
+              v-model="filters.day_type"
+              label="Day Type"
+              :options="[
+                { label: 'All Types', value: '' },
+                { label: 'Working Day', value: 'working' },
+                { label: 'Holiday', value: 'holiday' },
+                { label: 'Weekend', value: 'weekend' },
+                { label: 'Exam Day', value: 'exam' },
+                { label: 'Event', value: 'event' }
+              ]"
+              placeholder="All Types"
+              @update:model-value="loadCalendar"
+            />
+          </div>
+
+          <!-- Start Date Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Start Date
+            </label>
+            <input
+              v-model="filters.start_date"
+              type="date"
+              class="input-field"
+              @change="loadCalendar"
+            />
+          </div>
+
+          <!-- End Date Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              End Date
+            </label>
+            <input
+              v-model="filters.end_date"
+              type="date"
+              class="input-field"
+              @change="loadCalendar"
+            />
+          </div>
         </div>
-        <div class="mt-4 sm:mt-0">
+
+        <!-- Reset Filters -->
+        <div class="mt-3 flex justify-end">
           <button
-            @click="openCreateEvent"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            @click="resetFilters"
+            class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <Plus class="-ml-1 mr-2 h-5 w-5" />
-            Add Event
+            Reset Filters
           </button>
         </div>
       </div>
 
-      <!-- Tab Navigation -->
-      <ScrollableTabs
-        :tabs="calendarTabs"
-        :active-tab="activeTab"
-        @tab-change="activeTab = $event"
-      />
-
-      <!-- Filters -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-6"
-      >
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <!-- Academic Year -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Academic Year</label
-            >
-            <select
-              v-model="filters.academic_year"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadCalendar"
-            >
-              <option value="">All Years</option>
-              <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
-                {{ year.label }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Day Type -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >Day Type</label
-            >
-            <select
-              v-model="filters.day_type"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadCalendar"
-            >
-              <option value="">All Types</option>
-              <option value="working">Working Day</option>
-              <option value="holiday">Holiday</option>
-              <option value="weekend">Weekend</option>
-              <option value="exam">Exam Day</option>
-              <option value="event">Event</option>
-            </select>
-          </div>
-
-          <!-- Date Range -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >From Date</label
-            >
-            <input
-              v-model="filters.start_date"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadCalendar"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >To Date</label
-            >
-            <input
-              v-model="filters.end_date"
-              type="date"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              @change="loadCalendar"
-            />
-          </div>
-        </div>
+      <div v-if="loading" class="p-8 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+        <span class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+        Loading calendar events...
       </div>
 
-      <!-- Calendar Events Tab -->
-      <div
-        v-if="activeTab === 'calendar'"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-      >
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Calendar Events</h3>
-            <button
-              @click="openCreateEvent"
-              class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <Plus class="-ml-1 mr-2 h-4 w-4" />
-              Add Event
-            </button>
-          </div>
-        </div>
+      <div v-else-if="calendarEvents.length === 0" class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        No calendar events found.
+      </div>
 
-        <!-- Filters -->
-        <div
-          class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Academic Year Filter -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Academic Year
-              </label>
-              <select v-model="filters.academic_year" class="input-field" @change="loadCalendar">
-                <option value="">All Years</option>
-                <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
-                  {{ year.label }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Day Type Filter -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Day Type
-              </label>
-              <select v-model="filters.day_type" class="input-field" @change="loadCalendar">
-                <option value="">All Types</option>
-                <option value="working">Working Day</option>
-                <option value="holiday">Holiday</option>
-                <option value="weekend">Weekend</option>
-                <option value="exam">Exam Day</option>
-                <option value="event">Event</option>
-              </select>
-            </div>
-
-            <!-- Start Date Filter -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Start Date
-              </label>
-              <input
-                v-model="filters.start_date"
-                type="date"
-                class="input-field"
-                @change="loadCalendar"
-              />
-            </div>
-
-            <!-- End Date Filter -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                End Date
-              </label>
-              <input
-                v-model="filters.end_date"
-                type="date"
-                class="input-field"
-                @change="loadCalendar"
-              />
-            </div>
-          </div>
-
-          <!-- Reset Filters -->
-          <div class="mt-4">
-            <button
-              @click="resetFilters"
-              class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              Reset Filters
-            </button>
-          </div>
-        </div>
-
-        <div v-if="loading" class="p-8 text-center">
-          <div
-            class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-blue-500 hover:bg-blue-400 transition ease-in-out duration-150 cursor-not-allowed"
-          >
-            <svg
-              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Loading calendar events...
-          </div>
-        </div>
-
-        <div v-else-if="calendarEvents.length === 0" class="p-8 text-center">
-          <div class="text-gray-500 dark:text-gray-400">
-            <Calendar class="mx-auto h-12 w-12 text-gray-400" />
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-              No calendar events found
-            </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Get started by creating a new calendar event.
-            </p>
-            <div class="mt-6">
-              <button
-                @click="openCreateEvent"
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Plus class="-ml-1 mr-2 h-5 w-5" />
-                Add Event
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="overflow-x-auto">
+      <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -348,16 +236,12 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Academic Year
               </label>
-              <select
+              <EnhancedDropdown
                 v-model="termFilters.academic_year_id"
-                class="input-field"
-                @change="loadTerms"
-              >
-                <option value="">All Years</option>
-                <option v-for="year in academicYearOptions" :key="year.value" :value="year.value">
-                  {{ year.label }}
-                </option>
-              </select>
+                :options="[{ label: 'All Years', value: '' }, ...academicYearOptions]"
+                placeholder="All Years"
+                @update:model-value="loadTerms"
+              />
             </div>
 
             <!-- Status Filter -->
@@ -365,13 +249,18 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status
               </label>
-              <select v-model="termFilters.status" class="input-field" @change="loadTerms">
-                <option value="">All Status</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <EnhancedDropdown
+                v-model="termFilters.status"
+                :options="[
+                  { label: 'All Status', value: '' },
+                  { label: 'Upcoming', value: 'upcoming' },
+                  { label: 'Active', value: 'active' },
+                  { label: 'Completed', value: 'completed' },
+                  { label: 'Cancelled', value: 'cancelled' }
+                ]"
+                placeholder="All Status"
+                @update:model-value="loadTerms"
+              />
             </div>
 
             <!-- Reset Filters -->
@@ -402,7 +291,7 @@
           </p>
           <div class="mt-6">
             <button
-                @click="openCreateTerm"
+              @click="openCreateTerm"
               class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Plus class="-ml-1 mr-2 h-5 w-5" />
@@ -533,14 +422,21 @@
         />
       </template>
     </Modal>
-  </div>
+    <ConfirmDialog
+      :open="deleteDialog.open"
+      :title="deleteDialog.type === 'term' ? 'Delete term' : 'Delete calendar event'"
+      :message="deleteDialog.type === 'term' ? 'Are you sure you want to delete this term?' : 'Are you sure you want to delete this calendar event?'"
+      confirm-label="Delete"
+      @confirm="confirmDelete"
+      @cancel="deleteDialog.open = false"
+    />
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { Calendar, Clock } from 'lucide-vue-next';
 import { useToast } from '~/composables/useToast';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import ScrollableTabs from '~/components/ui/ScrollableTabs.vue';
 import { useAcademics } from '~/composables/useAcademics';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '~/utils/formatters';
@@ -549,11 +445,13 @@ import { examTermApi } from '~/api/academic/exam-terms';
 import Modal from '~/components/ui/Modal.vue';
 import CalendarEventForm from '~/components/forms/CalendarEventForm.vue';
 import TermForm from '~/components/forms/TermForm.vue';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { Plus, Edit, Trash2 } from 'lucide-vue-next';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 // Composables
 const { showToast } = useToast();
-const { branchOptions, selectedBranchId, showBranchDropdown, scopeParams, loadScope } = useSchoolBranchScope();
+const { selectedBranchId, branchScopeParams: scopeParams } = useGlobalBranch();
 const { academicYears, fetchAcademicYears } = useAcademics();
 // formatDate, getStatusBadgeClass, getStatusLabel imported directly from utils
 
@@ -568,6 +466,7 @@ const isEditingTerm = ref(false);
 const editingEvent = ref(null);
 const editingTerm = ref(null);
 const activeTab = ref('calendar');
+const deleteDialog = reactive({ open: false, type: '', id: '' });
 
 // Tab configuration
 const calendarTabs = [
@@ -629,15 +528,29 @@ const openCreateTerm = () => {
 };
 
 const deleteEvent = async event => {
-  if (!confirm(`Are you sure you want to delete this calendar event?`)) return;
+  deleteDialog.id = event.id;
+  deleteDialog.type = 'event';
+  deleteDialog.open = true;
+};
 
+const confirmDelete = async () => {
   try {
-    await AcademicCalendar.delete(event.id);
-    showToast('Calendar event deleted successfully', 'success');
-    loadCalendar();
+    if (deleteDialog.type === 'term') {
+      await examTermApi.delete(deleteDialog.id);
+      showToast('Term deleted successfully', 'success');
+      loadTerms();
+    } else {
+      await AcademicCalendar.delete(deleteDialog.id);
+      showToast('Calendar event deleted successfully', 'success');
+      loadCalendar();
+    }
   } catch (error) {
-    showToast('Failed to delete calendar event', 'error');
+    showToast(`Failed to delete ${deleteDialog.type}`, 'error');
     console.error('Error deleting calendar event:', error);
+  } finally {
+    deleteDialog.open = false;
+    deleteDialog.type = '';
+    deleteDialog.id = '';
   }
 };
 
@@ -690,18 +603,9 @@ const editTerm = term => {
 };
 
 const deleteTerm = async term => {
-  if (!confirm(`Are you sure you want to delete the term "${term.name}"?`)) {
-    return;
-  }
-
-  try {
-    await examTermApi.delete(term.id);
-    showToast('Term deleted successfully', 'success');
-    loadTerms();
-  } catch (error) {
-    showToast('Failed to delete term', 'error');
-    console.error('Error deleting term:', error);
-  }
+  deleteDialog.id = term.id;
+  deleteDialog.type = 'term';
+  deleteDialog.open = true;
 };
 
 const handleTermSubmit = async formData => {
@@ -746,7 +650,6 @@ const loadScopedCalendar = async () => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadScope();
   await fetchAcademicYears();
   await loadCalendar();
   await loadTerms();

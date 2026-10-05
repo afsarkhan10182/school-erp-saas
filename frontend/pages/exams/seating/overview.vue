@@ -32,23 +32,31 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { ExamSeatings } from '~/api/academic/cards-exams-reports';
-import { useSchoolBranchScope } from '~/composables/useSchoolBranchScope';
+import { useGlobalBranch } from '~/composables/useGlobalBranch';
 
 const rows = ref<any[]>([]);
-const { branchOptions, selectedBranchId, scopeParams, loadScope } = useSchoolBranchScope();
+const { selectedBranchId, branchScopeParams: scopeParams } = useGlobalBranch();
 
 watch(selectedBranchId, () => {
   load();
 });
-const benches = (planJson: any) => Array.isArray(planJson) ? planJson : planJson?.benches || [];
-const slot = (row: any) => row.plan_json?.schedule ? [row.plan_json.schedule.exam_date, row.plan_json.schedule.start_time, row.plan_json.schedule.end_time].filter(Boolean).join(' · ') : '—';
+const benches = (planJson: any) => (Array.isArray(planJson) ? planJson : planJson?.benches || []);
+const slot = (row: any) =>
+  row.plan_json?.schedule
+    ? [
+        row.plan_json.schedule.exam_date,
+        row.plan_json.schedule.start_time,
+        row.plan_json.schedule.end_time
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '—';
 const load = async () => {
   const res: any = await ExamSeatings.list(scopeParams.value);
   rows.value = res.data?.seatings || [];
 };
 
 onMounted(async () => {
-  await loadScope();
   await load();
 });
 </script>

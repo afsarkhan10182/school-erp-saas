@@ -383,7 +383,7 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
     const academicChildren: SidebarItem[] = [];
     if (isSuperAdmin) {
       academicChildren.push(
-        link('academic-years', 'Session Settings', '/academic/years', I.Calendar)
+        link('academic-years', 'Academic Years', '/academic/years', I.Calendar)
       );
     }
     academicChildren.push(
@@ -561,7 +561,7 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
               'exams'
             ),
             link('exam-schedules', 'Schedule', '/exams/schedules', I.Calendar, 'exams'),
-            link('add-schedule', 'Add Schedule', '/exams/schedules/add', I.UserPlus, 'exams'),
+            link('add-schedule', 'Add Schedule', '/exams/schedules/create', I.UserPlus, 'exams'),
             link(
               'comp-exam-schedule',
               'Comprehensive Schedule',
@@ -594,7 +594,7 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
             link('exam-seat-stickers', 'Seat Stickers', '/exams/seating/stickers', I.Tag, 'exams'),
             link('marks-entry', 'Mark Entries', '/exams/marks-entry', I.Edit3, 'exams'),
             link('positions', 'Generate Position', '/exams/positions', I.Trophy, 'exams'),
-            link('grades-range', 'Grades Range', '/exams/setup/grades-range', I.Tag, 'exams'),
+            link('grades-range', 'Grades Range', '/exams/setup/grading-systems', I.Tag, 'exams'),
             link('online-exam', 'Online Exam', '/exams/online', I.Video, 'exams'),
             link(
               'question-bank',
@@ -766,8 +766,8 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
           icon: I.GraduationCap,
           requiredModule: 'alumni',
           children: [
-            link('alumni-manage', 'Manage Alumni', '/alumni/alumni', I.GraduationCap, 'alumni'),
-            link('alumni-events', 'Events', '/alumni/alumni_event', I.Calendar, 'alumni')
+            link('alumni-manage', 'Manage Alumni', '/alumni/directory', I.GraduationCap, 'alumni'),
+            link('alumni-events', 'Events', '/alumni/events', I.Calendar, 'alumni')
           ]
         }
       ]
@@ -876,32 +876,12 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
         {
           id: 'acct-menu',
           title: 'Accounting',
-          icon: I.Wallet,
+          icon: I.Briefcase,
           requiredModule: 'accounting',
           children: [
-            link('acct-accounts', 'Account', '/accounting/account', I.Wallet, 'accounting'),
-            link(
-              'acct-deposit',
-              'New Deposit',
-              '/accounting/voucher?type=deposit',
-              I.Receipt,
-              'accounting'
-            ),
-            link(
-              'acct-expense',
-              'New Expense',
-              '/accounting/voucher?type=expense',
-              I.Receipt,
-              'accounting'
-            ),
-            link(
-              'acct-transactions',
-              'All Transactions',
-              '/accounting/voucher',
-              I.List,
-              'accounting'
-            ),
-            link('acct-heads', 'Voucher Head', '/accounting/account_head', I.Tag, 'accounting')
+            link('acct-categories', 'Categories', '/accounting/categories', I.Tag, 'accounting'),
+            link('acct-income', 'Income', '/accounting/income', I.DollarSign, 'accounting'),
+            link('acct-expense', 'Expense', '/accounting/expense', I.Receipt, 'accounting')
           ]
         }
       ]
@@ -1205,7 +1185,7 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
       items: [
         {
           id: 'website-menu',
-          title: 'Frontend',
+          title: 'Website',
           icon: I.Globe,
           requiredModule: 'website',
           children: [
@@ -1265,7 +1245,7 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
             link('global-settings', 'Global Settings', '/settings', I.Settings),
             link('school-settings', 'School Settings', '/settings?tab=school', I.School),
             link('role-permission', 'Role Permission', '/admin/config?tab=roles', I.Users),
-            link('session-settings', 'Session Settings', '/academic/years', I.Calendar),
+            link('session-settings', 'Academic Years', '/academic/years', I.Calendar),
             link('translations', 'Translations', '/settings/translation', I.Globe),
             link('cron-job', 'Cron Job', '/admin/config?tab=cron', I.Clock),
             link('modules', 'Modules', '/admin/config?tab=modules', I.Layers),

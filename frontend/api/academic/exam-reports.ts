@@ -68,19 +68,11 @@ export const examReportsApi = {
     return apiCall('get', `/exam-reports/status/${reportId}`);
   },
 
-  getTabulation: async (params: {
-    exam_id: string;
-    class_id: string;
-    section_id?: string;
-  }) => {
+  getTabulation: async (params: { exam_id: string; class_id: string; section_id?: string }) => {
     return apiCall('get', '/exam-reports/tabulation', { params });
   },
 
-  getProgress: async (params: {
-    exam_ids: string;
-    class_id: string;
-    section_id?: string;
-  }) => {
+  getProgress: async (params: { exam_ids: string; class_id: string; section_id?: string }) => {
     return apiCall('get', '/exam-reports/progress', { params });
   }
 };

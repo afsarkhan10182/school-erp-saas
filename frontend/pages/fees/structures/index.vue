@@ -18,8 +18,6 @@
         </button>
       </div>
 
-
-
       <!-- Fee Structures List -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
         <div v-if="isLoading" class="p-8 text-center">
@@ -229,7 +227,9 @@
               class="mb-6 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
             >
               <div class="flex items-center space-x-2">
-                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                <span
+                  class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs"
+                >
                   {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
                 </span>
                 <div>
@@ -282,21 +282,13 @@
                         ×
                       </button>
                     </div>
-                    <select
+                    <EnhancedDropdown
                       v-model="selectedClassToAdd"
-                      @change="addClass"
-                      class="flex-1 bg-transparent border-none outline-none text-sm"
+                      :options="classOptions"
                       :disabled="form.applicable_classes.length >= classes.length"
-                    >
-                      <option value="">Select classes to add...</option>
-                      <option
-                        v-for="classItem in availableClassesForSelection"
-                        :key="classItem.id"
-                        :value="classItem.name"
-                      >
-                        {{ classItem.name }}
-                      </option>
-                    </select>
+                      placeholder="Select classes to add..."
+                      @update:model-value="addClass"
+                    />
                   </div>
                 </div>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -337,15 +329,11 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Section (Optional)</label
                 >
-                <select
+                <EnhancedDropdown
                   v-model="form.section_id"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">All Sections (General)</option>
-                  <option v-for="section in filteredSections" :key="section.id" :value="section.id">
-                    {{ section.name }}
-                  </option>
-                </select>
+                  :options="sectionOptions"
+                  placeholder="All Sections (General)"
+                />
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {{
                     hasStreamsAvailable && form.stream_ids.length > 0
@@ -360,16 +348,11 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Fee Type *</label
                 >
-                <select
+                <EnhancedDropdown
                   v-model="form.fee_type_id"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Select Fee Type</option>
-                  <option v-for="feeType in feeTypes" :key="feeType.id" :value="feeType.id">
-                    {{ feeType.name }} ({{ feeType.code }})
-                  </option>
-                </select>
+                  :options="feeTypeOptions"
+                  placeholder="Select Fee Type"
+                />
               </div>
 
               <!-- Payment Model -->
@@ -377,16 +360,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >Payment Model *</label
                 >
-                <select
-                  v-model="form.payment_model"
-                  required
-                  @change="onPaymentModelChange"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Select Payment Model</option>
-                  <option value="installment">Installment-based</option>
-                  <option value="monthly">Monthly-based</option>
-                </select>
+                <EnhancedDropdown v-model="form.payment_model" :options="paymentModelOptions" placeholder="Select Payment Model" required @update:model-value="onPaymentModelChange" />
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Installment-based: One-time or installment payments | Monthly-based: Monthly
                   payments
@@ -406,14 +380,7 @@
                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     >Installment Type</label
                   >
-                  <select
-                    v-model="form.installment_type"
-                    @change="onInstallmentTypeChange"
-                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="one_time">One-Time Full Fee</option>
-                    <option value="multiple">Multiple Installments</option>
-                  </select>
+                  <EnhancedDropdown v-model="form.installment_type" :options="installmentTypeOptions" placeholder="Select installment type" @update:model-value="onInstallmentTypeChange" />
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     One-Time Full Fee: Single invoice for entire amount | Multiple Installments:
                     Split into 2-4 installments
@@ -476,15 +443,7 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >Number of Installments</label
                     >
-                    <select
-                      v-model="form.installment_count"
-                      @change="onInstallmentCountChange"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="2">2 Installments</option>
-                      <option value="3">3 Installments</option>
-                      <option value="4">4 Installments</option>
-                    </select>
+                    <EnhancedDropdown v-model="form.installment_count" :options="installmentCountOptions" placeholder="Select installment count" @update:model-value="onInstallmentCountChange" />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Choose how many installments to split the total amount into.
                     </p>
@@ -613,23 +572,7 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                       >Start Month</label
                     >
-                    <select
-                      v-model="form.start_month"
-                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value="1">January</option>
-                      <option value="2">February</option>
-                      <option value="3">March</option>
-                      <option value="4">April</option>
-                      <option value="5">May</option>
-                      <option value="6">June</option>
-                      <option value="7">July</option>
-                      <option value="8">August</option>
-                      <option value="9">September</option>
-                      <option value="10">October</option>
-                      <option value="11">November</option>
-                      <option value="12">December</option>
-                    </select>
+                    <EnhancedDropdown v-model="form.start_month" :options="startMonthOptions" placeholder="Select start month" />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Starting month for monthly payments.
                     </p>
@@ -726,6 +669,7 @@ import { useToast } from '~/composables/useToast';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { Streams } from '~/api';
 import { PlusIcon, BanknoteIcon, ChevronDown } from 'lucide-vue-next';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 // SSR-safe window check
 const isClient = import.meta.client;
@@ -766,9 +710,39 @@ const availableBranches = ref([]);
 
 // Multi-class selection
 const selectedClassToAdd = ref('');
+const classOptions = computed(() => [
+  { value: '', label: 'Select classes to add...' },
+  ...availableClassesForSelection.value.map(classItem => ({
+    value: classItem.name,
+    label: classItem.name
+  }))
+]);
+const paymentModelOptions = [
+  { label: 'Select Payment Model', value: '' },
+  { label: 'Installment-based', value: 'installment' },
+  { label: 'Monthly-based', value: 'monthly' }
+];
+const installmentTypeOptions = [
+  { label: 'One-Time Full Fee', value: 'one_time' },
+  { label: 'Multiple Installments', value: 'multiple' }
+];
+const installmentCountOptions = [2, 3, 4].map(value => ({ label: `${value} Installments`, value: String(value) }));
+const startMonthOptions = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  .map((label, index) => ({ label, value: String(index + 1) }));
 
 // Stream selection
 const streams = ref([]);
+const sectionOptions = computed(() => [
+  { value: '', label: 'All Sections (General)' },
+  ...filteredSections.value.map(section => ({ value: section.id, label: section.name }))
+]);
+const feeTypeOptions = computed(() => [
+  { value: '', label: 'Select Fee Type' },
+  ...feeTypes.value.map(feeType => ({
+    value: feeType.id,
+    label: `${feeType.name} (${feeType.code})`
+  }))
+]);
 
 const form = ref({
   academic_year_id: '',

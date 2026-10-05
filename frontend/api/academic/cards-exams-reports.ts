@@ -12,12 +12,19 @@ export const CardTemplates = {
   create: (data: any) => apiCall('post', '/cards/templates', data),
   update: (id: string, data: any) => apiCall('put', `/cards/templates/${id}`, data),
   remove: (id: string) => apiCall('delete', `/cards/templates/${id}`),
-  generate: (data: { student_id?: string; user_id?: string; user_type?: string; template_id?: string; kind?: string; branch_id?: string }) =>
-    apiCall('post', '/cards/generate', data)
+  generate: (data: {
+    student_id?: string;
+    user_id?: string;
+    user_type?: string;
+    template_id?: string;
+    kind?: string;
+    branch_id?: string;
+  }) => apiCall('post', '/cards/generate', data)
 };
 
 export const ExamSeatings = {
-  list: (params?: { exam_id?: string; branch_id?: string; school_id?: string }) => apiCall('get', '/exam-seatings', { params }),
+  list: (params?: { exam_id?: string; branch_id?: string; school_id?: string }) =>
+    apiCall('get', '/exam-seatings', { params }),
   preview: (data: any) => apiCall('post', '/exam-seatings/preview', data),
   apply: (data: any) => apiCall('post', '/exam-seatings/apply', data),
   overview: (id: string) => apiCall('get', `/exam-seatings/${id}/overview`),
@@ -31,8 +38,7 @@ export const OnlineExams = {
   create: (data: any) => apiCall('post', '/online-exams', data),
   update: (id: string, data: any) => apiCall('put', `/online-exams/${id}`, data),
   remove: (id: string) => apiCall('delete', `/online-exams/${id}`),
-  addQuestion: (id: string, data: any) =>
-    apiCall('post', `/online-exams/${id}/questions`, data),
+  addQuestion: (id: string, data: any) => apiCall('post', `/online-exams/${id}/questions`, data),
   deleteQuestion: (id: string, questionId: string) =>
     apiCall('delete', `/online-exams/${id}/questions/${questionId}`),
   take: (id: string) => apiCall('get', `/online-exams/${id}/take`),

@@ -16,7 +16,9 @@
 
 <script setup>
 const authStore = useAuthStore();
-const branchPageKey = computed(() => `${authStore.currentSchool?.id || 'all'}:${authStore.currentBranch?.id || 'all'}`);
+const branchPageKey = computed(
+  () => `${authStore.currentSchool?.id || 'all'}:${authStore.currentBranch?.id || 'all'}`
+);
 
 // Prevent theme flash — apply saved theme before paint
 useHead({

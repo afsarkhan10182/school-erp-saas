@@ -17,8 +17,6 @@
       </button>
     </div>
 
-
-
     <!-- Distributions Table -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <div v-if="loading" class="p-8 text-center">
@@ -167,6 +165,15 @@
         </form>
       </template>
     </Modal>
+
+    <ConfirmDialog
+      :show="Boolean(distributionToDelete)"
+      title="Delete mark distribution"
+      :message="`Delete ${distributionToDelete?.name || 'this distribution'}? This cannot be undone.`"
+      confirm-label="Delete distribution"
+      @close="distributionToDelete = null"
+      @confirm="confirmDeleteDistribution"
+    />
   </div>
 </template>
 
@@ -174,11 +181,11 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { Plus, Calculator, Edit, Trash2 } from 'lucide-vue-next';
 import Modal from '~/components/ui/Modal.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 import Pagination from '~/components/ui/Pagination.vue';
 import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 import { useToast } from '~/composables/useToast';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useMarkDistributions } from '~/composables/useMarkDistributions';
 
@@ -186,7 +193,6 @@ import { useMarkDistributions } from '~/composables/useMarkDistributions';
 const { showToast } = useToast();
 const { user } = useAuth();
 const { selectedBranchId } = useGlobalBranch();
-const { branches, fetchBranches, loading: branchesLoading } = useBranches();
 const {
   distributions,
   loading,
@@ -205,6 +211,7 @@ const {
 const showModal = ref(false);
 const saving = ref(false);
 const editingDistribution = ref(null);
+const distributionToDelete = ref(null);
 
 // Form data - Only essential fields
 const form = reactive({
@@ -219,13 +226,6 @@ watch(selectedBranchId, () => {
 
 // Computed properties
 
-const branchOptions = computed(() =>
-  branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-);
-
 // Methods
 const loadDistributions = async () => {
   await loadMarkDistributions({
@@ -237,7 +237,6 @@ const loadDistributions = async () => {
 const openCreateModal = async () => {
   editingDistribution.value = null;
   resetForm();
-  await fetchBranches();
   showModal.value = true;
 };
 
@@ -245,15 +244,17 @@ const editDistribution = async distribution => {
   editingDistribution.value = distribution;
   form.branch_id = distribution.branch_id || '';
   form.name = distribution.name || '';
-  await fetchBranches();
   showModal.value = true;
 };
 
 const handleDeleteDistribution = async distribution => {
-  if (!confirm(`Are you sure you want to delete "${distribution.name}"?`)) {
-    return;
-  }
+  distributionToDelete.value = distribution;
+};
 
+const confirmDeleteDistribution = async () => {
+  const distribution = distributionToDelete.value;
+  distributionToDelete.value = null;
+  if (!distribution) return;
   try {
     await deleteDistribution(distribution.id);
   } catch (error) {
@@ -262,7 +263,7 @@ const handleDeleteDistribution = async distribution => {
 };
 
 const saveDistribution = async () => {
-  form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || branches.value?.[0]?.id || user.value?.branch_id;
+  form.branch_id = selectedBranchId.value;
   //  - Only validate essential fields
   if (!form.branch_id) {
     showToast('Branch is required', 'error');
@@ -339,7 +340,6 @@ defineExpose({
 
 // Load initial data
 onMounted(async () => {
-  await fetchBranches();
   await loadData();
 });
 </script>

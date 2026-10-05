@@ -235,8 +235,6 @@
             />
           </div>
 
-
-
           <!-- Student Search -->
           <div class="flex-1 min-w-[200px]">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -636,7 +634,6 @@ import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { FeeInvoices } from '~/api';
 import { useToast } from '~/composables/useToast';
 import { useAcademics } from '~/composables/useAcademics';
-import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthStore } from '~/stores/auth';
@@ -659,7 +656,6 @@ const { printReport: printReportCommon } = usePrintReport();
 
 // Academic composables
 const { classes, sections, fetchClasses, fetchSections } = useAcademics();
-const { branches, fetchBranches } = useBranches();
 const { schools, fetchSchools } = useSchools();
 
 // Dropdown options
@@ -691,12 +687,6 @@ const schoolOptions = computed(() => [
   }))
 ]);
 
-const branchOptions = computed(() => [
-  ...branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }))
-]);
 
 const classOptions = computed(() => [
   ...classes.value.map(cls => ({
@@ -768,7 +758,7 @@ const filters = reactive({
 });
 
 // Watch for global branch or school change
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   filters.branch_id = newVal || '';
   filters.class_id = '';
   filters.section_id = '';
@@ -964,9 +954,6 @@ const onSchoolChange = async () => {
   filters.class_id = '';
 
   // Refetch branches for the selected school
-  await fetchBranches();
-
-  // Refetch dependent data
   await fetchClasses();
 };
 
@@ -1308,12 +1295,7 @@ onMounted(async () => {
   if (userRole.value === 'super_admin') {
     await fetchSchools();
   }
-
-  await fetchBranches();
-
-  // For branch admins, set their branch and load classes
-  if (userRole.value === 'branch_admin' && branches.value.length > 0) {
-    filters.branch_id = branches.value[0].id;
+  if (selectedBranchId.value) {
     await fetchClasses();
   }
 

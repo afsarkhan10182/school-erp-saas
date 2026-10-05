@@ -1,66 +1,63 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Multiple Import</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Import multiple students from CSV file</p>
-      </div>
+  <div class="space-y-6 max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col gap-1">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Multiple Import</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-400">Import multiple students from CSV file</p>
+    </div>
 
-      <!-- Instructions Card -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6"
-      >
-        <div class="p-6">
-          <div class="flex justify-between items-start mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Instructions:</h2>
-            <div class="relative" data-dropdown="download">
-              <button
-                @click="showDownloadDropdown = !showDownloadDropdown"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Download class="w-4 h-4 mr-2" />
-                Download Student Sample Data
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  ></path>
-                </svg>
-              </button>
+    <!-- Instructions Card -->
+    <div class="card">
+      <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Instructions</h2>
+          <div class="relative" data-dropdown="download">
+            <button
+              @click="showDownloadDropdown = !showDownloadDropdown"
+              class="btn-primary flex items-center gap-2"
+            >
+              <Download class="w-4 h-4" />
+              Download Student Sample Data
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
+            </button>
 
-              <!-- Dropdown Menu -->
-              <div
-                v-if="showDownloadDropdown"
-                class="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]"
-              >
-                <div class="py-1">
-                  <button
-                    @click="
-                      downloadTemplate('required');
-                      showDownloadDropdown = false;
-                    "
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                  >
-                    <Download class="w-4 h-4" />
-                    Mandatory/Required Fields only
-                  </button>
-                  <button
-                    @click="
-                      downloadTemplate('complete');
-                      showDownloadDropdown = false;
-                    "
-                    class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                  >
-                    <Download class="w-4 h-4" />
-                    All Fields
-                  </button>
-                </div>
+            <!-- Dropdown Menu -->
+            <div
+              v-if="showDownloadDropdown"
+              class="absolute top-full right-0 mt-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 min-w-[220px] p-1 overflow-hidden"
+            >
+              <div class="space-y-0.5">
+                <button
+                  @click="
+                    downloadTemplate('required');
+                    showDownloadDropdown = false;
+                  "
+                  class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-lg flex items-center gap-2"
+                >
+                  <Download class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  Mandatory/Required Fields only
+                </button>
+                <button
+                  @click="
+                    downloadTemplate('complete');
+                    showDownloadDropdown = false;
+                  "
+                  class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-lg flex items-center gap-2"
+                >
+                  <Download class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  All Fields
+                </button>
               </div>
             </div>
           </div>
+        </div>
 
           <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li>Choose your preferred template:</li>
@@ -98,15 +95,18 @@
       </div>
 
       <!-- Import Form -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-      >
-        <div class="p-6">
+      <div class="card">
+        <div>
           <form @submit.prevent="handleSubmit" class="space-y-6">
             <!-- Branch / School Context -->
-            <div v-if="currentBranch || currentSchool" class="p-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg border border-blue-200 dark:border-gray-600 flex items-center justify-between">
+            <div
+              v-if="currentBranch || currentSchool"
+              class="p-4 bg-blue-50 dark:bg-gray-700/50 rounded-lg border border-blue-200 dark:border-gray-600 flex items-center justify-between"
+            >
               <div class="flex items-center space-x-3">
-                <span class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                <span
+                  class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm"
+                >
                   {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
                 </span>
                 <div>
@@ -114,7 +114,9 @@
                     <span class="text-sm font-semibold text-gray-900 dark:text-white">
                       {{ currentBranch?.name || 'Active Branch' }}
                     </span>
-                    <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                    <span
+                      class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-full font-medium"
+                    >
                       Active Branch
                     </span>
                   </div>
@@ -270,11 +272,11 @@
               <button
                 type="submit"
                 :disabled="!canSubmit || loading"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span v-if="loading" class="flex items-center">
+                <span v-if="loading" class="flex items-center gap-2">
                   <svg
-                    class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    class="animate-spin h-4 w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -316,7 +318,9 @@
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
                 >Total Records:</span
               >
-              <span class="text-sm text-gray-900 dark:text-white">{{ importResults.total }}</span>
+              <span class="text-sm font-bold text-gray-900 dark:text-white">{{
+                importResults.total || 0
+              }}</span>
             </div>
 
             <div
@@ -325,43 +329,45 @@
               <span class="text-sm font-medium text-green-700 dark:text-green-300"
                 >Successfully Imported:</span
               >
-              <span class="text-sm text-green-900 dark:text-green-100">{{
-                importResults.successful
+              <span class="text-sm font-bold text-green-600 dark:text-green-400">{{
+                importResults.success || 0
               }}</span>
             </div>
 
             <div
+              v-if="importResults.failed > 0"
               class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg"
             >
               <span class="text-sm font-medium text-red-700 dark:text-red-300">Failed:</span>
-              <span class="text-sm text-red-900 dark:text-red-100">{{ importResults.failed }}</span>
+              <span class="text-sm font-bold text-red-600 dark:text-red-400">{{
+                importResults.failed || 0
+              }}</span>
             </div>
-          </div>
 
-          <!-- Error Details -->
-          <div v-if="importResults.errors && importResults.errors.length > 0" class="mt-6">
-            <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Error Details:</h4>
-            <div class="max-h-60 overflow-y-auto space-y-2">
-              <div
-                v-for="error in importResults.errors"
-                :key="error.row"
-                class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
-              >
-                <div class="text-sm text-red-700 dark:text-red-300">
-                  <span class="font-medium">Row {{ error.row }}:</span>
-                  {{ error.error }}
-                </div>
-                <!-- Show the data that caused the error -->
-                <div v-if="error.data" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                  <details>
-                    <summary class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
-                      View Data
-                    </summary>
-                    <pre
-                      class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-x-auto"
-                      >{{ JSON.stringify(error.data, null, 2) }}</pre
-                    >
-                  </details>
+            <!-- Error Details -->
+            <div v-if="importResults.errors && importResults.errors.length > 0" class="mt-4">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Error Details:</h4>
+              <div class="max-h-60 overflow-y-auto space-y-2">
+                <div
+                  v-for="(error, index) in importResults.errors"
+                  :key="index"
+                  class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm"
+                >
+                  <div class="font-medium text-red-800 dark:text-red-200">
+                    Row {{ error.row }}: {{ error.message }}
+                  </div>
+                  <!-- Show the data that caused the error -->
+                  <div v-if="error.data" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    <details>
+                      <summary class="cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
+                        View Data
+                      </summary>
+                      <pre
+                        class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-x-auto"
+                        >{{ JSON.stringify(error.data, null, 2) }}</pre
+                      >
+                    </details>
+                  </div>
                 </div>
               </div>
             </div>
@@ -371,20 +377,18 @@
         <template #footer>
           <button
             @click="showResults = false"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            class="btn-secondary"
           >
             Close
           </button>
         </template>
       </Modal>
     </div>
-  </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useAuth } from '~/composables/useAuth';
-import { useBranches } from '~/composables/useBranches';
 import { useAcademics } from '~/composables/useAcademics';
 import { useSchools } from '~/composables/useSchools';
 import { useToast } from '~/composables/useToast';
@@ -405,7 +409,6 @@ definePageMeta({
 const authStore = useAuthStore();
 const { selectedBranchId, currentBranch, currentSchool } = useGlobalBranch();
 const { user, isSuperAdmin, isAdmin, isBranchAdmin } = useAuth();
-const { branches, loading: branchesLoading, fetchBranches } = useBranches();
 const { schools, loading: schoolsLoading, fetchSchools } = useSchools();
 const {
   classes,
@@ -468,12 +471,6 @@ const schoolOptions = computed(() => {
   }));
 });
 
-const branchOptions = computed(() => {
-  return branches.value.map(branch => ({
-    value: branch.id,
-    label: branch.name
-  }));
-});
 
 const classOptions = computed(() => {
   return classes.value.map(cls => ({
@@ -529,34 +526,6 @@ const sectionOptions = computed(() => {
 });
 
 // Methods
-const onSchoolChange = async () => {
-  form.branch_id = '';
-  form.class_id = '';
-  form.section_id = '';
-  branches.value = [];
-  classes.value = [];
-  sections.value = [];
-  branchesLoading.value = true;
-
-  if (form.school_id) {
-    try {
-      await fetchBranches(form.school_id);
-
-      // Auto-select branch if there's only one
-      if (branches.value.length === 1) {
-        form.branch_id = branches.value[0].id;
-        // Load classes for the auto-selected branch
-        await onBranchChange();
-      }
-    } catch (error) {
-      showError('Failed to load branches. Please try again.');
-    } finally {
-      branchesLoading.value = false;
-    }
-  } else {
-    branchesLoading.value = false;
-  }
-};
 
 const onBranchChange = async () => {
   form.class_id = '';
@@ -565,13 +534,40 @@ const onBranchChange = async () => {
   sections.value = [];
   academicsLoading.value = true;
 
-  if (form.branch_id) {
+  if (!form.branch_id) {
+    academicsLoading.value = false;
+    return;
+  }
+
+  try {
+    const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
+    await fetchClasses({ schoolId, branchId: form.branch_id });
+    if (classes.value.length === 1) {
+      form.class_id = classes.value[0].id;
+      await onClassChange();
+    }
+  } catch (error) {
+    showError('Failed to load classes. Please try again.');
+  } finally {
+    academicsLoading.value = false;
+  }
+};
+
+watch(selectedBranchId, async (newBranchId) => {
+  form.branch_id = newBranchId || '';
+  form.class_id = '';
+  form.section_id = '';
+  classes.value = [];
+  sections.value = [];
+  academicsLoading.value = true;
+
+  if (newBranchId) {
     try {
       const schoolId = isSuperAdmin.value ? form.school_id : user.value?.school_id;
 
       await fetchClasses({
         schoolId: schoolId,
-        branchId: form.branch_id
+        branchId: newBranchId
       });
 
       // Auto-select class if there's only one
@@ -588,7 +584,7 @@ const onBranchChange = async () => {
   } else {
     academicsLoading.value = false;
   }
-};
+}, { immediate: true });
 
 // Load streams for the selected class
 const loadStreamsForClass = async classId => {
@@ -915,8 +911,10 @@ const handleSubmit = async () => {
 // Initialize form data
 async function initializeForm() {
   // Auto-sync with global school and branch
-  form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
-  form.branch_id = selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+  form.school_id =
+    currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
+  form.branch_id =
+    selectedBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
 
   // Fetch and auto-select current academic year
   await fetchAcademicYears(form.school_id || null);
@@ -949,9 +947,10 @@ async function initializeForm() {
 }
 
 // Watch global branch changes from top navigation
-watch(selectedBranchId, async (newVal) => {
+watch(selectedBranchId, async newVal => {
   if (newVal && newVal !== form.branch_id) {
-    form.school_id = currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
+    form.school_id =
+      currentSchool.value?.id || authStore.currentBranch?.school_id || user.value?.school_id || '';
     form.branch_id = newVal;
     await onBranchChange();
   }

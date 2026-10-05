@@ -1,5 +1,5 @@
 // Students API - Main entry point
-export { Student as Students } from './students';
+export { Student as Students, Student as StudentsAPI } from './students';
 export { Attendance } from './attendance';
 export { AttendanceNotifications } from './attendance-notifications';
 export { FeeTypes } from './fee-types';
@@ -7,7 +7,14 @@ export { FeeStructures } from './fee-structures';
 export { FeeInvoices } from './fee-invoices';
 export { Invoices } from './invoices';
 export { fetchCollectionsAPI } from './collections';
-export { Promotions, StudentCategories, Parents, FeeFines, Homeworks, Library } from './academic-services';
+export {
+  Promotions,
+  StudentCategories,
+  Parents,
+  FeeFines,
+  Homeworks,
+  Library
+} from './academic-services';
 
 // Re-export types
 export type { Student as StudentRecord, StudentFilters, StudentStats } from './students';

@@ -1,357 +1,263 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Streams Disabled Alert -->
-      <div
-        v-if="$route.query.error === 'streams_disabled'"
-        class="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
-      >
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-              Streams Feature Disabled
-            </h3>
-            <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-              {{
-                $route.query.message ||
-                'Streams feature is currently disabled. Please enable streams in Academic Settings to access the streams management page.'
-              }}
-            </p>
-          </div>
-        </div>
-      </div>
+  <div class="space-y-6">
+    <!-- Streams Disabled Alert -->
+    <div
+      v-if="$route.query.error === 'streams_disabled'"
+      class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 text-amber-800 dark:text-amber-200 text-sm"
+    >
+      <p>
+        {{
+          $route.query.message ||
+          'Streams feature is currently disabled. Please enable streams in Academic Settings to access the streams management page.'
+        }}
+      </p>
+    </div>
 
-      <!-- Header -->
-      <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Section Management</h1>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-            Manage academic sections for each class and branch
-          </p>
-        </div>
-        <div class="mt-4 sm:mt-0 sm:flex sm:space-x-3">
-          <button
-            @click="openCreateModal"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Plus class="-ml-1 mr-2 h-5 w-5" />
-            Add Section
-          </button>
-        </div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Section Management</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Manage academic sections for each class and branch
+        </p>
       </div>
-
-      <!-- Sections List -->
-      <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Section Name
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Class
-                </th>
-                <th
-                  v-if="streamsEnabled"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Stream
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Branch
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Capacity
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr
-                v-for="section in sections"
-                :key="section.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  {{ section.name }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ section.class?.name }} ({{ section.class?.code }})
-                </td>
-                <td
-                  v-if="streamsEnabled"
-                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
-                >
-                  <span
-                    v-if="section.stream"
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                  >
-                    {{ section.stream.name }} ({{ section.stream.code }})
-                  </span>
-                  <span v-else class="text-gray-400 dark:text-gray-500 text-xs">No Stream</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <div class="flex items-center">
-                    <span class="font-medium">{{ section.branch?.name }}</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ section.capacity }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="{
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200':
-                        section.is_active,
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200':
-                        !section.is_active
-                    }"
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                  >
-                    {{ section.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    @click="editSection(section)"
-                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    @click="toggleStatus(section)"
-                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-3"
-                  >
-                    {{ section.is_active ? 'Deactivate' : 'Activate' }}
-                  </button>
-                  <button
-                    @click="deleteSection(section.id)"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Create/Edit Modal -->
-      <div
-        v-if="showModal"
-        class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
-      >
-        <div
-          class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800"
+      <div>
+        <button
+          @click="openCreateModal"
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors duration-150"
         >
-          <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              {{ isEditing ? 'Edit Section' : 'Create New Section' }}
-            </h3>
-
-            <form @submit.prevent="saveSection">
-              <!-- Context Info -->
-              <div
-                v-if="currentBranch || currentSchool"
-                class="mb-4 bg-blue-50 dark:bg-gray-700/50 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between"
-              >
-                <div class="flex items-center space-x-2">
-                  <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
-                    {{ (currentBranch?.name || currentSchool?.name || 'B').charAt(0).toUpperCase() }}
-                  </span>
-                  <div>
-                    <span class="text-xs font-semibold text-gray-900 dark:text-white">
-                      {{ currentBranch?.name || 'Active Branch' }}
-                    </span>
-                    <span v-if="currentSchool" class="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                      ({{ currentSchool.name }})
-                    </span>
-                  </div>
-                </div>
-                <span class="text-xs text-gray-400 italic">Top Navigation</span>
-              </div>
-
-              <!-- Class Selection - Create Mode Only -->
-              <div v-if="!isEditing" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Class *</label
-                >
-                <select
-                  v-model="selectedClassId"
-                  required
-                  :disabled="!selectedBranchId || loadingClasses"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  @change="onClassChange"
-                >
-                  <option value="">
-                    {{ loadingClasses ? 'Loading classes...' : 'Select Class' }}
-                  </option>
-                  <option
-                    v-for="classItem in availableClasses"
-                    :key="classItem.id"
-                    :value="classItem.id"
-                  >
-                    {{ classItem.name }} ({{ classItem.code }})
-                  </option>
-                </select>
-              </div>
-
-              <!-- Stream Selection - Only if streams are enabled and class has streams -->
-              <div v-if="streamsEnabled && !isEditing && hasStreams" class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Stream *</label
-                >
-                <select
-                  v-model="selectedStreamId"
-                  required
-                  :disabled="!selectedClassId || loadingStreams"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  @change="onStreamChange"
-                >
-                  <option value="">
-                    {{ loadingStreams ? 'Loading streams...' : 'Select Stream' }}
-                  </option>
-                  <option v-for="stream in availableStreams" :key="stream.id" :value="stream.id">
-                    {{ stream.name }} ({{ stream.code }})
-                  </option>
-                </select>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Stream is required for this class
-                </p>
-              </div>
-
-              <!-- Branch and Class Information Display for Edit Mode -->
-              <div
-                v-if="isEditing"
-                class="mb-6 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
-              >
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                  📍 Section Information
-                </h4>
-                <div class="space-y-2">
-                  <div v-if="userRole === 'super_admin'">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                      >School</label
-                    >
-                    <p class="text-sm text-gray-900 dark:text-white">
-                      {{ getSelectedSchoolName() }}
-                    </p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                      >Branch</label
-                    >
-                    <p class="text-sm text-gray-900 dark:text-white">
-                      {{ getSelectedBranchName() }}
-                    </p>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                      >Class</label
-                    >
-                    <p class="text-sm text-gray-900 dark:text-white">
-                      {{ getSelectedClassName() }}
-                    </p>
-                  </div>
-                  <div v-if="streamsEnabled && hasStreams">
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400"
-                      >Stream</label
-                    >
-                    <p class="text-sm text-gray-900 dark:text-white">
-                      {{ getSelectedStreamName() }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >Section Name *</label
-                >
-                <input
-                  v-model="form.name"
-                  type="text"
-                  required
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., A, B, C"
-                />
-              </div>
-
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >Capacity</label
-                >
-                <input
-                  v-model="form.capacity"
-                  type="number"
-                  min="1"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="30"
-                />
-              </div>
-
-              <div class="mb-6">
-                <label class="flex items-center">
-                  <input
-                    v-model="form.is_active"
-                    type="checkbox"
-                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                  />
-                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
-                </label>
-              </div>
-
-              <div class="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  @click="closeModal"
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  :disabled="isSubmitting || !canSubmit"
-                  class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          <Plus class="w-4 h-4" />
+          Add Section
+        </button>
       </div>
     </div>
+
+    <!-- Sections List -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50/80 dark:bg-gray-900/40">
+            <tr>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Section Name
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Class
+              </th>
+              <th
+                v-if="streamsEnabled"
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Stream
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Branch
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Capacity
+              </th>
+              <th
+                class="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tr
+              v-for="section in sections"
+              :key="section.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td
+                class="px-5 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+              >
+                {{ section.name }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ section.class?.name }} ({{ section.class?.code }})
+              </td>
+              <td
+                v-if="streamsEnabled"
+                class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300"
+              >
+                <span
+                  v-if="section.stream"
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-900"
+                >
+                  {{ section.stream.name }} ({{ section.stream.code }})
+                </span>
+                <span v-else class="text-gray-400 dark:text-gray-500 text-xs">No Stream</span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">{{ section.branch?.name || '-' }}</span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                {{ section.capacity }}
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                    section.is_active
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900'
+                  ]"
+                >
+                  <span
+                    class="w-1.5 h-1.5 rounded-full"
+                    :class="section.is_active ? 'bg-emerald-500' : 'bg-rose-500'"
+                  ></span>
+                  {{ section.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-5 py-3.5 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  @click="editSection(section)"
+                  class="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="toggleStatus(section)"
+                  class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 mr-3 hover:underline"
+                >
+                  {{ section.is_active ? 'Deactivate' : 'Activate' }}
+                </button>
+                <button
+                  @click="deleteSection(section.id)"
+                  class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4"
+      >
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+          {{ isEditing ? 'Edit Section' : 'Create New Section' }}
+        </h3>
+
+        <form @submit.prevent="saveSection" class="space-y-4">
+          <!-- Class Selection - Create Mode Only -->
+          <div v-if="!isEditing">
+            <EnhancedDropdown
+              v-model="selectedClassId"
+              label="Class"
+              :options="classDropdownOptions"
+              placeholder="Select Class"
+              :required="true"
+              :disabled="!selectedBranchId || loadingClasses"
+              :loading="loadingClasses"
+              @update:model-value="onClassChange"
+            />
+          </div>
+
+          <!-- Stream Selection - Only if streams are enabled and class has streams -->
+          <div v-if="streamsEnabled && !isEditing && hasStreams">
+            <EnhancedDropdown
+              v-model="selectedStreamId"
+              label="Stream"
+              :options="streamDropdownOptions"
+              placeholder="Select Stream"
+              :required="true"
+              :disabled="!selectedClassId || loadingStreams"
+              :loading="loadingStreams"
+              @update:model-value="onStreamChange"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Stream is required for this class
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Section Name <span class="text-rose-500">*</span></label
+            >
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="input-field"
+              placeholder="e.g., A, B, C"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+              >Capacity</label
+            >
+            <input
+              v-model="form.capacity"
+              type="number"
+              min="1"
+              class="input-field"
+              placeholder="30"
+            />
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="form.is_active"
+                type="checkbox"
+                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              @click="closeModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting || !canSubmit"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {{ isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <ConfirmDialog
+      :open="deleteDialog.open"
+      title="Delete section"
+      message="Are you sure you want to delete this section? This action cannot be undone."
+      confirm-label="Delete"
+      @confirm="confirmDeleteSection"
+      @cancel="deleteDialog.open = false"
+    />
   </div>
 </template>
 
@@ -365,11 +271,12 @@ import { useGlobalBranch } from '~/composables/useGlobalBranch';
 import { useAcademics } from '~/composables/useAcademics';
 import { useBranches } from '~/composables/useBranches';
 import { useSchools } from '~/composables/useSchools';
-import { useAcademicSettings } from '~/utils/settings';
-import { useToast } from '~/composables/useToast';
 import { Streams } from '~/api';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue';
 
 const authStore = useAuthStore();
+const deleteDialog = reactive({ open: false, id: '' });
 const { selectedBranchId: globalBranchId } = useGlobalBranch();
 const { showError, showSuccess } = useToast();
 
@@ -402,6 +309,20 @@ const selectedStreamId = ref('');
 // Streams data
 const streams = ref([]);
 const loadingStreams = ref(false);
+
+const classDropdownOptions = computed(() =>
+  availableClasses.value.map(c => ({
+    label: `${c.name} (${c.code})`,
+    value: c.id
+  }))
+);
+
+const streamDropdownOptions = computed(() =>
+  availableStreams.value.map(s => ({
+    label: `${s.name} (${s.code})`,
+    value: s.id
+  }))
+);
 
 // Form data
 const form = reactive({
@@ -620,7 +541,8 @@ const openCreateModal = async () => {
 
   // Set context from global branch / school
   selectedSchoolId.value = authStore.currentSchool?.id || user.value?.school_id || '';
-  selectedBranchId.value = globalBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
+  selectedBranchId.value =
+    globalBranchId.value || authStore.currentBranch?.id || user.value?.branch_id || '';
 
   // Load classes for the active branch
   await fetchClasses({
@@ -727,12 +649,13 @@ const toggleStatus = async section => {
 };
 
 const deleteSection = async id => {
-  if (!confirm('Are you sure you want to delete this section? This action cannot be undone.')) {
-    return;
-  }
+  deleteDialog.id = id;
+  deleteDialog.open = true;
+};
 
+const confirmDeleteSection = async () => {
   try {
-    await Sections.delete(id);
+    await Sections.delete(deleteDialog.id);
     await fetchSections();
 
     // Show success message
@@ -740,6 +663,9 @@ const deleteSection = async id => {
   } catch (error) {
     // Show error message
     showError('Error deleting section. Please try again.');
+  } finally {
+    deleteDialog.open = false;
+    deleteDialog.id = '';
   }
 };
 

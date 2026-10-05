@@ -7,68 +7,31 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Payment Model</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.payment_model"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Models</option>
-              <option value="installment">Installment Payments</option>
-              <option value="monthly">Monthly Payments</option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.payment_model"
+            :options="paymentModelOptions"
+            @update:model-value="onFilterChange"
+            placeholder="All Models"
+          />
         </div>
-
-
 
         <!-- Academic Year Filter -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Academic Year</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.academic_year"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Years</option>
-              <option v-for="year in academicYears" :key="year.id" :value="year.name">
-                {{ year.name }} {{ year.is_current ? '(Current)' : '' }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.academic_year"
+            :options="[
+              { value: '', label: 'All Years' },
+              ...academicYears.map(year => ({
+                value: year.name,
+                label: `${year.name}${year.is_current ? ' (Current)' : ''}`
+              }))
+            ]"
+            @update:model-value="onFilterChange"
+            placeholder="All Years"
+          />
         </div>
 
         <!-- Class Filter -->
@@ -76,37 +39,15 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Class</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.class_id"
-              @change="onClassChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Classes</option>
-              <option
-                v-for="classItem in availableClasses"
-                :key="classItem.id"
-                :value="classItem.id"
-              >
-                {{ classItem.name }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.class_id"
+            :options="[
+              { value: '', label: 'All Classes' },
+              ...availableClasses.map(classItem => ({ value: classItem.id, label: classItem.name }))
+            ]"
+            @update:model-value="onClassChange"
+            placeholder="All Classes"
+          />
         </div>
 
         <!-- Section Filter -->
@@ -114,33 +55,15 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Section</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.section"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Sections</option>
-              <option v-for="section in availableSections" :key="section.id" :value="section.name">
-                {{ section.name }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.section"
+            :options="[
+              { value: '', label: 'All Sections' },
+              ...availableSections.map(section => ({ value: section.name, label: section.name }))
+            ]"
+            @update:model-value="onFilterChange"
+            placeholder="All Sections"
+          />
         </div>
 
         <!-- Stream Filter -->
@@ -148,33 +71,15 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Stream</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.stream"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Streams</option>
-              <option v-for="stream in availableStreams" :key="stream.id" :value="stream.name">
-                {{ stream.name }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.stream"
+            :options="[
+              { value: '', label: 'All Streams' },
+              ...availableStreams.map(stream => ({ value: stream.name, label: stream.name }))
+            ]"
+            @update:model-value="onFilterChange"
+            placeholder="All Streams"
+          />
         </div>
 
         <!-- Status Filter -->
@@ -182,36 +87,12 @@
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >Status</label
           >
-          <div class="relative">
-            <select
-              v-model="localFilters.status"
-              @change="onFilterChange"
-              class="appearance-none w-full px-4 py-3 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all duration-200 ease-in-out text-sm font-medium shadow-sm"
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="sent">Unpaid</option>
-              <option value="paid">Paid</option>
-              <option value="partial_paid">Partial Paid</option>
-              <option value="overdue">Overdue</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                class="h-5 w-5 text-gray-400 dark:text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
+          <EnhancedDropdown
+            v-model="localFilters.status"
+            :options="statusOptions"
+            @update:model-value="onFilterChange"
+            placeholder="All Status"
+          />
         </div>
 
         <!-- Filter Button -->
@@ -296,6 +177,7 @@
 import { ref, reactive, watch, computed } from 'vue';
 import { Search } from 'lucide-vue-next';
 import { useAuth } from '~/composables/useAuth';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const props = defineProps({
   filters: {
@@ -438,6 +320,20 @@ const localFilters = reactive({
   stream: '',
   status: ''
 });
+const paymentModelOptions = [
+  { value: '', label: 'All Models' },
+  { value: 'installment', label: 'Installment Payments' },
+  { value: 'monthly', label: 'Monthly Payments' }
+];
+const statusOptions = [
+  { value: '', label: 'All Status' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'sent', label: 'Unpaid' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'partial_paid', label: 'Partial Paid' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'cancelled', label: 'Cancelled' }
+];
 
 // Initialize local filters with props
 watch(

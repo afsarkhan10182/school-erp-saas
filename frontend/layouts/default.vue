@@ -1,15 +1,17 @@
 <template>
-  <div
-    v-if="shouldRender"
-    class="min-h-screen bg-gray-50 dark:bg-gray-900 flex transition-colors duration-300 w-full overflow-x-hidden"
-  >
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex w-full overflow-x-hidden">
     <ClientOnly>
-      <Sidebar v-if="isLoggedIn && user && !isAuthPage" :open="sidebarOpen" :user="user" @toggle="toggleSidebar" />
+      <Sidebar
+        v-if="isLoggedIn && user && !isAuthPage"
+        :open="sidebarOpen"
+        :user="user"
+        @toggle="toggleSidebar"
+      />
     </ClientOnly>
 
     <div
       :class="mainContentClasses"
-      class="main-content-wrapper relative flex-1 flex flex-col min-h-screen min-w-0 max-w-full transition-all duration-300"
+      class="main-content-wrapper relative flex-1 flex flex-col min-h-screen min-w-0 max-w-full transition-[margin] duration-150"
     >
       <ClientOnly>
         <Header
@@ -23,7 +25,7 @@
 
       <main
         class="relative flex-1 min-w-0 max-w-full bg-gray-50 dark:bg-gray-900 overflow-x-hidden"
-        :class="{ 'p-4 sm:p-6 lg:p-8': isLoggedIn && !isAuthPage }"
+        :class="{ 'p-4 sm:p-6 lg:p-8': isHydrated && isLoggedIn && !isAuthPage }"
       >
         <template v-if="!isHydrated">
           <div class="animate-pulse space-y-4">
@@ -43,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Sidebar from '~/components/layout/Sidebar.vue';
 import Header from '~/components/layout/Header.vue';
@@ -63,15 +65,10 @@ const { user } = useAuth();
 const { fetchBranchesForUser } = useBranches();
 const { isLoggedIn } = useAuth();
 
-const shouldRender = computed(() => {
-  if (import.meta.server) return true;
-  return isHydrated.value;
-});
-
 const isAuthPage = computed(() => route.path?.startsWith('/auth/'));
 
 const mainContentClasses = computed(() => {
-  if (!isLoggedIn.value || isAuthPage.value) return 'w-full ml-0';
+  if (!isHydrated.value || !isLoggedIn.value || isAuthPage.value) return 'w-full ml-0';
   if (isMobile.value) return 'w-full ml-0';
   return sidebarOpen.value ? 'lg:ml-64' : 'lg:ml-16';
 });
@@ -187,7 +184,7 @@ onMounted(async () => {
   if (import.meta.client) {
     initializeSidebar();
     mql = window.matchMedia('(max-width: 1023px)');
-    mql.addEventListener('change', (e) => {
+    mql.addEventListener('change', e => {
       if (e.matches) {
         sidebarOpen.value = false; // Close drawer on mobile/tablet
       } else {
@@ -202,6 +199,12 @@ onMounted(async () => {
   }
 });
 
+watch(isLoggedIn, async (newVal) => {
+  if (newVal) {
+    await fetchBranchesForUser();
+  }
+});
+
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', () => {});
 });
@@ -209,7 +212,7 @@ onUnmounted(() => {
 
 <style scoped>
 .main-content-wrapper {
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 0.15s ease-out, width 0.15s ease-out;
   position: relative;
   z-index: 1;
 }

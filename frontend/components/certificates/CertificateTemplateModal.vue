@@ -44,7 +44,6 @@
             <div class="space-y-6">
               <!-- Essential Fields -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
                 <!-- Template Name -->
                 <div>
                   <label
@@ -98,7 +97,10 @@
                   />
                 </button>
 
-                <div v-if="showAdvancedSettings" class="p-4 space-y-6 border-t border-gray-200 dark:border-gray-700">
+                <div
+                  v-if="showAdvancedSettings"
+                  class="p-4 space-y-6 border-t border-gray-200 dark:border-gray-700"
+                >
                   <!-- Layout & QR Settings -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Page Layout -->
@@ -292,9 +294,7 @@
                       'prose-em:text-gray-700 dark:prose-em:text-gray-300'
                     ]"
                     :style="
-                      getPreviewBackgroundImage
-                        ? 'background-color: rgba(255, 255, 255, 0.9);'
-                        : ''
+                      getPreviewBackgroundImage ? 'background-color: rgba(255, 255, 255, 0.9);' : ''
                     "
                   >
                     <!-- Logo Image -->
@@ -303,7 +303,11 @@
                         :src="getPreviewLogoImage"
                         alt="Logo"
                         class="h-16 w-16 object-contain"
-                        @error="e => { e.target.style.display = 'none'; }"
+                        @error="
+                          e => {
+                            e.target.style.display = 'none';
+                          }
+                        "
                       />
                     </div>
                     <div v-html="getPreviewContent()"></div>
@@ -623,20 +627,20 @@ const loadSampleTemplate = content => {
 
 // Helper function to get full image URL for certificate images
 // Structure: uploads/schools/{schoolCode}/{year}/certificates/{filename}
-const getFullImageUrl = (path) => {
+const getFullImageUrl = path => {
   if (!path) return null;
-  
+
   // If it's already a full URL or data URL, return as is
   if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) {
     return path;
   }
-  
+
   // Get school code from multiple sources (priority order):
   // 1. Selected branch's school code
   // 2. Template's branch school code (if template has branch with school)
   // 3. Current school from auth store
   let schoolCode = '';
-  
+
   // Try from selected branch
   const selectedBranch = availableBranches.value.find(b => b.id === form.branch_id);
   if (selectedBranch?.school?.code) {
@@ -644,7 +648,7 @@ const getFullImageUrl = (path) => {
   } else if (selectedBranch?.school_code) {
     schoolCode = selectedBranch.school_code;
   }
-  
+
   // Try from template's branch if available
   if (!schoolCode && props.template?.branch) {
     if (props.template.branch.school?.code) {
@@ -653,17 +657,17 @@ const getFullImageUrl = (path) => {
       schoolCode = props.template.branch.school_code;
     }
   }
-  
+
   // Fallback to current school from auth store
   if (!schoolCode && authStore.currentSchool?.code) {
     schoolCode = authStore.currentSchool.code;
   }
-  
+
   if (!schoolCode) {
     console.warn('⚠️ Could not determine school code for image URL');
     return null;
   }
-  
+
   // Construct the certificate URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
   return getCertificateUrl(path, schoolCode);
 };
@@ -705,14 +709,12 @@ const getPreviewContent = () => {
   // First, handle dynamic tags that are wrapped in span tags from the editor
   // Extract the tag name from data-tag attribute and show as {tag}
   // Pattern: <span class="dynamic-tag" data-tag="tagName">{tagName}</span>
-  const dynamicTagRegex = /<span[^>]*class=["']dynamic-tag["'][^>]*data-tag=["']([^"']+)["'][^>]*>(\{[^}]+\})<\/span>/gi;
-  previewContent = previewContent.replace(
-    dynamicTagRegex,
-    (match, tagName, tagContent) => {
-      // Use the tag name from data-tag attribute to ensure we show {tagName}
-      return `<span class="preview-tag">{${tagName}}</span>`;
-    }
-  );
+  const dynamicTagRegex =
+    /<span[^>]*class=["']dynamic-tag["'][^>]*data-tag=["']([^"']+)["'][^>]*>(\{[^}]+\})<\/span>/gi;
+  previewContent = previewContent.replace(dynamicTagRegex, (match, tagName, tagContent) => {
+    // Use the tag name from data-tag attribute to ensure we show {tagName}
+    return `<span class="preview-tag">{${tagName}}</span>`;
+  });
 
   // Then handle plain {tag} patterns that might not be wrapped in dynamic-tag spans
   // Match {tag} patterns and wrap them in a span to highlight them visually
@@ -732,7 +734,12 @@ const getPreviewContent = () => {
 const handleSubmit = async () => {
   try {
     // Ensure branch_id is set from global context
-    form.branch_id = form.branch_id || selectedBranchId.value || authStore.currentBranch?.id || availableBranches.value?.[0]?.id || '';
+    form.branch_id =
+      form.branch_id ||
+      selectedBranchId.value ||
+      authStore.currentBranch?.id ||
+      availableBranches.value?.[0]?.id ||
+      '';
 
     // Create FormData for multipart upload
     const formData = new FormData();
@@ -795,7 +802,10 @@ onMounted(async () => {
   try {
     await fetchBranchesForUser();
     if (!form.branch_id) {
-      form.branch_id = selectedBranchId.value || currentBranch.value?.id || (availableBranches.value.length === 1 ? availableBranches.value[0].id : '');
+      form.branch_id =
+        selectedBranchId.value ||
+        currentBranch.value?.id ||
+        (availableBranches.value.length === 1 ? availableBranches.value[0].id : '');
     }
   } catch (error) {
     showToast('Failed to load branches. Please refresh the page.', 'error');
@@ -812,11 +822,15 @@ watch(
           form[key] = newTemplate[key];
         }
       });
-      
+
       // Load existing images into previews for editing
       if (newTemplate.logo_image && typeof newTemplate.logo_image === 'string') {
         // If it's already a full URL (from composable processing), use it directly
-        if (newTemplate.logo_image.startsWith('http') || newTemplate.logo_image.startsWith('blob:') || newTemplate.logo_image.startsWith('data:')) {
+        if (
+          newTemplate.logo_image.startsWith('http') ||
+          newTemplate.logo_image.startsWith('blob:') ||
+          newTemplate.logo_image.startsWith('data:')
+        ) {
           logoPreview.value = newTemplate.logo_image;
         } else {
           // Construct URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
@@ -825,10 +839,14 @@ watch(
       } else {
         logoPreview.value = null;
       }
-      
+
       if (newTemplate.background_image && typeof newTemplate.background_image === 'string') {
         // If it's already a full URL (from composable processing), use it directly
-        if (newTemplate.background_image.startsWith('http') || newTemplate.background_image.startsWith('blob:') || newTemplate.background_image.startsWith('data:')) {
+        if (
+          newTemplate.background_image.startsWith('http') ||
+          newTemplate.background_image.startsWith('blob:') ||
+          newTemplate.background_image.startsWith('data:')
+        ) {
           backgroundPreview.value = newTemplate.background_image;
         } else {
           // Construct URL: uploads/schools/{schoolCode}/{year}/certificates/{filename}
@@ -837,7 +855,7 @@ watch(
       } else {
         backgroundPreview.value = null;
       }
-      
+
       // If editing, mark name as manually entered
       if (newTemplate.name) {
         userHasEnteredName.value = true;
@@ -886,15 +904,21 @@ const handleUserTypeChange = () => {
 // Watch for user_type changes to auto-fill values
 watch(
   () => form.user_type,
-  (newUserType) => {
+  newUserType => {
     if (newUserType) {
       // Auto-fill QR code text based on user type (only if not already set or invalid)
       if (newUserType === 'student') {
-        if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+        if (
+          !form.qr_code_text ||
+          !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)
+        ) {
           form.qr_code_text = 'register_no';
         }
       } else if (newUserType === 'employee') {
-        if (!form.qr_code_text || !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)) {
+        if (
+          !form.qr_code_text ||
+          !qrCodeOptions.value.find(opt => opt.value === form.qr_code_text)
+        ) {
           form.qr_code_text = 'staff_id';
         }
       }
@@ -907,7 +931,7 @@ watch(
 // Track manual name entry
 watch(
   () => form.name,
-  (newName) => {
+  newName => {
     if (newName && newName.trim() !== '') {
       userHasEnteredName.value = true;
     }
@@ -959,19 +983,19 @@ watch(
   text-decoration: underline;
 }
 
-.certificate-preview :deep([style*="text-align: center"]) {
+.certificate-preview :deep([style*='text-align: center']) {
   text-align: center;
 }
 
-.certificate-preview :deep([style*="text-align: right"]) {
+.certificate-preview :deep([style*='text-align: right']) {
   text-align: right;
 }
 
-.certificate-preview :deep([style*="text-align: left"]) {
+.certificate-preview :deep([style*='text-align: left']) {
   text-align: left;
 }
 
-.certificate-preview :deep([style*="text-align: justify"]) {
+.certificate-preview :deep([style*='text-align: justify']) {
   text-align: justify;
 }
 

@@ -8,16 +8,20 @@
       </p>
 
       <div class="flex flex-wrap gap-3 mb-6">
-        <select v-model="classId" class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700" @change="onClassChange">
-          <option value="">All classes</option>
-          <option v-for="option in classOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-        <select v-model="sectionId" class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700" :disabled="!classId" @change="load(activeType)">
-          <option value="">All sections</option>
-          <option v-for="option in sectionOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-        <input v-model="fromDate" type="date" class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700" @change="load(activeType)" />
-        <input v-model="toDate" type="date" class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700" @change="load(activeType)" />
+        <EnhancedDropdown v-model="classId" :options="classOptions" placeholder="All classes" id="reports-class-filter" @change="onClassChange" />
+        <EnhancedDropdown v-model="sectionId" :options="sectionOptions" placeholder="All sections" id="reports-section-filter" :disabled="!classId" @change="load(activeType)" />
+        <input
+          v-model="fromDate"
+          type="date"
+          class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+          @change="load(activeType)"
+        />
+        <input
+          v-model="toDate"
+          type="date"
+          class="border rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700"
+          @change="load(activeType)"
+        />
       </div>
 
       <div class="flex flex-wrap gap-2 mb-6">
@@ -36,7 +40,9 @@
           v-for="m in modules"
           :key="m.key"
           class="px-3 py-2 text-sm rounded-md"
-          :class="activeModule === m.key ? 'bg-indigo-600 text-white' : 'bg-white border dark:bg-gray-800'"
+          :class="
+            activeModule === m.key ? 'bg-indigo-600 text-white' : 'bg-white border dark:bg-gray-800'
+          "
           @click="selectModule(m)"
         >
           {{ m.title }}
@@ -48,7 +54,9 @@
           v-for="t in types"
           :key="t"
           class="px-3 py-1.5 text-xs rounded-md"
-          :class="activeType === t ? 'bg-indigo-100 text-indigo-800' : 'bg-white border dark:bg-gray-800'"
+          :class="
+            activeType === t ? 'bg-indigo-100 text-indigo-800' : 'bg-white border dark:bg-gray-800'
+          "
           @click="load(t)"
         >
           {{ t }}
@@ -86,15 +94,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ReportsSuite } from '~/api/academic/cards-exams-reports';
 import { useGlobalBranch } from '~/composables/useGlobalBranch';
+import { useAuthStore } from '~/stores/auth';
 import { useAcademics } from '~/composables/useAcademics';
 import { apiErrorMessage } from '~/utils/list-response';
+import EnhancedDropdown from '~/components/ui/EnhancedDropdown.vue';
 
 const route = useRoute();
-const { selectedBranchId, currentSchool, branchScopeParams } = useGlobalBranch();
+const {
+  selectedBranchId: globalSelectedBranchId,
+  currentSchool,
+  branchScopeParams
+} = useGlobalBranch();
+const authStore = useAuthStore();
+const selectedBranchId = computed(
+  () => globalSelectedBranchId.value || authStore.user?.branch_id || ''
+);
 const { classOptions, sectionOptions, fetchClasses, fetchSections } = useAcademics();
 const modules = ref<any[]>([]);
 const activeModule = ref('students');
@@ -130,7 +148,8 @@ const selectModule = async (m: any) => {
 
 const onClassChange = async () => {
   sectionId.value = '';
-  if (classId.value) await fetchSections({ classId: classId.value, branchId: selectedBranchId.value });
+  if (classId.value)
+    await fetchSections({ classId: classId.value, branchId: selectedBranchId.value });
   await load(activeType.value);
 };
 
@@ -178,8 +197,7 @@ onMounted(async () => {
     const res: any = await ReportsSuite.catalog();
     modules.value = res.data?.modules || [];
     const q = String(route.query.module || '');
-    const initial =
-      modules.value.find((m: any) => m.key === q) || modules.value[0];
+    const initial = modules.value.find((m: any) => m.key === q) || modules.value[0];
     if (initial) await selectModule(initial);
   } catch (e) {
     error.value = apiErrorMessage(e);

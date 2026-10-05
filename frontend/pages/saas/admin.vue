@@ -86,7 +86,8 @@
           <p><strong>Status Types:</strong></p>
           <ul class="list-disc list-inside space-y-1 ml-4">
             <li>
-              <span class="text-indigo-600 dark:text-indigo-400">Trial:</span> Schools on trial plans
+              <span class="text-indigo-600 dark:text-indigo-400">Trial:</span> Schools on trial
+              plans
             </li>
             <li>
               <span class="text-green-600 dark:text-green-400">Active:</span> Schools with active
