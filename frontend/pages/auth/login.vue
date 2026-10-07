@@ -169,7 +169,7 @@
                   :class="loginAudience === role.key || (!loginAudience && role.key === 'admin')
                     ? 'border-pink-300 bg-white/10 text-white shadow-lg shadow-pink-500/10'
                     : 'border-white/15 bg-white/5 text-white/75 hover:border-white/35 hover:bg-white/10'"
-                  @click="selectLoginRole(role.key)"
+                  @click="handleDemoLogin(role.key)"
                 >
                   <span class="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-pink-200/15">
                     <component :is="role.icon" class="h-4 w-4 opacity-90" />
@@ -344,6 +344,11 @@ const selectLoginRole = role => {
   else delete query.audience;
   router.replace({ query });
   error.value = '';
+};
+
+const handleDemoLogin = async role => {
+  selectLoginRole(role);
+  await handleLogin();
 };
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
