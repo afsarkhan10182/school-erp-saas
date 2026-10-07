@@ -123,6 +123,7 @@ const ExamReport = sequelize => {
     {
       tableName: 'exam_reports',
       timestamps: true,
+      underscored: true,
       paranoid: false,
       indexes: [
         {

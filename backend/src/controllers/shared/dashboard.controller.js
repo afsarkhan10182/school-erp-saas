@@ -1,4 +1,4 @@
-const { User, School, Branch, FeeInvoice, Student } = require('~/models');
+const { User, School, Branch, FeeInvoice, Student, Transaction } = require('~/models');
 const { Sequelize, sequelize } = require('~/config/database');
 const SchoolService = require('~/services/administration/schools/school.service');
 const BranchService = require('~/services/administration/schools/branch.service');

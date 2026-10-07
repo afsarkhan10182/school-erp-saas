@@ -76,7 +76,8 @@
               >
                 <span class="text-white font-bold text-2xl">S</span>
               </div>
-              <p class="text-white/70 text-sm">Sign in to your School ERP account</p>
+              <h1 class="text-white text-2xl font-semibold">{{ loginTitle }}</h1>
+              <p class="text-white/70 text-sm mt-2">{{ loginSubtitle }}</p>
             </div>
 
             <!-- Error Message -->
@@ -155,17 +156,28 @@
                 </span>
               </button>
 
-              <!-- Demo Quick Access -->
-              <div class="mt-4">
+            </form>
+
+            <div class="mt-6 border-t border-white/20 pt-4" aria-label="Choose login type">
+              <h2 class="mb-3 text-center text-sm font-semibold text-white">Explore the demo</h2>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
+                  v-for="role in loginRoles"
+                  :key="role.key"
                   type="button"
-                  @click="fillDemoCredentials"
-                  class="w-full py-2 px-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white/80 font-medium rounded-xl hover:bg-white/20 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                  class="group flex min-h-[96px] flex-col items-center justify-center rounded-xl border px-2 py-3 text-center transition-all"
+                  :class="loginAudience === role.key || (!loginAudience && role.key === 'admin')
+                    ? 'border-pink-300 bg-white/10 text-white shadow-lg shadow-pink-500/10'
+                    : 'border-white/15 bg-white/5 text-white/75 hover:border-white/35 hover:bg-white/10'"
+                  @click="selectLoginRole(role.key)"
                 >
-                  Quick Demo Login
+                  <span class="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-pink-200/15">
+                    <component :is="role.icon" class="h-4 w-4 opacity-90" />
+                  </span>
+                  <span class="block text-xs font-medium leading-tight">{{ role.label }}</span>
                 </button>
               </div>
-            </form>
+            </div>
 
             <!-- Copyright -->
             <div class="mt-6 pt-6 border-t border-white/20">
@@ -254,7 +266,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { Mail, Lock, Sun, Moon, X } from 'lucide-vue-next';
+import { Mail, Lock, Sun, Moon, X, ShieldCheck, GitBranch, GraduationCap, Users, UserRound, Calculator, BookOpen } from 'lucide-vue-next';
 import { useAuthStore } from '~/stores/auth';
 import { Auth } from '~/api';
 import { homePathForRole } from '~/utils/home-path';
@@ -293,6 +305,46 @@ const { isDark, toggleTheme, initializeTheme } = useTheme();
 
 // Dynamic year for copyright
 const currentYear = computed(() => new Date().getFullYear());
+
+const loginAudience = computed(() => {
+  const audience = route.query.audience;
+  return audience === 'parent' || audience === 'student' ? audience : null;
+});
+const loginTitle = computed(() =>
+  loginAudience.value === 'parent'
+    ? 'Parent login'
+    : loginAudience.value === 'student'
+      ? 'Student login'
+      : 'School ERP login'
+);
+const loginSubtitle = computed(() =>
+  loginAudience.value
+    ? `Use the ${loginAudience.value} account provided by your school.`
+    : 'Sign in with your school, parent, or student account.'
+);
+
+const loginRoles = [
+  { key: 'admin', label: 'School admin', description: 'Manage your school', icon: ShieldCheck },
+  { key: 'branch_admin', label: 'Branch admin', description: 'Manage a branch', icon: GitBranch },
+  { key: 'student', label: 'Student', description: 'Open student portal', icon: GraduationCap },
+  { key: 'parent', label: 'Parent', description: 'View linked children', icon: Users },
+  { key: 'teacher', label: 'Teacher', description: 'Classes and attendance', icon: UserRound },
+  { key: 'receptionist', label: 'Receptionist', description: 'Front office access', icon: UserRound },
+  { key: 'accountant', label: 'Accountant', description: 'Fees and finance', icon: Calculator },
+  { key: 'librarian', label: 'Librarian', description: 'Library operations', icon: BookOpen }
+];
+
+const selectLoginRole = role => {
+  const accountRole = role === 'branch_admin' ? 'branch' : role;
+  form.email = `demo.${accountRole}@schoolerp.local`;
+  form.password = 'Demo@12345';
+  form.rememberMe = false;
+  const query = { ...route.query };
+  if (role === 'student' || role === 'parent') query.audience = role;
+  else delete query.audience;
+  router.replace({ query });
+  error.value = '';
+};
 
 // Note: "Remember Me" is now handled by cookie expiry on the backend
 // No need to store credentials locally - the backend manages session persistence
@@ -448,13 +500,6 @@ const handleLogin = async () => {
   }
 };
 
-// Fill demo credentials for quick access
-const fillDemoCredentials = () => {
-  form.email = 'demo@gmail.com';
-  form.password = 'demo@123';
-  form.rememberMe = false;
-  error.value = ''; // Clear any existing errors
-};
 </script>
 
 <style scoped>

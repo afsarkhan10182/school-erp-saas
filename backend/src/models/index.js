@@ -49,6 +49,8 @@ const OnlineExam = require('./academic/online-exam.model');
 const OnlineExamQuestion = require('./academic/online-exam-question.model');
 const OnlineExamAttempt = require('./academic/online-exam-attempt.model');
 const ExamSeating = require('./academic/exam-seating.model');
+const ReportTemplate = require('./academic/exams/report-template.model')(sequelize);
+const ExamReport = require('./academic/exams/exam-report.model')(sequelize);
 
 // Administration models
 const CertificateTemplate = require('./administration/certificate-template.model');
@@ -136,6 +138,8 @@ const models = {
   OnlineExamQuestion,
   OnlineExamAttempt,
   ExamSeating,
+  ReportTemplate,
+  ExamReport,
   CertificateTemplate,
   Vehicle,
   TransportRoute,

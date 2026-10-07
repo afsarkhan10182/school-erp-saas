@@ -120,16 +120,6 @@ router.get('/:id/results', ExamController.getExamResults);
  */
 router.get('/:id/results/export', ExamController.exportExamResults);
 
-/**
- * @route PUT /api/exams/:id/results/:resultId
- * @desc Update a single exam result
- * @access Private (EXAM_ROLES)
- * @param {string} id - Exam ID
- * @param {string} resultId - Result ID
- * @body {number} marks_obtained, {string} grade, {string} remarks
- */
-router.put('/:id/results/:resultId', requireRole(...EXAM_ROLES), ExamController.updateExamResult);
-
 // ===== STUDENT EXAM ROUTES =====
 
 /**
@@ -184,5 +174,15 @@ router.get('/:examId/template', requireRole(...EXAM_ROLES), ExamController.downl
  * @body {Array} results - Array of result objects
  */
 router.put('/:examId/results/bulk', requireRole(...EXAM_ROLES), ExamController.bulkUpdateResults);
+
+/**
+ * @route PUT /api/exams/:id/results/:resultId
+ * @desc Update a single exam result
+ * @access Private (EXAM_ROLES)
+ * @param {string} id - Exam ID
+ * @param {string} resultId - Result ID
+ * @body {number} marks_obtained, {string} grade, {string} remarks
+ */
+router.put('/:id/results/:resultId', requireRole(...EXAM_ROLES), ExamController.updateExamResult);
 
 module.exports = router;

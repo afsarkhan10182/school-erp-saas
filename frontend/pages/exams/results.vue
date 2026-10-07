@@ -623,5 +623,17 @@ onMounted(async () => {
   }
 });
 
+watch(selectedBranchId, async branchId => {
+  selectedExamId.value = '';
+  selectedClassId.value = '';
+  selectedSectionId.value = '';
+  examsWithResults.value = [];
+  await Promise.all([
+    fetchClasses(branchId ? { branchId: branchId } : {}),
+    loadExams(branchId ? { branch_id: branchId } : {})
+  ]);
+  await loadResults();
+});
+
 // Note: Sections are loaded in onClassChange handler, no need for separate watch
 </script>

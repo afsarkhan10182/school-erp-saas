@@ -18,7 +18,7 @@ class SystemSettingsController {
 
       // Get school with system settings
       const school = await School.findByPk(schoolId, {
-        attributes: ['id', 'name', 'systemSettings']
+        attributes: ['id', 'name', 'settings']
       });
 
       if (!school) {
@@ -47,7 +47,7 @@ class SystemSettingsController {
       // Merge with stored settings
       const systemSettings = {
         ...defaultSystemSettings,
-        ...(school.systemSettings || {})
+        ...(school.settings || {})
       };
 
       res.json({
@@ -152,7 +152,7 @@ class SystemSettingsController {
       }
 
       // Merge with existing settings
-      const currentSettings = school.systemSettings || {};
+      const currentSettings = school.settings || {};
       const updatedSettings = {
         ...currentSettings,
         ...systemSettings
@@ -160,7 +160,7 @@ class SystemSettingsController {
 
       // Update school with new system settings
       await school.update({
-        systemSettings: updatedSettings
+        settings: updatedSettings
       });
 
       res.json({
