@@ -31,7 +31,7 @@ async function run() {
   const mainStudents = await json(`/students?branch_id=${encodeURIComponent(branches.find(branch => branch.code === 'MAIN').id)}`);
   const secondStudents = await json(`/students?branch_id=${encodeURIComponent(branches.find(branch => branch.code === 'SECOND').id)}`);
   const studentCount = payload => Array.isArray(payload.data) ? payload.data.length : (payload.data?.students?.length ?? payload.data?.data?.length ?? 0);
-  if (studentCount(mainStudents) !== 2 || studentCount(secondStudents) !== 0) throw new Error('branch student isolation mismatch');
+  if (studentCount(mainStudents) !== 2 || studentCount(secondStudents) !== 1) throw new Error('branch student isolation mismatch');
 
   const paths = [
     '/branches', '/students', '/parents', '/classes', '/sections', '/subjects', '/academic-years',

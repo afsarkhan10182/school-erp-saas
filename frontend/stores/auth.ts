@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import type { User, LoginCredentials, AuthResponse } from '~/types';
 import { Auth } from '~/api/shared/auth';
 import { clearModuleCache } from '~/composables/useModuleAccess';
+import { homePathForRole } from '~/utils/home-path';
 
 interface AuthState {
   user: User | null;
@@ -464,7 +465,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Navigate to role home if on login page
         if (window.location.pathname === '/auth/login') {
           const role = user.value?.role;
-          navigateTo(role === 'student' || role === 'parent' ? '/portal' : '/dashboard');
+          navigateTo(homePathForRole(role));
         }
       }
 

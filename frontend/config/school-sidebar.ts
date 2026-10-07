@@ -531,6 +531,19 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
     });
   }
 
+  if (isTeacher) {
+    groups.push({
+      id: 'teacher-workspace',
+      title: 'Teaching',
+      items: [
+        link('teacher-dashboard', 'Dashboard', '/dashboard', I.Home),
+        link('teacher-timetable', 'My Timetable', '/academic/timetable', I.Calendar, 'academic_management'),
+        link('teacher-attendance', 'Attendance', '/attendance', I.ClipboardList, 'attendance'),
+        link('teacher-exams', 'Exam Results', '/exams/results', I.BarChart3, 'exams')
+      ]
+    });
+  }
+
   // —— Exams ——
   if (schoolStaff) {
     groups.push({
@@ -884,6 +897,17 @@ export function buildSchoolSidebar(ctx: Ctx): SidebarGroup[] {
             link('acct-expense', 'Expense', '/accounting/expense', I.Receipt, 'accounting')
           ]
         }
+      ]
+    });
+  }
+
+  if (isStudent || isParent) {
+    groups.push({
+      id: 'portal',
+      title: 'My Portal',
+      items: [
+        link('portal-home', 'Portal Home', '/portal', I.Home),
+        link('portal-online-exams', 'Online Exams', '/portal/online-exams', I.FileText, 'exams')
       ]
     });
   }
